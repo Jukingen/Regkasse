@@ -1,0 +1,108 @@
+{
+    "common": {
+        "loading": "Yükleniyor...",
+        "error": "Hata",
+        "success": "Başarılı",
+        "save": "Kaydet",
+        "cancel": "İptal",
+        "delete": "Sil",
+        "edit": "Düzenle",
+        "search": "Ara",
+        "refresh": "Yenile",
+        "back": "Geri",
+        "next": "İleri",
+        "confirm": "Onayla",
+        "yes": "Evet",
+        "no": "Hayır"
+    },
+    "auth": {
+        "login": "Giriş Yap",
+        "logout": "Çıkış Yap",
+        "email": "E-posta",
+        "password": "Şifre",
+        "loginError": "Giriş başarısız. Lütfen bilgilerinizi kontrol ediniz.",
+        "loginSuccess": "Başarıyla giriş yapıldı",
+        "logoutSuccess": "Başarıyla çıkış yapıldı"
+    },
+    "products": {
+        "title": "Ürünler",
+        "addProduct": "Ürün Ekle",
+        "editProduct": "Ürün Düzenle",
+        "deleteProduct": "Ürün Sil",
+        "name": "Ad",
+        "price": "Fiyat",
+        "taxType": "Vergi Oranı",
+        "category": "Kategori",
+        "stock": "Stok",
+        "unit": "Birim",
+        "description": "Açıklama",
+        "searchPlaceholder": "Ürün ara...",
+        "taxTypes": {
+            "standard": "Standart (%20)",
+            "reduced": "İndirimli (%10)",
+            "special": "Özel (%13)"
+        }
+    },
+    "customers": {
+        "title": "Müşteriler",
+        "addCustomer": "Müşteri Ekle",
+        "editCustomer": "Müşteri Düzenle",
+        "deleteCustomer": "Müşteri Sil",
+        "searchPlaceholder": "Müşteri ara...",
+        "name": "Ad",
+        "email": "E-posta",
+        "phone": "Telefon",
+        "address": "Adres",
+        "taxNumber": "Vergi Numarası",
+        "type": {
+            "individual": "Bireysel",
+            "business": "Kurumsal"
+        }
+    },
+    "reports": {
+        "title": "Raporlar",
+        "sales": "Satışlar",
+        "cash": "Kasa",
+        "periods": {
+            "daily": "Bugün",
+            "weekly": "Bu Hafta",
+            "monthly": "Bu Ay",
+            "yearly": "Bu Yıl"
+        },
+        "summary": {
+            "totalSales": "Toplam Satış",
+            "totalTax": "Toplam Vergi",
+            "totalItems": "Toplam Ürün",
+            "averageTicket": "Ortalama Sepet",
+            "openingBalance": "Açılış Bakiyesi",
+            "closingBalance": "Kapanış Bakiyesi",
+            "difference": "Fark"
+        },
+        "topProducts": "En Çok Satan Ürünler"
+    },
+    "settings": {
+        "title": "Ayarlar",
+        "language": "Dil",
+        "theme": "Tema",
+        "notifications": "Bildirimler",
+        "printer": "Yazıcı",
+        "receipt": "Fiş",
+        "themes": {
+            "light": "Açık",
+            "dark": "Koyu",
+            "system": "Sistem"
+        },
+        "receiptSettings": {
+            "showLogo": "Logo Göster",
+            "showTaxDetails": "Vergi Detaylarını Göster",
+            "footerText": "Alt Bilgi"
+        }
+    },
+    "errors": {
+        "network": "Ağ hatası. Lütfen bağlantınızı kontrol edin.",
+        "unauthorized": "Yetkisiz erişim. Lütfen tekrar giriş yapın.",
+        "notFound": "Kaynak bulunamadı.",
+        "serverError": "Sunucu hatası. Lütfen daha sonra tekrar deneyin.",
+        "validation": "Geçersiz giriş. Lütfen alanları kontrol edin."
+    }
+} 

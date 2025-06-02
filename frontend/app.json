@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Kasse App",
+    "slug": "kasse-app",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "scheme": "kasse",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kasse.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.kasse.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "fonts": [
+      {
+        "asset": "assets/fonts/OCRA-B.ttf",
+        "family": "OCRA-B"
+      }
+    ]
+  }
+}

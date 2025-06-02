@@ -1,0 +1,108 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "search": "Search",
+        "refresh": "Refresh",
+        "back": "Back",
+        "next": "Next",
+        "confirm": "Confirm",
+        "yes": "Yes",
+        "no": "No"
+    },
+    "auth": {
+        "login": "Login",
+        "logout": "Logout",
+        "email": "Email",
+        "password": "Password",
+        "loginError": "Login failed. Please check your credentials.",
+        "loginSuccess": "Successfully logged in",
+        "logoutSuccess": "Successfully logged out"
+    },
+    "products": {
+        "title": "Products",
+        "addProduct": "Add Product",
+        "editProduct": "Edit Product",
+        "deleteProduct": "Delete Product",
+        "name": "Name",
+        "price": "Price",
+        "taxType": "Tax Rate",
+        "category": "Category",
+        "stock": "Stock",
+        "unit": "Unit",
+        "description": "Description",
+        "searchPlaceholder": "Search products...",
+        "taxTypes": {
+            "standard": "Standard (20%)",
+            "reduced": "Reduced (10%)",
+            "special": "Special (13%)"
+        }
+    },
+    "customers": {
+        "title": "Customers",
+        "addCustomer": "Add Customer",
+        "editCustomer": "Edit Customer",
+        "deleteCustomer": "Delete Customer",
+        "searchPlaceholder": "Search customers...",
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone",
+        "address": "Address",
+        "taxNumber": "Tax Number",
+        "type": {
+            "individual": "Individual",
+            "business": "Business"
+        }
+    },
+    "reports": {
+        "title": "Reports",
+        "sales": "Sales",
+        "cash": "Cash Register",
+        "periods": {
+            "daily": "Today",
+            "weekly": "This Week",
+            "monthly": "This Month",
+            "yearly": "This Year"
+        },
+        "summary": {
+            "totalSales": "Total Sales",
+            "totalTax": "Total Tax",
+            "totalItems": "Total Items",
+            "averageTicket": "Average Ticket",
+            "openingBalance": "Opening Balance",
+            "closingBalance": "Closing Balance",
+            "difference": "Difference"
+        },
+        "topProducts": "Top Selling Products"
+    },
+    "settings": {
+        "title": "Settings",
+        "language": "Language",
+        "theme": "Theme",
+        "notifications": "Notifications",
+        "printer": "Printer",
+        "receipt": "Receipt",
+        "themes": {
+            "light": "Light",
+            "dark": "Dark",
+            "system": "System"
+        },
+        "receiptSettings": {
+            "showLogo": "Show Logo",
+            "showTaxDetails": "Show Tax Details",
+            "footerText": "Footer Text"
+        }
+    },
+    "errors": {
+        "network": "Network error. Please check your connection.",
+        "unauthorized": "Unauthorized. Please login again.",
+        "notFound": "Resource not found.",
+        "serverError": "Server error. Please try again later.",
+        "validation": "Invalid input. Please check the fields."
+    }
+} 

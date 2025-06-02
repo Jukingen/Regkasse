@@ -1,0 +1,108 @@
+{
+    "common": {
+        "loading": "Wird geladen...",
+        "error": "Fehler",
+        "success": "Erfolg",
+        "save": "Speichern",
+        "cancel": "Abbrechen",
+        "delete": "Löschen",
+        "edit": "Bearbeiten",
+        "search": "Suchen",
+        "refresh": "Aktualisieren",
+        "back": "Zurück",
+        "next": "Weiter",
+        "confirm": "Bestätigen",
+        "yes": "Ja",
+        "no": "Nein"
+    },
+    "auth": {
+        "login": "Anmelden",
+        "logout": "Abmelden",
+        "email": "E-Mail",
+        "password": "Passwort",
+        "loginError": "Anmeldung fehlgeschlagen. Bitte überprüfen Sie Ihre Eingaben.",
+        "loginSuccess": "Erfolgreich angemeldet",
+        "logoutSuccess": "Erfolgreich abgemeldet"
+    },
+    "products": {
+        "title": "Produkte",
+        "addProduct": "Produkt hinzufügen",
+        "editProduct": "Produkt bearbeiten",
+        "deleteProduct": "Produkt löschen",
+        "name": "Name",
+        "price": "Preis",
+        "taxType": "Steuersatz",
+        "category": "Kategorie",
+        "stock": "Lagerbestand",
+        "unit": "Einheit",
+        "description": "Beschreibung",
+        "searchPlaceholder": "Produkt suchen...",
+        "taxTypes": {
+            "standard": "Standard (20%)",
+            "reduced": "Ermäßigt (10%)",
+            "special": "Sonder (13%)"
+        }
+    },
+    "customers": {
+        "title": "Kunden",
+        "addCustomer": "Kunde hinzufügen",
+        "editCustomer": "Kunde bearbeiten",
+        "deleteCustomer": "Kunde löschen",
+        "searchPlaceholder": "Kunde suchen...",
+        "name": "Name",
+        "email": "E-Mail",
+        "phone": "Telefon",
+        "address": "Adresse",
+        "taxNumber": "Steuernummer",
+        "type": {
+            "individual": "Privatperson",
+            "business": "Unternehmen"
+        }
+    },
+    "reports": {
+        "title": "Berichte",
+        "sales": "Verkäufe",
+        "cash": "Kasse",
+        "periods": {
+            "daily": "Heute",
+            "weekly": "Diese Woche",
+            "monthly": "Dieser Monat",
+            "yearly": "Dieses Jahr"
+        },
+        "summary": {
+            "totalSales": "Gesamtumsatz",
+            "totalTax": "Gesamtsteuer",
+            "totalItems": "Gesamtartikel",
+            "averageTicket": "Durchschnittlicher Warenkorb",
+            "openingBalance": "Kassenbestand Anfang",
+            "closingBalance": "Kassenbestand Ende",
+            "difference": "Differenz"
+        },
+        "topProducts": "Meistverkaufte Produkte"
+    },
+    "settings": {
+        "title": "Einstellungen",
+        "language": "Sprache",
+        "theme": "Design",
+        "notifications": "Benachrichtigungen",
+        "printer": "Drucker",
+        "receipt": "Beleg",
+        "themes": {
+            "light": "Hell",
+            "dark": "Dunkel",
+            "system": "System"
+        },
+        "receiptSettings": {
+            "showLogo": "Logo anzeigen",
+            "showTaxDetails": "Steuerdetails anzeigen",
+            "footerText": "Fußzeile"
+        }
+    },
+    "errors": {
+        "network": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
+        "unauthorized": "Nicht autorisiert. Bitte melden Sie sich erneut an.",
+        "notFound": "Ressource nicht gefunden.",
+        "serverError": "Serverfehler. Bitte versuchen Sie es später erneut.",
+        "validation": "Ungültige Eingabe. Bitte überprüfen Sie die Felder."
+    }
+} 
