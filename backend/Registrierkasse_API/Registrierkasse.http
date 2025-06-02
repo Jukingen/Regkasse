@@ -1,0 +1,6 @@
+@Registrierkasse_HostAddress = http://localhost:5183
+
+GET {{Registrierkasse_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
