@@ -15,7 +15,7 @@
 - ✅ Para Üstü Hesaplama (Wechselgeldberechnung)
 - ✅ Teklifler (Angebote)
 - ✅ Avusturya Maliye Uyumlu (Finanzamtskonform)
-- ✅ Kullanıcı Yetkilendirme (Benutzerrechte) - 
+- ✅ Kullanıcı Yetkilendirme (Benutzerrechte)
 
 ### Kasa İşlemleri
 - ✅ Kasa Aktivasyonu
