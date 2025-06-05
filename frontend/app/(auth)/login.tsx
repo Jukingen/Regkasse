@@ -1,151 +1,138 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
-import { API_BASE_URL } from '../../config';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
+import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const router = useRouter();
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const { login } = useAuth();
+    const { t } = useTranslation();
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Hata', 'Lütfen e-posta ve şifrenizi girin');
-      return;
-    }
+    const handleLogin = async () => {
+        console.log('Login attempt started...'); // Debug log
 
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Giriş başarısız');
-      }
-
-      if (data.token) {
-        await AsyncStorage.setItem('token', data.token);
-        if (data.refreshToken) {
-          await AsyncStorage.setItem('refreshToken', data.refreshToken);
+        if (!username || !password) {
+            console.log('Empty fields detected'); // Debug log
+            Alert.alert(
+                t('login.error.title'),
+                t('login.error.empty_fields')
+            );
+            return;
         }
-        if (data.user) {
-          await AsyncStorage.setItem('user', JSON.stringify(data.user));
-        }
-        router.replace('/(tabs)');
-      } else {
-        throw new Error('Token alınamadı');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <Ionicons name="cash" size={80} color="#007AFF" />
-        <Text style={styles.title}>Kasse App</Text>
-      </View>
-      
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      
-      <TextInput
-        style={styles.input}
-        placeholder="E-posta"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        editable={!loading}
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Şifre"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        editable={!loading}
-      />
-      
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text style={styles.buttonText}>Giriş Yap</Text>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
+        try {
+            console.log('Setting loading state...'); // Debug log
+            setIsLoading(true);
+            
+            console.log('Calling login function...'); // Debug log
+            console.log('Username:', username); // Debug log (şifreyi loglamıyoruz)
+            
+            await login(username, password);
+            console.log('Login successful!'); // Debug log
+        } catch (error) {
+            console.error('Login error details:', error); // Debug log
+            Alert.alert(
+                t('login.error.title'),
+                error instanceof Error ? error.message : t('login.error.invalid_credentials')
+            );
+        } finally {
+            console.log('Login attempt finished'); // Debug log
+            setIsLoading(false);
+        }
+    };
+
+    // Debug için buton basıldığında tetiklenecek
+    const handleButtonPress = () => {
+        console.log('Login button pressed'); // Debug log
+        handleLogin();
+    };
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.form}>
+                <TextInput
+                    style={styles.input}
+                    placeholder={t('login.username')}
+                    value={username}
+                    onChangeText={(text) => {
+                        console.log('Username changed:', text); // Debug log
+                        setUsername(text);
+                    }}
+                    autoCapitalize="none"
+                    editable={!isLoading}
+                />
+                <TextInput
+                    style={styles.input}
+                    placeholder={t('login.password')}
+                    value={password}
+                    onChangeText={(text) => {
+                        console.log('Password changed (length):', text.length); // Debug log
+                        setPassword(text);
+                    }}
+                    secureTextEntry
+                    editable={!isLoading}
+                />
+                <TouchableOpacity
+                    style={[styles.button, isLoading && styles.buttonDisabled]}
+                    onPress={handleButtonPress} // handleLogin yerine handleButtonPress kullanıyoruz
+                    disabled={isLoading}
+                >
+                    {isLoading ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <Text style={styles.buttonText}>{t('login.button')}</Text>
+                    )}
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 10,
-    color: '#333',
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  button: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  error: {
-    color: '#ff3b30',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
+    container: {
+        flex: 1,
+        justifyContent: 'center',
+        padding: 20,
+        backgroundColor: '#f5f5f5',
+    },
+    form: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    input: {
+        height: 50,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 5,
+        marginBottom: 15,
+        paddingHorizontal: 10,
+        backgroundColor: 'white',
+    },
+    button: {
+        backgroundColor: '#007AFF',
+        height: 50,
+        borderRadius: 5,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    buttonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    buttonDisabled: {
+        backgroundColor: '#ccc',
+    },
 }); 

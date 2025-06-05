@@ -1,183 +1,199 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  ActivityIndicator
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { customerService, Customer } from '../../services/api/customerService';
+
+interface Customer {
+    id: string;
+    name: string;
+    taxNumber?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    notes?: string;
+}
 
 export default function CustomersScreen() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+    const { t } = useTranslation();
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-  const fetchCustomers = async () => {
-    try {
-      setIsLoading(true);
-      const data = await customerService.getAllCustomers();
-      setCustomers(data);
-    } catch (error) {
-      Alert.alert('Hata', 'Müşteriler yüklenirken bir hata oluştu');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  };
+    useEffect(() => {
+        loadCustomers();
+    }, []);
 
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
+    const loadCustomers = async () => {
+        try {
+            // TODO: API'den müşterileri yükle
+            const mockCustomers: Customer[] = [
+                {
+                    id: '1',
+                    name: 'Test Müşteri 1',
+                    taxNumber: 'ATU12345678',
+                    email: 'test1@example.com',
+                    phone: '+43 123 456 789',
+                    address: 'Wien, Österreich',
+                    notes: 'VIP müşteri'
+                },
+                {
+                    id: '2',
+                    name: 'Test Müşteri 2',
+                    taxNumber: 'ATU87654321',
+                    email: 'test2@example.com',
+                    phone: '+43 987 654 321',
+                    address: 'Graz, Österreich'
+                }
+            ];
+            setCustomers(mockCustomers);
+        } catch (error) {
+            Alert.alert(
+                t('customers.error.title'),
+                t('customers.error.load_failed')
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      fetchCustomers();
-      return;
-    }
+    const handleAddCustomer = () => {
+        // TODO: Müşteri ekleme modalını aç
+        Alert.alert('Info', 'Müşteri ekleme özelliği yakında eklenecek');
+    };
 
-    try {
-      setIsLoading(true);
-      const results = await customerService.searchCustomers(searchQuery);
-      setCustomers(results);
-    } catch (error) {
-      Alert.alert('Hata', 'Müşteri araması sırasında bir hata oluştu');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const handleEditCustomer = (customer: Customer) => {
+        // TODO: Müşteri düzenleme modalını aç
+        Alert.alert('Info', `${customer.name} düzenleme özelliği yakında eklenecek`);
+    };
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    fetchCustomers();
-  };
-
-  const getCustomerDisplayName = (customer: Customer) => {
-    if (customer.customerType === 'Business') {
-      return customer.companyName || 'İsimsiz Şirket';
-    }
-    return `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'İsimsiz Müşteri';
-  };
-
-  const renderCustomer = ({ item }: { item: Customer }) => (
-    <TouchableOpacity style={styles.customerItem}>
-      <View style={styles.customerInfo}>
-        <Text style={styles.customerName}>{getCustomerDisplayName(item)}</Text>
-        <Text style={styles.customerDetails}>{item.email}</Text>
-        <Text style={styles.customerDetails}>{item.phone}</Text>
-      </View>
-      <View style={styles.customerType}>
-        <Text style={styles.customerTypeText}>
-          {item.customerType === 'Business' ? 'Firma' : 'Bireysel'}
-        </Text>
-      </View>
-      <TouchableOpacity style={styles.editButton}>
-        <Ionicons name="create-outline" size={24} color="#007AFF" />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Müşteri Ara..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        <TouchableOpacity style={styles.addButton}>
-          <Ionicons name="add" size={24} color="white" />
+    const renderCustomer = ({ item }: { item: Customer }) => (
+        <TouchableOpacity
+            style={styles.customerItem}
+            onPress={() => handleEditCustomer(item)}
+        >
+            <View style={styles.customerInfo}>
+                <Text style={styles.customerName}>{item.name}</Text>
+                {item.taxNumber && (
+                    <Text style={styles.customerDetail}>
+                        {t('customers.tax_number')}: {item.taxNumber}
+                    </Text>
+                )}
+                {item.email && (
+                    <Text style={styles.customerDetail}>
+                        {t('customers.email')}: {item.email}
+                    </Text>
+                )}
+                {item.phone && (
+                    <Text style={styles.customerDetail}>
+                        {t('customers.phone')}: {item.phone}
+                    </Text>
+                )}
+                {item.address && (
+                    <Text style={styles.customerDetail}>
+                        {t('customers.address')}: {item.address}
+                    </Text>
+                )}
+                {item.notes && (
+                    <Text style={styles.customerNotes}>{item.notes}</Text>
+                )}
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#666" />
         </TouchableOpacity>
-      </View>
+    );
 
-      <FlatList
-        data={customers.filter(customer => {
-          const searchLower = searchQuery.toLowerCase();
-          const displayName = getCustomerDisplayName(customer).toLowerCase();
-          return (
-            displayName.includes(searchLower) ||
-            customer.email.toLowerCase().includes(searchLower) ||
-            customer.phone.includes(searchQuery)
-          );
-        })}
-        renderItem={renderCustomer}
-        keyExtractor={item => item.id.toString()}
-        style={styles.customerList}
-        refreshing={isRefreshing}
-        onRefresh={handleRefresh}
-      />
-    </View>
-  );
+    return (
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.headerText}>{t('customers.title')}</Text>
+                <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={handleAddCustomer}
+                >
+                    <Ionicons name="add" size={24} color="white" />
+                </TouchableOpacity>
+            </View>
+
+            <FlatList
+                data={customers}
+                renderItem={renderCustomer}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.list}
+                ListEmptyComponent={
+                    <Text style={styles.emptyText}>
+                        {isLoading ? t('customers.loading') : t('customers.empty')}
+                    </Text>
+                }
+            />
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 10,
-  },
-  header: {
-    flexDirection: 'row',
-    marginBottom: 10,
-    gap: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  customerList: {
-    flex: 1,
-  },
-  customerItem: {
-    backgroundColor: 'white',
-    padding: 15,
-    marginBottom: 8,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  customerInfo: {
-    flex: 2,
-  },
-  customerName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  customerDetails: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  customerType: {
-    backgroundColor: '#E1F5FE',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginRight: 10,
-  },
-  customerTypeText: {
-    color: '#0288D1',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  editButton: {
-    padding: 5,
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#f5f5f5',
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        backgroundColor: '#007AFF',
+    },
+    headerText: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: 'white',
+    },
+    addButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#34C759',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    list: {
+        padding: 20,
+    },
+    customerItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        backgroundColor: 'white',
+        borderRadius: 10,
+        marginBottom: 10,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.2,
+        shadowRadius: 1.41,
+        elevation: 2,
+    },
+    customerInfo: {
+        flex: 1,
+    },
+    customerName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    customerDetail: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 2,
+    },
+    customerNotes: {
+        fontSize: 12,
+        color: '#999',
+        fontStyle: 'italic',
+        marginTop: 4,
+    },
+    emptyText: {
+        textAlign: 'center',
+        fontSize: 16,
+        color: '#666',
+        marginTop: 20,
+    },
 }); 

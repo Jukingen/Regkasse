@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
 
 export default function RootLayout() {
     const [fontsLoaded] = useFonts({
-        'OCRA-B': require('../assets/fonts/OCRA-B.ttf'),
+         'OCRA-B': require('../assets/fonts/OCRA-B.ttf'),
     });
 
     useEffect(() => {

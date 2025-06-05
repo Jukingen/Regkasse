@@ -1,66 +1,48 @@
 import { useState, useEffect, useCallback } from 'react';
-import { APIError, handleAPIError } from '../services/errorService';
 
-interface FetchOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  headers?: Record<string, string>;
+interface UseFetchOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: any;
+  headers?: Record<string, string>;
   skip?: boolean;
 }
 
-interface FetchState<T> {
-  data: T | null;
-  error: APIError | null;
-  loading: boolean;
-}
-
-export function useFetch<T>(url: string, options: FetchOptions = {}) {
-  const [state, setState] = useState<FetchState<T>>({
-    data: null,
-    error: null,
-    loading: true,
-  });
+export function useFetch<T = any>(
+  url: string,
+  options: UseFetchOptions = {}
+) {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any>(null);
 
   const fetchData = useCallback(async () => {
-    if (options.skip) {
-      setState(prev => ({ ...prev, loading: false }));
-      return;
-    }
-
-    setState(prev => ({ ...prev, loading: true, error: null }));
-
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch(url, {
+      const token = localStorage.getItem('token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(url, {
         method: options.method || 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
+        headers,
         body: options.body ? JSON.stringify(options.body) : undefined,
       });
-
-      if (!response.ok) {
-        throw handleAPIError({ response });
-      }
-
-      const data = await response.json();
-      setState({ data, error: null, loading: false });
-    } catch (error) {
-      const apiError = handleAPIError(error);
-      setState({ data: null, error: apiError, loading: false });
+      if (!res.ok) throw await res.json();
+      const json = await res.json();
+      setData(json);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
     }
-  }, [url, options.method, options.headers, options.body, options.skip]);
+  }, [url, JSON.stringify(options)]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!options.skip) fetchData();
+  }, [fetchData, options.skip]);
 
-  const refetch = useCallback(() => {
-    fetchData();
-  }, [fetchData]);
-
-  return {
-    ...state,
-    refetch,
-  };
+  return { data, loading, error, refetch: fetchData };
 } 

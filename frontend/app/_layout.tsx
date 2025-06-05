@@ -39,4 +39,4 @@ export default function RootLayout() {
             </I18nextProvider>
         </AuthProvider>
     );
-}
+} 

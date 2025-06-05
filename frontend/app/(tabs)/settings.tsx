@@ -1,378 +1,264 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from 'react-native';
-import { useFetch } from '../../hooks/useFetch';
-import { API_BASE_URL } from '../../config';
-import { changeLanguage } from '../../i18n/config';
+import { useAuth } from '../../contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 interface UserSettings {
-  language: string;
-  theme: string;
-  showTutorials: boolean;
-  emailNotifications: boolean;
-  pushNotifications: boolean;
-  defaultRegister: string;
-  defaultPrinter: string;
-  defaultPaymentMethod: string;
+    language: string;
+    theme: 'light' | 'dark' | 'system';
+    notifications: boolean;
+    printerSettings: {
+        enabled: boolean;
+        model: string;
+        paperSize: string;
+    };
+    receiptSettings: {
+        showLogo: boolean;
+        showTaxDetails: boolean;
+        footerText: string;
+    };
 }
 
 export default function SettingsScreen() {
-  const { t, i18n } = useTranslation();
-  const colorScheme = useColorScheme();
-  const router = useRouter();
-  const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(colorScheme === 'dark');
-  const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
-
-  // Ayarları getir
-  const { 
-    data: settings, 
-    error: settingsError, 
-    loading: isLoading,
-    refetch: refetchSettings 
-  } = useFetch<UserSettings>(`${API_BASE_URL}/settings/user`);
-
-  useEffect(() => {
-    if (settingsError) {
-      console.error('Ayarlar yüklenirken hata:', settingsError);
-      Alert.alert('Hata', 'Ayarlar yüklenirken bir hata oluştu');
-    }
-  }, [settingsError]);
-
-  const updateSetting = async (key: keyof UserSettings, value: any) => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/settings/user`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+    const { t } = useTranslation();
+    const { user, logout } = useAuth();
+    const [settings, setSettings] = useState<UserSettings>({
+        language: 'de-DE',
+        theme: 'system',
+        notifications: true,
+        printerSettings: {
+            enabled: false,
+            model: 'EPSON TM-T88VI',
+            paperSize: '80mm'
         },
-        body: JSON.stringify({ [key]: value })
-      });
+        receiptSettings: {
+            showLogo: true,
+            showTaxDetails: true,
+            footerText: 'Vielen Dank für Ihren Einkauf!'
+        }
+    });
 
-      if (!response.ok) {
-        throw new Error('Ayar güncellenirken bir hata oluştu');
-      }
+    const handleLogout = async () => {
+        try {
+            await logout();
+            router.replace('/(auth)/login');
+        } catch (error) {
+            Alert.alert(
+                t('settings.error.title'),
+                t('settings.error.logout_failed')
+            );
+        }
+    };
 
-      // Ayarları yeniden yükle
-      refetchSettings();
-    } catch (error) {
-      console.error('Ayar güncellenirken hata:', error);
-      Alert.alert('Hata', 'Ayar güncellenirken bir hata oluştu');
-    }
-  };
+    const handleLanguageChange = () => {
+        // TODO: Dil değiştirme modalını aç
+        Alert.alert('Info', 'Dil değiştirme özelliği yakında eklenecek');
+    };
 
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
-      router.replace('/(auth)/login');
-    } catch (error) {
-      console.error('Çıkış yapılırken hata:', error);
-      Alert.alert('Hata', 'Çıkış yapılırken bir hata oluştu');
-    }
-  };
+    const handleThemeChange = () => {
+        // TODO: Tema değiştirme modalını aç
+        Alert.alert('Info', 'Tema değiştirme özelliği yakında eklenecek');
+    };
 
-  const handleLanguageChange = async (language: 'de' | 'tr' | 'en') => {
-    try {
-      await changeLanguage(language);
-      setCurrentLanguage(language);
-      await updateSetting('language', language);
-    } catch (error) {
-      Alert.alert(t('errors.languageChangeFailed'));
-    }
-  };
+    const handlePrinterSettings = () => {
+        // TODO: Yazıcı ayarları modalını aç
+        Alert.alert('Info', 'Yazıcı ayarları özelliği yakında eklenecek');
+    };
 
-  const handleThemeChange = async (value: boolean) => {
-    try {
-      setDarkMode(value);
-      await updateSetting('theme', value ? 'dark' : 'light');
-    } catch (error) {
-      Alert.alert(t('errors.themeChangeFailed'));
-    }
-  };
+    const handleReceiptSettings = () => {
+        // TODO: Fiş ayarları modalını aç
+        Alert.alert('Info', 'Fiş ayarları özelliği yakında eklenecek');
+    };
 
-  const handleNotificationsChange = async (value: boolean) => {
-    try {
-      setNotifications(value);
-      await updateSetting('pushNotifications', value);
-    } catch (error) {
-      Alert.alert(t('errors.notificationChangeFailed'));
-    }
-  };
+    const handleTseSettings = () => {
+        // TODO: TSE ayarları modalını aç
+        Alert.alert('Info', 'TSE ayarları özelliği yakında eklenecek');
+    };
 
-  const SettingItem = ({
-    icon,
-    title,
-    value,
-    onPress,
-    type = 'toggle',
-  }: {
-    icon: string;
-    title: string;
-    value: any;
-    onPress: (value: any) => void;
-    type?: 'toggle' | 'button';
-  }) => (
-    <TouchableOpacity
-      style={styles.settingItem}
-      onPress={() => type === 'button' && onPress(null)}
-    >
-      <View style={styles.settingLeft}>
-        <Ionicons name={icon as any} size={24} color="#007AFF" />
-        <Text style={styles.settingTitle}>{title}</Text>
-      </View>
-      {type === 'toggle' ? (
-        <Switch
-          value={value}
-          onValueChange={onPress}
-          trackColor={{ false: '#767577', true: '#81b0ff' }}
-          thumbColor={value ? '#007AFF' : '#f4f3f4'}
-        />
-      ) : (
-        <Ionicons name="chevron-forward" size={24} color="#666" />
-      )}
-    </TouchableOpacity>
-  );
-
-  if (isLoading) {
     return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
+        <ScrollView style={styles.container}>
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('settings.user')}</Text>
+                <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{user?.username}</Text>
+                    <Text style={styles.userRole}>{t(`roles.${user?.role}`)}</Text>
+                </View>
+            </View>
+
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('settings.general')}</Text>
+                <TouchableOpacity
+                    style={styles.settingItem}
+                    onPress={handleLanguageChange}
+                >
+                    <View style={styles.settingInfo}>
+                        <Ionicons name="language-outline" size={24} color="#666" />
+                        <Text style={styles.settingLabel}>{t('settings.language')}</Text>
+                    </View>
+                    <View style={styles.settingValue}>
+                        <Text style={styles.settingValueText}>{t(`languages.${settings.language}`)}</Text>
+                        <Ionicons name="chevron-forward" size={24} color="#666" />
+                    </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.settingItem}
+                    onPress={handleThemeChange}
+                >
+                    <View style={styles.settingInfo}>
+                        <Ionicons name="color-palette-outline" size={24} color="#666" />
+                        <Text style={styles.settingLabel}>{t('settings.theme')}</Text>
+                    </View>
+                    <View style={styles.settingValue}>
+                        <Text style={styles.settingValueText}>{t(`themes.${settings.theme}`)}</Text>
+                        <Ionicons name="chevron-forward" size={24} color="#666" />
+                    </View>
+                </TouchableOpacity>
+
+                <View style={styles.settingItem}>
+                    <View style={styles.settingInfo}>
+                        <Ionicons name="notifications-outline" size={24} color="#666" />
+                        <Text style={styles.settingLabel}>{t('settings.notifications')}</Text>
+                    </View>
+                    <Switch
+                        value={settings.notifications}
+                        onValueChange={(value) => setSettings({ ...settings, notifications: value })}
+                    />
+                </View>
+            </View>
+
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('settings.hardware')}</Text>
+                <TouchableOpacity
+                    style={styles.settingItem}
+                    onPress={handlePrinterSettings}
+                >
+                    <View style={styles.settingInfo}>
+                        <Ionicons name="print-outline" size={24} color="#666" />
+                        <Text style={styles.settingLabel}>{t('settings.printer')}</Text>
+                    </View>
+                    <View style={styles.settingValue}>
+                        <Text style={styles.settingValueText}>
+                            {settings.printerSettings.enabled ? settings.printerSettings.model : t('settings.disabled')}
+                        </Text>
+                        <Ionicons name="chevron-forward" size={24} color="#666" />
+                    </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.settingItem}
+                    onPress={handleTseSettings}
+                >
+                    <View style={styles.settingInfo}>
+                        <Ionicons name="hardware-chip-outline" size={24} color="#666" />
+                        <Text style={styles.settingLabel}>{t('settings.tse')}</Text>
+                    </View>
+                    <View style={styles.settingValue}>
+                        <Text style={styles.settingValueText}>{t('settings.configure')}</Text>
+                        <Ionicons name="chevron-forward" size={24} color="#666" />
+                    </View>
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('settings.receipt')}</Text>
+                <TouchableOpacity
+                    style={styles.settingItem}
+                    onPress={handleReceiptSettings}
+                >
+                    <View style={styles.settingInfo}>
+                        <Ionicons name="receipt-outline" size={24} color="#666" />
+                        <Text style={styles.settingLabel}>{t('settings.receipt_settings')}</Text>
+                    </View>
+                    <View style={styles.settingValue}>
+                        <Text style={styles.settingValueText}>{t('settings.configure')}</Text>
+                        <Ionicons name="chevron-forward" size={24} color="#666" />
+                    </View>
+                </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+            >
+                <Ionicons name="log-out-outline" size={24} color="white" />
+                <Text style={styles.logoutButtonText}>{t('settings.logout')}</Text>
+            </TouchableOpacity>
+        </ScrollView>
     );
-  }
-
-  return (
-    <ScrollView style={[styles.container, { backgroundColor: darkMode ? '#000' : '#fff' }]}>
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: darkMode ? '#fff' : '#000' }]}>
-          {t('settings.language')}
-        </Text>
-        <View style={styles.languageButtons}>
-          <TouchableOpacity
-            style={[
-              styles.languageButton,
-              currentLanguage === 'de' && styles.activeLanguageButton
-            ]}
-            onPress={() => handleLanguageChange('de')}
-          >
-            <Text style={styles.languageButtonText}>Deutsch</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.languageButton,
-              currentLanguage === 'tr' && styles.activeLanguageButton
-            ]}
-            onPress={() => handleLanguageChange('tr')}
-          >
-            <Text style={styles.languageButtonText}>Türkçe</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.languageButton,
-              currentLanguage === 'en' && styles.activeLanguageButton
-            ]}
-            onPress={() => handleLanguageChange('en')}
-          >
-            <Text style={styles.languageButtonText}>English</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: darkMode ? '#fff' : '#000' }]}>
-          {t('settings.theme')}
-        </Text>
-        <View style={styles.settingRow}>
-          <Text style={[styles.settingLabel, { color: darkMode ? '#fff' : '#000' }]}>
-            {t('settings.darkMode')}
-          </Text>
-          <Switch
-            value={darkMode}
-            onValueChange={handleThemeChange}
-            trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={darkMode ? '#f5dd4b' : '#f4f3f4'}
-          />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: darkMode ? '#fff' : '#000' }]}>
-          {t('settings.notifications')}
-        </Text>
-        <View style={styles.settingRow}>
-          <Text style={[styles.settingLabel, { color: darkMode ? '#fff' : '#000' }]}>
-            {t('settings.enableNotifications')}
-          </Text>
-          <Switch
-            value={notifications}
-            onValueChange={handleNotificationsChange}
-            trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={notifications ? '#f5dd4b' : '#f4f3f4'}
-          />
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Genel</Text>
-        <SettingItem
-          icon="notifications-outline"
-          title="Bildirimler"
-          value={settings?.pushNotifications}
-          onPress={value => updateSetting('pushNotifications', value)}
-        />
-        <SettingItem
-          icon="mail-outline"
-          title="E-posta Bildirimleri"
-          value={settings?.emailNotifications}
-          onPress={value => updateSetting('emailNotifications', value)}
-        />
-        <SettingItem
-          icon="book-outline"
-          title="Öğretici Göster"
-          value={settings?.showTutorials}
-          onPress={value => updateSetting('showTutorials', value)}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Varsayılan Ayarlar</Text>
-        <SettingItem
-          icon="cash-outline"
-          title="Varsayılan Kasa"
-          value={settings?.defaultRegister}
-          onPress={() => {}}
-          type="button"
-        />
-        <SettingItem
-          icon="print-outline"
-          title="Varsayılan Yazıcı"
-          value={settings?.defaultPrinter}
-          onPress={() => {}}
-          type="button"
-        />
-        <SettingItem
-          icon="card-outline"
-          title="Varsayılan Ödeme Yöntemi"
-          value={settings?.defaultPaymentMethod}
-          onPress={() => {}}
-          type="button"
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Hesap</Text>
-        <SettingItem
-          icon="person-outline"
-          title="Profil"
-          value=""
-          onPress={() => {}}
-          type="button"
-        />
-        <SettingItem
-          icon="key-outline"
-          title="Şifre Değiştir"
-          value=""
-          onPress={() => {}}
-          type="button"
-        />
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>Çıkış Yap</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  settingLabel: {
-    fontSize: 16,
-  },
-  languageButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  languageButton: {
-    flex: 1,
-    padding: 12,
-    marginHorizontal: 4,
-    borderRadius: 8,
-    backgroundColor: '#e0e0e0',
-    alignItems: 'center',
-  },
-  activeLanguageButton: {
-    backgroundColor: '#81b0ff',
-  },
-  languageButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000',
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  settingTitle: {
-    fontSize: 16,
-    marginLeft: 10,
-  },
-  logoutButton: {
-    marginTop: 20,
-    marginHorizontal: 15,
-    backgroundColor: '#FF3B30',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  logoutText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#f5f5f5',
+    },
+    section: {
+        backgroundColor: 'white',
+        marginBottom: 20,
+        paddingVertical: 10,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#666',
+        marginLeft: 20,
+        marginBottom: 10,
+    },
+    userInfo: {
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ddd',
+    },
+    userName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    userRole: {
+        fontSize: 14,
+        color: '#666',
+    },
+    settingItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ddd',
+    },
+    settingInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    settingLabel: {
+        fontSize: 16,
+        marginLeft: 10,
+    },
+    settingValue: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    settingValueText: {
+        fontSize: 14,
+        color: '#666',
+        marginRight: 5,
+    },
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FF3B30',
+        margin: 20,
+        padding: 15,
+        borderRadius: 10,
+    },
+    logoutButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 8,
+    },
 }); 

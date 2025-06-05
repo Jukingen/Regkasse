@@ -1,10 +1,8 @@
-import { View } from 'react-native';
-import CashRegister from '../screens/CashRegister';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { Redirect } from 'expo-router';
 
-export default function TabOneScreen() {
-  return (
-    <View style={{ flex: 1 }}>
-      <CashRegister />
-    </View>
-  );
-}
+export default function Index() {
+    // Ana sayfayı kasa sayfasına yönlendir
+    return <Redirect href="/(tabs)/cash-register" />;
+} 
