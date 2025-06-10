@@ -5,6 +5,7 @@ using Registrierkasse.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Registrierkasse.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,6 +77,11 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))); // PostgreSQL için
 
+// Add services to the container
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<ILocalizationService, LocalizationService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<ITseService, TseService>();
 
 var app = builder.Build();
 
@@ -143,4 +149,9 @@ app.Run();
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+}
+
+public partial class Program
+{
+    // ... existing code ...
 }

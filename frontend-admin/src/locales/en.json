@@ -1,0 +1,25 @@
+{
+  "tse": {
+    "management_title": "TSE Management",
+    "status": "TSE Status",
+    "connection_status": "Connection Status",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "serial_number": "Serial Number",
+    "last_signature_counter": "Last Signature Counter",
+    "last_signature_time": "Last Signature Time",
+    "memory_status": "Memory Status",
+    "certificate_status": "Certificate Status",
+    "daily_report": "Daily Report",
+    "generate_daily_report": "Generate Daily Report",
+    "generating_report": "Generating Daily Report...",
+    "signature": "Signature",
+    "signature_counter": "Signature Counter",
+    "time": "Time",
+    "process_type": "Process Type"
+  },
+  "errors": {
+    "tse_status_failed": "Failed to get TSE status",
+    "daily_report_failed": "Failed to generate daily report"
+  }
+} 

@@ -14,6 +14,7 @@ import TSE from '../pages/TSE';
 import Settings from '../pages/Settings';
 import Profile from '../pages/Profile';
 import NotFound from '../pages/NotFound';
+import TseManagement from '../pages/TseManagement';
 
 // Korumalı rota bileşeni
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -106,7 +107,7 @@ export default function AppRoutes() {
         path="/tse"
         element={
           <ProtectedRoute>
-            <TSE />
+            <TseManagement />
           </ProtectedRoute>
         }
       />

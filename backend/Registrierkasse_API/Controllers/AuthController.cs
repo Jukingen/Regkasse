@@ -11,6 +11,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
+using Registrierkasse.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Registrierkasse.Controllers
 {
@@ -22,17 +24,20 @@ namespace Registrierkasse.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
+        private readonly ISessionService _sessionService;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             IConfiguration configuration,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            ISessionService sessionService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
             _logger = logger;
+            _sessionService = sessionService;
         }
 
         [HttpPost("register")]
@@ -76,18 +81,18 @@ namespace Registrierkasse.Controllers
         {
             try
             {
-                _logger.LogInformation("Login attempt for user: {Email}", model.Email); // Debug log
+                _logger.LogInformation("Login attempt for user: {Email}", model.Email);
 
                 var user = await _userManager.FindByEmailAsync(model.Email);
                 if (user == null)
                 {
-                    _logger.LogWarning("Login failed: User not found - {Email}", model.Email); // Debug log
+                    _logger.LogWarning("Login failed: User not found - {Email}", model.Email);
                     return BadRequest(new { message = "Geçersiz kullanıcı adı veya şifre" });
                 }
 
                 if (!user.IsActive)
                 {
-                    _logger.LogWarning("Login failed: User is inactive - {Email}", model.Email); // Debug log
+                    _logger.LogWarning("Login failed: User is inactive - {Email}", model.Email);
                     return BadRequest(new { message = "Hesap aktif değil" });
                 }
 
@@ -95,17 +100,21 @@ namespace Registrierkasse.Controllers
                 
                 if (result.Succeeded)
                 {
-                    _logger.LogInformation("Password sign in successful for user: {Email}", model.Email); // Debug log
+                    _logger.LogInformation("Password sign in successful for user: {Email}", model.Email);
 
                     // Son giriş zamanını güncelle
                     user.LastLogin = DateTime.UtcNow;
                     await _userManager.UpdateAsync(user);
 
+                    // Session oluştur
+                    var deviceInfo = $"{Request.Headers["User-Agent"]} - {Request.HttpContext.Connection.RemoteIpAddress}";
+                    var sessionId = await _sessionService.CreateSessionAsync(user, deviceInfo);
+
                     // Token üret
                     var token = await GenerateJwtToken(user);
                     var refreshToken = await GenerateRefreshToken(user);
 
-                    _logger.LogInformation("Tokens generated successfully for user: {Email}", model.Email); // Debug log
+                    _logger.LogInformation("Tokens generated successfully for user: {Email}", model.Email);
 
                     // Kullanıcı bilgilerini hazırla
                     var userInfo = new
@@ -115,7 +124,8 @@ namespace Registrierkasse.Controllers
                         firstName = user.FirstName,
                         lastName = user.LastName,
                         role = user.Role,
-                        employeeNumber = user.EmployeeNumber
+                        employeeNumber = user.EmployeeNumber,
+                        sessionId = sessionId
                     };
 
                     return Ok(new
@@ -129,16 +139,16 @@ namespace Registrierkasse.Controllers
                 
                 if (result.IsLockedOut)
                 {
-                    _logger.LogWarning("Login failed: Account locked out - {Email}", model.Email); // Debug log
+                    _logger.LogWarning("Login failed: Account locked out - {Email}", model.Email);
                     return BadRequest(new { message = "Hesap kilitlendi" });
                 }
 
-                _logger.LogWarning("Login failed: Invalid credentials - {Email}", model.Email); // Debug log
+                _logger.LogWarning("Login failed: Invalid credentials - {Email}", model.Email);
                 return BadRequest(new { message = "Geçersiz kullanıcı adı veya şifre" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error logging in user: {Email}", model.Email); // Debug log
+                _logger.LogError(ex, "Error logging in user: {Email}", model.Email);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -195,13 +205,44 @@ namespace Registrierkasse.Controllers
         {
             try
             {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var sessionId = Request.Headers["X-Session-Id"].ToString();
+
+                if (!string.IsNullOrEmpty(userId) && !string.IsNullOrEmpty(sessionId))
+                {
+                    await _sessionService.InvalidateSessionAsync(userId, sessionId);
+                }
+
                 await _signInManager.SignOutAsync();
-                _logger.LogInformation("User logged out successfully"); // Debug log
+                _logger.LogInformation("User logged out successfully");
                 return Ok(new { message = "Çıkış başarılı" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error logging out user"); // Debug log
+                _logger.LogError(ex, "Error logging out user");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HttpPost("logout-all")]
+        [Authorize]
+        public async Task<IActionResult> LogoutAll()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    await _sessionService.InvalidateAllSessionsAsync(userId);
+                }
+
+                await _signInManager.SignOutAsync();
+                _logger.LogInformation("All sessions invalidated for user");
+                return Ok(new { message = "Tüm oturumlar sonlandırıldı" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error logging out all sessions");
                 return StatusCode(500, "Internal server error");
             }
         }

@@ -8,6 +8,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Registrierkasse.Services;
 
 namespace Registrierkasse.Controllers
 {
@@ -18,11 +19,13 @@ namespace Registrierkasse.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<InvoiceController> _logger;
+        private readonly ITseService _tseService;
 
-        public InvoiceController(AppDbContext context, ILogger<InvoiceController> logger)
+        public InvoiceController(AppDbContext context, ILogger<InvoiceController> logger, ITseService tseService)
         {
             _context = context;
             _logger = logger;
+            _tseService = tseService;
         }
 
         [HttpGet]
@@ -57,7 +60,7 @@ namespace Registrierkasse.Controllers
         {
             invoice.Id = Guid.NewGuid();
             invoice.CreatedAt = DateTime.UtcNow;
-            invoice.ReceiptNumber = GenerateReceiptNumber();
+            invoice.ReceiptNumber = await GenerateReceiptNumber();
 
             _context.Invoices.Add(invoice);
             await _context.SaveChangesAsync();
@@ -113,11 +116,27 @@ namespace Registrierkasse.Controllers
             return _context.Invoices.Any(e => e.Id == id);
         }
 
-        private string GenerateReceiptNumber()
+        private async Task<string> GenerateReceiptNumber()
         {
+            var tseId = await _tseService.GetTseIdAsync();
             var date = DateTime.UtcNow.ToString("yyyyMMdd");
-            var random = new Random().Next(1000, 9999);
-            return $"AT-{date}-{random}";
+            
+            var lastReceipt = _context.Invoices
+                .Where(i => i.ReceiptNumber.StartsWith($"AT-{tseId}-{date}"))
+                .OrderByDescending(i => i.ReceiptNumber)
+                .FirstOrDefault();
+
+            int sequence = 1;
+            if (lastReceipt != null)
+            {
+                var lastSeq = lastReceipt.ReceiptNumber.Split('-').Last();
+                if (int.TryParse(lastSeq, out int lastSequence))
+                {
+                    sequence = lastSequence + 1;
+                }
+            }
+
+            return $"AT-{tseId}-{date}-{sequence:D4}";
         }
 
         [HttpPut("{id}/status")]
@@ -206,10 +225,10 @@ namespace Registrierkasse.Controllers
     {
         public int CustomerId { get; set; }
         public PaymentMethod PaymentMethod { get; set; }
-        public string Notes { get; set; }
+        public string? Notes { get; set; }
         public int RegisterId { get; set; }
         public decimal DiscountAmount { get; set; }
-        public InvoiceItemModel[] Items { get; set; }
+        public InvoiceItemModel[] Items { get; set; } = Array.Empty<InvoiceItemModel>();
     }
 
     public class InvoiceItemModel

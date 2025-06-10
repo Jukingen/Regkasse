@@ -1,0 +1,46 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "invoice": {
+    "title": "Receipt",
+    "receipt_number": "Receipt No",
+    "date": "Date",
+    "time": "Time",
+    "cashier": "Cashier",
+    "payment_method": "Payment Method",
+    "total": "Total Amount",
+    "vat": "VAT",
+    "net": "Net",
+    "gross": "Gross",
+    "tse_signature": "TSE Signature",
+    "cash_register_id": "Cash Register ID",
+    "footer": "Thank you for your purchase!"
+  },
+  "payment": {
+    "cash": "Cash",
+    "card": "Credit Card",
+    "voucher": "Voucher",
+    "transfer": "Bank Transfer",
+    "paypal": "PayPal"
+  },
+  "tax": {
+    "standard": "Standard (20%)",
+    "reduced": "Reduced (10%)",
+    "special": "Special Rate (13%)"
+  },
+  "errors": {
+    "tse_not_connected": "TSE device not connected",
+    "tse_timeout": "TSE device timeout",
+    "daily_report_missing": "Daily report missing",
+    "invalid_tax_number": "Invalid tax number",
+    "finance_online_error": "FinanzOnline error"
+  }
+} 

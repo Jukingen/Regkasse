@@ -174,6 +174,8 @@ namespace Registrierkasse.Controllers
         [Authorize(Roles = "Administrator,Manager")]
         public async Task<IActionResult> ReceiveStock([FromBody] StockReceiveModel model)
         {
+            // Transaction başlat
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var inventory = await _context.Inventories
@@ -182,13 +184,21 @@ namespace Registrierkasse.Controllers
 
                 if (inventory == null)
                 {
+                    await transaction.RollbackAsync();
                     return NotFound(new { message = "Ürün stok kaydı bulunamadı" });
+                }
+
+                // Stok miktarı kontrolü
+                if (inventory.CurrentStock + model.Quantity > inventory.MaximumStock)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest(new { message = "Maksimum stok limiti aşılıyor" });
                 }
 
                 inventory.CurrentStock += model.Quantity;
                 inventory.LastStockUpdate = DateTime.UtcNow;
 
-                var transaction = new InventoryTransaction
+                var stockTransaction = new InventoryTransaction
                 {
                     InventoryId = inventory.Id,
                     Type = model.Type.ToString(),
@@ -198,8 +208,9 @@ namespace Registrierkasse.Controllers
                     UserId = model.UserId
                 };
 
-                _context.InventoryTransactions.Add(transaction);
+                _context.InventoryTransactions.Add(stockTransaction);
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
 
                 _logger.LogInformation($"Stok alındı - Ürün: {inventory.Product.Name}, Miktar: {model.Quantity}");
 
@@ -207,6 +218,7 @@ namespace Registrierkasse.Controllers
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Stok alınırken bir hata oluştu");
                 return StatusCode(500, new { message = "Stok alınırken bir hata oluştu", error = ex.Message });
             }

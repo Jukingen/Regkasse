@@ -29,6 +29,7 @@ namespace Registrierkasse.Data
         public DbSet<CompanySettings> CompanySettings { get; set; }
         public DbSet<UserSettings> UserSettings { get; set; }
         public DbSet<FinanceOnline> FinanceOnline { get; set; }
+        public DbSet<UserSession> UserSessions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
