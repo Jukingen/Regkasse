@@ -56,6 +56,9 @@ namespace Registrierkasse.Models
         [MaxLength(100)]
         public string CompanyName { get; set; } = string.Empty;
         
+        [NotMapped]
+        public string Name => !string.IsNullOrEmpty(CompanyName) ? CompanyName : $"{FirstName} {LastName}".Trim();
+        
         [Column("is_active")]
         public new bool IsActive { get; set; } = true;
         

@@ -1,19 +1,19 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Registrierkasse_API.Data;
-using Registrierkasse_API.Models;
+using Registrierkasse.Data;
+using Registrierkasse.Models;
 using System.ComponentModel.DataAnnotations;
 
-namespace Registrierkasse_API.Controllers
+namespace Registrierkasse.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class SystemConfigController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly AppDbContext _context;
         private readonly ILogger<SystemConfigController> _logger;
 
-        public SystemConfigController(ApplicationDbContext context, ILogger<SystemConfigController> logger)
+        public SystemConfigController(AppDbContext context, ILogger<SystemConfigController> logger)
         {
             _context = context;
             _logger = logger;

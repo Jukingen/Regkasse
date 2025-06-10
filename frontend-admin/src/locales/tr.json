@@ -16,7 +16,15 @@
     "signature": "İmza",
     "signature_counter": "İmza Sayacı",
     "time": "Zaman",
-    "process_type": "İşlem Tipi"
+    "process_type": "İşlem Tipi",
+    "create_nullbeleg": "Sıfır Fiş Oluştur",
+    "creating_nullbeleg": "Sıfır Fiş Oluşturuluyor...",
+    "nullbeleg_result": "Sıfır Fiş Sonucu",
+    "nullbeleg_number": "Sıfır Fiş Numarası",
+    "date": "Tarih",
+    "cash_register_id": "Kasa ID",
+    "reference_id": "Referans ID",
+    "create": "Oluştur"
   },
   "hardware": {
     "configuration_title": "Donanım Konfigürasyonu",
@@ -73,9 +81,29 @@
     "pending_invoices": "Bekleyen Faturalar",
     "pending_reports": "Bekleyen Raporlar",
     "errors": "Hatalar",
-    "error_code": "Hata Kodu",
+    "error_code": "Hata Kodu"
+  },
   "errors": {
     "tse_status_failed": "TSE durumu alınamadı",
-    "daily_report_failed": "Günlük rapor oluşturulamadı"
+    "daily_report_failed": "Günlük rapor oluşturulamadı",
+    "nullbeleg_failed": "Sıfır fiş oluşturulamadı"
+  },
+  "common": {
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "create": "Oluştur",
+    "search": "Ara",
+    "filter": "Filtrele",
+    "export": "Dışa Aktar",
+    "import": "İçe Aktar",
+    "refresh": "Yenile",
+    "loading": "Yükleniyor...",
+    "no_data": "Veri bulunamadı",
+    "success": "Başarılı",
+    "error": "Hata",
+    "warning": "Uyarı",
+    "info": "Bilgi"
   }
 } 

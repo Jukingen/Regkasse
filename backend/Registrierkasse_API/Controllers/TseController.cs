@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Registrierkasse.Services;
+using System;
 using System.Threading.Tasks;
 
 namespace Registrierkasse.Controllers
@@ -36,17 +37,23 @@ namespace Registrierkasse.Controllers
         }
 
         [HttpPost("daily-report")]
-        public async Task<IActionResult> GenerateDailyReport()
+        public async Task<ActionResult<TseSignatureResult>> GenerateDailyReport()
         {
             try
             {
                 var result = await _tseService.SignDailyReportAsync();
+                _logger.LogInformation("Günlük rapor imzalandı: {Signature}", result.Signature);
                 return Ok(result);
             }
             catch (TseException ex)
             {
-                _logger.LogError(ex, "TSE günlük rapor oluşturulamadı");
-                return StatusCode(500, new { message = ex.Message });
+                _logger.LogError(ex, "Günlük rapor imzalama hatası");
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Günlük rapor imzalama beklenmeyen hata");
+                return StatusCode(500, new { error = "Internal server error" });
             }
         }
 
@@ -64,11 +71,38 @@ namespace Registrierkasse.Controllers
                 return StatusCode(500, new { message = ex.Message });
             }
         }
+
+        [HttpPost("nullbeleg")]
+        public async Task<ActionResult<TseSignatureResult>> SignNullbeleg([FromBody] SignNullbelegModel model)
+        {
+            try
+            {
+                var result = await _tseService.SignNullbelegAsync(model.Date, model.CashRegisterId);
+                _logger.LogInformation("Sıfır beleg imzalandı: {Signature}", result.Signature);
+                return Ok(result);
+            }
+            catch (TseException ex)
+            {
+                _logger.LogError(ex, "Sıfır beleg imzalama hatası");
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Sıfır beleg imzalama beklenmeyen hata");
+                return StatusCode(500, new { error = "Internal server error" });
+            }
+        }
     }
 
     public class ValidateSignatureModel
     {
         public string Signature { get; set; } = string.Empty;
         public string ProcessData { get; set; } = string.Empty;
+    }
+
+    public class SignNullbelegModel
+    {
+        public DateTime Date { get; set; }
+        public string CashRegisterId { get; set; } = string.Empty;
     }
 } 

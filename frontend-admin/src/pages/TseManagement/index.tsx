@@ -15,6 +15,11 @@ import {
   TableHead,
   TableRow,
   Paper,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -36,6 +41,17 @@ interface TseSignatureResult {
   serialNumber: string;
 }
 
+interface NullbelegData {
+  date: string;
+  tseSignature: string;
+  cashRegisterId: string;
+  nullbelegNumber: string;
+  processType: string;
+  createdAt: string;
+  status: string;
+  referenceId: string;
+}
+
 const TseManagement: React.FC = () => {
   const { t } = useTranslation();
   const [status, setStatus] = useState<TseStatus | null>(null);
@@ -43,6 +59,11 @@ const TseManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [dailyReport, setDailyReport] = useState<TseSignatureResult | null>(null);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [nullbelegDialog, setNullbelegDialog] = useState(false);
+  const [nullbelegDate, setNullbelegDate] = useState('');
+  const [nullbelegCashRegisterId, setNullbelegCashRegisterId] = useState('');
+  const [creatingNullbeleg, setCreatingNullbeleg] = useState(false);
+  const [nullbelegResult, setNullbelegResult] = useState<NullbelegData | null>(null);
 
   const fetchStatus = async () => {
     try {
@@ -70,6 +91,57 @@ const TseManagement: React.FC = () => {
     } finally {
       setGeneratingReport(false);
     }
+  };
+
+  const createNullbeleg = async () => {
+    try {
+      setCreatingNullbeleg(true);
+      setError(null);
+      
+      // TSE ile nullbeleg imzala
+      const tseResponse = await api.post('/api/tse/nullbeleg', {
+        date: nullbelegDate,
+        cashRegisterId: nullbelegCashRegisterId
+      });
+      
+      // FinanzOnline'a nullbeleg gönder
+      const finanzResponse = await api.post('/api/finanzonline/submit-nullbeleg', {
+        nullbeleg: {
+          date: nullbelegDate,
+          tseSignature: tseResponse.data.signature,
+          cashRegisterId: nullbelegCashRegisterId,
+          nullbelegNumber: `NULL-${nullbelegDate.replace(/-/g, '')}`,
+          processType: 'NULLBELEG',
+          createdAt: new Date().toISOString(),
+          status: 'PENDING',
+          referenceId: ''
+        }
+      });
+      
+      setNullbelegResult({
+        date: nullbelegDate,
+        tseSignature: tseResponse.data.signature,
+        cashRegisterId: nullbelegCashRegisterId,
+        nullbelegNumber: `NULL-${nullbelegDate.replace(/-/g, '')}`,
+        processType: 'NULLBELEG',
+        createdAt: new Date().toISOString(),
+        status: 'SUBMITTED',
+        referenceId: finanzResponse.data.referenceId || ''
+      });
+      
+      setNullbelegDialog(false);
+    } catch (err) {
+      setError(t('errors.nullbeleg_failed'));
+      console.error('Sıfır beleg oluşturulamadı:', err);
+    } finally {
+      setCreatingNullbeleg(false);
+    }
+  };
+
+  const handleNullbelegDialogOpen = () => {
+    setNullbelegDate(new Date().toISOString().split('T')[0]);
+    setNullbelegCashRegisterId('KASSE-001');
+    setNullbelegDialog(true);
   };
 
   useEffect(() => {
@@ -178,7 +250,7 @@ const TseManagement: React.FC = () => {
                 color="primary"
                 onClick={generateDailyReport}
                 disabled={generatingReport || !status?.isConnected}
-                sx={{ mb: 2 }}
+                sx={{ mb: 2, mr: 2 }}
               >
                 {generatingReport ? (
                   <>
@@ -188,6 +260,16 @@ const TseManagement: React.FC = () => {
                 ) : (
                   t('tse.generate_daily_report')
                 )}
+              </Button>
+
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={handleNullbelegDialogOpen}
+                disabled={!status?.isConnected}
+                sx={{ mb: 2 }}
+              >
+                {t('tse.create_nullbeleg')}
               </Button>
 
               {dailyReport && (
@@ -224,10 +306,96 @@ const TseManagement: React.FC = () => {
                   </Table>
                 </TableContainer>
               )}
+
+              {nullbelegResult && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    {t('tse.nullbeleg_result')}
+                  </Typography>
+                  <TableContainer component={Paper}>
+                    <Table>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell component="th" scope="row">
+                            {t('tse.nullbeleg_number')}
+                          </TableCell>
+                          <TableCell>{nullbelegResult.nullbelegNumber}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell component="th" scope="row">
+                            {t('tse.date')}
+                          </TableCell>
+                          <TableCell>{nullbelegResult.date}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell component="th" scope="row">
+                            {t('tse.status')}
+                          </TableCell>
+                          <TableCell>
+                            <Alert severity="success">
+                              {nullbelegResult.status}
+                            </Alert>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell component="th" scope="row">
+                            {t('tse.reference_id')}
+                          </TableCell>
+                          <TableCell>{nullbelegResult.referenceId}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Box>
       </Box>
+
+      {/* Nullbeleg Dialog */}
+      <Dialog open={nullbelegDialog} onClose={() => setNullbelegDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('tse.create_nullbeleg')}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <TextField
+              fullWidth
+              label={t('tse.date')}
+              type="date"
+              value={nullbelegDate}
+              onChange={(e) => setNullbelegDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label={t('tse.cash_register_id')}
+              value={nullbelegCashRegisterId}
+              onChange={(e) => setNullbelegCashRegisterId(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNullbelegDialog(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button 
+            onClick={createNullbeleg} 
+            variant="contained" 
+            disabled={creatingNullbeleg || !nullbelegDate || !nullbelegCashRegisterId}
+          >
+            {creatingNullbeleg ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                {t('tse.creating_nullbeleg')}
+              </>
+            ) : (
+              t('tse.create')
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

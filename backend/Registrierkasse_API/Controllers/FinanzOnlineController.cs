@@ -181,6 +181,81 @@ namespace Registrierkasse.Controllers
                 return StatusCode(500, new { message = "Vergi numarası doğrulanamadı" });
             }
         }
+
+        [HttpPost("create-nullbeleg")]
+        public async Task<IActionResult> CreateNullbeleg([FromBody] CreateNullbelegModel model)
+        {
+            try
+            {
+                var nullbeleg = await _finanzOnlineService.CreateNullbelegAsync(model.Date, model.CashRegisterId);
+                
+                if (nullbeleg != null)
+                {
+                    _logger.LogInformation($"Sıfır beleg oluşturuldu: {model.Date:yyyy-MM-dd}");
+                    return Ok(nullbeleg);
+                }
+                else
+                {
+                    return BadRequest(new { message = "Sıfır beleg oluşturulamadı" });
+                }
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Sıfır beleg oluşturma hatası");
+                return StatusCode(500, new { message = "Sıfır beleg oluşturulamadı" });
+            }
+        }
+
+        [HttpPost("submit-nullbeleg")]
+        public async Task<IActionResult> SubmitNullbeleg([FromBody] SubmitNullbelegModel model)
+        {
+            try
+            {
+                var success = await _finanzOnlineService.SubmitNullbelegAsync(model.Nullbeleg);
+                
+                if (success)
+                {
+                    _logger.LogInformation($"Sıfır beleg gönderildi: {model.Nullbeleg.Date:yyyy-MM-dd}");
+                    return Ok(new { message = "Sıfır beleg başarıyla gönderildi" });
+                }
+                else
+                {
+                    return BadRequest(new { message = "Sıfır beleg gönderilemedi" });
+                }
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Sıfır beleg gönderme hatası");
+                return StatusCode(500, new { message = "Sıfır beleg gönderilemedi" });
+            }
+        }
+
+        [HttpGet("nullbeleg-status/{date}")]
+        public async Task<IActionResult> GetNullbelegStatus(string date)
+        {
+            try
+            {
+                if (!DateTime.TryParse(date, out DateTime reportDate))
+                {
+                    return BadRequest(new { message = "Geçersiz tarih formatı" });
+                }
+
+                // Bu kısım gerçek implementasyonda FinanzOnline'dan nullbeleg durumunu alacak
+                _logger.LogInformation($"Sıfır beleg durumu sorgulanıyor: {reportDate:yyyy-MM-dd}");
+                
+                return Ok(new { 
+                    date = reportDate.ToString("yyyy-MM-dd"),
+                    status = "SUBMITTED",
+                    submittedAt = DateTime.UtcNow,
+                    referenceId = $"NULL-{reportDate:yyyyMMdd}"
+                });
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Sıfır beleg durumu alma hatası");
+                return StatusCode(500, new { message = "Sıfır beleg durumu alınamadı" });
+            }
+        }
     }
 
     public class FinanzOnlineConfigModel
@@ -197,5 +272,16 @@ namespace Registrierkasse.Controllers
     public class ValidateTaxNumberModel
     {
         public string TaxNumber { get; set; } = string.Empty;
+    }
+
+    public class CreateNullbelegModel
+    {
+        public DateTime Date { get; set; }
+        public string CashRegisterId { get; set; } = string.Empty;
+    }
+
+    public class SubmitNullbelegModel
+    {
+        public FinanzOnlineNullbeleg Nullbeleg { get; set; } = new();
     }
 } 

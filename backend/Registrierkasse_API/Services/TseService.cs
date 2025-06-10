@@ -12,6 +12,7 @@ namespace Registrierkasse.Services
         Task<string> GetTseIdAsync();
         Task<TseSignatureResult> SignTransactionAsync(string processData, string processType = "SIGN");
         Task<TseSignatureResult> SignDailyReportAsync();
+        Task<TseSignatureResult> SignNullbelegAsync(DateTime date, string cashRegisterId);
         Task<bool> ValidateSignatureAsync(string signature, string processData);
         Task<TseStatus> GetStatusAsync();
         Task<bool> InitializeHardwareAsync();
@@ -22,8 +23,8 @@ namespace Registrierkasse.Services
     {
         private readonly ILogger<TseService> _logger;
         private readonly ITseHardwareService _hardwareService;
-        private readonly string _tseDeviceId;
-        private readonly string _tseSerialNumber;
+        private string _tseDeviceId;
+        private string _tseSerialNumber;
         private bool _isInitialized;
 
         public TseService(ILogger<TseService> logger, ITseHardwareService hardwareService)
@@ -174,6 +175,39 @@ namespace Registrierkasse.Services
             {
                 _logger.LogError(ex, "TSE günlük rapor imzalama başarısız");
                 throw new TseException("TSE günlük rapor imzalama başarısız", ex);
+            }
+        }
+
+        public async Task<TseSignatureResult> SignNullbelegAsync(DateTime date, string cashRegisterId)
+        {
+            try
+            {
+                if (!await IsConnectedAsync())
+                {
+                    throw new TseException("TSE cihazı bağlı değil");
+                }
+
+                // Nullbeleg işlemi için gerekli veri oluştur
+                string nullbelegData = $"NULLBELEG_{date:yyyyMMdd}_{cashRegisterId}_{_tseSerialNumber}";
+                byte[] dataToSign = Encoding.UTF8.GetBytes(nullbelegData);
+                
+                // Hardware ile imzala
+                byte[] signatureBytes = await _hardwareService.SignDataAsync(dataToSign);
+                string signature = Convert.ToHexString(signatureBytes);
+
+                return new TseSignatureResult
+                {
+                    Signature = signature,
+                    SignatureCounter = DateTime.UtcNow.Ticks,
+                    Time = DateTime.UtcNow,
+                    ProcessType = "NULLBELEG",
+                    SerialNumber = _tseSerialNumber
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "TSE nullbeleg imzalama başarısız");
+                throw new TseException("TSE nullbeleg imzalama başarısız", ex);
             }
         }
 

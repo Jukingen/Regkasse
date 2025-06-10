@@ -149,6 +149,13 @@ namespace Registrierkasse.Models
         [MaxLength(20)]
         public string Status { get; set; } = InvoiceStatus.Pending.ToString();
         
+        [Column("payment_status")]
+        [MaxLength(20)]
+        public string PaymentStatus { get; set; } = "Pending";
+        
+        [Column("due_date")]
+        public DateTime? DueDate { get; set; }
+        
         public virtual ICollection<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();
         
         public virtual FinanceOnline? FinanceOnline { get; set; }
@@ -160,6 +167,15 @@ namespace Registrierkasse.Models
         Completed,
         Cancelled,
         Refunded
+    }
+
+    public enum PaymentStatus
+    {
+        Pending,
+        Paid,
+        PartiallyPaid,
+        Overdue,
+        Cancelled
     }
 
     public class TaxSummary

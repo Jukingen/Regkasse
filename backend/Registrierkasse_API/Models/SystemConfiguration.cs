@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
-namespace Registrierkasse_API.Models
+namespace Registrierkasse.Models
 {
     public class SystemConfiguration : BaseEntity
     {
@@ -13,6 +14,7 @@ namespace Registrierkasse_API.Models
         public PrinterSettings PrinterSettings { get; set; } = new();
     }
 
+    [Owned]
     public class OfflineSettings
     {
         public bool Enabled { get; set; } = false;
@@ -21,6 +23,7 @@ namespace Registrierkasse_API.Models
         public bool AutoSync { get; set; } = false;
     }
 
+    [Owned]
     public class TseSettings
     {
         public bool Required { get; set; } = true;
@@ -28,6 +31,7 @@ namespace Registrierkasse_API.Models
         public int MaxOfflineTransactions { get; set; } = 100;
     }
 
+    [Owned]
     public class PrinterSettings
     {
         public bool Required { get; set; } = true;

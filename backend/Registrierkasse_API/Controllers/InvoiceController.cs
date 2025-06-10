@@ -385,9 +385,9 @@ namespace Registrierkasse.Controllers
                 // Rapor verilerini hesapla
                 var totalInvoices = invoices.Count;
                 var totalAmount = invoices.Sum(i => i.TotalAmount);
-                var paidAmount = invoices.Where(i => i.PaymentStatus == PaymentStatus.Paid).Sum(i => i.TotalAmount);
+                var paidAmount = invoices.Where(i => i.PaymentStatus == Models.PaymentStatus.Paid.ToString()).Sum(i => i.TotalAmount);
                 var overdueAmount = invoices.Where(i => 
-                    i.PaymentStatus == PaymentStatus.Pending && 
+                    i.PaymentStatus == Models.PaymentStatus.Pending.ToString() && 
                     i.DueDate < DateTime.UtcNow).Sum(i => i.TotalAmount);
                 var averageInvoiceValue = totalInvoices > 0 ? totalAmount / totalInvoices : 0;
 
@@ -563,12 +563,12 @@ namespace Registrierkasse.Controllers
                     TotalAmount = originalInvoice.TotalAmount,
                     TaxAmount = originalInvoice.TaxAmount,
                     PaymentMethod = originalInvoice.PaymentMethod,
-                    PaymentStatus = PaymentStatus.Pending,
+                    PaymentStatus = Models.PaymentStatus.Pending.ToString(),
                     Status = "draft",
                     InvoiceType = originalInvoice.InvoiceType,
                     Notes = originalInvoice.Notes,
                     CreatedAt = DateTime.UtcNow,
-                    Items = originalInvoice.Items.Select(item => new InvoiceItem
+                    Items = originalInvoice.Items.Select(item => new Models.InvoiceItem
                     {
                         Id = Guid.NewGuid(),
                         InvoiceId = Guid.NewGuid(), // Bu yeni fatura ID'si ile değiştirilecek

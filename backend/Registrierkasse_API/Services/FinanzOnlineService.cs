@@ -13,9 +13,11 @@ namespace Registrierkasse.Services
         Task<bool> AuthenticateAsync();
         Task<bool> SubmitInvoiceAsync(FinanzOnlineInvoice invoice);
         Task<bool> SubmitDailyReportAsync(FinanzOnlineDailyReport report);
+        Task<bool> SubmitNullbelegAsync(FinanzOnlineNullbeleg nullbeleg);
         Task<FinanzOnlineStatus> GetStatusAsync();
         Task<List<FinanzOnlineError>> GetErrorsAsync();
         Task<bool> ValidateTaxNumberAsync(string taxNumber);
+        Task<FinanzOnlineNullbeleg> CreateNullbelegAsync(DateTime date, string cashRegisterId);
     }
 
     public class FinanzOnlineService : IFinanzOnlineService
@@ -161,6 +163,44 @@ namespace Registrierkasse.Services
             }
         }
 
+        public async Task<bool> SubmitNullbelegAsync(FinanzOnlineNullbeleg nullbeleg)
+        {
+            try
+            {
+                if (!await EnsureAuthenticatedAsync())
+                {
+                    return false;
+                }
+
+                _logger.LogInformation($"Sıfır beleg gönderiliyor: {nullbeleg.Date:yyyy-MM-dd}");
+
+                var json = JsonSerializer.Serialize(nullbeleg);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync($"{_apiUrl}/nullbelegs", content);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var submitResponse = JsonSerializer.Deserialize<SubmitResponse>(responseContent);
+                    
+                    if (submitResponse != null && submitResponse.Success)
+                    {
+                        _logger.LogInformation($"Sıfır beleg başarıyla gönderildi: {nullbeleg.Date:yyyy-MM-dd}");
+                        return true;
+                    }
+                }
+
+                _logger.LogError($"Sıfır beleg gönderimi başarısız: {nullbeleg.Date:yyyy-MM-dd}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Sıfır beleg gönderimi hatası: {nullbeleg.Date:yyyy-MM-dd}");
+                return false;
+            }
+        }
+
         public async Task<FinanzOnlineStatus> GetStatusAsync()
         {
             try
@@ -253,6 +293,45 @@ namespace Registrierkasse.Services
             }
         }
 
+        public async Task<FinanzOnlineNullbeleg> CreateNullbelegAsync(DateTime date, string cashRegisterId)
+        {
+            try
+            {
+                if (!await EnsureAuthenticatedAsync())
+                {
+                    return null;
+                }
+
+                _logger.LogInformation($"Sıfır beleg oluşturuluyor: {date:yyyy-MM-dd}");
+
+                var request = new { date, cashRegisterId };
+                var json = JsonSerializer.Serialize(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync($"{_apiUrl}/nullbelegs", content);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var nullbeleg = JsonSerializer.Deserialize<FinanzOnlineNullbeleg>(responseContent);
+                    
+                    if (nullbeleg != null)
+                    {
+                        _logger.LogInformation($"Sıfır beleg başarıyla oluşturuldu: {date:yyyy-MM-dd}");
+                        return nullbeleg;
+                    }
+                }
+
+                _logger.LogError($"Sıfır beleg oluşturulma hatası: {date:yyyy-MM-dd}");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Sıfır beleg oluşturulma hatası: {date:yyyy-MM-dd}");
+                return null;
+            }
+        }
+
         private async Task<bool> EnsureAuthenticatedAsync()
         {
             if (string.IsNullOrEmpty(_accessToken) || DateTime.UtcNow >= _tokenExpiry)
@@ -337,5 +416,17 @@ namespace Registrierkasse.Services
     {
         public bool IsValid { get; set; }
         public string Message { get; set; } = string.Empty;
+    }
+
+    public class FinanzOnlineNullbeleg
+    {
+        public DateTime Date { get; set; }
+        public string TseSignature { get; set; } = string.Empty;
+        public string CashRegisterId { get; set; } = string.Empty;
+        public string NullbelegNumber { get; set; } = string.Empty;
+        public string ProcessType { get; set; } = "NULLBELEG";
+        public DateTime CreatedAt { get; set; }
+        public string Status { get; set; } = "PENDING";
+        public string ReferenceId { get; set; } = string.Empty;
     }
 } 
