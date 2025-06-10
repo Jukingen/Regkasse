@@ -86,40 +86,40 @@ axiosInstance.interceptors.response.use(
 
 // API client
 export const apiClient = {
-    get: async <T>(url: string, params?: any) => {
-        console.log('GET request:', { url, params }); // Debug log
+    get: async <T>(url: string, config?: any) => {
+        console.log('GET request:', { url, config }); // Debug log
         try {
-            return await axiosInstance.get<T>(url, { params });
+            return await axiosInstance.get<T>(url, config);
         } catch (error) {
             console.error('GET request failed:', error); // Debug log
             throw error;
         }
     },
 
-    post: async <T>(url: string, data?: any) => {
-        console.log('POST request:', { url, data }); // Debug log
+    post: async <T>(url: string, data?: any, config?: any) => {
+        console.log('POST request:', { url, data, config }); // Debug log
         try {
-            return await axiosInstance.post<T>(url, data);
+            return await axiosInstance.post<T>(url, data, config);
         } catch (error) {
             console.error('POST request failed:', error); // Debug log
             throw error;
         }
     },
 
-    put: async <T>(url: string, data?: any) => {
-        console.log('PUT request:', { url, data }); // Debug log
+    put: async <T>(url: string, data?: any, config?: any) => {
+        console.log('PUT request:', { url, data, config }); // Debug log
         try {
-            return await axiosInstance.put<T>(url, data);
+            return await axiosInstance.put<T>(url, data, config);
         } catch (error) {
             console.error('PUT request failed:', error); // Debug log
             throw error;
         }
     },
 
-    delete: async <T>(url: string) => {
-        console.log('DELETE request:', { url }); // Debug log
+    delete: async <T>(url: string, config?: any) => {
+        console.log('DELETE request:', { url, config }); // Debug log
         try {
-            return await axiosInstance.delete<T>(url);
+            return await axiosInstance.delete<T>(url, config);
         } catch (error) {
             console.error('DELETE request failed:', error); // Debug log
             throw error;

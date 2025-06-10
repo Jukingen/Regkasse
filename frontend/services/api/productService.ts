@@ -4,33 +4,39 @@ export interface Product {
     id: string;
     name: string;
     price: number;
-    taxType: string;
+    taxType: 'standard' | 'reduced' | 'special';
     description: string;
     category: string;
     stockQuantity: number;
+    stock: number; // Alias for stockQuantity
     unit: string;
     imageUrl?: string;
+    barcode?: string;
 }
 
 export const productService = {
     // Tüm ürünleri getir
     getAllProducts: async (): Promise<Product[]> => {
-        return apiClient.get<Product[]>('/products');
+        const response = await apiClient.get<Product[]>('/products');
+        return response.data;
     },
 
     // ID'ye göre ürün getir
     getProductById: async (id: string): Promise<Product> => {
-        return apiClient.get<Product>(`/products/${id}`);
+        const response = await apiClient.get<Product>(`/products/${id}`);
+        return response.data;
     },
 
     // Yeni ürün ekle
     createProduct: async (product: Omit<Product, 'id'>): Promise<Product> => {
-        return apiClient.post<Product>('/products', product);
+        const response = await apiClient.post<Product>('/products', product);
+        return response.data;
     },
 
     // Ürün güncelle
     updateProduct: async (id: string, product: Partial<Product>): Promise<Product> => {
-        return apiClient.put<Product>(`/products/${id}`, product);
+        const response = await apiClient.put<Product>(`/products/${id}`, product);
+        return response.data;
     },
 
     // Ürün sil
@@ -40,6 +46,7 @@ export const productService = {
 
     // Ürün ara
     searchProducts: async (query: string): Promise<Product[]> => {
-        return apiClient.get<Product[]>(`/products/search?query=${encodeURIComponent(query)}`);
+        const response = await apiClient.get<Product[]>(`/products/search?query=${encodeURIComponent(query)}`);
+        return response.data;
     }
 }; 
