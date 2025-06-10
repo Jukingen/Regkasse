@@ -200,34 +200,63 @@ class ProductService {
             let syncedCount = 0;
             
             for (const product of offlineProducts) {
-                try {
-                    // Online'da ürün var mı kontrol et
-                    await this.getProductById(product.id);
-                    // Varsa güncelle
-                    await this.updateProduct(product.id, product);
-                } catch {
-                    // Yoksa oluştur
-                    await this.createProduct({
-                        name: product.name,
-                        price: product.price,
-                        taxType: product.taxType,
-                        description: product.description,
-                        category: product.category,
-                        stockQuantity: product.stockQuantity,
-                        stock: product.stock,
-                        unit: product.unit,
-                        imageUrl: product.imageUrl,
-                        barcode: product.barcode
-                    });
+                if (product.id.startsWith('offline_')) {
+                    try {
+                        const { id, ...productData } = product;
+                        await this.createProduct(productData);
+                        syncedCount++;
+                    } catch (error) {
+                        console.error('Failed to sync product:', product.name, error);
+                    }
                 }
-                syncedCount++;
             }
             
-            console.log('Products synced:', syncedCount);
+            // Senkronize edilen ürünleri offline'dan temizle
+            if (syncedCount > 0) {
+                const remainingProducts = offlineProducts.filter(p => !p.id.startsWith('offline_'));
+                await offlineManager.saveProductsOffline(remainingProducts);
+            }
+            
             return syncedCount;
         } catch (error) {
-            console.error('Product sync failed:', error);
+            console.error('Offline sync failed:', error);
             return 0;
+        }
+    }
+
+    // Kategorileri getir
+    async getCategories(): Promise<string[]> {
+        try {
+            const response = await apiClient.get<string[]>('/products/categories');
+            return response.data;
+        } catch (error) {
+            console.error('Online categories fetch failed:', error);
+            
+            // Çevrimdışı modda çalışıyorsa offline kategorileri hesapla
+            const { offlineManager } = await import('../offline/OfflineManager');
+            const offlineProducts = await offlineManager.getOfflineProducts();
+            
+            const categories = [...new Set(offlineProducts.map(p => p.category))];
+            console.log('Using offline categories:', categories);
+            return categories;
+        }
+    }
+
+    // Kategoriye göre ürünleri getir
+    async getProductsByCategory(category: string): Promise<Product[]> {
+        try {
+            const response = await apiClient.get<Product[]>(`${this.baseUrl}/by-category/${encodeURIComponent(category)}`);
+            return response.data;
+        } catch (error) {
+            console.error('Online category products fetch failed:', error);
+            
+            // Çevrimdışı modda çalışıyorsa offline filtrele
+            const { offlineManager } = await import('../offline/OfflineManager');
+            const offlineProducts = await offlineManager.getOfflineProducts();
+            
+            const filteredProducts = offlineProducts.filter(p => p.category === category);
+            console.log('Using offline products for category:', category, filteredProducts.length);
+            return filteredProducts;
         }
     }
 }

@@ -21,7 +21,16 @@
     "total": "Toplam",
     "notes": "Notlar",
     "required": "Zorunlu",
-    "optional": "İsteğe bağlı"
+    "optional": "İsteğe bağlı",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "yes": "Evet",
+    "no": "Hayır",
+    "close": "Kapat",
+    "add": "Ekle",
+    "update": "Güncelle",
+    "saving": "Kaydediliyor...",
+    "retry": "Tekrar Dene"
   },
   "auth": {
     "login": "Giriş Yap",
@@ -97,7 +106,20 @@
     "categories": "Kategoriler",
     "manageCategories": "Kategorileri Yönet",
     "importProducts": "Ürünleri İçe Aktar",
-    "exportProducts": "Ürünleri Dışa Aktar"
+    "exportProducts": "Ürünleri Dışa Aktar",
+    "addProduct": "Ürün Ekle",
+    "editProduct": "Ürün Düzenle",
+    "confirmDelete": "Bu ürünü silmek istediğinizden emin misiniz?",
+    "confirmDeleteCategory": "Bu kategoriyi silmek istediğinizden emin misiniz?",
+    "filterByCategory": "Kategoriye Göre Filtrele",
+    "allCategories": "Tüm Kategoriler",
+    "addNewCategory": "Yeni Kategori Ekle",
+    "categoryName": "Kategori Adı",
+    "existingCategories": "Mevcut Kategoriler",
+    "noProducts": "Henüz ürün bulunmuyor",
+    "noProductsFound": "Arama kriterlerinize uygun ürün bulunamadı",
+    "searchPlaceholder": "Ürün adı, açıklama veya kategori ara...",
+    "menu": "Menü"
   },
   "customers": {
     "customerNumber": "Müşteri Numarası",
@@ -220,5 +242,10 @@
     "time": "Geçersiz saat (SS:DD:SS)",
     "password": "Şifre en az 8 karakter olmalıdır",
     "passwordMatch": "Şifreler eşleşmiyor"
+  },
+  "tax": {
+    "standard": "Standart",
+    "reduced": "İndirimli",
+    "special": "Özel"
   }
 } 
