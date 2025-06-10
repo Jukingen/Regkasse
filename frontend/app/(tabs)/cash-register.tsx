@@ -1,543 +1,691 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../contexts/AuthContext';
-import { useSystem } from '../../contexts/SystemContext';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import ProductSelectionModal from '../../components/ProductSelectionModal';
-import { Product } from '../../services/api/productService';
+import { useSystem } from '../../contexts/SystemContext';
+import { productService, Product } from '../../services/api/productService';
 import { paymentService, PaymentRequest } from '../../services/api/paymentService';
-import { receiptService } from '../../services/api/receiptService';
 import { tseService } from '../../services/api/tseService';
-import { offlineManager } from '../../services/offline/OfflineManager';
+import { receiptService } from '../../services/api/receiptService';
+import { reportService } from '../../services/api/reportService';
+import ProductSelectionModal from '../../components/ProductSelectionModal';
+import PaymentModal from '../../components/PaymentModal';
+import { useTranslation } from 'react-i18next';
 
 interface CartItem {
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-    taxType: 'standard' | 'reduced' | 'special';
-    productId: string;
+  product: Product;
+  quantity: number;
+  total: number;
 }
 
-export default function CashRegisterScreen() {
-    const { t } = useTranslation();
-    const { user } = useAuth();
-    const { config, isOnline, isOfflineMode, isHybridMode, canWorkOffline } = useSystem();
-    const [cart, setCart] = useState<CartItem[]>([]);
-    const [total, setTotal] = useState(0);
-    const [showProductModal, setShowProductModal] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [tseStatus, setTseStatus] = useState<any>(null);
-    const [offlineProducts, setOfflineProducts] = useState<Product[]>([]);
+const CashRegister: React.FC = () => {
+  const { t } = useTranslation();
+  const { systemConfig, isOnline } = useSystem();
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [tseStatus, setTseStatus] = useState<any>(null);
+  const [printerStatus, setPrinterStatus] = useState<any>(null);
 
-    // TSE durumunu kontrol et
-    useEffect(() => {
-        if (config?.tseSettings.required) {
-            checkTseStatus();
-            const interval = setInterval(checkTseStatus, 30000);
-            return () => clearInterval(interval);
-        }
-    }, [config]);
-
-    // Çevrimdışı ürünleri yükle
-    useEffect(() => {
-        if (canWorkOffline) {
-            loadOfflineProducts();
-        }
-    }, [canWorkOffline]);
-
-    // Sepet toplamını hesapla
-    useEffect(() => {
-        const newTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        setTotal(newTotal);
-    }, [cart]);
-
-    const checkTseStatus = async () => {
-        try {
-            const status = await tseService.getStatus();
-            setTseStatus(status);
-        } catch (error) {
-            console.error('TSE status check failed:', error);
-            // Çevrimdışı modda TSE hatası tolere edilebilir
-            if (!canWorkOffline) {
-                setTseStatus({ isConnected: false });
-            }
-        }
-    };
-
-    const loadOfflineProducts = async () => {
-        try {
-            const products = await offlineManager.getOfflineProducts();
-            setOfflineProducts(products);
-        } catch (error) {
-            console.error('Offline products load failed:', error);
-        }
-    };
-
-    const handleProductSelect = (product: Product, quantity: number) => {
-        const existingItem = cart.find(item => item.productId === product.id);
+  // Sistem durumunu kontrol et
+  const checkSystemStatus = useCallback(async () => {
+    try {
+      // TSE durumu kontrol et
+      if (systemConfig.tseEnabled) {
+        const tseStatusResult = await tseService.getStatus();
+        setTseStatus(tseStatusResult);
         
-        if (existingItem) {
-            setCart(cart.map(item => 
-                item.productId === product.id 
-                    ? { ...item, quantity: item.quantity + quantity }
-                    : item
-            ));
-        } else {
-            const newItem: CartItem = {
-                id: `${product.id}-${Date.now()}`,
-                name: product.name,
-                price: product.price,
-                quantity,
-                taxType: product.taxType,
-                productId: product.id
-            };
-            setCart([...cart, newItem]);
+        // TSE bağlı değilse ve online-only modda ise uyarı ver
+        if (!tseStatusResult.isConnected && systemConfig.operationMode === 'online-only') {
+          Alert.alert(
+            t('errors.tse_required'),
+            t('errors.tse_connection_required'),
+            [{ text: t('common.ok') }]
+          );
         }
-    };
+      }
 
-    const handleRemoveItem = (itemId: string) => {
-        setCart(cart.filter(item => item.id !== itemId));
-    };
+      // Yazıcı durumu kontrol et
+      if (systemConfig.printerEnabled) {
+        const printerStatusResult = await receiptService.getPrinterStatus();
+        setPrinterStatus(printerStatusResult);
+      }
+    } catch (error) {
+      console.error('System status check failed:', error);
+    }
+  }, [systemConfig, t]);
 
-    const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
-        if (newQuantity <= 0) {
-            handleRemoveItem(itemId);
-            return;
+  // Ürünleri yükle
+  const loadProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const productsData = await productService.getAllProducts();
+      setProducts(productsData);
+    } catch (error) {
+      console.error('Products load failed:', error);
+      Alert.alert(
+        t('errors.load_failed'),
+        t('errors.products_load_failed'),
+        [{ text: t('common.ok') }]
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
+
+  // Sepete ürün ekle
+  const addToCart = useCallback((product: Product, quantity: number = 1) => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.product.id === product.id);
+      
+      if (existingItem) {
+        // Stok kontrolü
+        const newQuantity = existingItem.quantity + quantity;
+        if (newQuantity > product.stock) {
+          Alert.alert(
+            t('errors.stock_insufficient'),
+            t('errors.stock_not_enough', { available: product.stock }),
+            [{ text: t('common.ok') }]
+          );
+          return prevCart;
         }
         
-        setCart(cart.map(item => 
-            item.id === itemId 
-                ? { ...item, quantity: newQuantity }
-                : item
-        ));
-    };
-
-    const handlePayment = async () => {
-        if (cart.length === 0) {
-            Alert.alert(
-                t('cash_register.error.title'),
-                t('cash_register.error.empty_cart')
-            );
-            return;
+        return prevCart.map(item =>
+          item.product.id === product.id
+            ? { ...item, quantity: newQuantity, total: product.price * newQuantity }
+            : item
+        );
+      } else {
+        // Stok kontrolü
+        if (quantity > product.stock) {
+          Alert.alert(
+            t('errors.stock_insufficient'),
+            t('errors.stock_not_enough', { available: product.stock }),
+            [{ text: t('common.ok') }]
+          );
+          return prevCart;
         }
+        
+        return [...prevCart, {
+          product,
+          quantity,
+          total: product.price * quantity
+        }];
+      }
+    });
+  }, [t]);
 
-        // TSE kontrolü
-        if (config?.tseSettings.required && !tseStatus?.isConnected) {
-            if (!canWorkOffline || !config.tseSettings.offlineAllowed) {
-                Alert.alert(
-                    t('cash_register.error.title'),
-                    t('cash_register.error.tse_not_connected')
-                );
-                return;
+  // Sepetten ürün çıkar
+  const removeFromCart = useCallback((productId: string) => {
+    setCart(prevCart => prevCart.filter(item => item.product.id !== productId));
+  }, []);
+
+  // Sepet miktarını güncelle
+  const updateCartQuantity = useCallback((productId: string, quantity: number) => {
+    setCart(prevCart => {
+      const item = prevCart.find(item => item.product.id === productId);
+      if (!item) return prevCart;
+      
+      if (quantity <= 0) {
+        return prevCart.filter(item => item.product.id !== productId);
+      }
+      
+      if (quantity > item.product.stock) {
+        Alert.alert(
+          t('errors.stock_insufficient'),
+          t('errors.stock_not_enough', { available: item.product.stock }),
+          [{ text: t('common.ok') }]
+        );
+        return prevCart;
+      }
+      
+      return prevCart.map(item =>
+        item.product.id === productId
+          ? { ...item, quantity, total: item.product.price * quantity }
+          : item
+      );
+    });
+  }, [t]);
+
+  // Sepeti temizle
+  const clearCart = useCallback(() => {
+    setCart([]);
+  }, []);
+
+  // Toplam hesapla
+  const calculateTotals = useCallback(() => {
+    const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
+    const taxStandard = cart
+      .filter(item => item.product.taxType === 'standard')
+      .reduce((sum, item) => sum + (item.total * 0.20), 0);
+    const taxReduced = cart
+      .filter(item => item.product.taxType === 'reduced')
+      .reduce((sum, item) => sum + (item.total * 0.10), 0);
+    const taxSpecial = cart
+      .filter(item => item.product.taxType === 'special')
+      .reduce((sum, item) => sum + (item.total * 0.13), 0);
+    const total = subtotal + taxStandard + taxReduced + taxSpecial;
+    
+    return { subtotal, taxStandard, taxReduced, taxSpecial, total };
+  }, [cart]);
+
+  // Ödeme işlemi
+  const processPayment = useCallback(async (paymentMethod: string, amount: number) => {
+    try {
+      setLoading(true);
+      
+      // Mod kontrolü
+      if (systemConfig.operationMode === 'online-only' && !isOnline) {
+        Alert.alert(
+          t('errors.online_only'),
+          t('errors.internet_required'),
+          [{ text: t('common.ok') }]
+        );
+        return;
+      }
+      
+      // TSE kontrolü
+      if (systemConfig.tseEnabled && systemConfig.operationMode !== 'offline-only') {
+        if (!tseStatus?.isConnected) {
+          Alert.alert(
+            t('errors.tse_required'),
+            t('errors.tse_connection_required'),
+            [{ text: t('common.ok') }]
+          );
+          return;
+        }
+      }
+      
+      // Ödeme verilerini hazırla
+      const paymentRequest: PaymentRequest = {
+        items: cart.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+          taxType: item.product.taxType
+        })),
+        payment: {
+          method: paymentMethod as 'cash' | 'card' | 'voucher',
+          amount,
+          tseRequired: systemConfig.tseEnabled
+        }
+      };
+      
+      // Ödeme işlemini gerçekleştir
+      const paymentResult = await paymentService.processPayment(paymentRequest);
+      
+      if (paymentResult.success) {
+        // Stok güncelle
+        for (const item of cart) {
+          try {
+            await productService.updateStock(
+              item.product.id,
+              item.quantity,
+              'subtract'
+            );
+          } catch (error) {
+            console.error('Stock update failed for product:', item.product.id, error);
+          }
+        }
+        
+        // Fiş oluştur ve yazdır
+        if (systemConfig.printerEnabled) {
+          try {
+            const receipt = await receiptService.createReceipt(paymentResult.paymentId);
+            await receiptService.printReceipt(receipt);
+          } catch (error) {
+            console.error('Receipt creation/printing failed:', error);
+          }
+        }
+        
+        // Başarı mesajı
+        Alert.alert(
+          t('payment.success'),
+          t('payment.completed_successfully'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: () => {
+                clearCart();
+                setShowPaymentModal(false);
+              }
             }
-        }
+          ]
+        );
+      } else {
+        Alert.alert(
+          t('payment.failed'),
+          paymentResult.error || t('payment.unknown_error'),
+          [{ text: t('common.ok') }]
+        );
+      }
+    } catch (error) {
+      console.error('Payment processing failed:', error);
+      Alert.alert(
+        t('payment.failed'),
+        t('payment.processing_error'),
+        [{ text: t('common.ok') }]
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [cart, systemConfig, isOnline, tseStatus, t]);
 
-        setIsProcessing(true);
+  // Yenileme işlemi
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        loadProducts(),
+        checkSystemStatus()
+      ]);
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadProducts, checkSystemStatus]);
 
-        try {
-            // Ödeme isteği oluştur
-            const paymentRequest: PaymentRequest = {
-                amount: total,
-                method: 'cash',
-                items: cart.map(item => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    price: item.price,
-                    taxType: item.taxType
-                })),
-                tseRequired: config?.tseSettings.required || false
-            };
+  // İlk yükleme
+  useEffect(() => {
+    onRefresh();
+  }, [onRefresh]);
 
-            let payment;
-            let receipt;
+  // Sistem durumu değişikliklerini izle
+  useEffect(() => {
+    checkSystemStatus();
+  }, [checkSystemStatus]);
 
-            if (isOnline || isHybridMode) {
-                // Online ödeme
-                payment = await paymentService.processPayment(paymentRequest);
-                receipt = await receiptService.createReceipt(payment.id);
-                
-                // Fişi yazdır
-                const printSuccess = await receiptService.printReceipt(receipt);
-                
-                if (!printSuccess && config?.printerSettings.required) {
-                    throw new Error('Print failed');
-                }
-            } else {
-                // Çevrimdışı ödeme
-                const offlinePaymentId = await offlineManager.saveOfflinePayment(paymentRequest);
-                
-                // Çevrimdışı fiş oluştur
-                const offlineReceipt = {
-                    id: `offline_${Date.now()}`,
-                    receiptNumber: `OFF-${Date.now()}`,
-                    items: cart.map(item => ({
-                        productName: item.name,
-                        quantity: item.quantity,
-                        price: item.price,
-                        taxType: item.taxType,
-                        totalPrice: item.price * item.quantity
-                    })),
-                    subtotal: total - totalTax,
-                    taxStandard: cart.filter(item => item.taxType === 'standard').reduce((sum, item) => sum + calculateTaxAmount(item), 0),
-                    taxReduced: cart.filter(item => item.taxType === 'reduced').reduce((sum, item) => sum + calculateTaxAmount(item), 0),
-                    taxSpecial: cart.filter(item => item.taxType === 'special').reduce((sum, item) => sum + calculateTaxAmount(item), 0),
-                    total: total,
-                    paymentMethod: 'cash',
-                    timestamp: new Date().toISOString(),
-                    cashierId: user?.id || 'unknown'
-                };
+  const totals = calculateTotals();
 
-                await offlineManager.saveOfflineReceipt(offlineReceipt);
-                
-                // Çevrimdışı yazdırma kuyruğuna ekle
-                if (config?.printerSettings.offlineQueue) {
-                    await receiptService.queueOfflinePrint(offlineReceipt);
-                }
-            }
-
-            Alert.alert(
-                t('cash_register.success.title'),
-                isOnline ? t('cash_register.success.payment_completed') : t('cash_register.success.offline_payment_saved'),
-                [
-                    {
-                        text: 'Tamam',
-                        onPress: () => {
-                            setCart([]); // Sepeti temizle
-                        }
-                    }
-                ]
-            );
-        } catch (error) {
-            console.error('Payment error:', error);
-            Alert.alert(
-                t('cash_register.error.title'),
-                t('cash_register.error.payment_failed')
-            );
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    const calculateTaxAmount = (item: CartItem) => {
-        const taxRates = {
-            standard: 0.20,
-            reduced: 0.10,
-            special: 0.13
-        };
-        return (item.price * item.quantity * taxRates[item.taxType]);
-    };
-
-    const totalTax = cart.reduce((sum, item) => sum + calculateTaxAmount(item), 0);
-
-    const getConnectionStatus = () => {
-        if (isOfflineMode) {
-            return { text: 'Çevrimdışı Mod', color: '#FF9500', icon: 'cloud-offline' };
-        } else if (isHybridMode) {
-            return { text: isOnline ? 'Hibrit Mod (Çevrimiçi)' : 'Hibrit Mod (Çevrimdışı)', color: isOnline ? '#34C759' : '#FF9500', icon: isOnline ? 'cloud' : 'cloud-offline' };
-        } else {
-            return { text: isOnline ? 'Çevrimiçi' : 'Bağlantı Yok', color: isOnline ? '#34C759' : '#FF3B30', icon: isOnline ? 'cloud' : 'cloud-offline' };
-        }
-    };
-
-    const connectionStatus = getConnectionStatus();
-
-    return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.headerText}>
-                    {t('cash_register.welcome', { name: user?.username })}
-                </Text>
-                
-                <View style={styles.statusContainer}>
-                    <View style={styles.connectionStatus}>
-                        <Ionicons 
-                            name={connectionStatus.icon as any} 
-                            size={16} 
-                            color={connectionStatus.color} 
-                        />
-                        <Text style={[styles.statusText, { color: connectionStatus.color }]}>
-                            {connectionStatus.text}
-                        </Text>
-                    </View>
-                    
-                    {config?.tseSettings.required && tseStatus && (
-                        <View style={styles.tseStatus}>
-                            <Ionicons 
-                                name={tseStatus.isConnected ? "checkmark-circle" : "close-circle"} 
-                                size={16} 
-                                color={tseStatus.isConnected ? "#34C759" : "#FF3B30"} 
-                            />
-                            <Text style={styles.tseStatusText}>
-                                TSE: {tseStatus.isConnected ? 'Bağlı' : 'Bağlı Değil'}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-            </View>
-
-            <ScrollView style={styles.cartContainer}>
-                {cart.map((item) => (
-                    <View key={item.id} style={styles.cartItem}>
-                        <View style={styles.itemInfo}>
-                            <Text style={styles.itemName}>{item.name}</Text>
-                            <Text style={styles.itemTax}>
-                                {t(`tax.${item.taxType}`)} ({item.taxType === 'standard' ? '20%' : item.taxType === 'reduced' ? '10%' : '13%'})
-                            </Text>
-                        </View>
-                        <View style={styles.itemActions}>
-                            <View style={styles.quantityContainer}>
-                                <TouchableOpacity 
-                                    style={styles.quantityButton}
-                                    onPress={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                                >
-                                    <Ionicons name="remove" size={16} color="#007AFF" />
-                                </TouchableOpacity>
-                                <Text style={styles.quantityText}>{item.quantity}</Text>
-                                <TouchableOpacity 
-                                    style={styles.quantityButton}
-                                    onPress={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                                >
-                                    <Ionicons name="add" size={16} color="#007AFF" />
-                                </TouchableOpacity>
-                            </View>
-                            <Text style={styles.itemPrice}>
-                                {(item.price * item.quantity).toFixed(2)}€
-                            </Text>
-                            <TouchableOpacity 
-                                style={styles.removeButton}
-                                onPress={() => handleRemoveItem(item.id)}
-                            >
-                                <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                ))}
-                {cart.length === 0 && (
-                    <Text style={styles.emptyCart}>
-                        {t('cash_register.empty_cart')}
-                    </Text>
-                )}
-            </ScrollView>
-
-            <View style={styles.footer}>
-                <View style={styles.summaryContainer}>
-                    <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>{t('cash_register.subtotal')}</Text>
-                        <Text style={styles.summaryValue}>{(total - totalTax).toFixed(2)}€</Text>
-                    </View>
-                    <View style={styles.summaryRow}>
-                        <Text style={styles.summaryLabel}>{t('cash_register.tax')}</Text>
-                        <Text style={styles.summaryValue}>{totalTax.toFixed(2)}€</Text>
-                    </View>
-                    <View style={[styles.summaryRow, styles.totalRow]}>
-                        <Text style={styles.totalLabel}>{t('cash_register.total')}</Text>
-                        <Text style={styles.totalAmount}>{total.toFixed(2)}€</Text>
-                    </View>
-                </View>
-
-                <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                        style={[styles.button, styles.addButton]}
-                        onPress={() => setShowProductModal(true)}
-                    >
-                        <Ionicons name="add-circle-outline" size={24} color="white" />
-                        <Text style={styles.buttonText}>{t('cash_register.add_item')}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[styles.button, styles.payButton, isProcessing && styles.disabledButton]}
-                        onPress={handlePayment}
-                        disabled={isProcessing || cart.length === 0}
-                    >
-                        <Ionicons name="cash-outline" size={24} color="white" />
-                        <Text style={styles.buttonText}>
-                            {isProcessing ? t('cash_register.processing') : t('cash_register.pay')}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            <ProductSelectionModal
-                visible={showProductModal}
-                onClose={() => setShowProductModal(false)}
-                onProductSelect={handleProductSelect}
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Üst Bilgi Çubuğu */}
+      <View style={styles.header}>
+        <View style={styles.statusBar}>
+          <View style={styles.statusItem}>
+            <Ionicons 
+              name={isOnline ? 'wifi' : 'wifi-outline'} 
+              size={20} 
+              color={isOnline ? '#4CAF50' : '#FF9800'} 
             />
+            <Text style={[styles.statusText, { color: isOnline ? '#4CAF50' : '#FF9800' }]}>
+              {isOnline ? t('status.online') : t('status.offline')}
+            </Text>
+          </View>
+          
+          {systemConfig.tseEnabled && (
+            <View style={styles.statusItem}>
+              <Ionicons 
+                name={tseStatus?.isConnected ? 'hardware-chip' : 'hardware-chip-outline'} 
+                size={20} 
+                color={tseStatus?.isConnected ? '#4CAF50' : '#F44336'} 
+              />
+              <Text style={[styles.statusText, { color: tseStatus?.isConnected ? '#4CAF50' : '#F44336' }]}>
+                TSE {tseStatus?.isConnected ? t('status.connected') : t('status.disconnected')}
+              </Text>
+            </View>
+          )}
+          
+          {systemConfig.printerEnabled && (
+            <View style={styles.statusItem}>
+              <Ionicons 
+                name={printerStatus?.isConnected ? 'print' : 'print-outline'} 
+                size={20} 
+                color={printerStatus?.isConnected ? '#4CAF50' : '#F44336'} 
+              />
+              <Text style={[styles.statusText, { color: printerStatus?.isConnected ? '#4CAF50' : '#F44336' }]}>
+                {printerStatus?.isConnected ? t('status.connected') : t('status.disconnected')}
+              </Text>
+            </View>
+          )}
         </View>
-    );
-}
+        
+        <Text style={styles.modeText}>
+          {t(`modes.${systemConfig.operationMode}`)}
+        </Text>
+      </View>
+
+      <ScrollView 
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Arama Çubuğu */}
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t('search.products')}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          <TouchableOpacity 
+            style={styles.searchButton}
+            onPress={() => setShowProductModal(true)}
+          >
+            <Ionicons name="add" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Sepet */}
+        <View style={styles.cartContainer}>
+          <View style={styles.cartHeader}>
+            <Text style={styles.cartTitle}>{t('cart.title')}</Text>
+            {cart.length > 0 && (
+              <TouchableOpacity onPress={clearCart} style={styles.clearButton}>
+                <Text style={styles.clearButtonText}>{t('cart.clear')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {cart.length === 0 ? (
+            <View style={styles.emptyCart}>
+              <Ionicons name="cart-outline" size={48} color="#ccc" />
+              <Text style={styles.emptyCartText}>{t('cart.empty')}</Text>
+            </View>
+          ) : (
+            <View style={styles.cartItems}>
+              {cart.map((item) => (
+                <View key={item.product.id} style={styles.cartItem}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{item.product.name}</Text>
+                    <Text style={styles.itemPrice}>
+                      {item.product.price.toFixed(2)}€ x {item.quantity}
+                    </Text>
+                  </View>
+                  <View style={styles.itemActions}>
+                    <TouchableOpacity
+                      onPress={() => updateCartQuantity(item.product.id, item.quantity - 1)}
+                      style={styles.quantityButton}
+                    >
+                      <Ionicons name="remove" size={16} color="#F44336" />
+                    </TouchableOpacity>
+                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                    <TouchableOpacity
+                      onPress={() => updateCartQuantity(item.product.id, item.quantity + 1)}
+                      style={styles.quantityButton}
+                    >
+                      <Ionicons name="add" size={16} color="#4CAF50" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => removeFromCart(item.product.id)}
+                      style={styles.removeButton}
+                    >
+                      <Ionicons name="trash-outline" size={16} color="#F44336" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Toplam */}
+        {cart.length > 0 && (
+          <View style={styles.totalsContainer}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>{t('cart.subtotal')}</Text>
+              <Text style={styles.totalValue}>{totals.subtotal.toFixed(2)}€</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>{t('cart.tax_standard')}</Text>
+              <Text style={styles.totalValue}>{totals.taxStandard.toFixed(2)}€</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>{t('cart.tax_reduced')}</Text>
+              <Text style={styles.totalValue}>{totals.taxReduced.toFixed(2)}€</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>{t('cart.tax_special')}</Text>
+              <Text style={styles.totalValue}>{totals.taxSpecial.toFixed(2)}€</Text>
+            </View>
+            <View style={[styles.totalRow, styles.grandTotal]}>
+              <Text style={styles.grandTotalLabel}>{t('cart.total')}</Text>
+              <Text style={styles.grandTotalValue}>{totals.total.toFixed(2)}€</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Ödeme Butonu */}
+        {cart.length > 0 && (
+          <TouchableOpacity
+            style={[styles.paymentButton, loading && styles.paymentButtonDisabled]}
+            onPress={() => setShowPaymentModal(true)}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Ionicons name="card" size={24} color="white" />
+                <Text style={styles.paymentButtonText}>{t('payment.process')}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+
+      {/* Modaller */}
+      <ProductSelectionModal
+        visible={showProductModal}
+        onClose={() => setShowProductModal(false)}
+        onSelectProduct={(product, quantity) => {
+          addToCart(product, quantity);
+          setShowProductModal(false);
+        }}
+        products={products}
+        searchQuery={searchQuery}
+        loading={loading}
+      />
+
+      <PaymentModal
+        visible={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onProcessPayment={processPayment}
+        total={totals.total}
+        loading={loading}
+        systemConfig={systemConfig}
+        isOnline={isOnline}
+      />
+    </SafeAreaView>
+  );
+};
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f5f5f5',
-    },
-    header: {
-        padding: 20,
-        backgroundColor: '#007AFF',
-    },
-    headerText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: 'white',
-        marginBottom: 10,
-    },
-    statusContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    connectionStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    statusText: {
-        color: 'white',
-        fontSize: 14,
-        marginLeft: 5,
-        fontWeight: 'bold',
-    },
-    tseStatus: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    tseStatusText: {
-        color: 'white',
-        fontSize: 14,
-        marginLeft: 5,
-    },
-    cartContainer: {
-        flex: 1,
-        padding: 20,
-    },
-    cartItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        padding: 15,
-        backgroundColor: 'white',
-        borderRadius: 10,
-        marginBottom: 10,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 1.41,
-        elevation: 2,
-    },
-    itemInfo: {
-        flex: 1,
-    },
-    itemName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginBottom: 5,
-    },
-    itemTax: {
-        fontSize: 12,
-        color: '#666',
-    },
-    itemActions: {
-        alignItems: 'flex-end',
-    },
-    quantityContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 5,
-    },
-    quantityButton: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: '#f0f0f0',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    quantityText: {
-        marginHorizontal: 10,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    itemPrice: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#007AFF',
-        marginBottom: 5,
-    },
-    removeButton: {
-        padding: 5,
-    },
-    emptyCart: {
-        textAlign: 'center',
-        fontSize: 16,
-        color: '#666',
-        marginTop: 20,
-    },
-    footer: {
-        padding: 20,
-        backgroundColor: 'white',
-        borderTopWidth: 1,
-        borderTopColor: '#ddd',
-    },
-    summaryContainer: {
-        marginBottom: 20,
-    },
-    summaryRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 5,
-    },
-    summaryLabel: {
-        fontSize: 16,
-        color: '#666',
-    },
-    summaryValue: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    totalRow: {
-        borderTopWidth: 1,
-        borderTopColor: '#ddd',
-        paddingTop: 10,
-        marginTop: 10,
-    },
-    totalLabel: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    totalAmount: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#007AFF',
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    button: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 15,
-        borderRadius: 10,
-        marginHorizontal: 5,
-    },
-    addButton: {
-        backgroundColor: '#34C759',
-    },
-    payButton: {
-        backgroundColor: '#007AFF',
-    },
-    disabledButton: {
-        backgroundColor: '#ccc',
-    },
-    buttonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 8,
-    },
-}); 
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  statusBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  statusItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  modeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2196F3',
+    textAlign: 'center',
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  searchButton: {
+    backgroundColor: '#2196F3',
+    borderRadius: 8,
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cartContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  cartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cartTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  clearButton: {
+    padding: 8,
+  },
+  clearButtonText: {
+    color: '#F44336',
+    fontSize: 14,
+  },
+  emptyCart: {
+    alignItems: 'center',
+    padding: 32,
+  },
+  emptyCartText: {
+    marginTop: 8,
+    fontSize: 16,
+    color: '#666',
+  },
+  cartItems: {
+    gap: 12,
+  },
+  cartItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  itemPrice: {
+    fontSize: 14,
+    color: '#666',
+  },
+  itemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  quantityButton: {
+    padding: 4,
+  },
+  quantityText: {
+    fontSize: 16,
+    fontWeight: '600',
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  removeButton: {
+    padding: 4,
+  },
+  totalsContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  totalLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  totalValue: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  grandTotal: {
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    paddingTop: 8,
+    marginTop: 8,
+  },
+  grandTotalLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  grandTotalValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2196F3',
+  },
+  paymentButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  paymentButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  paymentButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+});
+
+export default CashRegister; 

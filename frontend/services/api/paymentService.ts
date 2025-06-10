@@ -7,37 +7,27 @@ export interface PaymentMethod {
   icon: string;
 }
 
+export interface PaymentItem {
+  productId: string;
+  quantity: number;
+  price: number;
+  taxType: 'standard' | 'reduced' | 'special';
+}
+
 export interface PaymentRequest {
-  amount: number;
-  method: string;
-  items: Array<{
-    productId: string;
-    quantity: number;
-    price: number;
-    taxType: string;
-  }>;
-  customerId?: string;
-  tseRequired: boolean;
+  items: PaymentItem[];
+  payment: {
+    method: 'cash' | 'card' | 'voucher';
+    amount: number;
+    tseRequired: boolean;
+  };
 }
 
 export interface PaymentResponse {
-  id: string;
-  receiptNumber: string;
-  amount: number;
-  taxAmount: number;
-  totalAmount: number;
-  paymentMethod: string;
-  status: 'completed' | 'pending' | 'failed';
-  tseSignature?: string;
-  timestamp: string;
-  items: Array<{
-    productId: string;
-    productName: string;
-    quantity: number;
-    price: number;
-    taxAmount: number;
-    totalPrice: number;
-  }>;
+  success: boolean;
+  paymentId: string;
+  error?: string;
+  message?: string;
 }
 
 export interface Receipt {
@@ -56,10 +46,8 @@ export interface Receipt {
   taxSpecial: number;
   total: number;
   paymentMethod: string;
-  tseSignature?: string;
   timestamp: string;
   cashierId: string;
-  customerId?: string;
 }
 
 class PaymentService {
@@ -71,10 +59,25 @@ class PaymentService {
     return response.data;
   }
 
-  // Ödeme işlemi yap
-  async processPayment(payment: PaymentRequest): Promise<PaymentResponse> {
-    const response = await apiClient.post<PaymentResponse>(`${this.baseUrl}/process`, payment);
-    return response.data;
+  // Ödeme işlemi (mod kontrolü ile)
+  async processPayment(paymentRequest: PaymentRequest): Promise<PaymentResponse> {
+    try {
+      const response = await apiClient.post<PaymentResponse>(`${this.baseUrl}/process`, paymentRequest);
+      return response.data;
+    } catch (error) {
+      console.error('Online payment failed:', error);
+      
+      // Çevrimdışı modda çalışıyorsa offline kaydet
+      const { offlineManager } = await import('../offline/OfflineManager');
+      const offlinePaymentId = await offlineManager.saveOfflinePayment(paymentRequest);
+      
+      console.log('Payment saved offline:', offlinePaymentId);
+      return {
+        success: true,
+        paymentId: offlinePaymentId,
+        message: 'Payment saved offline'
+      };
+    }
   }
 
   // Fiş oluştur
@@ -83,73 +86,203 @@ class PaymentService {
     return response.data;
   }
 
-  // Ödeme geçmişini getir
+  // Ödeme geçmişi
   async getPaymentHistory(limit: number = 50, offset: number = 0): Promise<PaymentResponse[]> {
-    const response = await apiClient.get<PaymentResponse[]>(
-      `${this.baseUrl}/history?limit=${limit}&offset=${offset}`
-    );
-    return response.data;
-  }
-
-  // Belirli bir ödemeyi getir
-  async getPaymentById(id: string): Promise<PaymentResponse> {
-    const response = await apiClient.get<PaymentResponse>(`${this.baseUrl}/${id}`);
-    return response.data;
-  }
-
-  // Ödeme iptal et
-  async cancelPayment(id: string, reason: string): Promise<void> {
-    await apiClient.post(`${this.baseUrl}/${id}/cancel`, { reason });
-  }
-
-  // Günlük özet raporu
-  async getDailySummary(date: string): Promise<{
-    totalSales: number;
-    totalTransactions: number;
-    paymentMethods: Record<string, number>;
-    taxSummary: {
-      standard: number;
-      reduced: number;
-      special: number;
-    };
-  }> {
-    const response = await apiClient.get(`${this.baseUrl}/daily-summary/${date}`);
-    return response.data as {
-      totalSales: number;
-      totalTransactions: number;
-      paymentMethods: Record<string, number>;
-      taxSummary: {
-        standard: number;
-        reduced: number;
-        special: number;
-      };
-    };
-  }
-
-  // TSE imzası doğrula
-  async validateTseSignature(signature: string, processData: string): Promise<boolean> {
     try {
-      const response = await apiClient.post(`${this.baseUrl}/validate-tse`, {
-        signature,
-        processData
-      });
-      return (response.data as { isValid: boolean }).isValid;
+      const response = await apiClient.get<PaymentResponse[]>(
+        `${this.baseUrl}/history?limit=${limit}&offset=${offset}`
+      );
+      return response.data;
     } catch (error) {
-      console.error('TSE signature validation failed:', error);
-      return false;
+      console.error('Payment history fetch failed:', error);
+      
+      // Çevrimdışı modda çalışıyorsa offline verilerden getir
+      const { offlineManager } = await import('../offline/OfflineManager');
+      const offlinePayments = await offlineManager.getOfflinePayments();
+      
+      return offlinePayments.map(payment => ({
+        success: true,
+        paymentId: payment.id,
+        message: 'Offline payment'
+      }));
     }
   }
 
-  // Çevrimdışı ödeme kaydet
-  async saveOfflinePayment(payment: PaymentRequest): Promise<string> {
-    const response = await apiClient.post(`${this.baseUrl}/offline`, payment);
-    return (response.data as { id: string }).id;
+  // Belirli bir ödeme
+  async getPaymentById(id: string): Promise<PaymentResponse> {
+    try {
+      const response = await apiClient.get<PaymentResponse>(`${this.baseUrl}/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Payment fetch failed:', error);
+      
+      // Çevrimdışı modda çalışıyorsa offline verilerden getir
+      const { offlineManager } = await import('../offline/OfflineManager');
+      const offlinePayments = await offlineManager.getOfflinePayments();
+      const payment = offlinePayments.find(p => p.id === id);
+      
+      if (payment) {
+        return {
+          success: true,
+          paymentId: payment.id,
+          message: 'Offline payment'
+        };
+      }
+      
+      return {
+        success: false,
+        paymentId: '',
+        error: 'Payment not found'
+      };
+    }
+  }
+
+  // Ödeme iptal
+  async cancelPayment(id: string): Promise<boolean> {
+    try {
+      const response = await apiClient.post(`${this.baseUrl}/${id}/cancel`);
+      return response.status === 200;
+    } catch (error) {
+      console.error('Payment cancellation failed:', error);
+      
+      // Çevrimdışı modda çalışıyorsa offline iptal et
+      const { offlineManager } = await import('../offline/OfflineManager');
+      await offlineManager.cancelOfflinePayment(id);
+      
+      return true;
+    }
+  }
+
+  // Ödeme iade
+  async refundPayment(id: string, amount: number, reason: string): Promise<PaymentResponse> {
+    try {
+      const response = await apiClient.post<PaymentResponse>(`${this.baseUrl}/${id}/refund`, {
+        amount,
+        reason
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Payment refund failed:', error);
+      
+      // Çevrimdışı modda çalışıyorsa offline iade et
+      const { offlineManager } = await import('../offline/OfflineManager');
+      const refundId = await offlineManager.refundOfflinePayment(id, amount, reason);
+      
+      return {
+        success: true,
+        paymentId: refundId,
+        message: 'Refund processed offline'
+      };
+    }
+  }
+
+  // Günlük ödeme raporu
+  async getDailyPaymentReport(date: string): Promise<{
+    totalPayments: number;
+    totalAmount: number;
+    paymentMethodBreakdown: Record<string, number>;
+    payments: PaymentResponse[];
+  }> {
+    try {
+      const response = await apiClient.get(`${this.baseUrl}/daily-report/${date}`);
+      return response.data as {
+        totalPayments: number;
+        totalAmount: number;
+        paymentMethodBreakdown: Record<string, number>;
+        payments: PaymentResponse[];
+      };
+    } catch (error) {
+      console.error('Daily payment report failed:', error);
+      
+      // Çevrimdışı modda çalışıyorsa offline verilerden rapor oluştur
+      const { offlineManager } = await import('../offline/OfflineManager');
+      const offlinePayments = await offlineManager.getOfflinePayments();
+      
+      const dayPayments = offlinePayments
+        .filter(p => p.timestamp.startsWith(date))
+        .map(p => ({
+          success: true,
+          paymentId: p.id,
+          message: 'Offline payment'
+        }));
+      
+      const totalAmount = dayPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      return {
+        totalPayments: dayPayments.length,
+        totalAmount,
+        paymentMethodBreakdown: { cash: totalAmount }, // Çevrimdışı modda sadece nakit
+        payments: dayPayments
+      };
+    }
+  }
+
+  // Ödeme istatistikleri
+  async getPaymentStatistics(period: 'day' | 'week' | 'month' | 'year'): Promise<{
+    totalPayments: number;
+    totalAmount: number;
+    averageAmount: number;
+    topPaymentMethods: Array<{ method: string; count: number; amount: number }>;
+  }> {
+    try {
+      const response = await apiClient.get(`${this.baseUrl}/statistics?period=${period}`);
+      return response.data as {
+        totalPayments: number;
+        totalAmount: number;
+        averageAmount: number;
+        topPaymentMethods: Array<{ method: string; count: number; amount: number }>;
+      };
+    } catch (error) {
+      console.error('Payment statistics failed:', error);
+      
+      // Çevrimdışı modda çalışıyorsa basit istatistikler döndür
+      const { offlineManager } = await import('../offline/OfflineManager');
+      const offlinePayments = await offlineManager.getOfflinePayments();
+      
+      const totalPayments = offlinePayments.length;
+      const totalAmount = offlinePayments.reduce((sum, p) => sum + (p.payment.amount || 0), 0);
+      const averageAmount = totalPayments > 0 ? totalAmount / totalPayments : 0;
+      
+      return {
+        totalPayments,
+        totalAmount,
+        averageAmount,
+        topPaymentMethods: [{ method: 'cash', count: totalPayments, amount: totalAmount }]
+      };
+    }
   }
 
   // Çevrimdışı ödemeleri senkronize et
   async syncOfflinePayments(): Promise<number> {
-    const response = await apiClient.post(`${this.baseUrl}/sync-offline`);
-    return (response.data as { syncedCount: number }).syncedCount;
+    try {
+      const { offlineManager } = await import('../offline/OfflineManager');
+      const offlinePayments = await offlineManager.getOfflinePayments();
+      
+      let syncedCount = 0;
+      
+      for (const offlinePayment of offlinePayments) {
+        if (offlinePayment.status === 'pending') {
+          try {
+            // Online ödeme işlemi
+            const response = await this.processPayment(offlinePayment.payment);
+            
+            if (response.success) {
+              // Offline ödemeyi güncelle
+              await offlineManager.syncOfflinePayment(offlinePayment);
+              syncedCount++;
+            }
+          } catch (error) {
+            console.error('Payment sync failed for:', offlinePayment.id, error);
+          }
+        }
+      }
+      
+      console.log('Payments synced:', syncedCount);
+      return syncedCount;
+    } catch (error) {
+      console.error('Payment sync failed:', error);
+      return 0;
+    }
   }
 }
 

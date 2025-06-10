@@ -2,30 +2,45 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../services/api/config';
+import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export interface SystemConfig {
+export interface SystemConfiguration {
   operationMode: 'online-only' | 'offline-only' | 'hybrid';
+  tseEnabled: boolean;
+  printerEnabled: boolean;
+  finanzOnlineEnabled: boolean;
   offlineSettings: {
-    enabled: boolean;
-    syncInterval: number;
-    maxOfflineDays: number;
     autoSync: boolean;
+    syncInterval: number; // dakika
+    maxOfflineDays: number;
   };
   tseSettings: {
-    required: boolean;
-    offlineAllowed: boolean;
-    maxOfflineTransactions: number;
+    model: string;
+    connectionType: 'usb' | 'network';
+    timeout: number; // saniye
+    dailyReportTime: string; // HH:MM
   };
   printerSettings: {
-    required: boolean;
-    offlineQueue: boolean;
-    maxQueueSize: number;
+    model: string;
+    connectionType: 'usb' | 'network' | 'bluetooth';
+    paperSize: '80mm' | '58mm';
+    autoPrint: boolean;
+  };
+  finanzOnlineSettings: {
+    apiUrl: string;
+    clientId: string;
+    clientSecret: string;
+    certificatePath: string;
   };
 }
 
 interface SystemContextType {
-  config: SystemConfig | null;
   isOnline: boolean;
+  systemConfig: SystemConfiguration;
+  updateSystemConfig: (config: Partial<SystemConfiguration>) => Promise<void>;
+  loadSystemConfig: () => Promise<void>;
+  config: SystemConfiguration | null;
   isOfflineMode: boolean;
   isHybridMode: boolean;
   canWorkOffline: boolean;
@@ -33,6 +48,36 @@ interface SystemContextType {
   refreshConfig: () => Promise<void>;
   checkConnectivity: () => Promise<boolean>;
 }
+
+const defaultConfig: SystemConfiguration = {
+  operationMode: 'hybrid',
+  tseEnabled: true,
+  printerEnabled: true,
+  finanzOnlineEnabled: false,
+  offlineSettings: {
+    autoSync: true,
+    syncInterval: 30,
+    maxOfflineDays: 7,
+  },
+  tseSettings: {
+    model: 'EPSON-TSE',
+    connectionType: 'usb',
+    timeout: 30,
+    dailyReportTime: '23:59',
+  },
+  printerSettings: {
+    model: 'EPSON TM-T88VI',
+    connectionType: 'usb',
+    paperSize: '80mm',
+    autoPrint: true,
+  },
+  finanzOnlineSettings: {
+    apiUrl: 'https://finanzonline.bmf.gv.at',
+    clientId: '',
+    clientSecret: '',
+    certificatePath: '',
+  },
+};
 
 const SystemContext = createContext<SystemContextType | undefined>(undefined);
 
@@ -50,14 +95,53 @@ interface SystemProviderProps {
 
 export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
   const { t } = useTranslation();
-  const [config, setConfig] = useState<SystemConfig | null>(null);
   const [isOnline, setIsOnline] = useState(true);
+  const [systemConfig, setSystemConfig] = useState<SystemConfiguration>(defaultConfig);
+  const [config, setConfig] = useState<SystemConfiguration | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Ağ durumunu izle
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected ?? false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Sistem konfigürasyonunu yükle
+  const loadSystemConfig = async () => {
+    try {
+      const savedConfig = await AsyncStorage.getItem('systemConfig');
+      if (savedConfig) {
+        const parsedConfig = JSON.parse(savedConfig);
+        setSystemConfig({ ...defaultConfig, ...parsedConfig });
+      }
+    } catch (error) {
+      console.error('System config load failed:', error);
+    }
+  };
+
+  // Sistem konfigürasyonunu güncelle
+  const updateSystemConfig = async (newConfig: Partial<SystemConfiguration>) => {
+    try {
+      const updatedConfig = { ...systemConfig, ...newConfig };
+      setSystemConfig(updatedConfig);
+      await AsyncStorage.setItem('systemConfig', JSON.stringify(updatedConfig));
+    } catch (error) {
+      console.error('System config update failed:', error);
+    }
+  };
+
+  // İlk yükleme
+  useEffect(() => {
+    loadSystemConfig();
+  }, []);
 
   // Sistem konfigürasyonunu yükle
   const loadConfig = async () => {
     try {
-      const response = await apiClient.get<SystemConfig>('/system/config');
+      const response = await apiClient.get<SystemConfiguration>('/system/config');
       setConfig(response.data);
     } catch (error) {
       console.error('System config load failed:', error);
@@ -180,8 +264,11 @@ export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
   }, [config, isHybridMode, isOnline]);
 
   const value: SystemContextType = {
-    config,
     isOnline,
+    systemConfig,
+    updateSystemConfig,
+    loadSystemConfig,
+    config,
     isOfflineMode,
     isHybridMode,
     canWorkOffline,
