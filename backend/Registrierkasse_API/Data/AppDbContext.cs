@@ -31,6 +31,7 @@ namespace Registrierkasse.Data
         public DbSet<FinanceOnline> FinanceOnline { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<SystemConfiguration> SystemConfigurations { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

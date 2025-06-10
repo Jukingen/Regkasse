@@ -9,6 +9,7 @@ import theme from './theme';
 import AppRoutes from './routes';
 import AuthProvider from './contexts/AuthContext';
 import './i18n';
+import { LanguageProvider } from './contexts/LanguageContext';
 
 // React Query istemcisini oluştur
 const queryClient = new QueryClient({
@@ -23,18 +24,20 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={de}>
-          <CssBaseline />
-          <BrowserRouter>
-            <AuthProvider>
-              <AppRoutes />
-            </AuthProvider>
-          </BrowserRouter>
-        </LocalizationProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={de}>
+            <CssBaseline />
+            <BrowserRouter>
+              <AuthProvider>
+                <AppRoutes />
+              </AuthProvider>
+            </BrowserRouter>
+          </LocalizationProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </LanguageProvider>
   );
 }
 

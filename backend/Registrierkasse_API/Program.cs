@@ -82,6 +82,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ILocalizationService, LocalizationService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ITseService, TseService>();
+builder.Services.AddScoped<IPrinterService, PrinterService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IAdvancedReportService, AdvancedReportService>();
 
 var app = builder.Build();
 
@@ -120,6 +123,7 @@ app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<Registrierkasse.Middleware.AdminAuthorizationMiddleware>();
 
 app.MapControllers();
 

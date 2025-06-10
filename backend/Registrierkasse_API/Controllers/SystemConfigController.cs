@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Registrierkasse.Data;
 using Registrierkasse.Models;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Registrierkasse.Controllers
 {
@@ -89,6 +90,7 @@ namespace Registrierkasse.Controllers
         }
 
         [HttpPut("config")]
+        [Authorize(Roles = "Administrator")]
         public async Task<ActionResult> UpdateConfiguration([FromBody] SystemConfigDto configDto)
         {
             try

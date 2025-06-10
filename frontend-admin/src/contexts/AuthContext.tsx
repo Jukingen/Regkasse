@@ -75,6 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
       setUser(user);
+      // Eğer admin değilse dili zorla
+      if (user.role !== 'admin') {
+        localStorage.setItem('language', 'de');
+        import('../i18n').then(i18n => i18n.default.changeLanguage('de'));
+      }
     } catch (err) {
       setError(t('auth.loginError'));
       throw err;

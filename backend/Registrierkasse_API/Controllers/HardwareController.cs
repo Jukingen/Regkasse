@@ -51,6 +51,7 @@ namespace Registrierkasse.Controllers
         }
 
         [HttpPost("config")]
+        [Authorize(Roles = "Administrator")]
         public async Task<IActionResult> SaveConfig([FromBody] HardwareConfigModel config)
         {
             try
