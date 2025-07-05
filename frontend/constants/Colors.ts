@@ -8,20 +8,133 @@ const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    // Ana renkler
+    primary: '#2196F3',
+    secondary: '#FF9800',
+    success: '#4CAF50',
+    error: '#F44336',
+    warning: '#FF9800',
+    info: '#2196F3',
+    
+    // Arka plan renkleri
+    background: '#F5F5F5',
+    surface: '#FFFFFF',
+    card: '#FFFFFF',
+    
+    // Metin renkleri
+    text: '#212121',
+    textSecondary: '#757575',
+    textTertiary: '#9E9E9E',
+    
+    // Kenarlık renkleri
+    border: '#E0E0E0',
+    borderLight: '#F0F0F0',
+    
+    // Durum renkleri
+    online: '#4CAF50',
+    offline: '#FF9800',
+    error: '#F44336',
+    
+    // Sepet ve ödeme renkleri
+    cartBackground: '#F9F9F9',
+    paymentButton: '#4CAF50',
+    paymentButtonDisabled: '#CCCCCC',
+    
+    // Kategori renkleri
+    categoryFood: '#FF5722',
+    categoryDrink: '#2196F3',
+    categoryDessert: '#E91E63',
+    categoryOther: '#9C27B0',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    // Ana renkler
+    primary: '#64B5F6',
+    secondary: '#FFB74D',
+    success: '#81C784',
+    error: '#E57373',
+    warning: '#FFB74D',
+    info: '#64B5F6',
+    
+    // Arka plan renkleri
+    background: '#121212',
+    surface: '#1E1E1E',
+    card: '#2D2D2D',
+    
+    // Metin renkleri
+    text: '#FFFFFF',
+    textSecondary: '#B0B0B0',
+    textTertiary: '#808080',
+    
+    // Kenarlık renkleri
+    border: '#404040',
+    borderLight: '#303030',
+    
+    // Durum renkleri
+    online: '#81C784',
+    offline: '#FFB74D',
+    error: '#E57373',
+    
+    // Sepet ve ödeme renkleri
+    cartBackground: '#2A2A2A',
+    paymentButton: '#81C784',
+    paymentButtonDisabled: '#666666',
+    
+    // Kategori renkleri
+    categoryFood: '#FF8A65',
+    categoryDrink: '#64B5F6',
+    categoryDessert: '#F48FB1',
+    categoryOther: '#BA68C8',
+  },
+};
+
+// Spacing sistemi
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+};
+
+// Border radius sistemi
+export const BorderRadius = {
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  xxl: 24,
+};
+
+// Typography sistemi
+export const Typography = {
+  h1: {
+    fontSize: 32,
+    fontWeight: 'bold' as const,
+  },
+  h2: {
+    fontSize: 24,
+    fontWeight: '600' as const,
+  },
+  h3: {
+    fontSize: 20,
+    fontWeight: '600' as const,
+  },
+  body: {
+    fontSize: 16,
+    fontWeight: 'normal' as const,
+  },
+  bodySmall: {
+    fontSize: 14,
+    fontWeight: 'normal' as const,
+  },
+  caption: {
+    fontSize: 12,
+    fontWeight: 'normal' as const,
+  },
+  button: {
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
 };
 

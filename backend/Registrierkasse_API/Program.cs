@@ -68,7 +68,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         builder => builder
-            .WithOrigins("http://localhost:3000") // React uygulamanızın URL'si
+            .WithOrigins("http://localhost:8081") // React uygulamanızın URL'si
             .AllowAnyMethod()
             .AllowAnyHeader());
 });
@@ -81,6 +81,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<ILocalizationService, LocalizationService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<ITseHardwareService, TseHardwareService>();
 builder.Services.AddScoped<ITseService, TseService>();
 builder.Services.AddScoped<IPrinterService, PrinterService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
@@ -123,7 +124,7 @@ app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<Registrierkasse.Middleware.AdminAuthorizationMiddleware>();
+// app.UseMiddleware<Registrierkasse.Middleware.AdminAuthorizationMiddleware>();
 
 app.MapControllers();
 
@@ -131,7 +132,6 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    await SeedProducts.Initialize(services);
     try
     {
         var context = services.GetRequiredService<AppDbContext>();

@@ -7,9 +7,11 @@ import { handleAPIError } from '../services/errorService';
 
 interface User {
     id: string;
-    username: string;
-    role: 'admin' | 'manager' | 'cashier';
     email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    employeeNumber: string;
 }
 
 interface AuthResponse {
@@ -33,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [justLoggedIn, setJustLoggedIn] = useState(false);
 
     const checkTokenExpiration = (token: string): boolean => {
         try {
@@ -46,6 +49,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const checkAuthStatus = async () => {
+        // Eğer yeni login olduysa auth check'i atla
+        if (justLoggedIn) {
+            console.log('Skipping auth check - just logged in'); // Debug log
+            return;
+        }
+        
         console.log('Checking auth status...'); // Debug log
         try {
             const token = await AsyncStorage.getItem('token');
@@ -64,10 +73,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!checkTokenExpiration(token)) {
                 console.log('Token expired, attempting refresh...'); // Debug log
                 // Token süresi dolmuşsa refresh token ile yenile
-                const response = await api.client.post<AuthResponse>('/auth/refresh', { refreshToken });
+                const response = await api.client.post<AuthResponse>('/auth/refresh', { token: refreshToken });
                 console.log('Token refresh response:', response); // Debug log
 
-                const { token: newToken, refreshToken: newRefreshToken, user: refreshedUser } = response.data;
+                const { token: newToken, refreshToken: newRefreshToken } = response;
 
                 await AsyncStorage.setItem('token', newToken);
                 await AsyncStorage.setItem('refreshToken', newRefreshToken);
@@ -75,21 +84,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Kullanıcı bilgilerini güncelle
                 const userResponse = await api.client.get<User>('/auth/me');
                 console.log('User info after refresh:', userResponse); // Debug log
-                setUser(userResponse.data);
+                setUser(userResponse);
                 setIsAuthenticated(true);
             } else {
                 console.log('Token still valid, fetching user info...'); // Debug log
                 // Token geçerliyse kullanıcı bilgilerini kontrol et
                 const userResponse = await api.client.get<User>('/auth/me');
                 console.log('User info:', userResponse); // Debug log
-                setUser(userResponse.data);
+                setUser(userResponse);
                 setIsAuthenticated(true);
             }
         } catch (error) {
             console.error('Auth status check failed:', error); // Debug log
             // Hata durumunda oturumu sonlandır
             await logout();
-            router.replace('/(auth)/login');
         } finally {
             setIsLoading(false);
         }
@@ -100,6 +108,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkAuthStatus();
     }, []);
 
+    // Login sonrası flag'i temizle
+    useEffect(() => {
+        if (justLoggedIn) {
+            const timer = setTimeout(() => {
+                setJustLoggedIn(false);
+            }, 2000); // 2 saniye sonra flag'i temizle
+            
+            return () => clearTimeout(timer);
+        }
+    }, [justLoggedIn]);
+
     const login = async (username: string, password: string) => {
         console.log('Login function called with username:', username); // Debug log
         try {
@@ -108,13 +127,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             // Backend Email ve Password bekliyor
             const response = await api.client.post<AuthResponse>('/auth/login', { 
-                Email: username, 
-                Password: password, 
-                RememberMe: false 
+                email: username, 
+                password: password, 
+                rememberMe: false 
             });
             console.log('Login API response:', response); // Debug log
 
-            const { token, refreshToken, user: loggedInUser } = response.data;
+            // API client response interceptor'ı response.data döndürüyor
+            const { token, refreshToken, user: loggedInUser } = response;
 
             if (!token || !refreshToken || !loggedInUser) {
                 console.error('Invalid login response:', response); // Debug log
@@ -126,17 +146,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await AsyncStorage.setItem('refreshToken', refreshToken);
 
             console.log('Setting user state...'); // Debug log
+            console.log('User data to set:', loggedInUser); // Debug log
+            
+            // State'leri birlikte set et - callback kullanarak
             setUser(loggedInUser);
             setIsAuthenticated(true);
+            
+            // State güncellemesinin tamamlanmasını bekle
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // State'lerin doğru set edildiğini kontrol et
+            console.log('State set, checking...'); // Debug log
 
             // Kullanıcı rolüne göre yönlendirme
             console.log('User role:', loggedInUser.role); // Debug log
-            if (loggedInUser.role === 'admin' || loggedInUser.role === 'manager') {
-                console.log('Redirecting to tabs...'); // Debug log
-                router.replace("/(tabs)");
-            } else {
-                console.log('Redirecting to cash register...'); // Debug log
-                router.replace("/(tabs)/cash-register");
+            console.log('Current authentication state:', { isAuthenticated: true, user: loggedInUser }); // Debug log
+            
+            try {
+                if (loggedInUser.role === 'admin' || loggedInUser.role === 'manager') {
+                    console.log('Redirecting to tabs...'); // Debug log
+                    router.push("/(tabs)");
+                } else {
+                    console.log('Redirecting to cash register...'); // Debug log
+                    router.push("/(tabs)/cash-register");
+                }
+            } catch (navigationError) {
+                console.error('Navigation error:', navigationError); // Debug log
+                // Navigation başarısız olursa manuel olarak yönlendir
+                setTimeout(() => {
+                    if (loggedInUser.role === 'admin' || loggedInUser.role === 'manager') {
+                        router.push("/(tabs)");
+                    } else {
+                        router.push("/(tabs)/cash-register");
+                    }
+                }, 500);
             }
         } catch (error) {
             console.error('Login failed:', error); // Debug log
@@ -162,7 +205,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await AsyncStorage.multiRemove(['token', 'refreshToken']);
             setUser(null);
             setIsAuthenticated(false);
-            router.replace('/(auth)/login');
+            
+            // State güncellemesinin tamamlanmasını bekle
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            try {
+                router.push('/(auth)/login');
+            } catch (navigationError) {
+                console.error('Navigation error during logout:', navigationError);
+                setTimeout(() => {
+                    router.push('/(auth)/login');
+                }, 500);
+            }
         }
     };
 

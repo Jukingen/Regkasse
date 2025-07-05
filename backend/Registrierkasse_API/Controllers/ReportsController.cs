@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Registrierkasse.Services;
+using Registrierkasse.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace Registrierkasse.Controllers
 {
@@ -11,11 +14,13 @@ namespace Registrierkasse.Controllers
     {
         private readonly IAdvancedReportService _reportService;
         private readonly ILogger<ReportsController> _logger;
+        private readonly AppDbContext _context;
 
-        public ReportsController(IAdvancedReportService reportService, ILogger<ReportsController> logger)
+        public ReportsController(IAdvancedReportService reportService, ILogger<ReportsController> logger, AppDbContext context)
         {
             _reportService = reportService;
             _logger = logger;
+            _context = context;
         }
 
         [HttpGet("dashboard-summary")]
@@ -23,13 +28,40 @@ namespace Registrierkasse.Controllers
         {
             try
             {
-                var summary = await _reportService.GetDashboardSummaryAsync();
+                var today = DateTime.UtcNow.Date;
+                
+                // Bugünkü satışları hesapla
+                var todaySales = await _context.Invoices
+                    .Where(i => i.InvoiceDate.Date == today && i.PaymentStatus == "Paid")
+                    .SumAsync(i => i.TotalAmount);
+
+                // Bekleyen faturaları say
+                var pendingInvoices = await _context.Invoices
+                    .Where(i => i.PaymentStatus == "Pending")
+                    .CountAsync();
+
+                // Toplam müşteri sayısı
+                var totalCustomers = await _context.Customers.CountAsync();
+
+                // Aktif kasalar
+                var activeRegisters = await _context.CashRegisters
+                    .Where(r => r.Status == Models.RegisterStatus.Open)
+                    .CountAsync();
+
+                var summary = new
+                {
+                    todaySales = todaySales,
+                    pendingInvoices = pendingInvoices,
+                    totalCustomers = totalCustomers,
+                    activeRegisters = activeRegisters,
+                    generatedAt = DateTime.UtcNow
+                };
+
                 return Ok(summary);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to generate dashboard summary");
-                return StatusCode(500, new { error = "Failed to generate dashboard summary" });
+                return StatusCode(500, new { error = "Dashboard summary could not be generated", details = ex.Message });
             }
         }
 
@@ -55,13 +87,46 @@ namespace Registrierkasse.Controllers
         {
             try
             {
-                var analytics = await _reportService.GetInventoryAnalyticsAsync();
+                // Düşük stoklu ürünleri bul
+                var lowStockProducts = await _context.Products
+                    .Where(p => p.StockQuantity <= p.MinStockLevel)
+                    .Select(p => new
+                    {
+                        productName = p.Name,
+                        currentStock = p.StockQuantity,
+                        minQuantity = p.MinStockLevel,
+                        reorderLevel = p.StockQuantity * 2, // Demo için
+                        category = p.Category,
+                        unit = p.Unit
+                    })
+                    .ToListAsync();
+
+                // Stok durumu özeti
+                var stockSummary = await _context.Products
+                    .GroupBy(p => p.Category)
+                    .Select(g => new
+                    {
+                        category = g.Key,
+                        totalProducts = g.Count(),
+                        lowStockCount = g.Count(p => p.StockQuantity <= p.MinStockLevel),
+                        totalValue = g.Sum(p => p.Price * p.StockQuantity)
+                    })
+                    .ToListAsync();
+
+                var analytics = new
+                {
+                    lowStockProducts = lowStockProducts,
+                    stockSummary = stockSummary,
+                    totalProducts = await _context.Products.CountAsync(),
+                    lowStockCount = lowStockProducts.Count,
+                    generatedAt = DateTime.UtcNow
+                };
+
                 return Ok(analytics);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to generate inventory analytics");
-                return StatusCode(500, new { error = "Failed to generate inventory analytics" });
+                return StatusCode(500, new { error = "Inventory analytics could not be generated", details = ex.Message });
             }
         }
 

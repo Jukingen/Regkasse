@@ -2,6 +2,10 @@
 
 Bu proje, Registrierkasse uygulamasının yönetim panelidir.
 
+## 🔐 Giriş Bilgileri
+**Email:** `admin@admin.com`  
+**Şifre:** `Admin123!`
+
 ## Gereksinimler
 
 - Node.js 18 veya üzeri

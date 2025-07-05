@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+﻿import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
@@ -75,6 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
       setUser(user);
+      setError(null);
+      
       // Eğer admin değilse dili zorla
       if (user.role !== 'admin') {
         localStorage.setItem('language', 'de');
@@ -93,6 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     setUser(null);
+    setError(null);
+    // Login sayfasına yönlendir
+    window.location.href = '/login';
   };
 
   const value = {
@@ -110,4 +115,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 // Hook
 export const useAuth = () => useContext(AuthContext);
 
-export default AuthProvider; 
+export default AuthProvider;

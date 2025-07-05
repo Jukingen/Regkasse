@@ -11,6 +11,7 @@ export interface SystemConfiguration {
   printerEnabled: boolean;
   finanzOnlineEnabled: boolean;
   offlineSettings: {
+    enabled: boolean;
     autoSync: boolean;
     syncInterval: number; // dakika
     maxOfflineDays: number;
@@ -20,12 +21,18 @@ export interface SystemConfiguration {
     connectionType: 'usb' | 'network';
     timeout: number; // saniye
     dailyReportTime: string; // HH:MM
+    required: boolean;
+    offlineAllowed: boolean;
+    maxOfflineTransactions: number;
   };
   printerSettings: {
     model: string;
     connectionType: 'usb' | 'network' | 'bluetooth';
     paperSize: '80mm' | '58mm';
     autoPrint: boolean;
+    required: boolean;
+    offlineQueue: boolean;
+    maxQueueSize: number;
   };
   finanzOnlineSettings: {
     apiUrl: string;
@@ -55,6 +62,7 @@ const defaultConfig: SystemConfiguration = {
   printerEnabled: true,
   finanzOnlineEnabled: false,
   offlineSettings: {
+    enabled: true,
     autoSync: true,
     syncInterval: 30,
     maxOfflineDays: 7,
@@ -64,12 +72,18 @@ const defaultConfig: SystemConfiguration = {
     connectionType: 'usb',
     timeout: 30,
     dailyReportTime: '23:59',
+    required: true,
+    offlineAllowed: false,
+    maxOfflineTransactions: 100,
   },
   printerSettings: {
     model: 'EPSON TM-T88VI',
     connectionType: 'usb',
     paperSize: '80mm',
     autoPrint: true,
+    required: true,
+    offlineQueue: false,
+    maxQueueSize: 50,
   },
   finanzOnlineSettings: {
     apiUrl: 'https://finanzonline.bmf.gv.at',
@@ -148,21 +162,38 @@ export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
       // Varsayılan konfigürasyon
       setConfig({
         operationMode: 'online-only',
+        tseEnabled: true,
+        printerEnabled: true,
+        finanzOnlineEnabled: false,
         offlineSettings: {
           enabled: false,
+          autoSync: false,
           syncInterval: 5,
-          maxOfflineDays: 7,
-          autoSync: false
+          maxOfflineDays: 7
         },
         tseSettings: {
+          model: 'EPSON-TSE',
+          connectionType: 'usb',
+          timeout: 30,
+          dailyReportTime: '23:59',
           required: true,
           offlineAllowed: false,
           maxOfflineTransactions: 100
         },
         printerSettings: {
+          model: 'EPSON TM-T88VI',
+          connectionType: 'usb',
+          paperSize: '80mm',
+          autoPrint: true,
           required: true,
           offlineQueue: false,
           maxQueueSize: 50
+        },
+        finanzOnlineSettings: {
+          apiUrl: 'https://finanzonline.bmf.gv.at',
+          clientId: '',
+          clientSecret: '',
+          certificatePath: ''
         }
       });
     }

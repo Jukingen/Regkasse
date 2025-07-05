@@ -13,7 +13,8 @@
         "next": "İleri",
         "confirm": "Onayla",
         "yes": "Evet",
-        "no": "Hayır"
+        "no": "Hayır",
+        "ok": "Tamam"
     },
     "auth": {
         "login": "Giriş Yap",
@@ -54,10 +55,80 @@
         "phone": "Telefon",
         "address": "Adres",
         "taxNumber": "Vergi Numarası",
+        "number": "Müşteri No",
         "type": {
             "individual": "Bireysel",
             "business": "Kurumsal"
-        }
+        },
+        "select": "Müşteri Seç",
+        "search": "Müşteri Ara",
+        "info": "Müşteri Bilgileri",
+        "no_customers": "Müşteri bulunamadı"
+    },
+    "cart": {
+        "title": "Sepet",
+        "empty": "Sepet boş",
+        "clear": "Temizle",
+        "subtotal": "Ara Toplam",
+        "tax_standard": "KDV Standart (%20)",
+        "tax_reduced": "KDV İndirimli (%10)",
+        "tax_special": "KDV Özel (%13)",
+        "total": "Toplam"
+    },
+    "payment": {
+        "title": "Ödeme",
+        "process": "Ödeme Yap",
+        "method": "Ödeme Yöntemi",
+        "amount": "Tutar",
+        "total": "Toplam",
+        "confirm": "Onayla",
+        "cash": "Nakit",
+        "card": "Kart",
+        "voucher": "Voucher",
+        "success": "Ödeme Başarılı",
+        "failed": "Ödeme Başarısız",
+        "completed_successfully": "Ödeme başarıyla tamamlandı",
+        "unknown_error": "Bilinmeyen hata",
+        "processing_error": "Ödeme işlemi sırasında hata oluştu",
+        "invalid_amount": "Geçersiz Tutar",
+        "amount_too_low": "Tutar toplam tutardan az olamaz"
+    },
+    "search": {
+        "products": "Ürün ara...",
+        "advanced": "Gelişmiş Arama",
+        "recent": "Son Aramalar",
+        "results": "Arama Sonuçları",
+        "clear": "Temizle",
+        "no_results": "Sonuç bulunamadı"
+    },
+    "categories": {
+        "title": "Kategoriler",
+        "all": "Tümü",
+        "food": "Yemek",
+        "drink": "İçecek",
+        "dessert": "Tatlı",
+        "other": "Diğer"
+    },
+    "quickAdd": {
+        "favorites": "Sık Kullanılanlar"
+    },
+    "status": {
+        "online": "Çevrimiçi",
+        "offline": "Çevrimdışı",
+        "connected": "Bağlı",
+        "disconnected": "Bağlantısız"
+    },
+    "modes": {
+        "online-only": "Sadece Çevrimiçi",
+        "offline-only": "Sadece Çevrimdışı",
+        "hybrid": "Karma Mod"
+    },
+    "barcode": {
+        "product_found": "Ürün Bulundu",
+        "product_not_found": "Ürün Bulunamadı",
+        "try_manual_search": "Manuel arama yapmayı deneyin",
+        "permission_required": "Kamera İzni Gerekli",
+        "camera_permission_needed": "Barkod taraması için kamera izni gereklidir"
     },
     "reports": {
         "title": "Raporlar",
@@ -103,6 +174,19 @@
         "unauthorized": "Yetkisiz erişim. Lütfen tekrar giriş yapın.",
         "notFound": "Kaynak bulunamadı.",
         "serverError": "Sunucu hatası. Lütfen daha sonra tekrar deneyin.",
-        "validation": "Geçersiz giriş. Lütfen alanları kontrol edin."
+        "validation": "Geçersiz giriş. Lütfen alanları kontrol edin.",
+        "load_failed": "Yükleme Başarısız",
+        "products_load_failed": "Ürünler yüklenirken hata oluştu",
+        "customers_load_failed": "Müşteriler yüklenirken hata oluştu",
+        "stock_insufficient": "Yetersiz Stok",
+        "stock_not_enough": "Yeterli stok yok. Mevcut: {{available}}",
+        "online_only": "Sadece Çevrimiçi Mod",
+        "internet_required": "Bu işlem için internet bağlantısı gereklidir",
+        "tse_required": "TSE Gerekli",
+        "tse_connection_required": "TSE cihazı bağlantısı gereklidir",
+        "scan_failed": "Tarama Başarısız",
+        "try_again": "Tekrar deneyin",
+        "scanner_error": "Tarayıcı Hatası",
+        "scanner_start_failed": "Tarayıcı başlatılamadı"
     }
 } 

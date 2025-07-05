@@ -25,11 +25,68 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  CircularProgress,
+  Card,
+  CardContent,
+  Grid
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Category as CategoryIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { getProducts, createProduct, updateProduct, deleteProduct, Product, CreateProductRequest } from '@/services/productService';
+import api from '../../services/api';
+
+// Demo data
+const demoProducts = [
+  {
+    id: 'demo-1',
+    name: 'Espresso',
+    description: 'Tek shot espresso',
+    price: 2.50,
+    category: 'Kahve',
+    stockQuantity: 150,
+    taxType: 'Standard',
+    barcode: '1234567890',
+    unit: 'Adet',
+    isActive: true
+  },
+  {
+    id: 'demo-2',
+    name: 'Cappuccino',
+    description: 'Espresso ve buharla ısıtılmış süt',
+    price: 3.50,
+    category: 'Kahve',
+    stockQuantity: 25,
+    taxType: 'Standard',
+    barcode: '1234567891',
+    unit: 'Adet',
+    isActive: true
+  },
+  {
+    id: 'demo-3',
+    name: 'Wiener Schnitzel',
+    description: 'Geleneksel Viyana usulü dana eti',
+    price: 18.90,
+    category: 'Hauptgerichte',
+    stockQuantity: 80,
+    taxType: 'Standard',
+    barcode: '9001234567890',
+    unit: 'Stück',
+    isActive: true
+  },
+  {
+    id: 'demo-4',
+    name: 'Apfelstrudel',
+    description: 'Elmalı geleneksel Avusturya tatlısı',
+    price: 6.50,
+    category: 'Desserts',
+    stockQuantity: 45,
+    taxType: 'Reduced',
+    barcode: '9001234567891',
+    unit: 'Stück',
+    isActive: true
+  }
+];
 
 // Kategori yönetimi için ayrı dialog
 const CategoryManagementDialog: React.FC<{
@@ -251,9 +308,12 @@ export default function Products() {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [categories, setCategories] = useState<string[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Queries
-  const { data: products = [], isLoading, error } = useQuery<Product[]>({
+  const { data: productsData = [], isLoading, error: queryError } = useQuery<Product[]>({
     queryKey: ['products'],
     queryFn: getProducts,
   });
@@ -286,14 +346,14 @@ export default function Products() {
 
   // Kategorileri güncelle
   useEffect(() => {
-    const uniqueCategories = [...new Set(products.map(p => p.category))];
+    const uniqueCategories = [...new Set(productsData.map(p => p.category))];
     setCategories(uniqueCategories);
-  }, [products]);
+  }, [productsData]);
 
   // Filtrelenmiş ürünler
   const filteredProducts = selectedCategory === 'all' 
-    ? products 
-    : products.filter(p => p.category === selectedCategory);
+    ? productsData 
+    : productsData.filter(p => p.category === selectedCategory);
 
   // Event handlers
   const handleAddProduct = () => {
@@ -329,6 +389,51 @@ export default function Products() {
       setCategories(prev => prev.filter(c => c !== category));
     }
   };
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // API çağrısı - products endpoint'inden veri al
+        const response = await api.get('/api/products');
+        
+        // Eğer veri varsa kullan, yoksa demo data göster
+        if (response.data && response.data.length > 0) {
+          setProducts(response.data);
+        } else {
+          setProducts(demoProducts);
+        }
+      } catch (err) {
+        console.error('Products API error:', err);
+        // API hatası durumunda demo data göster
+        setProducts(demoProducts);
+        setError('API bağlantı hatası - Demo veriler gösteriliyor');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const getTaxTypeColor = (taxType: string) => {
+    switch (taxType.toLowerCase()) {
+      case 'standard': return 'primary';
+      case 'reduced': return 'secondary';
+      case 'special': return 'warning';
+      default: return 'default';
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -371,84 +476,49 @@ export default function Products() {
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {t('errors.serverError')}
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          {error}
         </Alert>
       )}
 
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-        <TableContainer sx={{ maxHeight: 600 }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>{t('products.name')}</TableCell>
-                <TableCell>{t('products.code')}</TableCell>
-                <TableCell>{t('products.category')}</TableCell>
-                <TableCell>{t('products.price')}</TableCell>
-                <TableCell>{t('products.taxRate')}</TableCell>
-                <TableCell>{t('common.active')}</TableCell>
-                <TableCell>{t('common.actions')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    {t('common.loading')}
-                  </TableCell>
-                </TableRow>
-              ) : filteredProducts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    {t('products.noProducts')}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>{product.name}</TableCell>
-                    <TableCell>{product.code}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={product.category} 
-                        size="small" 
-                        color="primary" 
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>{product.price.toFixed(2)}€</TableCell>
-                    <TableCell>{product.taxRate}%</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={product.active ? t('common.yes') : t('common.no')}
-                        size="small"
-                        color={product.active ? 'success' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditProduct(product)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDeleteProduct(product.id)}
-                          color="error"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+      <Grid container spacing={3}>
+        {products.map((product) => (
+          <Grid item xs={12} md={6} lg={4} key={product.id}>
+            <Card>
+              <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                  <Typography variant="h6" gutterBottom>
+                    {product.name}
+                  </Typography>
+                  <Chip 
+                    label={product.taxType} 
+                    color={getTaxTypeColor(product.taxType) as any}
+                    size="small"
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {product.description}
+                </Typography>
+                <Typography variant="body1" fontWeight="bold" color="primary">
+                  €{product.price?.toFixed(2)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Category: {product.category}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Stock: {product.stockQuantity} {product.unit}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Barcode: {product.barcode}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Status: {product.isActive ? 'Active' : 'Inactive'}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
 
       {/* Dialogs */}
       <ProductDialog

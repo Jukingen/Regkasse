@@ -22,7 +22,7 @@ class ProductService {
     async getAllProducts(): Promise<Product[]> {
         try {
             const response = await apiClient.get<Product[]>(`${this.baseUrl}`);
-            return response.data;
+            return response || [];
         } catch (error) {
             console.error('Online product fetch failed:', error);
             
@@ -43,7 +43,7 @@ class ProductService {
     async getProductById(id: string): Promise<Product> {
         try {
             const response = await apiClient.get<Product>(`${this.baseUrl}/${id}`);
-            return response.data;
+            return response;
         } catch (error) {
             console.error('Online product fetch failed:', error);
             
@@ -65,7 +65,7 @@ class ProductService {
     async createProduct(product: Omit<Product, 'id'>): Promise<Product> {
         try {
             const response = await apiClient.post<Product>(`${this.baseUrl}`, product);
-            return response.data;
+            return response;
         } catch (error) {
             console.error('Online product creation failed:', error);
             
@@ -93,7 +93,7 @@ class ProductService {
     async updateProduct(id: string, product: Partial<Product>): Promise<Product> {
         try {
             const response = await apiClient.put<Product>(`${this.baseUrl}/${id}`, product);
-            return response.data;
+            return response;
         } catch (error) {
             console.error('Online product update failed:', error);
             
@@ -136,7 +136,7 @@ class ProductService {
     async searchProducts(query: string): Promise<Product[]> {
         try {
             const response = await apiClient.get<Product[]>(`${this.baseUrl}/search?query=${encodeURIComponent(query)}`);
-            return response.data;
+            return response;
         } catch (error) {
             console.error('Online product search failed:', error);
             
@@ -161,7 +161,7 @@ class ProductService {
                 quantity,
                 operation
             });
-            return response.data;
+            return response;
         } catch (error) {
             console.error('Online stock update failed:', error);
             

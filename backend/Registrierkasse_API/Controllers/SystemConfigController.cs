@@ -136,12 +136,6 @@ namespace Registrierkasse.Controllers
                 return StatusCode(500, new { error = "Internal server error" });
             }
         }
-
-        [HttpGet("health")]
-        public ActionResult HealthCheck()
-        {
-            return Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
-        }
     }
 
     public class SystemConfigDto

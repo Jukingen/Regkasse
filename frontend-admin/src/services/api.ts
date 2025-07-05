@@ -1,14 +1,13 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 
-// API istemcisini oluştur
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5183',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// İstek öncesi token ekle
+// Request interceptor - her istekte token ekle
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -22,17 +21,18 @@ api.interceptors.request.use(
   }
 );
 
-// Yanıt sonrası hata işleme
+// Response interceptor - 401 hatalarında logout yap
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  (error) => {
     if (error.response?.status === 401) {
       // Token geçersiz veya süresi dolmuş
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
-export default api; 
+export default api;

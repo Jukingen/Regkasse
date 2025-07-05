@@ -1,21 +1,37 @@
 import { apiClient } from './config';
 
 export interface LoginRequest {
-    username: string;
+    email: string;
     password: string;
+    rememberMe?: boolean;
 }
 
 export interface LoginResponse {
     token: string;
     refreshToken: string;
-    expiresIn: number;
+    user: {
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        role: string;
+        employeeNumber: string;
+        sessionId: string;
+    };
+    message: string;
 }
 
 export interface User {
     id: string;
-    username: string;
     email: string;
-    role: 'admin' | 'cashier' | 'manager';
+    firstName: string;
+    lastName: string;
+    role: string;
+    employeeNumber: string;
+}
+
+export interface RefreshTokenRequest {
+    token: string;
 }
 
 export const authService = {
@@ -27,8 +43,8 @@ export const authService = {
         await apiClient.post('/auth/logout', {});
     },
 
-    refreshToken: async (): Promise<LoginResponse> => {
-        return await apiClient.post<LoginResponse>('/auth/refresh-token', {});
+    refreshToken: async (refreshToken: string): Promise<LoginResponse> => {
+        return await apiClient.post<LoginResponse>('/auth/refresh', { token: refreshToken });
     },
 
     getCurrentUser: async (): Promise<User> => {

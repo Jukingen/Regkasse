@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,15 +20,31 @@ import { paymentService, PaymentRequest } from '../../services/api/paymentServic
 import { tseService } from '../../services/api/tseService';
 import { receiptService } from '../../services/api/receiptService';
 import { reportService } from '../../services/api/reportService';
+import { customerService, Customer } from '../../services/api/customerService';
 import ProductSelectionModal from '../../components/ProductSelectionModal';
 import PaymentModal from '../../components/PaymentModal';
+import QuickAddButtons from '../../components/QuickAddButtons';
+import CategoryFilter from '../../components/CategoryFilter';
+import AdvancedSearch from '../../components/AdvancedSearch';
+import CustomerSelection from '../../components/CustomerSelection';
 import { useTranslation } from 'react-i18next';
+import { Colors, Spacing, BorderRadius, Typography } from '../../constants/Colors';
 
 interface CartItem {
   product: Product;
   quantity: number;
   total: number;
 }
+
+// Kategori tanımları
+const CATEGORIES = [
+  { id: 'food', name: 'Yemek', icon: 'restaurant', color: Colors.light.categoryFood },
+  { id: 'drink', name: 'İçecek', icon: 'cafe', color: Colors.light.categoryDrink },
+  { id: 'dessert', name: 'Tatlı', icon: 'ice-cream', color: Colors.light.categoryDessert },
+  { id: 'other', name: 'Diğer', icon: 'ellipsis-horizontal', color: Colors.light.categoryOther },
+];
+
+const ITEM_HEIGHT = 80; // Sepet öğesi yüksekliği
 
 const CashRegister: React.FC = () => {
   const { t } = useTranslation();
@@ -41,6 +58,9 @@ const CashRegister: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [tseStatus, setTseStatus] = useState<any>(null);
   const [printerStatus, setPrinterStatus] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([]);
 
   // Sistem durumunu kontrol et
   const checkSystemStatus = useCallback(async () => {
@@ -75,7 +95,14 @@ const CashRegister: React.FC = () => {
     try {
       setLoading(true);
       const productsData = await productService.getAllProducts();
-      setProducts(productsData);
+      setProducts(productsData || []);
+      
+      // Favori ürünleri belirle (stokta olan, sık kullanılan)
+      const favorites = (productsData || [])
+        .filter(product => product.stock > 0)
+        .sort((a, b) => b.stock - a.stock)
+        .slice(0, 5);
+      setFavoriteProducts(favorites);
     } catch (error) {
       console.error('Products load failed:', error);
       Alert.alert(
@@ -87,6 +114,26 @@ const CashRegister: React.FC = () => {
       setLoading(false);
     }
   }, [t]);
+
+  // Kategoriye göre filtrelenmiş ürünler
+  const filteredProducts = useMemo(() => {
+    let filtered = products || []; // Güvenli hale getir
+    
+    // Kategori filtresi
+    if (selectedCategory) {
+      filtered = filtered.filter(product => product.category === selectedCategory);
+    }
+    
+    // Arama filtresi
+    if (searchQuery) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.barcode && product.barcode.includes(searchQuery))
+      );
+    }
+    
+    return filtered;
+  }, [products, selectedCategory, searchQuery]);
 
   // Sepete ürün ekle
   const addToCart = useCallback((product: Product, quantity: number = 1) => {
@@ -223,7 +270,8 @@ const CashRegister: React.FC = () => {
           method: paymentMethod as 'cash' | 'card' | 'voucher',
           amount,
           tseRequired: systemConfig.tseEnabled
-        }
+        },
+        customerId: selectedCustomer?.id
       };
       
       // Ödeme işlemini gerçekleştir
@@ -262,6 +310,7 @@ const CashRegister: React.FC = () => {
               text: t('common.ok'),
               onPress: () => {
                 clearCart();
+                setSelectedCustomer(null);
                 setShowPaymentModal(false);
               }
             }
@@ -284,7 +333,7 @@ const CashRegister: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [cart, systemConfig, isOnline, tseStatus, t]);
+  }, [cart, systemConfig, isOnline, tseStatus, selectedCustomer, t]);
 
   // Yenileme işlemi
   const onRefresh = useCallback(async () => {
@@ -313,6 +362,49 @@ const CashRegister: React.FC = () => {
 
   const totals = calculateTotals();
 
+  // Virtualized list için getItemLayout
+  const getItemLayout = useCallback((data: any, index: number) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
+
+  // Sepet öğesi render fonksiyonu
+  const renderCartItem = useCallback(({ item }: { item: CartItem }) => (
+    <View style={styles.cartItem}>
+      <View style={styles.itemInfo}>
+        <Text style={styles.itemName}>{item.product.name}</Text>
+        <Text style={styles.itemPrice}>
+          {item.product.price.toFixed(2)}€ x {item.quantity}
+        </Text>
+        <Text style={styles.itemTotal}>
+          {item.total.toFixed(2)}€
+        </Text>
+      </View>
+      <View style={styles.itemActions}>
+        <TouchableOpacity
+          onPress={() => updateCartQuantity(item.product.id, item.quantity - 1)}
+          style={styles.quantityButton}
+        >
+          <Ionicons name="remove" size={16} color={Colors.light.error} />
+        </TouchableOpacity>
+        <Text style={styles.quantityText}>{item.quantity}</Text>
+        <TouchableOpacity
+          onPress={() => updateCartQuantity(item.product.id, item.quantity + 1)}
+          style={styles.quantityButton}
+        >
+          <Ionicons name="add" size={16} color={Colors.light.success} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => removeFromCart(item.product.id)}
+          style={styles.removeButton}
+        >
+          <Ionicons name="trash-outline" size={16} color={Colors.light.error} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  ), [updateCartQuantity, removeFromCart]);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Üst Bilgi Çubuğu */}
@@ -322,9 +414,9 @@ const CashRegister: React.FC = () => {
             <Ionicons 
               name={isOnline ? 'wifi' : 'wifi-outline'} 
               size={20} 
-              color={isOnline ? '#4CAF50' : '#FF9800'} 
+              color={isOnline ? Colors.light.online : Colors.light.offline} 
             />
-            <Text style={[styles.statusText, { color: isOnline ? '#4CAF50' : '#FF9800' }]}>
+            <Text style={[styles.statusText, { color: isOnline ? Colors.light.online : Colors.light.offline }]}>
               {isOnline ? t('status.online') : t('status.offline')}
             </Text>
           </View>
@@ -334,9 +426,9 @@ const CashRegister: React.FC = () => {
               <Ionicons 
                 name={tseStatus?.isConnected ? 'hardware-chip' : 'hardware-chip-outline'} 
                 size={20} 
-                color={tseStatus?.isConnected ? '#4CAF50' : '#F44336'} 
+                color={tseStatus?.isConnected ? Colors.light.online : Colors.light.error} 
               />
-              <Text style={[styles.statusText, { color: tseStatus?.isConnected ? '#4CAF50' : '#F44336' }]}>
+              <Text style={[styles.statusText, { color: tseStatus?.isConnected ? Colors.light.online : Colors.light.error }]}>
                 TSE {tseStatus?.isConnected ? t('status.connected') : t('status.disconnected')}
               </Text>
             </View>
@@ -347,9 +439,9 @@ const CashRegister: React.FC = () => {
               <Ionicons 
                 name={printerStatus?.isConnected ? 'print' : 'print-outline'} 
                 size={20} 
-                color={printerStatus?.isConnected ? '#4CAF50' : '#F44336'} 
+                color={printerStatus?.isConnected ? Colors.light.online : Colors.light.error} 
               />
-              <Text style={[styles.statusText, { color: printerStatus?.isConnected ? '#4CAF50' : '#F44336' }]}>
+              <Text style={[styles.statusText, { color: printerStatus?.isConnected ? Colors.light.online : Colors.light.error }]}>
                 {printerStatus?.isConnected ? t('status.connected') : t('status.disconnected')}
               </Text>
             </View>
@@ -367,21 +459,33 @@ const CashRegister: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Arama Çubuğu */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('search.products')}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <TouchableOpacity 
-            style={styles.searchButton}
-            onPress={() => setShowProductModal(true)}
-          >
-            <Ionicons name="add" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
+        {/* Gelişmiş Arama */}
+        <AdvancedSearch
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onProductSelect={(product) => addToCart(product, 1)}
+          products={products}
+          loading={loading}
+        />
+
+        {/* Kategori Filtresi */}
+        <CategoryFilter
+          categories={CATEGORIES}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+        />
+
+        {/* Hızlı İşlem Butonları */}
+        <QuickAddButtons
+          favoriteProducts={favoriteProducts}
+          onAddToCart={addToCart}
+        />
+
+        {/* Müşteri Seçimi */}
+        <CustomerSelection
+          selectedCustomer={selectedCustomer}
+          onCustomerSelect={setSelectedCustomer}
+        />
 
         {/* Sepet */}
         <View style={styles.cartContainer}>
@@ -396,43 +500,22 @@ const CashRegister: React.FC = () => {
 
           {cart.length === 0 ? (
             <View style={styles.emptyCart}>
-              <Ionicons name="cart-outline" size={48} color="#ccc" />
+              <Ionicons name="cart-outline" size={48} color={Colors.light.textTertiary} />
               <Text style={styles.emptyCartText}>{t('cart.empty')}</Text>
             </View>
           ) : (
-            <View style={styles.cartItems}>
-              {cart.map((item) => (
-                <View key={item.product.id} style={styles.cartItem}>
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.itemName}>{item.product.name}</Text>
-                    <Text style={styles.itemPrice}>
-                      {item.product.price.toFixed(2)}€ x {item.quantity}
-                    </Text>
-                  </View>
-                  <View style={styles.itemActions}>
-                    <TouchableOpacity
-                      onPress={() => updateCartQuantity(item.product.id, item.quantity - 1)}
-                      style={styles.quantityButton}
-                    >
-                      <Ionicons name="remove" size={16} color="#F44336" />
-                    </TouchableOpacity>
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
-                    <TouchableOpacity
-                      onPress={() => updateCartQuantity(item.product.id, item.quantity + 1)}
-                      style={styles.quantityButton}
-                    >
-                      <Ionicons name="add" size={16} color="#4CAF50" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => removeFromCart(item.product.id)}
-                      style={styles.removeButton}
-                    >
-                      <Ionicons name="trash-outline" size={16} color="#F44336" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </View>
+            <FlatList
+              data={cart}
+              renderItem={renderCartItem}
+              keyExtractor={(item) => item.product.id}
+              getItemLayout={getItemLayout}
+              removeClippedSubviews={true}
+              maxToRenderPerBatch={10}
+              windowSize={10}
+              initialNumToRender={10}
+              scrollEnabled={false}
+              showsVerticalScrollIndicator={false}
+            />
           )}
         </View>
 
@@ -470,10 +553,10 @@ const CashRegister: React.FC = () => {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color={Colors.light.surface} />
             ) : (
               <>
-                <Ionicons name="card" size={24} color="white" />
+                <Ionicons name="card" size={24} color={Colors.light.surface} />
                 <Text style={styles.paymentButtonText}>{t('payment.process')}</Text>
               </>
             )}
@@ -489,7 +572,7 @@ const CashRegister: React.FC = () => {
           addToCart(product, quantity);
           setShowProductModal(false);
         }}
-        products={products}
+        products={filteredProducts}
         searchQuery={searchQuery}
         loading={loading}
       />
@@ -510,181 +593,190 @@ const CashRegister: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.light.background,
   },
   header: {
-    backgroundColor: 'white',
-    padding: 16,
+    backgroundColor: Colors.light.surface,
+    padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: Colors.light.border,
   },
   statusBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   statusItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xs,
   },
   statusText: {
-    fontSize: 12,
+    ...Typography.caption,
     fontWeight: '500',
   },
   modeText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     fontWeight: '600',
-    color: '#2196F3',
+    color: Colors.light.primary,
     textAlign: 'center',
   },
   content: {
     flex: 1,
-    padding: 16,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  searchButton: {
-    backgroundColor: '#2196F3',
-    borderRadius: 8,
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: Spacing.md,
   },
   cartContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: Colors.light.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   cartHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.md,
   },
   cartTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.h3,
+    color: Colors.light.text,
   },
   clearButton: {
-    padding: 8,
+    padding: Spacing.sm,
   },
   clearButtonText: {
-    color: '#F44336',
-    fontSize: 14,
+    color: Colors.light.error,
+    ...Typography.bodySmall,
   },
   emptyCart: {
     alignItems: 'center',
-    padding: 32,
+    padding: Spacing.xl,
   },
   emptyCartText: {
-    marginTop: 8,
-    fontSize: 16,
-    color: '#666',
-  },
-  cartItems: {
-    gap: 12,
+    marginTop: Spacing.sm,
+    ...Typography.body,
+    color: Colors.light.textSecondary,
   },
   cartItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+    padding: Spacing.md,
+    backgroundColor: Colors.light.cartBackground,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+    minHeight: ITEM_HEIGHT,
   },
   itemInfo: {
     flex: 1,
   },
   itemName: {
-    fontSize: 16,
+    ...Typography.body,
     fontWeight: '500',
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
+    color: Colors.light.text,
   },
   itemPrice: {
-    fontSize: 14,
-    color: '#666',
+    ...Typography.bodySmall,
+    color: Colors.light.textSecondary,
+    marginBottom: Spacing.xs,
+  },
+  itemTotal: {
+    ...Typography.bodySmall,
+    color: Colors.light.primary,
+    fontWeight: '600',
   },
   itemActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: Spacing.sm,
   },
   quantityButton: {
-    padding: 4,
+    padding: Spacing.xs,
+    backgroundColor: Colors.light.background,
+    borderRadius: BorderRadius.sm,
+    minWidth: 32,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   quantityText: {
-    fontSize: 16,
+    ...Typography.body,
     fontWeight: '600',
     minWidth: 24,
     textAlign: 'center',
+    color: Colors.light.text,
   },
   removeButton: {
-    padding: 4,
+    padding: Spacing.xs,
+    backgroundColor: Colors.light.background,
+    borderRadius: BorderRadius.sm,
+    minWidth: 32,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   totalsContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    backgroundColor: Colors.light.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   totalLabel: {
-    fontSize: 14,
-    color: '#666',
+    ...Typography.bodySmall,
+    color: Colors.light.textSecondary,
   },
   totalValue: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     fontWeight: '500',
+    color: Colors.light.text,
   },
   grandTotal: {
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    paddingTop: 8,
-    marginTop: 8,
+    borderTopColor: Colors.light.border,
+    paddingTop: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   grandTotalLabel: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.h3,
+    color: Colors.light.text,
   },
   grandTotalValue: {
-    fontSize: 18,
+    ...Typography.h3,
     fontWeight: '600',
-    color: '#2196F3',
+    color: Colors.light.primary,
   },
   paymentButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: Colors.light.paymentButton,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: Spacing.sm,
+    minHeight: 56,
   },
   paymentButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: Colors.light.paymentButtonDisabled,
   },
   paymentButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
+    color: Colors.light.surface,
+    ...Typography.button,
   },
 });
 

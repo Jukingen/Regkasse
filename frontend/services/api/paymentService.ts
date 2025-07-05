@@ -21,6 +21,7 @@ export interface PaymentRequest {
     amount: number;
     tseRequired: boolean;
   };
+  customerId?: string; // Müşteri ID'si (opsiyonel)
 }
 
 export interface PaymentResponse {
@@ -56,14 +57,14 @@ class PaymentService {
   // Ödeme yöntemlerini getir
   async getPaymentMethods(): Promise<PaymentMethod[]> {
     const response = await apiClient.get<PaymentMethod[]>(`${this.baseUrl}/methods`);
-    return response.data;
+    return response;
   }
 
   // Ödeme işlemi (mod kontrolü ile)
   async processPayment(paymentRequest: PaymentRequest): Promise<PaymentResponse> {
     try {
       const response = await apiClient.post<PaymentResponse>(`${this.baseUrl}/process`, paymentRequest);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Online payment failed:', error);
       
@@ -83,7 +84,7 @@ class PaymentService {
   // Fiş oluştur
   async createReceipt(paymentId: string): Promise<Receipt> {
     const response = await apiClient.post<Receipt>(`${this.baseUrl}/${paymentId}/receipt`);
-    return response.data;
+    return response;
   }
 
   // Ödeme geçmişi
@@ -92,7 +93,7 @@ class PaymentService {
       const response = await apiClient.get<PaymentResponse[]>(
         `${this.baseUrl}/history?limit=${limit}&offset=${offset}`
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Payment history fetch failed:', error);
       
@@ -112,7 +113,7 @@ class PaymentService {
   async getPaymentById(id: string): Promise<PaymentResponse> {
     try {
       const response = await apiClient.get<PaymentResponse>(`${this.baseUrl}/${id}`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Payment fetch failed:', error);
       
@@ -160,7 +161,7 @@ class PaymentService {
         amount,
         reason
       });
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Payment refund failed:', error);
       
@@ -185,7 +186,7 @@ class PaymentService {
   }> {
     try {
       const response = await apiClient.get(`${this.baseUrl}/daily-report/${date}`);
-      return response.data as {
+      return response as {
         totalPayments: number;
         totalAmount: number;
         paymentMethodBreakdown: Record<string, number>;

@@ -52,17 +52,29 @@ namespace Registrierkasse.Middleware
 
         private bool IsCriticalEndpoint(PathString path)
         {
+            // TSE status endpoint'ini istisna yap - admin gerektirmez
+            if (path.StartsWithSegments("/api/tse/status", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+            
             var criticalPaths = new[]
             {
                 "/api/systemconfig",
                 "/api/hardware",
                 "/api/finanzonline",
-                "/api/tse",
                 "/api/audit",
                 "/api/settings",
                 "/api/company",
                 "/api/users"
             };
+            
+            // TSE endpoints - status hariç hepsi kritik
+            if (path.StartsWithSegments("/api/tse", System.StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            
             return criticalPaths.Any(criticalPath => path.StartsWithSegments(criticalPath, System.StringComparison.OrdinalIgnoreCase));
         }
     }

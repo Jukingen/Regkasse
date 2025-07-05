@@ -33,8 +33,8 @@ namespace Registrierkasse.Services
         public PrinterService(ILogger<PrinterService> logger)
         {
             _logger = logger;
-            _printerHandle = IntPtr.Zero;
             _isConnected = false;
+            _printerHandle = IntPtr.Zero;
             _printerName = Environment.GetEnvironmentVariable("PRINTER_NAME") ?? EPSON_TM_T88VI;
         }
 
@@ -145,7 +145,12 @@ namespace Registrierkasse.Services
             {
                 if (!await IsConnectedAsync())
                 {
-                    return new PrinterStatus { IsConnected = false };
+                    return new PrinterStatus 
+                    { 
+                        IsConnected = false,
+                        PrinterName = _printerName,
+                        PaperStatus = "Unknown"
+                    };
                 }
 
                 // Yazıcı durumu sorgulama
@@ -160,7 +165,12 @@ namespace Registrierkasse.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Yazıcı durumu alma hatası");
-                return new PrinterStatus { IsConnected = false };
+                return new PrinterStatus 
+                { 
+                    IsConnected = false,
+                    PrinterName = _printerName,
+                    PaperStatus = "Error"
+                };
             }
         }
 

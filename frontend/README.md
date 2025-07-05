@@ -3,6 +3,10 @@
 ## 📱 Frontend Uygulaması
 React Native/Expo tabanlı mobil kasa uygulaması. TypeScript ile geliştirilmiş, modern ve kullanıcı dostu bir arayüz sunar.
 
+## 🔐 Giriş Bilgileri
+**Email:** `admin@admin.com`  
+**Şifre:** `Admin123!`
+
 ## 🛠️ Teknik Detaylar
 - **Framework:** React Native/Expo
 - **Dil:** TypeScript

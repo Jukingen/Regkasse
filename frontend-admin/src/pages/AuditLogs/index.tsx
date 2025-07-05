@@ -3,52 +3,53 @@ import { Typography, CircularProgress, Alert, Box, Card, CardContent, Grid, Chip
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 
-export default function Invoices() {
+export default function AuditLogs() {
   const { t } = useTranslation();
-  const [invoices, setInvoices] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchInvoices = async () => {
+    const fetchAuditLogs = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // API çağrısı - invoices endpoint'inden veri al
-        const response = await api.get('/api/invoices');
+        // API çağrısı - audit logs endpoint'inden veri al
+        const response = await api.get('/api/audit-logs');
         
         if (response.data && response.data.length > 0) {
-          setInvoices(response.data);
+          setAuditLogs(response.data);
         } else {
-          setInvoices([]);
+          setAuditLogs([]);
         }
       } catch (err) {
-        console.error('Invoices API error:', err);
-        setInvoices([]);
+        console.error('Audit Logs API error:', err);
+        setAuditLogs([]);
         setError('API bağlantı hatası - Veriler yüklenemedi');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchInvoices();
+    fetchAuditLogs();
   }, []);
 
-  const getPaymentStatusColor = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'paid': return 'success';
-      case 'pending': return 'warning';
-      case 'overdue': return 'error';
+      case 'success': return 'success';
+      case 'error': return 'error';
+      case 'warning': return 'warning';
       default: return 'default';
     }
   };
 
-  const getPaymentMethodColor = (method: string) => {
-    switch (method.toLowerCase()) {
-      case 'card': return 'primary';
-      case 'cash': return 'secondary';
-      case 'voucher': return 'info';
+  const getActionColor = (action: string) => {
+    switch (action.toLowerCase()) {
+      case 'create': return 'success';
+      case 'update': return 'info';
+      case 'delete': return 'error';
+      case 'login': return 'primary';
       default: return 'default';
     }
   };
@@ -65,7 +66,7 @@ export default function Invoices() {
     return (
       <Box>
         <Typography variant="h4" component="h1" gutterBottom>
-          {t('navigation.invoices')}
+          {t('navigation.auditLogs')}
         </Typography>
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -74,14 +75,14 @@ export default function Invoices() {
     );
   }
 
-  if (invoices.length === 0) {
+  if (auditLogs.length === 0) {
     return (
       <Box>
         <Typography variant="h4" component="h1" gutterBottom>
-          {t('navigation.invoices')}
+          {t('navigation.auditLogs')}
         </Typography>
         <Alert severity="info" sx={{ mb: 2 }}>
-          Henüz fatura verisi bulunmuyor.
+          Henüz audit log verisi bulunmuyor.
         </Alert>
       </Box>
     );
@@ -90,52 +91,56 @@ export default function Invoices() {
   return (
     <Box>
       <Typography variant="h4" component="h1" gutterBottom>
-        {t('navigation.invoices')}
+        {t('navigation.auditLogs')}
       </Typography>
 
       <Grid container spacing={3}>
-        {invoices.map((invoice) => (
-          <Grid item xs={12} md={6} lg={4} key={invoice.id}>
+        {auditLogs.map((log) => (
+          <Grid item xs={12} md={6} lg={4} key={log.id}>
             <Card>
               <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
                   <Typography variant="h6" gutterBottom>
-                    {invoice.receiptNumber}
+                    {log.action} - {log.entityType}
                   </Typography>
                   <Box>
                     <Chip 
-                      label={invoice.paymentStatus} 
-                      color={getPaymentStatusColor(invoice.paymentStatus) as any}
+                      label={log.action} 
+                      color={getActionColor(log.action) as any}
                       size="small"
                       sx={{ mr: 1 }}
                     />
                     <Chip 
-                      label={invoice.paymentMethod} 
-                      color={getPaymentMethodColor(invoice.paymentMethod) as any}
+                      label={log.status} 
+                      color={getStatusColor(log.status) as any}
                       size="small"
                     />
                   </Box>
                 </Box>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Customer: {invoice.customer?.firstName} {invoice.customer?.lastName}
+                  User: {log.userName} ({log.userId})
                 </Typography>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Date: {new Date(invoice.invoiceDate).toLocaleDateString()}
+                  Entity ID: {log.entityId}
                 </Typography>
-                <Typography variant="body1" fontWeight="bold" color="primary">
-                  Total: €{invoice.totalAmount?.toFixed(2)}
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  IP Address: {log.ipAddress}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Tax: €{invoice.taxAmount?.toFixed(2)}
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  User Agent: {log.userAgent?.substring(0, 50)}...
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Status: {invoice.status}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Printed: {invoice.isPrinted ? 'Yes' : 'No'}
-                </Typography>
+                {log.oldValues && (
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Old Values: {log.oldValues.substring(0, 100)}...
+                  </Typography>
+                )}
+                {log.newValues && (
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    New Values: {log.newValues.substring(0, 100)}...
+                  </Typography>
+                )}
                 <Typography variant="caption" color="text.secondary">
-                  TSE: {invoice.tseSignature?.substring(0, 20)}...
+                  {new Date(log.createdAt).toLocaleString()}
                 </Typography>
               </CardContent>
             </Card>

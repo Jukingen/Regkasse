@@ -25,7 +25,7 @@ export interface ReceiptTemplate {
 }
 
 class ReceiptService {
-  private baseUrl = '/receipts';
+  private baseUrl = '/Receipt';
 
   // Fiş yazdır (mod kontrolü ile)
   async printReceipt(receipt: Receipt, options?: PrintOptions): Promise<boolean> {
@@ -60,7 +60,7 @@ class ReceiptService {
       const response = await apiClient.get<PrinterStatus>(
         `${this.baseUrl}/printer-status${printerName ? `?printer=${printerName}` : ''}`
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Printer status check failed:', error);
       
@@ -78,7 +78,7 @@ class ReceiptService {
   async getAvailablePrinters(): Promise<string[]> {
     try {
       const response = await apiClient.get<string[]>(`${this.baseUrl}/printers`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Available printers fetch failed:', error);
       
@@ -91,7 +91,7 @@ class ReceiptService {
   async getReceiptTemplates(): Promise<ReceiptTemplate[]> {
     try {
       const response = await apiClient.get<ReceiptTemplate[]>(`${this.baseUrl}/templates`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Receipt templates fetch failed:', error);
       
@@ -109,7 +109,7 @@ class ReceiptService {
   async saveReceiptTemplate(template: Omit<ReceiptTemplate, 'id'>): Promise<ReceiptTemplate> {
     try {
       const response = await apiClient.post<ReceiptTemplate>(`${this.baseUrl}/templates`, template);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Receipt template save failed:', error);
       

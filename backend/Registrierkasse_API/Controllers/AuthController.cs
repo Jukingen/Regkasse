@@ -158,26 +158,39 @@ namespace Registrierkasse.Controllers
         {
             try
             {
-                _logger.LogInformation("Token refresh attempt"); // Debug log
+                _logger.LogInformation("Token refresh attempt");
 
                 var principal = GetPrincipalFromExpiredToken(model.Token);
                 if (principal == null)
                 {
-                    _logger.LogWarning("Token refresh failed: Invalid token"); // Debug log
+                    _logger.LogWarning("Token refresh failed: Invalid token");
                     return BadRequest(new { message = "Geçersiz token" });
                 }
 
                 var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
+                var userEmail = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                
+                _logger.LogInformation("RefreshToken - UserId: {UserId}, Email: {Email}", userId, userEmail);
+                
+                ApplicationUser? user = null;
+                
+                // Önce ID ile dene
+                if (!string.IsNullOrEmpty(userId))
                 {
-                    _logger.LogWarning("Token refresh failed: User ID not found in token"); // Debug log
-                    return BadRequest(new { message = "Geçersiz token" });
+                    user = await _userManager.FindByIdAsync(userId);
+                    _logger.LogInformation("User lookup by ID result: {Found}", user != null);
                 }
-
-                var user = await _userManager.FindByIdAsync(userId);
+                
+                // ID ile bulunamazsa email ile dene
+                if (user == null && !string.IsNullOrEmpty(userEmail))
+                {
+                    user = await _userManager.FindByEmailAsync(userEmail);
+                    _logger.LogInformation("User lookup by email result: {Found}", user != null);
+                }
+                
                 if (user == null)
                 {
-                    _logger.LogWarning("Token refresh failed: User not found - {UserId}", userId); // Debug log
+                    _logger.LogWarning("Token refresh failed: User not found - ID: {UserId}, Email: {Email}", userId, userEmail);
                     return BadRequest(new { message = "Kullanıcı bulunamadı" });
                 }
 
@@ -185,7 +198,7 @@ namespace Registrierkasse.Controllers
                 var newToken = await GenerateJwtToken(user);
                 var newRefreshToken = await GenerateRefreshToken(user);
 
-                _logger.LogInformation("Tokens refreshed successfully for user: {Email}", user.Email); // Debug log
+                _logger.LogInformation("Tokens refreshed successfully for user: {Email}", user.Email);
 
                 return Ok(new
                 {
@@ -195,7 +208,7 @@ namespace Registrierkasse.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error refreshing token"); // Debug log
+                _logger.LogError(ex, "Error refreshing token");
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -253,17 +266,60 @@ namespace Registrierkasse.Controllers
         {
             try
             {
+                // Tüm claims'leri logla
+                var allClaims = User.Claims.Select(c => $"{c.Type}: {c.Value}").ToList();
+                _logger.LogInformation("All JWT claims: {Claims}", string.Join(", ", allClaims));
+                
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
+                var userEmail = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+                var customUserId = User.FindFirst("user_id")?.Value;
+                var customUserEmail = User.FindFirst("user_email")?.Value;
+                
+                _logger.LogInformation("GetCurrentUser - UserId: {UserId}, Email: {Email}, Name: {Name}, CustomUserId: {CustomUserId}, CustomEmail: {CustomEmail}", 
+                    userId, userEmail, userName, customUserId, customUserEmail);
+                
+                ApplicationUser? user = null;
+                
+                // Önce ID ile dene
+                if (!string.IsNullOrEmpty(userId))
                 {
-                    _logger.LogWarning("GetCurrentUser failed: User ID not found in token"); // Debug log
-                    return BadRequest(new { message = "Geçersiz token" });
+                    user = await _userManager.FindByIdAsync(userId);
+                    _logger.LogInformation("User lookup by ID result: {Found}", user != null);
                 }
-
-                var user = await _userManager.FindByIdAsync(userId);
+                
+                // Custom user_id ile dene
+                if (user == null && !string.IsNullOrEmpty(customUserId))
+                {
+                    user = await _userManager.FindByIdAsync(customUserId);
+                    _logger.LogInformation("User lookup by custom user_id result: {Found}", user != null);
+                }
+                
+                // Email ile dene
+                if (user == null && !string.IsNullOrEmpty(userEmail))
+                {
+                    user = await _userManager.FindByEmailAsync(userEmail);
+                    _logger.LogInformation("User lookup by email result: {Found}", user != null);
+                }
+                
+                // Custom email ile dene
+                if (user == null && !string.IsNullOrEmpty(customUserEmail))
+                {
+                    user = await _userManager.FindByEmailAsync(customUserEmail);
+                    _logger.LogInformation("User lookup by custom email result: {Found}", user != null);
+                }
+                
+                // Name claim ile dene (email olabilir)
+                if (user == null && !string.IsNullOrEmpty(userName))
+                {
+                    user = await _userManager.FindByEmailAsync(userName);
+                    _logger.LogInformation("User lookup by name claim result: {Found}", user != null);
+                }
+                
                 if (user == null)
                 {
-                    _logger.LogWarning("GetCurrentUser failed: User not found - {UserId}", userId); // Debug log
+                    _logger.LogWarning("GetCurrentUser failed: User not found - ID: {UserId}, Email: {Email}, Name: {Name}, CustomUserId: {CustomUserId}, CustomEmail: {CustomEmail}", 
+                        userId, userEmail, userName, customUserId, customUserEmail);
                     return BadRequest(new { message = "Kullanıcı bulunamadı" });
                 }
 
@@ -277,12 +333,12 @@ namespace Registrierkasse.Controllers
                     employeeNumber = user.EmployeeNumber
                 };
 
-                _logger.LogInformation("Current user info retrieved successfully for user: {Email}", user.Email); // Debug log
+                _logger.LogInformation("Current user info retrieved successfully for user: {Email}", user.Email);
                 return Ok(userInfo);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting current user"); // Debug log
+                _logger.LogError(ex, "Error getting current user");
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -292,13 +348,16 @@ namespace Registrierkasse.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Email), // Email
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim(ClaimTypes.NameIdentifier, user.Id), // User ID
+                new Claim(ClaimTypes.Name, user.Email), // Email as name
+                new Claim("user_id", user.Id), // Extra user ID claim
+                new Claim("user_email", user.Email), // Extra email claim
+                new Claim("user_role", user.Role) // Custom claim olarak ekle
             };
 
-            // Rolleri ekle
+            // Identity rolleri ekle
             foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));

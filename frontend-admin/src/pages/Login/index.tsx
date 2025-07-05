@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Box,
@@ -34,6 +35,7 @@ type FormData = yup.InferType<typeof schema>;
 
 export default function Login() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { login, error } = useAuth();
   const [loading, setLoading] = useState(false);
 
@@ -49,6 +51,8 @@ export default function Login() {
     try {
       setLoading(true);
       await login(data.email, data.password);
+      // Başarılı girişten sonra dashboard'a yönlendir
+      navigate('/dashboard');
     } catch {
       // Hata zaten AuthContext'te işleniyor
     } finally {

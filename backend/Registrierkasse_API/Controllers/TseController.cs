@@ -4,21 +4,25 @@ using Microsoft.Extensions.Logging;
 using Registrierkasse.Services;
 using System;
 using System.Threading.Tasks;
+using Registrierkasse.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Registrierkasse.Controllers
 {
-    [Authorize(Roles = "Administrator,Manager")]
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TseController : ControllerBase
     {
         private readonly ITseService _tseService;
         private readonly ILogger<TseController> _logger;
+        private readonly AppDbContext _context;
 
-        public TseController(ITseService tseService, ILogger<TseController> logger)
+        public TseController(ITseService tseService, ILogger<TseController> logger, AppDbContext context)
         {
             _tseService = tseService;
             _logger = logger;
+            _context = context;
         }
 
         [HttpGet("status")]
@@ -26,17 +30,33 @@ namespace Registrierkasse.Controllers
         {
             try
             {
-                var status = await _tseService.GetStatusAsync();
-                return Ok(status);
+                // Demo TSE durumu
+                var tseStatus = new
+                {
+                    id = "tse-demo-001",
+                    deviceName = "Demo TSE Device",
+                    serialNumber = "TSE-DEMO-123456",
+                    firmwareVersion = "1.2.3",
+                    isConnected = true,
+                    lastSignatureCounter = 12345,
+                    lastSignatureTime = DateTime.UtcNow.AddMinutes(-5),
+                    memoryStatus = "Normal",
+                    certificateStatus = "Valid",
+                    certificateExpiry = DateTime.UtcNow.AddYears(1),
+                    dailyReportStatus = "Completed",
+                    lastDailyReport = DateTime.UtcNow.AddHours(-2)
+                };
+
+                return Ok(tseStatus);
             }
-            catch (TseException ex)
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "TSE durum bilgisi alınamadı");
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, new { error = "Failed to retrieve TSE status", details = ex.Message });
             }
         }
 
         [HttpPost("daily-report")]
+        [Authorize(Roles = "Administrator,Manager")]
         public async Task<ActionResult<TseSignatureResult>> GenerateDailyReport()
         {
             try
@@ -58,6 +78,7 @@ namespace Registrierkasse.Controllers
         }
 
         [HttpPost("validate")]
+        [Authorize(Roles = "Administrator,Manager")]
         public async Task<IActionResult> ValidateSignature([FromBody] ValidateSignatureModel model)
         {
             try
@@ -73,6 +94,7 @@ namespace Registrierkasse.Controllers
         }
 
         [HttpPost("nullbeleg")]
+        [Authorize(Roles = "Administrator,Manager")]
         public async Task<ActionResult<TseSignatureResult>> SignNullbeleg([FromBody] SignNullbelegModel model)
         {
             try

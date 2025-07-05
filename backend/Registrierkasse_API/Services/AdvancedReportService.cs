@@ -246,6 +246,13 @@ namespace Registrierkasse.Services
                     .Where(p => p.Inventory.CurrentStock <= p.Inventory.MinimumStock)
                     .CountAsync();
 
+                var pendingInvoices = await _context.Invoices
+                    .Where(i => i.PaymentStatus == Models.PaymentStatus.Pending.ToString())
+                    .CountAsync();
+
+                var totalCustomers = await _context.Customers.CountAsync();
+                var totalProducts = await _context.Products.CountAsync();
+
                 return new DashboardSummary
                 {
                     TodaySales = todaySales,
@@ -253,6 +260,9 @@ namespace Registrierkasse.Services
                     LastMonthSales = lastMonthSales,
                     SalesGrowth = lastMonthSales > 0 ? (double)((thisMonthSales - lastMonthSales) / lastMonthSales * 100) : 0,
                     LowStockCount = lowStockCount,
+                    PendingInvoices = pendingInvoices,
+                    TotalCustomers = totalCustomers,
+                    TotalProducts = totalProducts,
                     GeneratedAt = DateTime.UtcNow
                 };
             }
@@ -394,6 +404,9 @@ namespace Registrierkasse.Services
         public decimal LastMonthSales { get; set; }
         public double SalesGrowth { get; set; }
         public int LowStockCount { get; set; }
+        public int PendingInvoices { get; set; }
+        public int TotalCustomers { get; set; }
+        public int TotalProducts { get; set; }
         public DateTime GeneratedAt { get; set; }
     }
 } 
