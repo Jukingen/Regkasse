@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "Kasse App",
-    "slug": "kasse-app",
+    "name": "Cash Register",
+    "slug": "cash-register",
     "version": "1.0.0",
-    "orientation": "landscape",
-    "scheme": "kasse",
+    "orientation": "portrait",
+    "scheme": "cashregister",
     "userInterfaceStyle": "automatic",
+    "description": "RKSV Compliant Cash Register for Cashiers",
     "splash": {
       "backgroundColor": "#ffffff"
     },
@@ -14,13 +15,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kasse.app"
+      "bundleIdentifier": "com.registrierkasse.cashregister"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "package": "com.kasse.app"
+      "package": "com.registrierkasse.cashregister"
     },
     "web": {
       "bundler": "metro",

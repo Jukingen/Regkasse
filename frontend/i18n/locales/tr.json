@@ -188,5 +188,47 @@
         "try_again": "Tekrar deneyin",
         "scanner_error": "Tarayıcı Hatası",
         "scanner_start_failed": "Tarayıcı başlatılamadı"
+    },
+    "change": {
+        "calculator": "Para Üstü Hesaplayıcı",
+        "total_amount": "Toplam Tutar",
+        "customer_amount": "Müşteri Verdiği Tutar",
+        "quick_amounts": "Hızlı Tutarlar",
+        "change_amount": "Para Üstü",
+        "breakdown": "Para Üstü Dağılımı",
+        "insufficient_amount": "Yetersiz tutar! Müşteri daha fazla para vermeli.",
+        "confirm": "Onayla"
+    },
+    "order": {
+        "manager": "Sipariş Yöneticisi",
+        "new": "Yeni Sipariş",
+        "create_new": "Yeni Sipariş Oluştur",
+        "create": "Sipariş Oluştur",
+        "no_orders": "Henüz sipariş yok",
+        "error": "Sipariş Hatası",
+        "no_items": "Siparişe ürün eklenmemiş",
+        "complete_title": "Siparişi Tamamla",
+        "complete_message": "Bu siparişi tamamlamak istediğinizden emin misiniz?",
+        "complete": "Tamamla",
+        "cancel_title": "Siparişi İptal Et",
+        "cancel_message": "Bu siparişi iptal etmek istediğinizden emin misiniz?",
+        "cancel_confirm": "İptal Et",
+        "customer_info": "Müşteri Bilgileri",
+        "customer_name_placeholder": "Müşteri adı (opsiyonel)",
+        "table_number_placeholder": "Masa numarası (opsiyonel)",
+        "select_products": "Ürün Seçimi",
+        "selected_items": "Seçilen Ürünler",
+        "order_notes": "Sipariş Notları",
+        "order_notes_placeholder": "Sipariş için özel notlar...",
+        "item_notes_placeholder": "Bu ürün için notlar...",
+        "table": "Masa",
+        "more_items": "ürün daha",
+        "status": {
+            "pending": "Bekliyor",
+            "preparing": "Hazırlanıyor",
+            "ready": "Hazır",
+            "served": "Servis Edildi",
+            "cancelled": "İptal Edildi"
+        }
     }
 } 

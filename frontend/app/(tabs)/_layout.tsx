@@ -8,9 +8,9 @@ export default function TabLayout() {
     const { isAuthenticated, isLoading, user, checkAuthStatus } = useAuth();
 
     // Debug logları
-    console.log('TabLayout render:', { isAuthenticated, isLoading, user: user?.username, role: user?.role });
+    console.log('TabLayout render:', { isAuthenticated, isLoading, user: user?.email, role: user?.role });
 
-    // Periyodik olarak oturum durumunu kontrol et (immediate check'i kaldır)
+    // Periyodik olarak oturum durumunu kontrol et
     useEffect(() => {
         // İlk yüklemede hemen kontrol etme, biraz bekle
         const initialCheck = setTimeout(() => {
@@ -38,14 +38,11 @@ export default function TabLayout() {
 
     // Kullanıcı giriş yapmamışsa veya oturumu sona ermişse login sayfasına yönlendir
     if (!isAuthenticated || !user) {
-        console.log('TabLayout: Not authenticated, redirecting to login');
+        console.log('TabLayout: Not authenticated or no user, redirecting to login');
         return <Redirect href="/(auth)/login" />;
     }
 
-    console.log('TabLayout: Authenticated, showing tabs for user:', user.username, 'role:', user.role);
-
-    // Sadece admin ve manager rolüne sahip kullanıcılar tüm menülere erişebilir
-    const isAdminOrManager = user.role === 'admin' || user.role === 'manager';
+    console.log('TabLayout: Authenticated, showing cashier tabs for user:', user.email, 'role:', user.role);
 
     return (
         <Tabs
@@ -63,31 +60,6 @@ export default function TabLayout() {
                     tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
                 }}
             />
-            {isAdminOrManager && (
-                <>
-                    <Tabs.Screen
-                        name="products"
-                        options={{
-                            title: 'Produkte',
-                            tabBarIcon: ({ color }) => <Ionicons name="cube-outline" size={24} color={color} />,
-                        }}
-                    />
-                    <Tabs.Screen
-                        name="customers"
-                        options={{
-                            title: 'Kunden',
-                            tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={24} color={color} />,
-                        }}
-                    />
-                    <Tabs.Screen
-                        name="reports"
-                        options={{
-                            title: 'Berichte',
-                            tabBarIcon: ({ color }) => <Ionicons name="bar-chart-outline" size={24} color={color} />,
-                        }}
-                    />
-                </>
-            )}
             <Tabs.Screen
                 name="settings"
                 options={{

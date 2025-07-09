@@ -33,7 +33,6 @@ export const Colors = {
     // Durum renkleri
     online: '#4CAF50',
     offline: '#FF9800',
-    error: '#F44336',
     
     // Sepet ve ödeme renkleri
     cartBackground: '#F9F9F9',
@@ -72,7 +71,6 @@ export const Colors = {
     // Durum renkleri
     online: '#81C784',
     offline: '#FFB74D',
-    error: '#E57373',
     
     // Sepet ve ödeme renkleri
     cartBackground: '#2A2A2A',

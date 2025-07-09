@@ -17,8 +17,8 @@ export default function LoginScreen() {
         if (!username || !password) {
             console.log('Empty fields detected'); // Debug log
             Alert.alert(
-                t('login.error.title'),
-                t('login.error.empty_fields')
+                t('auth.loginError'),
+                t('validation.required')
             );
             return;
         }
@@ -35,8 +35,8 @@ export default function LoginScreen() {
         } catch (error) {
             console.error('Login error details:', error); // Debug log
             Alert.alert(
-                t('login.error.title'),
-                error instanceof Error ? error.message : t('login.error.invalid_credentials')
+                t('auth.loginError'),
+                error instanceof Error ? error.message : t('auth.loginError')
             );
         } finally {
             console.log('Login attempt finished'); // Debug log
@@ -55,7 +55,7 @@ export default function LoginScreen() {
             <View style={styles.form}>
                 <TextInput
                     style={styles.input}
-                    placeholder={t('login.username')}
+                    placeholder={t('auth.username')}
                     value={username}
                     onChangeText={(text) => {
                         console.log('Username changed:', text); // Debug log
@@ -66,7 +66,7 @@ export default function LoginScreen() {
                 />
                 <TextInput
                     style={styles.input}
-                    placeholder={t('login.password')}
+                    placeholder={t('auth.password')}
                     value={password}
                     onChangeText={(text) => {
                         console.log('Password changed (length):', text.length); // Debug log
@@ -83,7 +83,7 @@ export default function LoginScreen() {
                     {isLoading ? (
                         <ActivityIndicator color="white" />
                     ) : (
-                        <Text style={styles.buttonText}>{t('login.button')}</Text>
+                        <Text style={styles.buttonText}>{t('auth.button')}</Text>
                     )}
                 </TouchableOpacity>
             </View>

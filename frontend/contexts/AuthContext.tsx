@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
-import { api } from '../services/api';
+import { authService } from '../services/api/authService';
 import { router } from 'expo-router';
 import { handleAPIError } from '../services/errorService';
 
@@ -59,40 +59,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const token = await AsyncStorage.getItem('token');
             const refreshToken = await AsyncStorage.getItem('refreshToken');
+            const storedUser = await AsyncStorage.getItem('user');
 
-            console.log('Tokens found:', { 
+            console.log('Auth check - Tokens found:', { 
                 hasToken: !!token, 
-                hasRefreshToken: !!refreshToken 
+                hasRefreshToken: !!refreshToken,
+                hasStoredUser: !!storedUser
             }); // Debug log
 
+            // Token yoksa kesinlikle logout yap
             if (!token || !refreshToken) {
-                throw new Error('No tokens found');
+                console.log('No tokens found, forcing logout'); // Debug log
+                setUser(null);
+                setIsAuthenticated(false);
+                setIsLoading(false);
+                return;
             }
 
             // Token geçerliliğini kontrol et
             if (!checkTokenExpiration(token)) {
                 console.log('Token expired, attempting refresh...'); // Debug log
-                // Token süresi dolmuşsa refresh token ile yenile
-                const response = await api.client.post<AuthResponse>('/auth/refresh', { token: refreshToken });
-                console.log('Token refresh response:', response); // Debug log
+                try {
+                    // Token süresi dolmuşsa refresh token ile yenile
+                    const response = await authService.refreshToken(refreshToken);
+                    console.log('Token refresh response:', response); // Debug log
 
-                const { token: newToken, refreshToken: newRefreshToken } = response;
+                    const { token: newToken, refreshToken: newRefreshToken } = response;
 
-                await AsyncStorage.setItem('token', newToken);
-                await AsyncStorage.setItem('refreshToken', newRefreshToken);
+                    await AsyncStorage.setItem('token', newToken);
+                    await AsyncStorage.setItem('refreshToken', newRefreshToken);
 
-                // Kullanıcı bilgilerini güncelle
-                const userResponse = await api.client.get<User>('/auth/me');
-                console.log('User info after refresh:', userResponse); // Debug log
-                setUser(userResponse);
-                setIsAuthenticated(true);
+                    // Kullanıcı bilgilerini güncelle
+                    const userResponse = await authService.getCurrentUser();
+                    console.log('User info after refresh:', userResponse); // Debug log
+                    setUser(userResponse);
+                    setIsAuthenticated(true);
+                    await AsyncStorage.setItem('user', JSON.stringify(userResponse));
+                } catch (refreshError) {
+                    console.error('Token refresh failed:', refreshError); // Debug log
+                    // Refresh başarısız olursa oturumu sonlandır
+                    await logout();
+                }
             } else {
                 console.log('Token still valid, fetching user info...'); // Debug log
-                // Token geçerliyse kullanıcı bilgilerini kontrol et
-                const userResponse = await api.client.get<User>('/auth/me');
-                console.log('User info:', userResponse); // Debug log
-                setUser(userResponse);
-                setIsAuthenticated(true);
+                try {
+                    // Token geçerliyse kullanıcı bilgilerini kontrol et
+                    const userResponse = await authService.getCurrentUser();
+                    console.log('User info:', userResponse); // Debug log
+                    setUser(userResponse);
+                    setIsAuthenticated(true);
+                    await AsyncStorage.setItem('user', JSON.stringify(userResponse));
+                } catch (userError) {
+                    console.error('User info fetch failed:', userError); // Debug log
+                    // Kullanıcı bilgisi alınamazsa oturumu sonlandır
+                    await logout();
+                }
             }
         } catch (error) {
             console.error('Auth status check failed:', error); // Debug log
@@ -123,14 +144,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Login function called with username:', username); // Debug log
         try {
             setIsLoading(true);
+            setJustLoggedIn(true); // Login başladığında flag'i set et
             console.log('Making login API request...'); // Debug log
             
             // Backend Email ve Password bekliyor
-            const response = await api.client.post<AuthResponse>('/auth/login', { 
-                email: username, 
-                password: password, 
-                rememberMe: false 
-            });
+            const response = await authService.login({ email: username, password });
             console.log('Login API response:', response); // Debug log
 
             // API client response interceptor'ı response.data döndürüyor
@@ -141,14 +159,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw new Error('Invalid login response');
             }
 
-            console.log('Storing tokens...'); // Debug log
+            console.log('Storing tokens and user data...'); // Debug log
             await AsyncStorage.setItem('token', token);
             await AsyncStorage.setItem('refreshToken', refreshToken);
+            await AsyncStorage.setItem('user', JSON.stringify(loggedInUser));
 
             console.log('Setting user state...'); // Debug log
             console.log('User data to set:', loggedInUser); // Debug log
             
-            // State'leri birlikte set et - callback kullanarak
+            // State'leri birlikte set et
             setUser(loggedInUser);
             setIsAuthenticated(true);
             
@@ -165,7 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 if (loggedInUser.role === 'admin' || loggedInUser.role === 'manager') {
                     console.log('Redirecting to tabs...'); // Debug log
-                    router.push("/(tabs)");
+                    router.push("/(tabs)/cash-register");
                 } else {
                     console.log('Redirecting to cash register...'); // Debug log
                     router.push("/(tabs)/cash-register");
@@ -175,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Navigation başarısız olursa manuel olarak yönlendir
                 setTimeout(() => {
                     if (loggedInUser.role === 'admin' || loggedInUser.role === 'manager') {
-                        router.push("/(tabs)");
+                        router.push("/(tabs)/cash-register");
                     } else {
                         router.push("/(tabs)/cash-register");
                     }
@@ -183,6 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         } catch (error) {
             console.error('Login failed:', error); // Debug log
+            setJustLoggedIn(false); // Hata durumunda flag'i temizle
             const apiError = handleAPIError(error);
             throw new Error(apiError.message);
         } finally {
@@ -192,30 +212,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = async () => {
         console.log('Logout function called'); // Debug log
+        
         try {
+            // Önce API logout çağrısı yap
             const token = await AsyncStorage.getItem('token');
             if (token) {
-                console.log('Making logout API request...'); // Debug log
-                await api.client.post('/auth/logout', {});
+                try {
+                    await authService.logout();
+                    console.log('Logout API request successful'); // Debug log
+                } catch (apiError) {
+                    console.error('Logout API error:', apiError); // Debug log
+                    // API hatası olsa bile devam et
+                }
             }
         } catch (error) {
             console.error('Logout error:', error); // Debug log
         } finally {
-            console.log('Clearing auth data...'); // Debug log
-            await AsyncStorage.multiRemove(['token', 'refreshToken']);
+            // AsyncStorage'ı kesinlikle temizle
+            try {
+                await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+                console.log('AsyncStorage cleared successfully'); // Debug log
+                
+                // Temizleme işlemini doğrula
+                const remainingToken = await AsyncStorage.getItem('token');
+                const remainingUser = await AsyncStorage.getItem('user');
+                console.log('Verification - Remaining token:', !!remainingToken, 'Remaining user:', !!remainingUser);
+                
+            } catch (storageError) {
+                console.error('AsyncStorage clear error:', storageError); // Debug log
+                // Hata durumunda tek tek silmeyi dene
+                try {
+                    await AsyncStorage.removeItem('token');
+                    await AsyncStorage.removeItem('refreshToken');
+                    await AsyncStorage.removeItem('user');
+                    console.log('Individual AsyncStorage clear successful'); // Debug log
+                } catch (individualError) {
+                    console.error('Individual AsyncStorage clear failed:', individualError);
+                }
+            }
+            
+            // State'leri kesinlikle temizle
             setUser(null);
             setIsAuthenticated(false);
+            setJustLoggedIn(false);
+            setIsLoading(false);
             
-            // State güncellemesinin tamamlanmasını bekle
-            await new Promise(resolve => setTimeout(resolve, 100));
+            console.log('Auth state cleared successfully'); // Debug log
             
+            // Navigation'ı yap
             try {
-                router.push('/(auth)/login');
+                console.log('Attempting navigation to login...'); // Debug log
+                router.replace('/(auth)/login');
+                console.log('Navigation to login successful'); // Debug log
             } catch (navigationError) {
                 console.error('Navigation error during logout:', navigationError);
+                // Alternatif navigation yöntemi
                 setTimeout(() => {
-                    router.push('/(auth)/login');
-                }, 500);
+                    try {
+                        console.log('Retrying navigation with push...'); // Debug log
+                        router.push('/(auth)/login');
+                    } catch (retryError) {
+                        console.error('Retry navigation failed:', retryError);
+                        // Son çare: window.location (web için)
+                        if (typeof window !== 'undefined') {
+                            window.location.href = '/(auth)/login';
+                        }
+                    }
+                }, 100);
             }
         }
     };

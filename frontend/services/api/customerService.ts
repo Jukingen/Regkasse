@@ -2,11 +2,18 @@ import { apiClient } from './config';
 
 export interface Customer {
     id: string;
-    name: string;
+    customerNumber: string;
+    firstName: string;
+    lastName: string;
     email?: string;
     phone?: string;
     address?: string;
+    city?: string;
+    postalCode?: string;
+    country?: string;
     taxNumber?: string;
+    companyName?: string;
+    customerType?: 'individual' | 'business';
     createdAt: string;
     updatedAt: string;
 }

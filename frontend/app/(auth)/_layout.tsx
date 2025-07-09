@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 
 export default function AuthLayout() {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isLoading, user } = useAuth();
 
     if (isLoading) {
         return (
@@ -14,8 +14,9 @@ export default function AuthLayout() {
     }
 
     // Eğer kullanıcı giriş yapmışsa ana sayfaya yönlendir
-    if (isAuthenticated) {
-        return <Redirect href="/(tabs)" />;
+    if (isAuthenticated && user) {
+        console.log('AuthLayout: User authenticated, redirecting to tabs');
+        return <Redirect href="/(tabs)/cash-register" />;
     }
 
     return (
