@@ -1,244 +1,204 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Registrierkasse.Data;
 using Registrierkasse.Models;
-using System;
-using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
+using Registrierkasse.Services;
 
 namespace Registrierkasse.Controllers
 {
     [Authorize]
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class TableController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly ILogger<TableController> _logger;
+        private readonly ITableService _tableService;
 
-        public TableController(AppDbContext context, ILogger<TableController> logger)
+        public TableController(ITableService tableService)
         {
-            _context = context;
-            _logger = logger;
+            _tableService = tableService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetTables()
+        public async Task<ActionResult<List<Table>>> GetAllTables()
         {
             try
             {
-                var tables = await _context.Tables
-                    .Include(t => t.CurrentOrder)
-                    .Include(t => t.Reservations.Where(r => r.ReservationTime.Date == DateTime.Today))
-                    .AsNoTracking()
-                    .ToListAsync();
-
-                return Ok(new { message = "Masalar başarıyla getirildi", tables });
+                var tables = await _tableService.GetAllTablesAsync();
+                return Ok(tables);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Masalar getirilirken bir hata oluştu");
-                return StatusCode(500, new { message = "Masalar getirilirken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { error = "Failed to retrieve tables", details = ex.Message });
             }
         }
 
-        [HttpPost]
-        [Authorize(Roles = "Administrator,Manager")]
-        public async Task<IActionResult> CreateTable(CreateTableModel model)
+        [HttpGet("{tableNumber}")]
+        public async Task<ActionResult<Table>> GetTable(int tableNumber)
         {
             try
             {
-                var table = new Table
-                {
-                    Number = model.Number,
-                    Name = model.Name,
-                    Capacity = model.Capacity,
-                    Location = model.Location,
-                    IsActive = model.IsActive
-                };
-                
-                _context.Tables.Add(table);
-                await _context.SaveChangesAsync();
-                
-                return CreatedAtAction(nameof(GetTable), new { id = table.Id }, table);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating table");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetTable(Guid id)
-        {
-            try
-            {
-                var table = await _context.Tables.FindAsync(id);
+                var table = await _tableService.GetTableByNumberAsync(tableNumber);
                 if (table == null)
                 {
-                    return NotFound();
+                    return NotFound(new { error = $"Table {tableNumber} not found" });
                 }
                 return Ok(table);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting table {TableId}", id);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { error = "Failed to retrieve table", details = ex.Message });
             }
         }
 
-        [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateTableStatus(Guid id, [FromBody] UpdateTableStatusModel model)
+        [HttpPut("{tableNumber}/status")]
+        public async Task<ActionResult<Table>> UpdateTableStatus(int tableNumber, [FromBody] UpdateTableStatusRequest request)
         {
             try
             {
-                var table = await _context.Tables.FindAsync(id);
-                if (table == null)
-                {
-                    return NotFound();
-                }
-                
-                table.IsActive = model.IsActive;
-                await _context.SaveChangesAsync();
-                
+                var table = await _tableService.UpdateTableStatusAsync(tableNumber, request.Status, request.CustomerName);
                 return Ok(table);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating table status for table {TableId}", id);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { error = "Failed to update table status", details = ex.Message });
             }
         }
 
-        [HttpPost("{id}/reservations")]
-        public async Task<IActionResult> CreateReservation(Guid id, CreateReservationModel model)
+        [HttpPut("{tableNumber}/order")]
+        public async Task<ActionResult<Table>> UpdateTableOrder(int tableNumber, [FromBody] UpdateTableOrderRequest request)
         {
             try
             {
-                var table = await _context.Tables.FindAsync(id);
-                if (table == null)
-                {
-                    return NotFound();
-                }
-                
-                var reservation = new TableReservation
-                {
-                    TableId = id,
-                    CustomerName = model.CustomerName,
-                    CustomerPhone = model.CustomerPhone,
-                    GuestCount = model.NumberOfGuests,
-                    ReservationTime = model.ReservationTime,
-                    Notes = model.Notes
-                };
-                
-                _context.TableReservations.Add(reservation);
-                await _context.SaveChangesAsync();
-                
-                return CreatedAtAction(nameof(GetTable), new { id = reservation.Id }, reservation);
+                var table = await _tableService.UpdateTableOrderAsync(tableNumber, request.OrderId, request.Total);
+                return Ok(table);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating reservation for table {TableId}", id);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, new { error = "Failed to update table order", details = ex.Message });
             }
         }
 
-        [HttpPut("reservation/{id}/status")]
-        public async Task<IActionResult> UpdateReservationStatus(Guid id, [FromBody] UpdateReservationStatusModel model)
+        [HttpPost("{tableNumber}/complete")]
+        public async Task<ActionResult<Table>> CompleteTableOrder(int tableNumber, [FromBody] CompleteTableOrderRequest request)
         {
             try
             {
-                var reservation = await _context.TableReservations
-                    .Include(r => r.Table)
-                    .FirstOrDefaultAsync(r => r.Id == id);
-
-                if (reservation == null)
-                {
-                    return NotFound(new { message = "Rezervasyon bulunamadı" });
-                }
-
-                reservation.Status = model.Status;
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Rezervasyon durumu güncellendi: Masa {reservation.Table.Name} - {model.Status}");
-
-                return Ok(new { message = "Rezervasyon durumu başarıyla güncellendi", reservation });
+                var table = await _tableService.CompleteTableOrderAsync(tableNumber, request.PaidAmount);
+                return Ok(table);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"ID: {id} olan rezervasyon durumu güncellenirken bir hata oluştu");
-                return StatusCode(500, new { message = "Rezervasyon durumu güncellenirken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { error = "Failed to complete table order", details = ex.Message });
             }
         }
 
-        [HttpGet("reservations/today")]
-        public async Task<IActionResult> GetTodayReservations()
+        [HttpPost("{tableNumber}/clear")]
+        public async Task<ActionResult<Table>> ClearTable(int tableNumber)
         {
             try
             {
-                var today = DateTime.Today;
-                var reservations = await _context.TableReservations
-                    .Include(r => r.Table)
-                    .Where(r => r.ReservationTime.Date == today)
-                    .OrderBy(r => r.ReservationTime)
-                    .AsNoTracking()
-                    .ToListAsync();
-
-                return Ok(new { message = "Bugünkü rezervasyonlar başarıyla getirildi", reservations });
+                var table = await _tableService.ClearTableAsync(tableNumber);
+                return Ok(table);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Bugünkü rezervasyonlar getirilirken bir hata oluştu");
-                return StatusCode(500, new { message = "Bugünkü rezervasyonlar getirilirken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { error = "Failed to clear table", details = ex.Message });
+            }
+        }
+
+        [HttpPost("{tableNumber}/reserve")]
+        public async Task<ActionResult<Table>> ReserveTable(int tableNumber, [FromBody] ReserveTableRequest request)
+        {
+            try
+            {
+                var table = await _tableService.ReserveTableAsync(tableNumber, request.CustomerName);
+                return Ok(table);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to reserve table", details = ex.Message });
+            }
+        }
+
+        [HttpGet("{tableNumber}/history")]
+        public async Task<ActionResult<List<Order>>> GetTableOrderHistory(int tableNumber)
+        {
+            try
+            {
+                var orders = await _tableService.GetTableOrderHistoryAsync(tableNumber);
+                return Ok(orders);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to retrieve table order history", details = ex.Message });
+            }
+        }
+
+        [HttpPut("{tableNumber}/customer")]
+        public async Task<ActionResult<Table>> UpdateTableCustomer(int tableNumber, [FromBody] UpdateTableCustomerRequest request)
+        {
+            try
+            {
+                var table = await _tableService.UpdateTableCustomerAsync(tableNumber, request.CustomerName);
+                return Ok(table);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to update table customer", details = ex.Message });
             }
         }
     }
 
-    public class CreateTableModel
+    public class UpdateTableStatusRequest
     {
-        [Required]
-        public int Number { get; set; }
-        
-        [Required]
-        public string Name { get; set; } = string.Empty;
-        
-        [Required]
-        public int Capacity { get; set; }
-        
-        [Required]
-        public string Location { get; set; } = string.Empty;
-        
-        public bool IsActive { get; set; } = true;
+        public string Status { get; set; } = string.Empty;
+        public string? CustomerName { get; set; }
     }
 
-    public class UpdateTableStatusModel
+    public class UpdateTableOrderRequest
     {
-        [Required]
-        public bool IsActive { get; set; }
+        public Guid OrderId { get; set; }
+        public decimal Total { get; set; }
     }
 
-    public class CreateReservationModel
+    public class CompleteTableOrderRequest
     {
-        [Required]
+        public decimal PaidAmount { get; set; }
+    }
+
+    public class ReserveTableRequest
+    {
         public string CustomerName { get; set; } = string.Empty;
-        
-        [Required]
-        public string CustomerPhone { get; set; } = string.Empty;
-        
-        [Required]
-        public DateTime ReservationTime { get; set; }
-        
-        [Required]
-        public int NumberOfGuests { get; set; }
-        
-        public string Notes { get; set; } = string.Empty;
     }
 
-    public class UpdateReservationStatusModel
+    public class UpdateTableCustomerRequest
     {
-        public ReservationStatus Status { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
     }
 } 

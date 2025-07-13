@@ -21,7 +21,8 @@
         "remove": "Entfernen",
         "update": "Aktualisieren",
         "print": "Drucken",
-        "download": "Herunterladen"
+        "download": "Herunterladen",
+        "apply": "Anwenden"
     },
     "auth": {
         "login": "Anmelden",
@@ -35,6 +36,60 @@
         "loginSubtitle": "Bitte melden Sie sich an, um fortzufahren",
         "username": "Benutzername",
         "button": "Anmelden"
+    },
+    "quickAccess": {
+        "title": "Schnellzugriff",
+        "favorites": "Favoriten",
+        "favoriteProducts": "Favorit-Produkte",
+        "pendingOrders": "Ausstehende Bestellungen",
+        "lowStock": "Niedriger Lagerbestand",
+        "dailyReport": "Tagesbericht",
+        "customers": "Kunden",
+        "settings": "Einstellungen",
+        "todaySales": "Heutige Umsätze"
+    },
+    "search": {
+        "placeholder": "Produkte suchen...",
+        "recentSearches": "Letzte Suchen",
+        "noResults": "Keine Ergebnisse gefunden",
+        "startTyping": "Beginnen Sie mit der Eingabe...",
+        "filters": "Filter",
+        "categories": "Kategorien",
+        "stock": "Lagerbestand",
+        "inStockOnly": "Nur auf Lager",
+        "taxTypes": "Steuertypen",
+        "clearFilters": "Filter löschen",
+        "applyFilters": "Filter anwenden"
+    },
+    "cart": {
+        "cart": "Warenkorb",
+        "items": "Artikel",
+        "itemsSelected": "Artikel ausgewählt",
+        "notes": "Notizen",
+        "addNotes": "Notizen hinzufügen",
+        "discount": "Rabatt",
+        "addDiscount": "Rabatt hinzufügen",
+        "apply": "Anwenden",
+        "unitPrice": "Einzelpreis",
+        "tax": "Steuer",
+        "stock": "Lagerbestand",
+        "removeItem": "Artikel entfernen",
+        "removeItemConfirm": "Möchten Sie diesen Artikel wirklich entfernen?",
+        "remove": "Entfernen",
+        "subtotal": "Zwischensumme",
+        "total": "Gesamtbetrag",
+        "emptyCart": "Warenkorb ist leer",
+        "addItemsToStart": "Fügen Sie Artikel hinzu, um zu beginnen",
+        "loadSavedCart": "Gespeicherten Warenkorb laden",
+        "clearCart": "Warenkorb leeren",
+        "clearCartConfirm": "Möchten Sie den Warenkorb wirklich leeren?",
+        "clear": "Leeren",
+        "invalidDiscount": "Ungültiger Rabatt",
+        "enterValidAmount": "Bitte geben Sie einen gültigen Betrag ein",
+        "discountTooHigh": "Rabatt zu hoch",
+        "discountExceedsTotal": "Rabatt übersteigt den Gesamtbetrag",
+        "bulkRemoveTitle": "Artikel entfernen",
+        "bulkRemoveMessage": "Möchten Sie {{count}} Artikel wirklich entfernen?"
     },
     "cashRegister": {
         "title": "Kasse",
@@ -116,6 +171,33 @@
         "order_notes_placeholder": "Bestellungsnotizen (optional)",
         "more_items": "weitere Artikel",
         "table": "Tisch"
+    },
+    "category": {
+        "drink": "Getränke",
+        "food": "Speisen",
+        "dessert": "Desserts",
+        "snack": "Snacks",
+        "beverage": "Getränke",
+        "main": "Hauptgericht",
+        "appetizer": "Vorspeise",
+        "side": "Beilage"
+    },
+    "tax": {
+        "standard": "Standard",
+        "reduced": "Ermäßigt",
+        "special": "Sonder"
+    },
+    "product": {
+        "stock": "Lagerbestand",
+        "outOfStock": "Nicht auf Lager",
+        "lowStock": "Niedriger Lagerbestand",
+        "addToCart": "Zum Warenkorb hinzufügen",
+        "removeFromCart": "Aus Warenkorb entfernen",
+        "quantity": "Menge",
+        "price": "Preis",
+        "description": "Beschreibung",
+        "category": "Kategorie",
+        "barcode": "Barcode"
     },
     "settings": {
         "title": "Einstellungen",

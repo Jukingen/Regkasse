@@ -35,7 +35,29 @@ namespace Registrierkasse.Models
         [ForeignKey("CurrentOrderId")]
         public virtual Order? CurrentOrder { get; set; }
         
+        [Column("status")]
+        [MaxLength(20)]
+        public string Status { get; set; } = "empty"; // empty, occupied, reserved, paid
+        
+        [Column("customer_name")]
+        [MaxLength(100)]
+        public string CustomerName { get; set; } = string.Empty;
+        
+        [Column("start_time")]
+        public DateTime? StartTime { get; set; }
+        
+        [Column("last_order_time")]
+        public DateTime? LastOrderTime { get; set; }
+        
+        [Column("total_paid")]
+        public decimal TotalPaid { get; set; } = 0;
+        
+        [Column("current_total")]
+        public decimal CurrentTotal { get; set; } = 0;
+        
         public virtual ICollection<TableReservation> Reservations { get; set; } = new List<TableReservation>();
+        
+        public virtual ICollection<Order> OrderHistory { get; set; } = new List<Order>();
     }
     
     [Table("table_reservations")]
