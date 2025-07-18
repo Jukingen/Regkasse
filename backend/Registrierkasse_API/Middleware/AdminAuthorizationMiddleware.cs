@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using Registrierkasse.Models;
+using Registrierkasse_API.Models;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Linq;
 
-namespace Registrierkasse.Middleware
+namespace Registrierkasse_API.Middleware
 {
     public class AdminAuthorizationMiddleware
     {

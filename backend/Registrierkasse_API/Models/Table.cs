@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Registrierkasse.Models
+namespace Registrierkasse_API.Models
 {
     [Table("tables")]
     public class Table : BaseEntity
@@ -35,6 +35,13 @@ namespace Registrierkasse.Models
         [ForeignKey("CurrentOrderId")]
         public virtual Order? CurrentOrder { get; set; }
         
+        // Masa-cart ilişkisi için yeni alanlar
+        [Column("current_cart_id")]
+        public string? CurrentCartId { get; set; }
+        
+        [ForeignKey("CurrentCartId")]
+        public virtual Cart? CurrentCart { get; set; }
+        
         [Column("status")]
         [MaxLength(20)]
         public string Status { get; set; } = "empty"; // empty, occupied, reserved, paid
@@ -55,9 +62,28 @@ namespace Registrierkasse.Models
         [Column("current_total")]
         public decimal CurrentTotal { get; set; } = 0;
         
+        // Masa özel ayarları
+        [Column("service_charge_percentage")]
+        public decimal ServiceChargePercentage { get; set; } = 0; // Servis ücreti yüzdesi
+        
+        [Column("tip_percentage")]
+        public decimal TipPercentage { get; set; } = 0; // Bahşiş yüzdesi
+        
+        [Column("split_bill_enabled")]
+        public bool SplitBillEnabled { get; set; } = true; // Bölünmüş hesap aktif mi?
+        
+        [Column("max_split_count")]
+        public int MaxSplitCount { get; set; } = 4; // Maksimum bölünme sayısı
+        
+        [Column("notes")]
+        [MaxLength(500)]
+        public string Notes { get; set; } = string.Empty;
+        
         public virtual ICollection<TableReservation> Reservations { get; set; } = new List<TableReservation>();
         
         public virtual ICollection<Order> OrderHistory { get; set; } = new List<Order>();
+        
+        public virtual ICollection<Cart> CartHistory { get; set; } = new List<Cart>();
     }
     
     [Table("table_reservations")]

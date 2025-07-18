@@ -8,6 +8,7 @@ import Reports from '../pages/Reports';
 import Inventory from '../pages/Inventory';
 import Products from '../pages/Products';
 import Customers from '../pages/Customers';
+import Categories from '../pages/Categories';
 import Invoices from '../pages/Invoices';
 import CashRegisters from '../pages/CashRegisters';
 import TSE from '../pages/TSE';
@@ -84,6 +85,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <Customers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/categories"
+        element={
+          <ProtectedRoute>
+            <Categories />
           </ProtectedRoute>
         }
       />

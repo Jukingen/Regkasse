@@ -1,13 +1,13 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
+import i18n from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { initReactI18next } from 'react-i18next';
 
 // Dil dosyalarını import et
 import de from './locales/de.json';
-import tr from './locales/tr.json';
 import en from './locales/en.json';
+import tr from './locales/tr.json';
 
 // Özel dil algılama modülü
 const customLanguageDetector = {

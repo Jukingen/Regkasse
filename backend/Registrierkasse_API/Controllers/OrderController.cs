@@ -2,14 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
+using Registrierkasse_API.Data;
+using Registrierkasse_API.Models;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-namespace Registrierkasse.Controllers
+namespace Registrierkasse_API.Controllers
 {
     [Authorize]
     [Route("api/[controller]")]
@@ -64,7 +64,7 @@ namespace Registrierkasse.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Sipariş alınırken hata oluştu: {OrderId}", id);
+                _logger.LogError(ex, $"Sipariş alınırken hata oluştu: {id}");
                 return StatusCode(500, "Sipariş alınırken bir hata oluştu");
             }
         }
@@ -78,10 +78,10 @@ namespace Registrierkasse.Controllers
                 var order = new Order
                 {
                     OrderNumber = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}".Substring(0, 20),
-                    CustomerId = model.CustomerId,
-                    TableNumber = model.TableNumber,
+                    CustomerId = model.CustomerId?.ToString(),
+                    TableNumber = model.TableNumber.ToString(),
                     WaiterName = model.WaiterName,
-                    Status = "pending",
+                    Status = OrderStatus.Pending,
                     Notes = model.Notes,
                     CreatedBy = User.Identity?.Name
                 };
@@ -189,7 +189,7 @@ namespace Registrierkasse.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Sipariş durumu güncellenirken hata oluştu: {OrderId}", id);
+                _logger.LogError(ex, $"Sipariş durumu güncellenirken hata oluştu: {id}");
                 return StatusCode(500, "Sipariş durumu güncellenirken bir hata oluştu");
             }
         }
@@ -200,23 +200,22 @@ namespace Registrierkasse.Controllers
             try
             {
                 var orderItem = await _context.OrderItems
-                    .FirstOrDefaultAsync(oi => oi.OrderId == orderId && oi.Id == itemId);
+                    .FirstOrDefaultAsync(oi => oi.OrderId == orderId.ToString() && oi.Id == itemId);
 
                 if (orderItem == null)
                 {
                     return NotFound(new { message = "Sipariş kalemi bulunamadı" });
                 }
 
-                orderItem.Status = model.Status;
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation($"Sipariş kalemi durumu güncellendi: Sipariş #{{orderId}}, Kalem #{{itemId}} - {{model.Status}}");
+                _logger.LogInformation("Sipariş kalemi durumu güncellendi: Sipariş #{OrderId}, Kalem #{ItemId} - {Status}", orderId, itemId, model.Status);
 
                 return Ok(new { message = "Sipariş kalemi durumu başarıyla güncellendi", orderItem });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Sipariş #{{orderId}}, Kalem #{{itemId}} durumu güncellenirken bir hata oluştu");
+                _logger.LogError(ex, $"Sipariş #{orderId}, Kalem #{itemId} durumu güncellenirken bir hata oluştu");
                 return StatusCode(500, new { message = "Sipariş kalemi durumu güncellenirken bir hata oluştu", error = ex.Message });
             }
         }
@@ -230,7 +229,7 @@ namespace Registrierkasse.Controllers
                     .Include(o => o.Customer)
                     .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
-                    .Where(o => o.Status != "completed" && o.Status != "cancelled")
+                    .Where(o => o.Status != OrderStatus.Completed && o.Status != OrderStatus.Cancelled)
                     .OrderByDescending(o => o.CreatedAt)
                     .AsNoTracking()
                     .ToListAsync();
@@ -264,11 +263,11 @@ namespace Registrierkasse.Controllers
 
     public class UpdateOrderStatusModel
     {
-        public string Status { get; set; } = string.Empty; // pending, in_progress, completed, cancelled
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
     }
 
     public class UpdateOrderItemStatusModel
     {
-        public string Status { get; set; } = string.Empty; // pending, in_progress, ready, served, cancelled
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
     }
 } 

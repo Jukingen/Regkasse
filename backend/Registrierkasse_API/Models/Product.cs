@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Registrierkasse.Models
+namespace Registrierkasse_API.Models
 {
     [Table("products")]
     public class Product : BaseEntity
@@ -18,6 +18,7 @@ namespace Registrierkasse.Models
 
         [Required]
         [Column("tax_type")]
+        [TaxTypeValidation]
         public TaxType TaxType { get; set; }
 
         [Column("description")]
@@ -44,8 +45,12 @@ namespace Registrierkasse.Models
         [MaxLength(20)]
         public string Unit { get; set; }
 
+        public decimal Cost { get; set; }
+        public decimal TaxRate { get; set; }
+        public string? CategoryId { get; set; }
+
         // Navigation properties
-        public virtual Inventory Inventory { get; set; }
+        public virtual Inventory Inventory { get; set; } // Bire-bir ilişki için uygun
         public virtual ICollection<OrderItem> OrderItems { get; set; }
         public virtual ICollection<InvoiceItem> InvoiceItems { get; set; }
 
@@ -54,5 +59,21 @@ namespace Registrierkasse.Models
         // - CreatedAt (DateTime)
         // - UpdatedAt (DateTime?)
         // - IsActive (bool)
+    }
+
+    // TaxType enum validasyonu için attribute ekle
+    public class TaxTypeValidationAttribute : ValidationAttribute
+    {
+        protected override ValidationResult IsValid(object? value, ValidationContext validationContext)
+        {
+            if (value is TaxType taxType)
+            {
+                if (taxType != TaxType.Standard && taxType != TaxType.Reduced && taxType != TaxType.Special)
+                {
+                    return new ValidationResult("TaxType sadece 'standard', 'reduced', 'special' olabilir.");
+                }
+            }
+            return ValidationResult.Success;
+        }
     }
 } 

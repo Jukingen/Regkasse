@@ -255,7 +255,7 @@ export class ChangeOptimizer {
     };
   }
 
-  public simulateCashFlow(transactions: Array<{ amount: number; paymentAmount: number }>): {
+  public simulateCashFlow(transactions: { amount: number; paymentAmount: number }[]): {
     totalChangeGiven: number;
     totalChangeReceived: number;
     netChange: number;

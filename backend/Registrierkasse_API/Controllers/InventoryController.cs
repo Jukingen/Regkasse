@@ -2,13 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
+using Registrierkasse_API.Data;
+using Registrierkasse_API.Models;
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 
-namespace Registrierkasse.Controllers
+namespace Registrierkasse_API.Controllers
 {
     [Authorize]
     [Route("api/[controller]")]
@@ -143,17 +143,15 @@ namespace Registrierkasse.Controllers
                 }
 
                 var oldStock = inventory.CurrentStock;
-                inventory.CurrentStock = model.NewStock;
+                inventory.CurrentStock = (int)model.NewStock;
                 inventory.LastStockUpdate = DateTime.UtcNow;
 
                 var transaction = new InventoryTransaction
                 {
-                    InventoryId = inventory.Id,
-                    Type = model.Type.ToString(),
-                    Quantity = model.NewStock - oldStock,
+                    InventoryId = inventory.Id.ToString(),
+                    QuantityChange = (int)(model.NewStock - oldStock),
                     Reference = model.Reference,
-                    Notes = model.Notes,
-                    UserId = model.UserId
+                    TransactionDate = DateTime.UtcNow
                 };
 
                 _context.InventoryTransactions.Add(transaction);
@@ -189,23 +187,21 @@ namespace Registrierkasse.Controllers
                 }
 
                 // Stok miktarı kontrolü
-                if (inventory.CurrentStock + model.Quantity > inventory.MaximumStock)
+                if (inventory.CurrentStock + (int)model.Quantity > inventory.MaximumStock)
                 {
                     await transaction.RollbackAsync();
                     return BadRequest(new { message = "Maksimum stok limiti aşılıyor" });
                 }
 
-                inventory.CurrentStock += model.Quantity;
+                inventory.CurrentStock += (int)model.Quantity;
                 inventory.LastStockUpdate = DateTime.UtcNow;
 
                 var stockTransaction = new InventoryTransaction
                 {
-                    InventoryId = inventory.Id,
-                    Type = model.Type.ToString(),
-                    Quantity = model.Quantity,
+                    InventoryId = inventory.Id.ToString(),
+                    QuantityChange = (int)model.Quantity,
                     Reference = model.Reference,
-                    Notes = model.Notes,
-                    UserId = model.UserId
+                    TransactionDate = DateTime.UtcNow
                 };
 
                 _context.InventoryTransactions.Add(stockTransaction);

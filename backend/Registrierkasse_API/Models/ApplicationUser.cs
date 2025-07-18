@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
 
-namespace Registrierkasse.Models
+namespace Registrierkasse_API.Models
 {
     [Table("users")]
     public class ApplicationUser : IdentityUser
@@ -18,6 +18,9 @@ namespace Registrierkasse.Models
         [Column("last_name")]
         [MaxLength(50)]
         public string LastName { get; set; } = string.Empty;
+        
+        // Computed property
+        public string Name => $"{FirstName} {LastName}".Trim();
         
         [Column("employee_number")]
         [MaxLength(20)]
@@ -41,16 +44,37 @@ namespace Registrierkasse.Models
         [Column("last_login")]
         public DateTime? LastLogin { get; set; }
         
+        // Demo kullanıcı alanları
+        [Column("account_type")]
+        [MaxLength(20)]
+        public string AccountType { get; set; } = "real"; // "real", "demo"
+        
+        [Column("is_demo")]
+        public bool IsDemo { get; set; } = false;
+        
+        [Column("last_login_at")]
+        public DateTime? LastLoginAt { get; set; }
+        
+        [Column("login_count")]
+        public int LoginCount { get; set; } = 0;
+        
+        [Column("created_at")]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
+        [Column("updated_at")]
+        public DateTime? UpdatedAt { get; set; }
+        
         public virtual ICollection<CashRegister> AssignedCashRegisters { get; set; } = new List<CashRegister>();
         
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
-        
-        public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
         
         public virtual UserSettings? Settings { get; set; }
         
         public virtual ICollection<CashRegisterTransaction> Transactions { get; set; } = new List<CashRegisterTransaction>();
         
         public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
+        
+        // Rol sistemi ilişkileri
+        public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     }
 } 

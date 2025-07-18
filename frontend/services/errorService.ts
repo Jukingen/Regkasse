@@ -155,8 +155,12 @@ export const ErrorMessages = {
     SCANNER_ERROR: 'Scanner error. Please try again.',
     
     // Network
-    NETWORK_ERROR: 'Network error. Please check your connection and try again.',
-    OFFLINE_MODE: 'You are currently offline. Some features may be limited.',
+    NETWORK_ERROR: 'Network connection error. Please check your internet connection.',
+    FINANZONLINE_UNAVAILABLE: 'FinanzOnline service is currently unavailable.',
+    PENDING_INVOICES_ERROR: 'Error processing pending invoices.',
+    INVOICE_SUBMISSION_FAILED: 'Invoice submission to FinanzOnline failed.',
+    NETWORK_TIMEOUT: 'Network request timed out. Please try again.',
+    CONNECTION_LOST: 'Connection lost. Please check your network settings.',
     SYNC_FAILED: 'Failed to sync data. Please try again.',
     
     // General

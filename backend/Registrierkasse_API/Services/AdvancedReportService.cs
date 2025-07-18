@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
+using Registrierkasse_API.Data;
+using Registrierkasse_API.Models;
 
-namespace Registrierkasse.Services
+namespace Registrierkasse_API.Services
 {
     public interface IAdvancedReportService
     {
@@ -51,11 +51,11 @@ namespace Registrierkasse.Services
 
                 var topProducts = invoices
                     .SelectMany(i => i.Items)
-                    .GroupBy(ii => new { ii.ProductId, ii.Product.Name })
+                    .GroupBy(ii => new { ii.ProductId, ProductName = ii.ProductName })
                     .Select(g => new TopProductData
                     {
-                        ProductId = g.Key.ProductId,
-                        ProductName = g.Key.Name,
+                        ProductId = Guid.TryParse(g.Key.ProductId.ToString(), out var pid) ? pid : Guid.Empty,
+                        ProductName = g.Key.ProductName,
                         TotalQuantity = g.Sum(ii => ii.Quantity),
                         TotalRevenue = g.Sum(ii => ii.TotalAmount),
                         AveragePrice = g.Average(ii => ii.UnitPrice)
@@ -127,11 +127,11 @@ namespace Registrierkasse.Services
                     .ToListAsync();
 
                 var topCustomers = invoices
-                    .GroupBy(i => new { i.CustomerId, i.Customer.Name })
+                    .GroupBy(i => new { i.CustomerId, CustomerName = i.Customer != null ? i.Customer.FirstName + " " + i.Customer.LastName : "" })
                     .Select(g => new TopCustomerData
                     {
-                        CustomerId = g.Key.CustomerId ?? Guid.Empty,
-                        CustomerName = g.Key.Name,
+                        CustomerId = Guid.TryParse(g.Key.CustomerId?.ToString(), out var cid) ? cid : Guid.Empty,
+                        CustomerName = g.Key.CustomerName,
                         TotalSpent = g.Sum(i => i.TotalAmount),
                         InvoiceCount = g.Count(),
                         AverageOrder = g.Average(i => i.TotalAmount),
@@ -200,7 +200,7 @@ namespace Registrierkasse.Services
                         Date = g.Key,
                         InvoiceCount = g.Count(),
                         TotalSales = g.Sum(i => i.TotalAmount),
-                        AverageItemsPerInvoice = g.Average(i => i.Items.Count)
+                        AverageItemsPerInvoice = g.Average(i => i.Items != null ? i.Items.Count : 0)
                     })
                     .OrderBy(d => d.Date)
                     .ToList();
@@ -247,7 +247,7 @@ namespace Registrierkasse.Services
                     .CountAsync();
 
                 var pendingInvoices = await _context.Invoices
-                    .Where(i => i.PaymentStatus == Models.PaymentStatus.Pending.ToString())
+                    .Where(i => i.PaymentStatus == Models.PaymentStatus.Pending)
                     .CountAsync();
 
                 var totalCustomers = await _context.Customers.CountAsync();

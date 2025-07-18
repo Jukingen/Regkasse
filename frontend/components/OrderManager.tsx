@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -10,8 +12,7 @@ import {
   FlatList,
   Modal,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { Product } from '../services/api/productService';
 
@@ -62,7 +63,7 @@ const OrderManager: React.FC<OrderManagerProps> = ({
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
-  const [newOrderItems, setNewOrderItems] = useState<Array<{ product: Product; quantity: number; notes: string }>>([]);
+  const [newOrderItems, setNewOrderItems] = useState<{ product: Product; quantity: number; notes: string }[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [tableNumber, setTableNumber] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -416,8 +417,8 @@ const OrderManager: React.FC<OrderManagerProps> = ({
               {newOrderItems.length > 0 && (
                 <View style={styles.selectedItemsSection}>
                   <Text style={styles.sectionTitle}>{t('order.selected_items')}</Text>
-                  {newOrderItems.map((item) => (
-                    <View key={item.product.id} style={styles.selectedItem}>
+                  {newOrderItems.map((item, index) => (
+                    <View key={`${item.product.id}-${index}`} style={styles.selectedItem}>
                       <View style={styles.selectedItemInfo}>
                         <Text style={styles.selectedItemName}>{item.product.name}</Text>
                         <Text style={styles.selectedItemPrice}>

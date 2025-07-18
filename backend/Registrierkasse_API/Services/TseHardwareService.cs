@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Registrierkasse.Services
+namespace Registrierkasse_API.Services
 {
     public interface ITseHardwareService
     {

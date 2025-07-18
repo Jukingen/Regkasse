@@ -1,41 +1,16 @@
-import { apiClient } from './config';
+import { useFetch } from './useFetch';
 
-export interface UserSettings {
-    id: string;
-    userId: string;
-    language: string;
-    theme: 'light' | 'dark' | 'system';
-    notifications: boolean;
-    printerSettings: {
-        enabled: boolean;
-        model: string;
-        paperSize: string;
-    };
-    receiptSettings: {
-        showLogo: boolean;
-        showTaxDetails: boolean;
-        footerText: string;
-    };
-}
+// Kullanıcı ayarlarını getir
+export const getUserSettings = () => {
+  return useFetch<any>('/settings/user');
+};
 
-export interface UpdateSettingsRequest {
-    language?: string;
-    theme?: 'light' | 'dark' | 'system';
-    notifications?: boolean;
-    printerSettings?: Partial<UserSettings['printerSettings']>;
-    receiptSettings?: Partial<UserSettings['receiptSettings']>;
-}
+// Kullanıcı ayarlarını güncelle
+export const updateUserSettings = (settings: any) => {
+  return useFetch<any>('/settings/user', { method: 'PUT' });
+};
 
-export const settingsService = {
-    getUserSettings: async (): Promise<UserSettings> => {
-        return apiClient.get<UserSettings>('/settings/user');
-    },
-
-    updateUserSettings: async (settings: UpdateSettingsRequest): Promise<UserSettings> => {
-        return apiClient.put<UserSettings>('/settings/user', settings);
-    },
-
-    resetUserSettings: async (): Promise<UserSettings> => {
-        return apiClient.post<UserSettings>('/settings/user/reset', {});
-    }
+// Kullanıcı ayarlarını sıfırla
+export const resetUserSettings = () => {
+  return useFetch<any>('/settings/user/reset', { method: 'POST' });
 }; 

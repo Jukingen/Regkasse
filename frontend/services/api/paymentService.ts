@@ -34,13 +34,13 @@ export interface PaymentResponse {
 export interface Receipt {
   id: string;
   receiptNumber: string;
-  items: Array<{
+  items: {
     productName: string;
     quantity: number;
     price: number;
     taxType: string;
     totalPrice: number;
-  }>;
+  }[];
   subtotal: number;
   taxStandard: number;
   taxReduced: number;
@@ -223,7 +223,7 @@ class PaymentService {
     totalPayments: number;
     totalAmount: number;
     averageAmount: number;
-    topPaymentMethods: Array<{ method: string; count: number; amount: number }>;
+    topPaymentMethods: { method: string; count: number; amount: number }[];
   }> {
     try {
       const response = await apiClient.get(`${this.baseUrl}/statistics?period=${period}`);
@@ -231,7 +231,7 @@ class PaymentService {
         totalPayments: number;
         totalAmount: number;
         averageAmount: number;
-        topPaymentMethods: Array<{ method: string; count: number; amount: number }>;
+        topPaymentMethods: { method: string; count: number; amount: number }[];
       };
     } catch (error) {
       console.error('Payment statistics failed:', error);

@@ -1,164 +1,158 @@
-import React, { useState } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 
-interface Language {
-  code: string;
-  name: string;
-  nativeName: string;
-  flag: string;
-}
+import { useLanguage } from '../contexts/LanguageContext';
 
-interface LanguageSelectorProps {
-  visible: boolean;
-  onClose: () => void;
-  onLanguageChange: (languageCode: string) => void;
-  currentLanguage: string;
-}
+/**
+ * Dil seçimi bileşeni - Almanca, İngilizce ve Türkçe arasında geçiş
+ */
+export const LanguageSelector: React.FC = () => {
+  const { language, setLanguage, t } = useLanguage();
 
-const LanguageSelector: React.FC<LanguageSelectorProps> = ({
-  visible,
-  onClose,
-  onLanguageChange,
-  currentLanguage,
-}) => {
-  const { t } = useTranslation();
-
-  const languages: Language[] = [
-    { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
-    { code: 'en', name: 'English', nativeName: 'English', flag: '🇺🇸' },
-    { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷' },
-  ];
-
-  const handleLanguageSelect = (languageCode: string) => {
-    onLanguageChange(languageCode);
-    onClose();
+  // Dil değiştirme fonksiyonu
+  const handleLanguageChange = async (newLanguage: 'de-DE' | 'en' | 'tr') => {
+    try {
+      await setLanguage(newLanguage);
+      
+      // Başarı mesajı göster
+      Alert.alert(
+        t('common.success'),
+        t('settings.language_changed', { language: t(`settings.${newLanguage === 'de-DE' ? 'german' : newLanguage === 'en' ? 'english' : 'turkish'}`) }),
+        [{ text: t('common.ok') }]
+      );
+    } catch (error) {
+      console.error('Language change error:', error);
+      Alert.alert(
+        t('common.error'),
+        t('settings.language_change_error'),
+        [{ text: t('common.ok') }]
+      );
+    }
   };
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
+  // Dil butonları
+  const LanguageButton: React.FC<{
+    lang: 'de-DE' | 'en' | 'tr';
+    label: string;
+    nativeLabel: string;
+  }> = ({ lang, label, nativeLabel }) => (
+    <TouchableOpacity
+      style={[
+        styles.languageButton,
+        language === lang && styles.activeLanguageButton
+      ]}
+      onPress={() => handleLanguageChange(lang)}
+      activeOpacity={0.7}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modal}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{t('settings.language')}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.light.text} />
-            </TouchableOpacity>
-          </View>
+      <Text style={[
+        styles.languageText,
+        language === lang && styles.activeLanguageText
+      ]}>
+        {label}
+      </Text>
+      <Text style={[
+        styles.nativeLabel,
+        language === lang && styles.activeNativeLabel
+      ]}>
+        {nativeLabel}
+      </Text>
+    </TouchableOpacity>
+  );
 
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {languages.map((language) => (
-              <TouchableOpacity
-                key={language.code}
-                style={[
-                  styles.languageItem,
-                  currentLanguage === language.code && styles.languageItemSelected,
-                ]}
-                onPress={() => handleLanguageSelect(language.code)}
-              >
-                <View style={styles.languageInfo}>
-                  <Text style={styles.languageFlag}>{language.flag}</Text>
-                  <View style={styles.languageText}>
-                    <Text style={styles.languageName}>{language.nativeName}</Text>
-                    <Text style={styles.languageEnglish}>{language.name}</Text>
-                  </View>
-                </View>
-                {currentLanguage === language.code && (
-                  <Ionicons name="checkmark-circle" size={24} color={Colors.light.primary} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>{t('settings.language')}</Text>
+      
+      <View style={styles.languageGrid}>
+        <LanguageButton
+          lang="de-DE"
+          label="Deutsch"
+          nativeLabel="German"
+        />
+        
+        <LanguageButton
+          lang="en"
+          label="English"
+          nativeLabel="English"
+        />
+        
+        <LanguageButton
+          lang="tr"
+          label="Türkçe"
+          nativeLabel="Turkish"
+        />
       </View>
-    </Modal>
+      
+      <Text style={styles.info}>
+        {t('settings.language_info')}
+      </Text>
+    </View>
   );
 };
 
+// Stil tanımları
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  container: {
+    padding: 20,
+    backgroundColor: '#fff',
   },
-  modal: {
-    backgroundColor: Colors.light.background,
-    borderRadius: BorderRadius.lg,
-    width: '90%',
-    maxHeight: '80%',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
+  
   title: {
-    ...Typography.h2,
-    color: Colors.light.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
   },
-  closeButton: {
-    padding: Spacing.xs,
-  },
-  content: {
-    padding: Spacing.md,
-  },
-  languageItem: {
+  
+  languageGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.md,
-    marginBottom: Spacing.sm,
-    backgroundColor: Colors.light.surface,
+    marginBottom: 20,
   },
-  languageItemSelected: {
-    backgroundColor: Colors.light.primary + '20',
-    borderWidth: 1,
-    borderColor: Colors.light.primary,
-  },
-  languageInfo: {
-    flexDirection: 'row',
+  
+  languageButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#f8f9fa',
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
+    minHeight: 80,
   },
-  languageFlag: {
-    fontSize: 24,
-    marginRight: Spacing.md,
+  
+  activeLanguageButton: {
+    borderColor: '#007AFF',
+    backgroundColor: '#E3F2FD',
   },
+  
   languageText: {
-    flex: 1,
-  },
-  languageName: {
-    ...Typography.body,
+    fontSize: 16,
     fontWeight: '600',
-    color: Colors.light.text,
+    color: '#333',
+    marginBottom: 4,
   },
-  languageEnglish: {
-    ...Typography.bodySmall,
-    color: Colors.light.textSecondary,
+  
+  activeLanguageText: {
+    color: '#007AFF',
+  },
+  
+  nativeLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  
+  activeNativeLabel: {
+    color: '#007AFF',
+  },
+  
+  info: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
 

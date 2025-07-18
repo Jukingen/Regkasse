@@ -145,11 +145,6 @@ frontend-admin/
     "Issuer": "Registrierkasse",
     "Audience": "RegistrierkasseUsers",
     "ExpirationHours": 24
-  },
-  "TseSettings": {
-    "Required": true,
-    "OfflineAllowed": false,
-    "MaxOfflineTransactions": 100
   }
 }
 ```

@@ -60,7 +60,7 @@ const Cart: React.FC = () => {
         <>
           <List sx={{ flex: 1, overflow: 'auto' }}>
             {items.map((item, index) => (
-              <React.Fragment key={item.product.id}>
+              <React.Fragment key={`${item.product.id}-${index}`}>
                 <ListItem sx={{ px: 0, py: 1 }}>
                   <ListItemText
                     primary={

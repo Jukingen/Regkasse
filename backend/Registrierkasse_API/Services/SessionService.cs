@@ -2,12 +2,12 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
+using Registrierkasse_API.Data;
+using Registrierkasse_API.Models;
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 
-namespace Registrierkasse.Services
+namespace Registrierkasse_API.Services
 {
     public interface ISessionService
     {

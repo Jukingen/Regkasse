@@ -63,12 +63,12 @@ class PrinterService {
 
   // Fiş yazdır (anında)
   async printReceipt(receiptData: {
-    items: Array<{
+    items: {
       name: string;
       quantity: number;
       price: number;
       total: number;
-    }>;
+    }[];
     subtotal: number;
     tax: number;
     total: number;
@@ -101,11 +101,11 @@ class PrinterService {
   // Sipariş yazdır (anında)
   async printOrder(orderData: {
     orderNumber: string;
-    items: Array<{
+    items: {
       name: string;
       quantity: number;
       notes?: string;
-    }>;
+    }[];
     customerName?: string;
     tableNumber?: string;
     notes?: string;

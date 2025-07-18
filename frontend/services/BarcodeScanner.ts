@@ -1,5 +1,7 @@
 // Placeholder imports for barcode scanning functionality
 // In real implementation, these would be actual Expo packages
+import { Alert } from 'react-native';
+
 interface Camera {
   requestCameraPermissionsAsync(): Promise<{ status: string }>;
   getCameraPermissionsAsync(): Promise<{ status: string }>;
@@ -38,8 +40,6 @@ const BarCodeScanner = {
     }
   }
 };
-
-import { Alert } from 'react-native';
 
 export interface BarcodeResult {
   type: string;

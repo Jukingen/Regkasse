@@ -1,10 +1,10 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Registrierkasse.Models;
+using Registrierkasse_API.Models;
 using System.Text;
 
-namespace Registrierkasse.Services
+namespace Registrierkasse_API.Services
 {
     public interface ITseService
     {

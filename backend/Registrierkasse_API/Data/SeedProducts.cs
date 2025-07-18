@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Registrierkasse.Models;
+using Registrierkasse_API.Models;
 
-namespace Registrierkasse.Data
+namespace Registrierkasse_API.Data
 {
     public static class SeedProducts
     {

@@ -6,7 +6,7 @@ using System.Text;
 using System.IO;
 using System.Collections.Generic;
 
-namespace Registrierkasse.Services
+namespace Registrierkasse_API.Services
 {
     public interface IPrinterService
     {
@@ -322,7 +322,7 @@ namespace Registrierkasse.Services
         public DateTime Time { get; set; }
         public string TseSignature { get; set; } = string.Empty;
         public string CashRegisterId { get; set; } = string.Empty;
-        public List<ReceiptItem> Items { get; set; } = new List<ReceiptItem>();
+        public List<Models.ReceiptItem> Items { get; set; } = new List<Models.ReceiptItem>();
         public decimal TaxStandard { get; set; }
         public decimal TaxReduced { get; set; }
         public decimal TaxSpecial { get; set; }
@@ -330,14 +330,6 @@ namespace Registrierkasse.Services
         public decimal TotalTax { get; set; }
         public decimal TotalGross { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
-    }
-
-    public class ReceiptItem
-    {
-        public string Name { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public decimal Price { get; set; }
-        public decimal Total { get; set; }
     }
 
     public class DailyReportData

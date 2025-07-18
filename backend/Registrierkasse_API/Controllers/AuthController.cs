@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using Registrierkasse.Models;
+using Registrierkasse_API.Models;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -11,10 +11,10 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
-using Registrierkasse.Services;
+using Registrierkasse_API.Services;
 using Microsoft.AspNetCore.Authorization;
 
-namespace Registrierkasse.Controllers
+namespace Registrierkasse_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -348,13 +348,14 @@ namespace Registrierkasse.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Email), // Email
+                // Türkçe açıklama: sub ve nameidentifier claim'lerinde kullanıcı Id'si (GUID) kullanılmalı
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id), // user.Email yerine user.Id
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.NameIdentifier, user.Id), // User ID
-                new Claim(ClaimTypes.Name, user.Email), // Email as name
-                new Claim("user_id", user.Id), // Extra user ID claim
-                new Claim("user_email", user.Email), // Extra email claim
-                new Claim("user_role", user.Role) // Custom claim olarak ekle
+                new Claim(ClaimTypes.NameIdentifier, user.Id), // Doğru: GUID
+                new Claim(ClaimTypes.Name, user.Email), // E-posta sadece Name claim'inde
+                new Claim("user_id", user.Id),
+                new Claim("user_email", user.Email),
+                new Claim("user_role", user.Role)
             };
 
             // Identity rolleri ekle

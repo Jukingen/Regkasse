@@ -1,45 +1,41 @@
-import { apiClient } from './config';
+import { useFetch } from './useFetch';
 
 export interface Customer {
-    id: string;
-    customerNumber: string;
-    firstName: string;
-    lastName: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-    city?: string;
-    postalCode?: string;
-    country?: string;
-    taxNumber?: string;
-    companyName?: string;
-    customerType?: 'individual' | 'business';
-    createdAt: string;
-    updatedAt: string;
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  taxNumber: string;
+  category: 'Regular' | 'VIP' | 'Wholesale' | 'Corporate';
+  discountPercentage: number;
+  notes?: string;
 }
 
-export const customerService = {
-    getAllCustomers: async (): Promise<Customer[]> => {
-        return apiClient.get<Customer[]>('/customers');
-    },
+export interface CustomerSearchParams {
+  category?: string;
+  search?: string;
+}
 
-    getCustomerById: async (id: string): Promise<Customer> => {
-        return apiClient.get<Customer>(`/customers/${id}`);
-    },
+export function useCustomers(params?: CustomerSearchParams) {
+  let url = '/api/customers';
+  if (params) {
+    const queryParams = new URLSearchParams();
+    if (params.category) queryParams.append('category', params.category);
+    if (params.search) queryParams.append('search', params.search);
+    url += `?${queryParams.toString()}`;
+  }
+  return useFetch<Customer[]>(url);
+}
 
-    createCustomer: async (customer: Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Customer> => {
-        return apiClient.post<Customer>('/customers', customer);
-    },
+export function useCustomer(id: string) {
+  return useFetch<Customer>(`/api/customers/${id}`);
+}
 
-    updateCustomer: async (id: string, customer: Partial<Customer>): Promise<Customer> => {
-        return apiClient.put<Customer>(`/customers/${id}`, customer);
-    },
+export function useCustomersByCategory(category: string) {
+  return useFetch<Customer[]>(`/api/customers?category=${category}`);
+}
 
-    deleteCustomer: async (id: string): Promise<void> => {
-        await apiClient.delete(`/customers/${id}`);
-    },
-
-    searchCustomers: async (query: string): Promise<Customer[]> => {
-        return apiClient.get<Customer[]>(`/customers/search?query=${encodeURIComponent(query)}`);
-    }
-}; 
+export function useSearchCustomers(query: string) {
+  return useFetch<Customer[]>(`/api/customers?search=${encodeURIComponent(query)}`);
+} 

@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -10,20 +12,19 @@ import {
   Vibration,
   TextInput,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 
 interface TableOrder {
   id: string;
   tableNumber: string;
-  items: Array<{
+  items: {
     productId: string;
     productName: string;
     quantity: number;
     price: number;
     notes?: string;
-  }>;
+  }[];
   total: number;
   status: 'pending' | 'preparing' | 'ready' | 'served';
   createdAt: Date;
@@ -104,7 +105,7 @@ const TableManager: React.FC<TableManagerProps> = ({
             price: item.product ? item.product.price : item.price,
             notes: item.notes
           })),
-          total: total,
+          total,
           status: 'pending',
           createdAt: table.startTime || new Date(),
           customerName: table.customerName,
@@ -195,7 +196,7 @@ const TableManager: React.FC<TableManagerProps> = ({
             price: item.product ? item.product.price : item.price,
             notes: item.notes
           })),
-          total: total,
+          total,
           status: 'pending',
           createdAt: table.startTime || new Date(),
           customerName: table.customerName,

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../contexts/AuthContext';
+import { Tabs, Redirect } from 'expo-router';
+import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
+
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function TabLayout() {
     const { isAuthenticated, isLoading, user, checkAuthStatus } = useAuth();
@@ -65,6 +66,13 @@ export default function TabLayout() {
                 options={{
                     title: 'Einstellungen',
                     tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="invoices"
+                options={{
+                    title: 'Rechnungen',
+                    tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={24} color={color} />,
                 }}
             />
         </Tabs>

@@ -1,48 +1,22 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Registrierkasse.Models
+namespace Registrierkasse_API.Models
 {
-    [Table("invoice_items")]
     public class InvoiceItem : BaseEntity
     {
-        [Required]
-        [Column("invoice_id")]
-        public Guid InvoiceId { get; set; }
-        
-        [ForeignKey("InvoiceId")]
-        public virtual Invoice Invoice { get; set; } = null!;
-        
-        [Required]
-        [Column("product_id")]
         public Guid ProductId { get; set; }
-        
-        [ForeignKey("ProductId")]
-        public virtual Product Product { get; set; } = null!;
-        
-        [Required]
-        [Column("quantity")]
-        public decimal Quantity { get; set; }
-        
-        [Required]
-        [Column("unit_price")]
+        public string ProductName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
-        
-        [Column("discount_amount")]
-        public decimal DiscountAmount { get; set; }
-        
-        [Column("tax_amount")]
+        public decimal TaxRate { get; set; }
         public decimal TaxAmount { get; set; }
-        
-        [Column("total_amount")]
         public decimal TotalAmount { get; set; }
-        
-        [Column("notes")]
-        [MaxLength(200)]
-        public string Notes { get; set; } = string.Empty;
-        
-        [Column("is_active")]
-        public new bool IsActive { get; set; } = true;
+        public TaxType TaxType { get; set; } = TaxType.Standard;
+        public Guid InvoiceId { get; set; }
+        public string Product { get; set; } = string.Empty;
+        public decimal DiscountAmount { get; set; }
+        public virtual Invoice Invoice { get; set; } = null!;
     }
 } 

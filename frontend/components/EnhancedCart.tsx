@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -11,13 +13,14 @@ import {
   Dimensions,
   Vibration,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
+import { usePrevious } from '../hooks/usePrevious';
 import { CartItem } from '../types/cart';
 
+// Türkçe Açıklama: Bu component, sepet (cart) özetini ve ürünlerini gösterir. Tüm hesaplamalar backend tarafından yapılır ve burada sadece gösterilir. CartItem ve Product tipleri backend ile uyumlu.
 interface EnhancedCartProps {
-  items: CartItem[];
+  cart: import('../services/api/cartService').Cart;
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemoveItem: (productId: string) => void;
   onUpdateNotes: (productId: string, notes: string) => void;
@@ -31,7 +34,7 @@ interface EnhancedCartProps {
 const { width: screenWidth } = Dimensions.get('window');
 
 const EnhancedCart: React.FC<EnhancedCartProps> = ({
-  items,
+  cart,
   onUpdateQuantity,
   onRemoveItem,
   onUpdateNotes,
@@ -53,57 +56,41 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
   const slideAnimation = useRef(new Animated.Value(0)).current;
   const scaleAnimation = useRef(new Animated.Value(1)).current;
   const itemAnimations = useRef<{ [key: string]: Animated.Value }>({}).current;
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const highlightAnim = useRef(new Animated.Value(0)).current;
+  const totalAnim = useRef(new Animated.Value(1)).current;
+  const prevTotal = usePrevious(cart?.totalAmount ?? 0);
 
   // Hızlı miktar değiştirme
   const quickQuantityOptions = ['1', '2', '3', '5', '10'];
 
-  const calculateSubtotal = () => {
-    return items.reduce((sum, item) => {
-      const itemTotal = item.product.price * item.quantity;
-      const discount = item.discount || 0;
-      return sum + (itemTotal - discount);
-    }, 0);
-  };
+  // Backend'den gelen cart prop'u eklendi
+  // Hesaplamalar backend'den alınacak
+  const subtotal = cart?.subtotal ?? 0;
+  const taxAmount = cart?.taxAmount ?? 0;
+  const discountAmount = cart?.discountAmount ?? 0;
+  const totalAmount = cart?.totalAmount ?? 0;
 
-  const calculateTax = () => {
-    return items.reduce((sum, item) => {
-      const itemTotal = item.product.price * item.quantity;
-      const discount = item.discount || 0;
-      const taxableAmount = itemTotal - discount;
-      
-      let taxRate = 0.20; // default standard
-      switch (item.product.taxType) {
-        case 'reduced': taxRate = 0.10; break;
-        case 'special': taxRate = 0.13; break;
-      }
-      
-      return sum + (taxableAmount * taxRate);
-    }, 0);
-  };
-
-  const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
-  };
-
+  // getTaxDetails fonksiyonu backend'den gelen cart objesindeki taxAmount ve varsa tax breakdown ile güncellendi
   const getTaxDetails = () => {
     const taxGroups: { [key: string]: number } = {};
     
-    items.forEach(item => {
+    cart?.items.forEach(item => {
       const itemTotal = item.product.price * item.quantity;
-      const discount = item.discount || 0;
+      const discount = item.discountAmount || 0;
       const taxableAmount = itemTotal - discount;
       
       let taxRate = 0.20;
-      let taxType = 'standard';
+      let taxType = 'Standard';
       
       switch (item.product.taxType) {
-        case 'reduced': 
+        case 'Reduced': 
           taxRate = 0.10; 
-          taxType = 'reduced';
+          taxType = 'Reduced';
           break;
-        case 'special': 
+        case 'Special': 
           taxRate = 0.13; 
-          taxType = 'special';
+          taxType = 'Special';
           break;
       }
       
@@ -116,7 +103,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
     return Object.entries(taxGroups).map(([type, amount]) => ({
       type,
       amount,
-      rate: type === 'reduced' ? 0.10 : type === 'special' ? 0.13 : 0.20
+      rate: type === 'Reduced' ? 0.10 : type === 'Special' ? 0.13 : 0.20
     }));
   };
 
@@ -127,7 +114,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
       return;
     }
     
-    const item = items.find(i => i.product.id === productId);
+    const item = cart?.items.find(i => i.product.id === productId);
     if (item && discount > item.product.price * item.quantity) {
       Alert.alert(t('cart.discountTooHigh'), t('cart.discountExceedsTotal'));
       return;
@@ -184,7 +171,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
     switch (action) {
       case 'increase':
         selectedIds.forEach(id => {
-          const item = items.find(i => i.product.id === id);
+          const item = cart?.items.find(i => i.product.id === id);
           if (item) {
             onUpdateQuantity(id, item.quantity + 1);
           }
@@ -192,7 +179,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
         break;
       case 'decrease':
         selectedIds.forEach(id => {
-          const item = items.find(i => i.product.id === id);
+          const item = cart?.items.find(i => i.product.id === id);
           if (item && item.quantity > 1) {
             onUpdateQuantity(id, item.quantity - 1);
           }
@@ -224,10 +211,44 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
     setIsSelectionMode(false);
   };
 
+  // Satır highlight animasyonu
+  const triggerHighlight = (productId: string) => {
+    setHighlightedId(productId);
+    highlightAnim.setValue(0);
+    Animated.timing(highlightAnim, {
+      toValue: 1,
+      duration: 350,
+      useNativeDriver: false,
+    }).start(() => {
+      setHighlightedId(null);
+    });
+  };
+
+  // Toplam tutar değiştiğinde scale animasyonu
+  useEffect(() => {
+    if (prevTotal !== undefined && prevTotal !== totalAmount) {
+      totalAnim.setValue(1.1);
+      Animated.timing(totalAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [cart]);
+
   const renderCartItem = (item: CartItem, index: number) => {
     const isExpanded = expandedItem === item.product.id;
     const isDiscountInputVisible = showDiscountInput === item.product.id;
     const isSelected = selectedItems.has(item.product.id);
+    const isHighlighted = highlightedId === item.product.id;
+    const animatedStyle = isHighlighted
+      ? {
+          backgroundColor: highlightAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [Colors.light.surface, Colors.light.success],
+          }),
+        }
+      : {};
     
     // Animasyon değerini sadece bir kez oluştur
     if (!itemAnimations[item.product.id]) {
@@ -238,18 +259,19 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
 
     return (
       <Animated.View 
-        key={item.product.id} 
+        key={item.id} 
         style={[
           styles.cartItem,
           isSelected && styles.cartItemSelected,
+          animatedStyle,
           {
             transform: [{ scale: itemAnimation }],
             opacity: itemAnimation,
           }
         ]}
         // Animasyon performansını artır
-        shouldRasterizeIOS={true}
-        renderToHardwareTextureAndroid={true}
+        shouldRasterizeIOS
+        renderToHardwareTextureAndroid
       >
         {/* Seçim Modu Checkbox */}
         {isSelectionMode && (
@@ -273,9 +295,9 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
             <Text style={styles.productPrice}>
               €{(item.product.price * item.quantity).toFixed(2)}
             </Text>
-            {item.discount && item.discount > 0 && (
+            {item.discountAmount && item.discountAmount > 0 && (
               <Text style={styles.discountText}>
-                -€{item.discount.toFixed(2)} {t('cart.discount')}
+                -€{item.discountAmount.toFixed(2)} {t('cart.discount')}
               </Text>
             )}
           </View>
@@ -307,14 +329,20 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
             <View style={styles.quantityRow}>
               <TouchableOpacity
                 style={styles.quantityButton}
-                onPress={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                onPress={() => {
+                  onUpdateQuantity(item.product.id, item.quantity - 1);
+                  triggerHighlight(item.product.id);
+                }}
               >
                 <Ionicons name="remove" size={16} color={Colors.light.text} />
               </TouchableOpacity>
               <Text style={styles.quantityText}>{item.quantity}</Text>
               <TouchableOpacity
                 style={styles.quantityButton}
-                onPress={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                onPress={() => {
+                  onUpdateQuantity(item.product.id, item.quantity + 1);
+                  triggerHighlight(item.product.id);
+                }}
               >
                 <Ionicons name="add" size={16} color={Colors.light.text} />
               </TouchableOpacity>
@@ -372,7 +400,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
                 >
                   <Ionicons name="pricetag-outline" size={16} color={Colors.light.primary} />
                   <Text style={styles.discountButtonText}>
-                    {item.discount ? `€${item.discount.toFixed(2)}` : t('cart.addDiscount')}
+                    {item.discountAmount ? `€${item.discountAmount.toFixed(2)}` : t('cart.addDiscount')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -405,7 +433,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
                 {t('cart.tax')}: {t(`tax.${item.product.taxType}`)} ({Math.round(getTaxRate(item.product.taxType) * 100)}%)
               </Text>
               <Text style={styles.detailText}>
-                {t('cart.stock')}: {item.product.stock}
+                {t('cart.stock')}: {item.product.stockQuantity}
               </Text>
             </View>
 
@@ -447,8 +475,8 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
 
   const getTaxRate = (taxType: string) => {
     switch (taxType) {
-      case 'reduced': return 0.10;
-      case 'special': return 0.13;
+      case 'Reduced': return 0.10;
+      case 'Special': return 0.13;
       default: return 0.20;
     }
   };
@@ -462,7 +490,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
     }).start();
   }, [expandedItem]);
 
-  if (items.length === 0) {
+  if (cart?.items.length === 0) {
     return (
       <View style={styles.emptyCart}>
         <Animated.View style={{ transform: [{ scale: scaleAnimation }] }}>
@@ -541,32 +569,32 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
         <View style={styles.cartTitleContainer}>
           <Ionicons name="cart" size={20} color={Colors.light.primary} />
           <Text style={styles.cartTitle}>{t('cart.cart')}</Text>
-          <Text style={styles.itemCount}>({items.length})</Text>
+          <Text style={styles.itemCount}>({cart?.items.length})</Text>
         </View>
       </View>
 
       {/* Sepet Öğeleri - Genişletilmiş Scroll Alanı */}
       <ScrollView 
         style={styles.cartItems} 
-        showsVerticalScrollIndicator={true}
+        showsVerticalScrollIndicator
         contentContainerStyle={styles.cartItemsContent}
       >
-        {items.map((item, index) => renderCartItem(item, index))}
+        {cart?.items.map((item, index) => renderCartItem(item, index))}
       </ScrollView>
 
       {/* Sepet Özeti - Kompakt */}
       <View style={styles.cartSummary}>
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Zwischensumme:</Text>
-          <Text style={styles.summaryValue}>€{calculateSubtotal().toFixed(2)}</Text>
+          <Text style={styles.summaryValue}>€{subtotal.toFixed(2)}</Text>
         </View>
         
         {/* Toplam İndirim */}
-        {items.some(item => item.discount && item.discount > 0) && (
+        {discountAmount > 0 && (
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Rabatt:</Text>
             <Text style={styles.summaryDiscount}>
-              -€{items.reduce((sum, item) => sum + (item.discount || 0), 0).toFixed(2)}
+              -€{discountAmount.toFixed(2)}
             </Text>
           </View>
         )}
@@ -584,7 +612,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
         
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Gesamtsumme:</Text>
-          <Text style={styles.summaryTotal}>€{calculateTotal().toFixed(2)}</Text>
+          <Animated.Text style={[styles.summaryTotal, { transform: [{ scale: totalAnim }] }]}>€{totalAmount.toFixed(2)}</Animated.Text>
         </View>
       </View>
     </View>

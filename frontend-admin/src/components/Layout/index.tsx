@@ -36,6 +36,7 @@ import {
   Security,
   Language,
   Logout,
+  Category,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -76,6 +77,7 @@ export default function Layout({ children }: LayoutProps) {
     { text: t('navigation.reports'), icon: <Assessment />, path: '/reports' },
     { text: t('navigation.inventory'), icon: <Inventory />, path: '/inventory' },
     { text: t('navigation.products'), icon: <ShoppingCart />, path: '/products' },
+    { text: t('navigation.categories'), icon: <Category />, path: '/categories' },
     { text: t('navigation.customers'), icon: <People />, path: '/customers' },
     { text: t('navigation.invoices'), icon: <Receipt />, path: '/invoices' },
     { text: t('navigation.cashRegisters'), icon: <PointOfSale />, path: '/cash-registers' },

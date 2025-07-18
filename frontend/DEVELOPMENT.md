@@ -132,7 +132,6 @@ KasseUI-APP/
 2. **İyileştirmeler:**
    - [ ] Unit testlerin yazılması
    - [ ] E2E testlerin implementasyonu
-   - [ ] Offline mod desteği
    - [ ] Performans metriklerinin izlenmesi
    - [ ] Bundle size optimizasyonu
 

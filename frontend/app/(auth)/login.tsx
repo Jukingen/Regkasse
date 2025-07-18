@@ -1,15 +1,32 @@
-import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext';
 import { router } from 'expo-router';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+
+import { useAuth } from '../../contexts/AuthContext';
+import { ApiSettingsModal } from '../../components/ApiSettingsModal';
 
 export default function LoginScreen() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showApiSettings, setShowApiSettings] = useState(false);
     const { login } = useAuth();
     const { t } = useTranslation();
+
+    const handleDebugInfo = () => {
+        Alert.alert(
+            'Expo Go Debug Bilgileri',
+            'Expo Go\'da network erişimi için:\n\n' +
+            '1. Bilgisayarınızın IP adresini öğrenin:\n' +
+            '   Windows: ipconfig\n' +
+            '   Mac/Linux: ifconfig\n\n' +
+            '2. API Ayarları\'na gidin ve IP adresinizi girin\n\n' +
+            '3. Aynı Wi-Fi ağında olduğunuzdan emin olun\n\n' +
+            '4. Backend\'in çalıştığından emin olun\n\n' +
+            '5. Firewall ayarlarını kontrol edin'
+        );
+    };
 
     const handleLogin = async () => {
         console.log('Login attempt started...'); // Debug log
@@ -86,7 +103,28 @@ export default function LoginScreen() {
                         <Text style={styles.buttonText}>{t('auth.button')}</Text>
                     )}
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.settingsButton}
+                    onPress={() => setShowApiSettings(true)}
+                    disabled={isLoading}
+                >
+                    <Text style={styles.settingsButtonText}>API Ayarları</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.debugButton}
+                    onPress={handleDebugInfo}
+                    disabled={isLoading}
+                >
+                    <Text style={styles.debugButtonText}>Debug Bilgileri</Text>
+                </TouchableOpacity>
             </View>
+
+            <ApiSettingsModal
+                visible={showApiSettings}
+                onClose={() => setShowApiSettings(false)}
+            />
         </View>
     );
 }
@@ -134,5 +172,31 @@ const styles = StyleSheet.create({
     },
     buttonDisabled: {
         backgroundColor: '#ccc',
+    },
+    settingsButton: {
+        backgroundColor: '#6c757d',
+        height: 40,
+        borderRadius: 5,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    settingsButtonText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    debugButton: {
+        backgroundColor: '#17a2b8',
+        height: 40,
+        borderRadius: 5,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    debugButtonText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: '600',
     },
 }); 

@@ -2,14 +2,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
+using Registrierkasse_API.Data;
+using Registrierkasse_API.Models;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
+using Registrierkasse_API.Data;
 
-namespace Registrierkasse.Controllers
+namespace Registrierkasse_API.Controllers
 {
     [Authorize]
     [Route("api/[controller]")]
@@ -93,8 +94,8 @@ namespace Registrierkasse.Controllers
 
                 var registerTransaction = new CashRegisterTransaction
                 {
-                    CashRegisterId = register.Id,
-                    Type = TransactionType.StartDay.ToString(),
+                    CashRegisterId = register.Id.ToString(),
+                    TransactionType = TransactionType.Open,
                     Amount = model.StartingBalance,
                     Description = "Başlangıç bakiyesi",
                     BalanceBefore = 0,
@@ -136,15 +137,15 @@ namespace Registrierkasse.Controllers
 
             var transaction = new CashRegisterTransaction
             {
-                CashRegisterId = register.Id,
-                Type = TransactionType.StartDay.ToString(),
+                CashRegisterId = register.Id.ToString(),
+                TransactionType = TransactionType.Open,
                 Amount = model.StartingAmount,
                 BalanceBefore = 0,
                 BalanceAfter = model.StartingAmount,
                 Description = "Gün başlangıcı",
                 UserId = model.UserId.ToString(),
                 TSESignature = model.TSESignature,
-                TSESignatureCounter = model.TSESignatureCounter,
+                TSESignatureCounter = (int)model.TSESignatureCounter,
                 TSETime = model.TSETime
             };
 
@@ -176,15 +177,15 @@ namespace Registrierkasse.Controllers
 
             var transaction = new CashRegisterTransaction
             {
-                CashRegisterId = register.Id,
-                Type = TransactionType.EndDay.ToString(),
+                CashRegisterId = register.Id.ToString(),
+                TransactionType = TransactionType.Close,
                 Amount = model.ClosingAmount,
                 BalanceBefore = register.CurrentBalance,
                 BalanceAfter = 0,
                 Description = "Gün sonu",
                 UserId = model.UserId.ToString(),
                 TSESignature = model.TSESignature,
-                TSESignatureCounter = model.TSESignatureCounter,
+                TSESignatureCounter = (int)model.TSESignatureCounter,
                 TSETime = model.TSETime
             };
 
@@ -201,7 +202,7 @@ namespace Registrierkasse.Controllers
             {
                 var transactions = await _context.CashRegisterTransactions
                     .Include(t => t.User)
-                    .Where(t => t.CashRegisterId == id)
+                    .Where(t => t.CashRegisterId == id.ToString())
                     .OrderByDescending(t => t.CreatedAt)
                     .AsNoTracking()
                     .ToListAsync();

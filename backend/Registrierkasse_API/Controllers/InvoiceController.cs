@@ -1,700 +1,644 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Registrierkasse.Services;
+using Registrierkasse_API.Models;
+using Registrierkasse_API.Services;
+using System.Security.Claims;
 
-namespace Registrierkasse.Controllers
+namespace Registrierkasse_API.Controllers
 {
-    [Authorize]
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
     public class InvoiceController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IInvoiceService _invoiceService;
+        private readonly IPdfService _pdfService;
+        private readonly IEmailService _emailService;
         private readonly ILogger<InvoiceController> _logger;
-        private readonly ITseService _tseService;
+        private readonly ITseService _tseService; // Added ITseService
 
-        public InvoiceController(AppDbContext context, ILogger<InvoiceController> logger, ITseService tseService)
+        public InvoiceController(
+            IInvoiceService invoiceService, 
+            IPdfService pdfService,
+            IEmailService emailService,
+            ILogger<InvoiceController> logger,
+            ITseService tseService) // Added ITseService to constructor
         {
-            _context = context;
+            _invoiceService = invoiceService;
+            _pdfService = pdfService;
+            _emailService = emailService;
             _logger = logger;
-            _tseService = tseService;
+            _tseService = tseService; // Initialize ITseService
         }
 
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Invoice>>> GetInvoices(
-            [FromQuery] DateTime? startDate,
-            [FromQuery] DateTime? endDate,
-            [FromQuery] string? customerId,
-            [FromQuery] string? paymentStatus,
-            [FromQuery] string? invoiceStatus,
-            [FromQuery] string? paymentMethod,
-            [FromQuery] decimal? minAmount,
-            [FromQuery] decimal? maxAmount,
-            [FromQuery] string? searchQuery,
-            [FromQuery] int limit = 50,
-            [FromQuery] int offset = 0)
-        {
-            try
-            {
-                var query = _context.Invoices
-                    .Include(i => i.Items)
-                    .ThenInclude(ii => ii.Product)
-                    .AsQueryable();
-
-                // Tarih filtreleri
-                if (startDate.HasValue)
-                {
-                    query = query.Where(i => i.InvoiceDate >= startDate.Value);
-                }
-
-                if (endDate.HasValue)
-                {
-                    query = query.Where(i => i.InvoiceDate <= endDate.Value);
-                }
-
-                // Müşteri filtresi
-                if (!string.IsNullOrEmpty(customerId))
-                {
-                    query = query.Where(i => i.CustomerId.ToString() == customerId);
-                }
-
-                // Ödeme durumu filtresi
-                if (!string.IsNullOrEmpty(paymentStatus))
-                {
-                    query = query.Where(i => i.PaymentStatus.ToString() == paymentStatus);
-                }
-
-                // Fatura durumu filtresi
-                if (!string.IsNullOrEmpty(invoiceStatus))
-                {
-                    query = query.Where(i => i.Status == invoiceStatus);
-                }
-
-                // Ödeme yöntemi filtresi
-                if (!string.IsNullOrEmpty(paymentMethod))
-                {
-                    query = query.Where(i => i.PaymentMethod.ToString() == paymentMethod);
-                }
-
-                // Tutar filtreleri
-                if (minAmount.HasValue)
-                {
-                    query = query.Where(i => i.TotalAmount >= minAmount.Value);
-                }
-
-                if (maxAmount.HasValue)
-                {
-                    query = query.Where(i => i.TotalAmount <= maxAmount.Value);
-                }
-
-                // Arama filtresi
-                if (!string.IsNullOrEmpty(searchQuery))
-                {
-                    var searchTerm = searchQuery.ToLower();
-                    query = query.Where(i =>
-                        i.InvoiceNumber.ToLower().Contains(searchTerm) ||
-                        i.Customer.Name.ToLower().Contains(searchTerm) ||
-                        i.Customer.Email.ToLower().Contains(searchTerm) ||
-                        i.Customer.TaxNumber.ToLower().Contains(searchTerm)
-                    );
-                }
-
-                var total = await query.CountAsync();
-                var invoices = await query
-                    .OrderByDescending(i => i.InvoiceDate)
-                    .Skip(offset)
-                    .Take(limit)
-                    .ToListAsync();
-
-                var result = new
-                {
-                    invoices,
-                    total,
-                    hasMore = offset + limit < total
-                };
-
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Fatura listesi alınırken hata oluştu");
-                return StatusCode(500, new { message = "Fatura listesi alınırken hata oluştu", error = ex.Message });
-            }
-        }
-
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Invoice>> GetInvoice(Guid id)
-        {
-            var invoice = await _context.Invoices
-                .Include(i => i.Items)
-                .ThenInclude(ii => ii.Product)
-                .FirstOrDefaultAsync(i => i.Id == id);
-
-            if (invoice == null)
-            {
-                return NotFound();
-            }
-
-            return invoice;
-        }
-
+        /// <summary>
+        /// Fatura oluştur
+        /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Administrator,Cashier")]
-        public async Task<ActionResult<Invoice>> CreateInvoice([FromBody] Invoice invoice)
-        {
-            invoice.Id = Guid.NewGuid();
-            invoice.CreatedAt = DateTime.UtcNow;
-            invoice.ReceiptNumber = await GenerateReceiptNumber();
-
-            _context.Invoices.Add(invoice);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetInvoice), new { id = invoice.Id }, invoice);
-        }
-
-        [HttpPut("{id}")]
-        [Authorize(Roles = "Administrator")]
-        public async Task<IActionResult> UpdateInvoice(Guid id, [FromBody] Invoice invoice)
-        {
-            if (id != invoice.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(invoice).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!InvoiceExists(id))
-                {
-                    return NotFound();
-                }
-                throw;
-            }
-
-            return NoContent();
-        }
-
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Administrator")]
-        public async Task<IActionResult> DeleteInvoice(Guid id)
-        {
-            var invoice = await _context.Invoices.FindAsync(id);
-            if (invoice == null)
-            {
-                return NotFound();
-            }
-
-            _context.Invoices.Remove(invoice);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool InvoiceExists(Guid id)
-        {
-            return _context.Invoices.Any(e => e.Id == id);
-        }
-
-        private async Task<string> GenerateReceiptNumber()
-        {
-            var tseId = await _tseService.GetTseIdAsync();
-            var date = DateTime.UtcNow.ToString("yyyyMMdd");
-            
-            var lastReceipt = _context.Invoices
-                .Where(i => i.ReceiptNumber.StartsWith($"AT-{tseId}-{date}"))
-                .OrderByDescending(i => i.ReceiptNumber)
-                .FirstOrDefault();
-
-            int sequence = 1;
-            if (lastReceipt != null)
-            {
-                var lastSeq = lastReceipt.ReceiptNumber.Split('-').Last();
-                if (int.TryParse(lastSeq, out int lastSequence))
-                {
-                    sequence = lastSequence + 1;
-                }
-            }
-
-            return $"AT-{tseId}-{date}-{sequence:D4}";
-        }
-
-        [HttpPut("{id}/status")]
-        [Authorize(Roles = "Administrator,Manager")]
-        public async Task<IActionResult> UpdateInvoiceStatus(int id, [FromBody] UpdateInvoiceStatusModel model)
+        [Authorize(Roles = "Cashier,Manager,Admin")]
+        public async Task<IActionResult> CreateInvoice([FromBody] InvoiceCreateRequest request)
         {
             try
             {
-                var invoice = await _context.Invoices.FindAsync(id);
-                if (invoice == null)
-                {
-                    return NotFound(new { message = "Fatura bulunamadı" });
-                }
-
-                invoice.Status = model.Status.ToString();
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Fatura durumu güncellendi: #{id} - {model.Status}");
-
-                return Ok(new { message = "Fatura durumu başarıyla güncellendi", invoice });
+                request.CreatedById = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                
+                var response = await _invoiceService.CreateInvoiceAsync(request);
+                
+                return Ok(response);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex) when (ex.Message.Contains("TSE"))
             {
-                _logger.LogError(ex, $"ID: {id} olan fatura durumu güncellenirken bir hata oluştu");
-                return StatusCode(500, new { message = "Fatura durumu güncellenirken bir hata oluştu", error = ex.Message });
-            }
-        }
-
-        [HttpGet("statistics")]
-        [Authorize(Roles = "Administrator,Manager")]
-        public async Task<IActionResult> GetStatistics()
-        {
-            try
-            {
-                var today = DateTime.UtcNow.Date;
-                var monthStart = new DateTime(today.Year, today.Month, 1);
-                var yearStart = new DateTime(today.Year, 1, 1);
-
-                var dailyTotal = await _context.Invoices
-                    .Where(i => i.InvoiceDate.Date == today)
-                    .SumAsync(i => i.TotalAmount);
-
-                var monthlyTotal = await _context.Invoices
-                    .Where(i => i.InvoiceDate >= monthStart)
-                    .SumAsync(i => i.TotalAmount);
-
-                var yearlyTotal = await _context.Invoices
-                    .Where(i => i.InvoiceDate >= yearStart)
-                    .SumAsync(i => i.TotalAmount);
-
-                var topProducts = await _context.InvoiceItems
-                    .Include(ii => ii.Product)
-                    .GroupBy(ii => ii.ProductId)
-                    .Select(g => new
-                    {
-                        ProductId = g.Key,
-                        ProductName = g.First().Product.Name,
-                        TotalQuantity = g.Sum(ii => ii.Quantity),
-                        TotalAmount = g.Sum(ii => ii.TotalAmount)
-                    })
-                    .OrderByDescending(x => x.TotalAmount)
-                    .Take(10)
-                    .ToListAsync();
-
-                return Ok(new
-                {
-                    message = "İstatistikler başarıyla getirildi",
-                    statistics = new
-                    {
-                        dailyTotal,
-                        monthlyTotal,
-                        yearlyTotal,
-                        topProducts
-                    }
+                _logger.LogWarning("TSE hatası: {Message}", ex.Message);
+                return BadRequest(new { 
+                    error = "TSE_ERROR", 
+                    message = ex.Message,
+                    details = "TSE cihazı bağlı değil veya geçersiz. Lütfen TSE cihazını kontrol edin."
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "İstatistikler getirilirken bir hata oluştu");
-                return StatusCode(500, new { message = "İstatistikler getirilirken bir hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Fatura oluşturma hatası");
+                return StatusCode(500, new { error = "Fatura oluşturulamadı", details = ex.Message });
             }
         }
 
-        [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Invoice>>> SearchInvoices(
-            [FromQuery] string query,
-            [FromQuery] DateTime? startDate,
-            [FromQuery] DateTime? endDate,
-            [FromQuery] string? customerId,
-            [FromQuery] string? paymentStatus,
-            [FromQuery] string? invoiceStatus)
+        /// <summary>
+        /// Fatura detaylarını getir
+        /// </summary>
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Invoice>> GetInvoice(string id)
         {
             try
             {
-                var searchQuery = _context.Invoices
-                    .Include(i => i.Items)
-                    .ThenInclude(ii => ii.Product)
-                    .AsQueryable();
-
-                if (!string.IsNullOrEmpty(query))
-                {
-                    var searchTerm = query.ToLower();
-                    searchQuery = searchQuery.Where(i =>
-                        i.InvoiceNumber.ToLower().Contains(searchTerm) ||
-                        i.Customer.Name.ToLower().Contains(searchTerm) ||
-                        i.Customer.Email.ToLower().Contains(searchTerm) ||
-                        i.Customer.TaxNumber.ToLower().Contains(searchTerm)
-                    );
-                }
-
-                // Diğer filtreler
-                if (startDate.HasValue)
-                    searchQuery = searchQuery.Where(i => i.InvoiceDate >= startDate.Value);
-                if (endDate.HasValue)
-                    searchQuery = searchQuery.Where(i => i.InvoiceDate <= endDate.Value);
-                if (!string.IsNullOrEmpty(customerId))
-                    searchQuery = searchQuery.Where(i => i.CustomerId.ToString() == customerId);
-                if (!string.IsNullOrEmpty(paymentStatus))
-                    searchQuery = searchQuery.Where(i => i.PaymentStatus.ToString() == paymentStatus);
-                if (!string.IsNullOrEmpty(invoiceStatus))
-                    searchQuery = searchQuery.Where(i => i.Status == invoiceStatus);
-
-                var results = await searchQuery
-                    .OrderByDescending(i => i.InvoiceDate)
-                    .Take(20)
-                    .ToListAsync();
-
-                return Ok(results);
+                var invoice = await _invoiceService.GetInvoiceByIdAsync(id);
+                return Ok(invoice);
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Fatura arama hatası");
-                return StatusCode(500, new { message = "Fatura arama hatası", error = ex.Message });
+                _logger.LogError(ex, "Failed to get invoice {Id}", id);
+                return BadRequest(new { error = "Failed to get invoice", details = ex.Message });
             }
         }
 
-        [HttpPost("report")]
-        public async Task<ActionResult<object>> GetInvoiceReport([FromBody] InvoiceReportFilter filter)
+        /// <summary>
+        /// Fatura numarasına göre getir
+        /// </summary>
+        [HttpGet("number/{invoiceNumber}")]
+        public async Task<ActionResult<Invoice>> GetInvoiceByNumber(string invoiceNumber)
         {
             try
             {
-                var query = _context.Invoices
-                    .Include(i => i.Customer)
-                    .AsQueryable();
-
-                // Tarih filtreleri
-                if (filter.StartDate.HasValue)
-                    query = query.Where(i => i.InvoiceDate >= filter.StartDate.Value);
-                if (filter.EndDate.HasValue)
-                    query = query.Where(i => i.InvoiceDate <= filter.EndDate.Value);
-
-                var invoices = await query.ToListAsync();
-
-                // Rapor verilerini hesapla
-                var totalInvoices = invoices.Count;
-                var totalAmount = invoices.Sum(i => i.TotalAmount);
-                var paidAmount = invoices.Where(i => i.PaymentStatus == Models.PaymentStatus.Paid.ToString()).Sum(i => i.TotalAmount);
-                var overdueAmount = invoices.Where(i => 
-                    i.PaymentStatus == Models.PaymentStatus.Pending.ToString() && 
-                    i.DueDate < DateTime.UtcNow).Sum(i => i.TotalAmount);
-                var averageInvoiceValue = totalInvoices > 0 ? totalAmount / totalInvoices : 0;
-
-                // Ödeme yöntemi dağılımı
-                var paymentMethodBreakdown = invoices
-                    .GroupBy(i => i.PaymentMethod)
-                    .ToDictionary(g => g.Key.ToString(), g => g.Sum(i => i.TotalAmount));
-
-                // Durum dağılımı
-                var statusBreakdown = invoices
-                    .GroupBy(i => i.Status)
-                    .ToDictionary(g => g.Key, g => g.Count());
-
-                // En iyi müşteriler
-                var topCustomers = invoices
-                    .Where(i => i.CustomerId.HasValue)
-                    .GroupBy(i => i.CustomerId)
-                    .Select(g => new
-                    {
-                        CustomerId = g.Key.ToString(),
-                        CustomerName = g.First().Customer?.Name ?? "Unknown",
-                        InvoiceCount = g.Count(),
-                        TotalAmount = g.Sum(i => i.TotalAmount)
-                    })
-                    .OrderByDescending(x => x.TotalAmount)
-                    .Take(10)
-                    .ToList();
-
-                // Günlük dağılım
-                var dailyBreakdown = invoices
-                    .GroupBy(i => i.InvoiceDate.Date)
-                    .Select(g => new
-                    {
-                        Date = g.Key.ToString("yyyy-MM-dd"),
-                        InvoiceCount = g.Count(),
-                        TotalAmount = g.Sum(i => i.TotalAmount)
-                    })
-                    .OrderBy(x => x.Date)
-                    .ToList();
-
-                var report = new
-                {
-                    Period = $"{filter.StartDate?.ToString("yyyy-MM-dd") ?? "All"} - {filter.EndDate?.ToString("yyyy-MM-dd") ?? "All"}",
-                    TotalInvoices = totalInvoices,
-                    TotalAmount = totalAmount,
-                    PaidAmount = paidAmount,
-                    OverdueAmount = overdueAmount,
-                    AverageInvoiceValue = averageInvoiceValue,
-                    PaymentMethodBreakdown = paymentMethodBreakdown,
-                    StatusBreakdown = statusBreakdown,
-                    TopCustomers = topCustomers,
-                    DailyBreakdown = dailyBreakdown
-                };
-
-                return Ok(report);
+                var invoice = await _invoiceService.GetInvoiceByNumberAsync(invoiceNumber);
+                return Ok(invoice);
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Fatura raporu oluşturulurken hata oluştu");
-                return StatusCode(500, new { message = "Fatura raporu oluşturulurken hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Failed to get invoice by number {Number}", invoiceNumber);
+                return BadRequest(new { error = "Failed to get invoice", details = ex.Message });
             }
         }
 
-        [HttpGet("daily-report/{date}")]
-        public async Task<ActionResult<object>> GetDailyReport(string date)
+        /// <summary>
+        /// Faturaları listele (filtreli)
+        /// </summary>
+        [HttpGet]
+        public async Task<ActionResult<List<Invoice>>> GetInvoices([FromQuery] InvoiceFilterRequest filter)
         {
             try
             {
-                if (!DateTime.TryParse(date, out DateTime reportDate))
-                {
-                    return BadRequest(new { message = "Geçersiz tarih formatı" });
-                }
-
-                var filter = new InvoiceReportFilter
-                {
-                    StartDate = reportDate.Date,
-                    EndDate = reportDate.Date.AddDays(1).AddSeconds(-1)
-                };
-
-                return await GetInvoiceReport(filter);
+                var invoices = await _invoiceService.GetInvoicesAsync(filter);
+                return Ok(invoices);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Günlük rapor oluşturulurken hata oluştu");
-                return StatusCode(500, new { message = "Günlük rapor oluşturulurken hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Failed to get invoices");
+                return BadRequest(new { error = "Failed to get invoices", details = ex.Message });
             }
         }
 
-        [HttpGet("monthly-report/{year}/{month}")]
-        public async Task<ActionResult<object>> GetMonthlyReport(int year, int month)
+        /// <summary>
+        /// Fatura güncelle
+        /// </summary>
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Cashier,Manager,Admin")]
+        public async Task<ActionResult<Invoice>> UpdateInvoice(string id, [FromBody] InvoiceUpdateRequest request)
         {
             try
             {
-                var startDate = new DateTime(year, month, 1);
-                var endDate = startDate.AddMonths(1).AddSeconds(-1);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
 
-                var filter = new InvoiceReportFilter
-                {
-                    StartDate = startDate,
-                    EndDate = endDate
-                };
+                request.UpdatedById = userId;
 
-                return await GetInvoiceReport(filter);
+                var invoice = await _invoiceService.UpdateInvoiceAsync(id, request);
+                return Ok(invoice);
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Aylık rapor oluşturulurken hata oluştu");
-                return StatusCode(500, new { message = "Aylık rapor oluşturulurken hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Failed to update invoice {Id}", id);
+                return BadRequest(new { error = "Failed to update invoice", details = ex.Message });
             }
         }
 
-        [HttpGet("yearly-report/{year}")]
-        public async Task<ActionResult<object>> GetYearlyReport(int year)
+        /// <summary>
+        /// Fatura sil
+        /// </summary>
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Manager,Admin")]
+        public async Task<ActionResult> DeleteInvoice(string id)
         {
             try
             {
-                var startDate = new DateTime(year, 1, 1);
-                var endDate = startDate.AddYears(1).AddSeconds(-1);
-
-                var filter = new InvoiceReportFilter
-                {
-                    StartDate = startDate,
-                    EndDate = endDate
-                };
-
-                return await GetInvoiceReport(filter);
+                await _invoiceService.DeleteInvoiceAsync(id);
+                return NoContent();
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Yıllık rapor oluşturulurken hata oluştu");
-                return StatusCode(500, new { message = "Yıllık rapor oluşturulurken hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Failed to delete invoice {Id}", id);
+                return BadRequest(new { error = "Failed to delete invoice", details = ex.Message });
             }
         }
 
-        [HttpGet("generate-number")]
-        public async Task<ActionResult<object>> GenerateInvoiceNumber()
+        /// <summary>
+        /// Fatura gönder
+        /// </summary>
+        [HttpPost("{id}/send")]
+        [Authorize(Roles = "Cashier,Manager,Admin")]
+        public async Task<ActionResult<Invoice>> SendInvoice(string id, [FromBody] InvoiceSendRequest request)
         {
             try
             {
-                var invoiceNumber = await GenerateReceiptNumber();
-                return Ok(new { invoiceNumber });
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                request.SentById = userId;
+
+                var invoice = await _invoiceService.SendInvoiceAsync(id, request);
+                return Ok(invoice);
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Fatura numarası oluşturulurken hata oluştu");
-                return StatusCode(500, new { message = "Fatura numarası oluşturulurken hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Failed to send invoice {Id}", id);
+                return BadRequest(new { error = "Failed to send invoice", details = ex.Message });
             }
         }
 
-        [HttpPost("{id}/duplicate")]
-        public async Task<ActionResult<Invoice>> DuplicateInvoice(Guid id)
+        /// <summary>
+        /// Ödeme kaydet
+        /// </summary>
+        [HttpPost("{id}/payment")]
+        [Authorize(Roles = "Cashier,Manager,Admin")]
+        public async Task<ActionResult<Invoice>> RecordPayment(string id, [FromBody] InvoicePaymentRequest request)
         {
             try
             {
-                var originalInvoice = await _context.Invoices
-                    .Include(i => i.Items)
-                    .ThenInclude(ii => ii.Product)
-                    .FirstOrDefaultAsync(i => i.Id == id);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
 
-                if (originalInvoice == null)
-                {
-                    return NotFound(new { message = "Fatura bulunamadı" });
-                }
+                request.ProcessedById = userId;
 
-                var duplicatedInvoice = new Invoice
-                {
-                    Id = Guid.NewGuid(),
-                    InvoiceNumber = await GenerateReceiptNumber(),
-                    ReceiptNumber = await GenerateReceiptNumber(),
-                    CustomerId = originalInvoice.CustomerId,
-                    InvoiceDate = DateTime.UtcNow,
-                    DueDate = DateTime.UtcNow.AddDays(30),
-                    TotalAmount = originalInvoice.TotalAmount,
-                    TaxAmount = originalInvoice.TaxAmount,
-                    PaymentMethod = originalInvoice.PaymentMethod,
-                    PaymentStatus = Models.PaymentStatus.Pending.ToString(),
-                    Status = "draft",
-                    InvoiceType = originalInvoice.InvoiceType,
-                    Notes = originalInvoice.Notes,
-                    CreatedAt = DateTime.UtcNow,
-                    Items = originalInvoice.Items.Select(item => new Models.InvoiceItem
-                    {
-                        Id = Guid.NewGuid(),
-                        InvoiceId = Guid.NewGuid(), // Bu yeni fatura ID'si ile değiştirilecek
-                        ProductId = item.ProductId,
-                        Quantity = item.Quantity,
-                        UnitPrice = item.UnitPrice,
-                        DiscountAmount = item.DiscountAmount,
-                        TaxAmount = item.TaxAmount,
-                        TotalAmount = item.TotalAmount
-                    }).ToList()
-                };
-
-                _context.Invoices.Add(duplicatedInvoice);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Fatura kopyalandı: {originalInvoice.InvoiceNumber} -> {duplicatedInvoice.InvoiceNumber}");
-
-                return Ok(duplicatedInvoice);
+                var invoice = await _invoiceService.MarkAsPaidAsync(id, request);
+                return Ok(invoice);
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Fatura kopyalanırken hata oluştu: {id}");
-                return StatusCode(500, new { message = "Fatura kopyalanırken hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Failed to record payment for invoice {Id}", id);
+                return BadRequest(new { error = "Failed to record payment", details = ex.Message });
             }
         }
 
+        /// <summary>
+        /// Fatura iptal et
+        /// </summary>
+        [HttpPost("{id}/cancel")]
+        [Authorize(Roles = "Manager,Admin")]
+        public async Task<ActionResult<Invoice>> CancelInvoice(string id, [FromBody] CancelInvoiceRequest request)
+        {
+            try
+            {
+                var invoice = await _invoiceService.CancelInvoiceAsync(id, request.Reason);
+                return Ok(invoice);
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to cancel invoice {Id}", id);
+                return BadRequest(new { error = "Failed to cancel invoice", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Fatura PDF'i indir
+        /// </summary>
+        [HttpGet("{id}/pdf")]
+        public async Task<IActionResult> DownloadInvoicePdf(string id)
+        {
+            try
+            {
+                var pdfBytes = await _pdfService.GenerateInvoicePdfAsync(id);
+                var invoice = await _invoiceService.GetInvoiceByIdAsync(id);
+                
+                return File(pdfBytes, "application/pdf", $"invoice-{invoice.InvoiceNumber}.pdf");
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
+            }
+            catch (NotImplementedException)
+            {
+                return BadRequest(new { error = "PDF generation not implemented yet" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate PDF for invoice {Id}", id);
+                return BadRequest(new { error = "Failed to generate PDF", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Fatura PDF'i email ile gönder
+        /// </summary>
         [HttpPost("{id}/email")]
-        public async Task<ActionResult<object>> EmailInvoice(Guid id, [FromBody] EmailInvoiceRequest request)
+        [Authorize(Roles = "Cashier,Manager,Admin")]
+        public async Task<ActionResult> SendInvoiceEmail(string id, [FromBody] SendPdfRequest request)
         {
             try
             {
-                var invoice = await _context.Invoices
-                    .Include(i => i.Customer)
-                    .FirstOrDefaultAsync(i => i.Id == id);
+                var invoice = await _invoiceService.GetInvoiceByIdAsync(id);
+                var pdfBytes = await _pdfService.GenerateInvoicePdfAsync(invoice);
 
-                if (invoice == null)
+                var success = await _emailService.SendInvoiceEmailAsync(invoice, request.Email, pdfBytes);
+
+                if (success)
                 {
-                    return NotFound(new { message = "Fatura bulunamadı" });
+                    return Ok(new { message = "Invoice PDF sent successfully" });
                 }
-
-                // Email gönderme işlemi burada implement edilecek
-                _logger.LogInformation($"Fatura email gönderildi: {invoice.InvoiceNumber} -> {request.Email}");
-
-                return Ok(new { message = "Fatura başarıyla email ile gönderildi" });
+                else
+                {
+                    return BadRequest(new { error = "Failed to send invoice PDF" });
+                }
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Fatura email gönderilirken hata oluştu: {id}");
-                return StatusCode(500, new { message = "Fatura email gönderilirken hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Failed to send invoice PDF for {Id}", id);
+                return BadRequest(new { error = "Failed to send invoice PDF", details = ex.Message });
             }
         }
 
-        [HttpPost("{id}/print")]
-        public async Task<ActionResult<object>> PrintInvoice(Guid id, [FromBody] PrintInvoiceRequest request)
+        /// <summary>
+        /// Ödeme hatırlatması gönder
+        /// </summary>
+        [HttpPost("{id}/send-reminder")]
+        [Authorize(Roles = "Manager,Admin")]
+        public async Task<ActionResult> SendPaymentReminder(string id, [FromBody] SendReminderRequest request)
         {
             try
             {
-                var invoice = await _context.Invoices
-                    .Include(i => i.Items)
-                    .ThenInclude(ii => ii.Product)
-                    .FirstOrDefaultAsync(i => i.Id == id);
+                var invoice = await _invoiceService.GetInvoiceByIdAsync(id);
+                var success = await _emailService.SendInvoiceReminderAsync(invoice, request.Email);
 
-                if (invoice == null)
+                if (success)
                 {
-                    return NotFound(new { message = "Fatura bulunamadı" });
+                    return Ok(new { message = "Payment reminder sent successfully" });
                 }
-
-                // Yazdırma işlemi burada implement edilecek
-                _logger.LogInformation($"Fatura yazdırıldı: {invoice.InvoiceNumber}");
-
-                return Ok(new { message = "Fatura başarıyla yazdırıldı" });
+                else
+                {
+                    return BadRequest(new { error = "Failed to send payment reminder" });
+                }
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Fatura yazdırılırken hata oluştu: {id}");
-                return StatusCode(500, new { message = "Fatura yazdırılırken hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Failed to send payment reminder for {Id}", id);
+                return BadRequest(new { error = "Failed to send payment reminder", details = ex.Message });
             }
         }
 
-        [HttpPost("{id}/pdf")]
-        public async Task<ActionResult<object>> GeneratePdfInvoice(Guid id, [FromBody] PdfInvoiceRequest request)
+        /// <summary>
+        /// Ödeme onayı gönder
+        /// </summary>
+        [HttpPost("{id}/send-payment-confirmation")]
+        [Authorize(Roles = "Cashier,Manager,Admin")]
+        public async Task<ActionResult> SendPaymentConfirmation(string id, [FromBody] SendConfirmationRequest request)
         {
             try
             {
-                var invoice = await _context.Invoices
-                    .Include(i => i.Items)
-                    .ThenInclude(ii => ii.Product)
-                    .FirstOrDefaultAsync(i => i.Id == id);
+                var invoice = await _invoiceService.GetInvoiceByIdAsync(id);
+                var success = await _emailService.SendPaymentConfirmationAsync(invoice, request.Email);
 
-                if (invoice == null)
+                if (success)
                 {
-                    return NotFound(new { message = "Fatura bulunamadı" });
+                    return Ok(new { message = "Payment confirmation sent successfully" });
                 }
-
-                // PDF oluşturma işlemi burada implement edilecek
-                _logger.LogInformation($"Fatura PDF oluşturuldu: {invoice.InvoiceNumber}");
-
-                return Ok(new { message = "Fatura PDF başarıyla oluşturuldu" });
+                else
+                {
+                    return BadRequest(new { error = "Failed to send payment confirmation" });
+                }
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Fatura PDF oluşturulurken hata oluştu: {id}");
-                return StatusCode(500, new { message = "Fatura PDF oluşturulurken hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Failed to send payment confirmation for {Id}", id);
+                return BadRequest(new { error = "Failed to send payment confirmation", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// FinanzOnline'a gönder
+        /// </summary>
+        [HttpPost("{id}/finanzonline")]
+        [Authorize(Roles = "Manager,Admin")]
+        public async Task<ActionResult> SubmitToFinanzOnline(string id)
+        {
+            try
+            {
+                var success = await _invoiceService.SubmitToFinanzOnlineAsync(id);
+
+                if (success)
+                {
+                    return Ok(new { message = "Invoice submitted to FinanzOnline successfully" });
+                }
+                else
+                {
+                    return BadRequest(new { error = "Failed to submit to FinanzOnline" });
+                }
+            }
+            catch (ArgumentException)
+            {
+                return NotFound(new { error = "Invoice not found" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to submit invoice to FinanzOnline {Id}", id);
+                return BadRequest(new { error = "Failed to submit to FinanzOnline", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Gecikmiş faturaları getir
+        /// </summary>
+        [HttpGet("overdue")]
+        public async Task<ActionResult<List<Invoice>>> GetOverdueInvoices()
+        {
+            try
+            {
+                var invoices = await _invoiceService.GetOverdueInvoicesAsync();
+                return Ok(invoices);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get overdue invoices");
+                return BadRequest(new { error = "Failed to get overdue invoices", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Fatura istatistikleri
+        /// </summary>
+        [HttpGet("statistics")]
+        public async Task<ActionResult<InvoiceStatistics>> GetInvoiceStatistics(
+            [FromQuery] DateTime startDate, 
+            [FromQuery] DateTime endDate)
+        {
+            try
+            {
+                var statistics = await _invoiceService.GetInvoiceStatisticsAsync(startDate, endDate);
+                return Ok(statistics);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get invoice statistics");
+                return BadRequest(new { error = "Failed to get statistics", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Fatura şablonlarını getir
+        /// </summary>
+        [HttpGet("templates")]
+        public async Task<ActionResult<List<InvoiceTemplate>>> GetInvoiceTemplates()
+        {
+            try
+            {
+                // Bu kısım InvoiceTemplateService ile implement edilecek
+                return Ok(new List<InvoiceTemplate>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get invoice templates");
+                return BadRequest(new { error = "Failed to get templates", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Email bağlantısını test et
+        /// </summary>
+        [HttpPost("test-email")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult> TestEmailConnection()
+        {
+            try
+            {
+                var success = await _emailService.TestEmailConnectionAsync();
+
+                if (success)
+                {
+                    return Ok(new { message = "Email connection test successful" });
+                }
+                else
+                {
+                    return BadRequest(new { error = "Email connection test failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Email connection test failed");
+                return BadRequest(new { error = "Email connection test failed", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Toplu işlemler
+        /// </summary>
+        [HttpPost("bulk-actions")]
+        [Authorize(Roles = "Manager,Admin")]
+        public async Task<ActionResult> BulkActions([FromBody] BulkInvoiceActionRequest request)
+        {
+            try
+            {
+                var results = new List<BulkActionResult>();
+
+                foreach (var invoiceId in request.InvoiceIds)
+                {
+                    try
+                    {
+                        switch (request.Action.ToLower())
+                        {
+                            case "send":
+                                await _invoiceService.SendInvoiceAsync(invoiceId.ToString(), new InvoiceSendRequest
+                                {
+                                    SentById = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system"
+                                });
+                                results.Add(new BulkActionResult { InvoiceId = invoiceId, Success = true });
+                                break;
+
+                            case "cancel":
+                                await _invoiceService.CancelInvoiceAsync(invoiceId.ToString(), "Bulk cancellation");
+                                results.Add(new BulkActionResult { InvoiceId = invoiceId, Success = true });
+                                break;
+
+                            case "submit-finanzonline":
+                                var success = await _invoiceService.SubmitToFinanzOnlineAsync(invoiceId.ToString());
+                                results.Add(new BulkActionResult { InvoiceId = invoiceId, Success = success });
+                                break;
+
+                            default:
+                                results.Add(new BulkActionResult { InvoiceId = invoiceId, Success = false, Error = "Invalid action" });
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        results.Add(new BulkActionResult { InvoiceId = invoiceId, Success = false, Error = ex.Message });
+                    }
+                }
+
+                return Ok(new { results });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Bulk invoice actions failed");
+                return BadRequest(new { error = "Bulk actions failed", details = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// TSE durumunu kontrol et
+        /// </summary>
+        [HttpGet("tse-status")]
+        public async Task<IActionResult> GetTseStatus()
+        {
+            try
+            {
+                var tseStatus = await _tseService.GetStatusAsync();
+                
+                var response = new
+                {
+                    isConnected = tseStatus.IsConnected,
+                    serialNumber = tseStatus.SerialNumber,
+                    certificateStatus = tseStatus.CertificateStatus,
+                    memoryStatus = tseStatus.MemoryStatus,
+                    lastSignatureTime = tseStatus.LastSignatureTime,
+                    canCreateInvoices = tseStatus.IsConnected && tseStatus.CertificateStatus == "VALID",
+                    errorMessage = !tseStatus.IsConnected ? "TSE cihazı bağlı değil" : 
+                                 tseStatus.CertificateStatus != "VALID" ? "TSE sertifikası geçersiz" : null
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "TSE durumu alma hatası");
+                return StatusCode(500, new { 
+                    error = "TSE durumu alınamadı", 
+                    details = ex.Message,
+                    canCreateInvoices = false,
+                    errorMessage = "TSE durumu kontrol edilemiyor"
+                });
             }
         }
     }
 
-    public class CreateInvoiceModel
+    public class CancelInvoiceRequest
     {
-        public int CustomerId { get; set; }
-        public PaymentMethod PaymentMethod { get; set; }
-        public string? Notes { get; set; }
-        public int RegisterId { get; set; }
-        public decimal DiscountAmount { get; set; }
-        public InvoiceItemModel[] Items { get; set; } = Array.Empty<InvoiceItemModel>();
+        public string Reason { get; set; } = string.Empty;
     }
 
-    public class InvoiceItemModel
+    public class SendPdfRequest
     {
-        public int ProductId { get; set; }
-        public decimal Quantity { get; set; }
-        public decimal DiscountPercentage { get; set; }
+        public string Email { get; set; } = string.Empty;
     }
 
-    public class UpdateInvoiceStatusModel
+    public class SendReminderRequest
     {
-        public InvoiceStatus Status { get; set; }
+        public string Email { get; set; } = string.Empty;
+    }
+
+    public class SendConfirmationRequest
+    {
+        public string Email { get; set; } = string.Empty;
+    }
+
+    public class BulkInvoiceActionRequest
+    {
+        public List<Guid> InvoiceIds { get; set; } = new();
+        public string Action { get; set; } = string.Empty; // send, cancel, submit-finanzonline
+    }
+
+    public class BulkActionResult
+    {
+        public Guid InvoiceId { get; set; }
+        public bool Success { get; set; }
+        public string? Error { get; set; }
     }
 } 

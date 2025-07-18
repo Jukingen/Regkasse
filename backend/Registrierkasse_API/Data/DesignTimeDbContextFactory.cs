@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Registrierkasse.Data
+namespace Registrierkasse_API.Data
 {
     public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
     {

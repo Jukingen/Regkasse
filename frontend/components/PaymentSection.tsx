@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -8,8 +10,7 @@ import {
   Alert,
   Animated,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { CartItem } from '../types/cart';
 
@@ -77,7 +78,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
     }
   };
 
-  if (cart.length === 0) return null;
+  if (cart?.items?.length === 0) return null;
 
   return (
     <View style={styles.paymentSection}>
@@ -124,7 +125,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
           }}
           keyboardType="decimal-pad"
           onFocus={() => {
-            if (cart.length > 0 && !paymentAmount) {
+            if (cart?.items?.length > 0 && !paymentAmount) {
               const totalWithTax = calculateTotal() + calculateTax();
               setPaymentAmount(totalWithTax.toFixed(2));
             }

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Registrierkasse.Models
+namespace Registrierkasse_API.Models
 {
     public class AuditLog : BaseEntity
     {
@@ -12,6 +12,10 @@ namespace Registrierkasse.Models
         [Required]
         [MaxLength(100)]
         public string EntityType { get; set; } = string.Empty; // Invoice, Product, Customer, etc.
+
+        [Required]
+        [MaxLength(100)]
+        public string EntityName { get; set; } = string.Empty;
 
         [MaxLength(36)]
         public string? EntityId { get; set; } // UUID of the affected entity

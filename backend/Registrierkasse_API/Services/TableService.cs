@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
+using Registrierkasse_API.Data;
+using Registrierkasse_API.Models;
 
-namespace Registrierkasse.Services
+namespace Registrierkasse_API.Services
 {
     public interface ITableService
     {
@@ -158,7 +158,7 @@ namespace Registrierkasse.Services
             return await _context.Orders
                 .Include(o => o.OrderItems)
                 .Include(o => o.Customer)
-                .Where(o => o.TableNumber == tableNumber && !o.IsActive)
+                .Where(o => o.TableNumber == tableNumber.ToString() && !o.IsActive)
                 .OrderByDescending(o => o.CreatedAt)
                 .ToListAsync();
         }

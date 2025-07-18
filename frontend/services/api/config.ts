@@ -1,15 +1,10 @@
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
+import axios from 'axios';
 
-// Platform'a göre API URL'sini ayarla
-export const API_BASE_URL = Platform.select({
-    web: 'http://localhost:5183/api',
-    android: 'http://10.0.2.2:5183/api',
-    default: 'http://localhost:5183/api'
-});
+// API base URL - tüm platformlar için localhost
+const API_BASE_URL = 'http://localhost:5183/api';
 
-console.log('API Base URL:', API_BASE_URL); // Debug log
+console.log('API Base URL:', API_BASE_URL);
 
 // Axios instance oluştur
 const axiosInstance = axios.create({
@@ -17,6 +12,7 @@ const axiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    timeout: 10000, // 10 saniye timeout
 });
 
 // Request interceptor
@@ -25,24 +21,25 @@ axiosInstance.interceptors.request.use(
         console.log('Making API request:', {
             method: config.method,
             url: config.url,
+            baseURL: config.baseURL,
             headers: config.headers
-        }); // Debug log
+        });
 
         try {
             const token = await AsyncStorage.getItem('token');
             if (token && config.headers) {
                 config.headers.Authorization = `Bearer ${token}`;
-                console.log('Token added to request'); // Debug log
+                console.log('Token added to request');
             } else {
-                console.log('No token found for request'); // Debug log
+                console.log('No token found for request');
             }
         } catch (error) {
-            console.error('Error getting token:', error); // Debug log
+            console.error('Error getting token:', error);
         }
         return config;
     },
     (error) => {
-        console.error('Request interceptor error:', error); // Debug log
+        console.error('Request interceptor error:', error);
         return Promise.reject(error);
     }
 );
@@ -54,7 +51,7 @@ axiosInstance.interceptors.response.use(
             status: response.status,
             url: response.config.url,
             data: response.data
-        }); // Debug log
+        });
         return response.data;
     },
     async (error) => {
@@ -63,15 +60,15 @@ axiosInstance.interceptors.response.use(
             url: error.config?.url,
             data: error.response?.data,
             message: error.message
-        }); // Debug log
+        });
 
         if (error.response?.status === 401) {
-            console.log('Unauthorized error, removing token...'); // Debug log
+            console.log('Unauthorized error, removing token...');
             try {
                 await AsyncStorage.removeItem('token');
                 await AsyncStorage.removeItem('refreshToken');
             } catch (e) {
-                console.error('Error removing tokens:', e); // Debug log
+                console.error('Error removing tokens:', e);
             }
         }
 
@@ -86,42 +83,46 @@ axiosInstance.interceptors.response.use(
 
 // API client
 export const apiClient = {
-    get: async <T>(url: string, config?: any) => {
-        console.log('GET request:', { url, config }); // Debug log
+    get: async <T>(url: string, config?: any): Promise<T> => {
+        console.log('GET request:', { url, config });
         try {
-            return await axiosInstance.get<T>(url, config);
+            const response = await axiosInstance.get<T>(url, config);
+            return response as T;
         } catch (error) {
-            console.error('GET request failed:', error); // Debug log
+            console.error('GET request failed:', error);
             throw error;
         }
     },
 
-    post: async <T>(url: string, data?: any, config?: any) => {
-        console.log('POST request:', { url, data, config }); // Debug log
+    post: async <T>(url: string, data?: any, config?: any): Promise<T> => {
+        console.log('POST request:', { url, data, config });
         try {
-            return await axiosInstance.post<T>(url, data, config);
+            const response = await axiosInstance.post<T>(url, data, config);
+            return response as T;
         } catch (error) {
-            console.error('POST request failed:', error); // Debug log
+            console.error('POST request failed:', error);
             throw error;
         }
     },
 
-    put: async <T>(url: string, data?: any, config?: any) => {
-        console.log('PUT request:', { url, data, config }); // Debug log
+    put: async <T>(url: string, data?: any, config?: any): Promise<T> => {
+        console.log('PUT request:', { url, data, config });
         try {
-            return await axiosInstance.put<T>(url, data, config);
+            const response = await axiosInstance.put<T>(url, data, config);
+            return response as T;
         } catch (error) {
-            console.error('PUT request failed:', error); // Debug log
+            console.error('PUT request failed:', error);
             throw error;
         }
     },
 
-    delete: async <T>(url: string, config?: any) => {
-        console.log('DELETE request:', { url, config }); // Debug log
+    delete: async <T>(url: string, config?: any): Promise<T> => {
+        console.log('DELETE request:', { url, config });
         try {
-            return await axiosInstance.delete<T>(url, config);
+            const response = await axiosInstance.delete<T>(url, config);
+            return response as T;
         } catch (error) {
-            console.error('DELETE request failed:', error); // Debug log
+            console.error('DELETE request failed:', error);
             throw error;
         }
     }

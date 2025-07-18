@@ -1,6 +1,6 @@
 using System;
 
-namespace Registrierkasse.Models
+namespace Registrierkasse_API.Models
 {
     public class InvoiceReportFilter
     {

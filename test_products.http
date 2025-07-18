@@ -1,0 +1,70 @@
+### Test Products API
+
+### Get all products
+GET http://localhost:5183/api/products
+Authorization: Bearer {{token}}
+
+### Get products by category
+GET http://localhost:5183/api/products?category=Getränke
+Authorization: Bearer {{token}}
+
+### Search products
+GET http://localhost:5183/api/products/search?q=Espresso
+Authorization: Bearer {{token}}
+
+### Get product categories
+GET http://localhost:5183/api/products/categories
+Authorization: Bearer {{token}}
+
+### Get products by category
+GET http://localhost:5183/api/products/by-category/Getränke
+Authorization: Bearer {{token}}
+
+### Create new product (Admin only)
+POST http://localhost:5183/api/products
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Test Product",
+  "description": "Test product description",
+  "price": 9.99,
+  "stockQuantity": 50,
+  "minStockLevel": 10,
+  "barcode": "4001234567999",
+  "category": "Test",
+  "unit": "Stück",
+  "taxRate": 20.0,
+  "taxType": "Standard"
+}
+
+### Update product (Admin only)
+PUT http://localhost:5183/api/products/{{productId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Updated Test Product",
+  "description": "Updated test product description",
+  "price": 12.99,
+  "stockQuantity": 75,
+  "minStockLevel": 15,
+  "barcode": "4001234567999",
+  "category": "Test",
+  "unit": "Stück",
+  "taxRate": 20.0,
+  "taxType": "Standard"
+}
+
+### Delete product (Admin only)
+DELETE http://localhost:5183/api/products/{{productId}}
+Authorization: Bearer {{token}}
+
+### Update product status (Admin only)
+PATCH http://localhost:5183/api/products/{{productId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "isActive": false
+} 

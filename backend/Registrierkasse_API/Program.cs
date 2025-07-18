@@ -1,18 +1,47 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
+using Registrierkasse_API.Data;
+using Registrierkasse_API.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Registrierkasse.Services;
+using Registrierkasse_API.Services;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Registrierkasse API", Version = "v1" });
+    
+    // JWT authentication için Swagger konfigürasyonu
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
 
 
 // Add services to the container.
@@ -27,6 +56,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
+
+// Configure Authorization Policies
+builder.Services.AddAuthorization(options =>
+{
+    // Basic authorization policies
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("CashierOnly", policy => policy.RequireRole("Cashier"));
+    options.AddPolicy("ManagerOnly", policy => policy.RequireRole("Manager"));
+});
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -51,7 +89,6 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"]
     };
 });
-
 // Configure CORS
 builder.Services.AddCors(options =>
 {
@@ -64,28 +101,42 @@ builder.Services.AddCors(options =>
         });
 });
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowReactApp",
-        builder => builder
-            .WithOrigins("http://localhost:8081") // React uygulamanızın URL'si
-            .AllowAnyMethod()
-            .AllowAnyHeader());
-});
-
 // Register AppDbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))); // PostgreSQL için
 
 // Add services to the container
 builder.Services.AddMemoryCache();
-builder.Services.AddScoped<ILocalizationService, LocalizationService>();
+builder.Services.AddScoped<LocalizationService>();
+builder.Services.AddScoped<MultilingualReceiptService>();
 builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<ITseHardwareService, TseHardwareService>();
 builder.Services.AddScoped<ITseService, TseService>();
 builder.Services.AddScoped<IPrinterService, PrinterService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IAdvancedReportService, AdvancedReportService>();
+builder.Services.AddScoped<IDailyReportService, DailyReportService>();
+builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
+builder.Services.AddHttpClient<IFinanzOnlineService, FinanzOnlineService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IUserSettingsService, UserSettingsService>();
+builder.Services.AddScoped<INetworkConnectivityService, NetworkConnectivityService>();
+builder.Services.AddHttpClient<INetworkConnectivityService, NetworkConnectivityService>();
+builder.Services.AddScoped<IPendingInvoicesService, PendingInvoicesService>();
+builder.Services.AddScoped<ICouponService, CouponService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<DemoUserService>();
+builder.Services.AddScoped<RoleService>();
+builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<DemoUserLogService>();
+builder.Services.AddScoped<AuthorizationService>();
+builder.Services.AddScoped<OperationLogService>();
+builder.Services.AddHttpContextAccessor();
+
+// Background services
+builder.Services.AddHostedService<BackgroundInvoiceService>();
 
 var app = builder.Build();
 
@@ -103,28 +154,11 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
-//app.MapGet("/weatherforecast", () =>
-//{
-//    var forecast =  Enumerable.Range(1, 5).Select(index =>
-//        new WeatherForecast
-//        (
-//            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-//            Random.Shared.Next(-20, 55),
-//            summaries[Random.Shared.Next(summaries.Length)]
-//        ))
-//        .ToArray();
-//    return forecast;
-//})
-//.WithName("GetWeatherForecast")
-//.WithOpenApi();
-
 // Use CORS
 app.UseCors("AllowAll");
-app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
 app.UseAuthorization();
-// app.UseMiddleware<Registrierkasse.Middleware.AdminAuthorizationMiddleware>();
 
 app.MapControllers();
 

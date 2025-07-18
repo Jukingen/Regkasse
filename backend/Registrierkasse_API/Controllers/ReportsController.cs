@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Registrierkasse.Services;
-using Registrierkasse.Data;
+using Registrierkasse_API.Services;
+using Registrierkasse_API.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-namespace Registrierkasse.Controllers
+namespace Registrierkasse_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -32,12 +32,12 @@ namespace Registrierkasse.Controllers
                 
                 // Bugünkü satışları hesapla
                 var todaySales = await _context.Invoices
-                    .Where(i => i.InvoiceDate.Date == today && i.PaymentStatus == "Paid")
+                    .Where(i => i.InvoiceDate.Date == today && i.PaymentStatus == Models.PaymentStatus.Paid)
                     .SumAsync(i => i.TotalAmount);
 
                 // Bekleyen faturaları say
                 var pendingInvoices = await _context.Invoices
-                    .Where(i => i.PaymentStatus == "Pending")
+                    .Where(i => i.PaymentStatus == Models.PaymentStatus.Pending)
                     .CountAsync();
 
                 // Toplam müşteri sayısı

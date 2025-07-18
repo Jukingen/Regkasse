@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35208.52
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Registrierkasse", "Registrierkasse.csproj", "{E0DB711B-AA16-4A74-9766-950A4B81A096}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Registrierkasse_API", "Registrierkasse_API.csproj", "{E0DB711B-AA16-4A74-9766-950A4B81A096}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

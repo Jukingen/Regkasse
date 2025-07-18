@@ -3,11 +3,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Registrierkasse.Models;
+using Registrierkasse_API.Models;
 using System.Text.Json;
 using System.Collections.Generic;
 
-namespace Registrierkasse.Data
+namespace Registrierkasse_API.Data
 {
     public static class SeedData
     {
@@ -31,20 +31,43 @@ namespace Registrierkasse.Data
                 }
             }
 
-            // Admin kullanıcısını zorla ekle (koşul kaldırıldı)
-            var admin = new ApplicationUser
+            // Admin kullanıcısını oluştur veya mevcut olanı al
+            var adminEmail = "admin@admin.com";
+            var admin = await userManager.FindByEmailAsync(adminEmail);
+            
+            if (admin == null)
             {
-                UserName = "admin@admin.com",
-                Email = "admin@admin.com",
-                FirstName = "Admin",
-                LastName = "User",
-                EmployeeNumber = "EMP001",
-                EmailConfirmed = true,
-                Role = "Admin"
-            };
+                admin = new ApplicationUser
+                {
+                    // Türkçe açıklama: Eğer elle Id verilmezse, Identity otomatik olarak GUID atar.
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    FirstName = "Admin",
+                    LastName = "User",
+                    EmployeeNumber = "EMP001",
+                    EmailConfirmed = true,
+                    Role = "Admin"
+                };
+                // Elle Id verilmemişse, otomatik GUID ata (garanti için)
+                if (string.IsNullOrEmpty(admin.Id))
+                    admin.Id = Guid.NewGuid().ToString();
 
-            var result = await userManager.CreateAsync(admin, "Admin123!");
-            await userManager.AddToRoleAsync(admin, "Administrator");
+                var result = await userManager.CreateAsync(admin, "Admin123!");
+                if (!result.Succeeded)
+                {
+                    throw new Exception($"Admin kullanıcısı oluşturulamadı: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                }
+            }
+
+            // Admin rolünü ata (eğer yoksa)
+            if (!await userManager.IsInRoleAsync(admin, "Administrator"))
+            {
+                var roleResult = await userManager.AddToRoleAsync(admin, "Administrator");
+                if (!roleResult.Succeeded)
+                {
+                    throw new Exception($"Admin rolü atanamadı: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
+                }
+            }
 
             // Şirket ayarlarını oluştur
             if (!context.CompanySettings.Any())
@@ -84,30 +107,74 @@ namespace Registrierkasse.Data
             if (!context.Products.Any())
             {
                 context.Products.AddRange(
+                    // Standard Tax (20%) - Getränke
                     new Product
                     {
                         Name = "Espresso",
-                        Description = "Tek shot espresso",
+                        Description = "Ein starker italienischer Kaffee",
                         Price = 2.50m,
                         TaxType = TaxType.Standard,
-                        Category = "Kahve",
-                        Unit = "Adet",
+                        Category = "Getränke",
+                        Unit = "Stück",
                         StockQuantity = 150,
                         MinStockLevel = 50,
-                        Barcode = "1234567890"
+                        Barcode = "4001234567890",
+                        TaxRate = 20.0m
                     },
                     new Product
                     {
                         Name = "Cappuccino",
-                        Description = "Espresso ve buharla ısıtılmış süt",
-                        Price = 3.50m,
+                        Description = "Espresso mit aufgeschäumter Milch",
+                        Price = 3.80m,
                         TaxType = TaxType.Standard,
-                        Category = "Kahve",
-                        Unit = "Adet",
-                        StockQuantity = 25,
-                        MinStockLevel = 50,
-                        Barcode = "1234567891"
+                        Category = "Getränke",
+                        Unit = "Stück",
+                        StockQuantity = 120,
+                        MinStockLevel = 40,
+                        Barcode = "4001234567891",
+                        TaxRate = 20.0m
                     },
+                    new Product
+                    {
+                        Name = "Latte Macchiato",
+                        Description = "Milch mit Espresso",
+                        Price = 4.20m,
+                        TaxType = TaxType.Standard,
+                        Category = "Getränke",
+                        Unit = "Stück",
+                        StockQuantity = 100,
+                        MinStockLevel = 30,
+                        Barcode = "4001234567892",
+                        TaxRate = 20.0m
+                    },
+                    new Product
+                    {
+                        Name = "Mineralwasser",
+                        Description = "Natürliches Mineralwasser 0,5L",
+                        Price = 2.00m,
+                        TaxType = TaxType.Standard,
+                        Category = "Getränke",
+                        Unit = "Flasche",
+                        StockQuantity = 200,
+                        MinStockLevel = 60,
+                        Barcode = "4001234567893",
+                        TaxRate = 20.0m
+                    },
+                    new Product
+                    {
+                        Name = "Cola",
+                        Description = "Erfrischendes Cola-Getränk 0,33L",
+                        Price = 2.80m,
+                        TaxType = TaxType.Standard,
+                        Category = "Getränke",
+                        Unit = "Dose",
+                        StockQuantity = 180,
+                        MinStockLevel = 50,
+                        Barcode = "4001234567894",
+                        TaxRate = 20.0m
+                    },
+                    
+                    // Standard Tax (20%) - Hauptgerichte
                     new Product
                     {
                         Name = "Wiener Schnitzel",
@@ -118,8 +185,63 @@ namespace Registrierkasse.Data
                         Unit = "Stück",
                         StockQuantity = 80,
                         MinStockLevel = 30,
-                        Barcode = "9001234567890"
+                        Barcode = "4001234567895",
+                        TaxRate = 20.0m
                     },
+                    new Product
+                    {
+                        Name = "Gulasch",
+                        Description = "Ungarisches Rindfleischgulasch mit Kartoffeln",
+                        Price = 14.50m,
+                        TaxType = TaxType.Standard,
+                        Category = "Hauptgerichte",
+                        Unit = "Portion",
+                        StockQuantity = 60,
+                        MinStockLevel = 20,
+                        Barcode = "4001234567896",
+                        TaxRate = 20.0m
+                    },
+                    new Product
+                    {
+                        Name = "Kaiserschmarrn",
+                        Description = "Geleneksel Avusturya tatlısı",
+                        Price = 12.80m,
+                        TaxType = TaxType.Standard,
+                        Category = "Hauptgerichte",
+                        Unit = "Portion",
+                        StockQuantity = 45,
+                        MinStockLevel = 15,
+                        Barcode = "4001234567897",
+                        TaxRate = 20.0m
+                    },
+                    new Product
+                    {
+                        Name = "Tafelspitz",
+                        Description = "Gekochtes Rindfleisch mit Gemüse",
+                        Price = 16.90m,
+                        TaxType = TaxType.Standard,
+                        Category = "Hauptgerichte",
+                        Unit = "Portion",
+                        StockQuantity = 40,
+                        MinStockLevel = 15,
+                        Barcode = "4001234567898",
+                        TaxRate = 20.0m
+                    },
+                    new Product
+                    {
+                        Name = "Schweinsbraten",
+                        Description = "Gebratenes Schweinefleisch mit Knödel",
+                        Price = 15.50m,
+                        TaxType = TaxType.Standard,
+                        Category = "Hauptgerichte",
+                        Unit = "Portion",
+                        StockQuantity = 55,
+                        MinStockLevel = 20,
+                        Barcode = "4001234567899",
+                        TaxRate = 20.0m
+                    },
+                    
+                    // Reduced Tax (10%) - Desserts
                     new Product
                     {
                         Name = "Apfelstrudel",
@@ -130,7 +252,8 @@ namespace Registrierkasse.Data
                         Unit = "Stück",
                         StockQuantity = 45,
                         MinStockLevel = 20,
-                        Barcode = "9001234567891"
+                        Barcode = "4001234567900",
+                        TaxRate = 10.0m
                     },
                     new Product
                     {
@@ -142,7 +265,114 @@ namespace Registrierkasse.Data
                         Unit = "Stück",
                         StockQuantity = 200,
                         MinStockLevel = 50,
-                        Barcode = "9001234567892"
+                        Barcode = "4001234567901",
+                        TaxRate = 10.0m
+                    },
+                    new Product
+                    {
+                        Name = "Sachertorte",
+                        Description = "Klassische Wiener Schokoladentorte",
+                        Price = 7.80m,
+                        TaxType = TaxType.Reduced,
+                        Category = "Desserts",
+                        Unit = "Stück",
+                        StockQuantity = 35,
+                        MinStockLevel = 15,
+                        Barcode = "4001234567902",
+                        TaxRate = 10.0m
+                    },
+                    new Product
+                    {
+                        Name = "Kaiserschmarrn",
+                        Description = "Süßer Pfannkuchen mit Rosinen",
+                        Price = 8.90m,
+                        TaxType = TaxType.Reduced,
+                        Category = "Desserts",
+                        Unit = "Portion",
+                        StockQuantity = 30,
+                        MinStockLevel = 10,
+                        Barcode = "4001234567903",
+                        TaxRate = 10.0m
+                    },
+                    new Product
+                    {
+                        Name = "Topfenstrudel",
+                        Description = "Quarkstrudel mit Vanillesauce",
+                        Price = 6.20m,
+                        TaxType = TaxType.Reduced,
+                        Category = "Desserts",
+                        Unit = "Stück",
+                        StockQuantity = 40,
+                        MinStockLevel = 15,
+                        Barcode = "4001234567904",
+                        TaxRate = 10.0m
+                    },
+                    
+                    // Special Tax (13%) - Snacks
+                    new Product
+                    {
+                        Name = "Brezel",
+                        Description = "Frische Laugenbrezel",
+                        Price = 2.20m,
+                        TaxType = TaxType.Special,
+                        Category = "Snacks",
+                        Unit = "Stück",
+                        StockQuantity = 100,
+                        MinStockLevel = 30,
+                        Barcode = "4001234567905",
+                        TaxRate = 13.0m
+                    },
+                    new Product
+                    {
+                        Name = "Käsekrainer",
+                        Description = "Würstel mit Käsefüllung",
+                        Price = 4.50m,
+                        TaxType = TaxType.Special,
+                        Category = "Snacks",
+                        Unit = "Stück",
+                        StockQuantity = 80,
+                        MinStockLevel = 25,
+                        Barcode = "4001234567906",
+                        TaxRate = 13.0m
+                    },
+                    new Product
+                    {
+                        Name = "Leberkäse",
+                        Description = "Bayerischer Leberkäse mit Senf",
+                        Price = 3.80m,
+                        TaxType = TaxType.Special,
+                        Category = "Snacks",
+                        Unit = "Stück",
+                        StockQuantity = 70,
+                        MinStockLevel = 20,
+                        Barcode = "4001234567907",
+                        TaxRate = 13.0m
+                    },
+                    new Product
+                    {
+                        Name = "Kartoffelsalat",
+                        Description = "Hausgemachter Kartoffelsalat",
+                        Price = 4.20m,
+                        TaxType = TaxType.Special,
+                        Category = "Snacks",
+                        Unit = "Portion",
+                        StockQuantity = 60,
+                        MinStockLevel = 20,
+                        Barcode = "4001234567908",
+                        TaxRate = 13.0m
+                    },
+                    new Product
+                    {
+                        Name = "Gurkensalat",
+                        Description = "Frischer Gurkensalat mit Dill",
+                        Price = 3.50m,
+                        TaxType = TaxType.Special,
+                        Category = "Snacks",
+                        Unit = "Portion",
+                        StockQuantity = 50,
+                        MinStockLevel = 15,
+                        Barcode = "4001234567909",
+                        TaxRate = 13.0m
                     }
                 );
             }
@@ -154,44 +384,47 @@ namespace Registrierkasse.Data
                     new Customer
                     {
                         CustomerNumber = "CUST001",
-                        FirstName = "Max",
-                        LastName = "Mustermann",
+                        Name = "Max Mustermann",
                         Email = "max@example.com",
                         Phone = "+43123456789",
-                        Address = "Hauptstraße 1",
-                        City = "Wien",
-                        PostalCode = "1010",
-                        Country = "AT",
+                        Address = "Hauptstraße 1, 1010 Wien, Österreich",
                         TaxNumber = "ATU12345678",
-                        CompanyName = "Max GmbH"
+                        Category = CustomerCategory.Regular,
+                        DiscountPercentage = 0,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        Notes = "Demo müşteri - Max GmbH"
                     },
                     new Customer
                     {
                         CustomerNumber = "CUST002",
-                        FirstName = "Maria",
-                        LastName = "Musterfrau",
+                        Name = "Maria Musterfrau",
                         Email = "maria@example.com",
                         Phone = "+43987654321",
-                        Address = "Nebenstraße 2",
-                        City = "Graz",
-                        PostalCode = "8010",
-                        Country = "AT",
+                        Address = "Nebenstraße 2, 8010 Graz, Österreich",
                         TaxNumber = "ATU87654321",
-                        CompanyName = "Maria KG"
+                        Category = CustomerCategory.Premium,
+                        DiscountPercentage = 5,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        Notes = "Demo müşteri - Maria KG"
                     },
                     new Customer
                     {
                         CustomerNumber = "CUST003",
-                        FirstName = "Hans",
-                        LastName = "Schmidt",
+                        Name = "Hans Schmidt",
                         Email = "hans@example.com",
                         Phone = "+43111222333",
-                        Address = "Bahnhofstraße 15",
-                        City = "Salzburg",
-                        PostalCode = "5020",
-                        Country = "AT",
+                        Address = "Bahnhofstraße 15, 5020 Salzburg, Österreich",
                         TaxNumber = "ATU11111111",
-                        CompanyName = "Hans & Co"
+                        Category = CustomerCategory.VIP,
+                        DiscountPercentage = 10,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        Notes = "Demo müşteri - Hans & Co"
                     }
                 );
             }
@@ -245,7 +478,7 @@ namespace Registrierkasse.Data
                 {
                     context.Inventories.Add(new Inventory
                     {
-                        ProductId = product.Id,
+                        ProductId = product.Id, // string yerine Guid olarak atandı
                         CurrentStock = product.StockQuantity,
                         MinimumStock = product.MinStockLevel,
                         MaximumStock = product.StockQuantity * 2,
@@ -266,94 +499,73 @@ namespace Registrierkasse.Data
                 
                 if (customers.Any() && products.Any() && cashRegisters.Any())
                 {
-                    // İlk fatura
+                    // İlk fatura (ödendi)
                     var invoice1 = new Invoice
                     {
                         InvoiceNumber = "INV-2024-001",
-                        CashRegisterId = cashRegisters[0].Id,
+                        CashRegisterId = cashRegisters[0].Id.ToString(),
                         ReceiptNumber = "AT-DEMO-20240611-0001",
                         TseSignature = "DEMO_SIGNATURE_123456789",
                         IsPrinted = true,
-                        TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(new { standard = 20, reduced = 10, special = 13 })),
-                        TaxSummary = JsonDocument.Parse(JsonSerializer.Serialize(new { 
-                            StandardTaxBase = 12.50m, 
-                            StandardTaxAmount = 2.50m, 
-                            TotalAmount = 15.00m 
-                        })),
-                        PaymentDetails = JsonDocument.Parse(JsonSerializer.Serialize(new { 
-                            PaymentMethod = "Card", 
-                            Amount = 15.00m, 
-                            Currency = "EUR" 
-                        })),
+                        TaxDetails = JsonDocument.Parse("{\"standard\": 20, \"reduced\": 10, \"special\": 13}"),
+                        InvoiceItems = JsonDocument.Parse("[]"),
                         InvoiceDate = DateTime.UtcNow.AddDays(-1),
                         TotalAmount = 15.00m,
                         TaxAmount = 2.50m,
                         PaymentMethod = PaymentMethod.Card,
-                        PaymentStatus = "Paid",
-                        Status = "Completed",
-                        CustomerId = customers[0].Id,
+                        PaymentStatus = PaymentStatus.Paid,
+                        Status = InvoiceStatus.Paid,
+                        CustomerId = admin.Id,
                         DueDate = DateTime.UtcNow.AddDays(30),
-                        InvoiceType = "Standard"
+                        InvoiceType = "Standard",
+                        CreatedById = admin.Id,
+                        CreatedAt = DateTime.UtcNow.AddDays(-1)
                     };
 
                     // İkinci fatura (sadece 1 kasa varsa aynı kasa kullan)
                     var invoice2 = new Invoice
                     {
                         InvoiceNumber = "INV-2024-002",
-                        CashRegisterId = cashRegisters.Count > 1 ? cashRegisters[1].Id : cashRegisters[0].Id,
+                        CashRegisterId = cashRegisters.Count > 1 ? cashRegisters[1].Id.ToString() : cashRegisters[0].Id.ToString(),
                         ReceiptNumber = "AT-DEMO-20240611-0002",
                         TseSignature = "DEMO_SIGNATURE_987654321",
                         IsPrinted = true,
-                        TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(new { standard = 20, reduced = 10, special = 13 })),
-                        TaxSummary = JsonDocument.Parse(JsonSerializer.Serialize(new { 
-                            StandardTaxBase = 21.20m, 
-                            StandardTaxAmount = 4.23m, 
-                            TotalAmount = 25.40m 
-                        })),
-                        PaymentDetails = JsonDocument.Parse(JsonSerializer.Serialize(new { 
-                            PaymentMethod = "Cash", 
-                            Amount = 25.40m, 
-                            Currency = "EUR" 
-                        })),
+                        TaxDetails = JsonDocument.Parse("{\"standard\": 20, \"reduced\": 10, \"special\": 13}"),
+                        InvoiceItems = JsonDocument.Parse("[]"),
                         InvoiceDate = DateTime.UtcNow.AddDays(-2),
                         TotalAmount = 25.40m,
                         TaxAmount = 4.23m,
                         PaymentMethod = PaymentMethod.Cash,
-                        PaymentStatus = "Paid",
-                        Status = "Completed",
-                        CustomerId = customers.Count > 1 ? customers[1].Id : customers[0].Id,
+                        PaymentStatus = PaymentStatus.Paid,
+                        Status = InvoiceStatus.Paid,
+                        CustomerId = admin.Id,
                         DueDate = DateTime.UtcNow.AddDays(30),
-                        InvoiceType = "Standard"
+                        InvoiceType = "Standard",
+                        CreatedById = admin.Id,
+                        CreatedAt = DateTime.UtcNow.AddDays(-2)
                     };
 
                     // Üçüncü fatura (bekleyen)
                     var invoice3 = new Invoice
                     {
                         InvoiceNumber = "INV-2024-003",
-                        CashRegisterId = cashRegisters[0].Id,
+                        CashRegisterId = cashRegisters[0].Id.ToString(),
                         ReceiptNumber = "AT-DEMO-20240611-0003",
                         TseSignature = "DEMO_SIGNATURE_456789123",
                         IsPrinted = false,
-                        TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(new { standard = 20, reduced = 10, special = 13 })),
-                        TaxSummary = JsonDocument.Parse(JsonSerializer.Serialize(new { 
-                            StandardTaxBase = 7.08m, 
-                            StandardTaxAmount = 1.42m, 
-                            TotalAmount = 8.50m 
-                        })),
-                        PaymentDetails = JsonDocument.Parse(JsonSerializer.Serialize(new { 
-                            PaymentMethod = "Card", 
-                            Amount = 8.50m, 
-                            Currency = "EUR" 
-                        })),
+                        TaxDetails = JsonDocument.Parse("{\"standard\": 20, \"reduced\": 10, \"special\": 13}"),
+                        InvoiceItems = JsonDocument.Parse("[]"),
                         InvoiceDate = DateTime.UtcNow,
                         TotalAmount = 8.50m,
                         TaxAmount = 1.42m,
                         PaymentMethod = PaymentMethod.Card,
-                        PaymentStatus = "Pending",
-                        Status = "Pending",
-                        CustomerId = customers.Count > 2 ? customers[2].Id : customers[0].Id,
+                        PaymentStatus = PaymentStatus.Pending,
+                        Status = InvoiceStatus.Draft,
+                        CustomerId = admin.Id,
                         DueDate = DateTime.UtcNow.AddDays(30),
-                        InvoiceType = "Standard"
+                        InvoiceType = "Standard",
+                        CreatedById = admin.Id,
+                        CreatedAt = DateTime.UtcNow
                     };
 
                     context.Invoices.AddRange(invoice1, invoice2, invoice3);
@@ -372,7 +584,8 @@ namespace Registrierkasse.Data
                             Quantity = 2,
                             UnitPrice = 2.50m,
                             TotalAmount = 5.00m,
-                            TaxAmount = 1.00m
+                            TaxAmount = 1.00m,
+                            TaxType = TaxType.Standard
                         });
                     }
                     
@@ -385,7 +598,8 @@ namespace Registrierkasse.Data
                             Quantity = 1,
                             UnitPrice = 3.50m,
                             TotalAmount = 3.50m,
-                            TaxAmount = 0.70m
+                            TaxAmount = 0.70m,
+                            TaxType = TaxType.Standard
                         });
                     }
                     
@@ -399,7 +613,8 @@ namespace Registrierkasse.Data
                             Quantity = 1,
                             UnitPrice = 18.90m,
                             TotalAmount = 18.90m,
-                            TaxAmount = 3.78m
+                            TaxAmount = 3.78m,
+                            TaxType = TaxType.Standard
                         });
                     }
                     
@@ -412,7 +627,8 @@ namespace Registrierkasse.Data
                             Quantity = 1,
                             UnitPrice = 6.50m,
                             TotalAmount = 6.50m,
-                            TaxAmount = 0.45m
+                            TaxAmount = 0.45m,
+                            TaxType = TaxType.Reduced
                         });
                     }
                     
@@ -426,7 +642,8 @@ namespace Registrierkasse.Data
                             Quantity = 2,
                             UnitPrice = 3.50m,
                             TotalAmount = 7.00m,
-                            TaxAmount = 1.40m
+                            TaxAmount = 1.40m,
+                            TaxType = TaxType.Standard
                         });
                     }
                     
@@ -439,7 +656,8 @@ namespace Registrierkasse.Data
                             Quantity = 1,
                             UnitPrice = 1.50m,
                             TotalAmount = 1.50m,
-                            TaxAmount = 0.02m
+                            TaxAmount = 0.02m,
+                            TaxType = TaxType.Reduced
                         });
                     }
                     
@@ -457,9 +675,10 @@ namespace Registrierkasse.Data
                         UserName = "Demo User",
                         Action = "Login",
                         EntityType = "User",
+                        EntityName = "Demo User",
                         EntityId = "demo-entity",
-                        OldValues = "",
-                        NewValues = "",
+                        OldValues = "{}",
+                        NewValues = "{}",
                         Status = "Success",
                         IpAddress = "127.0.0.1",
                         UserAgent = "Demo Browser",
@@ -471,8 +690,9 @@ namespace Registrierkasse.Data
                         UserName = "Demo User",
                         Action = "Create",
                         EntityType = "Invoice",
+                        EntityName = "Demo Invoice",
                         EntityId = "demo-invoice-1",
-                        OldValues = "",
+                        OldValues = "{}",
                         NewValues = "{\"totalAmount\": 15.00}",
                         Status = "Success",
                         IpAddress = "127.0.0.1",
@@ -485,6 +705,7 @@ namespace Registrierkasse.Data
                         UserName = "Demo User",
                         Action = "Update",
                         EntityType = "Product",
+                        EntityName = "Demo Product",
                         EntityId = "demo-product-1",
                         OldValues = "{\"stockQuantity\": 100}",
                         NewValues = "{\"stockQuantity\": 95}",
@@ -499,29 +720,7 @@ namespace Registrierkasse.Data
             // System Configuration
             if (!context.SystemConfigurations.Any())
             {
-                context.SystemConfigurations.Add(new SystemConfiguration
-                {
-                    OperationMode = "online-only",
-                    OfflineSettings = new OfflineSettings
-                    {
-                        Enabled = false,
-                        SyncInterval = 5,
-                        MaxOfflineDays = 7,
-                        AutoSync = false
-                    },
-                    TseSettings = new TseSettings
-                    {
-                        Required = true,
-                        OfflineAllowed = false,
-                        MaxOfflineTransactions = 100
-                    },
-                    PrinterSettings = new PrinterSettings
-                    {
-                        Required = true,
-                        OfflineQueue = false,
-                        MaxQueueSize = 50
-                    }
-                });
+                context.SystemConfigurations.Add(new SystemConfiguration());
             }
 
             await context.SaveChangesAsync();

@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -6,8 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { Product } from '../services/api/productService';
 

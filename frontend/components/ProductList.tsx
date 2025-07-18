@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -7,8 +9,7 @@ import {
   FlatList,
   Dimensions,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { Product } from '../services/api/productService';
 
@@ -32,82 +33,44 @@ const ProductList: React.FC<ProductListProps> = ({
   // Container genişliğini hesapla (sol panel genişliği)
   const containerWidth = screenWidth * 0.5; // Sol panel genişliği (yaklaşık %50)
   
-  // Ekran boyutuna göre sütun sayısını hesapla
-  let numColumns = 1; // Varsayılan olarak tek sütun
+  // Ekran boyutuna göre sütun sayısını hesapla - daha fazla sütun için optimize edildi
+  let numColumns = 2; // Varsayılan olarak 2 sütun
   
   if (screenWidth >= 768) {
-    // Tablet ve büyük ekranlar için 2+ sütun
-    numColumns = Math.max(2, Math.floor((containerWidth - 16) / 130));
+    // Tablet ve büyük ekranlar için 3+ sütun
+    numColumns = Math.max(3, Math.floor((containerWidth - 16) / 100));
   } else if (screenWidth >= 480) {
-    // Orta boyutlu ekranlar için 2 sütun
-    numColumns = 2;
+    // Orta boyutlu ekranlar için 3 sütun
+    numColumns = 3;
   } else {
-    // Küçük ekranlar için tek sütun
-    numColumns = 1;
+    // Küçük ekranlar için 2 sütun
+    numColumns = 2;
   }
   
-  // Ürün kartı genişliğini hesapla
+  // Ürün kartı genişliğini hesapla - daha küçük kartlar
   const cardWidth = numColumns === 1 
     ? containerWidth - 16 // Tek sütun için tam genişlik
-    : Math.max(120, (containerWidth - 16 - (numColumns * 8)) / numColumns);
+    : Math.max(80, (containerWidth - 16 - (numColumns * 4)) / numColumns); // Minimum 80px genişlik
 
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity
-      style={[
-        styles.productItem, 
-        { width: cardWidth },
-        numColumns === 1 && styles.productItemSingle // Tek sütun için özel stil
-      ]}
+      style={styles.productCard}
       onPress={() => onAddToCart(item)}
+      activeOpacity={0.85}
     >
-      <View style={[
-        styles.productHeader,
-        numColumns === 1 && styles.productHeaderSingle
-      ]}>
+      <View style={styles.productInfoContainer}>
+        <Text style={styles.productName}>{item.name}</Text>
+        <Text style={styles.productCategory}>{item.category}</Text>
+      </View>
+      <View style={styles.productFooterContainer}>
+        <Text style={styles.productPrice}>€{item.price.toFixed(2)}</Text>
         <TouchableOpacity
-          style={styles.favoriteButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            onToggleFavorite(item);
-          }}
+          style={styles.addButton}
+          onPress={() => onAddToCart(item)}
+          activeOpacity={0.7}
         >
-          <Ionicons 
-            name={userFavorites.some(fav => fav.id === item.id) ? "heart" : "heart-outline"} 
-            size={16} 
-            color={userFavorites.some(fav => fav.id === item.id) ? Colors.light.primary : Colors.light.textSecondary} 
-          />
+          <Ionicons name="add" size={32} color="#fff" />
         </TouchableOpacity>
-      </View>
-      
-      <View style={[
-        styles.productInfo,
-        numColumns === 1 && styles.productInfoSingle
-      ]}>
-        <Text style={[
-          styles.productName, 
-          numColumns === 1 && styles.productNameSingle
-        ]} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={[
-          styles.productCategory,
-          numColumns === 1 && styles.productCategorySingle
-        ]} numberOfLines={1}>
-          {item.category}
-        </Text>
-      </View>
-      
-      <View style={[
-        styles.productFooter,
-        numColumns === 1 && styles.productFooterSingle
-      ]}>
-        <Text style={[
-          styles.priceText,
-          numColumns === 1 && styles.priceTextSingle
-        ]}>€{item.price.toFixed(2)}</Text>
-        <View style={styles.addButton}>
-          <Ionicons name="add" size={16} color="white" />
-        </View>
       </View>
     </TouchableOpacity>
   );
@@ -134,14 +97,16 @@ const styles = StyleSheet.create({
   productsSection: {
     flex: 1,
     width: '100%',
+    backgroundColor: '#f8fafc', // Modern açık gri arka plan
   },
   sectionTitleSmall: {
     ...Typography.caption,
-    color: Colors.light.text,
+    color: '#1e293b', // Modern koyu mavi-gri
     marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.sm,
-    fontWeight: '600',
-    fontSize: 12,
+    fontWeight: '700', // Daha kalın font
+    fontSize: 14,
+    letterSpacing: 0.5, // Harf aralığı
   },
   flatListContainer: {
     width: '100%',
@@ -150,99 +115,80 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xs,
     width: '100%',
   },
-  productItem: {
-    backgroundColor: Colors.light.background,
-    margin: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-    padding: Spacing.xs,
-    minWidth: 120,
-    maxWidth: 160,
+  productCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16, // Daha yumuşak köşeler
+    padding: 16, // Biraz daha fazla padding
+    margin: 6, // Biraz daha fazla margin
+    alignItems: 'center',
+    justifyContent: 'space-between',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 4, // Daha belirgin gölge
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  productHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: Spacing.xs,
-  },
-  favoriteButton: {
-    padding: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-  },
-  productInfo: {
+    shadowOpacity: 0.08, // Daha yumuşak gölge
+    shadowRadius: 8, // Daha yumuşak gölge
+    elevation: 4, // Android için gölge
+    minWidth: 90, // Biraz daha geniş
+    minHeight: 130, // Biraz daha yüksek
     flex: 1,
-    marginBottom: Spacing.xs,
+    borderWidth: 1,
+    borderColor: '#e2e8f0', // Modern border rengi
+  },
+  productInfoContainer: {
+    alignItems: 'center',
+    marginBottom: 10,
+    width: '100%',
   },
   productName: {
-    ...Typography.caption,
-    color: Colors.light.text,
-    fontWeight: '600',
-    fontSize: 11,
-    marginBottom: Spacing.xs,
+    fontSize: 15, // Biraz daha büyük
+    fontWeight: '700', // Daha kalın
+    color: '#1e293b', // Modern koyu renk
+    marginBottom: 4,
     textAlign: 'center',
+    lineHeight: 20, // Satır yüksekliği
+    letterSpacing: 0.2, // Harf aralığı
   },
   productCategory: {
-    ...Typography.caption,
-    color: Colors.light.textSecondary,
-    fontSize: 10,
+    fontSize: 12,
+    color: '#64748b', // Modern gri renk
+    marginBottom: 8,
     textAlign: 'center',
+    fontWeight: '500', // Orta kalınlık
+    textTransform: 'uppercase', // Büyük harf
+    letterSpacing: 0.5, // Harf aralığı
   },
-  productFooter: {
+  productFooterContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 4,
   },
-  priceText: {
-    ...Typography.caption,
-    color: Colors.light.primary,
-    fontWeight: '600',
-    fontSize: 11,
+  productPrice: {
+    fontSize: 17, // Biraz daha büyük
+    fontWeight: '800', // Çok kalın
+    color: '#059669', // Modern yeşil renk
+    letterSpacing: 0.3, // Harf aralığı
   },
   addButton: {
-    backgroundColor: Colors.light.primary,
-    width: 24,
-    height: 24,
-    borderRadius: BorderRadius.sm,
+    backgroundColor: '#059669', // Modern yeşil
+    borderRadius: 20, // Daha yumuşak köşeler
+    padding: 10, // Biraz daha fazla padding
+    marginLeft: 8,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // Tek sütun görünümü için özel stiller
-  productItemSingle: {
-    width: '100%',
-    maxWidth: '100%',
-    minWidth: '100%',
-    padding: Spacing.sm,
-  },
-  productHeaderSingle: {
-    marginBottom: Spacing.xs,
-  },
-  productInfoSingle: {
-    marginBottom: Spacing.xs,
-  },
-  productNameSingle: {
-    fontSize: 12,
-    marginBottom: Spacing.xs,
-    textAlign: 'left',
-  },
-  productCategorySingle: {
-    fontSize: 10,
-    textAlign: 'left',
-  },
-  productFooterSingle: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  priceTextSingle: {
-    fontSize: 12,
+    shadowColor: '#059669',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3, // Gölge efekti
+    shadowRadius: 4,
+    elevation: 3,
+    // Hover efekti için
+    transform: [{ scale: 1 }],
   },
 });
 

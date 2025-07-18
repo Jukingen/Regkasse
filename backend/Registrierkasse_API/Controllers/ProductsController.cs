@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
+using Registrierkasse_API.Data;
+using Registrierkasse_API.Models;
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Registrierkasse.Controllers
+namespace Registrierkasse_API.Controllers
 {
     [Authorize]
     [Route("api/[controller]")]
@@ -76,7 +76,7 @@ namespace Registrierkasse.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Administrator,Manager")]
-        public async Task<IActionResult> CreateProduct([FromBody] Product product)
+        public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
         {
             try
             {
@@ -86,10 +86,27 @@ namespace Registrierkasse.Controllers
                 }
 
                 // Ürün kodu benzersizlik kontrolü
-                if (await _context.Products.AnyAsync(p => p.Barcode == product.Barcode))
+                if (await _context.Products.AnyAsync(p => p.Barcode == request.Barcode))
                 {
-                    return BadRequest(new { message = "Bu barkod zaten kullanılıyor" });
+                    return BadRequest(new { error = "Barcode already exists" });
                 }
+
+                var product = new Product
+                {
+                    Name = request.Name,
+                    Description = request.Description,
+                    Price = request.Price,
+                    StockQuantity = request.StockQuantity,
+                    MinStockLevel = request.MinStockLevel,
+                    Barcode = request.Barcode,
+                    Category = request.Category,
+                    Unit = request.Unit,
+                    TaxRate = request.TaxRate,
+                    TaxType = request.TaxType,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
 
                 _context.Products.Add(product);
                 await _context.SaveChangesAsync();
@@ -100,65 +117,102 @@ namespace Registrierkasse.Controllers
                     ProductId = product.Id,
                     CurrentStock = product.StockQuantity,
                     MinimumStock = product.MinStockLevel,
-                    MaximumStock = 100,
-                    LastStockUpdate = DateTime.UtcNow
+                    MaximumStock = request.MaxStockLevel ?? 100,
+                    LastStockUpdate = DateTime.UtcNow,
+                    Location = request.Location ?? "Main Warehouse",
+                    Notes = "Initial stock entry",
+                    IsActive = true
                 };
 
                 _context.Inventories.Add(inventory);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation($"Yeni ürün oluşturuldu: {product.Name} - Kategori: {product.Category}");
+                _logger.LogInformation($"New product created: {product.Name} - Category: {product.Category}");
 
-                return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, 
-                    new { message = "Ürün başarıyla oluşturuldu", product });
+                return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, new
+                {
+                    id = product.Id,
+                    name = product.Name,
+                    description = product.Description,
+                    price = product.Price,
+                    stockQuantity = product.StockQuantity,
+                    minStockLevel = product.MinStockLevel,
+                    barcode = product.Barcode,
+                    category = product.Category,
+                    unit = product.Unit,
+                    taxRate = product.TaxRate,
+                    isActive = product.IsActive,
+                    createdAt = product.CreatedAt,
+                    updatedAt = product.UpdatedAt
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Ürün oluşturulurken bir hata oluştu");
-                return StatusCode(500, new { message = "Ürün oluşturulurken bir hata oluştu", error = ex.Message });
+                _logger.LogError(ex, "Error creating product");
+                return StatusCode(500, new { error = "Failed to create product", details = ex.Message });
             }
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Administrator,Manager")]
-        public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] Product product)
+        public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] UpdateProductRequest request)
         {
             try
             {
-                if (id != product.Id)
+                if (!ModelState.IsValid)
                 {
-                    return BadRequest(new { message = "ID'ler eşleşmiyor" });
+                    return BadRequest(ModelState);
+                }
+
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                {
+                    return NotFound(new { error = "Product not found" });
                 }
 
                 // Ürün kodu benzersizlik kontrolü (kendi ID'si hariç)
-                if (await _context.Products.AnyAsync(p => p.Barcode == product.Barcode && p.Id != id))
+                if (await _context.Products.AnyAsync(p => p.Barcode == request.Barcode && p.Id != id))
                 {
-                    return BadRequest(new { message = "Bu barkod zaten kullanılıyor" });
+                    return BadRequest(new { error = "Barcode already exists" });
                 }
 
-                _context.Entry(product).State = EntityState.Modified;
+                product.Name = request.Name;
+                product.Description = request.Description;
+                product.Price = request.Price;
+                product.StockQuantity = request.StockQuantity;
+                product.MinStockLevel = request.MinStockLevel;
+                product.Barcode = request.Barcode;
+                product.Category = request.Category;
+                product.Unit = request.Unit;
+                product.TaxRate = request.TaxRate;
+                product.TaxType = request.TaxType;
+                product.UpdatedAt = DateTime.UtcNow;
 
-                try
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Product updated: {product.Name} - Category: {product.Category}");
+
+                return Ok(new
                 {
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ProductExists(id))
-                    {
-                        return NotFound(new { message = $"ID: {id} olan ürün bulunamadı" });
-                    }
-                    throw;
-                }
-
-                _logger.LogInformation($"Ürün güncellendi: {product.Name} - Kategori: {product.Category}");
-
-                return Ok(new { message = "Ürün başarıyla güncellendi", product });
+                    id = product.Id,
+                    name = product.Name,
+                    description = product.Description,
+                    price = product.Price,
+                    stockQuantity = product.StockQuantity,
+                    minStockLevel = product.MinStockLevel,
+                    barcode = product.Barcode,
+                    category = product.Category,
+                    unit = product.Unit,
+                    taxRate = product.TaxRate,
+                    isActive = product.IsActive,
+                    createdAt = product.CreatedAt,
+                    updatedAt = product.UpdatedAt
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"ID: {id} olan ürün güncellenirken bir hata oluştu");
-                return StatusCode(500, new { message = "Ürün güncellenirken bir hata oluştu", error = ex.Message });
+                _logger.LogError(ex, $"Error updating product with ID: {id}");
+                return StatusCode(500, new { error = "Failed to update product", details = ex.Message });
             }
         }
 
@@ -171,21 +225,22 @@ namespace Registrierkasse.Controllers
                 var product = await _context.Products.FindAsync(id);
                 if (product == null)
                 {
-                    return NotFound(new { message = $"ID: {id} olan ürün bulunamadı" });
+                    return NotFound(new { error = "Product not found" });
                 }
 
                 // Soft delete - sadece aktif durumunu false yap
                 product.IsActive = false;
+                product.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation($"Ürün silindi: {product.Name} - Kategori: {product.Category}");
+                _logger.LogInformation($"Product deleted: {product.Name} - Category: {product.Category}");
 
-                return Ok(new { message = "Ürün başarıyla silindi" });
+                return Ok(new { message = "Product deleted successfully" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"ID: {id} olan ürün silinirken bir hata oluştu");
-                return StatusCode(500, new { message = "Ürün silinirken bir hata oluştu", error = ex.Message });
+                _logger.LogError(ex, $"Error deleting product with ID: {id}");
+                return StatusCode(500, new { error = "Failed to delete product", details = ex.Message });
             }
         }
 
@@ -205,7 +260,7 @@ namespace Registrierkasse.Controllers
         {
             if (string.IsNullOrEmpty(q))
             {
-                return BadRequest(new { message = "Arama terimi gerekli" });
+                return BadRequest(new { error = "Search term is required" });
             }
 
             var products = await _context.Products
@@ -221,9 +276,76 @@ namespace Registrierkasse.Controllers
             return Ok(products);
         }
 
+        [HttpPatch("{id}/status")]
+        [Authorize(Roles = "Administrator,Manager")]
+        public async Task<IActionResult> UpdateProductStatus(Guid id, [FromBody] UpdateProductStatusRequest request)
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                {
+                    return NotFound(new { error = "Product not found" });
+                }
+
+                product.IsActive = request.IsActive;
+                product.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    id = product.Id,
+                    isActive = product.IsActive,
+                    updatedAt = product.UpdatedAt
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating product status with ID: {id}");
+                return StatusCode(500, new { error = "Failed to update product status", details = ex.Message });
+            }
+        }
+
         private bool ProductExists(Guid id)
         {
             return _context.Products.Any(e => e.Id == id);
         }
+    }
+
+    // Request Models
+    public class CreateProductRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int StockQuantity { get; set; }
+        public int MinStockLevel { get; set; }
+        public string Barcode { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Unit { get; set; } = string.Empty;
+        public decimal TaxRate { get; set; }
+        public TaxType TaxType { get; set; } = TaxType.Standard;
+        public int? MaxStockLevel { get; set; }
+        public string? Location { get; set; }
+    }
+
+    public class UpdateProductRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int StockQuantity { get; set; }
+        public int MinStockLevel { get; set; }
+        public string Barcode { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Unit { get; set; } = string.Empty;
+        public decimal TaxRate { get; set; }
+        public TaxType TaxType { get; set; } = TaxType.Standard;
+    }
+
+    public class UpdateProductStatusRequest
+    {
+        public bool IsActive { get; set; }
     }
 } 

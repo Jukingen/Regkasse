@@ -1,235 +1,309 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
-using System;
-using System.Threading.Tasks;
+using Registrierkasse_API.Models;
+using Registrierkasse_API.Services;
+using System.Security.Claims;
 
-namespace Registrierkasse.Controllers
+namespace Registrierkasse_API.Controllers
 {
-    [Authorize]
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
     public class CustomerController : ControllerBase
     {
-        private readonly AppDbContext _context;
-        private readonly ILogger<CustomerController> _logger;
+        private readonly ICustomerService _customerService;
 
-        public CustomerController(AppDbContext context, ILogger<CustomerController> logger)
+        public CustomerController(ICustomerService customerService)
         {
-            _context = context;
-            _logger = logger;
+            _customerService = customerService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetCustomers()
+        public async Task<ActionResult<IEnumerable<Customer>>> GetAllCustomers()
         {
             try
             {
-                var customers = await _context.Customers
-                    .AsNoTracking()
-                    .ToListAsync();
-
-                return Ok(new { message = "Müşteriler başarıyla getirildi", customers });
+                var customers = await _customerService.GetAllCustomersAsync();
+                return Ok(customers);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Müşteriler getirilirken bir hata oluştu");
-                return StatusCode(500, new { message = "Müşteriler getirilirken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { error = "Failed to retrieve customers", message = ex.Message });
             }
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetCustomer(Guid id)
+        public async Task<ActionResult<Customer>> GetCustomer(Guid id)
         {
             try
             {
-                var customer = await _context.Customers
-                    .Include(c => c.Orders)
-                    .Include(c => c.Invoices)
-                    .FirstOrDefaultAsync(c => c.Id == id);
-
+                var customer = await _customerService.GetCustomerByIdAsync(id);
+                
                 if (customer == null)
-                {
-                    return NotFound(new { message = "Müşteri bulunamadı" });
-                }
+                    return NotFound(new { error = "Customer not found" });
 
-                return Ok(new { message = "Müşteri başarıyla getirildi", customer });
+                return Ok(customer);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"ID: {id} olan müşteri getirilirken bir hata oluştu");
-                return StatusCode(500, new { message = "Müşteri getirilirken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { error = "Failed to retrieve customer", message = ex.Message });
             }
         }
 
-        [HttpPost]
-        [Authorize(Roles = "Administrator,Manager")]
-        public async Task<IActionResult> CreateCustomer([FromBody] Customer customer)
+        [HttpGet("email/{email}")]
+        public async Task<ActionResult<Customer>> GetCustomerByEmail(string email)
         {
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
+                var customer = await _customerService.GetCustomerByEmailAsync(email);
+                
+                if (customer == null)
+                    return NotFound(new { error = "Customer not found" });
 
-                customer.CustomerNumber = await GenerateCustomerNumber();
-                _context.Customers.Add(customer);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Yeni müşteri oluşturuldu: {customer.FirstName} {customer.LastName}");
-
-                return CreatedAtAction(nameof(GetCustomer), new { id = customer.Id },
-                    new { message = "Müşteri başarıyla oluşturuldu", customer });
+                return Ok(customer);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Müşteri oluşturulurken bir hata oluştu");
-                return StatusCode(500, new { message = "Müşteri oluşturulurken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { error = "Failed to retrieve customer", message = ex.Message });
             }
         }
 
-        [HttpPut("{id}")]
-        [Authorize(Roles = "Administrator,Manager")]
-        public async Task<IActionResult> UpdateCustomer(Guid id, [FromBody] UpdateCustomerModel model)
+        [HttpGet("category/{category}")]
+        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomersByCategory(CustomerCategory category)
         {
             try
             {
-                var customer = await _context.Customers.FindAsync(id);
-                if (customer == null)
-                {
-                    return NotFound(new { message = "Müşteri bulunamadı" });
-                }
-
-                customer.FirstName = model.FirstName;
-                customer.LastName = model.LastName;
-                customer.Email = model.Email;
-                customer.Phone = model.Phone;
-                customer.Address = model.Address;
-                customer.City = model.City;
-                customer.PostalCode = model.PostalCode;
-                customer.Country = model.Country;
-                customer.TaxNumber = model.TaxNumber;
-
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Müşteri başarıyla güncellendi", customer });
+                var customers = await _customerService.GetCustomersByCategoryAsync(category);
+                return Ok(customers);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"ID: {id} olan müşteri güncellenirken bir hata oluştu");
-                return StatusCode(500, new { message = "Müşteri güncellenirken bir hata oluştu", error = ex.Message });
-            }
-        }
-
-        [HttpDelete("{id}")]
-        [Authorize(Roles = "Administrator")]
-        public async Task<IActionResult> DeleteCustomer(Guid id)
-        {
-            try
-            {
-                var customer = await _context.Customers.FindAsync(id);
-                if (customer == null)
-                {
-                    return NotFound(new { message = "Müşteri bulunamadı" });
-                }
-
-                _context.Customers.Remove(customer);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Müşteri silindi: {customer.FirstName} {customer.LastName}");
-
-                return Ok(new { message = "Müşteri başarıyla silindi" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"ID: {id} olan müşteri silinirken bir hata oluştu");
-                return StatusCode(500, new { message = "Müşteri silinirken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { error = "Failed to retrieve customers by category", message = ex.Message });
             }
         }
 
         [HttpGet("search")]
-        public async Task<IActionResult> SearchCustomers([FromQuery] string query)
+        public async Task<ActionResult<IEnumerable<Customer>>> SearchCustomers([FromQuery] string q)
         {
             try
             {
-                var customers = await _context.Customers
-                    .Where(c =>
-                        c.FirstName.Contains(query) ||
-                        c.LastName.Contains(query) ||
-                        c.CompanyName.Contains(query) ||
-                        c.CustomerNumber.Contains(query) ||
-                        c.Email.Contains(query) ||
-                        c.Phone.Contains(query))
-                    .AsNoTracking()
-                    .ToListAsync();
+                if (string.IsNullOrWhiteSpace(q))
+                    return BadRequest(new { error = "Search term is required" });
 
-                return Ok(new { message = "Müşteriler başarıyla arandı", customers });
+                var customers = await _customerService.SearchCustomersAsync(q);
+                return Ok(customers);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Müşteriler aranırken bir hata oluştu");
-                return StatusCode(500, new { message = "Müşteriler aranırken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { error = "Failed to search customers", message = ex.Message });
             }
         }
 
-        [HttpGet("{id}/orders")]
-        public async Task<IActionResult> GetCustomerOrders(Guid id)
+        [HttpPost]
+        public async Task<ActionResult<Customer>> CreateCustomer([FromBody] Customer customer)
         {
             try
             {
-                var orders = await _context.Orders
-                    .Include(o => o.Customer)
-                    .Include(o => o.OrderItems)
-                    .Where(o => o.CustomerId == id && o.IsActive)
-                    .ToListAsync();
+                if (string.IsNullOrWhiteSpace(customer.Name))
+                    return BadRequest(new { error = "Customer name is required" });
 
-                return Ok(new { message = "Müşteri siparişleri başarıyla getirildi", orders });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"ID: {id} olan müşterinin siparişleri getirilirken bir hata oluştu");
-                return StatusCode(500, new { message = "Müşteri siparişleri getirilirken bir hata oluştu", error = ex.Message });
-            }
-        }
-
-        private async Task<string> GenerateCustomerNumber()
-        {
-            var lastCustomer = await _context.Customers
-                .OrderByDescending(c => c.Id)
-                .FirstOrDefaultAsync();
-
-            int nextNumber = 1;
-            if (lastCustomer != null && lastCustomer.CustomerNumber != null)
-            {
-                if (int.TryParse(lastCustomer.CustomerNumber.Replace("CUST", ""), out int lastNumber))
+                if (!string.IsNullOrWhiteSpace(customer.Email))
                 {
-                    nextNumber = lastNumber + 1;
+                    var existingCustomer = await _customerService.GetCustomerByEmailAsync(customer.Email);
+                    if (existingCustomer != null)
+                        return BadRequest(new { error = "Customer with this email already exists" });
                 }
-            }
 
-            return $"CUST{nextNumber:D6}";
+                var createdCustomer = await _customerService.CreateCustomerAsync(customer);
+                return CreatedAtAction(nameof(GetCustomer), new { id = createdCustomer.Id }, createdCustomer);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to create customer", message = ex.Message });
+            }
         }
 
-        private bool CustomerExists(Guid id)
+        [HttpPut("{id}")]
+        public async Task<ActionResult<Customer>> UpdateCustomer(Guid id, [FromBody] Customer customer)
         {
-            return _context.Customers.Any(e => e.Id == id);
+            try
+            {
+                if (string.IsNullOrWhiteSpace(customer.Name))
+                    return BadRequest(new { error = "Customer name is required" });
+
+                var updatedCustomer = await _customerService.UpdateCustomerAsync(id, customer);
+                return Ok(updatedCustomer);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to update customer", message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<ActionResult> DeleteCustomer(Guid id)
+        {
+            try
+            {
+                var success = await _customerService.DeleteCustomerAsync(id);
+                
+                if (!success)
+                    return NotFound(new { error = "Customer not found" });
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to delete customer", message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/loyalty-points")]
+        public async Task<ActionResult<Customer>> UpdateLoyaltyPoints(Guid id, [FromBody] LoyaltyPointsRequest request)
+        {
+            try
+            {
+                var customer = await _customerService.UpdateLoyaltyPointsAsync(id, request.Points);
+                return Ok(customer);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to update loyalty points", message = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/discount")]
+        public async Task<ActionResult<decimal>> CalculateCustomerDiscount(Guid id, [FromQuery] decimal totalAmount)
+        {
+            try
+            {
+                if (totalAmount <= 0)
+                    return BadRequest(new { error = "Total amount must be greater than 0" });
+
+                var discount = await _customerService.CalculateCustomerDiscountAsync(id, totalAmount);
+                return Ok(new { customerId = id, totalAmount, discount });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to calculate customer discount", message = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/discounts")]
+        public async Task<ActionResult<IEnumerable<CustomerDiscount>>> GetCustomerDiscounts(Guid id)
+        {
+            try
+            {
+                var discounts = await _customerService.GetCustomerDiscountsAsync(id);
+                return Ok(discounts);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to retrieve customer discounts", message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/discounts")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<ActionResult<CustomerDiscount>> AddCustomerDiscount(Guid id, [FromBody] CustomerDiscount discount)
+        {
+            try
+            {
+                discount.CustomerId = id;
+                
+                if (discount.DiscountValue <= 0)
+                    return BadRequest(new { error = "Discount value must be greater than 0" });
+
+                var createdDiscount = await _customerService.AddCustomerDiscountAsync(discount);
+                return CreatedAtAction(nameof(GetCustomerDiscounts), new { id }, createdDiscount);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to add customer discount", message = ex.Message });
+            }
+        }
+
+        [HttpDelete("discounts/{discountId}")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<ActionResult> RemoveCustomerDiscount(Guid discountId)
+        {
+            try
+            {
+                var success = await _customerService.RemoveCustomerDiscountAsync(discountId);
+                
+                if (!success)
+                    return NotFound(new { error = "Customer discount not found" });
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to remove customer discount", message = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/statistics")]
+        public async Task<ActionResult<CustomerStatistics>> GetCustomerStatistics(Guid id)
+        {
+            try
+            {
+                var statistics = await _customerService.GetCustomerStatisticsAsync(id);
+                return Ok(statistics);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Failed to retrieve customer statistics", message = ex.Message });
+            }
+        }
+
+        [HttpGet("categories")]
+        public ActionResult<IEnumerable<object>> GetCustomerCategories()
+        {
+            var categories = Enum.GetValues(typeof(CustomerCategory))
+                .Cast<CustomerCategory>()
+                .Select(c => new { 
+                    value = (int)c, 
+                    name = c.ToString(),
+                    displayName = GetCategoryDisplayName(c)
+                });
+
+            return Ok(categories);
+        }
+
+        private string GetCategoryDisplayName(CustomerCategory category)
+        {
+            return category switch
+            {
+                CustomerCategory.Regular => "Düzenli",
+                CustomerCategory.VIP => "VIP",
+                CustomerCategory.Premium => "Premium",
+                CustomerCategory.Corporate => "Kurumsal",
+                CustomerCategory.Student => "Öğrenci",
+                CustomerCategory.Senior => "Yaşlı",
+                _ => category.ToString()
+            };
         }
     }
 
-    public class UpdateCustomerModel
+    public class LoyaltyPointsRequest
     {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string Email { get; set; }
-        public string Phone { get; set; }
-        public string Address { get; set; }
-        public string City { get; set; }
-        public string PostalCode { get; set; }
-        public string Country { get; set; }
-        public string TaxNumber { get; set; }
+        public int Points { get; set; }
     }
 } 

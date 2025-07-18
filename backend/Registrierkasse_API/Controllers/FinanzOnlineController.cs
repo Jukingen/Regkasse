@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Registrierkasse.Services;
+using Registrierkasse_API.Services;
 using System.Threading.Tasks;
 
-namespace Registrierkasse.Controllers
+namespace Registrierkasse_API.Controllers
 {
     [Authorize(Roles = "Administrator,Manager")]
     [Route("api/[controller]")]

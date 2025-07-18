@@ -15,13 +15,67 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.registrierkasse.cashregister"
+      "bundleIdentifier": "com.registrierkasse.cashregister",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSExceptionDomains": {
+            "localhost": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            },
+            "192.168.1.2": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            },
+            "192.168.1.100": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            },
+            "192.168.0.100": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            },
+            "10.0.0.100": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            },
+            "172.20.10.1": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "package": "com.registrierkasse.cashregister"
+      "package": "com.registrierkasse.cashregister",
+      "usesCleartextTraffic": true,
+      "networkSecurityConfig": {
+        "domain-config": [
+          {
+            "domain": "localhost",
+            "cleartextTrafficPermitted": true
+          },
+          {
+            "domain": "192.168.1.2",
+            "cleartextTrafficPermitted": true
+          },
+          {
+            "domain": "192.168.1.100",
+            "cleartextTrafficPermitted": true
+          },
+          {
+            "domain": "192.168.0.100",
+            "cleartextTrafficPermitted": true
+          },
+          {
+            "domain": "10.0.0.100",
+            "cleartextTrafficPermitted": true
+          },
+          {
+            "domain": "172.20.10.1",
+            "cleartextTrafficPermitted": true
+          }
+        ]
+      }
     },
     "web": {
       "bundler": "metro",

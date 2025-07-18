@@ -1,61 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Registrierkasse.Models
+namespace Registrierkasse_API.Models
 {
-    public enum OrderStatus
-    {
-        Pending,
-        InProgress,
-        Completed,
-        Cancelled
-    }
-
-    [Table("orders")]
     public class Order : BaseEntity
     {
         [Required]
-        [Column("order_number")]
-        [MaxLength(20)]
+        [MaxLength(50)]
         public string OrderNumber { get; set; } = string.Empty;
-        
-        [Column("customer_id")]
-        public Guid? CustomerId { get; set; }
-        
-        [ForeignKey("CustomerId")]
-        public virtual Customer? Customer { get; set; }
-        
-        [Column("table_number")]
-        public int TableNumber { get; set; }
-        
-        [Column("waiter_name")]
-        [MaxLength(100)]
-        public string WaiterName { get; set; } = string.Empty;
-        
-        [Column("status")]
-        [MaxLength(20)]
-        public string Status { get; set; } = OrderStatus.Pending.ToString();
-        
-        [Column("total_amount")]
+
+        public DateTime OrderDate { get; set; } = DateTime.UtcNow;
+
+        public OrderStatus Status { get; set; } = OrderStatus.Pending;
+
         public decimal TotalAmount { get; set; }
-        
-        [Column("tax_amount")]
-        public decimal TaxAmount { get; set; }
-        
-        [Column("discount_amount")]
-        public decimal DiscountAmount { get; set; }
-        
-        [Column("notes")]
-        [MaxLength(500)]
-        public string Notes { get; set; } = string.Empty;
-        
-        [Column("is_active")]
-        public new bool IsActive { get; set; } = true;
-        
+
+        [MaxLength(10)]
+        public string? TableNumber { get; set; }
+
+        [MaxLength(50)]
+        public string? WaiterName { get; set; }
+
+        [MaxLength(200)]
+        public string? Notes { get; set; }
+
+        public string? CustomerId { get; set; }
+        public virtual Customer? Customer { get; set; }
+
         public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
-        
-        public virtual Invoice? Invoice { get; set; }
     }
 }

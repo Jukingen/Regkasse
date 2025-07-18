@@ -1,8 +1,10 @@
-import { Redirect } from 'expo-router';
-import { useAuth } from '../contexts/AuthContext';
-import { View, ActivityIndicator, Text } from 'react-native';
-import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Redirect } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { View, ActivityIndicator, Text } from 'react-native';
+
+import { useAuth } from '../contexts/AuthContext';
+
 
 export default function Index() {
     const { isAuthenticated, isLoading, user } = useAuth();

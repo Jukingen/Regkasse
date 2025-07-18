@@ -1,10 +1,30 @@
-import { Product } from '../services/api/productService';
+// Türkçe Açıklama: CartItem ve Product tipleri backend ile birebir uyumlu olacak şekilde güncellenmiştir.
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  stockQuantity: number;
+  unit: string;
+  category: string;
+  taxType: 'Standard' | 'Reduced' | 'Special';
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface CartItem {
+  id: string;
   product: Product;
   quantity: number;
+  unitPrice: number;
+  taxRate: number;
+  discountAmount: number;
+  taxAmount: number;
+  totalAmount: number;
   notes?: string;
-  discount?: number;
+  isModified: boolean;
 }
 
 export interface Order {

@@ -1,17 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { jwtDecode } from 'jwt-decode';
-import { authService } from '../services/api/authService';
 import { router } from 'expo-router';
+import { jwtDecode } from 'jwt-decode';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+import * as authService from '../services/api/authService';
 import { handleAPIError } from '../services/errorService';
 
 interface User {
     id: string;
+    username: string;
     email: string;
-    firstName: string;
-    lastName: string;
     role: string;
-    employeeNumber: string;
 }
 
 interface AuthResponse {
@@ -36,6 +35,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [justLoggedIn, setJustLoggedIn] = useState(false);
+    const [lastActivity, setLastActivity] = useState<number>(Date.now());
+    const [inactivityTimer, setInactivityTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+    
+    // Inactivity timeout (30 dakika)
+    const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 dakika
 
     const checkTokenExpiration = (token: string): boolean => {
         try {
@@ -45,6 +49,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error('Token expiration check failed:', error);
             return false;
+        }
+    };
+
+    // Kullanıcı aktivitesini kaydet
+    const updateActivity = () => {
+        setLastActivity(Date.now());
+    };
+
+    // Inactivity timer'ı başlat
+    const startInactivityTimer = () => {
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+        }
+
+        const timer = setTimeout(() => {
+            console.log('User inactive for 30 minutes, logging out...');
+            logout();
+        }, INACTIVITY_TIMEOUT);
+
+        setInactivityTimer(timer);
+    };
+
+    // Inactivity timer'ı durdur
+    const stopInactivityTimer = () => {
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+            setInactivityTimer(null);
         }
     };
 
@@ -81,13 +112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.log('Token expired, attempting refresh...'); // Debug log
                 try {
                     // Token süresi dolmuşsa refresh token ile yenile
-                    const response = await authService.refreshToken(refreshToken);
-                    console.log('Token refresh response:', response); // Debug log
+                    const newToken = await authService.refreshToken();
+                    console.log('Token refresh response:', newToken); // Debug log
 
-                    const { token: newToken, refreshToken: newRefreshToken } = response;
-
-                    await AsyncStorage.setItem('token', newToken);
-                    await AsyncStorage.setItem('refreshToken', newRefreshToken);
+                    await AsyncStorage.setItem('token', newToken || '');
 
                     // Kullanıcı bilgilerini güncelle
                     const userResponse = await authService.getCurrentUser();
@@ -128,6 +156,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('AuthProvider mounted, checking initial auth status...'); // Debug log
         checkAuthStatus();
     }, []);
+
+    // Inactivity tracking
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            // Timer'ı başlat
+            startInactivityTimer();
+
+            // Global event listener'ları ekle
+            const handleActivity = () => {
+                updateActivity();
+                startInactivityTimer(); // Timer'ı yeniden başlat
+            };
+
+            // Touch, scroll, key press event'lerini dinle
+            document?.addEventListener?.('touchstart', handleActivity);
+            document?.addEventListener?.('scroll', handleActivity);
+            document?.addEventListener?.('keydown', handleActivity);
+            document?.addEventListener?.('mousedown', handleActivity);
+
+            return () => {
+                stopInactivityTimer();
+                document?.removeEventListener?.('touchstart', handleActivity);
+                document?.removeEventListener?.('scroll', handleActivity);
+                document?.removeEventListener?.('keydown', handleActivity);
+                document?.removeEventListener?.('mousedown', handleActivity);
+            };
+        } else {
+            stopInactivityTimer();
+        }
+    }, [isAuthenticated, user]);
 
     // Login sonrası flag'i temizle
     useEffect(() => {

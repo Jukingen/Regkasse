@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Registrierkasse.Services;
-using Registrierkasse.Models;
+using Registrierkasse_API.Services;
+using Registrierkasse_API.Models;
 
-namespace Registrierkasse.Controllers
+namespace Registrierkasse_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -92,8 +92,7 @@ namespace Registrierkasse.Controllers
                         .Select(g => new { userName = g.Key, count = g.Count() })
                         .OrderByDescending(x => x.count)
                         .Take(10),
-                    statuses = logs.GroupBy(l => l.Status)
-                        .Select(g => new { status = g.Key, count = g.Count() })
+                    // statuses özeti kaldırıldı, çünkü AuditLog modelinde Status yok
                 };
 
                 return Ok(summary);

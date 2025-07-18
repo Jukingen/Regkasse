@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Registrierkasse.Data;
+using Registrierkasse_API.Data;
 
 #nullable disable
 
-namespace Registrierkasse.Migrations
+namespace Registrierkasse_API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
@@ -18,7 +18,7 @@ namespace Registrierkasse.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.1")
+                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -155,7 +155,7 @@ namespace Registrierkasse.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.ApplicationUser", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
@@ -163,9 +163,19 @@ namespace Registrierkasse.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
 
+                    b.Property<string>("AccountType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("account_type");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -190,9 +200,17 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<bool>("IsDemo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_demo");
+
                     b.Property<DateTime?>("LastLogin")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_login");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_login_at");
 
                     b.Property<string>("LastName")
                         .IsRequired()
@@ -205,6 +223,10 @@ namespace Registrierkasse.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LoginCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("login_count");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -247,6 +269,10 @@ namespace Registrierkasse.Migrations
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -263,7 +289,7 @@ namespace Registrierkasse.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.AuditLog", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -292,8 +318,14 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<string>("EntityId")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("EntityType")
                         .IsRequired()
@@ -337,8 +369,8 @@ namespace Registrierkasse.Migrations
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(100)
@@ -350,10 +382,217 @@ namespace Registrierkasse.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Action");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("EntityName");
+
+                    b.HasIndex("UserId");
+
                     b.ToTable("AuditLogs");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.CashRegister", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Cart", b =>
+                {
+                    b.Property<string>("CartId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("AppliedCouponId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CashRegisterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PaymentMethods")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("payment_methods");
+
+                    b.Property<decimal>("ServiceChargeAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("SplitAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("split_amount");
+
+                    b.Property<int>("SplitCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("split_count");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("TableId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TableNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TipAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("WaiterName")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("CartId");
+
+                    b.HasIndex("AppliedCouponId");
+
+                    b.HasIndex("CartId")
+                        .IsUnique();
+
+                    b.HasIndex("CashRegisterId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TableId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Carts");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.CartItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CartId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsModified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("OriginalQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<decimal>("OriginalUnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CartId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("CartItems");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.CashRegister", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -401,8 +640,8 @@ namespace Registrierkasse.Migrations
 
                     b.Property<string>("Location")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("location");
 
                     b.Property<string>("Notes")
@@ -445,10 +684,16 @@ namespace Registrierkasse.Migrations
 
                     b.HasIndex("CurrentUserId");
 
+                    b.HasIndex("KassenId")
+                        .IsUnique();
+
+                    b.HasIndex("TseId")
+                        .IsUnique();
+
                     b.ToTable("cash_registers");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.CashRegisterTransaction", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.CashRegisterTransaction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -456,20 +701,20 @@ namespace Registrierkasse.Migrations
                         .HasColumnName("id");
 
                     b.Property<decimal>("Amount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("amount");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal>("BalanceAfter")
-                        .HasColumnType("numeric")
-                        .HasColumnName("balance_after");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal>("BalanceBefore")
-                        .HasColumnType("numeric")
-                        .HasColumnName("balance_before");
+                        .HasColumnType("numeric");
 
-                    b.Property<Guid>("CashRegisterId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("cash_register_id");
+                    b.Property<string>("CashRegisterId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CashRegisterId1")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -481,42 +726,29 @@ namespace Registrierkasse.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("description");
-
-                    b.Property<Guid?>("InvoiceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("invoice_id");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
-                    b.Property<string>("ReferenceNumber")
+                    b.Property<string>("Reference")
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("reference_number");
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("TSESignature")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("tse_signature");
+                        .HasColumnType("text");
 
-                    b.Property<long>("TSESignatureCounter")
-                        .HasColumnType("bigint")
-                        .HasColumnName("tse_signature_counter");
+                    b.Property<int>("TSESignatureCounter")
+                        .HasColumnType("integer");
 
-                    b.Property<DateTime>("TSETime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("tse_time");
+                    b.Property<DateTime?>("TSETime")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("transaction_type");
+                    b.Property<int>("TransactionType")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -528,22 +760,74 @@ namespace Registrierkasse.Migrations
                         .HasColumnName("updated_by");
 
                     b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("user_id");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CashRegisterId");
-
-                    b.HasIndex("InvoiceId");
+                    b.HasIndex("CashRegisterId1");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("cash_register_transactions");
+                    b.ToTable("CashRegisterTransactions");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.CompanySettings", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Category", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.CompanySettings", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -551,23 +835,18 @@ namespace Registrierkasse.Migrations
                         .HasColumnName("id");
 
                     b.Property<string>("Address")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("BIC")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("BankAccount")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("BankName")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("City")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("CompanyName")
@@ -575,7 +854,6 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Country")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
@@ -588,34 +866,27 @@ namespace Registrierkasse.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<string>("DefaultCurrency")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<decimal>("DefaultTaxRate")
                         .HasColumnType("numeric");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("FinanceOnlinePassword")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("FinanceOnlineUsername")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("IBAN")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Industry")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("InvoiceFooter")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<bool>("IsActive")
@@ -626,23 +897,18 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("Logo")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Phone")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("PostalCode")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("ReceiptFooter")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("SignatureCertificate")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("TaxNumber")
@@ -659,11 +925,9 @@ namespace Registrierkasse.Migrations
                         .HasColumnName("updated_by");
 
                     b.Property<string>("VATNumber")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Website")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -671,7 +935,210 @@ namespace Registrierkasse.Migrations
                     b.ToTable("CompanySettings");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Customer", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Coupon", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("CustomerCategoryRestriction")
+                        .HasColumnType("text")
+                        .HasColumnName("customer_category_restriction");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("DiscountType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("discount_type");
+
+                    b.Property<decimal>("DiscountValue")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("discount_value");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsSingleUse")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_single_use");
+
+                    b.Property<decimal>("MaximumDiscount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("maximum_discount");
+
+                    b.Property<decimal>("MinimumAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("minimum_amount");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("ProductCategoryRestriction")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("product_category_restriction");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("UsageLimit")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("usage_limit");
+
+                    b.Property<int>("UsedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("used_count");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from");
+
+                    b.Property<DateTime>("ValidUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("ValidFrom");
+
+                    b.HasIndex("ValidUntil");
+
+                    b.ToTable("coupons");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.CouponUsage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CouponId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("coupon_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("discount_amount");
+
+                    b.Property<Guid?>("InvoiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invoice_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("session_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<DateTime>("UsedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("UsedBy")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("used_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CouponId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("UsedAt");
+
+                    b.ToTable("coupon_usages");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Customer", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -684,23 +1151,14 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("address");
 
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("city");
+                    b.Property<DateTime?>("BirthDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("birth_date");
 
-                    b.Property<string>("CompanyName")
+                    b.Property<string>("Category")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("company_name");
-
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("country");
+                        .HasColumnType("text")
+                        .HasColumnName("customer_category");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -717,32 +1175,45 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("customer_number");
 
+                    b.Property<decimal>("DiscountPercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("discount_percentage");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("email");
 
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("first_name");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
-                    b.Property<string>("LastName")
+                    b.Property<bool>("IsVip")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_vip");
+
+                    b.Property<DateTime?>("LastVisit")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_visit");
+
+                    b.Property<int>("LoyaltyPoints")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("loyalty_points");
+
+                    b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("last_name");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
                     b.Property<string>("Notes")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
+                        .HasColumnType("text")
                         .HasColumnName("notes");
 
                     b.Property<string>("Phone")
@@ -751,17 +1222,22 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("phone");
 
-                    b.Property<string>("PostalCode")
+                    b.Property<string>("PreferredPaymentMethod")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("postal_code");
+                        .HasColumnType("text")
+                        .HasColumnName("preferred_payment_method");
 
                     b.Property<string>("TaxNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("tax_number");
+
+                    b.Property<decimal>("TotalSpent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total_spent");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -772,12 +1248,340 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("updated_by");
 
+                    b.Property<int>("VisitCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("visit_count");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("Phone");
+
+                    b.HasIndex("TaxNumber");
 
                     b.ToTable("customers");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Discount", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.CustomerDetails", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TaxNumber")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("VatNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CustomerDetailsSet");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.CustomerDiscount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("customer_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("DiscountType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("discount_type");
+
+                    b.Property<decimal>("DiscountValue")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("discount_value");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<decimal>("MinimumAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("minimum_amount");
+
+                    b.Property<string>("ProductCategoryRestriction")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("product_category_restriction");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("UsageLimit")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("usage_limit");
+
+                    b.Property<int>("UsedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("used_count");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_from");
+
+                    b.Property<DateTime?>("ValidUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("ValidFrom");
+
+                    b.HasIndex("ValidUntil");
+
+                    b.ToTable("customer_discounts");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.DailyReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("CardAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("CardPayments")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CashAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("CashPayments")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("KassenId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("ReducedTaxAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("ReportDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ReportTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("SpecialTaxAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("StandardTaxAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("TotalInvoices")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TotalSales")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalTaxAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("TotalTransactions")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TseProcessType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TseSerialNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TseSignature")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("TseTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<decimal>("VoucherAmount")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReportDate");
+
+                    b.HasIndex("TseSignature");
+
+                    b.ToTable("DailyReports");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.DemoUserLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DemoUserLogs");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Discount", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -848,7 +1652,7 @@ namespace Registrierkasse.Migrations
                     b.ToTable("discounts");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.FinanceOnline", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.FinanceOnline", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -915,13 +1719,12 @@ namespace Registrierkasse.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InvoiceId")
-                        .IsUnique();
+                    b.HasIndex("InvoiceId");
 
                     b.ToTable("finance_online");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Hardware", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Hardware", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1000,7 +1803,7 @@ namespace Registrierkasse.Migrations
                     b.ToTable("Hardware");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Inventory", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Inventory", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1016,41 +1819,32 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("created_by");
 
-                    b.Property<decimal>("CurrentStock")
-                        .HasColumnType("numeric")
-                        .HasColumnName("current_stock");
+                    b.Property<int>("CurrentStock")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
                     b.Property<DateTime?>("LastStockUpdate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_stock_update");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Location")
-                        .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("location");
+                        .HasColumnType("character varying(100)");
 
-                    b.Property<decimal>("MaximumStock")
-                        .HasColumnType("numeric")
-                        .HasColumnName("maximum_stock");
+                    b.Property<int>("MaximumStock")
+                        .HasColumnType("integer");
 
-                    b.Property<decimal>("MinimumStock")
-                        .HasColumnType("numeric")
-                        .HasColumnName("minimum_stock");
+                    b.Property<int>("MinimumStock")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("notes");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<Guid>("ProductId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("product_id");
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1066,78 +1860,10 @@ namespace Registrierkasse.Migrations
                     b.HasIndex("ProductId")
                         .IsUnique();
 
-                    b.ToTable("inventory");
+                    b.ToTable("Inventories");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.InventoryTransaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
-                        .HasColumnName("created_by");
-
-                    b.Property<Guid>("InventoryId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("inventory_id");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("notes");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("numeric")
-                        .HasColumnName("quantity");
-
-                    b.Property<string>("Reference")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("reference");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("transaction_type");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
-                        .HasColumnName("updated_by");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("text")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InventoryId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("inventory_transactions");
-                });
-
-            modelBuilder.Entity("Registrierkasse.Models.Invoice", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.InventoryTransaction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1147,10 +1873,6 @@ namespace Registrierkasse.Migrations
                     b.Property<string>("ApplicationUserId")
                         .HasColumnType("text");
 
-                    b.Property<Guid>("CashRegisterId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("cash_register_id");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1160,155 +1882,26 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("created_by");
 
-                    b.Property<JsonDocument>("CustomerDetails")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("customer_details");
-
-                    b.Property<Guid?>("CustomerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("customer_id");
-
-                    b.Property<DateTime?>("DueDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("due_date");
-
-                    b.Property<DateTime>("InvoiceDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("invoice_date");
-
-                    b.Property<string>("InvoiceNumber")
+                    b.Property<string>("InventoryId")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("invoice_number");
+                        .HasColumnType("text");
 
-                    b.Property<string>("InvoiceType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("invoice_type");
+                    b.Property<Guid?>("InventoryId1")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
-                    b.Property<bool>("IsElectronic")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_electronic");
+                    b.Property<int>("QuantityChange")
+                        .HasColumnType("integer");
 
-                    b.Property<bool>("IsPrinted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_printed");
-
-                    b.Property<bool>("IsVoid")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_void");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("notes");
-
-                    b.Property<Guid?>("OrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("order_id");
-
-                    b.Property<Guid?>("OriginalInvoiceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("original_invoice_id");
-
-                    b.Property<JsonDocument>("PaymentDetails")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("payment_details");
-
-                    b.Property<int>("PaymentMethod")
-                        .HasMaxLength(20)
-                        .HasColumnType("integer")
-                        .HasColumnName("payment_method");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("payment_status");
-
-                    b.Property<string>("QrCode")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("qr_code");
-
-                    b.Property<string>("ReceiptNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("receipt_number");
-
-                    b.Property<JsonDocument>("RelatedInvoiceIds")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("related_invoice_ids");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("status");
-
-                    b.Property<decimal>("TaxAmount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("tax_amount");
-
-                    b.Property<JsonDocument>("TaxDetails")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("tax_details");
-
-                    b.Property<JsonDocument>("TaxSummary")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("tax_summary");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("total_amount");
-
-                    b.Property<string>("TseCertificate")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("tse_certificate");
-
-                    b.Property<JsonDocument>("TseProcessData")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("tse_process_data");
-
-                    b.Property<string>("TseProcessType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("tse_process_type");
-
-                    b.Property<string>("TseSerialNumber")
-                        .IsRequired()
+                    b.Property<string>("Reference")
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("tse_serial_number");
+                        .HasColumnType("character varying(100)");
 
-                    b.Property<string>("TseSignature")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("tse_signature");
-
-                    b.Property<long>("TseSignatureCounter")
-                        .HasColumnType("bigint")
-                        .HasColumnName("tse_signature_counter");
-
-                    b.Property<DateTime>("TseTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("tse_time");
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1319,34 +1912,315 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("updated_by");
 
-                    b.Property<string>("VoidReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("void_reason");
-
-                    b.Property<string>("WaiterName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("waiter_name");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ApplicationUserId");
 
-                    b.HasIndex("CashRegisterId");
+                    b.HasIndex("InventoryId1");
+
+                    b.ToTable("InventoryTransactions");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Invoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("CancelledDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelledReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("CashRegisterId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("CashRegisterId1")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CompanyAddress")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("CompanyEmail")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CompanyPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("CompanyTaxNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedById")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("CustomerDetailsId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomerEmail")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CustomerId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CustomerId1")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CustomerPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("CustomerTaxNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FinanzOnlineReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("FinanzOnlineSubmissionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("FinanzOnlineSubmitted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("InvoiceDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<JsonDocument>("InvoiceItems")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("InvoiceTemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InvoiceType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsPrinted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSubmittedToFinanzOnline")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("KassenId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PaymentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PaymentDetailsId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("PaymentMethod")
+                        .HasMaxLength(20)
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PaymentReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("PaymentStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReceiptNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("RemainingAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("SentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<JsonDocument>("TaxDetails")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid?>("TaxSummaryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TermsAndConditions")
+                        .HasMaxLength(500)
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TseSignature")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("TseTimestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("UpdatedById")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId1");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("CustomerDetailsId");
+
+                    b.HasIndex("CustomerEmail");
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("OrderId")
+                    b.HasIndex("CustomerId1");
+
+                    b.HasIndex("DueDate");
+
+                    b.HasIndex("InvoiceDate");
+
+                    b.HasIndex("InvoiceNumber")
                         .IsUnique();
 
-                    b.HasIndex("OriginalInvoiceId");
+                    b.HasIndex("InvoiceTemplateId");
 
-                    b.ToTable("invoices");
+                    b.HasIndex("PaymentDetailsId");
+
+                    b.HasIndex("ReceiptNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TaxSummaryId");
+
+                    b.HasIndex("TseSignature");
+
+                    b.ToTable("Invoices");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.InvoiceItem", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.InvoiceHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<JsonDocument>("Changes")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("PerformedById")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("PerformedById");
+
+                    b.ToTable("InvoiceHistory");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.InvoiceItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1362,43 +2236,48 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("created_by");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("discount_amount");
+                        .HasColumnType("numeric");
 
                     b.Property<Guid>("InvoiceId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("invoice_id");
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
-                    b.Property<string>("Notes")
+                    b.Property<string>("Product")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("notes");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("ProductId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("product_id");
+                        .HasColumnType("uuid");
 
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("numeric")
-                        .HasColumnName("quantity");
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("TaxAmount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("tax_amount");
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<int>("TaxType")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("TotalAmount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("total_amount");
+                        .HasColumnType("numeric");
 
                     b.Property<decimal>("UnitPrice")
-                        .HasColumnType("numeric")
-                        .HasColumnName("unit_price");
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1415,10 +2294,338 @@ namespace Registrierkasse.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("invoice_items");
+                    b.ToTable("InvoiceItems");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Order", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.InvoiceTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CompanyAddress")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("CompanyEmail")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CompanyPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("CompanyTaxNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CompanyWebsite")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedById")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CustomerAddressLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CustomerEmailLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CustomerNameLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CustomerPhoneLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CustomerSectionTitle")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CustomerTaxNumberLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DescriptionHeader")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("DueDateLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("FontFamily")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("FooterText")
+                        .HasMaxLength(500)
+                        .HasColumnType("text");
+
+                    b.Property<string>("InvoiceDateLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("InvoiceNumberLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("InvoiceTitle")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ItemHeader")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("KassenIdLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("LogoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("MarginBottom")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MarginLeft")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MarginRight")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MarginTop")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PageSize")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("PaidLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentDateLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentMethodLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentReferenceLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentSectionTitle")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PrimaryColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("QuantityHeader")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("RemainingLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SecondaryColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<bool>("ShowCompanyInfo")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ShowCustomerInfo")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ShowLogo")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ShowNotes")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ShowPaymentInfo")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ShowTermsAndConditions")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ShowTseInfo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SubtotalLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TaxHeader")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TaxLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TermsAndConditions")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TotalHeader")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TotalLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TseSignatureLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TseTimestampLabel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("UnitPriceHeader")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("InvoiceTemplates");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.OperationLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("OperationLogs");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Order", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1437,47 +2644,40 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("created_by");
 
-                    b.Property<Guid?>("CustomerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("customer_id");
+                    b.Property<string>("CustomerId")
+                        .HasColumnType("text");
 
-                    b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("discount_amount");
+                    b.Property<Guid?>("CustomerId1")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
                     b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("notes");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("OrderNumber")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("order_number");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("status");
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
-                    b.Property<int>("TableNumber")
-                        .HasColumnType("integer")
-                        .HasColumnName("table_number");
+                    b.Property<Guid?>("TableId")
+                        .HasColumnType("uuid");
 
-                    b.Property<decimal>("TaxAmount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("tax_amount");
+                    b.Property<string>("TableNumber")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<decimal>("TotalAmount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("total_amount");
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1489,21 +2689,21 @@ namespace Registrierkasse.Migrations
                         .HasColumnName("updated_by");
 
                     b.Property<string>("WaiterName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("waiter_name");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ApplicationUserId");
 
-                    b.HasIndex("CustomerId");
+                    b.HasIndex("CustomerId1");
 
-                    b.ToTable("orders");
+                    b.HasIndex("TableId");
+
+                    b.ToTable("Orders");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.OrderItem", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.OrderItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1519,45 +2719,32 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("created_by");
 
-                    b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("discount_amount");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
                     b.Property<string>("Notes")
-                        .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("notes");
+                        .HasColumnType("character varying(200)");
 
-                    b.Property<Guid>("OrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("order_id");
+                    b.Property<string>("OrderId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OrderId1")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("ProductId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("product_id");
+                        .HasColumnType("uuid");
 
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("numeric")
-                        .HasColumnName("quantity");
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("status");
-
-                    b.Property<decimal>("TaxAmount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("tax_amount");
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("UnitPrice")
-                        .HasColumnType("numeric")
-                        .HasColumnName("unit_price");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1570,14 +2757,127 @@ namespace Registrierkasse.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("OrderId1");
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("order_items");
+                    b.ToTable("OrderItems");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Product", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.PaymentDetails", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("CardAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("CardLastDigits")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CardType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("CashAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ChangeAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PaymentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reference")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<decimal>("VoucherAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("VoucherCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PaymentDetailsSet");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Permission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Resource")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Permissions");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Product", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1596,6 +2896,15 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("category");
 
+                    b.Property<string>("CategoryId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CategoryId1")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Cost")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1607,7 +2916,8 @@ namespace Registrierkasse.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("description");
 
                     b.Property<string>("ImageUrl")
@@ -1624,17 +2934,20 @@ namespace Registrierkasse.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("numeric")
+                        .HasColumnType("decimal(18,2)")
                         .HasColumnName("price");
 
                     b.Property<int>("StockQuantity")
                         .HasColumnType("integer")
                         .HasColumnName("stock_quantity");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<int>("TaxType")
                         .HasColumnType("integer")
@@ -1657,10 +2970,113 @@ namespace Registrierkasse.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Barcode")
+                        .IsUnique();
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("CategoryId1");
+
+                    b.HasIndex("Name");
+
                     b.ToTable("products");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.SystemConfiguration", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Receipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("CashRegisterId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CashRegisterId1")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrinted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("KassenId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("ReceiptDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReceiptNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TseSignature")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId1");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ReceiptNumber")
+                        .IsUnique();
+
+                    b.HasIndex("TseSignature");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Receipts");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.ReceiptItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1680,10 +3096,46 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
-                    b.Property<string>("OperationMode")
+                    b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxRate")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("TaxType")
                         .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1696,10 +3148,123 @@ namespace Registrierkasse.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ReceiptId");
+
+                    b.ToTable("ReceiptItems");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Roles");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.RolePermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GrantedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PermissionId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("RolePermissions");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.SystemConfiguration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
                     b.ToTable("SystemConfigurations");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Table", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Table", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1719,13 +3284,33 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("created_by");
 
+                    b.Property<string>("CurrentCartId")
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("current_cart_id");
+
                     b.Property<Guid?>("CurrentOrderId")
                         .HasColumnType("uuid")
                         .HasColumnName("current_order_id");
 
+                    b.Property<decimal>("CurrentTotal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("current_total");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("customer_name");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
+
+                    b.Property<DateTime?>("LastOrderTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_order_time");
 
                     b.Property<string>("Location")
                         .IsRequired()
@@ -1733,15 +3318,63 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("location");
 
+                    b.Property<int>("MaxSplitCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(4)
+                        .HasColumnName("max_split_count");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("notes");
+
                     b.Property<int>("Number")
                         .HasColumnType("integer")
                         .HasColumnName("number");
+
+                    b.Property<decimal>("ServiceChargePercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("service_charge_percentage");
+
+                    b.Property<bool>("SplitBillEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("split_bill_enabled");
+
+                    b.Property<DateTime?>("StartTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_time");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("empty")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("TipPercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("tip_percentage");
+
+                    b.Property<decimal>("TotalPaid")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("total_paid");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1754,13 +3387,19 @@ namespace Registrierkasse.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CurrentOrderId")
+                    b.HasIndex("CurrentCartId");
+
+                    b.HasIndex("CurrentOrderId");
+
+                    b.HasIndex("Number")
                         .IsUnique();
+
+                    b.HasIndex("Status");
 
                     b.ToTable("tables");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.TableReservation", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.TableReservation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1830,56 +3469,7 @@ namespace Registrierkasse.Migrations
                     b.ToTable("table_reservations");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.UserSession", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("DeviceInfo")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("device_info");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
-
-                    b.Property<DateTime>("LastActivity")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_activity");
-
-                    b.Property<string>("SessionId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("session_id");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("user_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("user_sessions");
-                });
-
-            modelBuilder.Entity("Registrierkasse.Models.UserSettings", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.TaxSummary", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1895,47 +3485,45 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("created_by");
 
-                    b.Property<string>("DefaultPaymentMethod")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("default_payment_method");
-
-                    b.Property<bool>("EmailNotifications")
-                        .HasColumnType("boolean")
-                        .HasColumnName("email_notifications");
+                    b.Property<decimal>("ExemptTaxBase")
+                        .HasColumnType("numeric");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
-                    b.Property<string>("Language")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("language");
+                    b.Property<decimal>("Reduced")
+                        .HasColumnType("numeric");
 
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("notes");
+                    b.Property<decimal>("ReducedTaxAmount")
+                        .HasColumnType("numeric");
 
-                    b.Property<bool>("NotificationsEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("notifications_enabled");
+                    b.Property<decimal>("ReducedTaxBase")
+                        .HasColumnType("numeric");
 
-                    b.Property<string>("PrinterName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("printer_name");
+                    b.Property<decimal>("Special")
+                        .HasColumnType("numeric");
 
-                    b.Property<string>("Theme")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("theme");
+                    b.Property<decimal>("SpecialTaxAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("SpecialTaxBase")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("Standard")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("StandardTaxAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("StandardTaxBase")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("TotalTaxAmount")
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1946,20 +3534,15 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("updated_by");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("user_id");
+                    b.Property<decimal>("ZeroTaxBase")
+                        .HasColumnType("numeric");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("user_settings");
+                    b.ToTable("TaxSummaries");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Voucher", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -1967,8 +3550,13 @@ namespace Registrierkasse.Migrations
                         .HasColumnName("id");
 
                     b.Property<decimal>("Amount")
-                        .HasColumnType("numeric")
-                        .HasColumnName("amount");
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CashRegisterId")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("CashRegisterId1")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1979,31 +3567,38 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("created_by");
 
-                    b.Property<Guid?>("CustomerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("customer_id");
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
-                    b.Property<DateTime>("ExpiryDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expiry_date");
+                    b.Property<Guid?>("InvoiceId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
-                    b.Property<DateTime>("IssueDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("issue_date");
-
-                    b.Property<string>("Notes")
+                    b.Property<string>("PaymentMethod")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("notes");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
+                    b.Property<Guid?>("ReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TransactionNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -2014,27 +3609,161 @@ namespace Registrierkasse.Migrations
                         .HasColumnType("character varying(450)")
                         .HasColumnName("updated_by");
 
-                    b.Property<Guid?>("UsedByOrderId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("used_by_order_id");
-
-                    b.Property<DateTime?>("UsedDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("used_date");
-
-                    b.Property<string>("VoucherNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("voucher_number");
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId");
+                    b.HasIndex("CashRegisterId1");
 
-                    b.HasIndex("UsedByOrderId");
+                    b.HasIndex("CreatedAt");
 
-                    b.ToTable("vouchers");
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("PaymentMethod");
+
+                    b.HasIndex("ReceiptId");
+
+                    b.HasIndex("TransactionNumber")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Transactions");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.UserRole", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AssignedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserRoles");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.UserSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("DeviceInfo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime>("LastActivity")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SessionId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSessions");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.UserSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Language")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Theme")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("UserSettings");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -2048,7 +3777,7 @@ namespace Registrierkasse.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", null)
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2057,7 +3786,7 @@ namespace Registrierkasse.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", null)
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2072,7 +3801,7 @@ namespace Registrierkasse.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", null)
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2081,160 +3810,304 @@ namespace Registrierkasse.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", null)
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.CashRegister", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Cart", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", "CurrentUser")
+                    b.HasOne("Registrierkasse_API.Models.Coupon", "AppliedCoupon")
+                        .WithMany()
+                        .HasForeignKey("AppliedCouponId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Registrierkasse_API.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Registrierkasse_API.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Registrierkasse_API.Models.Table", "Table")
+                        .WithMany("CartHistory")
+                        .HasForeignKey("TableId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AppliedCoupon");
+
+                    b.Navigation("CashRegister");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Table");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.CartItem", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.Cart", "Cart")
+                        .WithMany("Items")
+                        .HasForeignKey("CartId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Registrierkasse_API.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cart");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.CashRegister", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "CurrentUser")
                         .WithMany("AssignedCashRegisters")
                         .HasForeignKey("CurrentUserId");
 
                     b.Navigation("CurrentUser");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.CashRegisterTransaction", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.CashRegisterTransaction", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.CashRegister", "CashRegister")
+                    b.HasOne("Registrierkasse_API.Models.CashRegister", "CashRegister")
                         .WithMany("Transactions")
-                        .HasForeignKey("CashRegisterId")
+                        .HasForeignKey("CashRegisterId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Registrierkasse.Models.Invoice", "Invoice")
-                        .WithMany()
-                        .HasForeignKey("InvoiceId");
-
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", "User")
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "User")
                         .WithMany("Transactions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("UserId");
 
                     b.Navigation("CashRegister");
-
-                    b.Navigation("Invoice");
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.FinanceOnline", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.CouponUsage", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.Invoice", "Invoice")
-                        .WithOne("FinanceOnline")
-                        .HasForeignKey("Registrierkasse.Models.FinanceOnline", "InvoiceId")
+                    b.HasOne("Registrierkasse_API.Models.Coupon", "Coupon")
+                        .WithMany("CouponUsages")
+                        .HasForeignKey("CouponId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Registrierkasse_API.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Registrierkasse_API.Models.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Registrierkasse_API.Models.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Coupon");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Invoice");
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.CustomerDiscount", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.Customer", "Customer")
+                        .WithMany("CustomerDiscounts")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.FinanceOnline", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Invoice");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Inventory", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Inventory", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.Product", "Product")
+                    b.HasOne("Registrierkasse_API.Models.Product", "Product")
                         .WithOne("Inventory")
-                        .HasForeignKey("Registrierkasse.Models.Inventory", "ProductId")
+                        .HasForeignKey("Registrierkasse_API.Models.Inventory", "ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.InventoryTransaction", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.InventoryTransaction", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.Inventory", "Inventory")
-                        .WithMany("Transactions")
-                        .HasForeignKey("InventoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", "User")
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", null)
                         .WithMany("InventoryTransactions")
-                        .HasForeignKey("UserId");
-
-                    b.Navigation("Inventory");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Registrierkasse.Models.Invoice", b =>
-                {
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", null)
-                        .WithMany("Invoices")
                         .HasForeignKey("ApplicationUserId");
 
-                    b.HasOne("Registrierkasse.Models.CashRegister", "CashRegister")
+                    b.HasOne("Registrierkasse_API.Models.Inventory", "Inventory")
+                        .WithMany()
+                        .HasForeignKey("InventoryId1");
+
+                    b.Navigation("Inventory");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Invoice", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.CashRegister", null)
                         .WithMany("Invoices")
-                        .HasForeignKey("CashRegisterId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasForeignKey("CashRegisterId1");
+
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Registrierkasse.Models.Customer", "Customer")
-                        .WithMany("Invoices")
-                        .HasForeignKey("CustomerId");
-
-                    b.HasOne("Registrierkasse.Models.Order", "Order")
-                        .WithOne("Invoice")
-                        .HasForeignKey("Registrierkasse.Models.Invoice", "OrderId");
-
-                    b.HasOne("Registrierkasse.Models.Invoice", "OriginalInvoice")
+                    b.HasOne("Registrierkasse_API.Models.CustomerDetails", "CustomerDetails")
                         .WithMany()
-                        .HasForeignKey("OriginalInvoiceId");
+                        .HasForeignKey("CustomerDetailsId");
 
-                    b.Navigation("CashRegister");
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Registrierkasse_API.Models.Customer", null)
+                        .WithMany("Invoices")
+                        .HasForeignKey("CustomerId1");
+
+                    b.HasOne("Registrierkasse_API.Models.InvoiceTemplate", null)
+                        .WithMany("Invoices")
+                        .HasForeignKey("InvoiceTemplateId");
+
+                    b.HasOne("Registrierkasse_API.Models.PaymentDetails", "PaymentDetails")
+                        .WithMany()
+                        .HasForeignKey("PaymentDetailsId");
+
+                    b.HasOne("Registrierkasse_API.Models.TaxSummary", "TaxSummary")
+                        .WithMany()
+                        .HasForeignKey("TaxSummaryId");
+
+                    b.Navigation("CreatedBy");
 
                     b.Navigation("Customer");
 
-                    b.Navigation("Order");
+                    b.Navigation("CustomerDetails");
 
-                    b.Navigation("OriginalInvoice");
+                    b.Navigation("PaymentDetails");
+
+                    b.Navigation("TaxSummary");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.InvoiceItem", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.InvoiceHistory", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.Invoice", "Invoice")
+                    b.HasOne("Registrierkasse_API.Models.Invoice", "Invoice")
+                        .WithMany("InvoiceHistory")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "PerformedBy")
+                        .WithMany()
+                        .HasForeignKey("PerformedById");
+
+                    b.Navigation("Invoice");
+
+                    b.Navigation("PerformedBy");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.InvoiceItem", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.Invoice", "Invoice")
                         .WithMany("Items")
                         .HasForeignKey("InvoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Registrierkasse.Models.Product", "Product")
+                    b.HasOne("Registrierkasse_API.Models.Product", null)
                         .WithMany("InvoiceItems")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Invoice");
-
-                    b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Order", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.InvoiceTemplate", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", null)
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.OperationLog", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Order", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", null)
                         .WithMany("Orders")
                         .HasForeignKey("ApplicationUserId");
 
-                    b.HasOne("Registrierkasse.Models.Customer", "Customer")
+                    b.HasOne("Registrierkasse_API.Models.Customer", "Customer")
                         .WithMany("Orders")
-                        .HasForeignKey("CustomerId");
+                        .HasForeignKey("CustomerId1");
+
+                    b.HasOne("Registrierkasse_API.Models.Table", null)
+                        .WithMany("OrderHistory")
+                        .HasForeignKey("TableId");
 
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.OrderItem", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.OrderItem", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.Order", "Order")
+                    b.HasOne("Registrierkasse_API.Models.Order", "Order")
                         .WithMany("OrderItems")
-                        .HasForeignKey("OrderId")
+                        .HasForeignKey("OrderId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Registrierkasse.Models.Product", "Product")
+                    b.HasOne("Registrierkasse_API.Models.Product", "Product")
                         .WithMany("OrderItems")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2245,99 +4118,84 @@ namespace Registrierkasse.Migrations
                     b.Navigation("Product");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.SystemConfiguration", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Product", b =>
                 {
-                    b.OwnsOne("Registrierkasse.Models.OfflineSettings", "OfflineSettings", b1 =>
-                        {
-                            b1.Property<Guid>("SystemConfigurationId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<bool>("AutoSync")
-                                .HasColumnType("boolean");
-
-                            b1.Property<bool>("Enabled")
-                                .HasColumnType("boolean");
-
-                            b1.Property<int>("MaxOfflineDays")
-                                .HasColumnType("integer");
-
-                            b1.Property<int>("SyncInterval")
-                                .HasColumnType("integer");
-
-                            b1.HasKey("SystemConfigurationId");
-
-                            b1.ToTable("SystemConfigurations");
-
-                            b1.WithOwner()
-                                .HasForeignKey("SystemConfigurationId");
-                        });
-
-                    b.OwnsOne("Registrierkasse.Models.PrinterSettings", "PrinterSettings", b1 =>
-                        {
-                            b1.Property<Guid>("SystemConfigurationId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<int>("MaxQueueSize")
-                                .HasColumnType("integer");
-
-                            b1.Property<bool>("OfflineQueue")
-                                .HasColumnType("boolean");
-
-                            b1.Property<bool>("Required")
-                                .HasColumnType("boolean");
-
-                            b1.HasKey("SystemConfigurationId");
-
-                            b1.ToTable("SystemConfigurations");
-
-                            b1.WithOwner()
-                                .HasForeignKey("SystemConfigurationId");
-                        });
-
-                    b.OwnsOne("Registrierkasse.Models.TseSettings", "TseSettings", b1 =>
-                        {
-                            b1.Property<Guid>("SystemConfigurationId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<int>("MaxOfflineTransactions")
-                                .HasColumnType("integer");
-
-                            b1.Property<bool>("OfflineAllowed")
-                                .HasColumnType("boolean");
-
-                            b1.Property<bool>("Required")
-                                .HasColumnType("boolean");
-
-                            b1.HasKey("SystemConfigurationId");
-
-                            b1.ToTable("SystemConfigurations");
-
-                            b1.WithOwner()
-                                .HasForeignKey("SystemConfigurationId");
-                        });
-
-                    b.Navigation("OfflineSettings")
-                        .IsRequired();
-
-                    b.Navigation("PrinterSettings")
-                        .IsRequired();
-
-                    b.Navigation("TseSettings")
-                        .IsRequired();
+                    b.HasOne("Registrierkasse_API.Models.Category", null)
+                        .WithMany("Products")
+                        .HasForeignKey("CategoryId1");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Table", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Receipt", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.Order", "CurrentOrder")
-                        .WithOne()
-                        .HasForeignKey("Registrierkasse.Models.Table", "CurrentOrderId");
+                    b.HasOne("Registrierkasse_API.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId1");
+
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("CashRegister");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.ReceiptItem", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId");
+
+                    b.HasOne("Registrierkasse_API.Models.Receipt", "Receipt")
+                        .WithMany("Items")
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Receipt");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.RolePermission", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Registrierkasse_API.Models.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Table", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.Cart", "CurrentCart")
+                        .WithMany()
+                        .HasForeignKey("CurrentCartId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Registrierkasse_API.Models.Order", "CurrentOrder")
+                        .WithMany()
+                        .HasForeignKey("CurrentOrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CurrentCart");
 
                     b.Navigation("CurrentOrder");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.TableReservation", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.TableReservation", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.Table", "Table")
+                    b.HasOne("Registrierkasse_API.Models.Table", "Table")
                         .WithMany("Reservations")
                         .HasForeignKey("TableId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2346,9 +4204,55 @@ namespace Registrierkasse.Migrations
                     b.Navigation("Table");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.UserSession", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Transaction", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", "User")
+                    b.HasOne("Registrierkasse_API.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId1");
+
+                    b.HasOne("Registrierkasse_API.Models.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId");
+
+                    b.HasOne("Registrierkasse_API.Models.Receipt", "Receipt")
+                        .WithMany()
+                        .HasForeignKey("ReceiptId");
+
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("CashRegister");
+
+                    b.Navigation("Invoice");
+
+                    b.Navigation("Receipt");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.UserRole", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.Role", "Role")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.UserSession", b =>
+                {
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2357,81 +4261,86 @@ namespace Registrierkasse.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.UserSettings", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.UserSettings", b =>
                 {
-                    b.HasOne("Registrierkasse.Models.ApplicationUser", "User")
+                    b.HasOne("Registrierkasse_API.Models.ApplicationUser", "User")
                         .WithOne("Settings")
-                        .HasForeignKey("Registrierkasse.Models.UserSettings", "UserId")
+                        .HasForeignKey("Registrierkasse_API.Models.UserSettings", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Voucher", b =>
-                {
-                    b.HasOne("Registrierkasse.Models.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId");
-
-                    b.HasOne("Registrierkasse.Models.Order", "UsedByOrder")
-                        .WithMany()
-                        .HasForeignKey("UsedByOrderId");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("UsedByOrder");
-                });
-
-            modelBuilder.Entity("Registrierkasse.Models.ApplicationUser", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.ApplicationUser", b =>
                 {
                     b.Navigation("AssignedCashRegisters");
 
                     b.Navigation("InventoryTransactions");
-
-                    b.Navigation("Invoices");
 
                     b.Navigation("Orders");
 
                     b.Navigation("Settings");
 
                     b.Navigation("Transactions");
+
+                    b.Navigation("UserRoles");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.CashRegister", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Cart", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.CashRegister", b =>
                 {
                     b.Navigation("Invoices");
 
                     b.Navigation("Transactions");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Customer", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Category", b =>
                 {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Coupon", b =>
+                {
+                    b.Navigation("CouponUsages");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Customer", b =>
+                {
+                    b.Navigation("CustomerDiscounts");
+
                     b.Navigation("Invoices");
 
                     b.Navigation("Orders");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Inventory", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Invoice", b =>
                 {
-                    b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("Registrierkasse.Models.Invoice", b =>
-                {
-                    b.Navigation("FinanceOnline");
+                    b.Navigation("InvoiceHistory");
 
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Order", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.InvoiceTemplate", b =>
                 {
-                    b.Navigation("Invoice");
+                    b.Navigation("Invoices");
+                });
 
+            modelBuilder.Entity("Registrierkasse_API.Models.Order", b =>
+                {
                     b.Navigation("OrderItems");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Product", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Permission", b =>
+                {
+                    b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Product", b =>
                 {
                     b.Navigation("Inventory")
                         .IsRequired();
@@ -2441,8 +4350,24 @@ namespace Registrierkasse.Migrations
                     b.Navigation("OrderItems");
                 });
 
-            modelBuilder.Entity("Registrierkasse.Models.Table", b =>
+            modelBuilder.Entity("Registrierkasse_API.Models.Receipt", b =>
                 {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Role", b =>
+                {
+                    b.Navigation("RolePermissions");
+
+                    b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Registrierkasse_API.Models.Table", b =>
+                {
+                    b.Navigation("CartHistory");
+
+                    b.Navigation("OrderHistory");
+
                     b.Navigation("Reservations");
                 });
 #pragma warning restore 612, 618

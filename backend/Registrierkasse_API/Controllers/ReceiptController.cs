@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Registrierkasse.Services;
+using Registrierkasse_API.Services;
 
-namespace Registrierkasse.Controllers;
+namespace Registrierkasse_API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

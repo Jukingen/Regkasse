@@ -1,9 +1,9 @@
 using System;
 using System.Text;
-using Registrierkasse.Models;
+using Registrierkasse_API.Models;
 using System.Text.Json;
 
-namespace Registrierkasse.Services
+namespace Registrierkasse_API.Services
 {
     public class InvoicePrintService
     {
@@ -27,25 +27,22 @@ namespace Registrierkasse.Services
             // Customer Info
             if (invoice.CustomerDetails != null)
             {
-                var customer = JsonSerializer.Deserialize<CustomerDetails>(invoice.CustomerDetails.RootElement.GetRawText());
-                if (customer != null)
+                var customer = invoice.CustomerDetails;
+                if (!string.IsNullOrEmpty(customer.CompanyName))
                 {
-                    if (!string.IsNullOrEmpty(customer.CompanyName))
-                    {
-                        sb.AppendLine($"Firma: {customer.CompanyName}");
-                    }
-                    if (!string.IsNullOrEmpty(customer.FirstName) || !string.IsNullOrEmpty(customer.LastName))
-                    {
-                        sb.AppendLine($"Name: {customer.FirstName} {customer.LastName}");
-                    }
-                    if (!string.IsNullOrEmpty(customer.TaxNumber))
-                    {
-                        sb.AppendLine($"Steuernummer: {customer.TaxNumber}");
-                    }
-                    if (!string.IsNullOrEmpty(customer.VatNumber))
-                    {
-                        sb.AppendLine($"USt-IdNr.: {customer.VatNumber}");
-                    }
+                    sb.AppendLine($"Firma: {customer.CompanyName}");
+                }
+                if (!string.IsNullOrEmpty(customer.FirstName) || !string.IsNullOrEmpty(customer.LastName))
+                {
+                    sb.AppendLine($"Name: {customer.FirstName} {customer.LastName}");
+                }
+                if (!string.IsNullOrEmpty(customer.TaxNumber))
+                {
+                    sb.AppendLine($"Steuernummer: {customer.TaxNumber}");
+                }
+                if (!string.IsNullOrEmpty(customer.VatNumber))
+                {
+                    sb.AppendLine($"USt-IdNr.: {customer.VatNumber}");
                 }
                 sb.AppendLine(LINE_SEPARATOR);
             }
@@ -55,13 +52,13 @@ namespace Registrierkasse.Services
             sb.AppendLine(LINE_SEPARATOR);
             foreach (var item in invoice.Items)
             {
-                sb.AppendLine($"{item.Product.Name}");
+                sb.AppendLine($"{item.ProductName}");
                 sb.AppendLine($"{item.Quantity,4} x {item.UnitPrice,8:F2} {CURRENCY}");
                 if (item.DiscountAmount > 0)
                 {
                     sb.AppendLine($"Rabatt: -{item.DiscountAmount,8:F2} {CURRENCY}");
                 }
-                sb.AppendLine($"MwSt. {GetTaxRateLabel(item.Product.TaxType)}: {item.TaxAmount,8:F2} {CURRENCY}");
+                sb.AppendLine($"MwSt. {GetTaxRateLabel(item.TaxType)}: {item.TaxAmount,8:F2} {CURRENCY}");
                 sb.AppendLine($"Gesamt: {item.TotalAmount,8:F2} {CURRENCY}");
                 sb.AppendLine(LINE_SEPARATOR);
             }
@@ -69,9 +66,9 @@ namespace Registrierkasse.Services
             // Summary
             sb.AppendLine("ZUSAMMENFASSUNG");
             sb.AppendLine(LINE_SEPARATOR);
-            var taxSummary = JsonSerializer.Deserialize<TaxSummary>(invoice.TaxSummary.RootElement.GetRawText());
-            if (taxSummary != null)
+            if (invoice.TaxSummary != null)
             {
+                var taxSummary = invoice.TaxSummary;
                 if (taxSummary.StandardTaxBase > 0)
                 {
                     sb.AppendLine($"20% MwSt. Basis: {taxSummary.StandardTaxBase,8:F2} {CURRENCY}");
@@ -104,9 +101,9 @@ namespace Registrierkasse.Services
             // Payment
             sb.AppendLine("ZAHLUNG");
             sb.AppendLine(LINE_SEPARATOR);
-            var payment = JsonSerializer.Deserialize<PaymentDetails>(invoice.PaymentDetails.RootElement.GetRawText());
-            if (payment != null)
+            if (invoice.PaymentDetails != null)
             {
+                var payment = invoice.PaymentDetails;
                 sb.AppendLine($"Zahlungsart: {GetPaymentMethodLabel(payment.PaymentMethod)}");
                 if (payment.CashAmount > 0)
                 {
@@ -124,9 +121,9 @@ namespace Registrierkasse.Services
                         sb.AppendLine($"Kartennummer: ****{payment.CardLastDigits}");
                     }
                 }
-                if (payment.VoucherAmount.HasValue && payment.VoucherAmount.Value > 0)
+                if (payment.VoucherAmount > 0)
                 {
-                    sb.AppendLine($"Gutschein: {payment.VoucherAmount.Value,8:F2} {CURRENCY}");
+                    sb.AppendLine($"Gutschein: {payment.VoucherAmount,8:F2} {CURRENCY}");
                     if (!string.IsNullOrEmpty(payment.VoucherCode))
                     {
                         sb.AppendLine($"Gutscheincode: {payment.VoucherCode}");
@@ -142,10 +139,8 @@ namespace Registrierkasse.Services
             // TSE Info
             sb.AppendLine("TSE INFORMATIONEN");
             sb.AppendLine(LINE_SEPARATOR);
-            sb.AppendLine($"TSE-Seriennummer: {invoice.TseSerialNumber}");
             sb.AppendLine($"TSE-Signatur: {invoice.TseSignature}");
-            sb.AppendLine($"TSE-Zeitstempel: {invoice.TseTime:dd.MM.yyyy HH:mm:ss}");
-            sb.AppendLine($"TSE-Prozessart: {invoice.TseProcessType}");
+            sb.AppendLine($"TSE-Zeitstempel: {invoice.TseTimestamp:dd.MM.yyyy HH:mm:ss}");
             sb.AppendLine(LINE_SEPARATOR);
 
             // Footer
@@ -167,15 +162,16 @@ namespace Registrierkasse.Services
             };
         }
 
-        private string GetPaymentMethodLabel(string paymentMethod)
+        private string GetPaymentMethodLabel(object paymentMethod)
         {
-            return paymentMethod.ToLower() switch
+            var methodStr = paymentMethod.ToString()?.ToLower() ?? "";
+            return methodStr switch
             {
                 "cash" => "Bar",
                 "card" => "Karte",
                 "voucher" => "Gutschein",
                 "mixed" => "Gemischte Zahlung",
-                _ => paymentMethod
+                _ => methodStr
             };
         }
     }

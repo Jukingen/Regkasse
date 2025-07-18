@@ -5,8 +5,10 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Collections.Generic;
+using Registrierkasse_API.Models;
+using Microsoft.Extensions.Configuration;
 
-namespace Registrierkasse.Services
+namespace Registrierkasse_API.Services
 {
     public interface IFinanzOnlineService
     {
@@ -23,6 +25,7 @@ namespace Registrierkasse.Services
     public class FinanzOnlineService : IFinanzOnlineService
     {
         private readonly ILogger<FinanzOnlineService> _logger;
+        private readonly IConfiguration _configuration;
         private readonly HttpClient _httpClient;
         private readonly string _apiUrl;
         private readonly string _username;
@@ -30,9 +33,13 @@ namespace Registrierkasse.Services
         private string _accessToken;
         private DateTime _tokenExpiry;
 
-        public FinanzOnlineService(ILogger<FinanzOnlineService> logger, HttpClient httpClient)
+        public FinanzOnlineService(
+            ILogger<FinanzOnlineService> logger,
+            IConfiguration configuration,
+            HttpClient httpClient)
         {
             _logger = logger;
+            _configuration = configuration;
             _httpClient = httpClient;
             _apiUrl = Environment.GetEnvironmentVariable("FINANZONLINE_API_URL") ?? "https://finanzonline.bmf.gv.at/api";
             _username = Environment.GetEnvironmentVariable("FINANZONLINE_USERNAME") ?? "";
@@ -349,21 +356,11 @@ namespace Registrierkasse.Services
         public string TaxNumber { get; set; } = string.Empty;
         public string TseSignature { get; set; } = string.Empty;
         public string CashRegisterId { get; set; } = string.Empty;
-        public List<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();
+        public List<Models.InvoiceItem> Items { get; set; } = new List<Models.InvoiceItem>();
         public decimal TotalNet { get; set; }
         public decimal TotalTax { get; set; }
         public decimal TotalGross { get; set; }
         public string PaymentMethod { get; set; } = string.Empty;
-    }
-
-    public class InvoiceItem
-    {
-        public string Name { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public decimal UnitPrice { get; set; }
-        public decimal TotalPrice { get; set; }
-        public string TaxType { get; set; } = string.Empty; // standard, reduced, special
-        public decimal TaxAmount { get; set; }
     }
 
     public class FinanzOnlineDailyReport

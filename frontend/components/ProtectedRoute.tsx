@@ -1,6 +1,7 @@
+import { useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
-import { useRouter, useSegments } from 'expo-router';
+
 import { useAuth } from '../contexts/AuthContext';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {

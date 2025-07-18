@@ -2,10 +2,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
-using Registrierkasse.Data;
-using Registrierkasse.Models;
+using Registrierkasse_API.Data;
+using Registrierkasse_API.Models;
 
-namespace Registrierkasse.Services
+namespace Registrierkasse_API.Services
 {
     public interface IAuditService
     {
