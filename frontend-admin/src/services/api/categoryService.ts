@@ -70,7 +70,7 @@ class CategoryService {
 
   // Kategori durumu güncelle
   async updateCategoryStatus(id: string, isActive: boolean): Promise<Partial<Category>> {
-    const response = await apiClient.patch(`/categories/${id}/status`, { isActive });
+    const response = await apiClient.put(`/categories/${id}/status`, { isActive });
     return response.data;
   }
 

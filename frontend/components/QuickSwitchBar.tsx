@@ -65,8 +65,8 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
 
   const fetchWaiters = async () => {
     try {
-      const response = await apiClient.get<Waiter[]>('/api/users/waiters');
-      setWaiters(response.data.filter(w => w.isActive));
+      const response = await apiClient.get<Waiter[]>('/users/waiters');
+      setWaiters(response.filter((w: any) => w.isActive));
     } catch (error) {
       console.error('Garsonlar yüklenemedi:', error);
     }
@@ -74,8 +74,8 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
 
   const fetchTables = async () => {
     try {
-      const response = await apiClient.get<Table[]>('/api/table');
-      setTables(response.data);
+      const response = await apiClient.get<Table[]>('/table');
+      setTables(response);
     } catch (error) {
       console.error('Masalar yüklenemedi:', error);
     }
@@ -83,8 +83,8 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
 
   const fetchOpenCarts = async () => {
     try {
-      const response = await apiClient.get<OpenCart[]>('/api/cart/open');
-      setOpenCarts(response.data);
+      const response = await apiClient.get<OpenCart[]>('/cart/open');
+      setOpenCarts(response);
     } catch (error) {
       console.error('Açık sepetler yüklenemedi:', error);
     }

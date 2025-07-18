@@ -96,7 +96,7 @@ class ProductService {
 
   // Ürün durumu güncelle
   async updateProductStatus(id: string, isActive: boolean): Promise<Partial<Product>> {
-    const response = await apiClient.patch(`/products/${id}/status`, { isActive });
+    const response = await apiClient.put(`/products/${id}/status`, { isActive });
     return response.data;
   }
 

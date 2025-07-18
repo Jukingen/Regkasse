@@ -83,7 +83,7 @@ class CustomerService {
 
   // Müşteri durumu güncelle
   async updateCustomerStatus(id: string, isActive: boolean): Promise<Partial<Customer>> {
-    const response = await apiClient.patch(`/customers/${id}/status`, { isActive });
+    const response = await apiClient.put(`/customers/${id}/status`, { isActive });
     return response.data;
   }
 

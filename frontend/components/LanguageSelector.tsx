@@ -1,158 +1,73 @@
+// Bu komponent, kullanıcıya Almanca, Türkçe veya İngilizce dil seçimi sunar. Erişilebilir ve dokunmatik uyumludur.
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
-import { useLanguage } from '../contexts/LanguageContext';
+const LANGUAGES = [
+  { code: 'de-DE', label: 'Deutsch' },
+  { code: 'en', label: 'English' },
+  { code: 'tr', label: 'Türkçe' },
+];
 
-/**
- * Dil seçimi bileşeni - Almanca, İngilizce ve Türkçe arasında geçiş
- */
-export const LanguageSelector: React.FC = () => {
-  const { language, setLanguage, t } = useLanguage();
+const LanguageSelector = () => {
+  const { i18n } = useTranslation();
+  const currentLang = i18n.language;
 
-  // Dil değiştirme fonksiyonu
-  const handleLanguageChange = async (newLanguage: 'de-DE' | 'en' | 'tr') => {
-    try {
-      await setLanguage(newLanguage);
-      
-      // Başarı mesajı göster
-      Alert.alert(
-        t('common.success'),
-        t('settings.language_changed', { language: t(`settings.${newLanguage === 'de-DE' ? 'german' : newLanguage === 'en' ? 'english' : 'turkish'}`) }),
-        [{ text: t('common.ok') }]
-      );
-    } catch (error) {
-      console.error('Language change error:', error);
-      Alert.alert(
-        t('common.error'),
-        t('settings.language_change_error'),
-        [{ text: t('common.ok') }]
-      );
+  const handleSelect = (code: string) => {
+    i18n.changeLanguage(code);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('language', code);
     }
   };
 
-  // Dil butonları
-  const LanguageButton: React.FC<{
-    lang: 'de-DE' | 'en' | 'tr';
-    label: string;
-    nativeLabel: string;
-  }> = ({ lang, label, nativeLabel }) => (
-    <TouchableOpacity
-      style={[
-        styles.languageButton,
-        language === lang && styles.activeLanguageButton
-      ]}
-      onPress={() => handleLanguageChange(lang)}
-      activeOpacity={0.7}
-    >
-      <Text style={[
-        styles.languageText,
-        language === lang && styles.activeLanguageText
-      ]}>
-        {label}
-      </Text>
-      <Text style={[
-        styles.nativeLabel,
-        language === lang && styles.activeNativeLabel
-      ]}>
-        {nativeLabel}
-      </Text>
-    </TouchableOpacity>
-  );
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{t('settings.language')}</Text>
-      
-      <View style={styles.languageGrid}>
-        <LanguageButton
-          lang="de-DE"
-          label="Deutsch"
-          nativeLabel="German"
-        />
-        
-        <LanguageButton
-          lang="en"
-          label="English"
-          nativeLabel="English"
-        />
-        
-        <LanguageButton
-          lang="tr"
-          label="Türkçe"
-          nativeLabel="Turkish"
-        />
-      </View>
-      
-      <Text style={styles.info}>
-        {t('settings.language_info')}
-      </Text>
+    <View style={styles.row} accessibilityRole="radiogroup">
+      {LANGUAGES.map(lang => (
+        <TouchableOpacity
+          key={lang.code}
+          style={[styles.button, currentLang === lang.code && styles.selected]}
+          onPress={() => handleSelect(lang.code)}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: currentLang === lang.code }}
+          accessibilityLabel={lang.label}
+          activeOpacity={0.85}
+        >
+          <Text style={[styles.text, currentLang === lang.code && styles.selectedText]}>{lang.label}</Text>
+        </TouchableOpacity>
+      ))}
     </View>
   );
 };
 
-// Stil tanımları
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
-  },
-  
-  languageGrid: {
+  row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
+    justifyContent: 'center',
+    marginVertical: 12,
   },
-  
-  languageButton: {
-    flex: 1,
-    marginHorizontal: 5,
-    padding: 15,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#f8f9fa',
+  button: {
+    minWidth: 64,
+    minHeight: 32,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 6,
+    borderRadius: 8,
+    backgroundColor: '#e0e0e0',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 80,
+    borderWidth: 2,
+    borderColor: '#1976d2',
   },
-  
-  activeLanguageButton: {
-    borderColor: '#007AFF',
-    backgroundColor: '#E3F2FD',
+  selected: {
+    backgroundColor: '#1976d2',
   },
-  
-  languageText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+  text: {
+    color: '#222',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
-  
-  activeLanguageText: {
-    color: '#007AFF',
-  },
-  
-  nativeLabel: {
-    fontSize: 12,
-    color: '#666',
-  },
-  
-  activeNativeLabel: {
-    color: '#007AFF',
-  },
-  
-  info: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    fontStyle: 'italic',
+  selectedText: {
+    color: '#fff',
   },
 });
 

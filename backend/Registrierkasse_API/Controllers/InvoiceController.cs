@@ -16,19 +16,22 @@ namespace Registrierkasse_API.Controllers
         private readonly IEmailService _emailService;
         private readonly ILogger<InvoiceController> _logger;
         private readonly ITseService _tseService; // Added ITseService
+        private readonly IAuditService _auditService; // AuditService eklendi
 
         public InvoiceController(
             IInvoiceService invoiceService, 
             IPdfService pdfService,
             IEmailService emailService,
             ILogger<InvoiceController> logger,
-            ITseService tseService) // Added ITseService to constructor
+            ITseService tseService,
+            IAuditService auditService) // AuditService constructor'a eklendi
         {
             _invoiceService = invoiceService;
             _pdfService = pdfService;
             _emailService = emailService;
             _logger = logger;
             _tseService = tseService; // Initialize ITseService
+            _auditService = auditService;
         }
 
         /// <summary>
@@ -40,9 +43,19 @@ namespace Registrierkasse_API.Controllers
         {
             try
             {
-                request.CreatedById = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+                request.CreatedById = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
                 
                 var response = await _invoiceService.CreateInvoiceAsync(request);
+
+                // Türkçe Açıklama: Fatura oluşturma işlemi sonrası transaction logu eklenir
+                await _auditService.LogActionAsync(
+                    action: "CREATE",
+                    entityType: "Invoice",
+                    entityId: response?.Invoice?.Id.ToString(),
+                    oldValues: null,
+                    newValues: response?.Invoice,
+                    description: $"Invoice created. Number: {response?.Invoice?.InvoiceNumber}, Amount: {response?.Invoice?.TotalAmount}"
+                );
                 
                 return Ok(response);
             }
@@ -133,13 +146,25 @@ namespace Registrierkasse_API.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized();
 
                 request.UpdatedById = userId;
 
+                // Eski değerleri al
+                var oldInvoice = await _invoiceService.GetInvoiceByIdAsync(id);
                 var invoice = await _invoiceService.UpdateInvoiceAsync(id, request);
+
+                // Türkçe Açıklama: Fatura güncelleme işlemi sonrası transaction logu eklenir
+                await _auditService.LogActionAsync(
+                    action: "UPDATE",
+                    entityType: "Invoice",
+                    entityId: id,
+                    oldValues: oldInvoice,
+                    newValues: invoice,
+                    description: $"Invoice updated. Number: {invoice?.InvoiceNumber}, Amount: {invoice?.TotalAmount}"
+                );
                 return Ok(invoice);
             }
             catch (ArgumentException)
@@ -166,7 +191,19 @@ namespace Registrierkasse_API.Controllers
         {
             try
             {
+                // Eski değerleri al
+                var oldInvoice = await _invoiceService.GetInvoiceByIdAsync(id);
                 await _invoiceService.DeleteInvoiceAsync(id);
+
+                // Türkçe Açıklama: Fatura silme işlemi sonrası transaction logu eklenir
+                await _auditService.LogActionAsync(
+                    action: "DELETE",
+                    entityType: "Invoice",
+                    entityId: id,
+                    oldValues: oldInvoice,
+                    newValues: null,
+                    description: $"Invoice deleted. Number: {oldInvoice?.InvoiceNumber}, Amount: {oldInvoice?.TotalAmount}"
+                );
                 return NoContent();
             }
             catch (ArgumentException)
@@ -226,13 +263,25 @@ namespace Registrierkasse_API.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized();
 
                 request.ProcessedById = userId;
 
+                // Eski değerleri al
+                var oldInvoice = await _invoiceService.GetInvoiceByIdAsync(id);
                 var invoice = await _invoiceService.MarkAsPaidAsync(id, request);
+
+                // Türkçe Açıklama: Ödeme işlemi sonrası transaction logu eklenir
+                await _auditService.LogActionAsync(
+                    action: "PAYMENT",
+                    entityType: "Invoice",
+                    entityId: id,
+                    oldValues: oldInvoice,
+                    newValues: invoice,
+                    description: $"Invoice payment recorded. Number: {invoice?.InvoiceNumber}, Amount: {invoice?.TotalAmount}"
+                );
                 return Ok(invoice);
             }
             catch (ArgumentException)
@@ -255,7 +304,19 @@ namespace Registrierkasse_API.Controllers
         {
             try
             {
+                // Eski değerleri al
+                var oldInvoice = await _invoiceService.GetInvoiceByIdAsync(id);
                 var invoice = await _invoiceService.CancelInvoiceAsync(id, request.Reason);
+
+                // Türkçe Açıklama: Fatura iptal işlemi sonrası transaction logu eklenir
+                await _auditService.LogActionAsync(
+                    action: "CANCEL",
+                    entityType: "Invoice",
+                    entityId: id,
+                    oldValues: oldInvoice,
+                    newValues: invoice,
+                    description: $"Invoice cancelled. Number: {invoice?.InvoiceNumber}, Amount: {invoice?.TotalAmount}"
+                );
                 return Ok(invoice);
             }
             catch (ArgumentException)

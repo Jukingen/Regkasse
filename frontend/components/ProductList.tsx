@@ -30,6 +30,9 @@ const ProductList: React.FC<ProductListProps> = ({
 }) => {
   const { t } = useTranslation();
 
+  // DEBUG: Componentin render edildiğini göster
+  console.log('ProductList render', products);
+
   // Container genişliğini hesapla (sol panel genişliği)
   const containerWidth = screenWidth * 0.5; // Sol panel genişliği (yaklaşık %50)
   
@@ -88,7 +91,13 @@ const ProductList: React.FC<ProductListProps> = ({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.productList}
         style={styles.flatListContainer}
+        ListEmptyComponent={
+          <Text style={{ textAlign: 'center', color: '#888', marginTop: 32 }}>
+            {t('cashRegister.noProducts', 'Hiç ürün bulunamadı')}
+          </Text>
+        }
       />
+      <Text style={{textAlign: 'center', color: 'red', marginTop: 8}}>TEST - ProductList aktif</Text>
     </View>
   );
 };
@@ -101,12 +110,12 @@ const styles = StyleSheet.create({
   },
   sectionTitleSmall: {
     ...Typography.caption,
-    color: '#1e293b', // Modern koyu mavi-gri
-    marginBottom: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    fontWeight: '700', // Daha kalın font
-    fontSize: 14,
-    letterSpacing: 0.5, // Harf aralığı
+    color: '#1e293b',
+    marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.xs,
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 0.2,
   },
   flatListContainer: {
     width: '100%',
@@ -117,24 +126,21 @@ const styles = StyleSheet.create({
   },
   productCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16, // Daha yumuşak köşeler
-    padding: 16, // Biraz daha fazla padding
-    margin: 6, // Biraz daha fazla margin
+    borderRadius: 8,
+    padding: 6,
+    margin: 2,
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4, // Daha belirgin gölge
-    },
-    shadowOpacity: 0.08, // Daha yumuşak gölge
-    shadowRadius: 8, // Daha yumuşak gölge
-    elevation: 4, // Android için gölge
-    minWidth: 90, // Biraz daha geniş
-    minHeight: 130, // Biraz daha yüksek
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    minWidth: 60,
+    minHeight: 80,
     flex: 1,
     borderWidth: 1,
-    borderColor: '#e2e8f0', // Modern border rengi
+    borderColor: '#e2e8f0',
   },
   productInfoContainer: {
     alignItems: 'center',
@@ -142,13 +148,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   productName: {
-    fontSize: 15, // Biraz daha büyük
-    fontWeight: '700', // Daha kalın
-    color: '#1e293b', // Modern koyu renk
-    marginBottom: 4,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 2,
     textAlign: 'center',
-    lineHeight: 20, // Satır yüksekliği
-    letterSpacing: 0.2, // Harf aralığı
+    lineHeight: 14,
+    letterSpacing: 0.1,
   },
   productCategory: {
     fontSize: 12,

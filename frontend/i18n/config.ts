@@ -9,69 +9,30 @@ import de from './locales/de.json';
 import en from './locales/en.json';
 import tr from './locales/tr.json';
 
-// Özel dil algılama modülü
-const customLanguageDetector = {
-    name: 'customLanguageDetector',
-    async: true,
-    detect: async (callback: (lng: string) => void) => {
-        try {
-            const savedLanguage = await AsyncStorage.getItem('user-language');
-            if (savedLanguage) {
-                callback(savedLanguage);
-                return;
-            }
-            
-            // Varsayılan olarak Almanca kullan
-            callback('de');
-        } catch (error) {
-            // Hata durumunda Almanca kullan
-            callback('de');
-        }
-    },
-    init: () => {},
-    cacheUserLanguage: async (lng: string) => {
-        try {
-            await AsyncStorage.setItem('user-language', lng);
-        } catch (error) {
-            console.error('Error saving language:', error);
-        }
-    }
+const resources = {
+  'de-DE': { translation: de },
+  'en': { translation: en },
+  'tr': { translation: tr },
+};
+
+const getInitialLanguage = () => {
+  // AsyncStorage veya localStorage'dan dil alınır, yoksa de-DE döner
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage.getItem('language') || 'de-DE';
+  }
+  return 'de-DE';
 };
 
 i18n
-    .use(LanguageDetector)
-    .use(initReactI18next)
-    .init({
-        resources: {
-            de: { translation: de },
-            tr: { translation: tr },
-            en: { translation: en }
-        },
-        lng: 'de', // Varsayılan dil Almanca
-        fallbackLng: 'de', // Fallback de Almanca
-        defaultNS: 'translation',
-        interpolation: {
-            escapeValue: false
-        },
-        react: {
-            useSuspense: false
-        },
-        detection: {
-            order: ['customLanguageDetector', 'navigator'],
-            lookupFromPathIndex: 0
-        }
-    });
-
-// Özel dil algılayıcıyı ekle
-i18n.services.languageDetector.addDetector(customLanguageDetector);
-
-export const changeLanguage = async (language: 'de' | 'tr' | 'en') => {
-    try {
-        await AsyncStorage.setItem('user-language', language);
-        await i18n.changeLanguage(language);
-    } catch (error) {
-        console.error('Error changing language:', error);
-    }
-};
+  .use(initReactI18next)
+  .init({
+    resources,
+    lng: getInitialLanguage(),
+    fallbackLng: 'de-DE',
+    interpolation: {
+      escapeValue: false,
+    },
+    compatibilityJSON: 'v3',
+  });
 
 export default i18n; 

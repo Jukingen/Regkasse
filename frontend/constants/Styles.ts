@@ -25,37 +25,37 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
 
   // Typography
   h1: {
-    fontSize: 32,
+    fontSize: 18,
     fontWeight: 'bold',
     color: theme.text,
   },
   h2: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: 'bold',
     color: theme.text,
   },
   h3: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: '600',
     color: theme.text,
   },
   body: {
-    fontSize: 16,
+    fontSize: 13,
     color: theme.text,
   },
   caption: {
-    fontSize: 14,
+    fontSize: 12,
     color: theme.placeholder,
   },
 
   // Input
   input: {
-    height: 48,
+    height: 32,
     backgroundColor: theme.inputBackground,
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    borderRadius: 4,
+    paddingHorizontal: 8,
     color: theme.text,
-    fontSize: 16,
+    fontSize: 13,
     borderWidth: 1,
     borderColor: theme.border,
   },
@@ -65,15 +65,15 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
 
   // Button
   button: {
-    height: 48,
-    borderRadius: 8,
+    height: 32,
+    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: theme.primary,
   },
   buttonText: {
     color: theme.buttonText,
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '600',
   },
   buttonDisabled: {
@@ -83,32 +83,32 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
   // Card
   card: {
     backgroundColor: theme.card,
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
+    borderRadius: 8,
+    padding: 8,
+    marginVertical: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 2,
+    elevation: 2,
   },
 
   // List
   listItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 8,
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
   },
 
   // Spacing
   spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
+    xs: 2,
+    sm: 4,
+    md: 8,
+    lg: 12,
+    xl: 16,
   },
 
   // Dimensions
@@ -118,11 +118,11 @@ export const createStyles = (theme: Theme) => StyleSheet.create({
 
 // Özel stil yardımcıları
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
+  xs: 2,
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
 };
 
 export const borderRadius = {

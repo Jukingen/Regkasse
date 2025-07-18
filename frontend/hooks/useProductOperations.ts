@@ -8,11 +8,11 @@ import { ErrorMessages } from '../services/errorService';
 
 // API fonksiyonları
 const productService = {
-  getProducts: () => apiClient.get('/api/products').then(res => res.data),
-  createProduct: (data: any) => apiClient.post('/api/products', data).then(res => res.data),
-  updateProduct: (id: string, data: any) => apiClient.put(`/api/products/${id}`, data).then(res => res.data),
-  deleteProduct: (id: string) => apiClient.delete(`/api/products/${id}`).then(res => res.data),
-  searchProducts: (query: string) => apiClient.get(`/api/products/search?q=${encodeURIComponent(query)}`).then(res => res.data)
+  getProducts: () => apiClient.get('/product'),
+  createProduct: (data: any) => apiClient.post('/product', data),
+  updateProduct: (id: string, data: any) => apiClient.put(`/product/${id}`, data),
+  deleteProduct: (id: string) => apiClient.delete(`/product/${id}`),
+  searchProducts: (query: string) => apiClient.get(`/product/search?q=${encodeURIComponent(query)}`)
 };
 
 export function useProductOperations() {
@@ -41,7 +41,7 @@ export function useProductOperations() {
     {
       showErrorAlert: false,
       showSuccessAlert: false,
-      onSuccess: (product) => {
+      onSuccess: (product: any) => {
         showSuccess('Product created successfully');
         addNotification({
           type: 'success',
@@ -70,7 +70,7 @@ export function useProductOperations() {
     {
       showErrorAlert: false,
       showSuccessAlert: false,
-      onSuccess: (product) => {
+      onSuccess: (product: any) => {
         showSuccess('Product updated successfully');
         addNotification({
           type: 'success',

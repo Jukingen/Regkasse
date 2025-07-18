@@ -45,6 +45,7 @@ namespace Registrierkasse_API.Data
         public DbSet<CustomerDiscount> CustomerDiscounts { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
+        public DbSet<DepEntry> DepEntries { get; set; } // DEP kayıtları için
 
         // Rol sistemi DbSet'leri
         public DbSet<Role> Roles { get; set; }
