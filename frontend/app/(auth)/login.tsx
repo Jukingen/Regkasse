@@ -1,12 +1,11 @@
-import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-
 import { useAuth } from '../../contexts/AuthContext';
 import { ApiSettingsModal } from '../../components/ApiSettingsModal';
 
 export default function LoginScreen() {
+    console.log('LoginScreen loaded');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -29,41 +28,32 @@ export default function LoginScreen() {
     };
 
     const handleLogin = async () => {
-        console.log('Login attempt started...'); // Debug log
-
+        console.log('Login attempt started...');
         if (!username || !password) {
-            console.log('Empty fields detected'); // Debug log
+            console.log('Empty fields detected');
             Alert.alert(
                 t('auth.loginError'),
                 t('validation.required')
             );
             return;
         }
-
         try {
-            console.log('Setting loading state...'); // Debug log
             setIsLoading(true);
-            
-            console.log('Calling login function...'); // Debug log
-            console.log('Username:', username); // Debug log (şifreyi loglamıyoruz)
-            
             await login(username, password);
-            console.log('Login successful!'); // Debug log
+            console.log('Login successful!');
         } catch (error) {
-            console.error('Login error details:', error); // Debug log
+            console.error('Login error details:', error);
             Alert.alert(
                 t('auth.loginError'),
                 error instanceof Error ? error.message : t('auth.loginError')
             );
         } finally {
-            console.log('Login attempt finished'); // Debug log
             setIsLoading(false);
         }
     };
 
-    // Debug için buton basıldığında tetiklenecek
     const handleButtonPress = () => {
-        console.log('Login button pressed'); // Debug log
+        console.log('Login button pressed');
         handleLogin();
     };
 
@@ -74,10 +64,7 @@ export default function LoginScreen() {
                     style={styles.input}
                     placeholder={t('auth.username')}
                     value={username}
-                    onChangeText={(text) => {
-                        console.log('Username changed:', text); // Debug log
-                        setUsername(text);
-                    }}
+                    onChangeText={setUsername}
                     autoCapitalize="none"
                     editable={!isLoading}
                 />
@@ -85,16 +72,13 @@ export default function LoginScreen() {
                     style={styles.input}
                     placeholder={t('auth.password')}
                     value={password}
-                    onChangeText={(text) => {
-                        console.log('Password changed (length):', text.length); // Debug log
-                        setPassword(text);
-                    }}
+                    onChangeText={setPassword}
                     secureTextEntry
                     editable={!isLoading}
                 />
                 <TouchableOpacity
                     style={[styles.button, isLoading && styles.buttonDisabled]}
-                    onPress={handleButtonPress} // handleLogin yerine handleButtonPress kullanıyoruz
+                    onPress={handleButtonPress}
                     disabled={isLoading}
                 >
                     {isLoading ? (
@@ -103,7 +87,6 @@ export default function LoginScreen() {
                         <Text style={styles.buttonText}>{t('auth.button')}</Text>
                     )}
                 </TouchableOpacity>
-
                 <TouchableOpacity
                     style={styles.settingsButton}
                     onPress={() => setShowApiSettings(true)}
@@ -111,7 +94,6 @@ export default function LoginScreen() {
                 >
                     <Text style={styles.settingsButtonText}>API Ayarları</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                     style={styles.debugButton}
                     onPress={handleDebugInfo}
@@ -120,7 +102,6 @@ export default function LoginScreen() {
                     <Text style={styles.debugButtonText}>Debug Bilgileri</Text>
                 </TouchableOpacity>
             </View>
-
             <ApiSettingsModal
                 visible={showApiSettings}
                 onClose={() => setShowApiSettings(false)}

@@ -104,7 +104,7 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
   return (
     <View style={[styles.container, { display: visible ? 'flex' : 'none' }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('change.calculator')}</Text>
+        <Text style={styles.title}>{t('change.calculator', 'Para Üstü Hesaplama')}</Text>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={24} color={Colors.light.text} />
         </TouchableOpacity>
@@ -113,13 +113,13 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Toplam Tutar */}
         <View style={styles.totalSection}>
-          <Text style={styles.totalLabel}>{t('change.total_amount')}</Text>
+          <Text style={styles.totalLabel}>{t('change.total_amount', 'Toplam Tutar')}</Text>
           <Text style={styles.totalAmount}>{total.toFixed(2)}€</Text>
         </View>
 
         {/* Müşteri Verdiği Tutar */}
         <View style={styles.amountSection}>
-          <Text style={styles.sectionTitle}>{t('change.customer_amount')}</Text>
+          <Text style={styles.sectionTitle}>{t('change.customer_amount', 'Müşteri Verdiği Tutar')}</Text>
           <TextInput
             style={styles.amountInput}
             value={amount}
@@ -132,7 +132,7 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
 
         {/* Hızlı Tutar Butonları */}
         <View style={styles.quickAmountsSection}>
-          <Text style={styles.sectionTitle}>{t('change.quick_amounts')}</Text>
+          <Text style={styles.sectionTitle}>{t('change.quick_amounts', 'Hızlı Tutar Seçenekleri')}</Text>
           <View style={styles.quickAmountsGrid}>
             {quickAmounts.map((quickAmount) => (
               <TouchableOpacity
@@ -158,7 +158,7 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
 
         {/* Para Üstü */}
         <View style={styles.changeSection}>
-          <Text style={styles.sectionTitle}>{t('change.change_amount')}</Text>
+          <Text style={styles.sectionTitle}>{t('change.change_amount', 'Para Üstü')}</Text>
           <Text style={[styles.changeAmount, change < 0 && styles.changeAmountNegative]}>
             {change >= 0 ? '+' : ''}{change.toFixed(2)}€
           </Text>
@@ -167,7 +167,7 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
         {/* Para Üstü Dağılımı */}
         {change > 0 && (
           <View style={styles.breakdownSection}>
-            <Text style={styles.sectionTitle}>{t('change.breakdown')}</Text>
+            <Text style={styles.sectionTitle}>{t('change.breakdown', 'Para Üstü Dağılımı')}</Text>
             <View style={styles.breakdownGrid}>
               {Object.entries(changeBreakdown)
                 .filter(([_, count]) => count > 0)
@@ -185,7 +185,7 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
         {change < 0 && (
           <View style={styles.warningSection}>
             <Ionicons name="warning" size={20} color={Colors.light.error} />
-            <Text style={styles.warningText}>{t('change.insufficient_amount')}</Text>
+            <Text style={styles.warningText}>{t('change.insufficient_amount', 'Yetersiz Tutar')}</Text>
           </View>
         )}
       </ScrollView>
@@ -201,7 +201,7 @@ const ChangeCalculator: React.FC<ChangeCalculatorProps> = ({
           disabled={change < 0 || !amount}
         >
           <Ionicons name="checkmark" size={20} color="white" />
-          <Text style={styles.confirmButtonText}>{t('change.confirm')}</Text>
+          <Text style={styles.confirmButtonText}>{t('change.confirm', 'Onayla')}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -118,7 +118,11 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
     const amount = parseFloat(paymentAmount);
     
     if (isNaN(amount) || amount < totalAmount) {
-      Alert.alert('Invalid Amount', 'Payment amount must be at least the total amount.');
+      Alert.alert(
+        t('payment.invalidAmount', 'Geçersiz Tutar'),
+        t('payment.amountTooLow', 'Ödeme tutarı toplamdan az olamaz.'),
+        [{ text: t('common.ok', 'Tamam') }]
+      );
       return;
     }
 

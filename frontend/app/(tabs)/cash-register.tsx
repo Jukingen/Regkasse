@@ -100,10 +100,6 @@ const CashRegisterScreen = () => {
             })}
           </ScrollView>
         </View>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>{t('cashRegister.total', 'Toplam')}:</Text>
-          <Text style={styles.totalValue}>€{Number(cart?.grandTotal ?? 0).toFixed(2)}</Text>
-        </View>
         {tseWarning && (
           <View style={styles.tseWarningBar}>
             <Text style={styles.tseWarningText}>{tseWarning}</Text>

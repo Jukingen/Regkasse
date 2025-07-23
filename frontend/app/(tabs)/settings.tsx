@@ -2,33 +2,31 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import LanguageSelector from '../../components/LanguageSelector';
-import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 
 export default function SettingsScreen() {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const { logout } = useAuth();
-  const { t: tAuth } = useTranslation();
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('settings.title')}</Text>
+        <Text style={styles.title}>{t('settings')}</Text>
       </View>
       <View style={styles.section}>
         <LanguageSelector />
       </View>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('settings.other_settings')}</Text>
+        <Text style={styles.sectionTitle}>{t('settings.other_settings', 'Diğer Ayarlar')}</Text>
         <Text style={styles.description}>
-          {t('settings.coming_soon')}
+          {t('settings.coming_soon', 'Çok yakında')}
         </Text>
       </View>
       {/* Çıkış Yap Butonu */}
       <View style={styles.section}>
         <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-          <Text style={styles.logoutButtonText}>{tAuth('auth.logout')}</Text>
+          <Text style={styles.logoutButtonText}>{t('logout', 'Çıkış Yap')}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

@@ -173,7 +173,7 @@ const VoiceCommands: React.FC<VoiceCommandsProps> = ({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Voice Commands</Text>
+          <Text style={styles.headerTitle}>{t('voice.header', 'Voice Commands')}</Text>
           <TouchableOpacity 
             style={styles.helpButton} 
             onPress={() => setShowHelp(!showHelp)}

@@ -43,12 +43,12 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
     if (cart?.items?.length === 0) return;
     
     Alert.alert(
-      'Clear Cart',
-      'Are you sure you want to clear the cart?',
+      t('cart.clearCart', 'Sepeti Temizle'),
+      t('cart.clearCartConfirm', 'Tüm ürünler sepetten kaldırılacak. Bu işlem geri alınamaz.'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel', 'İptal'), style: 'cancel' },
         {
-          text: 'Clear',
+          text: t('cart.clear', 'Temizle'),
           style: 'destructive',
           onPress: () => {
             onClearCart();

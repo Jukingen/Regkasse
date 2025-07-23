@@ -120,7 +120,6 @@ const ProductList: React.FC<ProductListProps> = ({
           </Text>
         }
       />
-      <Text style={{textAlign: 'center', color: 'red', marginTop: 8}}>TEST - ProductList aktif</Text>
     </View>
   );
 };

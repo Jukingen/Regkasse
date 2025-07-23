@@ -1,9 +1,13 @@
 import { Stack, Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
-
 import { useAuth } from '../../contexts/AuthContext';
+import React from 'react';
 
-export default function AuthLayout() {
+interface AuthLayoutProps {
+  children: React.ReactNode;
+}
+
+export default function AuthLayout({ children }: AuthLayoutProps) {
     const { isAuthenticated, isLoading, user } = useAuth();
 
     if (isLoading) {
@@ -21,17 +25,8 @@ export default function AuthLayout() {
     }
 
     return (
-        <Stack
-            screenOptions={{
-                headerShown: false
-            }}
-        >
-            <Stack.Screen
-                name="login"
-                options={{
-                    headerShown: false
-                }}
-            />
+        <Stack screenOptions={{ headerShown: false }}>
+            {children}
         </Stack>
     );
 } 

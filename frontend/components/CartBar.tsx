@@ -1,7 +1,9 @@
 // Bu komponent, sadece backend'den gelen sepet ve hesaplama verilerini gösterir. Local hesaplama yapılmaz.
-import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Cart, CartItem } from '../hooks/useApiCart';
+import { useTranslation } from 'react-i18next';
 
 interface CartBarProps {
   cart: Cart | null;
@@ -13,54 +15,131 @@ interface CartBarProps {
 
 const defaultCart = { id: '', items: [], total: 0, discount: 0, vat: 0, grandTotal: 0 };
 
+// Ürün kutusu: memoize edilmiş kart
+interface CartItemCardProps {
+  item: CartItem;
+  isSelected: boolean;
+  onUpdateQty: (itemId: string, qty: number) => void;
+  onRemove: (itemId: string) => void;
+  setSelectedItemId: React.Dispatch<React.SetStateAction<string | null>>;
+}
+const getItemName = (item: any) => item.productName || (item.product && item.product.name) || item.name || '';
+const getUnitPrice = (item: any) => item.unitPrice ?? item.price ?? 0;
+const CartItemCard = React.memo(({ item, isSelected, onUpdateQty, onRemove, setSelectedItemId }: CartItemCardProps) => (
+  <TouchableOpacity
+    key={item.id}
+    style={[styles.itemBox, isSelected && styles.itemBoxSelected]}
+    onPress={() => setSelectedItemId(item.id)}
+    activeOpacity={0.85}
+  >
+    <View style={styles.itemHeader}>
+      <Text style={styles.itemName}>{getItemName(item)}</Text>
+      {isSelected && <Ionicons name="checkmark-circle" size={18} color={COLORS.accent} style={{ marginLeft: 2 }} />}
+    </View>
+    <Text style={styles.itemPrice}>{Number(getUnitPrice(item)).toFixed(2)} €</Text>
+    <View style={styles.qtyRow}>
+      <TouchableOpacity
+        style={[styles.qtyBtn, isSelected && styles.qtyBtnActive]}
+        onPress={() => onUpdateQty(item.id, item.quantity - 1)}
+        accessibilityLabel="Miktarı azalt"
+      >
+        <Ionicons name="remove-circle-outline" size={22} color={COLORS.danger} />
+      </TouchableOpacity>
+      <Text style={styles.qtyText}>{item.quantity}</Text>
+      <TouchableOpacity
+        style={[styles.qtyBtn, isSelected && styles.qtyBtnActive]}
+        onPress={() => onUpdateQty(item.id, item.quantity + 1)}
+        accessibilityLabel="Miktarı arttır"
+      >
+        <Ionicons name="add-circle-outline" size={22} color={COLORS.success} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.removeBtn, isSelected && styles.removeBtnActive]}
+        onPress={() => onRemove(item.id)}
+        accessibilityLabel="Ürünü sil"
+      >
+        <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
+      </TouchableOpacity>
+    </View>
+  </TouchableOpacity>
+));
+
 const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty, onClear }) => {
-  const safeCart = cart ?? defaultCart;
+  const { t } = useTranslation();
+  const safeCart = useMemo(() => cart ?? defaultCart, [cart]);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+
+  // Sepet değiştiğinde ilk ürünü otomatik seçili yap
+  useEffect(() => {
+    if (safeCart && safeCart.items.length > 0) {
+      setSelectedItemId(prev => prev && safeCart.items.some(i => i.id === prev) ? prev : safeCart.items[0].id);
+    } else {
+      setSelectedItemId(null);
+    }
+  }, [safeCart]);
+
+  const memoOnUpdateQty = useCallback(onUpdateQty, [onUpdateQty]);
+  const memoOnRemove = useCallback(onRemove, [onRemove]);
+
   if (loading) {
-    return <ActivityIndicator size="small" color="#1976d2" />;
+    return null;
   }
   if (!safeCart || safeCart.items.length === 0) {
     return <Text style={styles.emptyText}>Sepet boş</Text>;
   }
+
   return (
     <View style={styles.container}>
-      <ScrollView horizontal style={styles.cartList}>
+      <ScrollView
+        horizontal
+        style={styles.cartList}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
+      >
         {safeCart.items.map(item => (
-          <View key={item.id} style={styles.itemBox}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemPrice}>{Number(item.price ?? 0).toFixed(2)} €</Text>
-            <View style={styles.qtyRow}>
-              <TouchableOpacity style={styles.qtyBtn} onPress={() => onUpdateQty(item.id, item.quantity - 1)}>
-                <Text style={styles.qtyBtnText}>-</Text>
-              </TouchableOpacity>
-              <Text style={styles.qtyText}>{item.quantity}</Text>
-              <TouchableOpacity style={styles.qtyBtn} onPress={() => onUpdateQty(item.id, item.quantity + 1)}>
-                <Text style={styles.qtyBtnText}>+</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.removeBtn} onPress={() => onRemove(item.id)}>
-                <Text style={styles.removeBtnText}>Sil</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <CartItemCard
+            key={item.id}
+            item={item}
+            isSelected={selectedItemId === item.id}
+            onUpdateQty={memoOnUpdateQty}
+            onRemove={memoOnRemove}
+            setSelectedItemId={setSelectedItemId}
+          />
         ))}
       </ScrollView>
       <View style={styles.summaryRow}>
-        <Text style={styles.totalText}>Toplam: {Number(safeCart.total ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>İndirim: {Number(safeCart.discount ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>KDV: {Number(safeCart.vat ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>Genel Toplam: {Number(safeCart.grandTotal ?? 0).toFixed(2)} €</Text>
-        <TouchableOpacity style={styles.clearBtn} onPress={onClear}>
-          <Text style={styles.clearBtnText}>Sepeti Temizle</Text>
+        <Text style={styles.totalText}>{t('cart.total', 'Toplam')}: {Number(safeCart.total ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.discount', 'İndirim')}: {Number(safeCart.discount ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.vat', 'KDV')}: {Number(safeCart.vat ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.grandTotal', 'Genel Toplam')}: {Number(safeCart.grandTotal ?? 0).toFixed(2)} €</Text>
+        <TouchableOpacity style={styles.clearBtn} onPress={onClear} accessibilityLabel="Sepeti Temizle">
+          <Ionicons name="trash" size={18} color="#fff" style={{ marginRight: 4 }} />
+          <Text style={styles.clearBtnText}>{t('cart.clear', 'Sepeti Temizle')}</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
+const COLORS = {
+  background: '#F7F8FA',
+  card: '#FFFFFF',
+  accent: '#1976D2',
+  accentSoft: '#E3F2FD',
+  danger: '#E53935',
+  dangerSoft: '#FFEBEE',
+  success: '#43A047',
+  successSoft: '#E8F5E9',
+  text: '#222',
+  textSoft: '#666',
+  border: '#E0E0E0',
+};
+
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.background,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     marginVertical: 8,
     width: '100%',
     alignItems: 'flex-start',
@@ -71,54 +150,64 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   emptyText: {
-    color: '#888',
+    color: COLORS.textSoft,
     fontSize: 16,
     marginLeft: 8,
   },
   itemBox: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 8,
+    backgroundColor: COLORS.card,
+    borderRadius: 14,
+    padding: 10,
     marginRight: 12,
     minWidth: 120,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
-  itemName: {
-    fontWeight: 'bold',
-    fontSize: 16,
+  itemBoxSelected: {
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.accentSoft,
   },
-  itemPrice: {
-    color: '#1976d2',
-    fontSize: 14,
-    marginBottom: 4,
-  },
+  itemHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  itemName: { fontWeight: 'bold', fontSize: 15, color: COLORS.text },
+  itemPrice: { color: COLORS.accent, fontSize: 13, marginBottom: 2 },
   qtyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
   },
   qtyBtn: {
-    backgroundColor: '#e0e0e0',
-    borderRadius: 6,
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 2,
     marginHorizontal: 2,
   },
-  qtyBtnText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  qtyBtnActive: {
+    backgroundColor: COLORS.accentSoft,
   },
   qtyText: {
-    fontSize: 16,
+    fontSize: 15,
     marginHorizontal: 4,
+    color: COLORS.text,
+    fontWeight: 'bold',
   },
   removeBtn: {
-    backgroundColor: '#d32f2f',
-    borderRadius: 6,
+    backgroundColor: COLORS.dangerSoft,
+    borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 2,
     marginLeft: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  removeBtnActive: {
+    // backgroundColor: COLORS.danger, // kaldırıldı, seçili üründe kırmızı kutu olmasın
   },
   removeBtnText: {
     color: '#fff',
@@ -136,21 +225,38 @@ const styles = StyleSheet.create({
   totalText: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#1976d2',
+    color: COLORS.accent,
     marginRight: 8,
   },
   clearBtn: {
-    backgroundColor: '#d32f2f',
+    backgroundColor: COLORS.danger,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginLeft: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   clearBtnText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 15,
   },
+  selectedBox: {
+    backgroundColor: COLORS.accentSoft,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 8,
+    width: '100%',
+    alignItems: 'flex-start',
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+  },
+  selectedLabel: { fontSize: 12, color: COLORS.accent, fontWeight: 'bold', marginBottom: 2 },
+  selectedName: { fontSize: 18, fontWeight: 'bold', color: COLORS.text, marginBottom: 2 },
+  selectedDetailsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 2 },
+  selectedDetail: { fontSize: 13, color: COLORS.textSoft, marginRight: 12 },
+  selectedBold: { fontWeight: 'bold', color: COLORS.text },
 });
 
 export default CartBar; 

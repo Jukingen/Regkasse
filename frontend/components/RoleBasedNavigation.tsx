@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { PermissionHelper, UserRole } from '../shared/utils/PermissionHelper';
 
@@ -173,6 +174,7 @@ interface RoleBasedNavigationProps {
 export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleBasedNavigationProps) {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [accessibleItems, setAccessibleItems] = useState<NavigationItem[]>([]);
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadUserRole();
@@ -191,9 +193,9 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
   const handleNavigation = (item: NavigationItem) => {
     if (!PermissionHelper.hasScreenAccess(item.screen)) {
       Alert.alert(
-        'Yetkisiz Erişim',
-        'Bu ekrana erişim yetkiniz bulunmamaktadır.',
-        [{ text: 'Tamam' }]
+        t('errors.unauthorized', 'Yetkisiz Erişim'),
+        t('errors.noAccess', 'Bu ekrana erişim yetkiniz bulunmamaktadır.'),
+        [{ text: t('common.ok', 'Tamam') }]
       );
       return;
     }
@@ -252,7 +254,7 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
   if (!userRole) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Kullanıcı rolü yükleniyor...</Text>
+        <Text>{t('loading.roleLoading')}</Text>
       </View>
     );
   }
@@ -260,7 +262,7 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Menü</Text>
+        <Text style={styles.title}>{t('navigation.menu')}</Text>
         <View style={styles.roleInfo}>
           <MaterialIcons 
             name={userRole === UserRole.Admin ? 'admin-panel-settings' : 'person'} 
@@ -274,7 +276,7 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
       </View>
 
       <View style={styles.navSection}>
-        <Text style={styles.sectionTitle}>Erişilebilir Ekranlar</Text>
+        <Text style={styles.sectionTitle}>{t('navigation.accessibleScreens')}</Text>
         {accessibleItems.map(renderNavigationItem)}
       </View>
 
@@ -282,7 +284,7 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
         <View style={styles.demoInfo}>
           <MaterialIcons name="info" size={16} color="#1976d2" />
           <Text style={styles.demoText}>
-            Demo kullanıcısı olarak giriş yaptınız. Sadece rolünüze uygun işlemleri gerçekleştirebilirsiniz.
+            {t('navigation.demoUserInfo')}
           </Text>
         </View>
       )}

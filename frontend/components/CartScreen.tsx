@@ -1,6 +1,6 @@
 // Türkçe Açıklama: Bu component, dokunmatik dostu, sade ve büyük butonlu bir sepet/kasa ekranı sunar. Tüm hesaplamalar backend'den gelir, frontend'de tekrar hesaplanmaz.
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import SplitBillSection from './SplitBillSection';
 import ErrorModal from './ErrorModal';
 import EmailInvoice from './EmailInvoice';
 import WaiterShortcuts from './WaiterShortcuts';
+import { useTranslation } from 'react-i18next';
 
 // Sepet item'ını CartScreen için uygun tipe dönüştürür
 function mapCartItem(item: any) {
@@ -61,12 +62,12 @@ const CartItemBox = React.memo(({ mapped, onRemove, onQtyChange, processing }: a
       </TouchableOpacity>
     </View>
     <View style={styles.itemDetailsRow}>
-      <Text style={styles.detailText}>Miktar: <Text style={styles.bold}>{mapped.quantity}</Text></Text>
-      <Text style={styles.detailText}>Birim: <Text style={styles.bold}>{mapped.unitPrice.toFixed(2)} €</Text></Text>
-      <Text style={styles.detailText}>Toplam: <Text style={styles.bold}>{mapped.totalAmount.toFixed(2)} €</Text></Text>
+      <Text style={styles.detailText}>{t('cart.quantity', 'Miktar')}: <Text style={styles.bold}>{mapped.quantity}</Text></Text>
+      <Text style={styles.detailText}>{t('cart.unitPrice', 'Birim')}: <Text style={styles.bold}>{mapped.unitPrice.toFixed(2)} €</Text></Text>
+      <Text style={styles.detailText}>{t('cart.totalAmount', 'Toplam')}: <Text style={styles.bold}>{mapped.totalAmount.toFixed(2)} €</Text></Text>
     </View>
     {mapped.notes && (
-      <Text style={styles.extraOption}>Not: {mapped.notes}</Text>
+      <Text style={styles.extraOption}>{t('cart.notes', 'Not')}: {mapped.notes}</Text>
     )}
     <View style={styles.quantityRow}>
       <TouchableOpacity
@@ -91,15 +92,33 @@ const CartItemBox = React.memo(({ mapped, onRemove, onQtyChange, processing }: a
 // Tablo başlığı componenti
 const CartTableHeader = () => (
   <View style={styles.tableHeaderRow}>
-    <Text style={styles.tableHeaderColName}>Ürün</Text>
-    <Text style={styles.tableHeaderColQty}>Miktar</Text>
-    <Text style={styles.tableHeaderColPrice}>Birim Fiyat</Text>
-    <Text style={styles.tableHeaderColTotal}>Toplam</Text>
+    <Text style={styles.tableHeaderColName}>{t('cart.product', 'Ürün')}</Text>
+    <Text style={styles.tableHeaderColQty}>{t('cart.quantity', 'Miktar')}</Text>
+    <Text style={styles.tableHeaderColPrice}>{t('cart.unitPrice', 'Birim Fiyat')}</Text>
+    <Text style={styles.tableHeaderColTotal}>{t('cart.totalAmount', 'Toplam')}</Text>
     <Text style={styles.tableHeaderColDelete}></Text>
   </View>
 );
 
+const COLORS = {
+  background: '#F7F8FA',
+  card: '#FFFFFF',
+  accent: '#1976D2', // Parlak mavi
+  accentSoft: '#E3F2FD',
+  danger: '#E53935',
+  dangerSoft: '#FFEBEE',
+  success: '#43A047',
+  successSoft: '#E8F5E9',
+  text: '#222',
+  textSoft: '#666',
+  border: '#E0E0E0',
+  tableHeader: '#F1F6FB',
+  tableRow: '#FFFFFF',
+  tableRowAlt: '#F7F8FA',
+};
+
 const CartScreen: React.FC = () => {
+  const { t } = useTranslation();
   // Sepet işlemleri için hook'u kullan
   const {
     cart,
@@ -134,6 +153,16 @@ const CartScreen: React.FC = () => {
   const [emailInvoice, setEmailInvoice] = useState<{ visible: boolean; data: any }>({ visible: false, data: null });
   const [tip, setTip] = useState(0); // Bahşiş tutarı
   const [addingItemId, setAddingItemId] = useState<string | null>(null); // Sadece eklenen ürünü disable et
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+
+  // Sepet değiştiğinde ilk ürünü otomatik seçili yap
+  useEffect(() => {
+    if (cart && cart.items.length > 0) {
+      setSelectedItemId(prev => prev && cart.items.some(i => i.id === prev) ? prev : cart.items[0].id);
+    } else {
+      setSelectedItemId(null);
+    }
+  }, [cart]);
 
   // Snackbar için state
   const [showSnackbar, setShowSnackbar] = useState(false);
@@ -144,8 +173,8 @@ const CartScreen: React.FC = () => {
     return (
       <View style={styles.emptyBox}>
         <Text style={styles.emptyEmoji}>🛒</Text>
-        <Text style={styles.emptyText}>Sepetiniz boş!</Text>
-        <Text style={styles.emptyMotivation}>Hadi alışverişe başlayın ve favori ürünlerinizi ekleyin.</Text>
+        <Text style={styles.emptyText}>{t('cart.empty', 'Sepetiniz boş!')}</Text>
+        <Text style={styles.emptyMotivation}>{t('cart.emptyMotivation', 'Hadi alışverişe başlayın ve favori ürünlerinizi ekleyin.')}</Text>
       </View>
     );
   }
@@ -157,12 +186,12 @@ const CartScreen: React.FC = () => {
     try {
       if (newQuantity <= 0) {
         Alert.alert(
-          'Ürünü Kaldır',
-          'Bu ürünü sepetten kaldırmak istediğinizden emin misiniz?',
+          t('cart.removeConfirmTitle', 'Ürünü Kaldır'),
+          t('cart.removeConfirmMessage', 'Bu ürünü sepetten kaldırmak istediğinizden emin misiniz?'),
           [
-            { text: 'İptal', style: 'cancel', onPress: () => setProcessingItem(null) },
+            { text: t('cart.cancel', 'İptal'), style: 'cancel', onPress: () => setProcessingItem(null) },
             {
-              text: 'Kaldır',
+              text: t('cart.remove', 'Kaldır'),
               style: 'destructive',
               onPress: async () => {
                 await removeItem(itemId);
@@ -190,7 +219,7 @@ const CartScreen: React.FC = () => {
         setProcessingItem(null);
       }
     } catch (error) {
-      Alert.alert('Bağlantı hatası! Tekrar deneyin.');
+      Alert.alert(t('cart.connectionError', 'Bağlantı hatası! Tekrar deneyin.'));
       setProcessingItem(null);
     }
   };
@@ -209,19 +238,19 @@ const CartScreen: React.FC = () => {
   // Sepeti temizleme
   const handleClearCart = () => {
     Alert.alert(
-      'Sepeti Temizle',
-      'Tüm ürünler sepetten kaldırılacak. Bu işlem geri alınamaz.',
+      t('cart.clearCartTitle', 'Sepeti Temizle'),
+      t('cart.clearCartMessage', 'Tüm ürünler sepetten kaldırılacak. Bu işlem geri alınamaz.'),
       [
-        { text: 'İptal', style: 'cancel' },
+        { text: t('cart.cancel', 'İptal'), style: 'cancel' },
         {
-          text: 'Temizle',
+          text: t('cart.clear', 'Temizle'),
           style: 'destructive',
           onPress: async () => {
             try {
               await clearCart();
               Vibration.vibrate(10);
             } catch (error) {
-              Alert.alert('Bağlantı hatası! Tekrar deneyin.');
+              Alert.alert(t('cart.connectionError', 'Bağlantı hatası! Tekrar deneyin.'));
             }
           },
         },
@@ -232,7 +261,7 @@ const CartScreen: React.FC = () => {
   // Ödeme öncesi doğrulama
   const handleCheckout = () => {
     if (!cart || cart.items.length === 0) {
-      Alert.alert('Sepetiniz boş!');
+      Alert.alert(t('cart.emptyCartWarning', 'Sepetiniz boş!'));
       return;
     }
     setShowConfirmation(true);
@@ -248,7 +277,7 @@ const CartScreen: React.FC = () => {
     setShowPayment(false);
     setLastPayments(payments); // Son ödemeyi kaydet (isteğe bağlı)
     // TODO: Backend'e ödeme isteği gönder, fatura oluştur, vs.
-    Alert.alert('Ödeme alındı', `Ödeme detayları: ${JSON.stringify(payments, null, 2)}\nSplit: ${JSON.stringify(splitData, null, 2)}`);
+    Alert.alert(t('cart.paymentSuccess', 'Ödeme alındı'), `${t('cart.paymentDetails', 'Ödeme detayları')}: ${JSON.stringify(payments, null, 2)}\n${t('cart.split', 'Split')}: ${JSON.stringify(splitData, null, 2)}`);
   };
 
   // Hızlı işlem kısayolları
@@ -297,12 +326,12 @@ const CartScreen: React.FC = () => {
       // Backend'e ödeme isteği gönder
       console.log(`Processing ${method} payment for ${amount}`);
       // Başarılı ödeme simülasyonu
-      Alert.alert('Başarılı', `${method} ödeme alındı: ${amount.toFixed(2)} €`);
+      Alert.alert(t('cart.paymentSuccess', 'Başarılı'), `${method} ${t('cart.paymentSuccessMessage', 'ödeme alındı')}: ${amount.toFixed(2)} €`);
     } catch (error) {
       setErrorModal({
         visible: true,
         code: 'PAYMENT_ERROR',
-        message: 'Ödeme işlemi başarısız'
+        message: t('cart.paymentError', 'Ödeme işlemi başarısız')
       });
     }
   };
@@ -311,12 +340,12 @@ const CartScreen: React.FC = () => {
   const printReceipt = async () => {
     try {
       console.log('Printing receipt...');
-      Alert.alert('Başarılı', 'Fiş yazdırılıyor...');
+      Alert.alert(t('cart.printSuccess', 'Başarılı'), t('cart.printSuccessMessage', 'Fiş yazdırılıyor...'));
     } catch (error) {
       setErrorModal({
         visible: true,
         code: 'PRINT_ERROR',
-        message: 'Yazdırma hatası'
+        message: t('cart.printError', 'Yazdırma hatası')
       });
     }
   };
@@ -339,16 +368,16 @@ const CartScreen: React.FC = () => {
     setCouponError(null);
     setCouponSuccess(null);
     if (!couponCode || couponCode.length < 3) {
-      setCouponError('Lütfen geçerli bir kod girin.');
+      setCouponError(t('cart.invalidCouponCode', 'Lütfen geçerli bir kod girin.'));
       return;
     }
     setIsApplyingCoupon(true);
     try {
       await applyCoupon(couponCode);
-      setCouponSuccess('Kupon başarıyla uygulandı!');
+      setCouponSuccess(t('cart.couponApplied', 'Kupon başarıyla uygulandı!'));
       setCouponError(null);
     } catch (e: any) {
-      setCouponError('Kupon kodu geçersiz veya süresi dolmuş.');
+      setCouponError(t('cart.invalidOrExpiredCoupon', 'Kupon kodu geçersiz veya süresi dolmuş.'));
       setCouponSuccess(null);
     } finally {
       setIsApplyingCoupon(false);
@@ -364,9 +393,9 @@ const CartScreen: React.FC = () => {
     setCouponCode('');
     try {
       await removeCoupon();
-      setCouponSuccess('Kupon kaldırıldı.');
+      setCouponSuccess(t('cart.couponRemoved', 'Kupon kaldırıldı.'));
     } catch (e: any) {
-      setCouponError('Kupon kodu kaldırılamadı.');
+      setCouponError(t('cart.couponRemoveError', 'Kupon kodu kaldırılamadı.'));
     }
   };
 
@@ -377,16 +406,16 @@ const CartScreen: React.FC = () => {
       setNetworkError(null);
       setRetryAction(null);
     } catch (e: any) {
-      setNetworkError('Netzwerkfehler! Bitte überprüfen Sie Ihre Verbindung.');
+      setNetworkError(t('cart.networkError', 'Netzwerkfehler! Bitte überprüfen Sie Ihre Verbindung.'));
       setRetryAction(() => async () => await fn(...args));
     }
   };
 
   // Sepet işlemlerini ağ hatası ile sarmala
-  const safeHandleQuantityChange = withNetworkError(handleQuantityChange, 'Miktar güncelle');
-  const safeHandleClearCart = withNetworkError(async () => { await handleClearCart(); }, 'Sepeti temizle');
-  const safeHandleApplyCoupon = withNetworkError(handleApplyCoupon, 'Kupon uygula');
-  const safeHandleRemoveCoupon = withNetworkError(handleRemoveCoupon, 'Kupon kaldır');
+  const safeHandleQuantityChange = withNetworkError(handleQuantityChange, t('cart.updateQuantity', 'Miktar güncelle'));
+  const safeHandleClearCart = withNetworkError(async () => { await handleClearCart(); }, t('cart.clearCart', 'Sepeti temizle'));
+  const safeHandleApplyCoupon = withNetworkError(handleApplyCoupon, t('cart.applyCoupon', 'Kupon uygula'));
+  const safeHandleRemoveCoupon = withNetworkError(handleRemoveCoupon, t('cart.removeCoupon', 'Kupon kaldır'));
 
   // Sepet toplamı ve alt bilgi değerleri
   const subtotal = cart?.total ?? 0;
@@ -395,64 +424,71 @@ const CartScreen: React.FC = () => {
   const totalAmount = cart?.grandTotal ?? 0;
   const discount = cart?.discount ?? 0;
 
-  // FlatList için render fonksiyonu (tablo satırı)
-  const renderCartTableRow = ({ item }: any) => {
+  // Modern kart tasarımı ile ürün kutusu
+  const renderCartCard = ({ item }: any) => {
     const mapped = mapCartItem(item);
+    const isSelected = selectedItemId === mapped.id;
     return (
-      <View style={styles.tableRow}>
-        <Text style={styles.tableColName}>{mapped.product.name}</Text>
-        <View style={styles.tableColQty}>
+      <TouchableOpacity
+        style={[styles.cardBox, isSelected && styles.cardBoxSelected]}
+        onPress={() => setSelectedItemId(mapped.id)}
+        activeOpacity={0.85}
+      >
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardName}>{mapped.product.name}</Text>
+          {isSelected && (
+            <Ionicons name="checkmark-circle" size={22} color={COLORS.accent} style={{ marginLeft: 4 }} />
+          )}
+        </View>
+        <View style={styles.cardDetailsRow}>
+          <Text style={styles.cardDetail}>{t('cart.quantity', 'Miktar')}: <Text style={styles.bold}>{mapped.quantity}</Text></Text>
+          <Text style={styles.cardDetail}>{t('cart.unitPrice', 'Birim')}: <Text style={styles.bold}>{mapped.unitPrice.toFixed(2)} €</Text></Text>
+        </View>
+        <View style={styles.cardDetailsRow}>
+          <Text style={styles.cardDetail}>{t('cart.totalAmount', 'Toplam')}: <Text style={styles.bold}>{mapped.totalAmount.toFixed(2)} €</Text></Text>
+        </View>
+        {mapped.notes && (
+          <Text style={styles.cardNote}>{t('cart.notes', 'Not')}: {mapped.notes}</Text>
+        )}
+        <View style={styles.cardActionsRow}>
           <TouchableOpacity
-            style={styles.qtyBtnTouch}
-            onPress={async () => await safeHandleQuantityChange(mapped.id, mapped.quantity - 1)}
+            style={[styles.cardQtyBtn, isSelected && styles.cardQtyBtnActive]}
+            onPress={() => safeHandleQuantityChange(mapped.id, mapped.quantity - 1)}
             disabled={processingItem === mapped.id}
-            accessibilityLabel="Miktarı azalt"
-            accessible
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel={t('cart.decreaseQuantity', 'Miktarı azalt')}
           >
-            <Ionicons name="remove-circle-outline" size={28} color="#888" />
+            <Ionicons name="remove-circle-outline" size={26} color={COLORS.danger} />
           </TouchableOpacity>
-          <Text style={styles.qtyText}>{mapped.quantity}</Text>
+          <Text style={styles.cardQtyText}>{mapped.quantity}</Text>
           <TouchableOpacity
-            style={styles.qtyBtnTouch}
-            onPress={async () => await safeHandleQuantityChange(mapped.id, mapped.quantity + 1)}
+            style={[styles.cardQtyBtn, isSelected && styles.cardQtyBtnActive]}
+            onPress={() => safeHandleQuantityChange(mapped.id, mapped.quantity + 1)}
             disabled={processingItem === mapped.id}
-            accessibilityLabel="Miktarı arttır"
-            accessible
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel={t('cart.increaseQuantity', 'Miktarı arttır')}
           >
-            <Ionicons name="add-circle-outline" size={28} color="#888" />
+            <Ionicons name="add-circle-outline" size={26} color={COLORS.success} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.cardDeleteBtn, isSelected && styles.cardDeleteBtnActive]}
+            onPress={() => safeHandleQuantityChange(mapped.id, 0)}
+            disabled={processingItem === mapped.id}
+            accessibilityLabel={t('cart.removeItem', 'Ürünü sil')}
+          >
+            <Ionicons name="trash-outline" size={24} color={COLORS.danger} />
           </TouchableOpacity>
         </View>
-        <Text style={styles.tableColPrice}>{mapped.unitPrice.toFixed(2)} €</Text>
-        <Text style={styles.tableColTotal}>{mapped.totalAmount.toFixed(2)} €</Text>
-        <TouchableOpacity
-          style={styles.deleteBtnTouch}
-          onPress={async () => await safeHandleQuantityChange(mapped.id, 0)}
-          disabled={processingItem === mapped.id}
-          accessibilityLabel="Ürünü sil"
-          accessible
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="trash-outline" size={28} color="#d00" />
-        </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sepet</Text>
+      <Text style={styles.title}>{t('cart.cartTitle', 'Sepet')}</Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
-      {/* Tablo başlığı */}
-      <CartTableHeader />
-      {/* FlatList ile ürünler tablo satırı olarak */}
+      {/* Modern kart grid/listesi */}
       <FlatList
         data={cart.items}
-        renderItem={renderCartTableRow}
+        renderItem={renderCartCard}
         keyExtractor={item => item.id}
         contentContainerStyle={{ paddingBottom: 8 }}
         style={{ flex: 1 }}
@@ -460,14 +496,15 @@ const CartScreen: React.FC = () => {
         maxToRenderPerBatch={12}
         windowSize={7}
         removeClippedSubviews
+        extraData={selectedItemId}
       />
       {/* Kupon/Promosyon kodu alanı */}
       <View style={styles.couponBox}>
-        <Text style={styles.couponLabel}>İndirim / Kupon Kodu</Text>
+        <Text style={styles.couponLabel}>{t('cart.discountCoupon', 'İndirim / Kupon Kodu')}</Text>
         <View style={styles.couponRow}>
           <TextInput
             style={styles.couponInput}
-            placeholder="Kupon kodu girin"
+            placeholder={t('cart.couponCodePlaceholder', 'Kupon kodu girin')}
             value={couponCode}
             onChangeText={setCouponCode}
             editable={!isApplyingCoupon}
@@ -478,7 +515,7 @@ const CartScreen: React.FC = () => {
             onPress={safeHandleApplyCoupon}
             disabled={isApplyingCoupon || !couponCode}
           >
-            <Text style={styles.couponBtnText}>Uygula</Text>
+            <Text style={styles.couponBtnText}>{t('cart.applyCouponBtn', 'Uygula')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.couponRemoveBtn}
@@ -494,9 +531,9 @@ const CartScreen: React.FC = () => {
       {/* Sepet özeti ve toplamlar */}
       <View style={styles.summaryRow}>
         {discount > 0 && (
-          <Text style={styles.discountText}>İndirim: -{discount.toFixed(2)} €</Text>
+          <Text style={styles.discountText}>{t('cart.discount', 'İndirim')}: -{discount.toFixed(2)} €</Text>
         )}
-        <Animated.Text style={[styles.totalText, { transform: [{ scale: totalAnimation }] }]}>Toplam: {totalAmount.toFixed(2)} €</Animated.Text>
+        <Animated.Text style={[styles.totalText, { transform: [{ scale: totalAnimation }] }]}>{t('cart.total', 'Toplam')}: {totalAmount.toFixed(2)} €</Animated.Text>
       </View>
       {/* Sepet alt bilgi (footer) */}
       <CartFooter subtotal={subtotal} vat={vat} serviceFee={serviceFee} grandTotal={totalAmount} />
@@ -509,10 +546,10 @@ const CartScreen: React.FC = () => {
       />
       <View style={[styles.buttonRow, { marginTop: 4 }]}> {/* marginTop küçültüldü */}
         <TouchableOpacity style={[styles.clearButton, { minHeight: 0, minWidth: 0, paddingVertical: 0, paddingHorizontal: 0 }]} onPress={safeHandleClearCart}>
-          <Text style={styles.buttonText}>Sepeti Temizle</Text>
+          <Text style={styles.buttonText}>{t('cart.clearCartButton', 'Sepeti Temizle')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.checkoutButton, { minHeight: 0, minWidth: 0, paddingVertical: 0, paddingHorizontal: 0 }]} onPress={handleCheckout}>
-          <Text style={styles.buttonText}>Ödeme Yap</Text>
+          <Text style={styles.buttonText}>{t('cart.checkoutButton', 'Ödeme Yap')}</Text>
         </TouchableOpacity>
       </View>
       {/* PaymentScreen modal entegrasyonu */}
@@ -549,7 +586,7 @@ const CartScreen: React.FC = () => {
       <Modal visible={!!networkError} transparent animationType="fade">
         <View style={styles.networkModalContainer}>
           <View style={styles.networkModalContent}>
-            <Text style={styles.networkModalTitle}>Verbindungsfehler</Text>
+            <Text style={styles.networkModalTitle}>{t('cart.networkErrorTitle', 'Verbindungsfehler')}</Text>
             <Text style={styles.networkModalText}>{networkError}</Text>
             <View style={styles.networkModalBtnRow}>
               <TouchableOpacity
@@ -559,13 +596,13 @@ const CartScreen: React.FC = () => {
                   setNetworkError(null);
                 }}
               >
-                <Text style={styles.networkModalBtnText}>Erneut versuchen</Text>
+                <Text style={styles.networkModalBtnText}>{t('cart.retry', 'Erneut versuchen')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.networkModalCancelBtn}
                 onPress={() => setNetworkError(null)}
               >
-                <Text style={styles.networkModalBtnText}>Abbrechen</Text>
+                <Text style={styles.networkModalBtnText}>{t('cart.cancel', 'Abbrechen')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -574,14 +611,14 @@ const CartScreen: React.FC = () => {
       <Modal visible={showConfirmation} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Ödeme Onayı</Text>
-            <Text style={styles.modalTotal}>Toplam: {totalAmount.toFixed(2)} €</Text>
+            <Text style={styles.modalTitle}>{t('cart.checkoutConfirmationTitle', 'Ödeme Onayı')}</Text>
+            <Text style={styles.modalTotal}>{t('cart.checkoutConfirmationTotal', 'Toplam')}: {totalAmount.toFixed(2)} €</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity onPress={() => setShowConfirmation(false)} style={styles.cancelBtn}>
-                <Text style={styles.buttonText}>İptal</Text>
+                <Text style={styles.buttonText}>{t('cart.cancel', 'İptal')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={confirmCheckout} style={styles.confirmBtn}>
-                <Text style={styles.buttonText}>Onayla</Text>
+                <Text style={styles.buttonText}>{t('cart.confirmCheckout', 'Onayla')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -598,15 +635,15 @@ const CartScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 8, backgroundColor: '#fff' },
-  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 8, textAlign: 'center' },
+  container: { flex: 1, padding: 8, backgroundColor: COLORS.background },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 8, textAlign: 'center', color: COLORS.accent },
   // Ürün kutusu stilleri
   itemBox: { backgroundColor: '#f8f8f8', borderRadius: 10, padding: 8, marginBottom: 8, elevation: 1 },
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 },
   itemName: { fontSize: 14, fontWeight: '600', flex: 1 },
   itemDetailsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
   detailText: { fontSize: 12, color: '#444' },
-  bold: { fontWeight: 'bold', color: '#222' },
+  bold: { fontWeight: 'bold', color: COLORS.text }, // tek tanım
   extraOption: { fontSize: 11, color: '#888', marginTop: 1, fontStyle: 'italic' },
   quantityRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
   qtyBtn: { paddingHorizontal: 4 },
@@ -614,23 +651,23 @@ const styles = StyleSheet.create({
   price: { flex: 1, textAlign: 'right', fontSize: 14, fontWeight: '600' },
   removeBtn: { backgroundColor: '#d32f2f', borderRadius: 8, padding: 6, marginLeft: 4 },
   // Kupon alanı stilleri
-  couponBox: { backgroundColor: '#f1f1f1', borderRadius: 8, padding: 6, marginTop: 4, marginBottom: 4 },
-  couponLabel: { fontSize: 12, fontWeight: 'bold', marginBottom: 2 },
+  couponBox: { backgroundColor: COLORS.card, borderRadius: 8, padding: 6, marginTop: 4, marginBottom: 4, borderWidth: 1, borderColor: COLORS.border },
+  couponLabel: { fontSize: 12, fontWeight: 'bold', marginBottom: 2, color: COLORS.text },
   couponRow: { flexDirection: 'row', alignItems: 'center' },
-  couponInput: { flex: 1, backgroundColor: '#fff', borderRadius: 6, padding: 6, fontSize: 13, borderWidth: 1, borderColor: '#ccc', marginRight: 4 },
-  couponBtn: { backgroundColor: '#1976d2', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6 },
+  couponInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 6, padding: 6, fontSize: 13, borderWidth: 1, borderColor: COLORS.border, marginRight: 4 },
+  couponBtn: { backgroundColor: COLORS.accent, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6 },
   couponBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
   couponRemoveBtn: { marginLeft: 2 },
-  couponError: { color: '#d32f2f', fontSize: 12, marginTop: 2 },
-  couponSuccess: { color: '#388e3c', fontSize: 12, marginTop: 2 },
+  couponError: { color: COLORS.danger, fontSize: 12, marginTop: 2 },
+  couponSuccess: { color: COLORS.success, fontSize: 12, marginTop: 2 },
   // Sepet özeti ve genel stiller
   summaryRow: { marginTop: 8, marginBottom: 4, alignItems: 'flex-end' },
-  totalText: { fontSize: 16, fontWeight: 'bold', color: '#00796B' },
-  discountText: { fontSize: 13, fontWeight: 'bold', color: '#d32f2f', marginBottom: 1 },
+  totalText: { fontSize: 16, fontWeight: 'bold', color: COLORS.accent },
+  discountText: { fontSize: 13, fontWeight: 'bold', color: COLORS.danger, marginBottom: 1 },
   buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }, // marginTop küçültüldü
-  clearButton: { flex: 1, backgroundColor: '#e74c3c', marginRight: 2, borderRadius: 1, padding: 1, alignItems: 'center' },
-  checkoutButton: { flex: 1, backgroundColor: '#27ae60', marginLeft: 2, borderRadius: 1, padding: 1, alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 8, fontWeight: 'bold' },
+  clearButton: { flex: 1, backgroundColor: COLORS.danger, marginRight: 2, borderRadius: 8, padding: 10, alignItems: 'center' },
+  checkoutButton: { flex: 1, backgroundColor: COLORS.accent, marginLeft: 2, borderRadius: 8, padding: 10, alignItems: 'center' },
+  buttonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
   modalContent: { backgroundColor: '#fff', padding: 16, borderRadius: 12, alignItems: 'center' },
   modalTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 6 },
@@ -638,10 +675,10 @@ const styles = StyleSheet.create({
   cancelBtn: { backgroundColor: '#eee', borderRadius: 8, padding: 8, marginRight: 4 },
   confirmBtn: { backgroundColor: '#27ae60', borderRadius: 8, padding: 8, marginLeft: 4 },
   errorText: { color: '#d32f2f', fontSize: 12, textAlign: 'center', marginBottom: 4 },
-  emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.accentSoft },
   emptyEmoji: { fontSize: 54, marginBottom: 8 },
-  emptyText: { color: '#888', fontSize: 18, fontWeight: 'bold', marginTop: 8 },
-  emptyMotivation: { color: '#666', fontSize: 14, marginTop: 4, textAlign: 'center', maxWidth: 260 },
+  emptyText: { color: COLORS.accent, fontSize: 18, fontWeight: 'bold', marginTop: 8 },
+  emptyMotivation: { color: COLORS.textSoft, fontSize: 14, marginTop: 4, textAlign: 'center', maxWidth: 260 },
   // Ağ hatası modalı stilleri
   networkModalContainer: {
     flex: 1,
@@ -696,56 +733,102 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   // Tablo stilleri
-  tableHeaderRow: { flexDirection: 'row', borderBottomWidth: 1, paddingBottom: 4, marginBottom: 4, backgroundColor: '#f5f5f5' },
-  tableHeaderColName: { flex: 2, textAlign: 'left', fontWeight: 'bold', fontSize: 13 },
-  tableHeaderColQty: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13 },
-  tableHeaderColPrice: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13 },
-  tableHeaderColTotal: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13 },
+  tableHeaderRow: { flexDirection: 'row', borderBottomWidth: 1, borderColor: COLORS.border, paddingBottom: 4, marginBottom: 4, backgroundColor: COLORS.tableHeader },
+  tableHeaderColName: { flex: 2, textAlign: 'left', fontWeight: 'bold', fontSize: 13, color: COLORS.text },
+  tableHeaderColQty: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13, color: COLORS.text },
+  tableHeaderColPrice: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13, color: COLORS.text },
+  tableHeaderColTotal: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13, color: COLORS.text },
   tableHeaderColDelete: { flex: 0.7 },
-  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 0.5, borderColor: '#eee', backgroundColor: '#fff' },
-  tableColName: { flex: 2, textAlign: 'left', fontSize: 14 },
+  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 0.5, borderColor: COLORS.border, backgroundColor: COLORS.tableRow },
+  tableColName: { flex: 2, textAlign: 'left', fontSize: 14, color: COLORS.text },
   tableColQty: { flex: 1.2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  qtyText: { minWidth: 24, textAlign: 'center', fontSize: 15 },
-  tableColPrice: { flex: 1.2, textAlign: 'center', fontSize: 14 },
-  tableColTotal: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 14 },
-  deleteBtn: { padding: 4 },
   qtyBtnTouch: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#f2f2f2',
+    backgroundColor: COLORS.accentSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 2,
-    elevation: 2,
   },
+  qtyText: { minWidth: 24, textAlign: 'center', fontSize: 15, color: COLORS.text },
+  tableColPrice: { flex: 1.2, textAlign: 'center', fontSize: 14, color: COLORS.text },
+  tableColTotal: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 14, color: COLORS.text },
   deleteBtnTouch: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#ffeaea',
+    backgroundColor: COLORS.dangerSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 4,
-    elevation: 2,
   },
   snackbar: {
     position: 'absolute',
     left: 16,
     right: 16,
     bottom: 24,
-    backgroundColor: '#323232',
+    backgroundColor: COLORS.text,
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,
     alignItems: 'center',
     zIndex: 100,
-    elevation: 8,
   },
   snackbarText: {
     color: '#fff',
     fontSize: 15,
     fontWeight: 'bold',
+  },
+  // Modern kart stilleri
+  cardBox: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  cardBoxSelected: {
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.accentSoft,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  cardName: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },
+  cardDetailsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
+  cardDetail: { fontSize: 13, color: COLORS.textSoft },
+  bold: { fontWeight: 'bold', color: COLORS.text }, // yeni tanım (kart için)
+  cardNote: { fontSize: 12, color: COLORS.textSoft, marginTop: 2, fontStyle: 'italic' },
+  cardActionsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  cardQtyBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 2,
+  },
+  cardQtyBtnActive: {
+    backgroundColor: COLORS.accentSoft,
+  },
+  cardQtyText: { minWidth: 28, textAlign: 'center', fontSize: 16, fontWeight: 'bold', color: COLORS.text },
+  cardDeleteBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.dangerSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  cardDeleteBtnActive: {
+    backgroundColor: COLORS.danger,
   },
 });
 

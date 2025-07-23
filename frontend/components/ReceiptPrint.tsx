@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 
-import { Invoice, InvoiceItem } from '../app/types/invoice';
+import { Invoice, InvoiceItem } from '../types/invoice';
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 
 interface ReceiptPrintProps {

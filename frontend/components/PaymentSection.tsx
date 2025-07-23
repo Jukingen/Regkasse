@@ -71,9 +71,9 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
       }, 1500);
     } else {
       Alert.alert(
-        'Ungültiger Betrag',
-        'Der erhaltene Betrag ist zu niedrig.',
-        [{ text: t('common.ok') }]
+        t('payment.invalidAmount', 'Geçersiz Tutar'),
+        t('payment.amountTooLow', 'Girilen tutar çok düşük.'),
+        [{ text: t('common.ok', 'Tamam') }]
       );
     }
   };

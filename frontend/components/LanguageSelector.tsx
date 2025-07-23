@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LANGUAGES = [
   { code: 'de-DE', label: 'Deutsch' },
@@ -13,11 +14,11 @@ const LanguageSelector = () => {
   const { i18n } = useTranslation();
   const currentLang = i18n.language;
 
-  const handleSelect = (code: string) => {
-    i18n.changeLanguage(code);
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('language', code);
-    }
+  const handleSelect = async (code: string) => {
+    // Map 'de-DE' to 'de' for i18n
+    const i18nCode = code === 'de-DE' ? 'de' : code;
+    await i18n.changeLanguage(i18nCode);
+    await AsyncStorage.setItem('userLanguage', i18nCode);
   };
 
   return (

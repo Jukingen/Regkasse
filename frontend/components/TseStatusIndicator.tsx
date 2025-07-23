@@ -136,11 +136,10 @@ ${tseStatus.errorMessage ? `Error: ${tseStatus.errorMessage}` : ''}`,
           {getStatusText()}
         </Text>
       </View>
-      
-      {error && (
+      {/* Sadece bir kez göster */}
+      {error && (!tseStatus?.errorMessage || error !== tseStatus.errorMessage) && (
         <Text style={styles.errorText}>{error}</Text>
       )}
-      
       {tseStatus?.errorMessage && (
         <Text style={styles.errorText}>{tseStatus.errorMessage}</Text>
       )}
