@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { apiClient } from '../services/api/config';
 import { cartService } from '../services/api/cartService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
 export interface CartItem {
   id: string;
@@ -28,6 +29,21 @@ export function useApiCart() {
   const [currentCartId, setCurrentCartId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null); // Hata mesajı (Almanca gösterilecek)
   const [techError, setTechError] = useState<string | null>(null); // Teknik log (İngilizce)
+  // Snackbar için state (kullanıcıya maksimum geri bildirim)
+  const [snackbarMsg, setSnackbarMsg] = useState('');
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const showSnackbarMsg = (msg: string) => {
+    setSnackbarMsg(msg);
+    setShowSnackbar(true);
+    setTimeout(() => setShowSnackbar(false), 2000);
+  };
+
+  // Modüler hata ve başarı bildirim fonksiyonları
+  const handleSuccess = (msg: string) => showSnackbarMsg(msg);
+  const handleError = (msg: string, alertMsg?: string) => {
+    showSnackbarMsg(msg);
+    if (alertMsg) Alert.alert('Hata', alertMsg);
+  };
 
   // Sayfa açıldığında mevcut cartId'yi AsyncStorage'dan oku ve sepeti getir
   useEffect(() => {
@@ -85,22 +101,24 @@ export function useApiCart() {
       if (!currentCartId) {
         // Yeni cart oluştur ve ilk ürünü ekle
         const res = await apiClient.post('/api/cart', {
-          TableNumber: '1', // Gerekirse dinamik yap
-          WaiterName: 'Kasiyer', // Gerekirse dinamik yap
+          TableNumber: '1',
+          WaiterName: 'Kasiyer',
           InitialItem: { ProductId: productId, Quantity: quantity }
         });
         const cartId = (res as any).cartId || (res as any).CartId || (res as any).id;
         setCurrentCartId(cartId as string);
-        setCart(res as Cart);
+        await fetchCart();
         await AsyncStorage.setItem('currentCartId', String(cartId));
       } else {
         // Var olan cart'a ürün ekle
         await apiClient.post(`/api/cart/${currentCartId}/items`, { ProductId: productId, Quantity: quantity });
         await fetchCart();
       }
+      handleSuccess('Ürün sepete eklendi');
     } catch (err: any) {
       setError('Fehler beim Hinzufügen des Produkts.');
       setTechError('Failed to add item to cart: ' + (err?.message || err));
+      handleError('Ürün sepete eklenemedi');
     } finally {
       setLoading(false);
     }
@@ -119,32 +137,46 @@ export function useApiCart() {
     try {
       await apiClient.delete(`/api/cart/${cartId}/items/${itemId}`);
       await fetchCart();
+      handleSuccess('Ürün sepetten çıkarıldı');
     } catch (err: any) {
       setError('Fehler beim Entfernen des Produkts.');
       setTechError('Failed to remove item from cart: ' + (err?.message || err));
+      handleError('Ürün sepetten çıkarılamadı');
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * Ürün miktarını değiştirir.
+   * Ürün miktarını değiştirir. Negatif/NaN miktarları engeller, miktar 1'in altına düşerse ürünü otomatik olarak sepetten çıkarır.
    * @param itemId Sepetteki ürünün ID'si
    * @param quantity Yeni miktar (1 veya daha fazla olmalı)
    */
   const updateQuantity = async (itemId: string, quantity: number) => {
-    if (quantity < 1) return;
+    const cartId = cart?.id || currentCartId;
+    if (!cartId) return;
+    // Negatif veya NaN miktar kontrolü
+    if (typeof quantity !== 'number' || isNaN(quantity) || quantity < 0) {
+      Alert.alert('Hatalı miktar', 'Ürün miktarı negatif veya geçersiz olamaz.');
+      return;
+    }
     setLoading(true);
     setError(null);
     setTechError(null);
-    const cartId = cart?.id || currentCartId;
-    if (!cartId) return;
     try {
-      await apiClient.put(`/api/cart/${cartId}/items/${itemId}`, { quantity });
+      if (quantity < 1) {
+        // Miktar 0 veya altına düştüyse ürünü sepetten çıkar
+        await apiClient.delete(`/api/cart/${cartId}/items/${itemId}`);
+        handleSuccess('Ürün sepetten çıkarıldı');
+      } else {
+        await apiClient.put(`/api/cart/${cartId}/items/${itemId}`, { quantity });
+        handleSuccess('Ürün miktarı güncellendi');
+      }
       await fetchCart();
     } catch (err: any) {
       setError('Fehler beim Ändern der Menge.');
       setTechError('Failed to update item quantity: ' + (err?.message || err));
+      handleError('Ürün miktarı güncellenemedi', 'Ürün miktarı güncellenemedi. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);
     }
@@ -157,12 +189,32 @@ export function useApiCart() {
     setLoading(true);
     setError(null);
     setTechError(null);
+    const cartId = cart?.id || currentCartId;
+    if (!cartId) {
+      setCart(null);
+      setLoading(false);
+      handleError('Sepet zaten boş');
+      Alert.alert('Sepet zaten boş', 'Temizlenecek ürün bulunamadı.');
+      return;
+    }
+    if (!cart || !cart.items || cart.items.length === 0) {
+      setLoading(false);
+      handleError('Sepet zaten boş');
+      Alert.alert('Sepet zaten boş', 'Temizlenecek ürün bulunamadı.');
+      return;
+    }
     try {
-      await apiClient.delete('/api/cart/items');
+      if (cartService && cartService.clearCart) {
+        await cartService.clearCart(cartId);
+      } else {
+        await apiClient.delete(`/api/cart/${cartId}`);
+      }
       await fetchCart();
+      handleSuccess('Sepet temizlendi');
     } catch (err: any) {
       setError('Fehler beim Leeren des Warenkorbs.');
       setTechError('Failed to clear cart: ' + (err?.message || err));
+      handleError('Sepet temizlenemedi', 'Sepet temizlenirken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);
     }
@@ -183,11 +235,13 @@ export function useApiCart() {
       return;
     }
     try {
-      const updatedCart = await cartService.applyCoupon(cartId, { couponCode });
-      setCart(updatedCart as any);
+      await cartService.applyCoupon(cartId, { couponCode });
+      await fetchCart();
+      handleSuccess('Kupon başarıyla uygulandı');
     } catch (err: any) {
       setError('Kupon kodu uygulanamadı.');
       setTechError('Failed to apply coupon: ' + (err?.message || err));
+      handleError('Kupon kodu uygulanamadı');
     } finally {
       setLoading(false);
     }
@@ -207,11 +261,13 @@ export function useApiCart() {
       return;
     }
     try {
-      const updatedCart = await cartService.removeCoupon(cartId);
-      setCart(updatedCart as any);
+      await cartService.removeCoupon(cartId);
+      await fetchCart();
+      handleSuccess('Kupon kaldırıldı');
     } catch (err: any) {
       setError('Kupon kodu kaldırılamadı.');
       setTechError('Failed to remove coupon: ' + (err?.message || err));
+      handleError('Kupon kodu kaldırılamadı');
     } finally {
       setLoading(false);
     }
@@ -229,5 +285,8 @@ export function useApiCart() {
     clearCart,
     applyCoupon,
     removeCoupon,
+    showSnackbar,
+    snackbarMsg,
+    showSnackbarMsg,
   };
 } 

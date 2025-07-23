@@ -88,6 +88,17 @@ const CartItemBox = React.memo(({ mapped, onRemove, onQtyChange, processing }: a
   </View>
 ));
 
+// Tablo başlığı componenti
+const CartTableHeader = () => (
+  <View style={styles.tableHeaderRow}>
+    <Text style={styles.tableHeaderColName}>Ürün</Text>
+    <Text style={styles.tableHeaderColQty}>Miktar</Text>
+    <Text style={styles.tableHeaderColPrice}>Birim Fiyat</Text>
+    <Text style={styles.tableHeaderColTotal}>Toplam</Text>
+    <Text style={styles.tableHeaderColDelete}></Text>
+  </View>
+);
+
 const CartScreen: React.FC = () => {
   // Sepet işlemleri için hook'u kullan
   const {
@@ -122,13 +133,21 @@ const CartScreen: React.FC = () => {
   const [errorModal, setErrorModal] = useState({ visible: false, code: '', message: '' });
   const [emailInvoice, setEmailInvoice] = useState<{ visible: boolean; data: any }>({ visible: false, data: null });
   const [tip, setTip] = useState(0); // Bahşiş tutarı
+  const [addingItemId, setAddingItemId] = useState<string | null>(null); // Sadece eklenen ürünü disable et
+
+  // Snackbar için state
+  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [snackbarMsg, setSnackbarMsg] = useState('');
 
   // Sepet boşsa gösterilecek mesaj
-  if (loading) {
-    return <ActivityIndicator size="large" color="#1976d2" style={{ marginTop: 40 }} />;
-  }
   if (!cart || cart.items.length === 0) {
-    return <View style={styles.emptyBox}><Text style={styles.emptyText}>Sepetiniz boş</Text></View>;
+    return (
+      <View style={styles.emptyBox}>
+        <Text style={styles.emptyEmoji}>🛒</Text>
+        <Text style={styles.emptyText}>Sepetiniz boş!</Text>
+        <Text style={styles.emptyMotivation}>Hadi alışverişe başlayın ve favori ürünlerinizi ekleyin.</Text>
+      </View>
+    );
   }
 
   // Miktar güncelleme
@@ -178,22 +197,12 @@ const CartScreen: React.FC = () => {
 
   // Sepete ürün ekleme işlemini sarmalayan fonksiyon
   const handleAddItem = async (productId: string, quantity: number = 1) => {
+    setAddingItemId(productId);
     try {
       await addItem(productId, quantity);
-      // Başarılı eklemede anlık toast/snackbar bildirimi
-      addNotification({
-        type: 'success',
-        title: 'Sepet',
-        message: 'Ürün sepete eklendi',
-        duration: 2000
-      });
+      setAddingItemId(null);
     } catch (e) {
-      addNotification({
-        type: 'error',
-        title: 'Sepet',
-        message: 'Ürün sepete eklenemedi',
-        duration: 3000
-      });
+      setAddingItemId(null);
     }
   };
 
@@ -375,7 +384,7 @@ const CartScreen: React.FC = () => {
 
   // Sepet işlemlerini ağ hatası ile sarmala
   const safeHandleQuantityChange = withNetworkError(handleQuantityChange, 'Miktar güncelle');
-  const safeHandleClearCart = withNetworkError(handleClearCart, 'Sepeti temizle');
+  const safeHandleClearCart = withNetworkError(async () => { await handleClearCart(); }, 'Sepeti temizle');
   const safeHandleApplyCoupon = withNetworkError(handleApplyCoupon, 'Kupon uygula');
   const safeHandleRemoveCoupon = withNetworkError(handleRemoveCoupon, 'Kupon kaldır');
 
@@ -386,16 +395,51 @@ const CartScreen: React.FC = () => {
   const totalAmount = cart?.grandTotal ?? 0;
   const discount = cart?.discount ?? 0;
 
-  // FlatList için render fonksiyonu
-  const renderCartItem = ({ item }: any) => {
+  // FlatList için render fonksiyonu (tablo satırı)
+  const renderCartTableRow = ({ item }: any) => {
     const mapped = mapCartItem(item);
     return (
-      <CartItemBox
-        mapped={mapped}
-        onRemove={safeHandleQuantityChange}
-        onQtyChange={safeHandleQuantityChange}
-        processing={processingItem === mapped.id}
-      />
+      <View style={styles.tableRow}>
+        <Text style={styles.tableColName}>{mapped.product.name}</Text>
+        <View style={styles.tableColQty}>
+          <TouchableOpacity
+            style={styles.qtyBtnTouch}
+            onPress={async () => await safeHandleQuantityChange(mapped.id, mapped.quantity - 1)}
+            disabled={processingItem === mapped.id}
+            accessibilityLabel="Miktarı azalt"
+            accessible
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="remove-circle-outline" size={28} color="#888" />
+          </TouchableOpacity>
+          <Text style={styles.qtyText}>{mapped.quantity}</Text>
+          <TouchableOpacity
+            style={styles.qtyBtnTouch}
+            onPress={async () => await safeHandleQuantityChange(mapped.id, mapped.quantity + 1)}
+            disabled={processingItem === mapped.id}
+            accessibilityLabel="Miktarı arttır"
+            accessible
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="add-circle-outline" size={28} color="#888" />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.tableColPrice}>{mapped.unitPrice.toFixed(2)} €</Text>
+        <Text style={styles.tableColTotal}>{mapped.totalAmount.toFixed(2)} €</Text>
+        <TouchableOpacity
+          style={styles.deleteBtnTouch}
+          onPress={async () => await safeHandleQuantityChange(mapped.id, 0)}
+          disabled={processingItem === mapped.id}
+          accessibilityLabel="Ürünü sil"
+          accessible
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="trash-outline" size={28} color="#d00" />
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -403,10 +447,12 @@ const CartScreen: React.FC = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Sepet</Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
-      {/* FlatList ile performanslı ürün kutuları */}
+      {/* Tablo başlığı */}
+      <CartTableHeader />
+      {/* FlatList ile ürünler tablo satırı olarak */}
       <FlatList
         data={cart.items}
-        renderItem={renderCartItem}
+        renderItem={renderCartTableRow}
         keyExtractor={item => item.id}
         contentContainerStyle={{ paddingBottom: 8 }}
         style={{ flex: 1 }}
@@ -445,7 +491,7 @@ const CartScreen: React.FC = () => {
         {couponError && <Text style={styles.couponError}>{couponError}</Text>}
         {couponSuccess && <Text style={styles.couponSuccess}>{couponSuccess}</Text>}
       </View>
-      {/* Sepet özeti ve indirim gösterimi */}
+      {/* Sepet özeti ve toplamlar */}
       <View style={styles.summaryRow}>
         {discount > 0 && (
           <Text style={styles.discountText}>İndirim: -{discount.toFixed(2)} €</Text>
@@ -541,6 +587,12 @@ const CartScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+      {/* Snackbar/Toast mesajı */}
+      {showSnackbar && (
+        <View style={styles.snackbar}>
+          <Text style={styles.snackbarText}>{snackbarMsg}</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -557,7 +609,7 @@ const styles = StyleSheet.create({
   bold: { fontWeight: 'bold', color: '#222' },
   extraOption: { fontSize: 11, color: '#888', marginTop: 1, fontStyle: 'italic' },
   quantityRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  qtyBtn: { marginHorizontal: 4, backgroundColor: '#eee', borderRadius: 12, padding: 4 },
+  qtyBtn: { paddingHorizontal: 4 },
   quantity: { marginHorizontal: 4, fontSize: 14, fontWeight: 'bold' },
   price: { flex: 1, textAlign: 'right', fontSize: 14, fontWeight: '600' },
   removeBtn: { backgroundColor: '#d32f2f', borderRadius: 8, padding: 6, marginLeft: 4 },
@@ -587,7 +639,9 @@ const styles = StyleSheet.create({
   confirmBtn: { backgroundColor: '#27ae60', borderRadius: 8, padding: 8, marginLeft: 4 },
   errorText: { color: '#d32f2f', fontSize: 12, textAlign: 'center', marginBottom: 4 },
   emptyBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { color: '#888', fontSize: 14, marginTop: 20 },
+  emptyEmoji: { fontSize: 54, marginBottom: 8 },
+  emptyText: { color: '#888', fontSize: 18, fontWeight: 'bold', marginTop: 8 },
+  emptyMotivation: { color: '#666', fontSize: 14, marginTop: 4, textAlign: 'center', maxWidth: 260 },
   // Ağ hatası modalı stilleri
   networkModalContainer: {
     flex: 1,
@@ -640,6 +694,58 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 12,
+  },
+  // Tablo stilleri
+  tableHeaderRow: { flexDirection: 'row', borderBottomWidth: 1, paddingBottom: 4, marginBottom: 4, backgroundColor: '#f5f5f5' },
+  tableHeaderColName: { flex: 2, textAlign: 'left', fontWeight: 'bold', fontSize: 13 },
+  tableHeaderColQty: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13 },
+  tableHeaderColPrice: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13 },
+  tableHeaderColTotal: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 13 },
+  tableHeaderColDelete: { flex: 0.7 },
+  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 0.5, borderColor: '#eee', backgroundColor: '#fff' },
+  tableColName: { flex: 2, textAlign: 'left', fontSize: 14 },
+  tableColQty: { flex: 1.2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  qtyText: { minWidth: 24, textAlign: 'center', fontSize: 15 },
+  tableColPrice: { flex: 1.2, textAlign: 'center', fontSize: 14 },
+  tableColTotal: { flex: 1.2, textAlign: 'center', fontWeight: 'bold', fontSize: 14 },
+  deleteBtn: { padding: 4 },
+  qtyBtnTouch: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f2f2f2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 2,
+    elevation: 2,
+  },
+  deleteBtnTouch: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#ffeaea',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+    elevation: 2,
+  },
+  snackbar: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 24,
+    backgroundColor: '#323232',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    zIndex: 100,
+    elevation: 8,
+  },
+  snackbarText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
 });
 
