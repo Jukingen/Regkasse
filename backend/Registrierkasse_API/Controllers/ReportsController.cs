@@ -1,325 +1,418 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Registrierkasse_API.Models;
 using Registrierkasse_API.Services;
-using Registrierkasse_API.Data;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Security.Claims;
+using System.Linq;
 
 namespace Registrierkasse_API.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
     [Authorize]
+    [Route("api/[controller]")]
+    [ApiController]
     public class ReportsController : ControllerBase
     {
-        private readonly IAdvancedReportService _reportService;
+        private readonly IReportService _reportService;
         private readonly ILogger<ReportsController> _logger;
-        private readonly AppDbContext _context;
 
-        public ReportsController(IAdvancedReportService reportService, ILogger<ReportsController> logger, AppDbContext context)
+        public ReportsController(IReportService reportService, ILogger<ReportsController> logger)
         {
             _reportService = reportService;
             _logger = logger;
-            _context = context;
         }
 
-        [HttpGet("dashboard-summary")]
-        public async Task<IActionResult> GetDashboardSummary()
+        // Kasiyer erişimi - Temel raporlar
+        [HttpGet("sales")]
+        [Authorize(Roles = "Cashier,Manager,Administrator")]
+        public async Task<ActionResult<SalesReportDto>> GetSalesReport([FromQuery] ReportFilterRequest filter)
         {
             try
             {
-                var today = DateTime.UtcNow.Date;
-                
-                // Bugünkü satışları hesapla
-                var todaySales = await _context.Invoices
-                    .Where(i => i.InvoiceDate.Date == today && i.PaymentStatus == Models.PaymentStatus.Paid)
-                    .SumAsync(i => i.TotalAmount);
-
-                // Bekleyen faturaları say
-                var pendingInvoices = await _context.Invoices
-                    .Where(i => i.PaymentStatus == Models.PaymentStatus.Pending)
-                    .CountAsync();
-
-                // Toplam müşteri sayısı
-                var totalCustomers = await _context.Customers.CountAsync();
-
-                // Aktif kasalar
-                var activeRegisters = await _context.CashRegisters
-                    .Where(r => r.Status == Models.RegisterStatus.Open)
-                    .CountAsync();
-
-                var summary = new
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
                 {
-                    todaySales = todaySales,
-                    pendingInvoices = pendingInvoices,
-                    totalCustomers = totalCustomers,
-                    activeRegisters = activeRegisters,
-                    generatedAt = DateTime.UtcNow
-                };
+                    return Unauthorized();
+                }
 
-                return Ok(summary);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = "Dashboard summary could not be generated", details = ex.Message });
-            }
-        }
+                var reportFilter = MapToReportFilter(filter);
+                var report = await _reportService.GenerateSalesReportAsync(reportFilter, userId);
 
-        [HttpGet("sales-analytics")]
-        public async Task<IActionResult> GetSalesAnalytics(
-            [FromQuery] DateTime startDate,
-            [FromQuery] DateTime endDate)
-        {
-            try
-            {
-                var analytics = await _reportService.GetSalesAnalyticsAsync(startDate, endDate);
-                return Ok(analytics);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to generate sales analytics");
-                return StatusCode(500, new { error = "Failed to generate sales analytics" });
-            }
-        }
-
-        [HttpGet("inventory-analytics")]
-        public async Task<IActionResult> GetInventoryAnalytics()
-        {
-            try
-            {
-                // Düşük stoklu ürünleri bul
-                var lowStockProducts = await _context.Products
-                    .Where(p => p.StockQuantity <= p.MinStockLevel)
-                    .Select(p => new
-                    {
-                        productName = p.Name,
-                        currentStock = p.StockQuantity,
-                        minQuantity = p.MinStockLevel,
-                        reorderLevel = p.StockQuantity * 2, // Demo için
-                        category = p.Category,
-                        unit = p.Unit
-                    })
-                    .ToListAsync();
-
-                // Stok durumu özeti
-                var stockSummary = await _context.Products
-                    .GroupBy(p => p.Category)
-                    .Select(g => new
-                    {
-                        category = g.Key,
-                        totalProducts = g.Count(),
-                        lowStockCount = g.Count(p => p.StockQuantity <= p.MinStockLevel),
-                        totalValue = g.Sum(p => p.Price * p.StockQuantity)
-                    })
-                    .ToListAsync();
-
-                var analytics = new
-                {
-                    lowStockProducts = lowStockProducts,
-                    stockSummary = stockSummary,
-                    totalProducts = await _context.Products.CountAsync(),
-                    lowStockCount = lowStockProducts.Count,
-                    generatedAt = DateTime.UtcNow
-                };
-
-                return Ok(analytics);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { error = "Inventory analytics could not be generated", details = ex.Message });
-            }
-        }
-
-        [HttpGet("customer-analytics")]
-        public async Task<IActionResult> GetCustomerAnalytics(
-            [FromQuery] DateTime startDate,
-            [FromQuery] DateTime endDate)
-        {
-            try
-            {
-                var analytics = await _reportService.GetCustomerAnalyticsAsync(startDate, endDate);
-                return Ok(analytics);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to generate customer analytics");
-                return StatusCode(500, new { error = "Failed to generate customer analytics" });
-            }
-        }
-
-        [HttpGet("financial-report")]
-        public async Task<IActionResult> GetFinancialReport(
-            [FromQuery] DateTime startDate,
-            [FromQuery] DateTime endDate)
-        {
-            try
-            {
-                var report = await _reportService.GetFinancialReportAsync(startDate, endDate);
+                _logger.LogInformation($"Sales report requested by user: {userId}");
                 return Ok(report);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to generate financial report");
-                return StatusCode(500, new { error = "Failed to generate financial report" });
+                _logger.LogError(ex, "Error generating sales report");
+                return StatusCode(500, new { error = "Satış raporu oluşturulurken hata oluştu" });
             }
         }
 
-        [HttpGet("operational-report")]
-        public async Task<IActionResult> GetOperationalReport(
-            [FromQuery] DateTime startDate,
-            [FromQuery] DateTime endDate)
+        [HttpGet("products")]
+        [Authorize(Roles = "Cashier,Manager,Administrator")]
+        public async Task<ActionResult<List<ProductReportDto>>> GetProductReport([FromQuery] ReportFilterRequest filter)
         {
             try
             {
-                var report = await _reportService.GetOperationalReportAsync(startDate, endDate);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var reportFilter = MapToReportFilter(filter);
+                var report = await _reportService.GenerateProductReportAsync(reportFilter, userId);
+
+                _logger.LogInformation($"Product report requested by user: {userId}");
                 return Ok(report);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to generate operational report");
-                return StatusCode(500, new { error = "Failed to generate operational report" });
+                _logger.LogError(ex, "Error generating product report");
+                return StatusCode(500, new { error = "Ürün raporu oluşturulurken hata oluştu" });
             }
         }
 
-        [HttpGet("export")]
-        public async Task<IActionResult> ExportReport(
-            [FromQuery] string reportType,
-            [FromQuery] DateTime startDate,
-            [FromQuery] DateTime endDate,
-            [FromQuery] string format = "pdf")
+        [HttpGet("categories")]
+        [Authorize(Roles = "Cashier,Manager,Administrator")]
+        public async Task<ActionResult<List<CategoryReportDto>>> GetCategoryReport([FromQuery] ReportFilterRequest filter)
         {
             try
             {
-                var reportData = await _reportService.ExportReportAsync(reportType, startDate, endDate, format);
-                
-                var fileName = $"{reportType}_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.{format}";
-                string contentType;
-                if (format.ToLower() == "pdf")
-                    contentType = "application/pdf";
-                else if (format.ToLower() == "excel")
-                    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-                else if (format.ToLower() == "csv")
-                    contentType = "text/csv";
-                else if (format.ToLower() == "json")
-                    contentType = "application/json";
-                else
-                    contentType = "application/octet-stream";
-
-                return File(reportData, contentType, fileName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to export report: {ReportType}", reportType);
-                return StatusCode(500, new { error = "Failed to export report" });
-            }
-        }
-
-        [HttpGet("top-products")]
-        public async Task<IActionResult> GetTopProducts(
-            [FromQuery] DateTime? startDate = null,
-            [FromQuery] DateTime? endDate = null,
-            [FromQuery] int limit = 10)
-        {
-            try
-            {
-                var start = startDate ?? DateTime.UtcNow.AddDays(-30);
-                var end = endDate ?? DateTime.UtcNow;
-                
-                var analytics = await _reportService.GetSalesAnalyticsAsync(start, end);
-                var topProducts = analytics.TopProducts.Take(limit);
-                
-                return Ok(new { topProducts });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to get top products");
-                return StatusCode(500, new { error = "Failed to get top products" });
-            }
-        }
-
-        [HttpGet("payment-methods")]
-        public async Task<IActionResult> GetPaymentMethods(
-            [FromQuery] DateTime? startDate = null,
-            [FromQuery] DateTime? endDate = null)
-        {
-            try
-            {
-                var start = startDate ?? DateTime.UtcNow.AddDays(-30);
-                var end = endDate ?? DateTime.UtcNow;
-                
-                var analytics = await _reportService.GetSalesAnalyticsAsync(start, end);
-                
-                // This would need to be implemented in the service
-                var paymentMethods = new[]
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
                 {
-                    new { method = "Cash", amount = 1500.00m, percentage = 60.0 },
-                    new { method = "Card", amount = 800.00m, percentage = 32.0 },
-                    new { method = "Voucher", amount = 200.00m, percentage = 8.0 }
+                    return Unauthorized();
+                }
+
+                var reportFilter = MapToReportFilter(filter);
+                var report = await _reportService.GenerateCategoryReportAsync(reportFilter, userId);
+
+                _logger.LogInformation($"Category report requested by user: {userId}");
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating category report");
+                return StatusCode(500, new { error = "Kategori raporu oluşturulurken hata oluştu" });
+            }
+        }
+
+        [HttpGet("payments")]
+        [Authorize(Roles = "Cashier,Manager,Administrator")]
+        public async Task<ActionResult<List<PaymentReportDto>>> GetPaymentReport([FromQuery] ReportFilterRequest filter)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var reportFilter = MapToReportFilter(filter);
+                var report = await _reportService.GeneratePaymentReportAsync(reportFilter, userId);
+
+                _logger.LogInformation($"Payment report requested by user: {userId}");
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating payment report");
+                return StatusCode(500, new { error = "Ödeme raporu oluşturulurken hata oluştu" });
+            }
+        }
+
+        // Yönetici erişimi - Detaylı raporlar
+        [HttpGet("inventory")]
+        [Authorize(Roles = "Manager,Administrator")]
+        public async Task<ActionResult<List<InventoryReportDto>>> GetInventoryReport([FromQuery] ReportFilterRequest filter)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var reportFilter = MapToReportFilter(filter);
+                var report = await _reportService.GenerateInventoryReportAsync(reportFilter, userId);
+
+                _logger.LogInformation($"Inventory report requested by user: {userId}");
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating inventory report");
+                return StatusCode(500, new { error = "Stok raporu oluşturulurken hata oluştu" });
+            }
+        }
+
+        [HttpGet("tax")]
+        [Authorize(Roles = "Manager,Administrator")]
+        public async Task<ActionResult<List<TaxReportDto>>> GetTaxReport([FromQuery] ReportFilterRequest filter)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var reportFilter = MapToReportFilter(filter);
+                var report = await _reportService.GenerateTaxReportAsync(reportFilter, userId);
+
+                _logger.LogInformation($"Tax report requested by user: {userId}");
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating tax report");
+                return StatusCode(500, new { error = "Vergi raporu oluşturulurken hata oluştu" });
+            }
+        }
+
+        [HttpGet("summary")]
+        [Authorize(Roles = "Manager,Administrator")]
+        public async Task<ActionResult<SummaryReportDto>> GetSummaryReport([FromQuery] ReportFilterRequest filter, [FromQuery] string periodType = "daily")
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var reportFilter = MapToReportFilter(filter);
+                var report = await _reportService.GenerateSummaryReportAsync(reportFilter, userId, periodType);
+
+                _logger.LogInformation($"Summary report requested by user: {userId}");
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating summary report");
+                return StatusCode(500, new { error = "Özet rapor oluşturulurken hata oluştu" });
+            }
+        }
+
+        // Admin erişimi - Tüm raporlar
+        [HttpGet("user-activity")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<ActionResult<List<UserActivityReportDto>>> GetUserActivityReport([FromQuery] ReportFilterRequest filter)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var reportFilter = MapToReportFilter(filter);
+                var report = await _reportService.GenerateUserActivityReportAsync(reportFilter, userId);
+
+                _logger.LogInformation($"User activity report requested by user: {userId}");
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating user activity report");
+                return StatusCode(500, new { error = "Kullanıcı aktivite raporu oluşturulurken hata oluştu" });
+            }
+        }
+
+        // Rapor yönetimi
+        [HttpGet("saved")]
+        public async Task<ActionResult<List<ReportDto>>> GetSavedReports()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                var accessLevel = GetAccessLevelFromRole(userRole);
+
+                var reports = await _reportService.GetUserReportsAsync(userId, accessLevel);
+                var reportDtos = reports.Select(r => new ReportDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    ReportType = r.ReportType.ToString(),
+                    AccessLevel = r.AccessLevel.ToString(),
+                    Description = r.Description,
+                    GeneratedAt = r.GeneratedAt,
+                    GeneratedBy = r.GeneratedBy.ToString(),
+                    FilePath = r.FilePath
+                }).ToList();
+
+                return Ok(reportDtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting saved reports");
+                return StatusCode(500, new { error = "Kaydedilmiş raporlar yüklenirken hata oluştu" });
+            }
+        }
+
+        [HttpPost("save")]
+        public async Task<ActionResult<ReportDto>> SaveReport([FromBody] SaveReportRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var report = new Report
+                {
+                    Name = request.Name,
+                    ReportType = request.ReportType,
+                    AccessLevel = request.AccessLevel,
+                    Description = request.Description,
+                    Parameters = request.Parameters,
+                    GeneratedBy = Guid.Parse(userId),
+                    GeneratedAt = DateTime.UtcNow,
+                    IsScheduled = request.IsScheduled,
+                    ScheduleCron = request.ScheduleCron
                 };
-                
-                return Ok(new { paymentMethodBreakdown = paymentMethods });
+
+                var savedReport = await _reportService.SaveReportAsync(report);
+
+                var reportDto = new ReportDto
+                {
+                    Id = savedReport.Id,
+                    Name = savedReport.Name,
+                    ReportType = savedReport.ReportType.ToString(),
+                    AccessLevel = savedReport.AccessLevel.ToString(),
+                    Description = savedReport.Description,
+                    GeneratedAt = savedReport.GeneratedAt,
+                    GeneratedBy = savedReport.GeneratedBy.ToString(),
+                    FilePath = savedReport.FilePath
+                };
+
+                _logger.LogInformation($"Report saved by user: {userId}");
+                return Ok(reportDto);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to get payment methods");
-                return StatusCode(500, new { error = "Failed to get payment methods" });
+                _logger.LogError(ex, "Error saving report");
+                return StatusCode(500, new { error = "Rapor kaydedilirken hata oluştu" });
             }
         }
 
-        [HttpGet("low-stock-alert")]
-        public async Task<IActionResult> GetLowStockAlert()
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteReport(Guid id)
         {
             try
             {
-                var analytics = await _reportService.GetInventoryAnalyticsAsync();
-                return Ok(new { lowStockProducts = analytics.LowStockProducts });
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized();
+                }
+
+                var success = await _reportService.DeleteReportAsync(id, userId);
+                if (!success)
+                {
+                    return NotFound(new { error = "Rapor bulunamadı" });
+                }
+
+                _logger.LogInformation($"Report deleted by user: {userId}");
+                return Ok(new { message = "Rapor başarıyla silindi" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to get low stock alert");
-                return StatusCode(500, new { error = "Failed to get low stock alert" });
+                _logger.LogError(ex, "Error deleting report");
+                return StatusCode(500, new { error = "Rapor silinirken hata oluştu" });
             }
         }
 
-        [HttpGet("revenue-trend")]
-        public async Task<IActionResult> GetRevenueTrend(
-            [FromQuery] DateTime startDate,
-            [FromQuery] DateTime endDate,
-            [FromQuery] string period = "daily") // daily, weekly, monthly
+        // Yardımcı metodlar
+        private ReportFilter MapToReportFilter(ReportFilterRequest request)
         {
-            try
+            return new ReportFilter
             {
-                var analytics = await _reportService.GetSalesAnalyticsAsync(startDate, endDate);
-                
-                IEnumerable<object> trendData;
-                if (period.ToLower() == "daily")
-                {
-                    trendData = analytics.DailySales.Select(d => new { date = d.Date, revenue = d.TotalSales });
-                }
-                else if (period.ToLower() == "weekly")
-                {
-                    trendData = analytics.DailySales
-                        .GroupBy(d => System.Globalization.CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(d.Date, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday))
-                        .Select(g => new { week = g.Key, revenue = g.Sum(d => d.TotalSales) });
-                }
-                else if (period.ToLower() == "monthly")
-                {
-                    trendData = analytics.DailySales
-                        .GroupBy(d => new { d.Date.Year, d.Date.Month })
-                        .Select(g => new { month = $"{g.Key.Year}-{g.Key.Month:D2}", revenue = g.Sum(d => d.TotalSales) });
-                }
-                else
-                {
-                    trendData = analytics.DailySales.Select(d => new { date = d.Date, revenue = d.TotalSales });
-                }
-                
-                return Ok(new { trendData });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to get revenue trend");
-                return StatusCode(500, new { error = "Failed to get revenue trend" });
-            }
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
+                CategoryId = request.CategoryId,
+                ProductId = request.ProductId,
+                UserId = request.UserId,
+                PaymentMethod = request.PaymentMethod,
+                MinAmount = request.MinAmount,
+                MaxAmount = request.MaxAmount,
+                IsActive = request.IsActive,
+                SearchTerm = request.SearchTerm,
+                Page = request.Page,
+                PageSize = request.PageSize,
+                SortBy = request.SortBy,
+                SortOrder = request.SortOrder
+            };
         }
+
+        private ReportAccessLevel GetAccessLevelFromRole(string? role)
+        {
+            return role?.ToLower() switch
+            {
+                "administrator" => ReportAccessLevel.Administrator,
+                "manager" => ReportAccessLevel.Manager,
+                "cashier" => ReportAccessLevel.Cashier,
+                _ => ReportAccessLevel.Cashier
+            };
+        }
+    }
+
+    // Request/Response DTOs
+    public class ReportFilterRequest
+    {
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? CategoryId { get; set; }
+        public string? ProductId { get; set; }
+        public string? UserId { get; set; }
+        public string? PaymentMethod { get; set; }
+        public decimal? MinAmount { get; set; }
+        public decimal? MaxAmount { get; set; }
+        public bool? IsActive { get; set; }
+        public string? SearchTerm { get; set; }
+        public int? Page { get; set; }
+        public int? PageSize { get; set; }
+        public string? SortBy { get; set; }
+        public string? SortOrder { get; set; }
+    }
+
+    public class SaveReportRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public ReportType ReportType { get; set; }
+        public ReportAccessLevel AccessLevel { get; set; }
+        public string? Description { get; set; }
+        public string? Parameters { get; set; }
+        public bool IsScheduled { get; set; } = false;
+        public string? ScheduleCron { get; set; }
+    }
+
+    public class ReportDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string ReportType { get; set; } = string.Empty;
+        public string AccessLevel { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public DateTime GeneratedAt { get; set; }
+        public string GeneratedBy { get; set; } = string.Empty;
+        public string? FilePath { get; set; }
     }
 } 

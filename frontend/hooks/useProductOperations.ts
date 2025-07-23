@@ -8,11 +8,11 @@ import { ErrorMessages } from '../services/errorService';
 
 // API fonksiyonları
 const productService = {
-  getProducts: () => apiClient.get('/product'),
-  createProduct: (data: any) => apiClient.post('/product', data),
-  updateProduct: (id: string, data: any) => apiClient.put(`/product/${id}`, data),
-  deleteProduct: (id: string) => apiClient.delete(`/product/${id}`),
-  searchProducts: (query: string) => apiClient.get(`/product/search?q=${encodeURIComponent(query)}`)
+  getProducts: () => apiClient.get('/api/product'),
+  createProduct: (data: any) => apiClient.post('/api/product', data),
+  updateProduct: (id: string, data: any) => apiClient.put(`/api/product/${id}`, data),
+  deleteProduct: (id: string) => apiClient.delete(`/api/product/${id}`),
+  searchProducts: (query: string) => apiClient.get(`/api/product/search?q=${encodeURIComponent(query)}`)
 };
 
 export function useProductOperations() {

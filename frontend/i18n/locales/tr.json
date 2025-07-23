@@ -104,10 +104,18 @@
     "categories": {
         "title": "Kategoriler",
         "all": "Tümü",
-        "food": "Yemek",
-        "drink": "İçecek",
-        "dessert": "Tatlı",
-        "other": "Diğer"
+        "Hauptgerichte": "Ana Yemekler",
+        "Getränke": "İçecekler",
+        "Desserts": "Tatlılar",
+        "Alkoholische Getränke": "Alkollü İçecekler",
+        "Snacks": "Atıştırmalıklar",
+        "Suppen": "Çorbalar",
+        "Vorspeisen": "Başlangıçlar",
+        "Salate": "Salatalar",
+        "Kaffee & Tee": "Kahve & Çay",
+        "Süßigkeiten": "Şekerlemeler",
+        "Spezialitäten": "Özel Ürünler",
+        "Brot & Gebäck": "Ekmek & Hamur İşleri"
     },
     "quickAdd": {
         "favorites": "Sık Kullanılanlar"

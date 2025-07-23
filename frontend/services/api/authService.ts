@@ -28,7 +28,7 @@ export interface User {
 // Login işlemi
 export const login = async (credentials: LoginRequest): Promise<LoginResponse> => {
   try {
-    const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+    const response = await apiClient.post<LoginResponse>('/api/auth/login', credentials);
     
     // Token'ları kaydet
     await AsyncStorage.setItem('token', response.token);
@@ -70,7 +70,7 @@ export const refreshToken = async (): Promise<string | null> => {
     const refreshTokenStr = await AsyncStorage.getItem('refreshToken');
     if (!refreshTokenStr) return null;
 
-    const response = await apiClient.post<{ token: string }>('/auth/refresh', {
+    const response = await apiClient.post<{ token: string }>('/api/auth/refresh', {
       refreshToken: refreshTokenStr
     });
 

@@ -5,6 +5,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 import * as authService from '../services/api/authService';
 import { handleAPIError } from '../services/errorService';
+import { getUserSettings } from '../services/api/settingsService';
+import { useLanguage } from './LanguageContext';
 
 interface User {
     id: string;
@@ -229,6 +231,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(loggedInUser);
             setIsAuthenticated(true);
             
+            // Kullanıcı ayarlarını backend'den çek
+            try {
+                const userSettings = await getUserSettings().fetchData();
+                if (userSettings?.language) {
+                    await setLanguage(userSettings.language);
+                }
+            } catch (err) {
+                console.warn('Kullanıcı ayarları backendden alınamadı:', err);
+            }
+
             // State güncellemesinin tamamlanmasını bekle
             await new Promise(resolve => setTimeout(resolve, 200));
 

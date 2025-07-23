@@ -45,7 +45,7 @@ namespace Registrierkasse_API.Services
             }
         }
 
-        public async Task<UserSettings> UpdateUserSettingsAsync(string userId, object settings)
+        public async Task<UserSettings> UpdateUserSettingsAsync(string userId, object settingsObj)
         {
             try
             {
@@ -58,8 +58,13 @@ namespace Registrierkasse_API.Services
                     _context.UserSettings.Add(existingSettings);
                 }
 
-                // Settings güncelleme işlemi burada yapılacak
-                // Şimdilik basit bir implementasyon
+                // Settings güncelleme işlemi
+                if (settingsObj is Registrierkasse_API.Controllers.UpdateSettingsRequest settings)
+                {
+                    if (!string.IsNullOrEmpty(settings.Language))
+                        existingSettings.Language = settings.Language;
+                    // Diğer ayarlar burada güncellenebilir
+                }
 
                 await _context.SaveChangesAsync();
                 return existingSettings;

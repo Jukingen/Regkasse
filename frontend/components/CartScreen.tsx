@@ -19,6 +19,11 @@ import {
 import { useApiCart } from '../hooks/useApiCart';
 import CartFooter from './CartFooter';
 import { useAppState } from '../contexts/AppStateContext';
+import PaymentScreen from './PaymentScreen';
+import SplitBillSection from './SplitBillSection';
+import ErrorModal from './ErrorModal';
+import EmailInvoice from './EmailInvoice';
+import WaiterShortcuts from './WaiterShortcuts';
 
 // Sepet item'ını CartScreen için uygun tipe dönüştürür
 function mapCartItem(item: any) {
@@ -111,6 +116,12 @@ const CartScreen: React.FC = () => {
   const totalAnimation = useRef(new Animated.Value(1)).current;
   const [networkError, setNetworkError] = useState<string | null>(null); // Ağ hatası için state
   const [retryAction, setRetryAction] = useState<(() => void) | null>(null); // Tekrar denenecek fonksiyon
+  const [showPayment, setShowPayment] = useState(false);
+  const [lastPayments, setLastPayments] = useState<any>(null); // Son ödeme verisi (isteğe bağlı)
+  const [splitData, setSplitData] = useState<any[]>([]); // Split bill verisi
+  const [errorModal, setErrorModal] = useState({ visible: false, code: '', message: '' });
+  const [emailInvoice, setEmailInvoice] = useState<{ visible: boolean; data: any }>({ visible: false, data: null });
+  const [tip, setTip] = useState(0); // Bahşiş tutarı
 
   // Sepet boşsa gösterilecek mesaj
   if (loading) {
@@ -220,8 +231,96 @@ const CartScreen: React.FC = () => {
 
   const confirmCheckout = () => {
     setShowConfirmation(false);
-    // TODO: Ödeme işlemi başlat
-    Alert.alert('Ödeme işlemi başlatılacak!');
+    setShowPayment(true); // Ödeme ekranını aç
+  };
+
+  // PaymentScreen onConfirm callback
+  const handlePaymentConfirm = async (payments: any) => {
+    setShowPayment(false);
+    setLastPayments(payments); // Son ödemeyi kaydet (isteğe bağlı)
+    // TODO: Backend'e ödeme isteği gönder, fatura oluştur, vs.
+    Alert.alert('Ödeme alındı', `Ödeme detayları: ${JSON.stringify(payments, null, 2)}\nSplit: ${JSON.stringify(splitData, null, 2)}`);
+  };
+
+  // Hızlı işlem kısayolları
+  const handleQuickAction = async (action: string, amount?: number) => {
+    switch (action) {
+      case 'full_cash':
+        // Tam nakit ödeme
+        await processPayment('cash', totalAmount);
+        break;
+      case 'full_card':
+        // Tam kart ödeme
+        await processPayment('card', totalAmount);
+        break;
+      case 'split_half':
+        // Yarı-yarı böl
+        setSplitData([
+          { name: 'Kişi 1', amount: amount, method: 'cash' },
+          { name: 'Kişi 2', amount: amount, method: 'card' }
+        ]);
+        break;
+      case 'add_tip':
+        // Bahşiş ekle
+        setTip(amount || 0);
+        break;
+      case 'print_receipt':
+        // Fiş yazdır
+        await printReceipt();
+        break;
+      case 'email_receipt':
+        // E-posta gönder
+        setEmailInvoice({
+          visible: true,
+          data: {
+            id: 'temp-invoice-id',
+            totalAmount: totalAmount,
+            receiptNumber: 'TEMP-001'
+          }
+        });
+        break;
+    }
+  };
+
+  // Ödeme işlemi (placeholder)
+  const processPayment = async (method: string, amount: number) => {
+    try {
+      // Backend'e ödeme isteği gönder
+      console.log(`Processing ${method} payment for ${amount}`);
+      // Başarılı ödeme simülasyonu
+      Alert.alert('Başarılı', `${method} ödeme alındı: ${amount.toFixed(2)} €`);
+    } catch (error) {
+      setErrorModal({
+        visible: true,
+        code: 'PAYMENT_ERROR',
+        message: 'Ödeme işlemi başarısız'
+      });
+    }
+  };
+
+  // Fiş yazdırma (placeholder)
+  const printReceipt = async () => {
+    try {
+      console.log('Printing receipt...');
+      Alert.alert('Başarılı', 'Fiş yazdırılıyor...');
+    } catch (error) {
+      setErrorModal({
+        visible: true,
+        code: 'PRINT_ERROR',
+        message: 'Yazdırma hatası'
+      });
+    }
+  };
+
+  // E-posta gönderimi
+  const handleEmailSend = async (email: string) => {
+    try {
+      // Backend'e e-posta gönderim isteği
+      console.log(`Sending invoice to ${email}`);
+      return true; // Başarılı simülasyonu
+    } catch (error) {
+      return false;
+    }
   };
 
   /**
@@ -355,6 +454,13 @@ const CartScreen: React.FC = () => {
       </View>
       {/* Sepet alt bilgi (footer) */}
       <CartFooter subtotal={subtotal} vat={vat} serviceFee={serviceFee} grandTotal={totalAmount} />
+      {/* Split bill bölümü */}
+      <SplitBillSection totalAmount={totalAmount} onSplitChange={setSplitData} />
+      {/* Garson kısayolları */}
+      <WaiterShortcuts
+        totalAmount={totalAmount}
+        onQuickAction={handleQuickAction}
+      />
       <View style={[styles.buttonRow, { marginTop: 4 }]}> {/* marginTop küçültüldü */}
         <TouchableOpacity style={[styles.clearButton, { minHeight: 0, minWidth: 0, paddingVertical: 0, paddingHorizontal: 0 }]} onPress={safeHandleClearCart}>
           <Text style={styles.buttonText}>Sepeti Temizle</Text>
@@ -363,6 +469,36 @@ const CartScreen: React.FC = () => {
           <Text style={styles.buttonText}>Ödeme Yap</Text>
         </TouchableOpacity>
       </View>
+      {/* PaymentScreen modal entegrasyonu */}
+      <Modal visible={showPayment} transparent animationType="slide">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+          <PaymentScreen
+            totalAmount={totalAmount}
+            onConfirm={handlePaymentConfirm}
+            onCancel={() => setShowPayment(false)}
+          />
+        </View>
+      </Modal>
+      {/* Hata modalı */}
+      <ErrorModal
+        visible={errorModal.visible}
+        errorCode={errorModal.code}
+        errorMessage={errorModal.message}
+        onRetry={() => {
+          setErrorModal({ visible: false, code: '', message: '' });
+          // Ödeme işlemini tekrar dene
+        }}
+        onCancel={() => {
+          setErrorModal({ visible: false, code: '', message: '' });
+        }}
+      />
+      {/* E-posta fatura modalı */}
+      <EmailInvoice
+        visible={emailInvoice.visible}
+        invoiceData={emailInvoice.data}
+        onSend={handleEmailSend}
+        onClose={() => setEmailInvoice({ visible: false, data: null })}
+      />
       {/* Ağ bağlantısı hatası modalı */}
       <Modal visible={!!networkError} transparent animationType="fade">
         <View style={styles.networkModalContainer}>

@@ -52,7 +52,7 @@ export interface Receipt {
 }
 
 class PaymentService {
-  private baseUrl = '/payments';
+  private baseUrl = '/api/payments';
 
   // Ödeme yöntemlerini getir
   async getPaymentMethods(): Promise<PaymentMethod[]> {

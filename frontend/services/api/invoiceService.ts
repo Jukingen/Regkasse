@@ -1,7 +1,7 @@
 import { useFetch } from './useFetch';
 
 export function useInvoices(params?: any) {
-  let url = '/invoices';
+  let url = '/api/invoices';
   if (params) {
     const queryParams = new URLSearchParams(params);
     url += `?${queryParams.toString()}`;

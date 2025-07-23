@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -12,6 +12,7 @@ import {
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { Product } from '../services/api/productService';
+import CategoryFilter, { ProductCategory } from './CategoryFilter';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -29,9 +30,18 @@ const ProductList: React.FC<ProductListProps> = ({
   onToggleFavorite,
 }) => {
   const { t } = useTranslation();
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('all');
 
   // DEBUG: Componentin render edildiğini göster
   console.log('ProductList render', products);
+
+  // Kategoriye göre ürünleri filtrele - Backend'deki kategori isimleriyle eşleştirildi
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory === 'all') {
+      return products;
+    }
+    return products.filter(product => product.category === selectedCategory);
+  }, [products, selectedCategory]);
 
   // Container genişliğini hesapla (sol panel genişliği)
   const containerWidth = screenWidth * 0.5; // Sol panel genişliği (yaklaşık %50)
@@ -80,11 +90,21 @@ const ProductList: React.FC<ProductListProps> = ({
 
   return (
     <View style={styles.productsSection}>
-      <Text style={styles.sectionTitleSmall}>
-        {t('cashRegister.allProducts')}
-      </Text>
+      {/* Kategori Filtreleme */}
+      <CategoryFilter
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+      />
+      
+      {/* Ürün Sayısı */}
+      <View style={styles.resultsContainer}>
+        <Text style={styles.resultsText}>
+          {filteredProducts.length} {t('categories.all').toLowerCase()} {t('cashRegister.allProducts').toLowerCase()}
+        </Text>
+      </View>
+
       <FlatList
-        data={products}
+        data={filteredProducts}
         keyExtractor={(item) => item.id}
         renderItem={renderProductItem}
         numColumns={numColumns}
@@ -93,7 +113,10 @@ const ProductList: React.FC<ProductListProps> = ({
         style={styles.flatListContainer}
         ListEmptyComponent={
           <Text style={{ textAlign: 'center', color: '#888', marginTop: 32 }}>
-            {t('cashRegister.noProducts', 'Hiç ürün bulunamadı')}
+            {selectedCategory === 'all' 
+              ? t('cashRegister.noProducts', 'Hiç ürün bulunamadı')
+              : `${t(`categories.${selectedCategory}`)} kategorisinde ürün bulunamadı`
+            }
           </Text>
         }
       />
@@ -180,8 +203,8 @@ const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: '#059669', // Modern yeşil
-    borderRadius: 20, // Daha yumuşak köşeler
-    padding: 10, // Biraz daha fazla padding
+    borderRadius: 3, // Daha yumuşak köşeler
+    padding: 5, // Biraz daha fazla padding
     marginLeft: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -195,6 +218,14 @@ const styles = StyleSheet.create({
     elevation: 3,
     // Hover efekti için
     transform: [{ scale: 1 }],
+  },
+  resultsContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  resultsText: {
+    fontSize: 14,
+    color: '#666',
   },
 });
 

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { updateUserLanguage } from '../services/api/settingsService';
 
 // Desteklenen diller
 export type SupportedLanguage = 'de-DE' | 'en' | 'tr';
@@ -363,8 +364,14 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   const setLanguage = async (newLanguage: SupportedLanguage) => {
     try {
       setLanguageState(newLanguage);
-      setIsRTL(newLanguage === 'ar'); // Arapça için RTL desteği
+      setIsRTL(newLanguage === 'ar-AR'); // (Varsa RTL dil kodu, yoksa false)
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, newLanguage);
+      // Backend'e bildir
+      try {
+        await updateUserLanguage(newLanguage);
+      } catch (err) {
+        console.warn('Backend language update failed:', err);
+      }
     } catch (error) {
       console.error('Language storage error:', error);
     }
@@ -372,15 +379,14 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   // Çeviri fonksiyonu
   const t = (key: string, params?: Record<string, string>): string => {
-    const translation = translations[language][key] || key;
-    
+    const langTranslations = translations[language as keyof typeof translations] || {};
+    const translation = (langTranslations as any)[key] || key;
     if (params) {
       return Object.entries(params).reduce(
         (text, [param, value]) => text.replace(`{${param}}`, value),
         translation
       );
     }
-    
     return translation;
   };
 

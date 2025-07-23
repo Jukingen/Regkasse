@@ -15,7 +15,7 @@ export interface PendingInvoicesResponse {
 }
 
 class PendingInvoicesService {
-  private baseUrl = '/pending-invoices';
+  private baseUrl = '/api/pending-invoices';
 
   // Bekleyen faturaları getir
   async getPendingInvoices(): Promise<PendingInvoicesResponse> {

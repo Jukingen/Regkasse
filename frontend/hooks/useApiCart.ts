@@ -37,7 +37,7 @@ export function useApiCart() {
         if (savedCartId) {
           setCurrentCartId(savedCartId);
           setLoading(true);
-          const res = await apiClient.get(`/cart/${savedCartId}`);
+          const res = await apiClient.get(`/api/cart/${savedCartId}`);
           setCart(res as Cart);
         }
       } catch (err: any) {
@@ -62,7 +62,7 @@ export function useApiCart() {
       return;
     }
     try {
-      const res = await apiClient.get(`/cart/${currentCartId}`);
+      const res = await apiClient.get(`/api/cart/${currentCartId}`);
       setCart(res as Cart);
     } catch (err: any) {
       setError('Fehler beim Laden des Warenkorbs.');
@@ -84,7 +84,7 @@ export function useApiCart() {
     try {
       if (!currentCartId) {
         // Yeni cart oluştur ve ilk ürünü ekle
-        const res = await apiClient.post('/cart', {
+        const res = await apiClient.post('/api/cart', {
           TableNumber: '1', // Gerekirse dinamik yap
           WaiterName: 'Kasiyer', // Gerekirse dinamik yap
           InitialItem: { ProductId: productId, Quantity: quantity }
@@ -95,7 +95,7 @@ export function useApiCart() {
         await AsyncStorage.setItem('currentCartId', String(cartId));
       } else {
         // Var olan cart'a ürün ekle
-        await apiClient.post(`/cart/${currentCartId}/items`, { ProductId: productId, Quantity: quantity });
+        await apiClient.post(`/api/cart/${currentCartId}/items`, { ProductId: productId, Quantity: quantity });
         await fetchCart();
       }
     } catch (err: any) {
@@ -117,7 +117,7 @@ export function useApiCart() {
     const cartId = cart?.id || currentCartId;
     if (!cartId) return;
     try {
-      await apiClient.delete(`/cart/${cartId}/items/${itemId}`);
+      await apiClient.delete(`/api/cart/${cartId}/items/${itemId}`);
       await fetchCart();
     } catch (err: any) {
       setError('Fehler beim Entfernen des Produkts.');
@@ -140,7 +140,7 @@ export function useApiCart() {
     const cartId = cart?.id || currentCartId;
     if (!cartId) return;
     try {
-      await apiClient.put(`/cart/${cartId}/items/${itemId}`, { quantity });
+      await apiClient.put(`/api/cart/${cartId}/items/${itemId}`, { quantity });
       await fetchCart();
     } catch (err: any) {
       setError('Fehler beim Ändern der Menge.');
@@ -158,7 +158,7 @@ export function useApiCart() {
     setError(null);
     setTechError(null);
     try {
-      await apiClient.delete('/cart/items');
+      await apiClient.delete('/api/cart/items');
       await fetchCart();
     } catch (err: any) {
       setError('Fehler beim Leeren des Warenkorbs.');

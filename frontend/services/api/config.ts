@@ -1,8 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-// API base URL - tüm platformlar için localhost
-const API_BASE_URL = 'http://localhost:5183/api';
+// API base URL - Expo ve React Native Web için uyumlu
+// .env desteği yoksa sabit fallback kullanılır
+export const API_BASE_URL =
+  (typeof process !== 'undefined' && process.env.API_BASE_URL) ||
+  'http://localhost:5183';
 
 console.log('API Base URL:', API_BASE_URL);
 

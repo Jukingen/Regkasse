@@ -11,28 +11,28 @@ namespace Registrierkasse_API.Models
         [Required]
         [Column("name")]
         [MaxLength(100)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Column("customer_number")]
         [MaxLength(20)]
-        public string CustomerNumber { get; set; }
+        public string CustomerNumber { get; set; } = string.Empty;
 
         [Column("email")]
         [EmailAddress]
         [MaxLength(100)]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [Column("phone")]
         [MaxLength(20)]
-        public string Phone { get; set; }
+        public string Phone { get; set; } = string.Empty;
 
         [Column("address")]
         [MaxLength(200)]
-        public string Address { get; set; }
+        public string Address { get; set; } = string.Empty;
 
         [Column("tax_number")]
         [MaxLength(20)]
-        public string TaxNumber { get; set; }
+        public string TaxNumber { get; set; } = string.Empty;
 
         [Column("customer_category")]
         public CustomerCategory Category { get; set; } = CustomerCategory.Regular;
@@ -50,7 +50,7 @@ namespace Registrierkasse_API.Models
         public DateTime? LastVisit { get; set; }
 
         [Column("notes")]
-        public string Notes { get; set; }
+        public string Notes { get; set; } = string.Empty;
 
         [Column("is_vip")]
         public bool IsVip { get; set; } = false;
@@ -65,9 +65,9 @@ namespace Registrierkasse_API.Models
         public CustomerPaymentMethod PreferredPaymentMethod { get; set; } = CustomerPaymentMethod.Cash;
 
         // Navigation properties
-        public virtual ICollection<Invoice> Invoices { get; set; }
-        public virtual ICollection<Order> Orders { get; set; }
-        public virtual ICollection<CustomerDiscount> CustomerDiscounts { get; set; }
+        public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
+        public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+        public virtual ICollection<CustomerDiscount> CustomerDiscounts { get; set; } = new List<CustomerDiscount>();
     }
 
     public enum CustomerCategory

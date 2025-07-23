@@ -61,6 +61,46 @@
         "clearFilters": "Filter löschen",
         "applyFilters": "Filter anwenden"
     },
+    "categories": {
+        "all": "Alle",
+        "Hauptgerichte": "Hauptgerichte",
+        "Getränke": "Getränke",
+        "Desserts": "Desserts",
+        "Alkoholische Getränke": "Alkoholische Getränke",
+        "Snacks": "Snacks",
+        "Suppen": "Suppen",
+        "Vorspeisen": "Vorspeisen",
+        "Salate": "Salate",
+        "Kaffee & Tee": "Kaffee & Tee",
+        "Süßigkeiten": "Süßigkeiten",
+        "Spezialitäten": "Spezialitäten",
+        "Brot & Gebäck": "Brot & Gebäck"
+    },
+    "category": {
+        "title": "Kategorien",
+        "manage": "Kategorien verwalten",
+        "createTitle": "Neue Kategorie",
+        "editTitle": "Kategorie bearbeiten",
+        "deleteTitle": "Kategorie löschen",
+        "deleteMessage": "Möchten Sie diese Kategorie wirklich löschen?",
+        "deleteError": "Kategorie konnte nicht gelöscht werden",
+        "saveError": "Kategorie konnte nicht gespeichert werden",
+        "name": "Kategoriename",
+        "namePlaceholder": "Kategoriename eingeben",
+        "description": "Beschreibung",
+        "descriptionPlaceholder": "Kategoriebeschreibung",
+        "color": "Farbe",
+        "sortOrder": "Sortierreihenfolge"
+    },
+    "product": {
+        "variations": "Optionen",
+        "enterText": "Text eingeben...",
+        "options": "Zusatzoptionen",
+        "addToCart": "Zum Warenkorb hinzufügen",
+        "selectVariation": "Variante auswählen",
+        "selectOptions": "Optionen auswählen",
+        "totalPrice": "Gesamtpreis"
+    },
     "cart": {
         "cart": "Warenkorb",
         "items": "Artikel",

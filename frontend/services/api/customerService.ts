@@ -18,7 +18,7 @@ export interface CustomerSearchParams {
 }
 
 export function useCustomers(params?: CustomerSearchParams) {
-  let url = '/customers';
+  let url = '/api/customers';
   if (params) {
     const queryParams = new URLSearchParams();
     if (params.category) queryParams.append('category', params.category);

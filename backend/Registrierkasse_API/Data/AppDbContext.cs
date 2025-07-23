@@ -14,6 +14,9 @@ namespace Registrierkasse_API.Data
         // DbSet properties
         public DbSet<Product> Products { get; set; }
         public DbSet<Category> Categories { get; set; }
+        public DbSet<ProductVariation> ProductVariations { get; set; }
+        public DbSet<ProductOption> ProductOptions { get; set; }
+        public DbSet<ProductOptionValue> ProductOptionValues { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Receipt> Receipts { get; set; }
         public DbSet<ReceiptItem> ReceiptItems { get; set; }
@@ -46,6 +49,7 @@ namespace Registrierkasse_API.Data
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<DepEntry> DepEntries { get; set; } // DEP kayıtları için
+        public DbSet<Report> Reports { get; set; }
 
         // Rol sistemi DbSet'leri
         public DbSet<Role> Roles { get; set; }
@@ -83,6 +87,50 @@ namespace Registrierkasse_API.Data
                 entity.Property(e => e.Description).HasMaxLength(300);
                 
                 entity.HasIndex(e => e.Name).IsUnique();
+            });
+
+            // ProductVariation configuration
+            builder.Entity<ProductVariation>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Description).HasMaxLength(300);
+                entity.Property(e => e.PriceModifier).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.PriceMultiplier).HasColumnType("decimal(5,2)");
+                entity.Property(e => e.Icon).HasMaxLength(50);
+                entity.Property(e => e.Color).HasMaxLength(20);
+                
+                entity.HasOne(e => e.Product)
+                    .WithMany(p => p.Variations)
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ProductOption configuration
+            builder.Entity<ProductOption>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Description).HasMaxLength(300);
+                entity.Property(e => e.OptionType).HasConversion<string>();
+                
+                entity.HasOne(e => e.Product)
+                    .WithMany(p => p.Options)
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ProductOptionValue configuration
+            builder.Entity<ProductOptionValue>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Value).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.PriceModifier).HasColumnType("decimal(18,2)");
+                
+                entity.HasOne(e => e.Option)
+                    .WithMany(o => o.OptionValues)
+                    .HasForeignKey(e => e.OptionId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Customer configuration

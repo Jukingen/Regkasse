@@ -27,7 +27,7 @@ export interface HealthStatus {
 }
 
 class NetworkService {
-  private baseUrl = '/network';
+  private baseUrl = '/api/network';
 
   // Network durumunu getir
   async getNetworkStatus(): Promise<NetworkStatus> {

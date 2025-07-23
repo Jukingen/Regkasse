@@ -104,10 +104,18 @@
     "categories": {
         "title": "Categories",
         "all": "All",
-        "food": "Food",
-        "drink": "Drink",
-        "dessert": "Dessert",
-        "other": "Other"
+        "Hauptgerichte": "Main Dishes",
+        "Getränke": "Drinks",
+        "Desserts": "Desserts",
+        "Alkoholische Getränke": "Alcoholic Drinks",
+        "Snacks": "Snacks",
+        "Suppen": "Soups",
+        "Vorspeisen": "Appetizers",
+        "Salate": "Salads",
+        "Kaffee & Tee": "Coffee & Tea",
+        "Süßigkeiten": "Sweets",
+        "Spezialitäten": "Specialties",
+        "Brot & Gebäck": "Bread & Pastries"
     },
     "quickAdd": {
         "favorites": "Favorites"
