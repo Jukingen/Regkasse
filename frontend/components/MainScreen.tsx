@@ -2,15 +2,17 @@
 import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { TableSlotContext } from '../contexts/TableSlotContext';
+import { useTranslation } from 'react-i18next';
 
 const SLOT_COUNT = 9;
 
 const MainScreen = () => {
   const { activeSlot, setActiveSlot, slots } = useContext(TableSlotContext);
+  const { t } = useTranslation();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Masa/Satış Seçimi</Text>
+      <Text style={styles.title}>{t('mainScreen.title', 'Masa/Satış Seçimi')}</Text>
       <View style={styles.grid}>
         {[...Array(SLOT_COUNT)].map((_, i) => {
           const slotNumber = i + 1;
@@ -23,7 +25,7 @@ const MainScreen = () => {
             >
               <Text style={styles.buttonText}>{slotNumber}</Text>
               {slots[slotNumber]?.isOpen && (
-                <Text style={styles.openText}>Açık</Text>
+                <Text style={styles.openText}>{t('mainScreen.open', 'Açık')}</Text>
               )}
             </TouchableOpacity>
           );

@@ -15,15 +15,16 @@ export default function LoginScreen() {
 
     const handleDebugInfo = () => {
         Alert.alert(
-            'Expo Go Debug Bilgileri',
-            'Expo Go\'da network erişimi için:\n\n' +
-            '1. Bilgisayarınızın IP adresini öğrenin:\n' +
-            '   Windows: ipconfig\n' +
-            '   Mac/Linux: ifconfig\n\n' +
-            '2. API Ayarları\'na gidin ve IP adresinizi girin\n\n' +
-            '3. Aynı Wi-Fi ağında olduğunuzdan emin olun\n\n' +
-            '4. Backend\'in çalıştığından emin olun\n\n' +
-            '5. Firewall ayarlarını kontrol edin'
+            t('login.debugTitle', 'Expo Go Debug Bilgileri'),
+            t('login.debugInfo',
+              'Expo Go\'da network erişimi için:\n\n' +
+              '1. Bilgisayarınızın IP adresini öğrenin:\n' +
+              '   Windows: ipconfig\n' +
+              '   Mac/Linux: ifconfig\n\n' +
+              '2. API Ayarları\'na gidin ve IP adresinizi girin\n\n' +
+              '3. Aynı Wi-Fi ağında olduğunuzdan emin olun\n\n' +
+              '4. Backend\'in çalıştığından emin olun\n\n' +
+              '5. Firewall ayarlarını kontrol edin')
         );
     };
 
@@ -92,14 +93,14 @@ export default function LoginScreen() {
                     onPress={() => setShowApiSettings(true)}
                     disabled={isLoading}
                 >
-                    <Text style={styles.settingsButtonText}>API Ayarları</Text>
+                    <Text style={styles.settingsButtonText}>{t('login.apiSettings', 'API Ayarları')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={styles.debugButton}
                     onPress={handleDebugInfo}
                     disabled={isLoading}
                 >
-                    <Text style={styles.debugButtonText}>Debug Bilgileri</Text>
+                    <Text style={styles.debugButtonText}>{t('login.debugButton', 'Debug Bilgileri')}</Text>
                 </TouchableOpacity>
             </View>
             <ApiSettingsModal

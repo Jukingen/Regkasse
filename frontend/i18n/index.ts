@@ -133,6 +133,70 @@ const resources = {
       },
     },
   },
+  tr: {
+    translation: {
+      // Genel
+      appName: 'KasaAPP',
+      loading: 'Yükleniyor...',
+      error: 'Hata',
+      success: 'Başarılı',
+      save: 'Kaydet',
+      cancel: 'İptal',
+      delete: 'Sil',
+      edit: 'Düzenle',
+      search: 'Ara...',
+
+      // Auth
+      login: 'Giriş Yap',
+      logout: 'Çıkış Yap',
+      email: 'E-posta',
+      password: 'Şifre',
+      forgotPassword: 'Şifremi Unuttum?',
+      loginError: 'Giriş başarısız',
+
+      // Kasa
+      cashRegister: 'Kasa',
+      cart: 'Sepet',
+      total: 'Toplam',
+      checkout: 'Ödeme',
+      addToCart: 'Sepete Ekle',
+      removeFromCart: 'Sepetten Çıkar',
+      quantity: 'Adet',
+      price: 'Fiyat',
+      product: 'Ürün',
+      products: 'Ürünler',
+      stock: 'Stok',
+      outOfStock: 'Stokta yok',
+
+      // Ayarlar
+      settings: 'Ayarlar',
+      language: 'Dil',
+      theme: 'Tema',
+      notifications: 'Bildirimler',
+      darkMode: 'Koyu Mod',
+      lightMode: 'Açık Mod',
+      systemTheme: 'Sistem',
+      german: 'Almanca',
+      english: 'İngilizce',
+
+      // Hata mesajları
+      errorMessages: {
+        required: '{{field}} zorunludur',
+        invalidEmail: 'Geçersiz e-posta adresi',
+        invalidPassword: 'Geçersiz şifre',
+        networkError: 'Ağ hatası',
+        serverError: 'Sunucu hatası',
+        sessionExpired: 'Oturum süresi doldu',
+      },
+
+      // Bildirimler
+      notificationSettings: {
+        saleComplete: 'Satış tamamlandı',
+        lowStock: 'Düşük stok uyarısı',
+        dailyReport: 'Gün sonu raporu',
+      },
+    },
+  },
 };
 
 // i18n yapılandırması
@@ -171,5 +235,8 @@ export const loadSavedLanguage = async () => {
     console.error('Kaydedilmiş dil yüklenirken hata:', error);
   }
 };
+
+// Uygulama başlarken kaydedilmiş dili yükle
+loadSavedLanguage();
 
 export default i18n; 

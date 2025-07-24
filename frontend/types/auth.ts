@@ -51,11 +51,36 @@ export interface LoginResponse {
 
 // Yetki kontrolü için hook
 export interface UsePermissionReturn {
+  // Temel yetki kontrolü
   hasPermission: (resource: string, action: string) => boolean;
   hasRole: (role: UserRole) => boolean;
+  hasAnyRole: (roles: UserRole[]) => boolean;
+  hasAllRoles: (roles: UserRole[]) => boolean;
+  
+  // Güvenli erişim kontrolü
+  checkPermissionWithAlert: (resource: string, action: string) => boolean;
+  checkRoleWithAlert: (role: UserRole) => boolean;
+  
+  // Rol kısayolları
   isAdmin: boolean;
   isCashier: boolean;
   isManager: boolean;
+  
+  // Kullanıcı durumu
+  isDemoUser: boolean;
+  isRealUser: boolean;
+  isActiveUser: boolean;
+  
+  // İşlem yetkileri
+  canPerformCriticalOperations: boolean;
+  canManageSystemSettings: boolean;
+  canViewReports: boolean;
+  canManageUsers: boolean;
+  
+  // Kullanıcı bilgileri
+  user: User | null;
+  userPermissions: string[];
+  userRoles: string[];
 }
 
 // Rol tabanlı erişim kontrolü için bileşen props

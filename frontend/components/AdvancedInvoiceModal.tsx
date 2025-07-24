@@ -101,12 +101,12 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
   // Fatura oluştur
   const handleCreateInvoice = async () => {
     if (!customer.name.trim()) {
-      Alert.alert('Error', 'Customer name is required');
+      Alert.alert(t('invoice.error', 'Error'), t('invoice.customerNameRequired', 'Customer name is required'));
       return;
     }
 
     if (settings.autoSend && !settings.sendToEmail.trim()) {
-      Alert.alert('Error', 'Email is required for auto-send');
+      Alert.alert(t('invoice.error', 'Error'), t('invoice.emailRequired', 'Email is required for auto-send'));
       return;
     }
 
@@ -140,12 +140,12 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
       await onInvoiceCreate(invoiceData);
       
       Alert.alert(
-        'Success',
-        'Invoice created successfully!',
-        [{ text: 'OK', onPress: handleClose }]
+        t('invoice.success', 'Success'),
+        t('invoice.created', 'Invoice created successfully!'),
+        [{ text: t('common.ok', 'OK'), onPress: handleClose }]
       );
     } catch (error) {
-      Alert.alert('Error', 'Failed to create invoice. Please try again.');
+      Alert.alert(t('invoice.error', 'Error'), t('invoice.createFailed', 'Failed to create invoice. Please try again.'));
     } finally {
       setIsCreating(false);
     }
@@ -202,7 +202,7 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
             styles.stepLabel,
             activeStep >= step && styles.stepLabelActive
           ]}>
-            {step === 1 ? 'Customer' : step === 2 ? 'Items' : 'Settings'}
+            {step === 1 ? t('invoice.customer', 'Customer') : step === 2 ? t('invoice.items', 'Items') : t('invoice.settings', 'Settings')}
           </Text>
         </View>
       ))}
@@ -211,59 +211,59 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
 
   const renderCustomerStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Customer Information</Text>
+      <Text style={styles.stepTitle}>{t('invoice.customerInfo', 'Customer Information')}</Text>
       
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Customer Name *</Text>
+        <Text style={styles.inputLabel}>{t('invoice.customerName', 'Customer Name *')}</Text>
         <TextInput
           style={styles.textInput}
           value={customer.name}
           onChangeText={(value) => updateCustomer('name', value)}
-          placeholder="Enter customer name"
+          placeholder={t('invoice.enterCustomerName', 'Enter customer name')}
         />
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Email</Text>
+        <Text style={styles.inputLabel}>{t('invoice.email', 'Email')}</Text>
         <TextInput
           style={styles.textInput}
           value={customer.email}
           onChangeText={(value) => updateCustomer('email', value)}
-          placeholder="customer@example.com"
+          placeholder={t('invoice.emailPlaceholder', 'customer@example.com')}
           keyboardType="email-address"
         />
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Phone</Text>
+        <Text style={styles.inputLabel}>{t('invoice.phone', 'Phone')}</Text>
         <TextInput
           style={styles.textInput}
           value={customer.phone}
           onChangeText={(value) => updateCustomer('phone', value)}
-          placeholder="+43 123 456 789"
+          placeholder={t('invoice.phonePlaceholder', '+43 123 456 789')}
           keyboardType="phone-pad"
         />
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Address</Text>
+        <Text style={styles.inputLabel}>{t('invoice.address', 'Address')}</Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
           value={customer.address}
           onChangeText={(value) => updateCustomer('address', value)}
-          placeholder="Enter full address"
+          placeholder={t('invoice.enterAddress', 'Enter full address')}
           multiline
           numberOfLines={3}
         />
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Tax Number (ATU)</Text>
+        <Text style={styles.inputLabel}>{t('invoice.taxNumber', 'Tax Number (ATU)')}</Text>
         <TextInput
           style={styles.textInput}
           value={customer.taxNumber}
           onChangeText={(value) => updateCustomer('taxNumber', value)}
-          placeholder="ATU12345678"
+          placeholder={t('invoice.taxNumberPlaceholder', 'ATU12345678')}
           autoCapitalize="characters"
         />
       </View>
@@ -272,7 +272,7 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
 
   const renderItemsStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Invoice Items</Text>
+      <Text style={styles.stepTitle}>{t('invoice.itemsTitle', 'Invoice Items')}</Text>
       
       <View style={styles.itemsContainer}>
         {cart?.items?.map((item, index) => (
@@ -293,15 +293,15 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
 
       <View style={styles.summaryContainer}>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Subtotal:</Text>
+          <Text style={styles.summaryLabel}>{t('invoice.subtotal', 'Subtotal:')}</Text>
           <Text style={styles.summaryValue}>€{subtotal.toFixed(2)}</Text>
         </View>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Tax:</Text>
+          <Text style={styles.summaryLabel}>{t('invoice.tax', 'Tax:')}</Text>
           <Text style={styles.summaryValue}>€{taxAmount.toFixed(2)}</Text>
         </View>
         <View style={[styles.summaryRow, styles.totalRow]}>
-          <Text style={styles.totalLabel}>Total:</Text>
+          <Text style={styles.totalLabel}>{t('invoice.total', 'Total:')}</Text>
           <Text style={styles.totalValue}>€{totalAmount.toFixed(2)}</Text>
         </View>
       </View>
@@ -310,15 +310,15 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
 
   const renderSettingsStep = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Invoice Settings</Text>
+      <Text style={styles.stepTitle}>{t('invoice.settingsTitle', 'Invoice Settings')}</Text>
       
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Due Date</Text>
+        <Text style={styles.inputLabel}>{t('invoice.dueDate', 'Due Date')}</Text>
         <TouchableOpacity
           style={styles.dateButton}
           onPress={() => {
             // Date picker burada implement edilecek
-            Alert.alert('Date Picker', 'Date picker will be implemented');
+            Alert.alert(t('invoice.datePicker', 'Date Picker'), t('invoice.datePickerMsg', 'Date picker will be implemented'));
           }}
         >
           <Text style={styles.dateButtonText}>{formatDate(settings.dueDate)}</Text>
@@ -327,24 +327,24 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Notes</Text>
+        <Text style={styles.inputLabel}>{t('invoice.notes', 'Notes')}</Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
           value={settings.notes}
           onChangeText={(value) => updateSettings('notes', value)}
-          placeholder="Additional notes for the customer"
+          placeholder={t('invoice.notesPlaceholder', 'Additional notes for the customer')}
           multiline
           numberOfLines={3}
         />
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Terms & Conditions</Text>
+        <Text style={styles.inputLabel}>{t('invoice.terms', 'Terms & Conditions')}</Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
           value={settings.termsAndConditions}
           onChangeText={(value) => updateSettings('termsAndConditions', value)}
-          placeholder="Payment terms and conditions"
+          placeholder={t('invoice.termsPlaceholder', 'Payment terms and conditions')}
           multiline
           numberOfLines={4}
         />
@@ -363,17 +363,17 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
               <Ionicons name="checkmark" size={16} color="white" />
             )}
           </View>
-          <Text style={styles.checkboxLabel}>Auto-send invoice</Text>
+          <Text style={styles.checkboxLabel}>{t('invoice.autoSend', 'Auto-send invoice')}</Text>
         </TouchableOpacity>
 
         {settings.autoSend && (
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Send to Email</Text>
+            <Text style={styles.inputLabel}>{t('invoice.sendToEmail', 'Send to Email')}</Text>
             <TextInput
               style={styles.textInput}
               value={settings.sendToEmail}
               onChangeText={(value) => updateSettings('sendToEmail', value)}
-              placeholder="customer@example.com"
+              placeholder={t('invoice.emailPlaceholder', 'customer@example.com')}
               keyboardType="email-address"
             />
           </View>
@@ -394,11 +394,11 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <Ionicons name="close" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Create Invoice</Text>
+          <Text style={styles.headerTitle}>{t('invoice.createInvoice', 'Create Invoice')}</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.previewButton}
-              onPress={() => Alert.alert('Preview', 'Invoice preview will be implemented')}
+              onPress={() => Alert.alert(t('invoice.preview', 'Preview'), t('invoice.previewMsg', 'Invoice preview will be implemented'))}
             >
               <Ionicons name="eye" size={20} color="white" />
             </TouchableOpacity>
@@ -424,7 +424,7 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
                 onPress={prevStep}
               >
                 <Ionicons name="arrow-back" size={20} color={Colors.light.primary} />
-                <Text style={styles.secondaryButtonText}>Previous</Text>
+                <Text style={styles.secondaryButtonText}>{t('invoice.previous', 'Previous')}</Text>
               </TouchableOpacity>
             )}
 
@@ -433,7 +433,7 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
                 style={styles.primaryButton}
                 onPress={nextStep}
               >
-                <Text style={styles.primaryButtonText}>Next</Text>
+                <Text style={styles.primaryButtonText}>{t('invoice.next', 'Next')}</Text>
                 <Ionicons name="arrow-forward" size={20} color="white" />
               </TouchableOpacity>
             ) : (
@@ -443,11 +443,11 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
                 disabled={isCreating}
               >
                 {isCreating ? (
-                  <Text style={styles.primaryButtonText}>Creating...</Text>
+                  <Text style={styles.primaryButtonText}>{t('invoice.creating', 'Creating...')}</Text>
                 ) : (
                   <>
                     <Ionicons name="document-text" size={20} color="white" />
-                    <Text style={styles.primaryButtonText}>Create Invoice</Text>
+                    <Text style={styles.primaryButtonText}>{t('invoice.createInvoice', 'Create Invoice')}</Text>
                   </>
                 )}
               </TouchableOpacity>

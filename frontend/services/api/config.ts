@@ -1,13 +1,59 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 // API base URL - Expo ve React Native Web için uyumlu
 // .env desteği yoksa sabit fallback kullanılır
 export const API_BASE_URL =
-  (typeof process !== 'undefined' && process.env.API_BASE_URL) ||
+  (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) ||
   'http://localhost:5183';
 
 console.log('API Base URL:', API_BASE_URL);
+
+// Token yönetimi için yardımcı fonksiyonlar
+const TokenManager = {
+  // Token'ın geçerlilik süresini kontrol et
+  isTokenExpired: (token: string): boolean => {
+    try {
+      const decoded = jwtDecode(token) as any;
+      const currentTime = Date.now() / 1000;
+      return decoded.exp ? decoded.exp < currentTime : true;
+    } catch (error) {
+      console.error('Token expiration check failed:', error);
+      return true;
+    }
+  },
+
+  // Token'dan kullanıcı bilgilerini çıkar
+  getTokenInfo: (token: string) => {
+    try {
+      return jwtDecode(token) as any;
+    } catch (error) {
+      console.error('Token decode failed:', error);
+      return null;
+    }
+  },
+
+  // Güvenli token saklama
+  storeToken: async (token: string, refreshToken: string) => {
+    try {
+      await AsyncStorage.setItem('token', token);
+      await AsyncStorage.setItem('refreshToken', refreshToken);
+      await AsyncStorage.setItem('tokenExpiry', Date.now().toString());
+    } catch (error) {
+      console.error('Token storage failed:', error);
+    }
+  },
+
+  // Token'ları temizle
+  clearTokens: async () => {
+    try {
+      await AsyncStorage.multiRemove(['token', 'refreshToken', 'tokenExpiry']);
+    } catch (error) {
+      console.error('Token cleanup failed:', error);
+    }
+  }
+};
 
 // Axios instance oluştur
 const axiosInstance = axios.create({
@@ -18,7 +64,7 @@ const axiosInstance = axios.create({
     timeout: 10000, // 10 saniye timeout
 });
 
-// Request interceptor
+// Request interceptor - Token kontrolü ve ekleme
 axiosInstance.interceptors.request.use(
     async (config) => {
         console.log('Making API request:', {
@@ -31,13 +77,38 @@ axiosInstance.interceptors.request.use(
         try {
             const token = await AsyncStorage.getItem('token');
             if (token && config.headers) {
-                config.headers.Authorization = `Bearer ${token}`;
-                console.log('Token added to request');
+                // Token geçerlilik kontrolü
+                if (TokenManager.isTokenExpired(token)) {
+                    console.log('Token expired, attempting refresh...');
+                    const refreshToken = await AsyncStorage.getItem('refreshToken');
+                    if (refreshToken) {
+                        try {
+                            const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
+                                refreshToken: refreshToken
+                            });
+                            const newToken = response.data.token;
+                            await TokenManager.storeToken(newToken, refreshToken);
+                            config.headers.Authorization = `Bearer ${newToken}`;
+                            console.log('Token refreshed successfully');
+                        } catch (refreshError) {
+                            console.error('Token refresh failed:', refreshError);
+                            await TokenManager.clearTokens();
+                            // Login sayfasına yönlendirme gerekebilir
+                            throw new Error('Token refresh failed');
+                        }
+                    } else {
+                        console.log('No refresh token found');
+                        await TokenManager.clearTokens();
+                    }
+                } else {
+                    config.headers.Authorization = `Bearer ${token}`;
+                    console.log('Valid token added to request');
+                }
             } else {
                 console.log('No token found for request');
             }
         } catch (error) {
-            console.error('Error getting token:', error);
+            console.error('Error in request interceptor:', error);
         }
         return config;
     },
@@ -47,7 +118,7 @@ axiosInstance.interceptors.request.use(
     }
 );
 
-// Response interceptor
+// Response interceptor - Hata yönetimi ve token yenileme
 axiosInstance.interceptors.response.use(
     (response) => {
         console.log('API response received:', {
@@ -65,14 +136,36 @@ axiosInstance.interceptors.response.use(
             message: error.message
         });
 
+        // 401 Unauthorized - Token geçersiz
         if (error.response?.status === 401) {
-            console.log('Unauthorized error, removing token...');
+            console.log('Unauthorized error, attempting token refresh...');
             try {
-                await AsyncStorage.removeItem('token');
-                await AsyncStorage.removeItem('refreshToken');
-            } catch (e) {
-                console.error('Error removing tokens:', e);
+                const refreshToken = await AsyncStorage.getItem('refreshToken');
+                if (refreshToken) {
+                    const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
+                        refreshToken: refreshToken
+                    });
+                    const newToken = response.data.token;
+                    await TokenManager.storeToken(newToken, refreshToken);
+                    
+                    // Orijinal isteği yeni token ile tekrarla
+                    const originalRequest = error.config;
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                    return axiosInstance(originalRequest);
+                } else {
+                    console.log('No refresh token available');
+                    await TokenManager.clearTokens();
+                }
+            } catch (refreshError) {
+                console.error('Token refresh failed in response interceptor:', refreshError);
+                await TokenManager.clearTokens();
             }
+        }
+
+        // 403 Forbidden - Yetkisiz erişim
+        if (error.response?.status === 403) {
+            console.log('Forbidden error - insufficient permissions');
+            // Kullanıcıya yetkisiz erişim mesajı gösterilebilir
         }
 
         // Hata detaylarını döndür
@@ -129,4 +222,7 @@ export const apiClient = {
             throw error;
         }
     }
-}; 
+};
+
+// Token yönetimi için export
+export { TokenManager }; 

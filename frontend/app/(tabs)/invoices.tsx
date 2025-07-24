@@ -144,25 +144,40 @@ export default function InvoicesScreen() {
     }
   };
 
+  // PDF ve CSV indirme fonksiyonları
   const handleDownloadPdf = async (id: string) => {
     try {
       const blob = await InvoiceService.downloadInvoicePdf(id);
-      
-      // Blob'u dosyaya kaydet
       const fileUri = FileSystem.documentDirectory + `invoice_${id}.pdf`;
       const base64 = await blobToBase64(blob);
       await FileSystem.writeAsStringAsync(fileUri, base64, {
         encoding: FileSystem.EncodingType.Base64
       });
-
-      // Dosyayı paylaş
       await Sharing.shareAsync(fileUri, {
         mimeType: 'application/pdf',
-        dialogTitle: 'Fatura PDF\'i'
+        dialogTitle: 'Fatura PDF'
       });
     } catch (error) {
       console.error('PDF indirilirken hata:', error);
       Alert.alert('Hata', 'PDF indirilirken bir hata oluştu');
+    }
+  };
+
+  const handleDownloadCsv = async (id: string) => {
+    try {
+      const blob = await InvoiceService.downloadInvoiceCsv(id);
+      const fileUri = FileSystem.documentDirectory + `invoice_${id}.csv`;
+      const base64 = await blobToBase64(blob);
+      await FileSystem.writeAsStringAsync(fileUri, base64, {
+        encoding: FileSystem.EncodingType.Base64
+      });
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/csv',
+        dialogTitle: 'Fatura CSV'
+      });
+    } catch (error) {
+      console.error('CSV indirilirken hata:', error);
+      Alert.alert('Hata', 'CSV indirilirken bir hata oluştu');
     }
   };
 
@@ -366,18 +381,33 @@ export default function InvoicesScreen() {
 
             {selectedInvoice && (
               <ScrollView style={styles.modalBody}>
+                {/* Yasal ve müşteri için alanlar */}
                 <Text style={styles.detailLabel}>Fatura No:</Text>
                 <Text style={styles.detailValue}>{selectedInvoice.receiptNumber}</Text>
 
-                <Text style={styles.detailLabel}>Müşteri:</Text>
-                <Text style={styles.detailValue}>
-                  {selectedInvoice.customer?.firstName} {selectedInvoice.customer?.lastName}
-                </Text>
-
                 <Text style={styles.detailLabel}>Tarih:</Text>
-                <Text style={styles.detailValue}>
-                  {new Date(selectedInvoice.invoiceDate).toLocaleDateString('tr-TR')}
-                </Text>
+                <Text style={styles.detailValue}>{new Date(selectedInvoice.invoiceDate).toLocaleDateString('tr-TR')}</Text>
+
+                <Text style={styles.detailLabel}>Saat:</Text>
+                <Text style={styles.detailValue}>{new Date(selectedInvoice.invoiceDate).toLocaleTimeString('tr-TR')}</Text>
+
+                <Text style={styles.detailLabel}>TSE-Signatur:</Text>
+                <Text style={styles.detailValue}>{selectedInvoice.tseSignature || '-'}</Text>
+
+                <Text style={styles.detailLabel}>Kassen-ID:</Text>
+                <Text style={styles.detailValue}>{selectedInvoice.kassenId || '-'}</Text>
+
+                <Text style={styles.detailLabel}>Steuernummer:</Text>
+                <Text style={styles.detailValue}>{selectedInvoice.taxNumber || '-'}</Text>
+
+                <Text style={styles.detailLabel}>Müşteri:</Text>
+                <Text style={styles.detailValue}>{selectedInvoice.customer?.firstName} {selectedInvoice.customer?.lastName}</Text>
+
+                <Text style={styles.detailLabel}>Ödeme Yöntemi:</Text>
+                <Text style={styles.detailValue}>{selectedInvoice.paymentMethod}</Text>
+
+                <Text style={styles.detailLabel}>Durum:</Text>
+                <Text style={styles.detailValue}>{selectedInvoice.status}</Text>
 
                 <Text style={styles.detailLabel}>Toplam:</Text>
                 <Text style={styles.detailValue}>€{selectedInvoice.totalAmount?.toFixed(2)}</Text>
@@ -385,22 +415,54 @@ export default function InvoicesScreen() {
                 <Text style={styles.detailLabel}>Vergi:</Text>
                 <Text style={styles.detailValue}>€{selectedInvoice.taxAmount?.toFixed(2)}</Text>
 
-                <Text style={styles.detailLabel}>Durum:</Text>
-                <Text style={styles.detailValue}>{selectedInvoice.status}</Text>
-
-                <Text style={styles.detailLabel}>Ödeme Yöntemi:</Text>
-                <Text style={styles.detailValue}>{selectedInvoice.paymentMethod}</Text>
-
                 <Text style={styles.detailLabel}>Basıldı:</Text>
                 <Text style={styles.detailValue}>{selectedInvoice.isPrinted ? 'Evet' : 'Hayır'}</Text>
 
-                {selectedInvoice.notes && (
-                  <>
-                    <Text style={styles.detailLabel}>Notlar:</Text>
-                    <Text style={styles.detailValue}>{selectedInvoice.notes}</Text>
-                  </>
-                )}
+                {/* Ürünler tablosu */}
+                <Text style={[styles.detailLabel, { marginTop: 16 }]}>Ürünler:</Text>
+                <View style={{ borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 8, marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', backgroundColor: '#f1f1f1', padding: 6 }}>
+                    <Text style={{ flex: 2, fontWeight: 'bold' }}>Ürün</Text>
+                    <Text style={{ flex: 1, fontWeight: 'bold', textAlign: 'right' }}>Adet</Text>
+                    <Text style={{ flex: 1, fontWeight: 'bold', textAlign: 'right' }}>Birim</Text>
+                    <Text style={{ flex: 1, fontWeight: 'bold', textAlign: 'right' }}>Toplam</Text>
+                  </View>
+                  {selectedInvoice.items?.map((item, idx) => (
+                    <View key={idx} style={{ flexDirection: 'row', padding: 6 }}>
+                      <Text style={{ flex: 2 }}>{item.productName}</Text>
+                      <Text style={{ flex: 1, textAlign: 'right' }}>{item.quantity}</Text>
+                      <Text style={{ flex: 1, textAlign: 'right' }}>€{item.unitPrice?.toFixed(2)}</Text>
+                      <Text style={{ flex: 1, textAlign: 'right' }}>€{item.totalAmount?.toFixed(2)}</Text>
+                    </View>
+                  ))}
+                </View>
 
+                {/* Şirket bilgisi */}
+                <Text style={styles.detailLabel}>Şirket:</Text>
+                <Text style={styles.detailValue}>{selectedInvoice.companyName || '-'}</Text>
+                <Text style={styles.detailValue}>{selectedInvoice.companyAddress || ''}</Text>
+                <Text style={styles.detailValue}>{selectedInvoice.companyEmail || ''}</Text>
+                <Text style={styles.detailValue}>{selectedInvoice.companyPhone || ''}</Text>
+
+                {/* PDF/CSV indirme butonları */}
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.primaryButton, { flex: 1 }]}
+                    onPress={() => handleDownloadPdf(selectedInvoice.id)}
+                  >
+                    <Ionicons name="download-outline" size={18} color="#fff" />
+                    <Text style={styles.buttonText}>PDF İndir</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.secondaryButton, { flex: 1 }]}
+                    onPress={() => handleDownloadCsv(selectedInvoice.id)}
+                  >
+                    <Ionicons name="document-outline" size={18} color="#fff" />
+                    <Text style={styles.buttonText}>CSV İndir</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Diğer aksiyonlar (ödeme, iptal, finansonline) */}
                 <View style={styles.modalActions}>
                   <TouchableOpacity
                     style={[styles.modalButton, styles.primaryButton]}

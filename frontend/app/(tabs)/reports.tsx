@@ -63,13 +63,13 @@ const ReportsScreen = () => {
   // Gün sonu raporu başlat
   const handleCreateReport = () => {
     if (isDemo) {
-      Alert.alert('Demo Mod', 'Demo kullanıcılar gerçek rapor başlatamaz.');
+      Alert.alert(t('reports.demoMode', 'Demo Mod'), t('reports.demoUsersCannotCreate', 'Demo kullanıcılar gerçek rapor başlatamaz.'));
       return;
     }
     setCreating(true);
     // TODO: API çağrısı ile gün sonu raporu başlat
     setTimeout(() => {
-      Alert.alert('Başarılı', 'Gün sonu raporu oluşturuldu.');
+      Alert.alert(t('reports.success', 'Başarılı'), t('reports.reportCreated', 'Gün sonu raporu oluşturuldu.'));
       setCreating(false);
     }, 1200);
   };
@@ -83,18 +83,18 @@ const ReportsScreen = () => {
       {item.downloadLinks && (
         <View style={styles.downloadRow}>
           {item.downloadLinks.csv && (
-            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert('CSV indirilecek')}>
-              <Text style={styles.downloadText}>CSV</Text>
+            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('reports.csvDownload', 'CSV indirilecek'))}>
+              <Text style={styles.downloadText}>{t('reports.csv', 'CSV')}</Text>
             </TouchableOpacity>
           )}
           {item.downloadLinks.pdf && (
-            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert('PDF indirilecek')}>
-              <Text style={styles.downloadText}>PDF</Text>
+            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('reports.pdfDownload', 'PDF indirilecek'))}>
+              <Text style={styles.downloadText}>{t('reports.pdf', 'PDF')}</Text>
             </TouchableOpacity>
           )}
           {item.downloadLinks.json && (
-            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert('JSON indirilecek')}>
-              <Text style={styles.downloadText}>JSON</Text>
+            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('reports.jsonDownload', 'JSON indirilecek'))}>
+              <Text style={styles.downloadText}>{t('reports.json', 'JSON')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -104,13 +104,13 @@ const ReportsScreen = () => {
 
   // Yetki mesajı
   let infoMsg = '';
-  if (isDemo) infoMsg = 'Demo kullanıcılar sadece örnek raporları görebilir.';
-  else if (isCashier) infoMsg = 'Sadece kendi gün sonu raporlarınızı görebilirsiniz.';
-  else if (isAdmin) infoMsg = 'Tüm kullanıcıların raporlarını görebilir ve indirebilirsiniz.';
+  if (isDemo) infoMsg = t('reports.demoInfo', 'Demo kullanıcılar sadece örnek raporları görebilir.');
+  else if (isCashier) infoMsg = t('reports.cashierInfo', 'Sadece kendi gün sonu raporlarınızı görebilirsiniz.');
+  else if (isAdmin) infoMsg = t('reports.adminInfo', 'Tüm kullanıcıların raporlarını görebilir ve indirebilirsiniz.');
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Gün Sonu Raporları</Text>
+      <Text style={styles.title}>{t('reports.title', 'Gün Sonu Raporları')}</Text>
       <Text style={styles.infoMsg}>{infoMsg}</Text>
       {!isDemo && (
         <TouchableOpacity
@@ -118,7 +118,7 @@ const ReportsScreen = () => {
           onPress={handleCreateReport}
           disabled={creating}
         >
-          <Text style={styles.createBtnText}>{creating ? 'Oluşturuluyor...' : 'Gün Sonu (Tagesende) Al'}</Text>
+          <Text style={styles.createBtnText}>{creating ? t('reports.creating', 'Oluşturuluyor...') : t('reports.createBtn', 'Gün Sonu (Tagesende) Al')}</Text>
         </TouchableOpacity>
       )}
       <FlatList

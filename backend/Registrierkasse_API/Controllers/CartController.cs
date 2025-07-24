@@ -489,13 +489,22 @@ namespace Registrierkasse_API.Controllers
 
                 if (cart == null)
                 {
+                    _logger.LogWarning("[SALE] Cart not found or expired - CartId: {CartId}", cartId);
                     return NotFound(new { message = "Cart not found or expired" });
                 }
 
                 if (!cart.Items.Any())
                 {
+                    _logger.LogWarning("[SALE] Cart is empty - CartId: {CartId}", cartId);
                     return BadRequest(new { message = "Cart is empty" });
                 }
+
+                // Türkçe açıklama: Satış öncesi eski değerler loglanıyor
+                var oldCart = new {
+                    cart.Status,
+                    cart.TotalAmount,
+                    cart.Items
+                };
 
                 // Stok kontrolü ve güncelleme
                 foreach (var item in cart.Items)
@@ -503,6 +512,8 @@ namespace Registrierkasse_API.Controllers
                     var product = item.Product;
                     if (product.StockQuantity < item.Quantity)
                     {
+                        _logger.LogWarning("[SALE] Insufficient stock for product - ProductId: {ProductId}, Name: {ProductName}, Requested: {Requested}, Available: {Available}",
+                            product.Id, product.Name, item.Quantity, product.StockQuantity);
                         return BadRequest(new { message = $"Insufficient stock for {product.Name}" });
                     }
 
@@ -511,14 +522,77 @@ namespace Registrierkasse_API.Controllers
 
                 // Sepeti tamamlandı olarak işaretle
                 cart.Status = CartStatus.Completed;
-
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = "Cart completed successfully", cartId });
+                // Türkçe açıklama: Satış sonrası yeni değerler ve ödeme detayları loglanıyor
+                _logger.LogInformation("[SALE] Cart completed - CartId: {CartId}, PaymentMethod: {PaymentMethod}, AmountPaid: {AmountPaid}, OldStatus: {OldStatus}, NewStatus: {NewStatus}, Total: {Total}, Items: {@Items}",
+                    cartId, request.PaymentMethod, request.AmountPaid, oldCart.Status, cart.Status, cart.TotalAmount, cart.Items.Select(i => new { i.ProductId, i.ProductName, i.Quantity, i.UnitPrice }));
+
+                // Türkçe açıklama: Satış tamamlandığında otomatik olarak fatura oluşturuluyor
+                try
+                {
+                    var invoiceService = HttpContext.RequestServices.GetService(typeof(Registrierkasse_API.Services.IInvoiceService)) as Registrierkasse_API.Services.IInvoiceService;
+                    if (invoiceService == null)
+                    {
+                        _logger.LogError("[SALE] InvoiceService not resolved from DI container");
+                        return StatusCode(500, new { message = "Invoice service unavailable" });
+                    }
+
+                    var invoiceRequest = new Registrierkasse_API.Services.InvoiceCreateRequest
+                    {
+                        CustomerName = cart.Customer?.Name,
+                        CustomerEmail = cart.Customer?.Email,
+                        CustomerPhone = cart.Customer?.Phone,
+                        CustomerAddress = cart.Customer?.Address,
+                        CustomerTaxNumber = cart.Customer?.TaxNumber,
+                        DueDate = DateTime.UtcNow.AddDays(30),
+                        Subtotal = cart.Subtotal,
+                        TaxAmount = cart.TaxAmount,
+                        TotalAmount = cart.TotalAmount,
+                        PaymentMethod = request.PaymentMethod,
+                        PaymentReference = null,
+                        CompanyName = "KASSE SYSTEM", // Gerekirse ayarlardan alınabilir
+                        CompanyAddress = "", // Gerekirse ayarlardan alınabilir
+                        CompanyPhone = "",
+                        CompanyEmail = "",
+                        CompanyTaxNumber = "", // Gerekirse ayarlardan alınabilir
+                        TermsAndConditions = "",
+                        Notes = cart.Notes,
+                        InvoiceItems = cart.Items.Select(i => new Registrierkasse_API.Models.InvoiceItem
+                        {
+                            ProductName = i.ProductName,
+                            Quantity = i.Quantity,
+                            UnitPrice = i.UnitPrice,
+                            TaxRate = i.TaxRate,
+                            TaxAmount = i.TaxAmount,
+                            TotalAmount = i.TotalAmount,
+                            Description = i.Product?.Description ?? ""
+                        }).ToList(),
+                        CustomerId = cart.CustomerId?.ToString(),
+                        CreatedById = cart.UserId ?? "system"
+                    };
+
+                    var invoiceResponse = await invoiceService.CreateInvoiceAsync(invoiceRequest);
+                    if (invoiceResponse?.Invoice == null)
+                    {
+                        _logger.LogError("[SALE] Invoice could not be created for CartId: {CartId}", cartId);
+                        return StatusCode(500, new { message = "Invoice could not be created" });
+                    }
+
+                    _logger.LogInformation("[SALE] Invoice created for CartId: {CartId}, InvoiceId: {InvoiceId}, InvoiceNumber: {InvoiceNumber}",
+                        cartId, invoiceResponse.Invoice.Id, invoiceResponse.Invoice.InvoiceNumber);
+
+                    return Ok(new { message = "Cart completed and invoice created successfully", cartId, invoiceId = invoiceResponse.Invoice.Id, invoiceNumber = invoiceResponse.Invoice.InvoiceNumber });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[SALE] Error creating invoice for CartId: {CartId}", cartId);
+                    return StatusCode(500, new { message = "Cart completed but invoice creation failed" });
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error completing cart {CartId}", cartId);
+                _logger.LogError(ex, "[SALE] Error completing cart {CartId}", cartId);
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }

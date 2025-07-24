@@ -8,6 +8,7 @@ import { CartService, Cart, CartItem as BackendCartItem, CreateCartRequest, AddC
 import { Customer } from '../services/api/customerService';
 import { getProducts, Product } from '../services/api/productService';
 import { CartItem, Order } from '../types/cart';
+import { apiClient } from '../services/api/config';
 
 // Türkçe Açıklama: Bu hook, kasa işlemlerini yönetir. Sepet (cart) ile ilgili tüm hesaplamalar backend'den alınır. CartItem ve Product tipleri backend ile uyumlu.
 export const useCashRegister = (user: any) => {
@@ -539,76 +540,72 @@ export const useCashRegister = (user: any) => {
   };
 
   // Ödeme işlemi
-  const handlePayment = () => {
-    console.log('handlePayment called');
-    console.log('Cart length:', cart?.items?.length || 0);
-    console.log('Payment amount:', paymentAmount);
-    
-    if (cart?.items?.length === 0) {
-      console.log('Cart is empty, showing alert');
+  const handlePayment = async () => {
+    if (!cart || cart.items.length === 0) {
       Alert.alert(t('errors.emptyCart'), t('messages.emptyCart'));
       return;
     }
 
     const totalWithTax = calculateTotal() + calculateTax();
-    console.log('Total with tax:', totalWithTax);
-    
     if (!paymentAmount || parseFloat(paymentAmount) < totalWithTax) {
-      console.log('Invalid amount, showing alert');
       Alert.alert(t('errors.invalidAmount'), t('validation.invalidAmount'));
       return;
     }
-
-    console.log('Processing payment...');
     
     setIsProcessingPayment(true);
-    
-    setTimeout(async () => {
-      console.log('Payment completed, showing success');
-      setIsProcessingPayment(false);
-      setPaymentSuccess(true);
-      
-      try {
-        const receiptNumber = `AT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const now = new Date();
-        const date = now.toLocaleDateString('de-DE');
-        const time = now.toLocaleTimeString('de-DE');
-        
-        const receiptData = {
-          items: cart?.items.map(item => ({
-            name: item.productName,
-            quantity: item.quantity,
-            price: item.unitPrice,
-            total: item.unitPrice * item.quantity
-          })),
-          subtotal: calculateTotal(),
-          tax: calculateTax(),
-          total: calculateTotal() + calculateTax(),
+    try {
+      // InvoiceCreateRequest için JSON hazırla
+      const invoiceRequest = {
+        customerName: selectedCustomer?.name || '',
+        customerEmail: selectedCustomer?.email || '',
+        customerPhone: selectedCustomer?.phone || '',
+        customerAddress: selectedCustomer?.address || '',
+        customerTaxNumber: selectedCustomer?.taxNumber || '',
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        subtotal: cart.subtotal,
+        taxAmount: cart.taxAmount,
+        totalAmount: cart.totalAmount,
           paymentMethod: selectedPaymentMethod,
-          receiptNumber,
-          date,
-          time,
-          cashier: `${user?.firstName} ${user?.lastName}`
-        };
-        
-        const printSuccess = await printerService.printReceipt(receiptData);
-        if (printSuccess) {
-          console.log('Receipt printed immediately');
-        } else {
-          console.warn('Receipt printing failed, but payment completed');
-        }
-      } catch (error) {
-        console.error('Printing error:', error);
+        paymentReference: null,
+        companyName: '', // Gerekirse ayarlardan alınabilir
+        companyAddress: '',
+        companyPhone: '',
+        companyEmail: '',
+        companyTaxNumber: '',
+        termsAndConditions: '',
+        notes: cart.notes,
+        invoiceItems: cart.items.map(i => ({
+          productName: i.productName,
+          quantity: i.quantity,
+          unitPrice: i.unitPrice,
+          taxRate: i.taxRate,
+          taxAmount: i.taxAmount,
+          totalAmount: i.totalAmount,
+          description: i.product?.description || ''
+        })),
+        customerId: selectedCustomer?.id || '',
+        createdById: user?.id || 'system'
+      };
+
+      // POST /api/invoices
+      const response = await apiClient.post('/api/invoice', invoiceRequest);
+      if (!response || !response.invoice) {
+        throw new Error('Invoice could not be created');
       }
-      
-      setTimeout(() => {
-        console.log('Payment success confirmed, clearing cart');
-        setPaymentSuccess(false);
+
+      // Sepeti ve localStorage'ı temizle
         setCart(null);
+      setCurrentCart(null);
+      await AsyncStorage.removeItem('currentCartId');
+      setPaymentSuccess(true);
         setPaymentAmount('');
         setSelectedCustomer(null);
-      }, 1500);
-    }, 500);
+      Alert.alert(t('payment.success', 'Ödeme başarılı'), t('payment.completed', 'Satış ve fatura başarıyla tamamlandı.'));
+    } catch (error) {
+      Alert.alert(t('payment.error', 'Hata'), t('payment.failed', 'Satış/fatura tamamlanamadı.'));
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   // Sipariş oluştur

@@ -56,9 +56,9 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
     try {
       // Simulate printer connection
       await new Promise(resolve => setTimeout(resolve, 2000));
-      Alert.alert('Success', 'Printer connected successfully!');
+      Alert.alert(t('printer.success', 'Success'), t('printer.connected', 'Printer connected successfully!'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to connect to printer. Please check the connection.');
+      Alert.alert(t('printer.error', 'Error'), t('printer.connectFailed', 'Failed to connect to printer. Please check the connection.'));
     } finally {
       setIsConnecting(false);
     }
@@ -67,11 +67,11 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
   const handleSave = () => {
     onSave(settings);
     onClose();
-    Alert.alert('Success', 'Printer settings saved successfully!');
+    Alert.alert(t('printer.success', 'Success'), t('printer.saved', 'Printer settings saved successfully!'));
   };
 
   const handleTestPrint = () => {
-    Alert.alert('Test Print', 'Test receipt will be printed. Please check your printer.');
+    Alert.alert(t('printer.testPrint', 'Test Print'), t('printer.testPrintMsg', 'Test receipt will be printed. Please check your printer.'));
   };
 
   return (
@@ -83,7 +83,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>{t('settings.printer')}</Text>
+          <Text style={styles.title}>{t('printer.title', 'Printer Settings')}</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color={Colors.light.text} />
           </TouchableOpacity>
@@ -92,7 +92,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Connection Status */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Connection Status</Text>
+            <Text style={styles.sectionTitle}>{t('printer.connectionStatus', 'Connection Status')}</Text>
             <View style={styles.statusCard}>
               <View style={styles.statusInfo}>
                 <Ionicons 
@@ -101,7 +101,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
                   color={settings.enabled ? Colors.light.success : Colors.light.error} 
                 />
                 <Text style={styles.statusText}>
-                  {settings.enabled ? 'Connected' : 'Disconnected'}
+                  {settings.enabled ? t('printer.connected', 'Connected') : t('printer.disconnected', 'Disconnected')}
                 </Text>
               </View>
               <TouchableOpacity
@@ -110,7 +110,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
                 disabled={isConnecting}
               >
                 <Text style={styles.connectButtonText}>
-                  {isConnecting ? 'Connecting...' : 'Connect'}
+                  {isConnecting ? t('printer.connecting', 'Connecting...') : t('printer.connect', 'Connect')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -118,10 +118,10 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
 
           {/* Printer Configuration */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Printer Configuration</Text>
+            <Text style={styles.sectionTitle}>{t('printer.config', 'Printer Configuration')}</Text>
             
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Enable Printer</Text>
+              <Text style={styles.settingLabel}>{t('printer.enable', 'Enable Printer')}</Text>
               <Switch
                 value={settings.enabled}
                 onValueChange={(value) => setSettings({ ...settings, enabled: value })}
@@ -129,7 +129,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Printer Model</Text>
+              <Text style={styles.settingLabel}>{t('printer.model', 'Printer Model')}</Text>
               <View style={styles.dropdown}>
                 <Text style={styles.dropdownText}>{settings.model}</Text>
                 <Ionicons name="chevron-down" size={20} color={Colors.light.textSecondary} />
@@ -137,7 +137,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Paper Size</Text>
+              <Text style={styles.settingLabel}>{t('printer.paperSize', 'Paper Size')}</Text>
               <View style={styles.dropdown}>
                 <Text style={styles.dropdownText}>{settings.paperSize}</Text>
                 <Ionicons name="chevron-down" size={20} color={Colors.light.textSecondary} />
@@ -145,7 +145,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Auto Cut</Text>
+              <Text style={styles.settingLabel}>{t('printer.autoCut', 'Auto Cut')}</Text>
               <Switch
                 value={settings.autoCut}
                 onValueChange={(value) => setSettings({ ...settings, autoCut: value })}
@@ -155,10 +155,10 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
 
           {/* Receipt Settings */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Receipt Settings</Text>
+            <Text style={styles.sectionTitle}>{t('printer.receiptSettings', 'Receipt Settings')}</Text>
             
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Print Logo</Text>
+              <Text style={styles.settingLabel}>{t('printer.printLogo', 'Print Logo')}</Text>
               <Switch
                 value={settings.printLogo}
                 onValueChange={(value) => setSettings({ ...settings, printLogo: value })}
@@ -166,7 +166,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Print Tax Details</Text>
+              <Text style={styles.settingLabel}>{t('printer.printTaxDetails', 'Print Tax Details')}</Text>
               <Switch
                 value={settings.printTaxDetails}
                 onValueChange={(value) => setSettings({ ...settings, printTaxDetails: value })}
@@ -174,12 +174,12 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Footer Text</Text>
+              <Text style={styles.settingLabel}>{t('printer.footerText', 'Footer Text')}</Text>
               <TextInput
                 style={styles.textInput}
                 value={settings.footerText}
                 onChangeText={(text) => setSettings({ ...settings, footerText: text })}
-                placeholder="Enter footer text..."
+                placeholder={t('printer.footerTextPlaceholder', 'Enter footer text...')}
                 multiline
                 numberOfLines={2}
               />
@@ -190,7 +190,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
           <View style={styles.section}>
             <TouchableOpacity style={styles.testButton} onPress={handleTestPrint}>
               <Ionicons name="print-outline" size={20} color="white" />
-              <Text style={styles.testButtonText}>Test Print</Text>
+              <Text style={styles.testButtonText}>{t('printer.testPrint', 'Test Print')}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -199,7 +199,7 @@ const PrinterSettings: React.FC<PrinterSettingsProps> = ({
         <View style={styles.footer}>
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Ionicons name="checkmark" size={20} color="white" />
-            <Text style={styles.saveButtonText}>Save Settings</Text>
+            <Text style={styles.saveButtonText}>{t('printer.saveSettings', 'Save Settings')}</Text>
           </TouchableOpacity>
         </View>
       </View>

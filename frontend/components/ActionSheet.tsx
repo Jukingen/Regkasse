@@ -103,6 +103,8 @@ export function ActionSheet({
                 ))}
               </View>
 
+              {/* İptal butonu kaldırıldı */}
+              {/*
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={onClose}
@@ -114,6 +116,7 @@ export function ActionSheet({
                   {cancelText}
                 </Text>
               </TouchableOpacity>
+              */}
             </View>
           </TouchableWithoutFeedback>
         </View>

@@ -1,4 +1,6 @@
 import { useFetch } from './useFetch';
+import { apiClient, API_BASE_URL } from './config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function useInvoices(params?: any) {
   let url = '/api/invoices';
@@ -23,4 +25,62 @@ export function useUpdateInvoice(id: string) {
 
 export function useDeleteInvoice(id: string) {
   return useFetch<any>(`/api/invoices/${id}`, { method: 'DELETE' });
-} 
+}
+
+// Tüm faturaları getir
+export const getInvoices = async () => {
+  return await apiClient.get('/api/invoice');
+};
+
+// Fatura istatistiklerini getir
+export const getInvoiceStatistics = async () => {
+  return await apiClient.get('/api/invoice/statistics');
+};
+
+// Fatura oluştur
+export const createInvoice = async (data: any) => {
+  return await apiClient.post('/api/invoice', data);
+};
+
+// Fatura sil
+export const deleteInvoice = async (id: string) => {
+  return await apiClient.delete(`/api/invoice/${id}`);
+};
+
+// Fatura PDF indir
+export const downloadInvoicePdf = async (id: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/invoice/${id}/pdf`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${await AsyncStorage.getItem('token')}` }
+  });
+  return await response.blob();
+};
+
+// Fatura CSV indir
+export const downloadInvoiceCsv = async (id: string) => {
+  const response = await fetch(`${API_BASE_URL}/api/invoice/${id}/csv`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${await AsyncStorage.getItem('token')}` }
+  });
+  return await response.blob();
+};
+
+// Fatura email gönder
+export const sendInvoiceEmail = async (id: string, data: any) => {
+  return await apiClient.post(`/api/invoice/${id}/email`, data);
+};
+
+// Fatura iptal et
+export const cancelInvoice = async (id: string, reason: string) => {
+  return await apiClient.post(`/api/invoice/${id}/cancel`, { reason });
+};
+
+// Fatura ödeme kaydet
+export const savePayment = async (id: string, data: any) => {
+  return await apiClient.post(`/api/invoice/${id}/payment`, data);
+};
+
+// FinanzOnline'a gönder
+export const sendToFinanzOnline = async (id: string) => {
+  return await apiClient.post(`/api/invoice/${id}/finanzonline`);
+}; 

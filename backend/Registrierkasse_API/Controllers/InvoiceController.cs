@@ -363,6 +363,46 @@ namespace Registrierkasse_API.Controllers
         }
 
         /// <summary>
+        /// Fatura CSV çıktısı indir
+        /// </summary>
+        [HttpGet("{id}/csv")]
+        public async Task<IActionResult> DownloadInvoiceCsv(string id)
+        {
+            try
+            {
+                var invoice = await _invoiceService.GetInvoiceByIdAsync(id);
+                if (invoice == null)
+                    return NotFound(new { error = "Invoice not found" });
+
+                var csv = GenerateInvoiceCsv(invoice);
+                return File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", $"invoice-{invoice.InvoiceNumber}.csv");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate CSV for invoice {Id}", id);
+                return BadRequest(new { error = "Failed to generate CSV", details = ex.Message });
+            }
+        }
+
+        // Türkçe açıklama: Fatura için CSV çıktısı üreten yardımcı fonksiyon
+        private string GenerateInvoiceCsv(Invoice invoice)
+        {
+            var items = invoice.InvoiceItems != null 
+                ? System.Text.Json.JsonSerializer.Deserialize<List<InvoiceItem>>(invoice.InvoiceItems.ToString()) 
+                : new List<InvoiceItem>();
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Product,Description,Quantity,UnitPrice,Tax,Total");
+            foreach (var item in items)
+            {
+                sb.AppendLine($"{item.ProductName},{item.Description},{item.Quantity},{item.UnitPrice},{item.TaxAmount},{item.TotalAmount}");
+            }
+            sb.AppendLine($",,,Subtotal,,{invoice.Subtotal}");
+            sb.AppendLine($",,,Tax,,{invoice.TaxAmount}");
+            sb.AppendLine($",,,Total,,{invoice.TotalAmount}");
+            return sb.ToString();
+        }
+
+        /// <summary>
         /// Fatura PDF'i email ile gönder
         /// </summary>
         [HttpPost("{id}/email")]

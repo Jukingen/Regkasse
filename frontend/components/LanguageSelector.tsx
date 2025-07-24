@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LANGUAGES = [
-  { code: 'de-DE', label: 'Deutsch' },
+  { code: 'de', label: 'Deutsch' },
   { code: 'en', label: 'English' },
   { code: 'tr', label: 'Türkçe' },
 ];
@@ -15,10 +15,8 @@ const LanguageSelector = () => {
   const currentLang = i18n.language;
 
   const handleSelect = async (code: string) => {
-    // Map 'de-DE' to 'de' for i18n
-    const i18nCode = code === 'de-DE' ? 'de' : code;
-    await i18n.changeLanguage(i18nCode);
-    await AsyncStorage.setItem('userLanguage', i18nCode);
+    await i18n.changeLanguage(code);
+    await AsyncStorage.setItem('userLanguage', code);
   };
 
   return (

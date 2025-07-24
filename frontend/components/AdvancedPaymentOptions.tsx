@@ -32,63 +32,6 @@ interface AdvancedPaymentOptionsProps {
   totalAmount: number;
 }
 
-const PAYMENT_METHODS: PaymentMethod[] = [
-  {
-    id: 'cash',
-    name: 'Cash',
-    icon: 'cash-outline',
-    color: Colors.light.success,
-    requiresAmount: true,
-    supportsChange: true,
-    description: 'Cash payment with change calculation'
-  },
-  {
-    id: 'card',
-    name: 'Card',
-    icon: 'card-outline',
-    color: Colors.light.primary,
-    requiresAmount: false,
-    supportsChange: false,
-    description: 'Credit/Debit card payment'
-  },
-  {
-    id: 'mobile',
-    name: 'Mobile Pay',
-    icon: 'phone-portrait-outline',
-    color: Colors.light.info,
-    requiresAmount: false,
-    supportsChange: false,
-    description: 'Apple Pay, Google Pay, etc.'
-  },
-  {
-    id: 'voucher',
-    name: 'Voucher',
-    icon: 'gift-outline',
-    color: Colors.light.warning,
-    requiresAmount: true,
-    supportsChange: true,
-    description: 'Gift voucher or coupon'
-  },
-  {
-    id: 'split',
-    name: 'Split Payment',
-    icon: 'git-branch-outline',
-    color: Colors.light.secondary,
-    requiresAmount: true,
-    supportsChange: true,
-    description: 'Split bill between customers'
-  },
-  {
-    id: 'invoice',
-    name: 'Invoice',
-    icon: 'document-text-outline',
-    color: Colors.light.error,
-    requiresAmount: false,
-    supportsChange: false,
-    description: 'Send invoice to customer'
-  }
-];
-
 const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
   visible,
   onClose,
@@ -199,9 +142,9 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <Ionicons name="close" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Payment Options</Text>
+          <Text style={styles.headerTitle}>{t('payment.options', 'Payment Options')}</Text>
           <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>{t('payment.total', 'Total')}</Text>
             <Text style={styles.totalAmount}>€{totalAmount.toFixed(2)}</Text>
           </View>
         </View>
@@ -216,7 +159,7 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
           {showAmountInput && selectedMethod && (
             <View style={styles.amountSection}>
               <Text style={styles.amountTitle}>
-                Enter {selectedMethod.name} Amount
+                {t('payment.enterAmount', 'Enter')} {selectedMethod.name} {t('payment.amount', 'Amount')}
               </Text>
               
               <View style={styles.amountInputContainer}>
@@ -233,7 +176,7 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
 
               {/* Quick Amount Buttons */}
               <View style={styles.quickAmounts}>
-                <Text style={styles.quickAmountsTitle}>Quick Amounts:</Text>
+                <Text style={styles.quickAmountsTitle}>{t('payment.quickAmounts', 'Quick Amounts:')}</Text>
                 <View style={styles.quickAmountButtons}>
                   {[1, 1.5, 2, 5, 10].map(multiplier => (
                     <TouchableOpacity
@@ -242,7 +185,7 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
                       onPress={() => handleQuickAmount(multiplier)}
                     >
                       <Text style={styles.quickAmountText}>
-                        {multiplier === 1 ? 'Exact' : `${multiplier}x`}
+                        {multiplier === 1 ? t('payment.exact', 'Exact') : `${multiplier}x`}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -252,7 +195,7 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
               {/* Change Calculation */}
               {paymentAmount && parseFloat(paymentAmount) > totalAmount && (
                 <View style={styles.changeContainer}>
-                  <Text style={styles.changeLabel}>Change:</Text>
+                  <Text style={styles.changeLabel}>{t('payment.change', 'Change:')}</Text>
                   <Text style={styles.changeAmount}>
                     €{(parseFloat(paymentAmount) - totalAmount).toFixed(2)}
                   </Text>
@@ -269,7 +212,7 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
                 onPress={handleAmountConfirm}
                 disabled={!paymentAmount || parseFloat(paymentAmount) < totalAmount}
               >
-                <Text style={styles.confirmButtonText}>Confirm Payment</Text>
+                <Text style={styles.confirmButtonText}>{t('payment.confirm', 'Confirm Payment')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -277,12 +220,12 @@ const AdvancedPaymentOptions: React.FC<AdvancedPaymentOptionsProps> = ({
 
         {/* Payment Tips */}
         <View style={styles.tipsContainer}>
-          <Text style={styles.tipsTitle}>Payment Tips:</Text>
+          <Text style={styles.tipsTitle}>{t('payment.tipsTitle', 'Payment Tips:')}</Text>
           <Text style={styles.tipsText}>
-            • Cash payments require exact amount entry{'\n'}
-            • Card payments are processed automatically{'\n'}
-            • Split payments can be managed separately{'\n'}
-            • All payments are logged for RKSV compliance
+            • {t('payment.tipCash', 'Cash payments require exact amount entry')}{'\n'}
+            • {t('payment.tipCard', 'Card payments are processed automatically')}{'\n'}
+            • {t('payment.tipSplit', 'Split payments can be managed separately')}{'\n'}
+            • {t('payment.tipRKSV', 'All payments are logged for RKSV compliance')}
           </Text>
         </View>
       </View>

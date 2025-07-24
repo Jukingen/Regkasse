@@ -72,17 +72,18 @@ export const TseStatusIndicator: React.FC<TseStatusIndicatorProps> = ({
     if (!tseStatus) return;
 
     Alert.alert(
-      'TSE Device Status',
-      `Connection: ${tseStatus.isConnected ? 'Connected' : 'Disconnected'}
-Serial Number: ${tseStatus.serialNumber || 'N/A'}
+      t('tse.deviceStatus', 'TSE Device Status'),
+      t('tse.deviceStatusDetails',
+        `Connection: ${tseStatus.isConnected ? t('tse.connected', 'Connected') : t('tse.disconnected', 'Disconnected')}
+Serial Number: ${tseStatus.serialNumber || t('tse.na', 'N/A')}
 Certificate: ${tseStatus.certificateStatus}
 Memory: ${tseStatus.memoryStatus}
-Last Signature: ${tseStatus.lastSignatureTime ? new Date(tseStatus.lastSignatureTime).toLocaleString() : 'N/A'}
-Can Create Invoices: ${tseStatus.canCreateInvoices ? 'Yes' : 'No'}
-${tseStatus.errorMessage ? `Error: ${tseStatus.errorMessage}` : ''}`,
+Last Signature: ${tseStatus.lastSignatureTime ? new Date(tseStatus.lastSignatureTime).toLocaleString() : t('tse.na', 'N/A')}
+Can Create Invoices: ${tseStatus.canCreateInvoices ? t('tse.yes', 'Yes') : t('tse.no', 'No')}
+${tseStatus.errorMessage ? `${t('tse.error', 'Error')}: ${tseStatus.errorMessage}` : ''}`),
       [
-        { text: 'Refresh', onPress: handleRefresh },
-        { text: 'OK', style: 'default' },
+        { text: t('common.refresh', 'Refresh'), onPress: handleRefresh },
+        { text: t('common.ok', 'OK'), style: 'default' },
       ]
     );
   };
@@ -104,18 +105,18 @@ ${tseStatus.errorMessage ? `Error: ${tseStatus.errorMessage}` : ''}`,
   };
 
   const getStatusText = () => {
-    if (!tseStatus) return 'TSE Unknown';
+    if (!tseStatus) return t('tse.unknown', 'TSE Unknown');
     
-    if (tseStatus.canCreateInvoices) return 'TSE Ready';
-    if (tseStatus.isConnected) return 'TSE Warning';
-    return 'TSE Error';
+    if (tseStatus.canCreateInvoices) return t('tse.ready', 'TSE Ready');
+    if (tseStatus.isConnected) return t('tse.warning', 'TSE Warning');
+    return t('tse.errorStatus', 'TSE Error');
   };
 
   if (loading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="small" color={Colors.light.primary} />
-        <Text style={styles.loadingText}>Checking TSE...</Text>
+        <Text style={styles.loadingText}>{t('tse.checking', 'Checking TSE...')}</Text>
       </View>
     );
   }
@@ -146,15 +147,9 @@ ${tseStatus.errorMessage ? `Error: ${tseStatus.errorMessage}` : ''}`,
       
       {showDetails && (
         <View style={styles.detailsContainer}>
-          <Text style={styles.detailText}>
-            Serial: {tseStatus?.serialNumber || 'N/A'}
-          </Text>
-          <Text style={styles.detailText}>
-            Cert: {tseStatus?.certificateStatus || 'N/A'}
-          </Text>
-          <Text style={styles.detailText}>
-            Memory: {tseStatus?.memoryStatus || 'N/A'}
-          </Text>
+          <Text style={styles.detailText}>{t('tse.serial', 'Serial')}: {tseStatus?.serialNumber || t('tse.na', 'N/A')}</Text>
+          <Text style={styles.detailText}>{t('tse.cert', 'Cert')}: {tseStatus?.certificateStatus || t('tse.na', 'N/A')}</Text>
+          <Text style={styles.detailText}>{t('tse.memory', 'Memory')}: {tseStatus?.memoryStatus || t('tse.na', 'N/A')}</Text>
         </View>
       )}
     </TouchableOpacity>
