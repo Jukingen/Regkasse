@@ -136,6 +136,13 @@ builder.Services.AddScoped<AuthorizationService>();
 builder.Services.AddScoped<OperationLogService>();
 builder.Services.AddHttpContextAccessor();
 
+// TSE config: Önce environment variable, sonra appsettings, en son default false
+var tseEnabledEnv = Environment.GetEnvironmentVariable("TSE_ENABLED");
+bool tseIsEnabled = !string.IsNullOrEmpty(tseEnabledEnv)
+    ? tseEnabledEnv == "true"
+    : builder.Configuration.GetValue<bool>("Tse:Enabled", false);
+builder.Services.AddSingleton(new TseConfig { Enabled = tseIsEnabled });
+
 // Background services
 builder.Services.AddHostedService<BackgroundInvoiceService>();
 

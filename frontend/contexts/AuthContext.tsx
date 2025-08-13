@@ -6,7 +6,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import * as authService from '../services/api/authService';
 import { handleAPIError } from '../services/errorService';
 import { getUserSettings } from '../services/api/settingsService';
-import { useLanguage } from './LanguageContext';
+import i18n from '../i18n';
+import { useTranslation } from 'react-i18next';
+import { useCashRegister } from '../hooks/useCashRegister';
 
 interface User {
     id: string;
@@ -200,6 +202,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [justLoggedIn]);
 
+    const { resetCart } = useCashRegister(null); // user parametresi login öncesi null olabilir
+
     const login = async (username: string, password: string) => {
         console.log('Login function called with username:', username); // Debug log
         try {
@@ -224,6 +228,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await AsyncStorage.setItem('refreshToken', refreshToken);
             await AsyncStorage.setItem('user', JSON.stringify(loggedInUser));
 
+            // --- CART TEMİZLİĞİ ---
+            await AsyncStorage.removeItem('currentCartId');
+            resetCart(); // FE cart state'ini de sıfırla
+            // --- CART TEMİZLİĞİ SONU ---
+
             console.log('Setting user state...'); // Debug log
             console.log('User data to set:', loggedInUser); // Debug log
             
@@ -233,9 +242,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             // Kullanıcı ayarlarını backend'den çek
             try {
-                const userSettings = await getUserSettings().fetchData();
+                const userSettings = await getUserSettings();
                 if (userSettings?.language) {
-                    await setLanguage(userSettings.language);
+                    await i18n.changeLanguage(userSettings.language);
                 }
             } catch (err) {
                 console.warn('Kullanıcı ayarları backendden alınamadı:', err);
@@ -264,8 +273,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Navigation başarısız olursa manuel olarak yönlendir
                 setTimeout(() => {
                     if (loggedInUser.role === 'admin' || loggedInUser.role === 'manager') {
-                        router.push("/(tabs)/cash-register");
-                    } else {
                         router.push("/(tabs)/cash-register");
                     }
                 }, 500);

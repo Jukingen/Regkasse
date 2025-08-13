@@ -2,8 +2,59 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
-import { Cart, CartItem } from '../hooks/useApiCart';
 import { useTranslation } from 'react-i18next';
+
+// useCashRegister hook'undan gelen Cart tipi ile uyumlu interface
+interface CartItem {
+  id: string;
+  productName: string;
+  product: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    stockQuantity: number;
+    unit: string;
+    category: string;
+    taxType: 'Standard' | 'Reduced' | 'Special';
+  };
+  quantity: number;
+  unitPrice: number;
+  taxRate: number;
+  discountAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  notes?: string;
+  isModified: boolean;
+}
+
+interface Cart {
+  cartId: string;
+  tableNumber?: string;
+  waiterName?: string;
+  customer?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    category: 'Regular' | 'VIP' | 'Wholesale' | 'Corporate';
+  };
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  appliedCoupon?: {
+    id: string;
+    code: string;
+    name: string;
+    discountType: 'Percentage' | 'FixedAmount';
+    discountValue: number;
+  };
+  notes?: string;
+  status: 'Active' | 'Completed' | 'Cancelled' | 'Expired';
+  expiresAt?: string;
+  items: CartItem[];
+}
 
 interface CartBarProps {
   cart: Cart | null;
@@ -13,7 +64,16 @@ interface CartBarProps {
   onClear: () => void;
 }
 
-const defaultCart = { id: '', items: [], total: 0, discount: 0, vat: 0, grandTotal: 0 };
+// Backend format'ına uygun default cart
+const defaultCart: Cart = { 
+  cartId: '', 
+  items: [], 
+  subtotal: 0, 
+  discountAmount: 0, 
+  taxAmount: 0, 
+  totalAmount: 0,
+  status: 'Active'
+};
 
 // Ürün kutusu: memoize edilmiş kart
 interface CartItemCardProps {
@@ -23,8 +83,10 @@ interface CartItemCardProps {
   onRemove: (itemId: string) => void;
   setSelectedItemId: React.Dispatch<React.SetStateAction<string | null>>;
 }
+
 const getItemName = (item: any) => item.productName || (item.product && item.product.name) || item.name || '';
 const getUnitPrice = (item: any) => item.unitPrice ?? item.price ?? 0;
+
 const CartItemCard = React.memo(({ item, isSelected, onUpdateQty, onRemove, setSelectedItemId }: CartItemCardProps) => (
   <TouchableOpacity
     key={item.id}
@@ -69,6 +131,11 @@ const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty,
   const safeCart = useMemo(() => cart ?? defaultCart, [cart]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
+  // DEBUG: Cart state değişimini izle
+  useEffect(() => {
+    console.log('CartBar - cart state:', cart);
+  }, [cart]);
+
   // Sepet değiştiğinde ilk ürünü otomatik seçili yap
   useEffect(() => {
     if (safeCart && safeCart.items.length > 0) {
@@ -81,10 +148,13 @@ const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty,
   const memoOnUpdateQty = useCallback(onUpdateQty, [onUpdateQty]);
   const memoOnRemove = useCallback(onRemove, [onRemove]);
 
+  // Sepet boş kontrolü güçlendirildi
+  const hasItems = cart && Array.isArray(cart.items) && cart.items.length > 0;
+
   if (loading) {
     return null;
   }
-  if (!safeCart || safeCart.items.length === 0) {
+  if (!hasItems) {
     return <Text style={styles.emptyText}>Sepet boş</Text>;
   }
 
@@ -108,10 +178,10 @@ const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty,
         ))}
       </ScrollView>
       <View style={styles.summaryRow}>
-        <Text style={styles.totalText}>{t('cart.total', 'Toplam')}: {Number(safeCart.total ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>{t('cart.discount', 'İndirim')}: {Number(safeCart.discount ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>{t('cart.vat', 'KDV')}: {Number(safeCart.vat ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>{t('cart.grandTotal', 'Genel Toplam')}: {Number(safeCart.grandTotal ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.subtotal', 'Ara Toplam')}: {Number(safeCart.subtotal ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.discount', 'İndirim')}: {Number(safeCart.discountAmount ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.vat', 'KDV')}: {Number(safeCart.taxAmount ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.grandTotal', 'Genel Toplam')}: {Number(safeCart.totalAmount ?? 0).toFixed(2)} €</Text>
         <TouchableOpacity style={styles.clearBtn} onPress={onClear} accessibilityLabel="Sepeti Temizle">
           <Ionicons name="trash" size={18} color="#fff" style={{ marginRight: 4 }} />
           <Text style={styles.clearBtnText}>{t('cart.clear', 'Sepeti Temizle')}</Text>

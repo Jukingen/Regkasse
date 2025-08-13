@@ -103,7 +103,7 @@ export function useApiCart() {
         const res = await apiClient.post('/api/cart', {
           TableNumber: '1',
           WaiterName: 'Kasiyer',
-          InitialItem: { ProductId: productId, Quantity: quantity }
+          initialItem: { productId, quantity }
         });
         const cartId = (res as any).cartId || (res as any).CartId || (res as any).id;
         setCurrentCartId(cartId as string);
@@ -111,7 +111,7 @@ export function useApiCart() {
         await AsyncStorage.setItem('currentCartId', String(cartId));
       } else {
         // Var olan cart'a ürün ekle
-        await apiClient.post(`/api/cart/${currentCartId}/items`, { ProductId: productId, Quantity: quantity });
+        await apiClient.post(`/api/cart/${currentCartId}/items`, { productId, quantity });
         await fetchCart();
       }
       handleSuccess('Ürün sepete eklendi');
@@ -273,6 +273,32 @@ export function useApiCart() {
     }
   };
 
+  /**
+   * Sepeti/siparişi tamamla (ödeme alındı, satış bitti)
+   */
+  const completeCart = async (paymentMethod: string = 'cash', amountPaid: number = 0, notes?: string) => {
+    setLoading(true);
+    setError(null);
+    setTechError(null);
+    const cartId = cart?.id || currentCartId;
+    if (!cartId) return;
+    try {
+      await apiClient.post(`/api/cart/${cartId}/complete`, {
+        paymentMethod,
+        amountPaid,
+        notes,
+      });
+      await fetchCart(); // Sepeti güncelle/temizle
+      handleSuccess('Sipariş başarıyla tamamlandı');
+    } catch (err: any) {
+      setError('Sipariş tamamlanamadı.');
+      setTechError('Failed to complete cart: ' + (err?.message || err));
+      handleError('Sipariş tamamlanamadı');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     cart,
     loading,
@@ -288,5 +314,6 @@ export function useApiCart() {
     showSnackbar,
     snackbarMsg,
     showSnackbarMsg,
+    completeCart, // <-- yeni eklenen fonksiyon
   };
 } 

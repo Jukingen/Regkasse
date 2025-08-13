@@ -29,6 +29,7 @@ namespace Registrierkasse_API.Services
         private readonly INetworkConnectivityService _networkService;
         private readonly IPendingInvoicesService _pendingInvoicesService;
         private readonly ILogger<InvoiceService> _logger;
+        private readonly TseConfig _tseConfig;
 
         public InvoiceService(
             AppDbContext context,
@@ -36,7 +37,8 @@ namespace Registrierkasse_API.Services
             IFinanzOnlineService finanzOnlineService,
             INetworkConnectivityService networkService,
             IPendingInvoicesService pendingInvoicesService,
-            ILogger<InvoiceService> logger)
+            ILogger<InvoiceService> logger,
+            TseConfig tseConfig)
         {
             _context = context;
             _tseService = tseService;
@@ -44,42 +46,50 @@ namespace Registrierkasse_API.Services
             _networkService = networkService;
             _pendingInvoicesService = pendingInvoicesService;
             _logger = logger;
+            _tseConfig = tseConfig;
         }
 
         public async Task<InvoiceCreateResponse> CreateInvoiceAsync(InvoiceCreateRequest request)
         {
             try
             {
-                // TSE bağlantısını kontrol et (zorunlu - RKSV §6)
-                var tseStatus = await _tseService.GetStatusAsync();
-                if (!tseStatus.IsConnected)
-                {
-                    var errorMessage = "TSE cihazı bağlı değil. RKSV standartlarına göre fiş kesilemez.";
-                    _logger.LogError("TSE cihazı bağlı değil. Fatura oluşturulamadı.");
-                    throw new InvalidOperationException(errorMessage);
-                }
+                // TSE ve network durumlarını önceden kontrol et
+                bool tseConnected = false;
+                string tseWarning = null;
+                var networkStatus = await _networkService.GetNetworkStatusAsync();
 
-                // TSE sertifikasını kontrol et
-                if (tseStatus.CertificateStatus != "VALID")
+                if (_tseConfig.Enabled)
                 {
-                    var errorMessage = $"TSE sertifikası geçersiz: {tseStatus.CertificateStatus}. Fiş kesilemez.";
-                    _logger.LogError("TSE sertifikası geçersiz. Fatura oluşturulamadı.");
-                    throw new InvalidOperationException(errorMessage);
+                    // TSE bağlantısını kontrol et (zorunlu - RKSV §6)
+                    var tseStatus = await _tseService.GetStatusAsync();
+                    tseConnected = tseStatus.IsConnected;
+                    
+                    if (!tseConnected)
+                    {
+                        tseWarning = "TSE cihazı bağlı değil. Fiş/fatura TSE olmadan oluşturuldu.";
+                        _logger.LogWarning(tseWarning);
+                    }
+                    if (tseConnected && tseStatus.CertificateStatus != "VALID")
+                    {
+                        tseWarning = $"TSE sertifikası geçersiz: {tseStatus.CertificateStatus}. Fiş/fatura TSE olmadan oluşturuldu.";
+                        _logger.LogWarning("TSE sertifikası geçersiz. Fatura oluşturuluyor (TSE olmadan).");
+                        tseConnected = false;
+                    }
+                }
+                else
+                {
+                    // TSE devre dışı: Alanları 'TSE YOK' olarak ayarla, logla
+                    _logger.LogWarning("TSE cihazı devre dışı, fatura TSE olmadan oluşturuldu.");
                 }
 
                 // Network durumunu kontrol et
-                var networkStatus = await _networkService.GetNetworkStatusAsync();
-                
-                _logger.LogInformation("Fatura oluşturuluyor. TSE: {TseConnected}, Network: {Status}", 
-                    tseStatus.IsConnected, networkStatus.Status);
-
-                // Bağlantı durumunu kontrol et ve kullanıcıyı bilgilendir
+                _logger.LogInformation("Fatura oluşturuluyor. TSE: {TseConnected}, Network: {Status}", tseConnected, networkStatus.Status);
                 if (!networkStatus.IsInternetAvailable)
                 {
                     _logger.LogWarning("İnternet bağlantısı yok. Fatura local'de oluşturulacak.");
-                    // Kullanıcıya uyarı verilebilir ama fatura kesilmeye devam eder
                 }
 
+                // Önce invoice objesini oluştur
                 var invoice = new Invoice
                 {
                     Id = Guid.NewGuid(),
@@ -113,22 +123,39 @@ namespace Registrierkasse_API.Services
                     CustomerId = request.CustomerId
                 };
 
-                // TSE imzası oluştur (zorunlu)
-                try
+                // TSE imzası oluştur (varsa)
+                if (_tseConfig.Enabled && tseConnected)
                 {
-                    var processData = $"INVOICE_{invoice.InvoiceNumber}_{DateTime.UtcNow:yyyyMMddHHmmss}";
-                    var tseSignature = await _tseService.SignTransactionAsync(processData, "INVOICE");
-                    
-                    invoice.TseSignature = tseSignature.Signature;
-                    invoice.TseTimestamp = tseSignature.Time;
-                    invoice.KassenId = await _tseService.GetTseIdAsync();
-                    
-                    _logger.LogInformation("TSE imzası başarıyla oluşturuldu: {Signature}", tseSignature.Signature);
+                    try
+                    {
+                        var processData = $"INVOICE_{invoice.InvoiceNumber}_{DateTime.UtcNow:yyyyMMddHHmmss}";
+                        var tseSignature = await _tseService.SignTransactionAsync(processData, "INVOICE");
+                        invoice.TseSignature = tseSignature.Signature;
+                        invoice.TseTimestamp = tseSignature.Time;
+                        invoice.KassenId = await _tseService.GetTseIdAsync();
+                        _logger.LogInformation("TSE imzası başarıyla oluşturuldu: {Signature}", tseSignature.Signature);
+                    }
+                    catch (Exception ex)
+                    {
+                        tseWarning = "TSE imzası oluşturulamadı. Fiş/fatura TSE olmadan oluşturuldu.";
+                        _logger.LogWarning(ex, tseWarning);
+                        invoice.TseSignature = "TSE YOK";
+                        invoice.KassenId = "TSE YOK";
+                        invoice.TseTimestamp = DateTime.MinValue; // Nullable DateTime için MinValue kullan
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, "TSE imzası oluşturulamadı");
-                    throw new InvalidOperationException("TSE imzası oluşturulamadı. Fiş kesilemez.");
+                    // TSE yok veya devre dışı
+                    invoice.TseSignature = "TSE YOK";
+                    invoice.KassenId = "TSE YOK";
+                    invoice.TseTimestamp = DateTime.MinValue; // Nullable DateTime için MinValue kullan
+                }
+
+                // Uyarı mesajlarını ekle
+                if (!string.IsNullOrEmpty(tseWarning))
+                {
+                    invoice.Notes = (invoice.Notes ?? "") + $" [UYARI: {tseWarning}]";
                 }
 
                 _context.Invoices.Add(invoice);
@@ -149,16 +176,11 @@ namespace Registrierkasse_API.Services
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, "FinanzOnline'a gönderim başarısız, fatura local'de saklandı. Invoice: {InvoiceNumber}", invoice.InvoiceNumber);
-                        // Fatura local'de saklanır, bağlantı geldiğinde gönderilir
                     }
                 }
                 else
                 {
-                    _logger.LogInformation("FinanzOnline bağlantısı yok, fatura local'de saklandı. Invoice ID: {InvoiceId}, Number: {InvoiceNumber}", 
-                        invoice.Id, invoice.InvoiceNumber);
-                    
-                    // Kullanıcıya bilgi ver: Fatura oluşturuldu ama FinanzOnline'a gönderilemedi
-                    // Bu bilgi response'da döndürülebilir
+                    _logger.LogInformation("FinanzOnline bağlantısı yok, fatura local'de saklandı. Invoice ID: {InvoiceId}, Number: {InvoiceNumber}", invoice.Id, invoice.InvoiceNumber);
                 }
 
                 // Pending invoices bilgisini al
@@ -169,8 +191,8 @@ namespace Registrierkasse_API.Services
                     Invoice = invoice,
                     IsSubmittedToFinanzOnline = isSubmittedToFinanzOnline,
                     NetworkStatus = networkStatus.Status,
-                    TseStatus = tseStatus.IsConnected ? "CONNECTED" : "DISCONNECTED",
-                    WarningMessage = !networkStatus.IsInternetAvailable ? "İnternet bağlantısı yok. Fatura local'de oluşturuldu." : null,
+                    TseStatus = tseConnected ? "CONNECTED" : "DISCONNECTED",
+                    WarningMessage = tseWarning ?? (!networkStatus.IsInternetAvailable ? "İnternet bağlantısı yok. Fatura local'de oluşturuldu." : null),
                     HasPendingInvoices = pendingCount > 0,
                     PendingCount = pendingCount
                 };
@@ -575,5 +597,10 @@ namespace Registrierkasse_API.Services
         public int PaidCount { get; set; }
         public int OverdueCount { get; set; }
         public int CancelledCount { get; set; }
+    }
+
+    public class TseConfig
+    {
+        public bool Enabled { get; set; } = false;
     }
 } 

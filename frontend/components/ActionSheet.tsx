@@ -69,54 +69,37 @@ export function ActionSheet({
                   </Text>
                 </View>
               )}
-
-              <View style={styles.optionsContainer}>
-                {options.map((option, index) => (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.option,
-                      index === 0 && styles.firstOption,
-                      index === options.length - 1 && styles.lastOption,
-                    ]}
-                    onPress={() => handleSelect(option)}
-                  >
-                    {option.icon && (
-                      <Ionicons
-                        name={option.icon as any}
-                        size={20}
-                        color={option.destructive ? '#FF3B30' : option.color || '#007AFF'}
-                        style={styles.optionIcon}
-                      />
-                    )}
-                    <Text style={[
-                      styles.optionText,
-                      {
-                        color: option.destructive
-                          ? '#FF3B30'
-                          : option.color || (colorScheme === 'dark' ? '#FFFFFF' : '#000000'),
-                      },
-                    ]}>
-                      {option.title}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* İptal butonu kaldırıldı */}
-              {/*
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={onClose}
-              >
-                <Text style={[
-                  styles.cancelText,
-                  { color: colorScheme === 'dark' ? '#FFFFFF' : '#000000' }
-                ]}>
-                  {cancelText}
-                </Text>
-              </TouchableOpacity>
-              */}
+              {/* Sadece options render edilecek, cancel butonu tamamen kaldırıldı */}
+              {options.map((option, index) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.option,
+                    index === 0 && styles.firstOption,
+                    index === options.length - 1 && styles.lastOption,
+                  ]}
+                  onPress={() => handleSelect(option)}
+                >
+                  {option.icon && (
+                    <Ionicons
+                      name={option.icon as any}
+                      size={20}
+                      color={option.destructive ? '#FF3B30' : option.color || '#007AFF'}
+                      style={styles.optionIcon}
+                    />
+                  )}
+                  <Text style={[
+                    styles.optionText,
+                    {
+                      color: option.destructive
+                        ? '#FF3B30'
+                        : option.color || (colorScheme === 'dark' ? '#FFFFFF' : '#000000'),
+                    },
+                  ]}>
+                    {option.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </TouchableWithoutFeedback>
         </View>

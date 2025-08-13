@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Vibration } from 'react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 import printerService from '../services/PrinterService';
 import { CartService, Cart, CartItem as BackendCartItem, CreateCartRequest, AddCartItemRequest } from '../services/api/cartService';
@@ -9,6 +11,8 @@ import { Customer } from '../services/api/customerService';
 import { getProducts, Product } from '../services/api/productService';
 import { CartItem, Order } from '../types/cart';
 import { apiClient } from '../services/api/config';
+// --- OFFLINE KODLAR TAMAMEN KALDIRILDI ---
+// import { saveSaleOffline } from '../services/offline/offlineSalesService' satırı ve saveSaleOffline fonksiyonu ile ilgili tüm kodlar kaldırıldı.
 
 // Türkçe Açıklama: Bu hook, kasa işlemlerini yönetir. Sepet (cart) ile ilgili tüm hesaplamalar backend'den alınır. CartItem ve Product tipleri backend ile uyumlu.
 export const useCashRegister = (user: any) => {
@@ -40,13 +44,13 @@ export const useCashRegister = (user: any) => {
   const [tableOrders, setTableOrders] = useState<{ [tableNumber: string]: CartItem[] }>({});
 
   // Backend cart state
-  const [currentCart, setCurrentCart] = useState<Cart | null>(null);
-  const [cartLoading, setCartLoading] = useState(false);
+  // const [currentCart, setCurrentCart] = useState<Cart | null>(null);
+  // const [cartLoading, setCartLoading] = useState(false);
 
   // Backend cart oluştur
   const createBackendCart = useCallback(async (tableNumber?: string): Promise<Cart | null> => {
     try {
-      setCartLoading(true);
+      // setCartLoading(true);
       const request: CreateCartRequest = {
         tableNumber,
         waiterName: user?.name,
@@ -55,7 +59,7 @@ export const useCashRegister = (user: any) => {
       };
 
       const newCart = await cartService.createCart(request);
-      setCurrentCart(newCart);
+      setCart(newCart);
       
       // Cart ID'sini localStorage'a kaydet
       await AsyncStorage.setItem('currentCartId', newCart.cartId);
@@ -67,16 +71,16 @@ export const useCashRegister = (user: any) => {
       Alert.alert('Error', 'Failed to create cart');
       return null;
     } finally {
-      setCartLoading(false);
+      // setCartLoading(false);
     }
   }, [user]);
 
   // Backend cart yükle
   const loadBackendCart = useCallback(async (cartId: string): Promise<Cart | null> => {
     try {
-      setCartLoading(true);
+      // setCartLoading(true);
       const cart = await cartService.getCart(cartId);
-      setCurrentCart(cart);
+      setCart(cart);
       
       // Frontend cart'ı güncelle
       // const frontendCartItems: CartItem[] = cart.items.map(item => ({ // Removed as per edit hint
@@ -96,13 +100,13 @@ export const useCashRegister = (user: any) => {
       //   notes: item.notes
       // }));
       
-      setCart(cart); // cart state'ini güncelle
+      // setCart(cart); // cart state'ini güncelle
       return cart;
     } catch (error) {
       console.error('Failed to load backend cart:', error);
       return null;
     } finally {
-      setCartLoading(false);
+      // setCartLoading(false);
     }
   }, []);
 
@@ -110,11 +114,11 @@ export const useCashRegister = (user: any) => {
 
   // Backend cart'tan ürün kaldır
   const removeItemFromBackendCart = useCallback(async (itemId: string) => {
-    if (!currentCart) return;
+    if (!cart) return;
 
     try {
-      const updatedCart = await cartService.removeCartItem(currentCart.cartId, itemId);
-      setCurrentCart(updatedCart);
+      const updatedCart = await cartService.removeCartItem(cart.cartId, itemId);
+      setCart(updatedCart);
       
       // Frontend cart'ı güncelle
       // const frontendCartItems: CartItem[] = updatedCart.items.map(item => ({ // Removed as per edit hint
@@ -134,7 +138,7 @@ export const useCashRegister = (user: any) => {
       //   notes: item.notes
       // }));
       
-      setCart(updatedCart); // cart state'ini güncelle
+      // setCart(updatedCart); // cart state'ini güncelle
       
       // Local storage'a kaydet
       // cartService.saveCartToStorage(updatedCart); // Removed as per edit hint
@@ -144,33 +148,33 @@ export const useCashRegister = (user: any) => {
       console.error('Failed to remove item from backend cart:', error);
       Alert.alert('Error', 'Failed to remove item from cart');
     }
-  }, [currentCart]);
+  }, [cart]);
 
   // Backend cart'ı temizle
   const clearBackendCart = useCallback(async () => {
-    if (!currentCart) return;
+    if (!cart) return;
 
     try {
-      await cartService.clearCart(currentCart.cartId);
-      setCurrentCart(null);
-      setCart(null); // cart state'ini temizle
+      await cartService.clearCart(cart.cartId);
+      setCart(null);
+      // setCart(null); // cart state'ini temizle
       
       // LocalStorage'dan cart ID'sini sil
-      await AsyncStorage.removeItem('currentCartId');
+      await clearCartIdFromStorage();
       
-      console.log('Backend cart cleared');
+      console.log('Backend cart cleared and localStorage cleaned');
     } catch (error) {
       console.error('Failed to clear backend cart:', error);
       Alert.alert('Error', 'Failed to clear cart');
     }
-  }, [currentCart]);
+  }, [cart]);
 
   // Backend cart'ı tamamla
   const completeBackendCart = useCallback(async (paymentMethod: string, amountPaid: number, notes?: string) => {
-    if (!currentCart) return;
+    if (!cart) return;
 
     try {
-      const result = await cartService.completeCart(currentCart.cartId, {
+      const result = await cartService.completeCart(cart.cartId, {
         paymentMethod,
         amountPaid,
         notes
@@ -187,15 +191,15 @@ export const useCashRegister = (user: any) => {
       Alert.alert('Error', 'Failed to complete cart');
       throw error;
     }
-  }, [currentCart]);
+  }, [cart]);
 
   // Kupon uygula
   const applyCouponToBackendCart = useCallback(async (couponCode: string) => {
-    if (!currentCart) return;
+    if (!cart) return;
 
     try {
-      const updatedCart = await cartService.applyCoupon(currentCart.cartId, { couponCode });
-      setCurrentCart(updatedCart);
+      const updatedCart = await cartService.applyCoupon(cart.cartId, { couponCode });
+      setCart(updatedCart);
       
       // Local storage'a kaydet
       // cartService.saveCartToStorage(updatedCart); // Removed as per edit hint
@@ -207,15 +211,15 @@ export const useCashRegister = (user: any) => {
       Alert.alert('Error', 'Failed to apply coupon');
       throw error;
     }
-  }, [currentCart]);
+  }, [cart]);
 
   // Kuponu kaldır
   const removeCouponFromBackendCart = useCallback(async () => {
-    if (!currentCart) return;
+    if (!cart) return;
 
     try {
-      const updatedCart = await cartService.removeCoupon(currentCart.cartId);
-      setCurrentCart(updatedCart);
+      const updatedCart = await cartService.removeCoupon(cart.cartId);
+      setCart(updatedCart);
       
       // Local storage'a kaydet
       // cartService.saveCartToStorage(updatedCart); // Removed as per edit hint
@@ -227,7 +231,7 @@ export const useCashRegister = (user: any) => {
       Alert.alert('Error', 'Failed to remove coupon');
       throw error;
     }
-  }, [currentCart]);
+  }, [cart]);
 
   // TableManager'dan gelen siparişleri CartItem formatına dönüştür
   const convertTableOrderToCartItems = (tableOrder: any): CartItem[] => {
@@ -238,7 +242,7 @@ export const useCashRegister = (user: any) => {
         id: item.productId,
         name: item.productName,
         price: item.price,
-        taxType: 'standard',
+        taxType: 'Standard',
         description: '',
         category: 'drink',
         stockQuantity: 100,
@@ -285,7 +289,7 @@ export const useCashRegister = (user: any) => {
             id: '1',
             name: 'Espresso',
             price: 2.50,
-            taxType: 'standard',
+            taxType: 'Standard',
             description: 'Single shot espresso',
             category: 'drink',
             stockQuantity: 100,
@@ -297,7 +301,7 @@ export const useCashRegister = (user: any) => {
             id: '2',
             name: 'Cappuccino',
             price: 3.50,
-            taxType: 'standard',
+            taxType: 'Standard',
             description: 'Espresso with steamed milk',
             category: 'drink',
             stockQuantity: 80,
@@ -309,7 +313,7 @@ export const useCashRegister = (user: any) => {
             id: '3',
             name: 'Latte',
             price: 4.00,
-            taxType: 'standard',
+            taxType: 'Standard',
             description: 'Espresso with steamed milk and foam',
             category: 'drink',
             stockQuantity: 60,
@@ -321,7 +325,7 @@ export const useCashRegister = (user: any) => {
             id: '4',
             name: 'Croissant',
             price: 2.80,
-            taxType: 'reduced',
+            taxType: 'Reduced',
             description: 'Buttery croissant',
             category: 'food',
             stockQuantity: 50,
@@ -333,7 +337,7 @@ export const useCashRegister = (user: any) => {
             id: '5',
             name: 'Sandwich',
             price: 6.50,
-            taxType: 'reduced',
+            taxType: 'Reduced',
             description: 'Fresh sandwich',
             category: 'food',
             stockQuantity: 30,
@@ -371,9 +375,9 @@ export const useCashRegister = (user: any) => {
 
   // Sepet miktarını güncelle - Backend ile senkronize
   const handleUpdateCartQuantity = async (productId: string, quantity: number) => {
-    if (!currentCart) return;
+    if (!cart) return;
     
-    const cartItem = currentCart.items.find(item => item.productId === productId);
+    const cartItem = cart.items.find(item => item.product.id === productId);
     if (cartItem) {
       if (quantity <= 0) {
         // Miktar 0 veya daha az ise ürünü sepetten kaldır
@@ -387,80 +391,123 @@ export const useCashRegister = (user: any) => {
 
   // Ürünü sepete ekle - Aynı ürün varsa miktarını artır
   const addToCart = async (product: Product, onAdded?: () => void) => {
-    let cartId = currentCart?.cartId;
-    
-    // Eğer aktif bir cart yoksa önce backend'de yeni bir cart oluştur (ilk ürünle birlikte)
-    if (!cartId) {
-      const request: CreateCartRequest = {
-        tableNumber: selectedTable,
-        waiterName: user?.name,
-        cashRegisterId: '1', // Varsayılan kasa ID
-        notes: `Cart created for table ${selectedTable || 'general'}`,
-        initialItem: {
+    try {
+      // Önce localStorage'dan mevcut cartId'yi kontrol et
+      let cartId = await getCurrentCartId();
+      
+      if (!cartId) {
+        // 1. Yeni cart oluştur
+        console.log('Creating new cart for product:', product.name);
+        const newCart = await cartService.createCart({
+          tableNumber: selectedTable,
+          waiterName: user?.name,
+          cashRegisterId: '1',
+          notes: `Cart created for table ${selectedTable || 'general'}`
+        });
+        
+        // 2. CartId'yi localStorage'a kaydet ve state'i güncelle
+        await saveCartIdToStorage(newCart.cartId);
+        setCart(newCart); // FE state'i hemen güncelle
+        cartId = newCart.cartId; // local değişkeni güncelle
+        
+        console.log('New cart created and saved to localStorage:', newCart.cartId);
+        
+        // 3. İlk ürünü ekle
+        console.log('Adding first item to cart:', product.name);
+        await cartService.addCartItem(cartId, {
           productId: product.id,
           quantity: 1,
           notes: undefined
-        }
-      };
-
-      try {
-        const newCart = await cartService.createCart(request);
-        setCurrentCart(newCart);
-        setCart(newCart);
+        });
         
-        // Cart ID'sini localStorage'a kaydet
-        await AsyncStorage.setItem('currentCartId', newCart.cartId);
+        // 4. Cart'ı tekrar fetch et ve state'i güncelle
+        console.log('Fetching updated cart from backend');
+        const freshCart = await cartService.getCart(cartId);
+        setCart(freshCart);
         
-        console.log('Cart created with initial item:', product.name);
+        console.log('Cart created, item added, and fetched successfully:', {
+          cartId: freshCart.cartId,
+          itemCount: freshCart.items.length,
+          productName: product.name
+        });
         
-        // Görsel feedback callback'i tetikle
         if (onAdded) onAdded();
-        
-        // Haptic feedback'i geciktir
-        setTimeout(() => {
-          Vibration.vibrate(25);
-        }, 50);
-        
-        return;
-      } catch (error) {
-        console.error('Failed to create cart with initial item:', error);
-        Alert.alert('Error', 'Failed to add item to cart');
+        setTimeout(() => { Vibration.vibrate(25); }, 50);
         return;
       }
-    }
-
-    // Eğer cart zaten varsa, sadece ürün ekle
-    try {
+      
+      // Eğer cart zaten varsa, sadece ürün ekle
+      console.log('Adding item to existing cart:', product.name, 'CartId:', cartId);
       const request: AddCartItemRequest = {
         productId: product.id,
         quantity: 1,
         notes: undefined
       };
-
-      const updatedCart = await cartService.addCartItem(cartId!, request);
-      setCurrentCart(updatedCart);
-      setCart(updatedCart);
       
-      console.log('Item added to existing cart:', product.name);
+      await cartService.addCartItem(cartId, request);
       
-      // Görsel feedback callback'i tetikle
+      // Cart'ı backend'den tekrar fetch et
+      console.log('Fetching updated cart from backend');
+      const freshCart = await cartService.getCart(cartId);
+      setCart(freshCart);
+      
+      console.log('Item added and cart fetched successfully:', {
+        cartId: freshCart.cartId,
+        itemCount: freshCart.items.length,
+        productName: product.name
+      });
+      
       if (onAdded) onAdded();
+      setTimeout(() => { Vibration.vibrate(25); }, 50);
       
-      // Haptic feedback'i geciktir
-      setTimeout(() => {
-        Vibration.vibrate(25);
-      }, 50);
-    } catch (error) {
-      console.error('Failed to add item to cart:', error);
-      Alert.alert('Error', 'Failed to add item to cart');
+    } catch (error: any) {
+      // Eğer hata 404 ise (cartId expired), yeni cart oluşturup tekrar dene
+      if (error?.message?.includes('404') || error?.message?.includes('not found')) {
+        console.warn('Cart expired, creating new cart...');
+        await clearCartIdFromStorage();
+        setCart(null);
+        
+        // Yeni cart oluştur ve ürünü tekrar ekle
+        const newCart = await cartService.createCart({
+          tableNumber: selectedTable,
+          waiterName: user?.name,
+          cashRegisterId: '1',
+          notes: `Cart created for table ${selectedTable || 'general'}`
+        });
+        
+        await saveCartIdToStorage(newCart.cartId);
+        setCart(newCart);
+        const cartId = newCart.cartId;
+        
+        await cartService.addCartItem(cartId, {
+          productId: product.id,
+          quantity: 1,
+          notes: undefined
+        });
+        
+        const freshCart = await cartService.getCart(cartId);
+        setCart(freshCart);
+        
+        console.log('New cart created and item added successfully:', {
+          cartId: freshCart.cartId,
+          itemCount: freshCart.items.length,
+          productName: product.name
+        });
+        
+        if (onAdded) onAdded();
+        setTimeout(() => { Vibration.vibrate(25); }, 50);
+      } else {
+        console.error('Failed to add item to cart:', error);
+        Alert.alert('Error', 'Failed to add item to cart');
+      }
     }
   };
 
   // Sepetten ürün çıkar
   const removeFromCart = async (productId: string) => {
-    if (!currentCart) return;
+    if (!cart) return;
     
-    const cartItem = currentCart.items.find(item => item.product.id === productId);
+    const cartItem = cart.items.find(item => item.product.id === productId);
     if (cartItem) {
       await removeItemFromBackendCart(cartItem.id);
     }
@@ -468,19 +515,19 @@ export const useCashRegister = (user: any) => {
 
   // Sepet miktarını güncelle
   const updateCartQuantity = async (productId: string, quantity: number) => {
-    if (!currentCart) return;
+    if (!cart) return;
     
-    const cartItem = currentCart.items.find(item => item.product.id === productId);
+    const cartItem = cart.items.find(item => item.product.id === productId);
     if (cartItem) {
       try {
-        const updatedCart = await cartService.updateCartItem(currentCart.cartId, cartItem.id, {
+        const updatedCart = await cartService.updateCartItem(cart.cartId, cartItem.id, {
           quantity,
           unitPrice: cartItem.unitPrice,
           notes: cartItem.notes
         });
-        setCurrentCart(updatedCart);
+        setCart(updatedCart);
         
-        setCart(updatedCart); // cart state'ini güncelle
+        // setCart(updatedCart); // cart state'ini güncelle
       } catch (error) {
         console.error('Failed to update cart quantity:', error);
         Alert.alert('Error', 'Failed to update quantity');
@@ -491,6 +538,13 @@ export const useCashRegister = (user: any) => {
   // Sepeti temizle
   const clearCart = async () => {
     await clearBackendCart();
+  };
+
+  // Sepeti tamamen sıfırla (FE state)
+  const resetCart = async () => {
+    setCart(null);
+    await clearCartIdFromStorage();
+    console.log('Cart reset and localStorage cleaned');
   };
 
   // Toplam hesapla
@@ -513,16 +567,16 @@ export const useCashRegister = (user: any) => {
       const taxableAmount = itemTotal - discount;
       
       let taxRate = 0.20;
-      let taxType = 'standard';
+      let taxType = 'Standard';
       
       switch (item.taxType) {
-        case 'reduced': 
+        case 'Reduced': 
           taxRate = 0.10; 
-          taxType = 'reduced';
+          taxType = 'Reduced';
           break;
-        case 'special': 
+        case 'Special': 
           taxRate = 0.13; 
-          taxType = 'special';
+          taxType = 'Special';
           break;
       }
       
@@ -535,7 +589,7 @@ export const useCashRegister = (user: any) => {
     return Object.entries(taxGroups).map(([type, amount]) => ({
       type,
       amount,
-      rate: type === 'reduced' ? 0.10 : type === 'special' ? 0.13 : 0.20
+      rate: type === 'Reduced' ? 0.10 : type === 'Special' ? 0.13 : 0.20
     }));
   };
 
@@ -595,7 +649,7 @@ export const useCashRegister = (user: any) => {
 
       // Sepeti ve localStorage'ı temizle
         setCart(null);
-      setCurrentCart(null);
+      // setCart(null);
       await AsyncStorage.removeItem('currentCartId');
       setPaymentSuccess(true);
         setPaymentAmount('');
@@ -758,6 +812,78 @@ export const useCashRegister = (user: any) => {
     }
   };
 
+  // Zincirleme satış tamamlama fonksiyonu
+  const handleCompleteSale = async () => {
+    try {
+      if (!cart || cart.items.length === 0) {
+        Alert.alert('Hata', 'Sepet boş!');
+        return;
+      }
+      if (!selectedCustomer) {
+        Alert.alert('Hata', 'Müşteri seçilmedi!');
+        return;
+      }
+
+      const saleRequest = {
+        customerId: selectedCustomer.id,
+        items: cart.items.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          taxType: item.product.taxType,
+        })),
+        payment: {
+          method: selectedPaymentMethod,
+          tse_required: true,
+        }
+      };
+
+      // 1. Satış/Invoice API'ye gönder
+      const response = await apiClient.post('/api/invoices', saleRequest);
+      if (!response || !response.invoice) {
+        throw new Error('Fatura oluşturulamadı');
+      }
+      const invoice = response.invoice;
+
+      // 2. PDF, CSV, JSON dosyalarını hazırla ve indirilebilir yap
+      // PDF
+      const pdfBlob = await apiClient.get(`/api/invoices/${invoice.id}/pdf`, { responseType: 'blob' });
+      const pdfUri = FileSystem.documentDirectory + `invoice_${invoice.id}.pdf`;
+      await FileSystem.writeAsStringAsync(pdfUri, pdfBlob, { encoding: FileSystem.EncodingType.Base64 });
+      // CSV
+      const csvBlob = await apiClient.get(`/api/invoices/${invoice.id}/csv`, { responseType: 'blob' });
+      const csvUri = FileSystem.documentDirectory + `invoice_${invoice.id}.csv`;
+      await FileSystem.writeAsStringAsync(csvUri, csvBlob, { encoding: FileSystem.EncodingType.Base64 });
+      // JSON
+      const jsonUri = FileSystem.documentDirectory + `invoice_${invoice.id}.json`;
+      await FileSystem.writeAsStringAsync(jsonUri, JSON.stringify(invoice), { encoding: FileSystem.EncodingType.UTF8 });
+
+      // 3. PDF'i anında yazıcıya gönder (Bluetooth/USB)
+      await printerService.printReceipt({
+        ...invoice,
+        font: 'OCRA-B',
+        pdfUri,
+      });
+
+      // 4. Sepeti ve ödeme ekranını sıfırla
+      setCart(null);
+      // setCart(null);
+      setSelectedCustomer(null);
+      setPaymentAmount('');
+      await AsyncStorage.removeItem('currentCartId');
+
+      // 5. Kullanıcıya başarılı bildirim göster
+      Alert.alert('Satış tamamlandı', 'Fatura başarıyla oluşturuldu ve yazıcıya gönderildi!');
+
+      // 6. Dosyaları paylaşılabilir yap (isteğe bağlı)
+      await Sharing.shareAsync(pdfUri, { mimeType: 'application/pdf' });
+      await Sharing.shareAsync(csvUri, { mimeType: 'text/csv' });
+      await Sharing.shareAsync(jsonUri, { mimeType: 'application/json' });
+
+    } catch (error: any) {
+      Alert.alert('Hata', error.message || 'Satış tamamlanamadı!');
+    }
+  };
+
   // Effects
   useEffect(() => {
     loadProducts();
@@ -767,32 +893,67 @@ export const useCashRegister = (user: any) => {
     loadUserFavorites();
   }, [loadUserFavorites]);
 
-  // Sayfa yüklendiğinde mevcut cart'ı yükle
+  // Sayfa yüklendiğinde mevcut cart'ı backend'den mutlaka fetch et
   useEffect(() => {
     const loadCurrentCart = async () => {
       try {
-        // LocalStorage'dan cart ID'sini al
         const savedCartId = await AsyncStorage.getItem('currentCartId');
         if (savedCartId) {
-          console.log('Loading saved cart:', savedCartId);
-          const savedCart = await loadBackendCart(savedCartId);
-          if (savedCart) {
-            setCurrentCart(savedCart);
-            setCart(savedCart);
-            console.log('Cart loaded successfully:', savedCart.cartId);
-          } else {
-            // Cart bulunamadıysa localStorage'dan sil
-            await AsyncStorage.removeItem('currentCartId');
-            console.log('Cart not found, removed from localStorage');
-          }
+          console.log('Loading saved cart from localStorage:', savedCartId);
+          // Her zaman backend'den fetch et
+          const savedCart = await cartService.getCart(savedCartId);
+          setCart(savedCart);
+          console.log('Cart loaded successfully from localStorage:', savedCart.cartId);
+        } else {
+          console.log('No saved cart found in localStorage');
+          setCart(null);
         }
       } catch (error) {
-        console.error('Failed to load current cart:', error);
+        console.error('Failed to load saved cart:', error);
+        // Hatalı cartId'yi localStorage'dan temizle
+        await AsyncStorage.removeItem('currentCartId');
+        setCart(null);
       }
     };
 
     loadCurrentCart();
-  }, []); // Sadece component mount olduğunda çalışsın
+  }, []);
+
+  // CartId'yi localStorage'dan güvenli şekilde al
+  const getCurrentCartId = useCallback(async (): Promise<string | null> => {
+    try {
+      const savedCartId = await AsyncStorage.getItem('currentCartId');
+      if (savedCartId) {
+        console.log('Current cartId from localStorage:', savedCartId);
+        return savedCartId;
+      }
+      console.log('No cartId found in localStorage');
+      return null;
+    } catch (error) {
+      console.error('Failed to get cartId from localStorage:', error);
+      return null;
+    }
+  }, []);
+
+  // CartId'yi localStorage'a güvenli şekilde kaydet
+  const saveCartIdToStorage = useCallback(async (cartId: string) => {
+    try {
+      await AsyncStorage.setItem('currentCartId', cartId);
+      console.log('CartId saved to localStorage:', cartId);
+    } catch (error) {
+      console.error('Failed to save cartId to localStorage:', error);
+    }
+  }, []);
+
+  // CartId'yi localStorage'dan temizle
+  const clearCartIdFromStorage = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem('currentCartId');
+      console.log('CartId cleared from localStorage');
+    } catch (error) {
+      console.error('Failed to clear cartId from localStorage:', error);
+    }
+  }, []);
 
   // Seçili masanın siparişlerini sepete yükle (sadece masa değiştiğinde)
   useEffect(() => {
@@ -861,11 +1022,12 @@ export const useCashRegister = (user: any) => {
     tableOrders,
     
     // Backend cart state
-    currentCart,
-    cartLoading,
+    // currentCart,
+    // cartLoading,
     
     // Setters
     setCart,
+    resetCart,
     setSelectedCustomer,
     setShowOrderManager,
     setPaymentAmount,
@@ -904,6 +1066,7 @@ export const useCashRegister = (user: any) => {
     handleFavoriteProductPress,
     handleFavoritesAction,
     handleBulkAction,
+    handleCompleteSale,
     
     // Backend cart functions
     createBackendCart,

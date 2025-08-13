@@ -236,6 +236,32 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
     }
   }, [cart]);
 
+  // DEBUG: Cart state değişimini izle
+  useEffect(() => {
+    console.log('EnhancedCart - cart state:', cart);
+  }, [cart]);
+
+  // Sepet boş kontrolü güçlendirildi
+  const hasItems = cart && Array.isArray(cart.items) && cart.items.length > 0;
+
+  if (!hasItems) {
+    return (
+      <View style={styles.emptyCart}>
+        <Animated.View style={{ transform: [{ scale: scaleAnimation }] }}>
+          <Ionicons name="cart-outline" size={64} color={Colors.light.textSecondary} />
+        </Animated.View>
+        <Text style={styles.emptyCartTitle}>{t('cart.emptyCart')}</Text>
+        <Text style={styles.emptyCartSubtitle}>{t('cart.addItemsToStart')}</Text>
+        <View style={styles.emptyCartActions}>
+          <TouchableOpacity style={styles.loadCartButton} onPress={onLoadCart}>
+            <Ionicons name="folder-open-outline" size={20} color={Colors.light.primary} />
+            <Text style={styles.loadCartText}>{t('cart.loadSavedCart')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   const renderCartItem = (item: CartItem, index: number) => {
     const isExpanded = expandedItem === item.product.id;
     const isDiscountInputVisible = showDiscountInput === item.product.id;
@@ -489,25 +515,6 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
       useNativeDriver: true,
     }).start();
   }, [expandedItem]);
-
-  if (cart?.items.length === 0) {
-    return (
-      <View style={styles.emptyCart}>
-        <Animated.View style={{ transform: [{ scale: scaleAnimation }] }}>
-          <Ionicons name="cart-outline" size={64} color={Colors.light.textSecondary} />
-        </Animated.View>
-        <Text style={styles.emptyCartTitle}>{t('cart.emptyCart')}</Text>
-        <Text style={styles.emptyCartSubtitle}>{t('cart.addItemsToStart')}</Text>
-        
-        <View style={styles.emptyCartActions}>
-          <TouchableOpacity style={styles.loadCartButton} onPress={onLoadCart}>
-            <Ionicons name="folder-open-outline" size={20} color={Colors.light.primary} />
-            <Text style={styles.loadCartText}>{t('cart.loadSavedCart')}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
