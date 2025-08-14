@@ -49,6 +49,11 @@ export const useCashRegister = (user: any) => {
 
   // Backend cart oluştur
   const createBackendCart = useCallback(async (tableNumber?: string): Promise<Cart | null> => {
+    if (!user) {
+      console.log('User not logged in, cannot create cart');
+      return null;
+    }
+    
     try {
       // setCartLoading(true);
       const request: CreateCartRequest = {
@@ -77,6 +82,11 @@ export const useCashRegister = (user: any) => {
 
   // Backend cart yükle
   const loadBackendCart = useCallback(async (cartId: string): Promise<Cart | null> => {
+    if (!user) {
+      console.log('User not logged in, cannot load cart');
+      return null;
+    }
+    
     try {
       // setCartLoading(true);
       const cart = await cartService.getCart(cartId);
@@ -114,7 +124,7 @@ export const useCashRegister = (user: any) => {
 
   // Backend cart'tan ürün kaldır
   const removeItemFromBackendCart = useCallback(async (itemId: string) => {
-    if (!cart) return;
+    if (!user || !cart) return;
 
     try {
       const updatedCart = await cartService.removeCartItem(cart.cartId, itemId);
@@ -152,7 +162,7 @@ export const useCashRegister = (user: any) => {
 
   // Backend cart'ı temizle
   const clearBackendCart = useCallback(async () => {
-    if (!cart) return;
+    if (!user || !cart) return;
 
     try {
       await cartService.clearCart(cart.cartId);
@@ -171,7 +181,7 @@ export const useCashRegister = (user: any) => {
 
   // Backend cart'ı tamamla
   const completeBackendCart = useCallback(async (paymentMethod: string, amountPaid: number, notes?: string) => {
-    if (!cart) return;
+    if (!user || !cart) return;
 
     try {
       const result = await cartService.completeCart(cart.cartId, {
@@ -642,7 +652,7 @@ export const useCashRegister = (user: any) => {
       };
 
       // POST /api/invoices
-      const response = await apiClient.post('/api/invoice', invoiceRequest);
+      const response = await apiClient.post('/invoice', invoiceRequest);
       if (!response || !response.invoice) {
         throw new Error('Invoice could not be created');
       }
@@ -838,7 +848,7 @@ export const useCashRegister = (user: any) => {
       };
 
       // 1. Satış/Invoice API'ye gönder
-      const response = await apiClient.post('/api/invoices', saleRequest);
+      const response = await apiClient.post('/invoices', saleRequest);
       if (!response || !response.invoice) {
         throw new Error('Fatura oluşturulamadı');
       }
@@ -846,11 +856,11 @@ export const useCashRegister = (user: any) => {
 
       // 2. PDF, CSV, JSON dosyalarını hazırla ve indirilebilir yap
       // PDF
-      const pdfBlob = await apiClient.get(`/api/invoices/${invoice.id}/pdf`, { responseType: 'blob' });
+              const pdfBlob = await apiClient.get(`/invoices/${invoice.id}/pdf`, { responseType: 'blob' });
       const pdfUri = FileSystem.documentDirectory + `invoice_${invoice.id}.pdf`;
       await FileSystem.writeAsStringAsync(pdfUri, pdfBlob, { encoding: FileSystem.EncodingType.Base64 });
       // CSV
-      const csvBlob = await apiClient.get(`/api/invoices/${invoice.id}/csv`, { responseType: 'blob' });
+              const csvBlob = await apiClient.get(`/invoices/${invoice.id}/csv`, { responseType: 'blob' });
       const csvUri = FileSystem.documentDirectory + `invoice_${invoice.id}.csv`;
       await FileSystem.writeAsStringAsync(csvUri, csvBlob, { encoding: FileSystem.EncodingType.Base64 });
       // JSON
@@ -884,40 +894,46 @@ export const useCashRegister = (user: any) => {
     }
   };
 
-  // Effects
+  // Effects - Sadece kullanıcı login olduktan sonra ürünleri yükle
   useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+    if (user) {
+      loadProducts();
+    }
+  }, [user, loadProducts]);
 
   useEffect(() => {
-    loadUserFavorites();
-  }, [loadUserFavorites]);
+    if (user) {
+      loadUserFavorites();
+    }
+  }, [user, loadUserFavorites]);
 
-  // Sayfa yüklendiğinde mevcut cart'ı backend'den mutlaka fetch et
+  // Sayfa yüklendiğinde mevcut cart'ı backend'den mutlaka fetch et - Sadece kullanıcı login olduktan sonra
   useEffect(() => {
-    const loadCurrentCart = async () => {
-      try {
-        const savedCartId = await AsyncStorage.getItem('currentCartId');
-        if (savedCartId) {
-          console.log('Loading saved cart from localStorage:', savedCartId);
-          // Her zaman backend'den fetch et
-          const savedCart = await cartService.getCart(savedCartId);
-          setCart(savedCart);
-          console.log('Cart loaded successfully from localStorage:', savedCart.cartId);
-        } else {
-          console.log('No saved cart found in localStorage');
+    if (user) {
+      const loadCurrentCart = async () => {
+        try {
+          const savedCartId = await AsyncStorage.getItem('currentCartId');
+          if (savedCartId) {
+            console.log('Loading saved cart from localStorage:', savedCartId);
+            // Her zaman backend'den fetch et
+            const savedCart = await cartService.getCart(savedCartId);
+            setCart(savedCart);
+            console.log('Cart loaded successfully from localStorage:', savedCart.cartId);
+          } else {
+            console.log('No saved cart found in localStorage');
+            setCart(null);
+          }
+        } catch (error) {
+          console.error('Failed to load saved cart:', error);
+          // Hatalı cartId'yi localStorage'dan temizle
+          await AsyncStorage.removeItem('currentCartId');
           setCart(null);
         }
-      } catch (error) {
-        console.error('Failed to load saved cart:', error);
-        // Hatalı cartId'yi localStorage'dan temizle
-        await AsyncStorage.removeItem('currentCartId');
-        setCart(null);
-      }
-    };
+      };
 
-    loadCurrentCart();
-  }, []);
+      loadCurrentCart();
+    }
+  }, [user]);
 
   // CartId'yi localStorage'dan güvenli şekilde al
   const getCurrentCartId = useCallback(async (): Promise<string | null> => {

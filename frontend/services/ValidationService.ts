@@ -34,6 +34,9 @@ export class ValidationService {
     uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     date: /^\d{4}-\d{2}-\d{2}$/,
     time: /^([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/,
+    // RKSV compliant Austrian date/time formats
+    austrianDate: /^(0[1-9]|[12][0-9]|3[01])\.(0[1-9]|1[0-2])\.\d{4}$/, // DD.MM.YYYY
+    austrianTime: /^([01]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, // HH:MM:SS
     decimal: /^\d+(\.\d{1,2})?$/,
     integer: /^\d+$/,
     alphanumeric: /^[a-zA-Z0-9]+$/,
@@ -229,6 +232,18 @@ export class ValidationService {
       austrianTaxNumber: (message: string = 'Please enter a valid Austrian tax number (ATU12345678)'): ValidationRule => ({
         type: 'pattern',
         value: ValidationService.patterns.austrianTaxNumber,
+        message
+      }),
+
+      austrianDate: (message: string = 'Please enter a valid Austrian date (DD.MM.YYYY)'): ValidationRule => ({
+        type: 'pattern',
+        value: ValidationService.patterns.austrianDate,
+        message
+      }),
+
+      austrianTime: (message: string = 'Please enter a valid Austrian time (HH:MM:SS)'): ValidationRule => ({
+        type: 'pattern',
+        value: ValidationService.patterns.austrianTime,
         message
       }),
 
@@ -435,12 +450,35 @@ export class ValidationService {
 
   public formatDate(date: Date | string): string {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj.toLocaleDateString('de-DE');
+    // RKSV compliant Austrian date format: DD.MM.YYYY
+    return dateObj.toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   }
 
   public formatDateTime(date: Date | string): string {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj.toLocaleString('de-DE');
+    // RKSV compliant Austrian date/time format: DD.MM.YYYY HH:MM:SS
+    return dateObj.toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
+
+  public formatTime(date: Date | string): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    // RKSV compliant Austrian time format: HH:MM:SS
+    return dateObj.toLocaleTimeString('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
   }
 }
 

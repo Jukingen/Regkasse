@@ -16,7 +16,7 @@ export interface Category {
 // Kategorileri getir
 export const getCategories = async (includeProductCount: boolean = true): Promise<Category[]> => {
   try {
-    const response = await apiClient.get<Category[]>(`/api/categories?includeProductCount=${includeProductCount}`);
+    const response = await apiClient.get<Category[]>(`/categories?includeProductCount=${includeProductCount}`);
     return response || [];
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -27,7 +27,7 @@ export const getCategories = async (includeProductCount: boolean = true): Promis
 // Kategori detayını getir
 export const getCategoryById = async (categoryId: string): Promise<Category> => {
   try {
-    const response = await apiClient.get<Category>(`/api/categories/${categoryId}`);
+    const response = await apiClient.get<Category>(`/categories/${categoryId}`);
     return response;
   } catch (error) {
     console.error('Error fetching category:', error);
@@ -38,7 +38,7 @@ export const getCategoryById = async (categoryId: string): Promise<Category> => 
 // Yeni kategori oluştur
 export const createCategory = async (categoryData: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>): Promise<Category> => {
   try {
-    const response = await apiClient.post<Category>('/api/categories', categoryData);
+    const response = await apiClient.post<Category>('/categories', categoryData);
     return response;
   } catch (error) {
     console.error('Error creating category:', error);
@@ -49,7 +49,7 @@ export const createCategory = async (categoryData: Omit<Category, 'id' | 'create
 // Kategori güncelle
 export const updateCategory = async (categoryId: string, categoryData: Partial<Category>): Promise<void> => {
   try {
-    await apiClient.put(`/api/categories/${categoryId}`, categoryData);
+    await apiClient.put(`/categories/${categoryId}`, categoryData);
   } catch (error) {
     console.error('Error updating category:', error);
     throw new Error('Kategori güncellenemedi');
@@ -59,7 +59,7 @@ export const updateCategory = async (categoryId: string, categoryData: Partial<C
 // Kategori sil
 export const deleteCategory = async (categoryId: string): Promise<void> => {
   try {
-    await apiClient.delete(`/api/categories/${categoryId}`);
+    await apiClient.delete(`/categories/${categoryId}`);
   } catch (error) {
     console.error('Error deleting category:', error);
     throw new Error('Kategori silinemedi');
@@ -69,7 +69,7 @@ export const deleteCategory = async (categoryId: string): Promise<void> => {
 // Kategori durumunu güncelle
 export const updateCategoryStatus = async (categoryId: string, isActive: boolean): Promise<void> => {
   try {
-    await apiClient.put(`/api/categories/${categoryId}/status`, { isActive });
+    await apiClient.put(`/categories/${categoryId}/status`, { isActive });
   } catch (error) {
     console.error('Error updating category status:', error);
     throw new Error('Kategori durumu güncellenemedi');
@@ -79,7 +79,7 @@ export const updateCategoryStatus = async (categoryId: string, isActive: boolean
 // Kategori isimlerini getir
 export const getCategoryNames = async (): Promise<string[]> => {
   try {
-    const response = await apiClient.get<string[]>('/api/categories/names');
+    const response = await apiClient.get<string[]>('/categories/names');
     return response || [];
   } catch (error) {
     console.error('Error fetching category names:', error);

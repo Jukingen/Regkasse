@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
-import { checkTseStatus, TseStatus } from '../services/api/invoiceService';
+import { checkTseStatus, TseStatus } from '../services/api/tseService';
 
 interface TseStatusIndicatorProps {
   onStatusChange?: (status: TseStatus) => void;

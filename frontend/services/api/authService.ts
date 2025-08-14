@@ -9,20 +9,27 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
-  refreshToken: string;
+  expiresIn?: number;
+  refreshToken?: string; // Opsiyonel, backend'den gelirse kullan
   user: {
     id: string;
-    username: string;
+    username?: string;
     email: string;
     role: string;
+    firstName?: string;
+    lastName?: string;
+    roles?: string[];
   };
 }
 
 export interface User {
   id: string;
-  username: string;
+  username?: string;
   email: string;
   role: string;
+  firstName?: string;
+  lastName?: string;
+  roles?: string[];
 }
 
 // Login işlemi
@@ -30,10 +37,14 @@ export const login = async (credentials: LoginRequest): Promise<LoginResponse> =
   try {
     const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
     
-    // Token'ları kaydet
+    // Token'ı kaydet
     await AsyncStorage.setItem('token', response.token);
-    await AsyncStorage.setItem('refreshToken', response.refreshToken);
     await AsyncStorage.setItem('user', JSON.stringify(response.user));
+    
+    // Eğer refreshToken varsa onu da kaydet
+    if (response.refreshToken) {
+      await AsyncStorage.setItem('refreshToken', response.refreshToken);
+    }
     
     return response;
   } catch (error) {
@@ -46,8 +57,9 @@ export const login = async (credentials: LoginRequest): Promise<LoginResponse> =
 export const logout = async (): Promise<void> => {
   try {
     await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('refreshToken');
     await AsyncStorage.removeItem('user');
+    // refreshToken varsa onu da temizle
+    await AsyncStorage.removeItem('refreshToken');
   } catch (error) {
     console.error('Logout error:', error);
   }
@@ -57,7 +69,14 @@ export const logout = async (): Promise<void> => {
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
     const userStr = await AsyncStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    if (!userStr) {
+      console.log('No user data found in storage');
+      return null;
+    }
+    
+    const user = JSON.parse(userStr);
+    console.log('Retrieved user from storage:', user);
+    return user;
   } catch (error) {
     console.error('Get current user error:', error);
     return null;
@@ -68,14 +87,22 @@ export const getCurrentUser = async (): Promise<User | null> => {
 export const refreshToken = async (): Promise<string | null> => {
   try {
     const refreshTokenStr = await AsyncStorage.getItem('refreshToken');
-    if (!refreshTokenStr) return null;
+    if (!refreshTokenStr) {
+      console.log('No refresh token available');
+      return null;
+    }
 
     const response = await apiClient.post<{ token: string }>('/auth/refresh', {
       refreshToken: refreshTokenStr
     });
 
-    await AsyncStorage.setItem('token', response.token);
-    return response.token;
+    if (response && response.token) {
+      await AsyncStorage.setItem('token', response.token);
+      return response.token;
+    } else {
+      console.error('Invalid refresh response:', response);
+      return null;
+    }
   } catch (error) {
     console.error('Refresh token error:', error);
     await logout();

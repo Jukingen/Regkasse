@@ -29,27 +29,27 @@ export function useDeleteInvoice(id: string) {
 
 // Tüm faturaları getir
 export const getInvoices = async () => {
-  return await apiClient.get('/api/invoice');
+  return await apiClient.get('/invoice');
 };
 
 // Fatura istatistiklerini getir
 export const getInvoiceStatistics = async () => {
-  return await apiClient.get('/api/invoice/statistics');
+  return await apiClient.get('/invoice/statistics');
 };
 
 // Fatura oluştur
 export const createInvoice = async (data: any) => {
-  return await apiClient.post('/api/invoice', data);
+  return await apiClient.post('/invoice', data);
 };
 
 // Fatura sil
 export const deleteInvoice = async (id: string) => {
-  return await apiClient.delete(`/api/invoice/${id}`);
+  return await apiClient.delete(`/invoice/${id}`);
 };
 
 // Fatura PDF indir
 export const downloadInvoicePdf = async (id: string) => {
-  const response = await fetch(`${API_BASE_URL}/api/invoice/${id}/pdf`, {
+  const response = await fetch(`${API_BASE_URL}/invoice/${id}/pdf`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${await AsyncStorage.getItem('token')}` }
   });
@@ -58,7 +58,7 @@ export const downloadInvoicePdf = async (id: string) => {
 
 // Fatura CSV indir
 export const downloadInvoiceCsv = async (id: string) => {
-  const response = await fetch(`${API_BASE_URL}/api/invoice/${id}/csv`, {
+  const response = await fetch(`${API_BASE_URL}/invoice/${id}/csv`, {
     method: 'GET',
     headers: { Authorization: `Bearer ${await AsyncStorage.getItem('token')}` }
   });
@@ -67,20 +67,20 @@ export const downloadInvoiceCsv = async (id: string) => {
 
 // Fatura email gönder
 export const sendInvoiceEmail = async (id: string, data: any) => {
-  return await apiClient.post(`/api/invoice/${id}/email`, data);
+  return await apiClient.post(`/invoice/${id}/email`, data);
 };
 
 // Fatura iptal et
 export const cancelInvoice = async (id: string, reason: string) => {
-  return await apiClient.post(`/api/invoice/${id}/cancel`, { reason });
+  return await apiClient.post(`/invoice/${id}/cancel`, { reason });
 };
 
 // Fatura ödeme kaydet
 export const savePayment = async (id: string, data: any) => {
-  return await apiClient.post(`/api/invoice/${id}/payment`, data);
+  return await apiClient.post(`/invoice/${id}/payment`, data);
 };
 
 // FinanzOnline'a gönder
 export const sendToFinanzOnline = async (id: string) => {
-  return await apiClient.post(`/api/invoice/${id}/finanzonline`);
+  return await apiClient.post(`/invoice/${id}/finanzonline`);
 }; 

@@ -8,20 +8,26 @@ import { ErrorMessages } from '../services/errorService';
 
 // API fonksiyonları
 const productService = {
-  getProducts: () => apiClient.get('/api/product'),
-  createProduct: (data: any) => apiClient.post('/api/product', data),
-  updateProduct: (id: string, data: any) => apiClient.put(`/api/product/${id}`, data),
-  deleteProduct: (id: string) => apiClient.delete(`/api/product/${id}`),
-  searchProducts: (query: string) => apiClient.get(`/api/product/search?q=${encodeURIComponent(query)}`)
+  getProducts: () => {
+    console.log('🔍 getProducts çağrılıyor...');
+    console.log('🔍 API endpoint: /product');
+    console.log('🔍 API base URL:', 'http://localhost:5183/api');
+    return apiClient.get('/product');
+  },
+  createProduct: (data: any) => apiClient.post('/product', data),
+  updateProduct: (id: string, data: any) => apiClient.put(`/product/${id}`, data),
+  deleteProduct: (id: string) => apiClient.delete(`/product/${id}`),
+  searchProducts: (query: string) => apiClient.get(`/product/search?q=${encodeURIComponent(query)}`)
 };
 
 export function useProductOperations() {
   const { showError, showSuccess, addNotification } = useAppState();
 
-  // Ürün listesi yükleme
+  // Ürün listesi yükleme - Sadece manuel olarak execute edildiğinde çalışır
   const [productsState, productsActions] = useAsyncState(
     productService.getProducts,
     {
+      autoExecute: false, // Otomatik çalışmasın
       showErrorAlert: false,
       onError: (error) => {
         showError(error, 'Products Load Error');
@@ -39,6 +45,7 @@ export function useProductOperations() {
   const [createState, createActions] = useAsyncState(
     productService.createProduct,
     {
+      autoExecute: false, // Otomatik çalışmasın
       showErrorAlert: false,
       showSuccessAlert: false,
       onSuccess: (product: any) => {
@@ -68,6 +75,7 @@ export function useProductOperations() {
   const [updateState, updateActions] = useAsyncState(
     productService.updateProduct,
     {
+      autoExecute: false, // Otomatik çalışmasın
       showErrorAlert: false,
       showSuccessAlert: false,
       onSuccess: (product: any) => {
@@ -97,6 +105,7 @@ export function useProductOperations() {
   const [deleteState, deleteActions] = useAsyncState(
     productService.deleteProduct,
     {
+      autoExecute: false, // Otomatik çalışmasın
       showErrorAlert: false,
       showSuccessAlert: false,
       onSuccess: () => {
@@ -126,6 +135,7 @@ export function useProductOperations() {
   const [searchState, searchActions] = useAsyncState(
     productService.searchProducts,
     {
+      autoExecute: false, // Otomatik çalışmasın
       showErrorAlert: false,
       onError: (error) => {
         addNotification({

@@ -62,7 +62,7 @@ export interface ProductCategory {
 // Ürünleri getir
 export const getProducts = async (): Promise<Product[]> => {
   try {
-    const response = await apiClient.get<Product[]>('/Product');
+    const response = await apiClient.get<Product[]>('/api/product');
     return response || [];
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -73,7 +73,7 @@ export const getProducts = async (): Promise<Product[]> => {
 // Aktif ürünleri getir
 export const getActiveProducts = async (): Promise<Product[]> => {
   try {
-    const response = await apiClient.get<Product[]>('/Product');
+    const response = await apiClient.get<Product[]>('/api/product');
     return response || [];
   } catch (error) {
     console.error('Error fetching active products:', error);
@@ -84,7 +84,7 @@ export const getActiveProducts = async (): Promise<Product[]> => {
 // Kategoriye göre ürünleri getir
 export const getProductsByCategory = async (categoryId: string): Promise<Product[]> => {
   try {
-    const response = await apiClient.get<Product[]>(`/Product/category/${categoryId}`);
+    const response = await apiClient.get<Product[]>(`/api/product/category/${categoryId}`);
     return response || [];
   } catch (error) {
     console.error('Error fetching products by category:', error);
@@ -95,7 +95,7 @@ export const getProductsByCategory = async (categoryId: string): Promise<Product
 // Ürün detayını getir
 export const getProductById = async (productId: string): Promise<Product> => {
   try {
-    const response = await apiClient.get<Product>(`/Product/${productId}`);
+    const response = await apiClient.get<Product>(`/api/product/${productId}`);
     return response;
   } catch (error) {
     console.error('Error fetching product:', error);
@@ -106,7 +106,7 @@ export const getProductById = async (productId: string): Promise<Product> => {
 // Kategorileri getir
 export const getCategories = async (): Promise<ProductCategory[]> => {
   try {
-    const response = await apiClient.get<ProductCategory[]>('/api/categories');
+    const response = await apiClient.get<ProductCategory[]>('/api/product/categories');
     return response || [];
   } catch (error) {
     console.error('Error fetching categories:', error);

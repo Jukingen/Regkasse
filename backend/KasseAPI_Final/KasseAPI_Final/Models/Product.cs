@@ -48,11 +48,14 @@ namespace KasseAPI_Final.Models
         public decimal TaxRate { get; set; }
         
 
+        // Navigation properties
         // public virtual Inventory Inventory { get; set; } = null!;
         // public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         // public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
         // public virtual ICollection<ProductVariation> Variations { get; set; } = new List<ProductVariation>();
         // public virtual ICollection<ProductOption> Options { get; set; } = new List<ProductOption>();
+        
+        // Kategori ilişkisi için sadece string Category kullanılıyor, CategoryId kullanılmıyor
     }
 
     public enum TaxType

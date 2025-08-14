@@ -26,7 +26,20 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     }
 
     return (
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack 
+            screenOptions={{ 
+                headerShown: false,
+                headerStyle: { 
+                    display: 'none',
+                    height: 0,
+                    opacity: 0
+                },
+                headerTitle: '',
+                headerBackVisible: false,
+                headerTransparent: true,
+                headerMode: 'none'
+            }}
+        >
             {children}
         </Stack>
     );

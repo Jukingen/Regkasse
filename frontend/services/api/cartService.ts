@@ -195,7 +195,7 @@ export class CartService {
   // Yeni sepet oluştur
   async createCart(request: CreateCartRequest): Promise<Cart> {
     try {
-      const response = await apiClient.post<BackendCart>('/api/cart', request);
+      const response = await apiClient.post<BackendCart>('/cart', request);
       const cart = transformBackendCart(response);
       this.currentCartId = cart.cartId;
       return cart;
@@ -208,7 +208,7 @@ export class CartService {
   // Sepeti getir
   async getCart(cartId: string): Promise<Cart> {
     try {
-      const response = await apiClient.get<BackendCart>(`/api/cart/${cartId}`);
+      const response = await apiClient.get<BackendCart>(`/cart/${cartId}`);
       const cart = transformBackendCart(response);
       this.currentCartId = cart.cartId;
       return cart;
@@ -221,7 +221,7 @@ export class CartService {
   // Sepete ürün ekle
   async addCartItem(cartId: string, request: AddCartItemRequest): Promise<Cart> {
     try {
-      const response = await apiClient.post<BackendCart>(`/api/cart/${cartId}/items`, request);
+      const response = await apiClient.post<BackendCart>(`/cart/${cartId}/items`, request);
       return transformBackendCart(response);
     } catch (error) {
       console.error('Error adding cart item:', error);
@@ -232,7 +232,7 @@ export class CartService {
   // Sepet ürününü güncelle
   async updateCartItem(cartId: string, itemId: string, request: UpdateCartItemRequest): Promise<Cart> {
     try {
-      const response = await apiClient.put<BackendCart>(`/api/cart/${cartId}/items/${itemId}`, request);
+      const response = await apiClient.put<BackendCart>(`/cart/${cartId}/items/${itemId}`, request);
       return transformBackendCart(response);
     } catch (error) {
       console.error('Error updating cart item:', error);
@@ -243,7 +243,7 @@ export class CartService {
   // Sepet ürününü sil
   async removeCartItem(cartId: string, itemId: string): Promise<Cart> {
     try {
-      const response = await apiClient.delete<BackendCart>(`/api/cart/${cartId}/items/${itemId}`);
+      const response = await apiClient.delete<BackendCart>(`/cart/${cartId}/items/${itemId}`);
       return transformBackendCart(response);
     } catch (error) {
       console.error('Error removing cart item:', error);
@@ -254,7 +254,7 @@ export class CartService {
   // Kupon uygula
   async applyCoupon(cartId: string, request: ApplyCouponRequest): Promise<Cart> {
     try {
-      const response = await apiClient.post<BackendCart>(`/api/cart/${cartId}/apply-coupon`, request);
+      const response = await apiClient.post<BackendCart>(`/cart/${cartId}/apply-coupon`, request);
       return transformBackendCart(response);
     } catch (error) {
       console.error('Error applying coupon:', error);
@@ -265,7 +265,7 @@ export class CartService {
   // Sepeti tamamla
   async completeCart(cartId: string, request: CompleteCartRequest): Promise<Cart> {
     try {
-      const response = await apiClient.post<BackendCart>(`/api/cart/${cartId}/complete`, request);
+      const response = await apiClient.post<BackendCart>(`/cart/${cartId}/complete`, request);
       return transformBackendCart(response);
     } catch (error) {
       console.error('Error completing cart:', error);
@@ -276,7 +276,7 @@ export class CartService {
   // Sepeti iptal et
   async cancelCart(cartId: string): Promise<void> {
     try {
-      await apiClient.post(`/api/cart/${cartId}/cancel`);
+      await apiClient.post(`/cart/${cartId}/cancel`);
     } catch (error) {
       console.error('Error cancelling cart:', error);
       throw new Error('Sepet iptal edilemedi');
@@ -286,7 +286,7 @@ export class CartService {
   // Sepeti temizle (tüm ürünleri kaldır)
   async clearCart(cartId: string): Promise<void> {
     try {
-      await apiClient.delete(`/api/cart/${cartId}`);
+      await apiClient.delete(`/cart/${cartId}`);
     } catch (error) {
       console.error('Error clearing cart:', error);
       throw new Error('Sepet temizlenemedi');
@@ -296,7 +296,7 @@ export class CartService {
   // Kuponu kaldır
   async removeCoupon(cartId: string): Promise<Cart> {
     try {
-      const response = await apiClient.delete<BackendCart>(`/api/cart/${cartId}/remove-coupon`);
+      const response = await apiClient.delete<BackendCart>(`/cart/${cartId}/remove-coupon`);
       return transformBackendCart(response);
     } catch (error) {
       console.error('Error removing coupon:', error);

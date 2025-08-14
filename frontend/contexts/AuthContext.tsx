@@ -5,16 +5,19 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 import * as authService from '../services/api/authService';
 import { handleAPIError } from '../services/errorService';
-import { getUserSettings } from '../services/api/settingsService';
+import { getUserSettings, getDefaultUserSettings } from '../services/api/userSettingsService';
 import i18n from '../i18n';
 import { useTranslation } from 'react-i18next';
 import { useCashRegister } from '../hooks/useCashRegister';
 
 interface User {
     id: string;
-    username: string;
+    username?: string;
     email: string;
     role: string;
+    firstName?: string;
+    lastName?: string;
+    roles?: string[];
 }
 
 interface AuthResponse {
@@ -93,18 +96,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Checking auth status...'); // Debug log
         try {
             const token = await AsyncStorage.getItem('token');
-            const refreshToken = await AsyncStorage.getItem('refreshToken');
             const storedUser = await AsyncStorage.getItem('user');
 
             console.log('Auth check - Tokens found:', { 
                 hasToken: !!token, 
-                hasRefreshToken: !!refreshToken,
                 hasStoredUser: !!storedUser
             }); // Debug log
 
             // Token yoksa kesinlikle logout yap
-            if (!token || !refreshToken) {
-                console.log('No tokens found, forcing logout'); // Debug log
+            if (!token) {
+                console.log('No token found, forcing logout'); // Debug log
                 setUser(null);
                 setIsAuthenticated(false);
                 setIsLoading(false);
@@ -113,23 +114,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Token geçerliliğini kontrol et
             if (!checkTokenExpiration(token)) {
-                console.log('Token expired, attempting refresh...'); // Debug log
-                try {
-                    // Token süresi dolmuşsa refresh token ile yenile
-                    const newToken = await authService.refreshToken();
-                    console.log('Token refresh response:', newToken); // Debug log
+                console.log('Token expired, checking for refresh token...'); // Debug log
+                
+                // RefreshToken var mı kontrol et
+                const refreshToken = await AsyncStorage.getItem('refreshToken');
+                if (refreshToken) {
+                    try {
+                        // Token süresi dolmuşsa refresh token ile yenile
+                        const newToken = await authService.refreshToken();
+                        console.log('Token refresh response:', newToken); // Debug log
 
-                    await AsyncStorage.setItem('token', newToken || '');
-
-                    // Kullanıcı bilgilerini güncelle
-                    const userResponse = await authService.getCurrentUser();
-                    console.log('User info after refresh:', userResponse); // Debug log
-                    setUser(userResponse);
-                    setIsAuthenticated(true);
-                    await AsyncStorage.setItem('user', JSON.stringify(userResponse));
-                } catch (refreshError) {
-                    console.error('Token refresh failed:', refreshError); // Debug log
-                    // Refresh başarısız olursa oturumu sonlandır
+                        if (newToken) {
+                            await AsyncStorage.setItem('token', newToken);
+                            // Kullanıcı bilgilerini güncelle
+                            const userResponse = await authService.getCurrentUser();
+                            console.log('User info after refresh:', userResponse); // Debug log
+                            setUser(userResponse);
+                            setIsAuthenticated(true);
+                            await AsyncStorage.setItem('user', JSON.stringify(userResponse));
+                        } else {
+                            throw new Error('No new token received');
+                        }
+                    } catch (refreshError) {
+                        console.error('Token refresh failed:', refreshError); // Debug log
+                        // Refresh başarısız olursa oturumu sonlandır
+                        await logout();
+                    }
+                } else {
+                    console.log('No refresh token available, forcing logout'); // Debug log
+                    // RefreshToken yoksa oturumu sonlandır
                     await logout();
                 }
             } else {
@@ -237,17 +250,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('Login API response:', response); // Debug log
 
             // API client response interceptor'ı response.data döndürüyor
-            const { token, refreshToken, user: loggedInUser } = response;
+            const { token, user: loggedInUser, refreshToken } = response;
 
-            if (!token || !refreshToken || !loggedInUser) {
+            if (!token || !loggedInUser) {
                 console.error('Invalid login response:', response); // Debug log
                 throw new Error('Invalid login response');
             }
 
-            console.log('Storing tokens and user data...'); // Debug log
-            await AsyncStorage.setItem('token', token);
-            await AsyncStorage.setItem('refreshToken', refreshToken);
+            console.log('Storing token and user data...'); // Debug log
+            
+            // Token'ı doğru formatta kaydet
+            const tokenWithBearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+            await AsyncStorage.setItem('token', tokenWithBearer);
+            console.log('Token stored with format:', tokenWithBearer);
+            
             await AsyncStorage.setItem('user', JSON.stringify(loggedInUser));
+            
+            // Eğer refreshToken varsa onu da kaydet
+            if (refreshToken) {
+                await AsyncStorage.setItem('refreshToken', refreshToken);
+                console.log('Refresh token stored:', !!refreshToken);
+            }
 
             // --- CART TEMİZLİĞİ ---
             await AsyncStorage.removeItem('currentCartId');
@@ -269,12 +292,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             // Kullanıcı ayarlarını backend'den çek
             try {
+                console.log('Fetching user settings after login...');
+                
+                // Token'ın doğru şekilde kaydedildiğini kontrol et
+                const savedToken = await AsyncStorage.getItem('token');
+                console.log('Saved token before user settings request:', !!savedToken, 'length:', savedToken?.length);
+                
                 const userSettings = await getUserSettings();
+                console.log('User settings fetched successfully:', userSettings);
+                
                 if (userSettings?.language) {
                     await i18n.changeLanguage(userSettings.language);
+                    console.log('Language changed to:', userSettings.language);
+                } else {
+                    // Varsayılan dil olarak de-DE kullan (Avusturya Almancası)
+                    await i18n.changeLanguage('de-DE');
+                    console.log('Default language set: de-DE');
                 }
             } catch (err) {
-                console.warn('Kullanıcı ayarları backendden alınamadı:', err);
+                console.warn('Kullanıcı ayarları backendden alınamadı, varsayılan dil kullanılıyor:', err);
+                // Varsayılan dil olarak de-DE kullan
+                await i18n.changeLanguage('de-DE');
             }
 
             // State güncellemesinin tamamlanmasını bekle
@@ -314,21 +352,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             // AsyncStorage'ı kesinlikle temizle
             try {
-                await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+                await AsyncStorage.multiRemove(['token', 'user', 'refreshToken']);
                 console.log('AsyncStorage cleared successfully'); // Debug log
                 
                 // Temizleme işlemini doğrula
                 const remainingToken = await AsyncStorage.getItem('token');
                 const remainingUser = await AsyncStorage.getItem('user');
-                console.log('Verification - Remaining token:', !!remainingToken, 'Remaining user:', !!remainingUser);
+                const remainingRefreshToken = await AsyncStorage.getItem('refreshToken');
+                console.log('Verification - Remaining token:', !!remainingToken, 'Remaining user:', !!remainingUser, 'Remaining refreshToken:', !!remainingRefreshToken);
                 
             } catch (storageError) {
                 console.error('AsyncStorage clear error:', storageError); // Debug log
                 // Hata durumunda tek tek silmeyi dene
                 try {
                     await AsyncStorage.removeItem('token');
-                    await AsyncStorage.removeItem('refreshToken');
                     await AsyncStorage.removeItem('user');
+                    await AsyncStorage.removeItem('refreshToken');
                     console.log('Individual AsyncStorage clear successful'); // Debug log
                 } catch (individualError) {
                     console.error('Individual AsyncStorage clear failed:', individualError);

@@ -6,8 +6,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Security.Claims;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
+using KasseAPI_Final;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,7 +62,28 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidAudience = jwtSettings["Audience"],
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
+        ClockSkew = TimeSpan.Zero,
+        // Debug için ek ayarlar
+        RequireExpirationTime = true,
+        ValidateTokenReplay = false
+    };
+    
+    // Debug için JWT events ekle
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("JWT token validated successfully for user: {UserId}", 
+                context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError("JWT authentication failed: {Exception}", context.Exception);
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -68,9 +92,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins("http://localhost:8081", "http://localhost:3000", "http://localhost:19006")
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
@@ -112,6 +137,11 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// Register services
+builder.Services.AddScoped<ITseService, TseService>();
+builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
+builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
+
 var app = builder.Build();
 
 // Veritabanı seed işlemleri
@@ -128,6 +158,9 @@ using (var scope = app.Services.CreateScope())
         
         // Kullanıcıları oluştur
         await UserSeedData.SeedUsersAsync(userManager);
+        
+        // Demo verileri ekle
+        await AddDemoData.AddDemoDataAsync();
         
         Console.WriteLine("Database seeding completed successfully");
     }
@@ -152,7 +185,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // HTTPS redirect'i devre dışı bırak
 app.UseCors("AllowAll");
 
 // Authentication ve Authorization middleware

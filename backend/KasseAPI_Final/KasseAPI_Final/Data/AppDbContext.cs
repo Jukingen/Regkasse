@@ -25,11 +25,16 @@ namespace KasseAPI_Final.Data
         public DbSet<InventoryItem> Inventory { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
         public DbSet<SystemSettings> SystemSettings { get; set; }
+        public DbSet<UserSettings> UserSettings { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<CompanySettings> CompanySettings { get; set; }
         public DbSet<LocalizationSettings> LocalizationSettings { get; set; }
         public DbSet<ReceiptTemplate> ReceiptTemplates { get; set; }
         public DbSet<GeneratedReceipt> GeneratedReceipts { get; set; }
+        public DbSet<TseDevice> TseDevices { get; set; }
+        public DbSet<DailyClosing> DailyClosings { get; set; }
+        public DbSet<TseSignature> TseSignatures { get; set; }
+        public DbSet<FinanzOnlineError> FinanzOnlineErrors { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -49,7 +54,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TaxNumber).IsUnique();
             });
 
-            // Product configuration
+            // Product configuration - Sadece mevcut sütunlar
             builder.Entity<Product>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -59,13 +64,18 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Cost).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");
+                entity.Property(e => e.Category).HasMaxLength(50);
+                entity.Property(e => e.ImageUrl).HasMaxLength(500);
+                entity.Property(e => e.StockQuantity).IsRequired();
+                entity.Property(e => e.MinStockLevel).IsRequired();
+                entity.Property(e => e.Unit).HasMaxLength(20);
                 
                 entity.HasIndex(e => e.Barcode).IsUnique();
                 entity.HasIndex(e => e.Name);
                 entity.HasIndex(e => e.Category);
             });
 
-            // Customer configuration
+            // Customer configuration - Sadece mevcut sütunlar
             builder.Entity<Customer>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -82,7 +92,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TaxNumber).IsUnique();
             });
 
-            // Invoice configuration
+            // Invoice configuration - Sadece mevcut sütunlar
             builder.Entity<Invoice>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -112,7 +122,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TseSignature).IsUnique();
             });
 
-            // Cart configuration
+            // Cart configuration - Sadece mevcut sütunlar
             builder.Entity<Cart>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -131,7 +141,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.Status);
             });
 
-            // CartItem configuration
+            // CartItem configuration - Sadece mevcut sütunlar
             builder.Entity<CartItem>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -145,7 +155,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.ProductId);
             });
 
-            // Order configuration
+            // Order configuration - Sadece mevcut sütunlar
             builder.Entity<Order>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -169,7 +179,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.CustomerId);
             });
 
-            // OrderItem configuration
+            // OrderItem configuration - Sadece mevcut sütunlar
             builder.Entity<OrderItem>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -432,6 +442,50 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.IsDefault);
             });
 
+            // UserSettings configuration
+            builder.Entity<UserSettings>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.Language).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.Currency).IsRequired().HasMaxLength(3);
+                entity.Property(e => e.DateFormat).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.TimeFormat).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.CashRegisterId).HasMaxLength(100);
+                entity.Property(e => e.DefaultTaxRate).IsRequired();
+                entity.Property(e => e.EnableDiscounts).IsRequired();
+                entity.Property(e => e.EnableCoupons).IsRequired();
+                entity.Property(e => e.AutoPrintReceipts).IsRequired();
+                entity.Property(e => e.ReceiptHeader).HasMaxLength(200);
+                entity.Property(e => e.TseDeviceId).HasMaxLength(100);
+                entity.Property(e => e.FinanzOnlineEnabled).IsRequired();
+                entity.Property(e => e.FinanzOnlineUsername).HasMaxLength(100);
+                entity.Property(e => e.SessionTimeout).IsRequired();
+                entity.Property(e => e.RequirePinForRefunds).IsRequired();
+                entity.Property(e => e.MaxDiscountPercentage).IsRequired();
+                entity.Property(e => e.Theme).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.CompactMode).IsRequired();
+                entity.Property(e => e.ShowProductImages).IsRequired();
+                entity.Property(e => e.EnableNotifications).IsRequired();
+                entity.Property(e => e.LowStockAlert).IsRequired();
+                entity.Property(e => e.DailyReportEmail).HasMaxLength(255);
+                entity.Property(e => e.DefaultPaymentMethod).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.DefaultTableNumber).HasMaxLength(10);
+                entity.Property(e => e.DefaultWaiterName).HasMaxLength(100);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+                
+                entity.HasIndex(e => e.UserId).IsUnique();
+                entity.HasIndex(e => e.Language);
+                entity.HasIndex(e => e.Currency);
+                
+                // Foreign key relationship
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
             // GeneratedReceipt configuration
             builder.Entity<GeneratedReceipt>(entity =>
             {
@@ -454,7 +508,70 @@ namespace KasseAPI_Final.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
+            // TSE Device configuration
+            builder.Entity<TseDevice>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.SerialNumber).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.DeviceType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.CertificateStatus).HasMaxLength(50);
+                entity.Property(e => e.MemoryStatus).HasMaxLength(50);
+                entity.Property(e => e.KassenId).HasMaxLength(50);
+                entity.Property(e => e.FinanzOnlineUsername).HasMaxLength(100);
+                entity.HasIndex(e => e.SerialNumber).IsUnique();
+            });
 
+            // DailyClosing configuration
+            builder.Entity<DailyClosing>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CashRegisterId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.UserId).IsRequired();
+                entity.Property(e => e.ClosingType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalTaxAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TseSignature).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.FinanzOnlineStatus).HasMaxLength(20);
+                entity.Property(e => e.FinanzOnlineError).HasMaxLength(500);
+                entity.Property(e => e.FinanzOnlineReferenceId).HasMaxLength(100);
+                entity.HasIndex(e => new { e.CashRegisterId, e.ClosingDate, e.ClosingType });
+                entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId);
+                entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
+            });
+
+            // TseSignature configuration
+            builder.Entity<TseSignature>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Signature).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.CashRegisterId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.InvoiceNumber).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.SignatureType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.TseDeviceId).HasMaxLength(100);
+                entity.Property(e => e.CertificateNumber).HasMaxLength(100);
+                entity.HasIndex(e => e.Signature).IsUnique();
+                entity.HasIndex(e => new { e.CashRegisterId, e.CreatedAt });
+                entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
+            });
+
+            // FinanzOnlineError configuration
+            builder.Entity<FinanzOnlineError>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ErrorType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ErrorMessage).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.ReferenceId).HasMaxLength(100);
+                entity.Property(e => e.ResolvedBy).HasMaxLength(100);
+                entity.Property(e => e.ResolutionNotes).HasMaxLength(500);
+                entity.Property(e => e.CashRegisterId).HasMaxLength(50);
+                entity.Property(e => e.InvoiceNumber).HasMaxLength(100);
+                entity.Property(e => e.Status).HasMaxLength(20);
+                entity.HasIndex(e => new { e.ErrorType, e.OccurredAt });
+                entity.HasIndex(e => e.ReferenceId);
+                entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
+            });
 
             Console.WriteLine("AppDbContext model configuration completed");
         }

@@ -14,6 +14,8 @@ import { Product } from '../../services/api/productService';
 import CartBar from '../../components/CartBar';
 import { useCashRegister } from '../../hooks/useCashRegister';
 import { OrderConfirmationModal } from '../../components/OrderConfirmationModal';
+import TagesabschlussModal from '../../components/TagesabschlussModal';
+
 
 const CashRegisterScreen = () => {
   const { products, productsActions } = useProductOperations();
@@ -27,27 +29,29 @@ const CashRegisterScreen = () => {
     updateCartQuantity, 
     clearCart, 
     resetCart 
-  } = useCashRegister(null);
+  } = useCashRegister(null); // user parametresi null olarak geçiliyor, hook içinde kontrol ediliyor
 
-  // Ekran ilk açıldığında ürünleri yükle
+  // Ekran ilk açıldığında ürünleri yükle - Sadece kullanıcı login olduktan sonra
   useEffect(() => {
+    console.log('🚀 Cash Register Screen - useEffect çalıştı');
+    console.log('🚀 Products state:', products);
+    console.log('🚀 Products actions:', productsActions);
+    
+    // Kullanıcı login olduktan sonra ürünleri yükle
+    // Bu sayfa sadece login sonrası erişilebilir olduğu için ürünleri yükle
+    console.log('🚀 Ürünler yükleniyor...');
     productsActions.execute();
-    // DEBUG: API'den doğrudan productService.getProducts ile veri çek
-    productService.getProducts().then((data) => {
-      console.log('DEBUG: productService.getProducts() sonucu:', data);
-    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // DEBUG: API'den dönen ürün verisini ve ProductList'e giden products prop'unu logla
-  console.log('productsState:', products);
-  console.log('ProductList props.products:', products.data);
+
 
   // TSE cihazı uyarısı
   const [tseWarning, setTseWarning] = useState<string | null>(null);
   
   // Sipariş onaylama modal state'i
   const [orderModalVisible, setOrderModalVisible] = useState(false);
+  const [tagesabschlussModalVisible, setTagesabschlussModalVisible] = useState(false);
   const handleTseStatusChange = (status: any) => {
     if (!status?.isConnected || !status?.canCreateInvoices) {
       let msg = t('errors.tseConnectionRequired', 'TSE device connection required');
@@ -90,15 +94,27 @@ const CashRegisterScreen = () => {
   };
 
   // ProductList'e gönderilecek ürünleri hazırla (sadece aktif ve taxType string)
+  console.log('📊 Products state detayları:', {
+    loading: products.loading,
+    error: products.error,
+    data: products.data,
+    dataType: typeof products.data,
+    isArray: Array.isArray(products.data),
+    dataLength: Array.isArray(products.data) ? products.data.length : 'N/A'
+  });
+  
   const productListData = (Array.isArray(products.data) ? products.data : [])
     .filter((p: any) => p.isActive === true || p.isActive === 'true' || p.isActive === 1 || typeof p.isActive === 'undefined')
     .map((p: any) => ({
       ...p,
       taxType: p.taxType === 0 ? 'Standard' : p.taxType === 1 ? 'Reduced' : 'Special'
     }));
-
-  // DEBUG: ProductList'e gönderilen ürünleri logla
-  console.log('ProductListData:', productListData);
+    
+  console.log('📊 ProductListData hazırlandı:', {
+    filteredLength: productListData.length,
+    firstProduct: productListData[0] || 'Yok'
+  });
+  
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -128,6 +144,8 @@ const CashRegisterScreen = () => {
             <Text style={styles.tseWarningText}>{tseWarning}</Text>
           </View>
         )}
+        
+
       </View>
 
       {/* Orta Alan: Ürünler */}
@@ -153,33 +171,45 @@ const CashRegisterScreen = () => {
         )}
       </View>
 
-      {/* Sepet ve Alt Bar */}
+      {/* Alt Bar: İşlem butonları */}
       <View style={styles.bottomBar}>
-        <CartBar
-          cart={cart}
+        <CartBar 
+          cart={cart} 
           loading={cartLoading}
           onRemove={removeFromCart}
           onUpdateQty={updateCartQuantity}
           onClear={clearCart}
           onConfirmOrder={handleCompleteSale}
         />
+        
         <View style={styles.actionButtonsRow}>
-          <TouchableOpacity style={[styles.actionButton, styles.completeButton]} onPress={handleCompleteSale}>
-            <Ionicons name="checkmark-circle" size={32} color="#fff" />
-            <Text style={styles.actionButtonText}>{t('cashRegister.completeSale', 'Satışı Tamamla')}</Text>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.cancelButton]} 
+            onPress={clearCart}
+          >
+            <Ionicons name="trash-outline" size={16} color="#fff" />
+            <Text style={styles.actionButtonText}>{t('common.clear', 'Clear')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.printButton]} onPress={handlePrintReceipt}>
-            <Ionicons name="print" size={32} color="#fff" />
-            <Text style={styles.actionButtonText}>{t('cashRegister.printReceipt', 'Fiş Yazdır')}</Text>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.printButton]} 
+            onPress={handlePrintReceipt}
+          >
+            <Ionicons name="print-outline" size={16} color="#fff" />
+            <Text style={styles.actionButtonText}>{t('common.print', 'Print')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.dayEndButton]} onPress={handleDayEnd}>
-            <Ionicons name="calendar" size={32} color="#fff" />
-            <Text style={styles.actionButtonText}>{t('cashRegister.dayEnd', 'Gün Sonu')}</Text>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.dayEndButton]} 
+            onPress={() => setTagesabschlussModalVisible(true)}
+          >
+            <Ionicons name="calendar-outline" size={16} color="#fff" />
+            <Text style={styles.actionButtonText}>{t('common.dayEnd', 'Day End')}</Text>
           </TouchableOpacity>
         </View>
       </View>
-      
-      {/* Sipariş Onaylama Modal'ı */}
+
+      {/* Sipariş Onaylama Modal */}
       <OrderConfirmationModal
         visible={orderModalVisible}
         onClose={() => setOrderModalVisible(false)}
@@ -187,6 +217,13 @@ const CashRegisterScreen = () => {
         cart={cart}
         tableNumber={activeSlot?.toString() || '1'}
         waiterName={'Kasiyer'}
+      />
+
+      {/* Tagesabschluss Modal */}
+      <TagesabschlussModal
+        visible={tagesabschlussModalVisible}
+        onClose={() => setTagesabschlussModalVisible(false)}
+        cashRegisterId="KASSE-001" // Default cash register ID
       />
     </SafeAreaView>
   );

@@ -85,6 +85,12 @@ export function useAsyncState<T = any>(
   }, []);
 
   const execute = useCallback(async (...args: any[]): Promise<T | null> => {
+    console.log('🔄 useAsyncState execute çağrıldı:', {
+      functionName: asyncFunction.name || 'Anonymous',
+      args: args,
+      autoExecute: autoExecute
+    });
+    
     // Önceki isteği iptal et
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -94,6 +100,7 @@ export function useAsyncState<T = any>(
     abortControllerRef.current = new AbortController();
 
     try {
+      console.log('🔄 Loading state set ediliyor...');
       setState(prev => ({
         ...prev,
         loading: true,
@@ -101,7 +108,9 @@ export function useAsyncState<T = any>(
         success: false
       }));
 
+      console.log('🔄 Async function çağrılıyor...');
       const result = await asyncFunction(...args);
+      console.log('🔄 Async function sonucu:', result);
 
       // İstek iptal edildiyse sonucu işleme
       if (abortControllerRef.current.signal.aborted) {
@@ -124,12 +133,20 @@ export function useAsyncState<T = any>(
       return result;
 
     } catch (error: any) {
+      console.log('❌ useAsyncState error:', {
+        error: error,
+        errorMessage: error?.message,
+        errorStatus: error?.status,
+        errorData: error?.data
+      });
+      
       // İstek iptal edildiyse hata gösterme
       if (abortControllerRef.current.signal.aborted) {
         return null;
       }
 
       const finalErrorMessage = errorMessage || error?.message || 'An error occurred';
+      console.log('❌ Final error message:', finalErrorMessage);
       
       setState(prev => ({
         ...prev,

@@ -124,8 +124,8 @@ namespace KasseAPI_Final.Controllers
             var expires = DateTime.Now.AddHours(1);
 
             var token = new JwtSecurityToken(
-                issuer: null,
-                audience: null,
+                issuer: _configuration["JwtSettings:Issuer"],
+                audience: _configuration["JwtSettings:Audience"],
                 claims: new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id),

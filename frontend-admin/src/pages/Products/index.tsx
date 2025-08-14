@@ -397,7 +397,7 @@ export default function Products() {
         setError(null);
         
         // API çağrısı - products endpoint'inden veri al
-        const response = await api.get('/api/products');
+        const response = await api.get('/api/product');
         
         // Eğer veri varsa kullan, yoksa demo data göster
         if (response.data && response.data.length > 0) {

@@ -107,5 +107,38 @@ namespace KasseAPI_Final.Models
         [Required]
         [MaxLength(50)]
         public string DefaultPaymentMethod { get; set; } = string.Empty;
+
+        // FinanzOnline entegrasyonu için alanlar
+        [MaxLength(500)]
+        public string? FinanzOnlineApiUrl { get; set; }
+
+        [MaxLength(100)]
+        public string? FinanzOnlineUsername { get; set; }
+
+        [MaxLength(100)]
+        public string? FinanzOnlinePassword { get; set; }
+
+        public bool FinanzOnlineAutoSubmit { get; set; } = false;
+
+        public int FinanzOnlineSubmitInterval { get; set; } = 60; // dakika
+
+        public int FinanzOnlineRetryAttempts { get; set; } = 3;
+
+        public bool FinanzOnlineEnableValidation { get; set; } = true;
+
+        // FinanzOnline status fields
+        public bool FinanzOnlineEnabled { get; set; } = false;
+
+        public DateTime? LastFinanzOnlineSync { get; set; }
+
+        public int? PendingInvoices { get; set; } = 0;
+
+        // TSE cihazı ayarları
+        [MaxLength(100)]
+        public string? DefaultTseDeviceId { get; set; }
+
+        public bool TseAutoConnect { get; set; } = false;
+
+        public int TseConnectionTimeout { get; set; } = 30; // saniye
     }
 }

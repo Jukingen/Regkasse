@@ -38,44 +38,44 @@ export async function getProducts(filters?: ProductFilters) {
   if (filters?.category) params.append('category', filters.category);
   if (filters?.search) params.append('search', filters.search);
   
-  const response = await api.get<Product[]>(`/api/products?${params.toString()}`);
+  const response = await api.get<Product[]>(`/api/product?${params.toString()}`);
   return response.data;
 }
 
 export async function getProduct(id: number) {
-  const response = await api.get<Product>(`/api/products/${id}`);
+  const response = await api.get<Product>(`/api/product/${id}`);
   return response.data;
 }
 
 export async function createProduct(data: CreateProductRequest) {
-  const response = await api.post<Product>('/api/products', data);
+  const response = await api.post<Product>('/api/product', data);
   return response.data;
 }
 
 export async function updateProduct(id: number, data: CreateProductRequest) {
-  const response = await api.put<Product>(`/api/products/${id}`, data);
+  const response = await api.put<Product>(`/api/product/${id}`, data);
   return response.data;
 }
 
 export async function deleteProduct(id: number) {
-  const response = await api.delete(`/api/products/${id}`);
+  const response = await api.delete(`/api/product/${id}`);
   return response.data;
 }
 
 // Kategori yönetimi
 export async function getCategories() {
-  const response = await api.get<string[]>('/api/products/categories');
+  const response = await api.get<string[]>('/api/product/categories');
   return response.data;
 }
 
 export async function getProductsByCategory(category: string) {
-  const response = await api.get<Product[]>(`/api/products/by-category/${encodeURIComponent(category)}`);
+  const response = await api.get<Product[]>(`/api/product/by-category/${encodeURIComponent(category)}`);
   return response.data;
 }
 
 // Arama işlemleri
 export async function searchProducts(query: string) {
-  const response = await api.get<Product[]>(`/api/products/search?q=${encodeURIComponent(query)}`);
+  const response = await api.get<Product[]>(`/api/product/search?q=${encodeURIComponent(query)}`);
   return response.data;
 }
 
