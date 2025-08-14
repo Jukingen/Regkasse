@@ -5,6 +5,7 @@ using System.Text.Json;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -13,9 +14,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250814051845_FixRelationshipMappings")]
+    partial class FixRelationshipMappings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -248,7 +251,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("audit_logs", (string)null);
+                    b.ToTable("audit_logs");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Cart", b =>
@@ -321,7 +324,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("carts", (string)null);
+                    b.ToTable("carts");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CartItem", b =>
@@ -382,7 +385,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("cart_items", (string)null);
+                    b.ToTable("cart_items");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CashRegister", b =>
@@ -449,7 +452,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("cash_registers", (string)null);
+                    b.ToTable("cash_registers");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CashRegisterTransaction", b =>
@@ -520,7 +523,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("cash_register_transactions", (string)null);
+                    b.ToTable("cash_register_transactions");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Category", b =>
@@ -579,7 +582,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("SortOrder");
 
-                    b.ToTable("categories", (string)null);
+                    b.ToTable("categories");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CompanySettings", b =>
@@ -749,7 +752,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("CompanyVatNumber")
                         .IsUnique();
 
-                    b.ToTable("company_settings", (string)null);
+                    b.ToTable("company_settings");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Customer", b =>
@@ -870,7 +873,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TaxNumber")
                         .IsUnique();
 
-                    b.ToTable("customers", (string)null);
+                    b.ToTable("customers");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.GeneratedReceipt", b =>
@@ -932,7 +935,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TemplateType");
 
-                    b.ToTable("generated_receipts", (string)null);
+                    b.ToTable("generated_receipts");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.InventoryItem", b =>
@@ -998,7 +1001,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("ProductId")
                         .IsUnique();
 
-                    b.ToTable("inventory", (string)null);
+                    b.ToTable("inventory");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.InventoryTransaction", b =>
@@ -1060,7 +1063,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TransactionType");
 
-                    b.ToTable("inventory_transactions", (string)null);
+                    b.ToTable("inventory_transactions");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Invoice", b =>
@@ -1206,7 +1209,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TseSignature")
                         .IsUnique();
 
-                    b.ToTable("invoices", (string)null);
+                    b.ToTable("invoices");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.LocalizationSettings", b =>
@@ -1301,7 +1304,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("DefaultLanguage");
 
-                    b.ToTable("localization_settings", (string)null);
+                    b.ToTable("localization_settings");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Order", b =>
@@ -1389,7 +1392,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("orders", (string)null);
+                    b.ToTable("orders");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.OrderItem", b =>
@@ -1475,7 +1478,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("order_items", (string)null);
+                    b.ToTable("order_items");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.PaymentDetails", b =>
@@ -1549,7 +1552,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("payment_details", (string)null);
+                    b.ToTable("payment_details");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Product", b =>
@@ -1654,7 +1657,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("Name");
 
-                    b.ToTable("products", (string)null);
+                    b.ToTable("products");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ReceiptTemplate", b =>
@@ -1749,7 +1752,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TemplateType");
 
-                    b.ToTable("receipt_templates", (string)null);
+                    b.ToTable("receipt_templates");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.SystemSettings", b =>
@@ -1877,7 +1880,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("CompanyTaxNumber")
                         .IsUnique();
 
-                    b.ToTable("system_settings", (string)null);
+                    b.ToTable("system_settings");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

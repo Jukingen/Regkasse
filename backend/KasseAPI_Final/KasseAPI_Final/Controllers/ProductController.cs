@@ -26,6 +26,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                // Debug: Authentication bilgilerini logla
+                _logger.LogInformation("GetProducts called. User: {User}, IsAuthenticated: {IsAuthenticated}", 
+                    User?.Identity?.Name, User?.Identity?.IsAuthenticated);
+                
                 var products = await _context.Products
                     .Where(p => p.IsActive)
                     .OrderBy(p => p.Name)

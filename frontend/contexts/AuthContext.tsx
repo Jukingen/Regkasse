@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
+import { router, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
@@ -191,16 +191,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isAuthenticated, user]);
 
-    // Login sonrası flag'i temizle
+    // Login sonrası flag'i temizle ve navigation yap
     useEffect(() => {
-        if (justLoggedIn) {
+        if (justLoggedIn && isAuthenticated && user) {
+            console.log('Login successful, attempting navigation...'); // Debug log
+            
+            // Navigation'ı dene
+            const attemptNavigation = async () => {
+                try {
+                    if (router && typeof router.push === 'function') {
+                        console.log('Navigating to cash-register...'); // Debug log
+                        await router.push("/(tabs)/cash-register");
+                        console.log('Navigation successful!'); // Debug log
+                    } else {
+                        console.error('Router not available for navigation'); // Debug log
+                    }
+                } catch (error) {
+                    console.error('Navigation failed:', error); // Debug log
+                }
+            };
+            
+            // Kısa bir gecikme ile navigation'ı dene
+            setTimeout(attemptNavigation, 100);
+            
+            // 2 saniye sonra flag'i temizle
             const timer = setTimeout(() => {
                 setJustLoggedIn(false);
-            }, 2000); // 2 saniye sonra flag'i temizle
+            }, 2000);
             
             return () => clearTimeout(timer);
         }
-    }, [justLoggedIn]);
+    }, [justLoggedIn, isAuthenticated, user]);
 
     const { resetCart } = useCashRegister(null); // user parametresi login öncesi null olabilir
 
@@ -236,9 +257,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('Setting user state...'); // Debug log
             console.log('User data to set:', loggedInUser); // Debug log
             
-            // State'leri birlikte set et
+            // State'leri birlikte set et - önce user, sonra authentication
             setUser(loggedInUser);
-            setIsAuthenticated(true);
+            console.log('User state set to:', loggedInUser); // Debug log
+            
+            // Kısa bir gecikme ile authentication state'ini set et
+            setTimeout(() => {
+                setIsAuthenticated(true);
+                console.log('Authentication state set to true'); // Debug log
+            }, 100);
             
             // Kullanıcı ayarlarını backend'den çek
             try {
@@ -251,32 +278,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             // State güncellemesinin tamamlanmasını bekle
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             // State'lerin doğru set edildiğini kontrol et
             console.log('State set, checking...'); // Debug log
-
-            // Kullanıcı rolüne göre yönlendirme
-            console.log('User role:', loggedInUser.role); // Debug log
-            console.log('Current authentication state:', { isAuthenticated: true, user: loggedInUser }); // Debug log
-            
-            try {
-                if (loggedInUser.role === 'admin' || loggedInUser.role === 'manager') {
-                    console.log('Redirecting to tabs...'); // Debug log
-                    router.push("/(tabs)/cash-register");
-                } else {
-                    console.log('Redirecting to cash register...'); // Debug log
-                    router.push("/(tabs)/cash-register");
-                }
-            } catch (navigationError) {
-                console.error('Navigation error:', navigationError); // Debug log
-                // Navigation başarısız olursa manuel olarak yönlendir
-                setTimeout(() => {
-                    if (loggedInUser.role === 'admin' || loggedInUser.role === 'manager') {
-                        router.push("/(tabs)/cash-register");
-                    }
-                }, 500);
-            }
+            console.log('Current state values:', { isAuthenticated, user }); // Debug log
+            console.log('Login process completed, navigation will be handled by useEffect'); // Debug log
         } catch (error) {
             console.error('Login failed:', error); // Debug log
             setJustLoggedIn(false); // Hata durumunda flag'i temizle

@@ -64,12 +64,13 @@ namespace KasseAPI_Final.Models
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }
         
-        // Navigation properties - şimdilik basit tutuyoruz
-        // public virtual ICollection<CashRegister> AssignedCashRegisters { get; set; } = new List<CashRegister>();
-        // public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+        // Navigation properties
+        public virtual ICollection<CashRegister> CashRegisters { get; set; } = new List<CashRegister>();
+        public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+        public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
+        public virtual ICollection<CashRegisterTransaction> Transactions { get; set; } = new List<CashRegisterTransaction>();
+        public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
         // public virtual UserSettings? Settings { get; set; }
-        // public virtual ICollection<CashRegisterTransaction> Transactions { get; set; } = new List<CashRegisterTransaction>();
-        // public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
         // public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     }
 }

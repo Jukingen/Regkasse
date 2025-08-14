@@ -46,9 +46,8 @@ namespace KasseAPI_Final.Models
 
         public decimal Cost { get; set; }
         public decimal TaxRate { get; set; }
-        public string? CategoryId { get; set; }
+        
 
-        // Navigation properties - şimdilik basit tutuyoruz
         // public virtual Inventory Inventory { get; set; } = null!;
         // public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         // public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();

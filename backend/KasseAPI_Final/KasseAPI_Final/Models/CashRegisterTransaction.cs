@@ -32,6 +32,4 @@ namespace KasseAPI_Final.Models
         public virtual CashRegister CashRegister { get; set; } = null!;
         public virtual ApplicationUser User { get; set; } = null!;
     }
-
-
 }

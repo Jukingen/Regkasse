@@ -454,6 +454,8 @@ namespace KasseAPI_Final.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
+
+
             Console.WriteLine("AppDbContext model configuration completed");
         }
     }

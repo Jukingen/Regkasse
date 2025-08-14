@@ -1,5 +1,5 @@
 // Türkçe Açıklama: Bu ekran kasiyer için sade, hızlı ve modern bir ana satış arayüzü sunar. TSE durumu, aktif masa, toplam tutar üstte sabitlenmiş; ürünler backend API'den çekilir, yüklenirken spinner, hata varsa uyarı gösterilir; ürünler büyük kartlarla ortada; sepet ve büyük işlem butonları altta yer alır. Kod linter uyumludur ve kasiyer dostu tasarlanmıştır.
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +27,7 @@ const CashRegisterScreen = () => {
     updateCartQuantity, 
     clearCart, 
     resetCart 
-  } = useCashRegister();
+  } = useCashRegister(null);
 
   // Ekran ilk açıldığında ürünleri yükle
   useEffect(() => {
@@ -44,7 +44,7 @@ const CashRegisterScreen = () => {
   console.log('ProductList props.products:', products.data);
 
   // TSE cihazı uyarısı
-  const [tseWarning, setTseWarning] = React.useState<string | null>(null);
+  const [tseWarning, setTseWarning] = useState<string | null>(null);
   
   // Sipariş onaylama modal state'i
   const [orderModalVisible, setOrderModalVisible] = useState(false);
@@ -185,8 +185,8 @@ const CashRegisterScreen = () => {
         onClose={() => setOrderModalVisible(false)}
         onSuccess={handleOrderSuccess}
         cart={cart}
-        tableNumber={activeSlot?.tableNumber || '1'}
-        waiterName={activeSlot?.waiterName || 'Kasiyer'}
+        tableNumber={activeSlot?.toString() || '1'}
+        waiterName={'Kasiyer'}
       />
     </SafeAreaView>
   );

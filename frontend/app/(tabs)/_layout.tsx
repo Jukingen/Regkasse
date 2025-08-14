@@ -10,6 +10,7 @@ export default function TabLayout() {
 
     // Debug logları
     console.log('TabLayout render:', { isAuthenticated, isLoading, user: user?.email, role: user?.role });
+    console.log('TabLayout: Full user object:', user);
 
     // Periyodik olarak oturum durumunu kontrol et
     useEffect(() => {

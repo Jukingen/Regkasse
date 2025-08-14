@@ -64,9 +64,10 @@ namespace KasseAPI_Final.Models
         [Column("preferred_payment_method")]
         public CustomerPaymentMethod PreferredPaymentMethod { get; set; } = CustomerPaymentMethod.Cash;
 
-        // Navigation properties - şimdilik basit tutuyoruz
-        // public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
-        // public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+        // Navigation properties
+        public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
+        public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+        public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
         // public virtual ICollection<CustomerDiscount> CustomerDiscounts { get; set; } = new List<CustomerDiscount>();
     }
 
