@@ -1,186 +1,67 @@
 import { apiClient } from './config';
 
-// Backend API Response Types
-export interface BackendCartItem {
+// Türkçe Açıklama: Sepet işlemleri için kapsamlı API servisi. Ürün ekleme, çıkarma, güncelleme, sepet görüntüleme ve yönetim işlevleri sağlar.
+
+// Interface'ler
+export interface CartItem {
   id: string;
-  cartId: string;
   productId: string;
   productName: string;
+  productImage?: string;
   quantity: number;
   unitPrice: number;
+  totalPrice: number;
+  notes?: string;
+  taxType: string;
   taxRate: number;
-  discountAmount: number;
-  taxAmount: number;
-  totalAmount: number;
-  notes?: string;
-  isModified: boolean;
-  modifiedAt?: string;
-  originalUnitPrice: number;
-  originalQuantity: number;
-  product: {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    stockQuantity: number;
-    unit: string;
-    category: string;
-    taxType: 'Standard' | 'Reduced' | 'Special';
-    isActive: boolean;
-  };
 }
 
-export interface BackendCart {
+export interface Cart {
   cartId: string;
-  tableNumber?: string;
+  tableNumber?: number;
   waiterName?: string;
   customerId?: string;
-  customer?: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    category: 'Regular' | 'VIP' | 'Wholesale' | 'Corporate';
-  };
-  userId?: string;
-  cashRegisterId?: string;
-  subtotal: number;
-  taxAmount: number;
-  discountAmount: number;
-  totalAmount: number;
-  appliedCouponId?: string;
-  appliedCoupon?: {
-    id: string;
-    code: string;
-    name: string;
-    discountType: 'Percentage' | 'FixedAmount';
-    discountValue: number;
-    minimumAmount: number;
-  };
   notes?: string;
-  status: 'Active' | 'Completed' | 'Cancelled' | 'Expired';
-  expiresAt?: string;
+  status: string;
   createdAt: string;
-  updatedAt: string;
-  items: BackendCartItem[];
+  expiresAt: string;
+  items: CartItem[];
+  totalItems: number;
+  subtotal: number;
+  totalTax: number;
+  grandTotal: number;
 }
 
-// Request Types
 export interface CreateCartRequest {
-  tableNumber?: string;
+  tableNumber?: number;
   waiterName?: string;
   customerId?: string;
-  cashRegisterId?: string;
   notes?: string;
-  initialItem?: AddCartItemRequest;
 }
 
-export interface AddCartItemRequest {
+export interface AddItemToCartRequest {
   productId: string;
   quantity: number;
+  tableNumber?: number;
+  waiterName?: string;
   notes?: string;
 }
 
 export interface UpdateCartItemRequest {
   quantity: number;
-  unitPrice: number;
   notes?: string;
 }
 
-export interface ApplyCouponRequest {
-  couponCode: string;
-}
-
-export interface CompleteCartRequest {
-  paymentMethod: string;
-  amountPaid: number;
-  notes?: string;
-}
-
-// Frontend Cart Types (Backendden dönüştürülmüş)
-export interface CartItem {
-  id: string;
-  productName: string;
-  product: {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    stockQuantity: number;
-    unit: string;
-    category: string;
-    taxType: 'Standard' | 'Reduced' | 'Special';
-  };
-  quantity: number;
-  unitPrice: number;
-  taxRate: number;
-  discountAmount: number;
-  taxAmount: number;
-  totalAmount: number;
-  notes?: string;
-  isModified: boolean;
-}
-
-export interface Cart {
+export interface CartHistoryItem {
   cartId: string;
-  tableNumber?: string;
-  waiterName?: string;
-  customer?: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    category: 'Regular' | 'VIP' | 'Wholesale' | 'Corporate';
-  };
-  subtotal: number;
-  taxAmount: number;
-  discountAmount: number;
+  tableNumber?: number;
+  status: string;
+  createdAt: string;
+  completedAt?: string;
+  totalItems: number;
   totalAmount: number;
-  appliedCoupon?: {
-    id: string;
-    code: string;
-    name: string;
-    discountType: 'Percentage' | 'FixedAmount';
-    discountValue: number;
-  };
-  notes?: string;
-  status: 'Active' | 'Completed' | 'Cancelled' | 'Expired';
-  expiresAt?: string;
-  items: CartItem[];
 }
 
-// Backend'den Frontend'e dönüştürme
-const transformBackendCart = (backendCart: BackendCart): Cart => {
-  return {
-    cartId: backendCart.cartId,
-    tableNumber: backendCart.tableNumber,
-    waiterName: backendCart.waiterName,
-    customer: backendCart.customer,
-    subtotal: backendCart.subtotal,
-    taxAmount: backendCart.taxAmount,
-    discountAmount: backendCart.discountAmount,
-    totalAmount: backendCart.totalAmount,
-    appliedCoupon: backendCart.appliedCoupon,
-    notes: backendCart.notes,
-    status: backendCart.status,
-    expiresAt: backendCart.expiresAt,
-    items: backendCart.items.map(item => ({
-      id: item.id,
-      productName: item.productName,
-      product: item.product,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      taxRate: item.taxRate,
-      discountAmount: item.discountAmount,
-      taxAmount: item.taxAmount,
-      totalAmount: item.totalAmount,
-      notes: item.notes,
-      isModified: item.isModified,
-    })),
-  };
-};
-
-// Sepet API Servisi
 export class CartService {
   private static instance: CartService;
   private currentCartId: string | null = null;
@@ -192,115 +73,163 @@ export class CartService {
     return CartService.instance;
   }
 
-  // Yeni sepet oluştur
-  async createCart(request: CreateCartRequest): Promise<Cart> {
+  // Mevcut kullanıcının sepetini getir
+  async getCurrentCart(tableNumber: number = 1): Promise<Cart> {
     try {
-      const response = await apiClient.post<BackendCart>('/cart', request);
-      const cart = transformBackendCart(response);
-      this.currentCartId = cart.cartId;
-      return cart;
+      console.log('🛒 Masa', tableNumber, 'sepeti getiriliyor...');
+      const response = await apiClient.get<Cart>(`/cart/current?tableNumber=${tableNumber}`);
+      this.currentCartId = response.cartId;
+      console.log('✅ Masa', tableNumber, 'sepeti başarıyla getirildi:', response.cartId);
+      return response;
     } catch (error) {
-      console.error('Error creating cart:', error);
-      throw new Error('Sepet oluşturulamadı');
-    }
-  }
-
-  // Sepeti getir
-  async getCart(cartId: string): Promise<Cart> {
-    try {
-      const response = await apiClient.get<BackendCart>(`/cart/${cartId}`);
-      const cart = transformBackendCart(response);
-      this.currentCartId = cart.cartId;
-      return cart;
-    } catch (error) {
-      console.error('Error getting cart:', error);
+      console.error('❌ Masa', tableNumber, 'sepeti getirme hatası:', error);
       throw new Error('Sepet getirilemedi');
     }
   }
 
-  // Sepete ürün ekle
-  async addCartItem(cartId: string, request: AddCartItemRequest): Promise<Cart> {
+  // Belirli bir sepeti getir
+  async getCart(cartId: string): Promise<Cart> {
     try {
-      const response = await apiClient.post<BackendCart>(`/cart/${cartId}/items`, request);
-      return transformBackendCart(response);
+      console.log('🛒 Sepet getiriliyor:', cartId);
+      const response = await apiClient.get<Cart>(`/cart/${cartId}`);
+      this.currentCartId = cartId;
+      console.log('✅ Sepet başarıyla getirildi');
+      return response;
     } catch (error) {
-      console.error('Error adding cart item:', error);
+      console.error('❌ Sepet getirme hatası:', error);
+      throw new Error('Sepet getirilemedi');
+    }
+  }
+
+  // Yeni sepet oluştur
+  async createCart(request: CreateCartRequest): Promise<{ cartId: string; expiresAt: string }> {
+    try {
+      console.log('🛒 Yeni sepet oluşturuluyor:', request);
+      const response = await apiClient.post<{ cartId: string; expiresAt: string }>('/cart', request);
+      this.currentCartId = response.cartId;
+      console.log('✅ Sepet başarıyla oluşturuldu:', response.cartId);
+      return response;
+    } catch (error: any) {
+      if (error.status === 400 && error.data?.message?.includes('already has an active cart')) {
+        // Kullanıcının zaten aktif sepeti var
+        const existingCartId = error.data.cartId;
+        this.currentCartId = existingCartId;
+        console.log('ℹ️ Kullanıcının zaten aktif sepeti var:', existingCartId);
+        return { cartId: existingCartId, expiresAt: new Date().toISOString() };
+      }
+      console.error('❌ Sepet oluşturma hatası:', error);
+      throw new Error('Sepet oluşturulamadı');
+    }
+  }
+
+  // Sepete ürün ekle (otomatik sepet oluşturma ile)
+  async addItemToCart(request: AddItemToCartRequest): Promise<{ message: string; cart: Cart }> {
+    try {
+      console.log('🛒 Sepete ürün ekleniyor:', request);
+      const response = await apiClient.post<{ message: string; cart: Cart }>('/cart/add-item', request);
+      this.currentCartId = response.cart.cartId;
+      console.log('✅ Ürün başarıyla sepete eklendi');
+      return response;
+    } catch (error) {
+      console.error('❌ Ürün ekleme hatası:', error);
+      throw new Error('Ürün sepete eklenemedi');
+    }
+  }
+
+  // Belirli bir sepete ürün ekle
+  async addItemToSpecificCart(cartId: string, request: AddItemToCartRequest): Promise<{ message: string }> {
+    try {
+      console.log('🛒 Belirli sepete ürün ekleniyor:', { cartId, request });
+      const response = await apiClient.post<{ message: string }>(`/cart/${cartId}/items`, request);
+      console.log('✅ Ürün başarıyla sepete eklendi');
+      return response;
+    } catch (error) {
+      console.error('❌ Ürün ekleme hatası:', error);
       throw new Error('Ürün sepete eklenemedi');
     }
   }
 
   // Sepet ürününü güncelle
-  async updateCartItem(cartId: string, itemId: string, request: UpdateCartItemRequest): Promise<Cart> {
+  async updateCartItem(cartId: string, itemId: string, request: UpdateCartItemRequest): Promise<{ message: string }> {
     try {
-      const response = await apiClient.put<BackendCart>(`/cart/${cartId}/items/${itemId}`, request);
-      return transformBackendCart(response);
+      console.log('🛒 Sepet ürünü güncelleniyor:', { cartId, itemId, request });
+      const response = await apiClient.put<{ message: string }>(`/cart/${cartId}/items/${itemId}`, request);
+      console.log('✅ Sepet ürünü başarıyla güncellendi');
+      return response;
     } catch (error) {
-      console.error('Error updating cart item:', error);
-      throw new Error('Ürün güncellenemedi');
+      console.error('❌ Sepet ürünü güncelleme hatası:', error);
+      throw new Error('Sepet ürünü güncellenemedi');
     }
   }
 
-  // Sepet ürününü sil
-  async removeCartItem(cartId: string, itemId: string): Promise<Cart> {
+  // Sepetten ürün çıkar
+  async removeItemFromCart(cartId: string, itemId: string): Promise<{ message: string }> {
     try {
-      const response = await apiClient.delete<BackendCart>(`/cart/${cartId}/items/${itemId}`);
-      return transformBackendCart(response);
+      console.log('🛒 Sepetten ürün çıkarılıyor:', { cartId, itemId });
+      const response = await apiClient.delete<{ message: string }>(`/cart/${cartId}/items/${itemId}`);
+      console.log('✅ Ürün başarıyla sepetten çıkarıldı');
+      return response;
     } catch (error) {
-      console.error('Error removing cart item:', error);
-      throw new Error('Ürün sepetten silinemedi');
+      console.error('❌ Ürün çıkarma hatası:', error);
+      throw new Error('Ürün sepetten çıkarılamadı');
     }
   }
 
-  // Kupon uygula
-  async applyCoupon(cartId: string, request: ApplyCouponRequest): Promise<Cart> {
+  // Sepeti temizle (tüm ürünleri sil)
+  async clearCartItems(cartId: string): Promise<{ message: string }> {
     try {
-      const response = await apiClient.post<BackendCart>(`/cart/${cartId}/apply-coupon`, request);
-      return transformBackendCart(response);
+      console.log('🛒 Sepet ürünleri temizleniyor:', cartId);
+      const response = await apiClient.post<{ message: string }>(`/cart/${cartId}/clear-items`);
+      console.log('✅ Sepet ürünleri başarıyla temizlendi');
+      return response;
     } catch (error) {
-      console.error('Error applying coupon:', error);
-      throw new Error('Kupon uygulanamadı');
-    }
-  }
-
-  // Sepeti tamamla
-  async completeCart(cartId: string, request: CompleteCartRequest): Promise<Cart> {
-    try {
-      const response = await apiClient.post<BackendCart>(`/cart/${cartId}/complete`, request);
-      return transformBackendCart(response);
-    } catch (error) {
-      console.error('Error completing cart:', error);
-      throw new Error('Sepet tamamlanamadı');
-    }
-  }
-
-  // Sepeti iptal et
-  async cancelCart(cartId: string): Promise<void> {
-    try {
-      await apiClient.post(`/cart/${cartId}/cancel`);
-    } catch (error) {
-      console.error('Error cancelling cart:', error);
-      throw new Error('Sepet iptal edilemedi');
-    }
-  }
-
-  // Sepeti temizle (tüm ürünleri kaldır)
-  async clearCart(cartId: string): Promise<void> {
-    try {
-      await apiClient.delete(`/cart/${cartId}`);
-    } catch (error) {
-      console.error('Error clearing cart:', error);
+      console.error('❌ Sepet temizleme hatası:', error);
       throw new Error('Sepet temizlenemedi');
     }
   }
 
-  // Kuponu kaldır
-  async removeCoupon(cartId: string): Promise<Cart> {
+  // Sepeti tamamen sil
+  async deleteCart(cartId: string): Promise<{ message: string }> {
     try {
-      const response = await apiClient.delete<BackendCart>(`/cart/${cartId}/remove-coupon`);
-      return transformBackendCart(response);
+      console.log('🛒 Sepet siliniyor:', cartId);
+      const response = await apiClient.delete<{ message: string }>(`/cart/${cartId}`);
+      if (this.currentCartId === cartId) {
+        this.currentCartId = null;
+      }
+      console.log('✅ Sepet başarıyla silindi');
+      return response;
     } catch (error) {
-      console.error('Error removing coupon:', error);
-      throw new Error('Kupon kaldırılamadı');
+      console.error('❌ Sepet silme hatası:', error);
+      throw new Error('Sepet silinemedi');
+    }
+  }
+
+  // Sepeti tamamla (siparişe dönüştür)
+  async completeCart(cartId: string, notes?: string): Promise<{ message: string; cartId: string; totalItems: number; totalAmount: number }> {
+    try {
+      console.log('🛒 Sepet tamamlanıyor:', cartId);
+      const response = await apiClient.post<{ message: string; cartId: string; totalItems: number; totalAmount: number }>(`/cart/${cartId}/complete`, { notes });
+      if (this.currentCartId === cartId) {
+        this.currentCartId = null;
+      }
+      console.log('✅ Sepet başarıyla tamamlandı');
+      return response;
+    } catch (error) {
+      console.error('❌ Sepet tamamlama hatası:', error);
+      throw new Error('Sepet tamamlanamadı');
+    }
+  }
+
+  // Sepet geçmişini getir
+  async getCartHistory(): Promise<CartHistoryItem[]> {
+    try {
+      console.log('🛒 Sepet geçmişi getiriliyor...');
+      const response = await apiClient.get<CartHistoryItem[]>('/cart/history');
+      console.log('✅ Sepet geçmişi başarıyla getirildi');
+      return response;
+    } catch (error) {
+      console.error('❌ Sepet geçmişi getirme hatası:', error);
+      throw new Error('Sepet geçmişi getirilemedi');
     }
   }
 
@@ -309,11 +238,16 @@ export class CartService {
     return this.currentCartId;
   }
 
-  // Mevcut sepet ID'sini temizle
+  // Sepet ID'sini ayarla
+  setCurrentCartId(cartId: string): void {
+    this.currentCartId = cartId;
+  }
+
+  // Sepet ID'sini temizle
   clearCurrentCartId(): void {
     this.currentCartId = null;
   }
 }
 
-// Singleton instance
+// Singleton instance'ı export et
 export const cartService = CartService.getInstance(); 

@@ -4,56 +4,34 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-// useCashRegister hook'undan gelen Cart tipi ile uyumlu interface
+// Yeni Cart interface'i ile uyumlu
 interface CartItem {
   id: string;
+  productId: string;
   productName: string;
-  product: {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    stockQuantity: number;
-    unit: string;
-    category: string;
-    taxType: 'Standard' | 'Reduced' | 'Special';
-  };
+  productImage?: string;
   quantity: number;
   unitPrice: number;
-  taxRate: number;
-  discountAmount: number;
-  taxAmount: number;
-  totalAmount: number;
+  totalPrice: number;
   notes?: string;
-  isModified: boolean;
+  taxType: string;
+  taxRate: number;
 }
 
 interface Cart {
   cartId: string;
-  tableNumber?: string;
+  tableNumber?: number;
   waiterName?: string;
-  customer?: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    category: 'Regular' | 'VIP' | 'Wholesale' | 'Corporate';
-  };
-  subtotal: number;
-  taxAmount: number;
-  discountAmount: number;
-  totalAmount: number;
-  appliedCoupon?: {
-    id: string;
-    code: string;
-    name: string;
-    discountType: 'Percentage' | 'FixedAmount';
-    discountValue: number;
-  };
+  customerId?: string;
   notes?: string;
-  status: 'Active' | 'Completed' | 'Cancelled' | 'Expired';
-  expiresAt?: string;
+  status: string;
+  createdAt: string;
+  expiresAt: string;
   items: CartItem[];
+  totalItems: number;
+  subtotal: number;
+  totalTax: number;
+  grandTotal: number;
 }
 
 interface CartBarProps {
@@ -69,11 +47,13 @@ interface CartBarProps {
 const defaultCart: Cart = { 
   cartId: '', 
   items: [], 
+  totalItems: 0,
   subtotal: 0, 
-  discountAmount: 0, 
-  taxAmount: 0, 
-  totalAmount: 0,
-  status: 'Active'
+  totalTax: 0, 
+  grandTotal: 0,
+  status: 'Active',
+  createdAt: new Date().toISOString(),
+  expiresAt: new Date().toISOString()
 };
 
 // Ürün kutusu: memoize edilmiş kart
@@ -127,7 +107,7 @@ const CartItemCard = React.memo(({ item, isSelected, onUpdateQty, onRemove, setS
   </TouchableOpacity>
 ));
 
-const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty, onClear }) => {
+const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty, onClear, onConfirmOrder }) => {
   const { t } = useTranslation();
   const safeCart = useMemo(() => cart ?? defaultCart, [cart]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -179,10 +159,10 @@ const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty,
         ))}
       </ScrollView>
       <View style={styles.summaryRow}>
+        <Text style={styles.totalText}>{t('cart.items', 'Ürünler')}: {safeCart.totalItems ?? 0}</Text>
         <Text style={styles.totalText}>{t('cart.subtotal', 'Ara Toplam')}: {Number(safeCart.subtotal ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>{t('cart.discount', 'İndirim')}: {Number(safeCart.discountAmount ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>{t('cart.vat', 'KDV')}: {Number(safeCart.taxAmount ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>{t('cart.grandTotal', 'Genel Toplam')}: {Number(safeCart.totalAmount ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.vat', 'KDV')}: {Number(safeCart.totalTax ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.grandTotal', 'Genel Toplam')}: {Number(safeCart.grandTotal ?? 0).toFixed(2)} €</Text>
         <TouchableOpacity style={styles.clearBtn} onPress={onClear} accessibilityLabel="Sepeti Temizle">
           <Ionicons name="trash" size={18} color="#fff" style={{ marginRight: 4 }} />
           <Text style={styles.clearBtnText}>{t('cart.clear', 'Sepeti Temizle')}</Text>

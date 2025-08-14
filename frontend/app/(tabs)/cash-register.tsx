@@ -4,10 +4,12 @@ import { View, StyleSheet, Text, TouchableOpacity, ScrollView, SafeAreaView, Act
 
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
 
 import ProductList from '../../components/ProductList';
 import { TseStatusIndicator } from '../../components/TseStatusIndicator';
 import { TableSlotContext } from '../../contexts/TableSlotContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useProductOperations } from '../../hooks/useProductOperations';
 import * as productService from '../../services/api/productService';
 import { Product } from '../../services/api/productService';
@@ -20,16 +22,20 @@ import TagesabschlussModal from '../../components/TagesabschlussModal';
 const CashRegisterScreen = () => {
   const { products, productsActions } = useProductOperations();
   const { activeSlot, setActiveSlot, slots } = useContext(TableSlotContext);
+  const { user, isAuthenticated } = useAuth();
   const { t } = useTranslation();
   const { 
     cart, 
     loading: cartLoading, 
+    cartInfo,
     addToCart, 
     removeFromCart, 
     updateCartQuantity, 
     clearCart, 
     resetCart 
-  } = useCashRegister(null); // user parametresi null olarak geçiliyor, hook içinde kontrol ediliyor
+  } = useCashRegister(user, activeSlot || 1); // Aktif masa numarası ile çağır
+
+  const router = useRouter();
 
   // Ekran ilk açıldığında ürünleri yükle - Sadece kullanıcı login olduktan sonra
   useEffect(() => {
@@ -44,6 +50,14 @@ const CashRegisterScreen = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Aktif masa değiştiğinde sepeti yeniden yükle
+  useEffect(() => {
+    if (isAuthenticated && user && activeSlot) {
+      console.log('🔄 Aktif masa değişti:', activeSlot, '→ Sepet yeniden yükleniyor...');
+      // Sepeti sıfırla ve yeni masadan yükle
+      // setCart(null); // useCashRegister hook'u otomatik olarak yeni masadan sepet yükleyecek
+    }
+  }, [activeSlot, isAuthenticated, user]);
 
 
   // TSE cihazı uyarısı
@@ -64,11 +78,22 @@ const CashRegisterScreen = () => {
 
   // Ürün ekleme işlemi
   const handleAddToCart = (product: Product) => {
-    addToCart(product);
+    if (!isAuthenticated || !user) {
+      Alert.alert('Giriş Gerekli', 'Ürün eklemek için lütfen giriş yapın.');
+      return;
+    }
+    
+    console.log('🛒 Ürün sepete ekleniyor:', product.name);
+    addToCart(product, 1);
   };
 
   // Ana işlem butonları
   const handleCompleteSale = async () => {
+    if (!isAuthenticated || !user) {
+      Alert.alert('Giriş Gerekli', 'Siparişi tamamlamak için lütfen giriş yapın.');
+      return;
+    }
+    
     if (!cart || !cart.items || cart.items.length === 0) {
       Alert.alert('Sepet boş', 'Siparişi tamamlamak için önce ürün ekleyin.');
       return;
@@ -139,6 +164,18 @@ const CashRegisterScreen = () => {
             })}
           </ScrollView>
         </View>
+        
+        {/* Sepet Durumu Bilgileri */}
+        {isAuthenticated && user && (
+          <View style={styles.cartStatusRow}>
+            <Text style={styles.cartStatusLabel}>
+              {t('cashRegister.cartStatus', 'Sepet Durumu')}:
+            </Text>
+            <Text style={styles.cartStatusValue}>
+              {cartInfo.hasItems ? `${cartInfo.totalItems} ürün - ${cartInfo.totalAmount.toFixed(2)} €` : 'Boş'}
+            </Text>
+          </View>
+        )}
         {tseWarning && (
           <View style={styles.tseWarningBar}>
             <Text style={styles.tseWarningText}>{tseWarning}</Text>
@@ -150,7 +187,18 @@ const CashRegisterScreen = () => {
 
       {/* Orta Alan: Ürünler */}
       <View style={styles.productListWrapper}>
-        {products.loading ? (
+        {!isAuthenticated || !user ? (
+          <View style={styles.authRequiredContainer}>
+            <Ionicons name="lock-closed" size={60} color="#1976d2" />
+            <Text style={styles.authRequiredText}>{t('cashRegister.loginRequired', 'Ürünleri görmek ve sepete eklemek için lütfen giriş yapın')}</Text>
+            <TouchableOpacity 
+              style={styles.loginButton}
+              onPress={() => router.push('/(auth)/login')}
+            >
+              <Text style={styles.loginButtonText}>{t('common.login', 'Giriş Yap')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : products.loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#1976d2" />
             <Text style={styles.loadingText}>{t('cashRegister.loadingProducts', 'Ürünler yükleniyor...')}</Text>
@@ -345,6 +393,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
+  authRequiredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f8fafc',
+  },
+  authRequiredText: {
+    color: '#333',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 15,
+    marginBottom: 20,
+  },
+  loginButton: {
+    backgroundColor: '#1976d2',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   bottomBar: {
     backgroundColor: '#fff',
     borderTopWidth: 1,
@@ -387,6 +460,28 @@ const styles = StyleSheet.create({
   },
   dayEndButton: {
     backgroundColor: '#ff9800',
+  },
+  cartStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 4,
+    backgroundColor: '#f0f9eb', // Light green background
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#a5d6a7', // Green border
+  },
+  cartStatusLabel: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#4caf50', // Darker green
+    marginRight: 8,
+  },
+  cartStatusValue: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#4caf50', // Darker green
   },
 });
 

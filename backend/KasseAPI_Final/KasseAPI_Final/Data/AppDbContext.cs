@@ -122,84 +122,6 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TseSignature).IsUnique();
             });
 
-            // Cart configuration - Sadece mevcut sütunlar
-            builder.Entity<Cart>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.CartId).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.TableNumber);
-                entity.Property(e => e.WaiterName).HasMaxLength(100);
-                entity.Property(e => e.CustomerId);
-                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
-                entity.Property(e => e.Notes).HasMaxLength(500);
-                entity.Property(e => e.ExpiresAt).IsRequired();
-                entity.Property(e => e.Status).IsRequired();
-                
-                entity.HasIndex(e => e.CartId).IsUnique();
-                entity.HasIndex(e => e.UserId);
-                entity.HasIndex(e => e.CustomerId);
-                entity.HasIndex(e => e.Status);
-            });
-
-            // CartItem configuration - Sadece mevcut sütunlar
-            builder.Entity<CartItem>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.CartId).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.ProductId).IsRequired();
-                entity.Property(e => e.Quantity).IsRequired();
-                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.Notes).HasMaxLength(500);
-                
-                entity.HasIndex(e => e.CartId);
-                entity.HasIndex(e => e.ProductId);
-            });
-
-            // Order configuration - Sadece mevcut sütunlar
-            builder.Entity<Order>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.OrderId).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.TableNumber);
-                entity.Property(e => e.WaiterName).HasMaxLength(100);
-                entity.Property(e => e.CustomerName).HasMaxLength(100);
-                entity.Property(e => e.CustomerPhone).HasMaxLength(20);
-                entity.Property(e => e.Notes).HasMaxLength(500);
-                entity.Property(e => e.OrderDate).IsRequired();
-                entity.Property(e => e.Status).IsRequired();
-                entity.Property(e => e.Subtotal).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.CustomerId);
-                
-                entity.HasIndex(e => e.OrderId).IsUnique();
-                entity.HasIndex(e => e.OrderDate);
-                entity.HasIndex(e => e.Status);
-                entity.HasIndex(e => e.CustomerId);
-            });
-
-            // OrderItem configuration - Sadece mevcut sütunlar
-            builder.Entity<OrderItem>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.OrderId).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.ProductId).IsRequired();
-                entity.Property(e => e.ProductName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Quantity).IsRequired();
-                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");
-                entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.SpecialNotes).HasMaxLength(500);
-                entity.Property(e => e.ProductDescription).HasMaxLength(500);
-                entity.Property(e => e.ProductCategory).HasMaxLength(100);
-                
-                entity.HasIndex(e => e.OrderId);
-                entity.HasIndex(e => e.ProductId);
-            });
-
             // CashRegister configuration
             builder.Entity<CashRegister>(entity =>
             {
@@ -571,6 +493,48 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => new { e.ErrorType, e.OccurredAt });
                 entity.HasIndex(e => e.ReferenceId);
                 entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
+            });
+
+            // Cart ve CartItem ilişkisi
+            builder.Entity<Cart>(entity =>
+            {
+                entity.HasKey(e => e.CartId);
+                entity.Property(e => e.CartId).HasMaxLength(50);
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.TableNumber);
+                entity.Property(e => e.WaiterName).HasMaxLength(100);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.ExpiresAt).IsRequired();
+                entity.Property(e => e.Status).IsRequired();
+                
+                // Cart -> CartItems: One-to-Many
+                entity.HasMany(e => e.Items)
+                      .WithOne(e => e.Cart)
+                      .HasForeignKey(e => e.CartId)
+                      .OnDelete(DeleteBehavior.Cascade);
+                
+                // Cart -> User: Many-to-One
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // CartItem configuration
+            builder.Entity<CartItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CartId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ProductId).IsRequired();
+                entity.Property(e => e.Quantity).IsRequired();
+                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                
+                // CartItem -> Product: Many-to-One
+                entity.HasOne(e => e.Product)
+                      .WithMany()
+                      .HasForeignKey(e => e.ProductId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             Console.WriteLine("AppDbContext model configuration completed");
