@@ -13,6 +13,7 @@ import * as productService from '../../services/api/productService';
 import { Product } from '../../services/api/productService';
 import CartBar from '../../components/CartBar';
 import { useCashRegister } from '../../hooks/useCashRegister';
+import { OrderConfirmationModal } from '../../components/OrderConfirmationModal';
 
 const CashRegisterScreen = () => {
   const { products, productsActions } = useProductOperations();
@@ -44,6 +45,9 @@ const CashRegisterScreen = () => {
 
   // TSE cihazı uyarısı
   const [tseWarning, setTseWarning] = React.useState<string | null>(null);
+  
+  // Sipariş onaylama modal state'i
+  const [orderModalVisible, setOrderModalVisible] = useState(false);
   const handleTseStatusChange = (status: any) => {
     if (!status?.isConnected || !status?.canCreateInvoices) {
       let msg = t('errors.tseConnectionRequired', 'TSE device connection required');
@@ -65,12 +69,18 @@ const CashRegisterScreen = () => {
       Alert.alert('Sepet boş', 'Siparişi tamamlamak için önce ürün ekleyin.');
       return;
     }
-    try {
-      // TODO: useCashRegister'dan completeCart fonksiyonunu ekle
-      Alert.alert('Başarılı', 'Sipariş başarıyla tamamlandı.');
-    } catch (err) {
-      Alert.alert('Hata', 'Sipariş tamamlanamadı.');
-    }
+    
+    // Sipariş onaylama modal'ını aç
+    setOrderModalVisible(true);
+  };
+  
+  // Sipariş başarılı olduğunda
+  const handleOrderSuccess = (orderId: string) => {
+    console.log('Sipariş başarıyla oluşturuldu:', orderId);
+    // Sepeti temizle
+    clearCart();
+    // Modal'ı kapat
+    setOrderModalVisible(false);
   };
   const handleDayEnd = () => {
     // Gün sonu işlemi
@@ -151,6 +161,7 @@ const CashRegisterScreen = () => {
           onRemove={removeFromCart}
           onUpdateQty={updateCartQuantity}
           onClear={clearCart}
+          onConfirmOrder={handleCompleteSale}
         />
         <View style={styles.actionButtonsRow}>
           <TouchableOpacity style={[styles.actionButton, styles.completeButton]} onPress={handleCompleteSale}>
@@ -167,6 +178,16 @@ const CashRegisterScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+      
+      {/* Sipariş Onaylama Modal'ı */}
+      <OrderConfirmationModal
+        visible={orderModalVisible}
+        onClose={() => setOrderModalVisible(false)}
+        onSuccess={handleOrderSuccess}
+        cart={cart}
+        tableNumber={activeSlot?.tableNumber || '1'}
+        waiterName={activeSlot?.waiterName || 'Kasiyer'}
+      />
     </SafeAreaView>
   );
 };

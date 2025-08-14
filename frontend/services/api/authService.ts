@@ -28,7 +28,7 @@ export interface User {
 // Login işlemi
 export const login = async (credentials: LoginRequest): Promise<LoginResponse> => {
   try {
-    const response = await apiClient.post<LoginResponse>('/api/auth/login', credentials);
+    const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
     
     // Token'ları kaydet
     await AsyncStorage.setItem('token', response.token);
@@ -70,7 +70,7 @@ export const refreshToken = async (): Promise<string | null> => {
     const refreshTokenStr = await AsyncStorage.getItem('refreshToken');
     if (!refreshTokenStr) return null;
 
-    const response = await apiClient.post<{ token: string }>('/api/auth/refresh', {
+    const response = await apiClient.post<{ token: string }>('/auth/refresh', {
       refreshToken: refreshTokenStr
     });
 
@@ -86,7 +86,7 @@ export const refreshToken = async (): Promise<string | null> => {
 // Demo kullanıcı ile otomatik login
 export const loginWithDemoUser = async (): Promise<LoginResponse> => {
   return await login({
-    username: 'cashier',
+    email: 'cashier@demo.com',  // ✅ Email field'ı kullan
     password: 'Cashier123!'
   });
 }; 

@@ -6,7 +6,7 @@ import { jwtDecode } from 'jwt-decode';
 // .env desteği yoksa sabit fallback kullanılır
 export const API_BASE_URL =
   (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) ||
-  'http://localhost:5183';
+  'http://localhost:5183/api';
 
 console.log('API Base URL:', API_BASE_URL);
 
@@ -67,11 +67,13 @@ const axiosInstance = axios.create({
 // Request interceptor - Token kontrolü ve ekleme
 axiosInstance.interceptors.request.use(
     async (config) => {
-        console.log('Making API request:', {
+        console.log('🚀 Making API request:', {
             method: config.method,
             url: config.url,
             baseURL: config.baseURL,
-            headers: config.headers
+            fullUrl: `${config.baseURL}${config.url}`,
+            headers: config.headers,
+            timeout: config.timeout
         });
 
         try {
@@ -83,7 +85,7 @@ axiosInstance.interceptors.request.use(
                     const refreshToken = await AsyncStorage.getItem('refreshToken');
                     if (refreshToken) {
                         try {
-                            const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
+                            const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
                                 refreshToken: refreshToken
                             });
                             const newToken = response.data.token;
@@ -121,19 +123,25 @@ axiosInstance.interceptors.request.use(
 // Response interceptor - Hata yönetimi ve token yenileme
 axiosInstance.interceptors.response.use(
     (response) => {
-        console.log('API response received:', {
+        console.log('✅ API response received:', {
             status: response.status,
             url: response.config.url,
-            data: response.data
+            fullUrl: `${response.config.baseURL}${response.config.url}`,
+            data: response.data,
+            headers: response.headers
         });
         return response.data;
     },
     async (error) => {
-        console.error('API error:', {
+        console.error('❌ API error:', {
             status: error.response?.status,
             url: error.config?.url,
+            fullUrl: error.config?.baseURL ? `${error.config.baseURL}${error.config.url}` : error.config?.url,
             data: error.response?.data,
-            message: error.message
+            message: error.message,
+            code: error.code,
+            isAxiosError: error.isAxiosError,
+            timeout: error.code === 'ECONNABORTED' ? 'TIMEOUT' : 'NO_TIMEOUT'
         });
 
         // 401 Unauthorized - Token geçersiz
@@ -142,7 +150,7 @@ axiosInstance.interceptors.response.use(
             try {
                 const refreshToken = await AsyncStorage.getItem('refreshToken');
                 if (refreshToken) {
-                    const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
+                    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
                         refreshToken: refreshToken
                     });
                     const newToken = response.data.token;

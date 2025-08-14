@@ -62,6 +62,7 @@ interface CartBarProps {
   onRemove: (itemId: string) => void;
   onUpdateQty: (itemId: string, qty: number) => void;
   onClear: () => void;
+  onConfirmOrder?: () => void; // Yeni: Sipariş onaylama callback'i
 }
 
 // Backend format'ına uygun default cart
@@ -187,6 +188,20 @@ const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty,
           <Text style={styles.clearBtnText}>{t('cart.clear', 'Sepeti Temizle')}</Text>
         </TouchableOpacity>
       </View>
+      
+      {/* Siparişi Onayla Butonu */}
+      {onConfirmOrder && (
+        <View style={styles.orderButtonContainer}>
+          <TouchableOpacity 
+            style={styles.confirmOrderBtn} 
+            onPress={onConfirmOrder}
+            accessibilityLabel="Siparişi Onayla"
+          >
+            <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.confirmOrderBtnText}>Siparişi Onayla</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -311,6 +326,31 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 15,
+  },
+  orderButtonContainer: {
+    width: '100%',
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  confirmOrderBtn: {
+    backgroundColor: COLORS.success,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  confirmOrderBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   selectedBox: {
     backgroundColor: COLORS.accentSoft,
