@@ -109,6 +109,56 @@ export const useCart = () => {
     return () => clearInterval(interval);
   }, [isAuthenticated, user, isTokenExpired, clearAllCarts]);
 
+  // ⏰ OTOMATİK SEPET SIFIRLAMA: 15 dakika + gece 00:00
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const checkCartExpiration = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      
+      // Gece 00:00 kontrolü
+      if (currentHour === 0 && currentMinute === 0) {
+        console.log('🌙 Gece 00:00 - Tüm sepetler otomatik sıfırlanıyor...');
+        clearAllCarts();
+        return;
+      }
+      
+      // 15 dakika kontrolü - her sepet için
+      setTableCarts(prevTableCarts => {
+        const newTableCarts = new Map(prevTableCarts);
+        let hasExpiredCarts = false;
+        
+        for (const [tableNumber, cart] of prevTableCarts) {
+          const cartCreatedAt = new Date(cart.createdAt);
+          const timeDiff = now.getTime() - cartCreatedAt.getTime();
+          const minutesDiff = Math.floor(timeDiff / (1000 * 60));
+          
+          if (minutesDiff >= 15) {
+            console.log(`⏰ Masa ${tableNumber} sepeti 15 dakika geçti, sıfırlanıyor...`);
+            newTableCarts.delete(tableNumber);
+            hasExpiredCarts = true;
+          }
+        }
+        
+        if (hasExpiredCarts) {
+          console.log('✅ Süresi dolan sepetler temizlendi');
+        }
+        
+        return newTableCarts;
+      });
+    };
+
+    // Her dakika kontrol et
+    const interval = setInterval(checkCartExpiration, 60 * 1000);
+    
+    // İlk kontrolü hemen yap
+    checkCartExpiration();
+    
+    return () => clearInterval(interval);
+  }, [isAuthenticated, user, clearAllCarts]);
+
   // Sepet getter fonksiyonu - tableNumber parametresi ile
   const getCartForTable = useCallback((tableNumber: number) => {
     return tableCarts.get(tableNumber) || null;

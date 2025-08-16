@@ -523,22 +523,6 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ExpiresAt).IsRequired();
                 entity.Property(e => e.Status).IsRequired();
                 
-                // 🔒 GÜVENLİK: UserId ve TableNumber için composite index
-                entity.HasIndex(e => new { e.UserId, e.TableNumber, e.Status })
-                    .HasDatabaseName("IX_Carts_UserId_TableNumber_Status");
-                
-                // 🔒 GÜVENLİK: UserId için index
-                entity.HasIndex(e => e.UserId)
-                    .HasDatabaseName("IX_Carts_UserId");
-                
-                // 🔒 GÜVENLİK: TableNumber ve Status için index
-                entity.HasIndex(e => new { e.TableNumber, e.Status })
-                    .HasDatabaseName("IX_Carts_TableNumber_Status");
-                
-                // 🔒 GÜVENLİK: ExpiresAt için index (otomatik temizleme için)
-                entity.HasIndex(e => e.ExpiresAt)
-                    .HasDatabaseName("IX_Carts_ExpiresAt");
-                
                 // Foreign key relationships - Model'de ForeignKey attribute kullanıldığı için sadece User konfigürasyonu
                 entity.HasOne(e => e.User)
                     .WithMany()
@@ -558,14 +542,6 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Quantity).IsRequired();
                 entity.Property(e => e.UnitPrice).IsRequired().HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Notes).HasMaxLength(500);
-                
-                // 🔒 GÜVENLİK: CartId için index
-                entity.HasIndex(e => e.CartId)
-                    .HasDatabaseName("IX_CartItems_CartId");
-                
-                // 🔒 GÜVENLİK: ProductId için index
-                entity.HasIndex(e => e.ProductId)
-                    .HasDatabaseName("IX_CartItems_ProductId");
                 
                 // Foreign key relationships
                 entity.HasOne(e => e.Cart)

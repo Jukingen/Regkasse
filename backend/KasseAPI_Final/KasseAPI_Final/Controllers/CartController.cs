@@ -32,31 +32,70 @@ namespace KasseAPI_Final.Controllers
                     return Unauthorized(new { message = "User not authenticated" });
 
                 // 🔍 DEBUG: Masa numarasını logla
-                _logger.LogInformation("GetCurrentUserCart called - TableNumber: {TableNumber}", tableNumber);
+                _logger.LogInformation("GetCurrentUserCart called - TableNumber: {TableNumber}, UserId: {UserId}", tableNumber, userId);
 
-                // ✅ GÜVENLİK: Masa bazlı sepet getirme - kullanıcı ID kontrolü kaldırıldı
-                // Çünkü kasiyer tüm masaların sepetlerini görebilmeli
+                // 🔒 GÜVENLİK: SADECE KULLANICININ KENDİ SEPETİNİ GÖRMESİ
                 var cart = await _context.Carts
                     .Include(c => c.Items)
                         .ThenInclude(ci => ci.Product)
                     .Include(c => c.Customer)
                     .Where(c => c.TableNumber == tableNumber && 
-                               c.Status == CartStatus.Active) // UserId kontrolü kaldırıldı
+                               c.Status == CartStatus.Active &&
+                               c.UserId == userId) // 🔒 Güvenlik: UserId kontrolü eklendi
                     .FirstOrDefaultAsync();
 
                 if (cart == null)
                 {
-                    // 🔍 DEBUG: Bu masa için hangi sepetler var kontrol et
+                    // 🔍 DEBUG: Bu masa için hangi sepetler var kontrol et (sadece debug için)
                     var allCartsForTable = await _context.Carts
                         .Where(c => c.TableNumber == tableNumber && c.Status == CartStatus.Active)
                         .Select(c => new { c.CartId, c.UserId, c.CreatedAt, c.Items.Count })
                         .ToListAsync();
                     
-                    _logger.LogInformation("No cart found at table {TableNumber}. Available carts: {Carts}", 
-                        tableNumber, 
+                    _logger.LogInformation("No cart found for user {UserId} at table {TableNumber}. Available carts: {Carts}", 
+                        userId, tableNumber, 
                         string.Join(", ", allCartsForTable.Select(c => $"CartId={c.CartId}, UserId={c.UserId}, Items={c.Count}")));
                     
-                    return NotFound(new { message = $"No active cart found for table {tableNumber}" });
+                    // 🆕 YENİ ÖZELLİK: Kullanıcının o masada sepeti yoksa otomatik oluştur
+                    _logger.LogInformation("Creating new cart for user {UserId} at table {TableNumber}", userId, tableNumber);
+                    
+                    var newCart = new Cart
+                    {
+                        CartId = Guid.NewGuid().ToString(),
+                        TableNumber = tableNumber,
+                        WaiterName = User.FindFirst(ClaimTypes.Name)?.Value ?? "Kasiyer",
+                        UserId = userId,
+                        ExpiresAt = DateTime.UtcNow.AddHours(24),
+                        Status = CartStatus.Active,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    
+                    _context.Carts.Add(newCart);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation("New cart created: {CartId} for user {UserId} at table {TableNumber}", 
+                        newCart.CartId, userId, tableNumber);
+                    
+                    // Yeni oluşturulan sepeti döndür
+                    var emptyCartResponse = new CartResponse
+                    {
+                        CartId = newCart.CartId,
+                        TableNumber = newCart.TableNumber,
+                        WaiterName = newCart.WaiterName,
+                        CustomerId = newCart.CustomerId,
+                        Notes = newCart.Notes,
+                        Status = newCart.Status,
+                        CreatedAt = newCart.CreatedAt,
+                        ExpiresAt = newCart.ExpiresAt,
+                        Items = new List<CartItemResponse>(), // Boş sepet
+                        TotalItems = 0,
+                        Subtotal = 0,
+                        TotalTax = 0,
+                        GrandTotal = 0
+                    };
+                    
+                    return Ok(emptyCartResponse);
                 }
 
                 // Debug: Cart ve CartItem'ları kontrol et
@@ -69,7 +108,7 @@ namespace KasseAPI_Final.Controllers
                     .Select(c => new { c.CartId, c.UserId, c.CreatedAt, c.Items.Count })
                     .ToListAsync();
                 
-                _logger.LogInformation("All carts for table {TableNumber}: {Carts}", tableNumber, 
+                _logger.LogInformation("All carts for table {TableNumber} (debug): {Carts}", tableNumber, 
                     string.Join(", ", allCarts.Select(c => $"CartId={c.CartId}, UserId={c.UserId}, Items={c.Count}")));
                 
                 foreach (var item in cart.Items)
@@ -597,13 +636,13 @@ namespace KasseAPI_Final.Controllers
                     return Ok(new { message = $"No active carts found for table {tableNumber}", clearedCount = 0 });
                 }
 
-                // 🔍 DEBUG: Bu masa için hangi sepetler var kontrol et
+                // 🔍 DEBUG: Bu masa için hangi sepetler var kontrol et (sadece debug için)
                 var allCartsForTable = await _context.Carts
                     .Where(c => c.TableNumber == tableNumber && c.Status == CartStatus.Active)
                     .Select(c => new { c.CartId, c.UserId, c.CreatedAt, c.Items.Count })
                     .ToListAsync();
                 
-                _logger.LogInformation("🔍 All carts for table {TableNumber}: {Carts}", tableNumber, 
+                _logger.LogInformation("🔍 All carts for table {TableNumber} (debug): {Carts}", tableNumber, 
                     string.Join(", ", allCartsForTable.Select(c => $"CartId={c.CartId}, UserId={c.UserId}, Items={c.Count}")));
 
                 int totalItemsCleared = 0;
@@ -843,6 +882,119 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        // POST: api/cart/force-cleanup - Manuel sepet temizleme (admin/kasiyer için)
+        [HttpPost("force-cleanup")]
+        public async Task<IActionResult> ForceCartCleanup([FromBody] ForceCleanupRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                _logger.LogInformation("🧹 Force cart cleanup requested by UserId: {UserId}, Role: {UserRole}, Reason: {Reason}", 
+                    userId, userRole, request.Reason);
+
+                // 🔒 GÜVENLİK: Sadece admin ve kasiyerler manuel temizlik yapabilir
+                if (userRole != "Admin" && userRole != "Kasiyer")
+                {
+                    _logger.LogWarning("⚠️ Unauthorized force cleanup attempt by UserId: {UserId}, Role: {UserRole}", userId, userRole);
+                    return Forbid();
+                }
+
+                var cleanupResult = new ForceCleanupResponse
+                {
+                    RequestedBy = userId,
+                    RequestedAt = DateTime.UtcNow,
+                    Reason = request.Reason,
+                    CleanedCarts = new List<CleanedCartInfo>(),
+                    TotalItemsCleaned = 0,
+                    TotalCartsCleared = 0
+                };
+
+                // Belirli masa için temizlik
+                if (request.TableNumber.HasValue)
+                {
+                    var tableCarts = await _context.Carts
+                        .Include(c => c.Items)
+                        .Where(c => c.TableNumber == request.TableNumber.Value && 
+                                   c.Status == CartStatus.Active)
+                        .ToListAsync();
+
+                    foreach (var cart in tableCarts)
+                    {
+                        var itemsCount = cart.Items.Count;
+                        cleanupResult.TotalItemsCleaned += itemsCount;
+                        cleanupResult.TotalCartsCleared++;
+
+                        cleanupResult.CleanedCarts.Add(new CleanedCartInfo
+                        {
+                            CartId = cart.CartId,
+                            TableNumber = cart.TableNumber,
+                            UserId = cart.UserId,
+                            ItemsCount = itemsCount,
+                            CreatedAt = cart.CreatedAt
+                        });
+
+                        // Sepet ürünlerini sil
+                        _context.CartItems.RemoveRange(cart.Items);
+                        // Sepeti sil
+                        _context.Carts.Remove(cart);
+
+                        _logger.LogInformation("🧹 Force cleanup: Cart {CartId} at table {TableNumber} cleaned (Items: {ItemsCount})", 
+                            cart.CartId, cart.TableNumber, itemsCount);
+                    }
+                }
+                // Tüm sepetler için temizlik
+                else
+                {
+                    var allActiveCarts = await _context.Carts
+                        .Include(c => c.Items)
+                        .Where(c => c.Status == CartStatus.Active)
+                        .ToListAsync();
+
+                    foreach (var cart in allActiveCarts)
+                    {
+                        var itemsCount = cart.Items.Count;
+                        cleanupResult.TotalItemsCleaned += itemsCount;
+                        cleanupResult.TotalCartsCleared++;
+
+                        cleanupResult.CleanedCarts.Add(new CleanedCartInfo
+                        {
+                            CartId = cart.CartId,
+                            TableNumber = cart.TableNumber,
+                            UserId = cart.UserId,
+                            ItemsCount = itemsCount,
+                            CreatedAt = cart.CreatedAt
+                        });
+
+                        // Sepet ürünlerini sil
+                        _context.CartItems.RemoveRange(cart.Items);
+                        // Sepeti sil
+                        _context.Carts.Remove(cart);
+
+                        _logger.LogInformation("🧹 Force cleanup: Cart {CartId} at table {TableNumber} cleaned (Items: {ItemsCount})", 
+                            cart.CartId, cart.TableNumber, itemsCount);
+                    }
+                }
+
+                // Değişiklikleri kaydet
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("✅ Force cart cleanup completed: {CartsCount} carts, {ItemsCount} items cleaned by UserId: {UserId}", 
+                    cleanupResult.TotalCartsCleared, cleanupResult.TotalItemsCleaned, userId);
+
+                return Ok(cleanupResult);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error during force cart cleanup");
+                return StatusCode(500, new { message = "Internal server error during force cleanup" });
+            }
+        }
+
         // Yardımcı metod: Vergi oranını hesapla
         private decimal GetTaxRate(TaxType taxType)
         {
@@ -937,5 +1089,30 @@ namespace KasseAPI_Final.Controllers
     public class ResetCartAfterPaymentRequest
     {
         public string? Notes { get; set; }
+    }
+
+    public class ForceCleanupRequest
+    {
+        public int? TableNumber { get; set; } // Belirli masa için, null ise tüm sepetler
+        public string Reason { get; set; } = string.Empty; // Temizlik nedeni
+    }
+
+    public class ForceCleanupResponse
+    {
+        public string RequestedBy { get; set; } = string.Empty;
+        public DateTime RequestedAt { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public List<CleanedCartInfo> CleanedCarts { get; set; } = new List<CleanedCartInfo>();
+        public int TotalItemsCleaned { get; set; }
+        public int TotalCartsCleared { get; set; }
+    }
+
+    public class CleanedCartInfo
+    {
+        public string CartId { get; set; } = string.Empty;
+        public int? TableNumber { get; set; }
+        public string UserId { get; set; } = string.Empty;
+        public int ItemsCount { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

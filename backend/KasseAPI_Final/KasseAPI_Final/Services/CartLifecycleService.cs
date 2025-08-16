@@ -17,7 +17,7 @@ namespace KasseAPI_Final.Services
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<CartLifecycleService> _logger;
-        private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(5); // 5 dakikada bir kontrol
+        private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1); // 1 dakikada bir kontrol (15 dakika + gece 00:00 için)
 
         public CartLifecycleService(
             IServiceProvider serviceProvider,
@@ -37,6 +37,7 @@ namespace KasseAPI_Final.Services
                 {
                     await CleanupExpiredCarts();
                     await CleanupOrphanedCarts();
+                    await CleanupCartsByTimeRules(); // 15 dakika + gece 00:00 kontrolü
                     await LogCartStatistics();
                 }
                 catch (Exception ex)
@@ -173,6 +174,129 @@ namespace KasseAPI_Final.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Kullanıcısız sepet temizleme hatası");
+            }
+        }
+
+        /// <summary>
+        /// Zaman kurallarına göre sepet temizleme (15 dakika + gece 00:00)
+        /// </summary>
+        private async Task CleanupCartsByTimeRules()
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            try
+            {
+                var now = DateTime.UtcNow;
+                var currentHour = now.Hour;
+                var currentMinute = now.Minute;
+
+                // 🌙 Gece 00:00 kontrolü - Tüm aktif sepetleri temizle
+                if (currentHour == 0 && currentMinute == 0)
+                {
+                    _logger.LogInformation("🌙 Gece 00:00 - Tüm aktif sepetler otomatik sıfırlanıyor...");
+                    
+                    var allActiveCarts = await context.Carts
+                        .Include(c => c.Items)
+                        .Where(c => c.Status == CartStatus.Active)
+                        .Select(c => new { c.CartId, c.UserId, c.TableNumber, c.Items.Count })
+                        .ToListAsync();
+
+                    if (allActiveCarts.Any())
+                    {
+                        _logger.LogInformation("🧹 {ActiveCartsCount} aktif sepet bulundu, gece 00:00 temizliği yapılıyor...", 
+                            allActiveCarts.Count);
+
+                        // Önce CartItems'ları sil
+                        var cartItemsToDelete = await context.CartItems
+                            .Where(ci => context.Carts
+                                .Where(c => c.Status == CartStatus.Active)
+                                .Select(c => c.CartId)
+                                .Contains(ci.CartId))
+                            .ToListAsync();
+
+                        if (cartItemsToDelete.Any())
+                        {
+                            context.CartItems.RemoveRange(cartItemsToDelete);
+                            _logger.LogInformation("🧹 {ItemsCount} sepet ürünü silindi (gece 00:00)", cartItemsToDelete.Count);
+                        }
+
+                        // Sonra Cart'ları sil
+                        var cartsToDelete = await context.Carts
+                            .Where(c => c.Status == CartStatus.Active)
+                            .ToListAsync();
+
+                        context.Carts.RemoveRange(cartsToDelete);
+
+                        // Değişiklikleri kaydet
+                        var deletedCount = await context.SaveChangesAsync();
+                        
+                        _logger.LogInformation("✅ Gece 00:00 temizliği tamamlandı: {CartsCount} sepet, {ItemsCount} ürün silindi", 
+                            cartsToDelete.Count, cartItemsToDelete.Count);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("ℹ️ Gece 00:00 - Temizlenecek aktif sepet bulunamadı");
+                    }
+                    
+                    return; // Gece 00:00 işlemi yapıldıysa diğer kontrolleri atla
+                }
+
+                // ⏰ 15 dakika kontrolü - Her sepet için oluşturulma zamanından 15 dakika geçtiyse temizle
+                var fifteenMinutesAgo = now.AddMinutes(-15);
+                
+                var expiredByTimeRule = await context.Carts
+                    .Include(c => c.Items)
+                    .Where(c => c.Status == CartStatus.Active && 
+                               c.CreatedAt < fifteenMinutesAgo)
+                    .Select(c => new { c.CartId, c.UserId, c.TableNumber, c.Items.Count, c.CreatedAt })
+                    .ToListAsync();
+
+                if (expiredByTimeRule.Any())
+                {
+                    _logger.LogInformation("⏰ {ExpiredCartsCount} sepet 15 dakika kuralına göre süresi doldu, temizleniyor...", 
+                        expiredByTimeRule.Count);
+
+                    // Batch delete için ID'leri topla
+                    var cartIds = expiredByTimeRule.Select(c => c.CartId).ToList();
+
+                    // Önce CartItems'ları sil
+                    var cartItemsToDelete = await context.CartItems
+                        .Where(ci => cartIds.Contains(ci.CartId))
+                        .ToListAsync();
+
+                    if (cartItemsToDelete.Any())
+                    {
+                        context.CartItems.RemoveRange(cartItemsToDelete);
+                        _logger.LogInformation("🧹 {ItemsCount} sepet ürünü silindi (15 dakika kuralı)", cartItemsToDelete.Count);
+                    }
+
+                    // Sonra Cart'ları sil
+                    var cartsToDelete = await context.Carts
+                        .Where(c => cartIds.Contains(c.CartId))
+                        .ToListAsync();
+
+                    context.Carts.RemoveRange(cartsToDelete);
+
+                    // Değişiklikleri kaydet
+                    var deletedCount = await context.SaveChangesAsync();
+
+                    _logger.LogInformation("✅ 15 dakika kuralı temizliği tamamlandı: {CartsCount} sepet, {ItemsCount} ürün silindi", 
+                        cartsToDelete.Count, cartItemsToDelete.Count);
+
+                    // Detaylı log
+                    foreach (var cart in expiredByTimeRule)
+                    {
+                        var timeDiff = now - cart.CreatedAt;
+                        var minutesDiff = (int)timeDiff.TotalMinutes;
+                        _logger.LogInformation("⏰ Masa {TableNumber} sepeti {MinutesDiff} dakika geçti, sıfırlandı (UserId: {UserId})", 
+                            cart.TableNumber, minutesDiff, cart.UserId);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ CleanupCartsByTimeRules hatası");
             }
         }
 

@@ -331,8 +331,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             // --- CART TEMİZLİĞİ ---
+            console.log('🧹 Login sonrası cart cache temizleniyor...');
             await AsyncStorage.removeItem('currentCartId');
-            // Cart state will be reset by the component that uses AuthContext
+            
+            // Cart cache temizleme event'ini tetikle
+            if (typeof window !== 'undefined') {
+                const clearCartEvent = new CustomEvent(CART_CLEAR_EVENT);
+                window.dispatchEvent(clearCartEvent);
+                console.log('✅ Cart clear event dispatched');
+            }
+            
+            // Local storage'dan cart verilerini temizle
+            const cartKeys = [
+                'currentCartId',
+                'tableCarts',
+                'cartData',
+                'cartItems',
+                'cartState'
+            ];
+            
+            for (const key of cartKeys) {
+                await AsyncStorage.removeItem(key);
+            }
+            
+            console.log('✅ Cart cache temizlendi');
             // --- CART TEMİZLİĞİ SONU ---
 
             console.log('Setting user state...'); // Debug log
