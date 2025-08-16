@@ -15,6 +15,15 @@ using KasseAPI_Final;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Development ortamında tüm IP'lerden erişime izin ver - Force host binding
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.ListenAnyIP(5183); // 0.0.0.0:5183
+    serverOptions.ListenLocalhost(5183); // 127.0.0.1:5183 (backward compatibility)
+});
+
+Console.WriteLine("🌐 Force binding to ALL IPs (0.0.0.0:5183) and localhost (127.0.0.1:5183)");
+
 // Entity Framework ve PostgreSQL bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -93,7 +102,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:8081", "http://localhost:3000", "http://localhost:19006")
+        policy.WithOrigins(
+                  "http://localhost:8081", 
+                  "http://localhost:3000", 
+                  "http://localhost:19006",
+                  "http://192.168.1.2:8081",    // iOS Expo client
+                  "http://192.168.1.2:3000",    // iOS Web client
+                  "http://192.168.1.2:19006"    // iOS Expo web
+              )
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -228,7 +244,9 @@ app.MapGet("/", () => "Kasse API is running!");
 app.MapGet("/health", () => "OK");
 
 Console.WriteLine("=== KASSE API STARTED ===");
-Console.WriteLine("=== PORT: http://localhost:5183 ===");
+Console.WriteLine("=== LOCALHOST: http://localhost:5183 ===");
+Console.WriteLine("=== NETWORK: http://0.0.0.0:5183 ===");
+Console.WriteLine("=== LOCAL IP: http://192.168.1.2:5183 ===");
 Console.WriteLine("=== SWAGGER: http://localhost:5183/ ===");
 
 app.Run();

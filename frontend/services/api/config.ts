@@ -2,13 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosHeaders } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-// API base URL - Expo ve React Native Web için uyumlu
-// .env desteği yoksa sabit fallback kullanılır
-export const API_BASE_URL =
-  (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) ||
-  'http://localhost:5183/api';
+import { API_BASE_URL as CONFIGURED_API_BASE_URL } from '../../config';
 
-console.log('API Base URL:', API_BASE_URL);
+// Platform-aware API URL from main config
+export const API_BASE_URL = CONFIGURED_API_BASE_URL;
+
+console.log('🔧 API Services - Using API Base URL:', API_BASE_URL);
 
 // Token yönetimi için yardımcı fonksiyonlar
 const TokenManager = {

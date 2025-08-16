@@ -256,17 +256,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             };
 
             // Touch, scroll, key press event'lerini dinle
-            document?.addEventListener?.('touchstart', handleActivity);
-            document?.addEventListener?.('scroll', handleActivity);
-            document?.addEventListener?.('keydown', handleActivity);
-            document?.addEventListener?.('mousedown', handleActivity);
+            // Platform-aware event listeners - document only exists in web
+            if (typeof document !== 'undefined') {
+                document?.addEventListener?.('touchstart', handleActivity);
+                document?.addEventListener?.('scroll', handleActivity);
+                document?.addEventListener?.('keydown', handleActivity);
+                document?.addEventListener?.('mousedown', handleActivity);
+            }
 
             return () => {
                 stopInactivityTimer();
-                document?.removeEventListener?.('touchstart', handleActivity);
-                document?.removeEventListener?.('scroll', handleActivity);
-                document?.removeEventListener?.('keydown', handleActivity);
-                document?.removeEventListener?.('mousedown', handleActivity);
+                // Platform-aware cleanup - document only exists in web
+                if (typeof document !== 'undefined') {
+                    document?.removeEventListener?.('touchstart', handleActivity);
+                    document?.removeEventListener?.('scroll', handleActivity);
+                    document?.removeEventListener?.('keydown', handleActivity);
+                    document?.removeEventListener?.('mousedown', handleActivity);
+                }
             };
         } else {
             stopInactivityTimer();
