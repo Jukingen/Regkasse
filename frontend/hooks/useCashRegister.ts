@@ -1,217 +1,437 @@
-import { useState, useEffect, useCallback } from 'react';
-import { cartService, Cart, CartItem, AddItemToCartRequest } from '../services/api/cartService';
-import { Product } from '../services/api/productService';
+import { useState, useCallback, useContext } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useCart } from './useCart';
+import { usePaymentMethods } from './usePaymentMethods';
+import { cartService } from '../services/api/cartService';
 
-// Türkçe Açıklama: Kasa işlemleri için basit ve güvenilir hook. Sadece backend ile çalışır, local storage kullanmaz.
+// English Description: Simple and reliable hook for cash register operations. Only works with backend, does not use local storage.
 
-export function useCashRegister(user: any, activeTableNumber: number = 1) {
-  const [cart, setCart] = useState<Cart | null>(null);
-  const [loading, setLoading] = useState(false);
+// Payment request interface
+interface PaymentRequest {
+  cartId: string;
+  totalAmount: number;
+  paymentMethod: string;
+  customerId?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  notes?: string;
+  tseRequired: boolean;
+  taxNumber?: string;
+  tableNumber?: number; // Masa numarası eklendi
+}
+
+// Payment response interface
+interface PaymentResponse {
+  success: boolean;
+  message: string;
+  invoiceId?: string;
+  receiptNumber?: string;
+  tseSignature?: string;
+}
+
+// Toast notification interface
+interface ToastNotification {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  message: string;
+  duration?: number;
+}
+
+export const useCashRegister = () => {
+  const { user } = useAuth();
+  const { 
+    getCartForTable, 
+    clearCart, 
+    updateCartItem, 
+    removeFromCart, 
+    loadCartForTable: loadCartFromHook 
+  } = useCart();
+  const { paymentMethods, getPaymentMethod } = usePaymentMethods(user);
+  
+  const [activeTableNumber, setActiveTableNumber] = useState<number | null>(null);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Çift tıklama koruması için state
+  const [preventDoubleClick, setPreventDoubleClick] = useState(false);
+  
+  // Toast notifications state
+  const [toasts, setToasts] = useState<ToastNotification[]>([]);
 
-  // Backend'den sepeti yükle
-  const loadCart = useCallback(async () => {
-    if (!user) return;
+  // Add toast notification
+  const addToast = useCallback((type: ToastNotification['type'], message: string, duration: number = 5000) => {
+    const id = Date.now().toString();
+    const newToast: ToastNotification = { id, type, message, duration };
+    
+    setToasts(prev => [...prev, newToast]);
+    
+    // Auto remove toast after duration
+    setTimeout(() => {
+      removeToast(id);
+    }, duration);
+  }, []);
+
+  // Remove toast notification
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  }, []);
+
+  // Clear all toasts
+  const clearToasts = useCallback(() => {
+    setToasts([]);
+  }, []);
+
+  // Process payment with real-time notifications
+  const processPayment = useCallback(async (paymentData: PaymentRequest): Promise<PaymentResponse> => {
+    if (!user?.token) {
+      const errorMsg = 'User not authenticated';
+      addToast('error', errorMsg);
+      setError(errorMsg);
+      return { success: false, message: errorMsg };
+    }
+
+    if (!paymentData.tableNumber) {
+      const errorMsg = 'Table number is required for payment';
+      addToast('error', errorMsg);
+      setError(errorMsg);
+      return { success: false, message: errorMsg };
+    }
+
+    // Çift tıklama koruması
+    if (preventDoubleClick) {
+      console.log('⚠️ Payment already in progress, ignoring duplicate click');
+      return { success: false, message: 'Payment already in progress' };
+    }
+
+    setPreventDoubleClick(true);
+    setPaymentProcessing(true);
+    setError(null);
+    
+    // Timeout koruması (5 dakika)
+    const timeoutId = setTimeout(() => {
+      console.log('⚠️ Payment timeout - resetting states');
+      setPaymentProcessing(false);
+      setPreventDoubleClick(false);
+      setError('Payment timeout - please try again');
+      addToast('error', 'Payment timeout - please try again', 5000);
+    }, 5 * 60 * 1000); // 5 dakika
+    
+    // Show payment initiation notification
+    addToast('info', 'Payment process started...', 2000);
 
     try {
-      setLoading(true);
-      setError(null);
-      console.log('🔄 Backend\'den masa', activeTableNumber, 'sepeti yükleniyor...');
+      // Step 1: Initiate payment (/api/payments/initiate)
+      addToast('info', 'Initiating payment session...', 2000);
       
-      const currentCart = await cartService.getCurrentCart(activeTableNumber);
-      setCart(currentCart);
-      console.log('✅ Masa', activeTableNumber, 'sepeti başarıyla yüklendi:', currentCart.cartId, 'Items:', currentCart.items.length);
-    } catch (error: any) {
-      if (error.message.includes('No active cart found')) {
-        console.log('ℹ️ Masa', activeTableNumber, 'için aktif sepet yok - yeni sepet oluşturulacak');
-        setCart(null);
-      } else {
-        console.error('❌ Backend sepet yükleme hatası:', error);
-        setError(error.message || 'Sepet yüklenemedi');
+      const initiateResponse = await fetch('/api/payments/initiate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cartId: paymentData.cartId,
+          totalAmount: paymentData.totalAmount,
+          paymentMethod: paymentData.paymentMethod,
+          customerId: paymentData.customerId,
+          customerName: paymentData.customerName,
+          customerEmail: paymentData.customerEmail,
+          customerPhone: paymentData.customerPhone,
+          notes: paymentData.notes,
+          tseRequired: paymentData.tseRequired,
+          taxNumber: paymentData.taxNumber,
+          tableNumber: paymentData.tableNumber // Masa numarası eklendi
+        })
+      });
+
+      if (!initiateResponse.ok) {
+        let errorMessage = 'Payment could not be initiated';
+        try {
+          const errorData = await initiateResponse.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          // If response is not JSON, use default message
+        }
+        
+        addToast('error', errorMessage);
+        setError(errorMessage);
+        return { success: false, message: errorMessage };
       }
+
+      const initiateResult = await initiateResponse.json();
+      if (!initiateResult.success) {
+        const errorMessage = initiateResult.message || 'Payment could not be initiated';
+        addToast('error', errorMessage);
+        setError(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+
+      addToast('success', 'Payment session initiated successfully', 2000);
+      console.log('✅ Payment initiated, session ID:', initiateResult.paymentSessionId);
+
+      // Step 2: Confirm payment (/api/payments/confirm)
+      addToast('info', 'Confirming payment...', 2000);
+      
+      const confirmResponse = await fetch('/api/payments/confirm', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          paymentSessionId: initiateResult.paymentSessionId,
+          transactionReference: `TXN-${Date.now()}`,
+          transactionId: `TID-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          tseSignature: paymentData.tseRequired ? `TSE-${Date.now()}` : null,
+          tableNumber: paymentData.tableNumber // Masa numarası eklendi
+        })
+      });
+
+      if (!confirmResponse.ok) {
+        let errorMessage = 'Payment could not be completed';
+        try {
+          const errorData = await confirmResponse.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          // If response is not JSON, use default message
+        }
+        
+        addToast('error', errorMessage);
+        setError(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+
+      const confirmResult = await confirmResponse.json();
+      if (confirmResult.success) {
+        const successMessage = `Payment completed successfully! Invoice: ${confirmResult.invoiceNumber}`;
+        addToast('success', successMessage, 8000);
+        
+        console.log('✅ Payment completed successfully:', {
+          invoiceId: confirmResult.invoiceId,
+          receiptNumber: confirmResult.receiptNumber,
+          tseSignature: confirmResult.tseSignature,
+          tableNumber: paymentData.tableNumber
+        });
+
+        // Clear cart for specific table and error state
+        await clearCart(paymentData.tableNumber);
+        setError(null);
+        
+        // API ile sepeti sıfırla ve yeni sipariş durumunu güncelle
+        await resetCartAndUpdateOrderStatus(confirmResult.invoiceId, confirmResult.receiptNumber, paymentData.tableNumber);
+        
+        // Show final success notification
+        setTimeout(() => {
+          addToast('success', `Receipt: ${confirmResult.receiptNumber}`, 10000);
+        }, 1000);
+
+        return {
+          success: true,
+          message: successMessage,
+          invoiceId: confirmResult.invoiceId,
+          receiptNumber: confirmResult.receiptNumber,
+          tseSignature: confirmResult.tseSignature
+        };
+      } else {
+        const errorMessage = confirmResult.message || 'Payment operation failed';
+        addToast('error', errorMessage);
+        console.error('❌ Payment operation failed:', confirmResult.error);
+        setError(errorMessage);
+        return { success: false, message: errorMessage };
+      }
+    } catch (error) {
+      console.error('❌ Payment processing error:', error);
+      
+      let errorMessage = 'Network error occurred during payment';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      addToast('error', errorMessage);
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     } finally {
-      setLoading(false);
+      setPaymentProcessing(false);
+      setPreventDoubleClick(false); // Reset double click protection
+      clearTimeout(timeoutId); // Clear timeout on success or failure
     }
-  }, [user, activeTableNumber]);
+  }, [user?.token, clearCart, addToast, preventDoubleClick]);
 
-  // User değiştiğinde sepeti yükle
-  useEffect(() => {
-    if (user) {
-      loadCart();
-    } else {
-      setCart(null);
-      setError(null);
-    }
-  }, [user, loadCart]);
-
-  // Aktif masa numarası değiştiğinde sepeti yeniden yükle
-  useEffect(() => {
-    if (user && activeTableNumber) {
-      console.log('🔄 Masa değişti:', activeTableNumber, '→ Sepet yeniden yükleniyor...');
-      setCart(null); // Önce mevcut sepeti temizle
-      loadCart(); // Yeni masadan sepet yükle
-    }
-  }, [activeTableNumber, user, loadCart]);
-
-  // Sepete ürün ekle
-  const addToCart = useCallback(async (product: Product, quantity: number = 1, notes?: string) => {
-    if (!user) {
-      console.log('❌ Kullanıcı giriş yapmamış, ürün eklenemez');
+  // Load cart for specific table from backend
+  const loadCartForTable = useCallback(async (tableNumber: number) => {
+    if (!tableNumber) {
+      console.error('❌ Table number is required for loading cart');
+      addToast('error', 'Table number is required');
       return;
     }
 
     try {
-      setLoading(true);
-      setError(null);
-      console.log('🛒 Sepete ürün ekleniyor:', { product: product.name, quantity, notes });
-
-      const request: AddItemToCartRequest = {
-        productId: product.id,
-        quantity,
-        notes,
-        tableNumber: activeTableNumber,
-        waiterName: 'Kasiyer'
-      };
-
-      const response = await cartService.addItemToCart(request);
+      addToast('info', `Switching to table ${tableNumber}...`, 2000);
+      console.log('🔄 Switching to table', tableNumber);
       
-      // State'i güncelle
-      setCart(response.cart);
-      console.log('✅ Ürün başarıyla sepete eklendi, state güncellendi');
-    } catch (error: any) {
-      console.error('❌ Ürün ekleme hatası:', error);
-      setError(error.message || 'Ürün sepete eklenemedi');
+      // Backend'den sepet yükle
+      const result = await loadCartFromHook(tableNumber);
       
-      // Hata durumunda sepeti yeniden yükle
-      await loadCart();
-    } finally {
-      setLoading(false);
+      if (result.success) {
+        addToast('success', `Now serving table ${tableNumber}`, 2000);
+        setActiveTableNumber(tableNumber);
+      } else {
+        addToast('warning', `Table ${tableNumber} loaded with fallback mode`, 3000);
+        setActiveTableNumber(tableNumber);
+      }
+    } catch (error) {
+      const errorMessage = 'Failed to switch table';
+      addToast('error', errorMessage);
+      console.error('❌ Error switching table:', error);
     }
-  }, [user, loadCart, activeTableNumber]);
+  }, [addToast, loadCartFromHook]);
 
-  // Sepetten ürün çıkar
-  const removeFromCart = useCallback(async (itemId: string) => {
-    if (!cart || !user) return;
+  // Update cart item quantity for specific table
+  const updateItemQuantity = useCallback((itemId: string, quantity: number, tableNumber: number) => {
+    if (!tableNumber) {
+      console.error('❌ Table number is required for updating item quantity');
+      addToast('error', 'Table number is required');
+      return;
+    }
+
+    if (quantity <= 0) {
+      removeFromCart(itemId, tableNumber);
+      addToast('info', 'Item removed from cart', 2000);
+    } else {
+      updateCartItem(itemId, quantity, tableNumber);
+      addToast('success', 'Cart updated successfully', 2000);
+    }
+  }, [removeFromCart, updateCartItem, addToast]);
+
+  // Remove item from cart for specific table
+  const removeItem = useCallback((itemId: string, tableNumber: number) => {
+    if (!tableNumber) {
+      console.error('❌ Table number is required for removing item');
+      addToast('error', 'Table number is required');
+      return;
+    }
+
+    removeFromCart(itemId, tableNumber);
+    addToast('info', 'Item removed from cart', 2000);
+  }, [removeFromCart, addToast]);
+
+  // Clear current cart for specific table
+  const clearCurrentCart = useCallback((tableNumber: number) => {
+    if (!tableNumber) {
+      console.error('❌ Table number is required for clearing cart');
+      addToast('error', 'Table number is required');
+      return;
+    }
+
+    clearCart(tableNumber);
+    setActiveTableNumber(null);
+    addToast('success', 'Cart cleared successfully', 2000);
+  }, [clearCart, addToast]);
+
+  // Reset cart function for AuthContext
+  const resetCart = useCallback((tableNumber?: number) => {
+    if (tableNumber) {
+      clearCart(tableNumber);
+    }
+    setActiveTableNumber(null);
+    addToast('info', 'Cart reset', 2000);
+  }, [clearCart, addToast]);
+
+  // API ile sepeti sıfırla ve yeni sipariş durumunu güncelle
+  const resetCartAndUpdateOrderStatus = useCallback(async (invoiceId: string, receiptNumber: string, tableNumber: number) => {
+    if (!user?.token) {
+      addToast('error', 'User not authenticated for cart reset');
+      return;
+    }
+
+    if (!tableNumber) {
+      console.error('❌ Table number is required for resetting cart');
+      addToast('error', 'Table number is required');
+      return;
+    }
 
     try {
-      setLoading(true);
-      setError(null);
-      console.log('🛒 Sepetten ürün çıkarılıyor:', itemId);
-
-      await cartService.removeItemFromCart(cart.cartId, itemId);
+      addToast('info', 'Resetting cart and updating order status...', 2000);
       
-      // Sepeti yeniden yükle
-      await loadCart();
-      console.log('✅ Ürün başarıyla sepetten çıkarıldı');
-    } catch (error: any) {
-      console.error('❌ Ürün çıkarma hatası:', error);
-      setError(error.message || 'Ürün sepetten çıkarılamadı');
+      // 1. Mevcut sepeti API ile sıfırla ve yeni sipariş durumunu güncelle
+      const currentCart = getCartForTable(tableNumber);
+      if (currentCart?.cartId) {
+        const resetResult = await cartService.resetCartAfterPayment(currentCart.cartId, `Payment completed - Receipt: ${receiptNumber}`);
+        console.log('✅ Cart reset and order status updated via API:', resetResult);
+        
+        // Yeni sepet ID'sini güncelle
+        if (resetResult.newCartId) {
+          console.log('🆕 New cart ID assigned:', resetResult.newCartId);
+        }
+      }
+
+      // 2. Frontend state'i temizle
+      await clearCart(tableNumber);
+      setActiveTableNumber(null);
       
-      // Hata durumunda sepeti yeniden yükle
-      await loadCart();
-    } finally {
-      setLoading(false);
-    }
-  }, [cart, user, loadCart]);
-
-  // Sepet ürün miktarını güncelle
-  const updateCartQuantity = useCallback(async (itemId: string, newQuantity: number) => {
-    if (!cart || !user || newQuantity <= 0) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('🛒 Sepet ürün miktarı güncelleniyor:', { itemId, newQuantity });
-
-      await cartService.updateCartItem(cart.cartId, itemId, { quantity: newQuantity });
+      // 3. Başarı mesajı göster
+      addToast('success', `Cart reset and new order ready. Receipt: ${receiptNumber}`, 5000);
       
-      // Sepeti yeniden yükle
-      await loadCart();
-      console.log('✅ Ürün miktarı başarıyla güncellendi');
-    } catch (error: any) {
-      console.error('❌ Miktar güncelleme hatası:', error);
-      setError(error.message || 'Miktar güncellenemedi');
+      console.log('✅ Cart reset and order status update completed:', {
+        invoiceId,
+        receiptNumber,
+        tableNumber,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('❌ Error during cart reset and order status update:', error);
       
-      // Hata durumunda sepeti yeniden yükle
-      await loadCart();
-    } finally {
-      setLoading(false);
-    }
-  }, [cart, user, loadCart]);
-
-  // Sepeti temizle (tüm ürünleri sil)
-  const clearCart = useCallback(async () => {
-    if (!cart || !user) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('🛒 Sepet temizleniyor...');
-
-      await cartService.clearCartItems(cart.cartId);
-      
-      // State'i temizle
-      setCart(null);
-      console.log('✅ Sepet başarıyla temizlendi');
-    } catch (error: any) {
-      console.error('❌ Sepet temizleme hatası:', error);
-      setError(error.message || 'Sepet temizlenemedi');
-      
-      // Hata durumunda sepeti yeniden yükle
-      await loadCart();
-    } finally {
-      setLoading(false);
-    }
-  }, [cart, user, loadCart]);
-
-  // Sepeti sıfırla (yeni sepet oluştur)
-  const resetCart = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('🔄 Sepet sıfırlanıyor...');
-
-      // Mevcut sepeti temizle
-      if (cart) {
-        await cartService.deleteCart(cart.cartId);
+      let errorMessage = 'Failed to reset cart via API';
+      if (error instanceof Error) {
+        errorMessage = error.message;
       }
       
-      // State'i temizle
-      setCart(null);
-      console.log('✅ Sepet başarıyla sıfırlandı');
-    } catch (error: any) {
-      console.error('❌ Sepet sıfırlama hatası:', error);
-      setError(error.message || 'Sepet sıfırlanamadı');
-    } finally {
-      setLoading(false);
+      addToast('error', errorMessage);
+      
+      // Hata durumunda bile frontend state'i temizle
+      await clearCart(tableNumber);
+      setActiveTableNumber(null);
     }
-  }, [user, cart]);
+  }, [user?.token, getCartForTable, clearCart, addToast]);
 
-  // Hata temizleme
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+  // Get payment method info
+  const getPaymentMethodInfo = useCallback((method: string) => {
+    return getPaymentMethod(method);
+  }, [getPaymentMethod]);
 
-  // Sepet durumu bilgileri
-  const cartInfo = {
-    hasItems: cart && cart.items && cart.items.length > 0,
-    totalItems: cart?.totalItems || 0,
-    totalAmount: cart?.grandTotal || 0
-  };
+  // Check if payment method requires TSE
+  const isTseRequired = useCallback((method: string) => {
+    const methodInfo = getPaymentMethod(method);
+    return methodInfo?.requiresTse || false;
+  }, [getPaymentMethod]);
 
   return {
-    cart,
-    loading,
+    // State
+    activeTableNumber,
+    paymentProcessing,
+    preventDoubleClick,
     error,
-    cartInfo,
-    addToCart,
-    removeFromCart,
-    updateCartQuantity,
-    clearCart,
+    toasts,
+    
+    // Actions
+    processPayment,
+    loadCartForTable,
+    updateItemQuantity,
+    removeItem,
+    clearCurrentCart,
     resetCart,
-    clearError,
-    refreshCart: loadCart
+    resetCartAndUpdateOrderStatus,
+    getPaymentMethodInfo,
+    isTseRequired,
+    
+    // Toast management
+    addToast,
+    removeToast,
+    clearToasts,
+    
+    // Cart data
+    paymentMethods
   };
-} 
+}; 

@@ -147,6 +147,7 @@ const CartScreen: React.FC = () => {
   const [networkError, setNetworkError] = useState<string | null>(null); // Ağ hatası için state
   const [retryAction, setRetryAction] = useState<(() => void) | null>(null); // Tekrar denenecek fonksiyon
   const [showPayment, setShowPayment] = useState(false);
+  const [currentPaymentSessionId, setCurrentPaymentSessionId] = useState<string | null>(null); // Mevcut ödeme session ID'si
   const [lastPayments, setLastPayments] = useState<any>(null); // Son ödeme verisi (isteğe bağlı)
   const [splitData, setSplitData] = useState<any[]>([]); // Split bill verisi
   const [errorModal, setErrorModal] = useState({ visible: false, code: '', message: '' });
@@ -275,9 +276,27 @@ const CartScreen: React.FC = () => {
   // PaymentScreen onConfirm callback
   const handlePaymentConfirm = async (payments: any) => {
     setShowPayment(false);
+    setCurrentPaymentSessionId(null); // Session ID'yi temizle
     setLastPayments(payments); // Son ödemeyi kaydet (isteğe bağlı)
     // TODO: Backend'e ödeme isteği gönder, fatura oluştur, vs.
     Alert.alert(t('cart.paymentSuccess', 'Ödeme alındı'), `${t('cart.paymentDetails', 'Ödeme detayları')}: ${JSON.stringify(payments, null, 2)}\n${t('cart.split', 'Split')}: ${JSON.stringify(splitData, null, 2)}`);
+  };
+
+  // PaymentScreen onPaymentCancelled callback
+  const handlePaymentCancelled = (cancelResponse: any) => {
+    setShowPayment(false);
+    setCurrentPaymentSessionId(null); // Session ID'yi temizle
+    
+    // Ödeme iptal bildirimini göster
+    addNotification({
+      type: 'info',
+      title: t('cart.paymentCancelled', 'Ödeme İptal Edildi'),
+      message: `${t('cart.cancellationReason', 'İptal Sebebi')}: ${cancelResponse.cancellationReason}`,
+      duration: 5000
+    });
+    
+    // Sepeti temizle (iptal edilen ödeme için)
+    clearCart();
   };
 
   // Hızlı işlem kısayolları
@@ -323,10 +342,15 @@ const CartScreen: React.FC = () => {
   // Ödeme işlemi (placeholder)
   const processPayment = async (method: string, amount: number) => {
     try {
+      // Ödeme session ID oluştur (gerçek uygulamada backend'den gelir)
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      setCurrentPaymentSessionId(sessionId);
+      
       // Backend'e ödeme isteği gönder
-      console.log(`Processing ${method} payment for ${amount}`);
-      // Başarılı ödeme simülasyonu
-      Alert.alert(t('cart.paymentSuccess', 'Başarılı'), `${method} ${t('cart.paymentSuccessMessage', 'ödeme alındı')}: ${amount.toFixed(2)} €`);
+      console.log(`Processing ${method} payment for ${amount} with session ${sessionId}`);
+      
+      // Ödeme ekranını aç
+      setShowPayment(true);
     } catch (error) {
       setErrorModal({
         visible: true,
@@ -557,8 +581,10 @@ const CartScreen: React.FC = () => {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)' }}>
           <PaymentScreen
             totalAmount={totalAmount}
+            paymentSessionId={currentPaymentSessionId}
             onConfirm={handlePaymentConfirm}
             onCancel={() => setShowPayment(false)}
+            onPaymentCancelled={handlePaymentCancelled}
           />
         </View>
       </Modal>

@@ -111,12 +111,13 @@ namespace KasseAPI_Final.Models
 
     public enum InvoiceStatus
     {
-        Draft = 0,
-        Sent = 1,
-        Paid = 2,
-        Overdue = 3,
-        Cancelled = 4,
-        PartiallyPaid = 5
+        Draft,
+        Sent,
+        Paid,
+        PartiallyPaid,
+        Unpaid,
+        Overdue,
+        Cancelled
     }
 
     public enum PaymentMethod

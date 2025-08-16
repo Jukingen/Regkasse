@@ -36,4 +36,15 @@ export interface Order {
   notes?: string;
   status: 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
   createdAt: Date;
+}
+
+// Ödeme iptal yanıt tipi
+export interface PaymentCancelResponse {
+  success: boolean;
+  paymentSessionId: string;
+  cartId: string;
+  cancelledAt: Date;
+  cancelledBy: string;
+  cancellationReason: string;
+  message: string;
 } 

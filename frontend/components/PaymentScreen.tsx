@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { PaymentService } from '../services/api/paymentService';
+import { PaymentCancelResponse } from '../types/cart';
 
 // Desteklenen ödeme yöntemleri ve ikon adları
 type PaymentMethodKey = 'cash' | 'card' | 'voucher' | 'contactless';
@@ -15,11 +17,19 @@ const PAYMENT_METHODS: { key: PaymentMethodKey; label: string; icon: keyof typeo
 
 type PaymentScreenProps = {
   totalAmount: number;
+  paymentSessionId?: string; // Ödeme session ID'si
   onConfirm: (payments: Record<PaymentMethodKey, string>) => void;
   onCancel: () => void;
+  onPaymentCancelled?: (response: PaymentCancelResponse) => void; // İptal callback'i
 };
 
-const PaymentScreen: React.FC<PaymentScreenProps> = ({ totalAmount, onConfirm, onCancel }) => {
+const PaymentScreen: React.FC<PaymentScreenProps> = ({ 
+  totalAmount, 
+  paymentSessionId, 
+  onConfirm, 
+  onCancel,
+  onPaymentCancelled 
+}) => {
   // Her ödeme yöntemi için ayrı tutar state'i
   const [payments, setPayments] = useState<Record<PaymentMethodKey, string>>({
     cash: '',
@@ -38,6 +48,57 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({ totalAmount, onConfirm, o
     // Sadece sayı ve nokta kabul et
     if (!/^\d*\.?\d*$/.test(value)) return;
     setPayments(prev => ({ ...prev, [method]: value }));
+  };
+
+  // Ödeme iptal işlemi
+  const handlePaymentCancel = async () => {
+    if (!paymentSessionId) {
+      // Session ID yoksa sadece UI'ı kapat
+      onCancel();
+      return;
+    }
+
+    Alert.alert(
+      'Ödeme İptali',
+      'Bu ödeme işlemini iptal etmek istediğinizden emin misiniz?',
+      [
+        { text: 'Hayır', style: 'cancel' },
+        {
+          text: 'Evet, İptal Et',
+          style: 'destructive',
+          onPress: async () => {
+            setProcessing(true);
+            try {
+              const paymentService = new PaymentService();
+              const cancelResponse = await paymentService.cancelPayment(
+                paymentSessionId, 
+                'Kasiyer tarafından iptal edildi'
+              );
+
+              if (cancelResponse.success) {
+                // Başarılı iptal - callback'i çağır
+                if (onPaymentCancelled) {
+                  onPaymentCancelled(cancelResponse);
+                }
+                
+                Alert.alert(
+                  'Ödeme İptal Edildi',
+                  `Ödeme başarıyla iptal edildi.\n\nİptal Sebebi: ${cancelResponse.cancellationReason}\nİptal Eden: ${cancelResponse.cancelledBy}\nİptal Zamanı: ${new Date(cancelResponse.cancelledAt).toLocaleString('de-DE')}`,
+                  [{ text: 'Tamam', onPress: () => onCancel() }]
+                );
+              } else {
+                Alert.alert('Hata', 'Ödeme iptal edilirken bir hata oluştu.');
+              }
+            } catch (error) {
+              console.error('Payment cancellation error:', error);
+              Alert.alert('Hata', 'Ödeme iptal edilirken bir hata oluştu. Lütfen tekrar deneyin.');
+            } finally {
+              setProcessing(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   // Onayla butonuna basınca
@@ -86,7 +147,11 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({ totalAmount, onConfirm, o
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} disabled={processing}>
+        <TouchableOpacity 
+          style={styles.cancelBtn} 
+          onPress={handlePaymentCancel} 
+          disabled={processing}
+        >
           <Text style={styles.buttonText}>İptal</Text>
         </TouchableOpacity>
         <TouchableOpacity

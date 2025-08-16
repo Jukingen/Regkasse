@@ -7,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using KasseAPI_Final.Services;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -82,6 +83,32 @@ namespace KasseAPI_Final.Controllers
             {
                 _logger.LogError(ex, "Login error for user: {Email}", model.Email);
                 return StatusCode(500, new { message = "Giriş işlemi sırasında hata oluştu" });
+            }
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                _logger.LogInformation("Logout requested for user: {UserId}", userId);
+
+                // 🧹 KULLANICI SEPETLERİNİ TEMİZLE
+                var cartLifecycleService = HttpContext.RequestServices.GetRequiredService<CartLifecycleService>();
+                await cartLifecycleService.CleanupUserCarts(userId);
+
+                _logger.LogInformation("Logout successful for user: {UserId} - All carts cleaned", userId);
+                return Ok(new { message = "Logout successful, all user carts cleaned" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Logout error for user: {UserId}", 
+                    User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                return StatusCode(500, new { message = "Logout işlemi sırasında hata oluştu" });
             }
         }
 

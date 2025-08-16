@@ -34,13 +34,13 @@ interface TableOrder {
 
 interface Table {
   number: string;
-  status: 'empty' | 'occupied' | 'reserved' | 'paid';
+  status: 'empty' | 'occupied' | 'reserved' | 'cleaning';
   currentOrder?: TableOrder;
   customerName?: string;
   startTime?: Date;
-  lastOrderTime?: Date; // Son sipariş zamanı
-  totalPaid?: number; // Toplam ödenen miktar
-  orderHistory?: TableOrder[]; // Sipariş geçmişi
+  lastOrderTime?: Date;
+  totalPaid?: number;
+  orderHistory?: TableOrder[];
 }
 
 interface TableManagerProps {
@@ -66,10 +66,10 @@ const TableManager: React.FC<TableManagerProps> = ({
   const [editingTable, setEditingTable] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
 
-  // Demo masalar oluştur ve güncel siparişleri uygula
+  // Basit masa durumu yönetimi
   useEffect(() => {
     const demoTables: Table[] = [
-      { number: '1', status: 'empty' }, // Masa 1 başlangıçta boş
+      { number: '1', status: 'empty' },
       { number: '2', status: 'empty' },
       { number: '3', status: 'occupied', customerName: 'Maria Schmidt', startTime: new Date(Date.now() - 15 * 60 * 1000) },
       { number: '4', status: 'reserved', customerName: 'Reserviert' },
@@ -88,7 +88,6 @@ const TableManager: React.FC<TableManagerProps> = ({
       if (currentTableOrders.length > 0) {
         // Güncel siparişlerden toplam hesapla
         const total = currentTableOrders.reduce((sum, item) => {
-          // item.product.price yerine item.price kullan (CartItem formatı)
           const price = item.product ? item.product.price : item.price;
           return sum + (price * item.quantity);
         }, 0);
@@ -115,10 +114,9 @@ const TableManager: React.FC<TableManagerProps> = ({
         return { 
           ...table, 
           currentOrder: updatedOrder,
-          status: 'occupied' as const // Sipariş varsa masayı dolu olarak işaretle
+          status: 'occupied' as const
         };
       } else {
-        // Sipariş yoksa masayı boş olarak işaretle
         return { 
           ...table, 
           currentOrder: undefined,
@@ -128,14 +126,14 @@ const TableManager: React.FC<TableManagerProps> = ({
     });
 
     setTables(tablesWithOrders);
-  }, [tableOrders]); // tableOrders değiştiğinde masaları güncelle
+  }, [tableOrders]);
 
   const getTableStatusColor = (status: string) => {
     switch (status) {
       case 'empty': return Colors.light.success;
       case 'occupied': return Colors.light.warning;
       case 'reserved': return Colors.light.info;
-      case 'paid': return Colors.light.success;
+      case 'cleaning': return Colors.light.textSecondary;
       default: return Colors.light.textSecondary;
     }
   };
@@ -145,7 +143,7 @@ const TableManager: React.FC<TableManagerProps> = ({
       case 'empty': return 'Frei';
       case 'occupied': return 'Besetzt';
       case 'reserved': return 'Reserviert';
-      case 'paid': return 'Bezahlt';
+      case 'cleaning': return 'Reinigung';
       default: return 'Unbekannt';
     }
   };
@@ -227,16 +225,25 @@ const TableManager: React.FC<TableManagerProps> = ({
                   table.number === tableNumber 
                     ? { 
                         ...table, 
-                        status: 'empty', 
+                        status: 'cleaning', 
                         customerName: undefined, 
                         startTime: undefined, 
                         currentOrder: undefined,
-                        lastOrderTime: table.lastOrderTime, // Geçmişi koru
-                        totalPaid: table.totalPaid, // Toplam ödemeyi koru
-                        orderHistory: table.orderHistory // Sipariş geçmişini koru
+                        lastOrderTime: table.lastOrderTime,
+                        totalPaid: table.totalPaid,
+                        orderHistory: table.orderHistory
                       }
                     : table
                 ));
+                
+                // 5 saniye sonra masayı boş olarak işaretle
+                setTimeout(() => {
+                  setTables(prev => prev.map(table => 
+                    table.number === tableNumber 
+                      ? { ...table, status: 'empty' }
+                      : table
+                  ));
+                }, 5000);
               }
             }
           ]
@@ -263,11 +270,11 @@ const TableManager: React.FC<TableManagerProps> = ({
         );
         break;
         
-              case 'customer':
-          setEditingTable(tableNumber);
-          setCustomerName('');
-          setShowCustomerInput(true);
-          break;
+      case 'customer':
+        setEditingTable(tableNumber);
+        setCustomerName('');
+        setShowCustomerInput(true);
+        break;
         
       case 'status':
         Alert.alert(
@@ -335,6 +342,20 @@ const TableManager: React.FC<TableManagerProps> = ({
     return `${minutes} Min`;
   };
 
+  // Müşteri adı kaydetme işlemi
+  const handleSaveCustomerName = () => {
+    if (customerName && customerName.trim() && editingTable) {
+      setTables(prev => prev.map(table => 
+        table.number === editingTable 
+          ? { ...table, customerName: customerName.trim() }
+          : table
+      ));
+    }
+    setShowCustomerInput(false);
+    setEditingTable(null);
+    setCustomerName('');
+  };
+
   return (
     <Modal
       visible={visible}
@@ -355,114 +376,114 @@ const TableManager: React.FC<TableManagerProps> = ({
         <ScrollView style={styles.content}>
           <View style={styles.tableGrid}>
             {tables.map((table) => (
-                              <View
-                  key={table.number}
-                  style={[
-                    styles.tableCard,
-                    { borderColor: getTableStatusColor(table.status) },
-                    selectedTable === table.number && styles.selectedTableCard
-                  ]}
+              <View
+                key={table.number}
+                style={[
+                  styles.tableCard,
+                  { borderColor: getTableStatusColor(table.status) },
+                  selectedTable === table.number && styles.selectedTableCard
+                ]}
+              >
+                <TouchableOpacity
+                  style={styles.tableContent}
+                  onPress={() => handleTablePress(table)}
                 >
-                  <TouchableOpacity
-                    style={styles.tableContent}
-                    onPress={() => handleTablePress(table)}
-                  >
-                    <View style={styles.tableHeader}>
-                      <Text style={styles.tableNumber}>Tisch {table.number}</Text>
-                      <View style={[
-                        styles.statusIndicator,
-                        { backgroundColor: getTableStatusColor(table.status) }
-                      ]} />
-                    </View>
-                    
-                    <Text style={styles.tableStatus}>
-                      {getTableStatusText(table.status)}
-                    </Text>
-                    
-                    {table.customerName && (
-                      <Text style={styles.customerName} numberOfLines={1}>
-                        {table.customerName}
-                      </Text>
-                    )}
-                    
-                    {table.startTime && (
-                      <Text style={styles.startTime}>
-                        {formatTime(table.startTime)} ({getElapsedTime(table.startTime)})
-                      </Text>
-                    )}
-                    
-                    {table.lastOrderTime && (
-                      <Text style={styles.lastOrderTime}>
-                        Letzte Bestellung: {formatTime(table.lastOrderTime)} ({getLastOrderTime(table.lastOrderTime)})
-                      </Text>
-                    )}
-                    
-                    {table.totalPaid && table.totalPaid > 0 && (
-                      <Text style={styles.totalPaid}>
-                        Gesamt bezahlt: €{table.totalPaid.toFixed(2)}
-                      </Text>
-                    )}
-                    
-                    {table.currentOrder && (
-                      <View style={styles.tableOrderInfo}>
-                        <Text style={styles.tableOrderTotal}>
-                          €{table.currentOrder.total.toFixed(2)}
-                        </Text>
-                        <View style={[
-                          styles.orderStatus,
-                          { backgroundColor: getOrderStatusColor(table.currentOrder.status) }
-                        ]}>
-                          <Text style={styles.orderStatusText}>
-                            {getOrderStatusText(table.currentOrder.status)}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-
-                  {/* Hızlı Aksiyon Butonları */}
-                  <View style={styles.quickActions}>
-                    {/* Masa Temizle */}
-                    {table.status === 'occupied' && (
-                      <TouchableOpacity
-                        style={[styles.quickActionButton, styles.clearButton]}
-                        onPress={() => handleQuickAction('clear', table.number)}
-                      >
-                        <Ionicons name="trash-outline" size={16} color="white" />
-                      </TouchableOpacity>
-                    )}
-
-                    {/* Rezervasyon */}
-                    {table.status === 'empty' && (
-                      <TouchableOpacity
-                        style={[styles.quickActionButton, styles.reserveButton]}
-                        onPress={() => handleQuickAction('reserve', table.number)}
-                      >
-                        <Ionicons name="calendar-outline" size={16} color="white" />
-                      </TouchableOpacity>
-                    )}
-
-                    {/* Müşteri Adı */}
-                    {table.status === 'occupied' && (
-                      <TouchableOpacity
-                        style={[styles.quickActionButton, styles.customerButton]}
-                        onPress={() => handleQuickAction('customer', table.number)}
-                      >
-                        <Ionicons name="person-outline" size={16} color="white" />
-                      </TouchableOpacity>
-                    )}
-
-                    {/* Sipariş Durumu */}
-                    {table.currentOrder && (
-                      <TouchableOpacity
-                        style={[styles.quickActionButton, styles.statusButton]}
-                        onPress={() => handleQuickAction('status', table.number)}
-                      >
-                        <Ionicons name="time-outline" size={16} color="white" />
-                      </TouchableOpacity>
-                    )}
+                  <View style={styles.tableHeader}>
+                    <Text style={styles.tableNumber}>Tisch {table.number}</Text>
+                    <View style={[
+                      styles.statusIndicator,
+                      { backgroundColor: getTableStatusColor(table.status) }
+                    ]} />
                   </View>
+                  
+                  <Text style={styles.tableStatus}>
+                    {getTableStatusText(table.status)}
+                  </Text>
+                  
+                  {table.customerName && (
+                    <Text style={styles.customerName} numberOfLines={1}>
+                      {table.customerName}
+                    </Text>
+                  )}
+                  
+                  {table.startTime && (
+                    <Text style={styles.startTime}>
+                      {formatTime(table.startTime)} ({getElapsedTime(table.startTime)})
+                    </Text>
+                  )}
+                  
+                  {table.lastOrderTime && (
+                    <Text style={styles.lastOrderTime}>
+                      Letzte Bestellung: {formatTime(table.lastOrderTime)} ({getLastOrderTime(table.lastOrderTime)})
+                    </Text>
+                  )}
+                  
+                  {table.totalPaid && table.totalPaid > 0 && (
+                    <Text style={styles.totalPaid}>
+                      Gesamt bezahlt: €{table.totalPaid.toFixed(2)}
+                    </Text>
+                  )}
+                  
+                  {table.currentOrder && (
+                    <View style={styles.tableOrderInfo}>
+                      <Text style={styles.tableOrderTotal}>
+                        €{table.currentOrder.total.toFixed(2)}
+                      </Text>
+                      <View style={[
+                        styles.orderStatus,
+                        { backgroundColor: getOrderStatusColor(table.currentOrder.status) }
+                      ]}>
+                        <Text style={styles.orderStatusText}>
+                          {getOrderStatusText(table.currentOrder.status)}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* Hızlı Aksiyon Butonları */}
+                <View style={styles.quickActions}>
+                  {/* Masa Temizle */}
+                  {table.status === 'occupied' && (
+                    <TouchableOpacity
+                      style={[styles.quickActionButton, styles.clearButton]}
+                      onPress={() => handleQuickAction('clear', table.number)}
+                    >
+                      <Ionicons name="trash-outline" size={16} color="white" />
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Rezervasyon */}
+                  {table.status === 'empty' && (
+                    <TouchableOpacity
+                      style={[styles.quickActionButton, styles.reserveButton]}
+                      onPress={() => handleQuickAction('reserve', table.number)}
+                    >
+                      <Ionicons name="calendar-outline" size={16} color="white" />
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Müşteri Adı */}
+                  {table.status === 'occupied' && (
+                    <TouchableOpacity
+                      style={[styles.quickActionButton, styles.customerButton]}
+                      onPress={() => handleQuickAction('customer', table.number)}
+                    >
+                      <Ionicons name="person-outline" size={16} color="white" />
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Sipariş Durumu */}
+                  {table.currentOrder && (
+                    <TouchableOpacity
+                      style={[styles.quickActionButton, styles.statusButton]}
+                      onPress={() => handleQuickAction('status', table.number)}
+                    >
+                      <Ionicons name="time-outline" size={16} color="white" />
+                    </TouchableOpacity>
+                  )}
                 </View>
+              </View>
             ))}
           </View>
         </ScrollView>
@@ -502,18 +523,7 @@ const TableManager: React.FC<TableManagerProps> = ({
                 
                 <TouchableOpacity
                   style={[styles.customerInputButton, styles.saveButton]}
-                  onPress={() => {
-                    if (customerName && customerName.trim() && editingTable) {
-                      setTables(prev => prev.map(table => 
-                        table.number === editingTable 
-                          ? { ...table, customerName: customerName.trim() }
-                          : table
-                      ));
-                    }
-                    setShowCustomerInput(false);
-                    setEditingTable(null);
-                    setCustomerName('');
-                  }}
+                  onPress={handleSaveCustomerName}
                 >
                   <Text style={styles.saveButtonText}>Kaydet</Text>
                 </TouchableOpacity>

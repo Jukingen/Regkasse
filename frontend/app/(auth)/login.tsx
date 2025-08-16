@@ -233,8 +233,6 @@ export default function LoginScreen() {
                 </Text>
               </View>
               
-
-              
               {/* Genel Hata Mesajı */}
               {generalError && (
                 <ErrorMessage 
@@ -244,7 +242,7 @@ export default function LoginScreen() {
                 />
               )}
               
-                              <FormInput
+              <FormInput
                   label="Kullanıcı Adı veya Email"
                   placeholder="Kullanıcı adı, ID veya email adresinizi giriniz"
                   value={formData.username}
@@ -302,8 +300,6 @@ export default function LoginScreen() {
                   Giriş bilgileriniz güvenli şekilde şifrelenerek iletilir
                 </Text>
               </View>
-
-
               
               {/* Ek Güvenlik Bilgileri */}
               <View style={styles.additionalSecurityInfo}>
@@ -317,9 +313,9 @@ export default function LoginScreen() {
                 </View>
               </View>
             </View>
-
-                          {/* Alt Bilgi */}
-              <View style={styles.footer}>
+            
+            {/* Alt Bilgi */}
+            <View style={styles.footer}>
                 <View style={styles.securityInfo}>
                   <Ionicons name="shield-checkmark-outline" size={16} color="#34C759" />
                   <Text style={styles.securityText}>
@@ -500,8 +496,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  
-
   
   // Footer
   footer: {

@@ -141,6 +141,16 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddScoped<ITseService, TseService>();
 builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
 builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
+builder.Services.AddScoped<IReceiptService, ReceiptService>();
+
+// 🚀 Akıllı Sepet Yaşam Döngüsü Service'i
+builder.Services.AddHostedService<CartLifecycleService>();
+
+// Audit log service
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+
+// HttpContext accessor for audit logging
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
@@ -191,6 +201,9 @@ app.UseCors("AllowAll");
 // Authentication ve Authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Payment Security Middleware
+app.UseMiddleware<KasseAPI_Final.Middleware.PaymentSecurityMiddleware>();
 
 app.MapControllers();
 

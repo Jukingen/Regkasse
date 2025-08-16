@@ -1,119 +1,152 @@
-# Registrierkasse Development Log
+# Development Log - Registrierkasse
 
-## 2024-12-19 - Kapsamlı İyileştirme Paketi
+## 2025-01-XX - Ödeme Sonrası Sepet Sıfırlama ve Yeni Sipariş Durumu Güncelleme
 
-### ✅ Tamamlanan İyileştirmeler
+### 🎯 Amaç
+Ödeme tamamlandıktan sonra frontend'den API ile sepeti sıfırlama ve yeni sipariş durumunu güncelleme işlevselliği eklendi.
 
-#### 1. **Tüm Satış ve Stok Güncellemeleri Transaction İçinde**
-- **Dosya:** `backend/Registrierkasse_API/Controllers/InvoiceController.cs`
-- **Değişiklik:** CreateInvoice metodu tamamen yeniden yazıldı
-- **Özellikler:**
-  - ✅ Database transaction kullanımı (`BeginTransactionAsync`)
-  - ✅ TSE cihazı bağlantı kontrolü
-  - ✅ Stok kontrolü ve güncelleme
-  - ✅ Fiş ve fiş kalemlerinin atomik oluşturulması
-  - ✅ TSE imzalama işlemi
-  - ✅ Hata durumunda otomatik rollback
-  - ✅ Detaylı loglama
-- **Güvenlik:** TSE bağlı değilse fiş oluşturulamıyor
-- **Veri Tutarlılığı:** Tüm işlemler tek transaction'da
+### 🔧 Yapılan Değişiklikler
 
-#### 2. **Unique Constraint ve Indexler**
-- **Dosya:** `backend/Registrierkasse_API/Migrations/20241219_AddUniqueConstraintsAndIndexes.cs`
-- **Eklenen Indexler:**
-  - ✅ `receipt_number` - Unique index
-  - ✅ `tse_signature` - Unique index (null değerler hariç)
-  - ✅ `invoice_number` - Unique index
-  - ✅ `tse_serial_number` - Performans için
-  - ✅ `invoice_date`, `created_at` - Tarih bazlı arama için
-  - ✅ `customer_id`, `payment_status` - Filtreleme için
-  - ✅ `product_code` - Unique index
-  - ✅ `tax_number` - Unique index
-  - ✅ Email ve kullanıcı adı - Unique indexler
+#### Backend (C#)
+1. **CartController.cs** - Yeni endpoint eklendi:
+   - `POST /api/cart/{cartId}/reset-after-payment`
+   - Ödeme sonrası sepeti sıfırlar
+   - Yeni boş sepet oluşturur (aynı masa için)
+   - Sepet durumunu "Completed" olarak günceller
 
-#### 3. **Role-based Authorization**
-- **Dosya:** `backend/Registrierkasse_API/Authorization/AuthorizationPolicies.cs`
-- **Eklenen Policy'ler:**
-  - ✅ RequireAdmin, RequireManager, RequireCashier, RequireAccountant
-  - ✅ RequireAdminOrManager, RequireAdminOrCashier, RequireAdminOrAccountant
-  - ✅ RequireManagerOrCashier, RequireManagerOrAccountant
-- **Custom Attributes:** Her policy için özel attribute'lar
-- **Program.cs:** Authorization policy'leri konfigürasyonu
-- **InvoiceController:** Yeni attribute'ların kullanımı
+2. **TestController.cs** - Test endpoint'i eklendi:
+   - `POST /api/test/cart-reset-simulation`
+   - Test sepeti oluşturur (simülasyon için)
 
-#### 4. **Responsive Grid**
-- **Dosya:** `frontend/components/ProductList.tsx`
-- **Mevcut Durum:** Zaten responsive grid implementasyonu mevcut
-- **Özellikler:**
-  - ✅ Ekran boyutuna göre otomatik sütun sayısı
-  - ✅ Küçük ekranlarda tek sütun
-  - ✅ Orta ekranlarda 2 sütun
-  - ✅ Büyük ekranlarda 2+ sütun
-  - ✅ Dinamik kart genişliği hesaplama
+#### Frontend (React Native)
+1. **useCashRegister.ts** - Yeni fonksiyon eklendi:
+   - `resetCartAndUpdateOrderStatus()` - API ile sepet sıfırlama
+   - Ödeme tamamlandıktan sonra otomatik çağrılır
+   - **Çift tıklama koruması** eklendi
+   - **Timeout koruması** (5 dakika) eklendi
 
-#### 5. **Kullanıcı Oturumu Zaman Aşımı**
-- **Dosya:** `frontend/contexts/AuthContext.tsx`
-- **Eklenen Özellikler:**
-  - ✅ 30 dakika inactivity timeout
-  - ✅ Kullanıcı aktivitesi tracking
-  - ✅ Global event listener'lar (touch, scroll, key, mouse)
-  - ✅ Otomatik logout
-  - ✅ Timer yönetimi (start/stop)
-- **Güvenlik:** Uzun süre işlem yapılmazsa otomatik çıkış
+2. **cartService.ts** - Yeni metod eklendi:
+   - `resetCartAfterPayment()` - Backend API'yi çağırır
+   - Yeni sepet ID'sini günceller
 
-#### 6. **Hata ve Yükleniyor Ekranları**
-- **Dosya:** `frontend/components/ui/LoadingSpinner.tsx`
-- **Özellikler:**
-  - ✅ Özelleştirilebilir mesaj
-  - ✅ Farklı boyutlar (small/large)
-  - ✅ Renk seçenekleri
-- **Dosya:** `frontend/components/ui/ErrorMessage.tsx`
-- **Özellikler:**
-  - ✅ Error, warning, info tipleri
-  - ✅ Retry ve dismiss butonları
-  - ✅ Dinamik renk ve icon
-  - ✅ Responsive tasarım
+3. **cash-register.tsx** - UI güncellemeleri:
+   - Yeni sepet durumu göstergesi
+   - Ödeme sonrası başarı mesajı
+   - Yeni sipariş hazır bildirimi
+   - **Çift tıklama koruması** ile ödeme tuşu disable
+   - **Loading spinner** ve haptic feedback
+   - **ActiveOpacity** kontrolü
 
-#### 7. **OCRA-B Fontu**
-- **Dosya:** `frontend/components/ReceiptPrint.tsx`
-- **Özellikler:**
-  - ✅ Tüm metinlerde OCRA-B fontu
-  - ✅ RKSV uyumlu fiş formatı
-  - ✅ TSE bilgileri
-  - ✅ Vergi detayları
-  - ✅ Responsive tasarım
-- **RKSV Uyumluluğu:** Zorunlu alanlar ve format
+#### Test Dosyaları
+1. **payment-integration.test.ts** - Frontend test'leri:
+   - Sepet sıfırlama API çağrısı test'i
+   - Hata durumu test'i
+   - Cart ID güncelleme test'i
+   - **Çift tıklama koruması test'i**
 
-#### 8. **Gün Sonu (Tagesabschluss) Otomasyonu**
-- **Dosya:** `backend/Registrierkasse_API/Services/DailyReportService.cs`
-- **Özellikler:**
-  - ✅ Otomatik günlük rapor oluşturma
-  - ✅ TSE imzalama
-  - ✅ FinanzOnline entegrasyonu
-  - ✅ 23:30 uyarı sistemi
-  - ✅ Durum kontrolü
-- **Dosya:** `backend/Registrierkasse_API/Models/DailyReport.cs`
-- **Model:** Günlük rapor veri modeli
-- **Güvenlik:** TSE bağlantı kontrolü
+2. **test-cart-reset.http** - Backend test endpoint'leri:
+   - Test sepeti oluşturma
+   - Sepet sıfırlama
+   - Durum kontrolü
 
-### 🔄 Sıradaki İyileştirmeler
-1. **Performans Optimizasyonları** - Lazy loading, memoization
-2. **Test Coverage** - Unit ve integration testleri
-3. **CI/CD Pipeline** - Otomatik test ve deployment
-4. **Monitoring** - Loglama ve metrik toplama
-5. **Security Hardening** - Rate limiting, input validation
-6. **API Documentation** - Swagger/OpenAPI geliştirmeleri
+### 📋 Özellikler
+- ✅ Ödeme tamamlandıktan sonra otomatik sepet sıfırlama
+- ✅ Backend'de yeni sepet oluşturma (aynı masa için)
+- ✅ Frontend state temizleme
+- ✅ Yeni sipariş durumu göstergesi
+- ✅ Hata durumunda graceful fallback
+- ✅ Kapsamlı test coverage
+- ✅ Türkçe açıklamalar ve loglar
+- ✅ **Çift tıklama koruması** - Ödeme tuşu API çağrısı sırasında disable
+- ✅ **Timeout koruması** - 5 dakika sonra otomatik reset
+- ✅ **Haptic feedback** - Dokunsal geri bildirim
+- ✅ **Loading states** - Görsel geri bildirim
 
-### 📋 Teknik Detaylar
-- **Transaction Pattern:** Using statement ile otomatik dispose
-- **Error Handling:** Try-catch ile rollback garantisi
-- **Logging:** Structured logging ile detaylı izleme
-- **Validation:** TSE, stok ve müşteri kontrolleri
-- **Performance:** Tek SaveChangesAsync çağrısı
-- **Security:** Role-based access control
-- **Compliance:** RKSV ve DSGVO uyumluluğu
-- **Responsive:** Mobile-first tasarım
-- **Accessibility:** Screen reader desteği
+### 🔄 İş Akışı
+1. Kullanıcı ödeme yapar
+2. **Çift tıklama koruması** devreye girer
+3. Ödeme başarılı olur
+4. `resetCartAndUpdateOrderStatus()` çağrılır
+5. Backend'de sepet durumu "Completed" olarak güncellenir
+6. Yeni boş sepet oluşturulur
+7. Frontend state temizlenir
+8. Yeni sipariş hazır bildirimi gösterilir
 
-### 🎯 Sonraki Adım
-**Offline Desteği** - PouchDB entegrasyonu ile tam offline çalışma modu 
+### 🧪 Test Etme
+```bash
+# Frontend test'leri
+npm test -- payment-integration.test.ts
+
+# Backend test endpoint'leri
+# test-cart-reset.http dosyasını kullan
+```
+
+### 📝 Notlar
+- Tüm işlemler transaction-safe
+- Hata durumunda bile frontend state temizlenir
+- Backend logları İngilizce, UI mesajları Almanca
+- Demo kullanıcılar için uygun
+- RKSV uyumlu TSE imzası desteği
+- **Çift tıklama koruması** ile güvenli ödeme işlemi
+- **Timeout koruması** ile sonsuz loading durumu önlenir
+- **Haptic feedback** ile kullanıcı deneyimi iyileştirildi
+
+---
+
+## 2025-01-XX - Çift Tıklama Koruması ve Güvenlik İyileştirmeleri
+
+### 🎯 Amaç
+Frontend'de ödeme tuşunda çift tıklamaları önlemek ve kullanıcı deneyimini iyileştirmek.
+
+### 🔧 Yapılan Değişiklikler
+
+#### Frontend (React Native)
+1. **useCashRegister.ts** - Güvenlik iyileştirmeleri:
+   - `preventDoubleClick` state'i eklendi
+   - **Çift tıklama koruması** implementasyonu
+   - **Timeout koruması** (5 dakika) eklendi
+   - State yönetimi iyileştirildi
+
+2. **cash-register.tsx** - UI güvenlik iyileştirmeleri:
+   - Ödeme tuşu `disabled` state'i
+   - **Loading spinner** ve görsel geri bildirim
+   - **Haptic feedback** (dokunsal geri bildirim)
+   - **ActiveOpacity** kontrolü
+   - Tuş metni duruma göre değişiyor
+
+### 📋 Güvenlik Özellikleri
+- ✅ **Çift tıklama koruması** - API çağrısı sırasında tuş disable
+- ✅ **Timeout koruması** - 5 dakika sonra otomatik reset
+- ✅ **State yönetimi** - Güvenli state geçişleri
+- ✅ **Visual feedback** - Loading spinner ve disabled styles
+- ✅ **Haptic feedback** - Dokunsal geri bildirim
+- ✅ **Error handling** - Hata durumunda state temizleme
+
+### 🔄 Güvenlik İş Akışı
+1. Kullanıcı ödeme tuşuna tıklar
+2. **Çift tıklama koruması** devreye girer
+3. Ödeme tuşu disable olur
+4. Loading spinner gösterilir
+5. API çağrısı yapılır
+6. **Timeout koruması** devreye girer (5 dakika)
+7. İşlem tamamlanır veya timeout olur
+8. State'ler temizlenir, tuş tekrar aktif olur
+
+### 🎨 UI İyileştirmeleri
+- **Disabled Button**: Gri renk ve opacity kontrolü
+- **Loading Spinner**: ⏳ emoji ile görsel geri bildirim
+- **Button Text**: Duruma göre dinamik metin
+- **Haptic Feedback**: Farklı titreşim desenleri
+- **Active Opacity**: Tuş basma efekti kontrolü
+
+### 📝 Teknik Detaylar
+- **State Management**: React hooks ile güvenli state yönetimi
+- **Timeout Handling**: setTimeout/clearTimeout ile timeout yönetimi
+- **Error Recovery**: Hata durumunda otomatik state temizleme
+- **Performance**: Gereksiz re-render'ları önleme
+- **Accessibility**: Disabled state ve loading göstergeleri
+
+---
+
+## Önceki Geliştirmeler
+- [Önceki entry'ler buraya eklenebilir] 

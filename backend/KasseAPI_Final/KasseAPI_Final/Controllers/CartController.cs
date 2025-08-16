@@ -31,21 +31,46 @@ namespace KasseAPI_Final.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
+                // 🔍 DEBUG: Kullanıcı ID'sini logla
+                _logger.LogInformation("GetCurrentUserCart called - UserId: {UserId}, TableNumber: {TableNumber}", userId, tableNumber);
+
+                // ✅ GÜVENLİK: SADECE KULLANICININ KENDİ SEPETİNİ GÖRMESİ
                 var cart = await _context.Carts
                     .Include(c => c.Items)
                         .ThenInclude(ci => ci.Product)
                     .Include(c => c.Customer)
-                    .Where(c => c.TableNumber == tableNumber && c.Status == CartStatus.Active)
+                    .Where(c => c.TableNumber == tableNumber && 
+                               c.Status == CartStatus.Active && 
+                               c.UserId == userId) // 🔒 Güvenlik: UserId kontrolü
                     .FirstOrDefaultAsync();
 
                 if (cart == null)
                 {
+                    // 🔍 DEBUG: Bu masa için hangi sepetler var kontrol et
+                    var allCartsForTable = await _context.Carts
+                        .Where(c => c.TableNumber == tableNumber && c.Status == CartStatus.Active)
+                        .Select(c => new { c.CartId, c.UserId, c.CreatedAt, c.Items.Count })
+                        .ToListAsync();
+                    
+                    _logger.LogInformation("No cart found for user {UserId} at table {TableNumber}. Available carts: {Carts}", 
+                        userId, tableNumber, 
+                        string.Join(", ", allCartsForTable.Select(c => $"CartId={c.CartId}, UserId={c.UserId}, Items={c.Count}")));
+                    
                     return NotFound(new { message = $"No active cart found for table {tableNumber}" });
                 }
 
                 // Debug: Cart ve CartItem'ları kontrol et
                 _logger.LogInformation("GetCurrentUserCart: Table={TableNumber}, CartId={CartId}, ItemsCount={ItemsCount}, UserId={UserId}, CreatedAt={CreatedAt}", 
                     tableNumber, cart.CartId, cart.Items.Count, userId, cart.CreatedAt);
+                
+                // 🔍 DEBUG: Tüm cart'ları listele (sadece debug için)
+                var allCarts = await _context.Carts
+                    .Where(c => c.TableNumber == tableNumber && c.Status == CartStatus.Active)
+                    .Select(c => new { c.CartId, c.UserId, c.CreatedAt, c.Items.Count })
+                    .ToListAsync();
+                
+                _logger.LogInformation("All carts for table {TableNumber}: {Carts}", tableNumber, 
+                    string.Join(", ", allCarts.Select(c => $"CartId={c.CartId}, UserId={c.UserId}, Items={c.Count}")));
                 
                 foreach (var item in cart.Items)
                 {
@@ -97,11 +122,17 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                // ✅ Token'dan kullanıcı ID'sini al
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
                 var cart = await _context.Carts
                     .Include(c => c.Items)
                         .ThenInclude(ci => ci.Product)
                     .Include(c => c.Customer)
-                    .FirstOrDefaultAsync(c => c.CartId == cartId && c.Status == CartStatus.Active);
+                    .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId && c.Status == CartStatus.Active);
 
                 if (cart == null)
                 {
@@ -209,8 +240,12 @@ namespace KasseAPI_Final.Controllers
 
                 // Kullanıcının belirli masadaki aktif sepetini bul veya oluştur
                 var tableNumber = request.TableNumber ?? 1;
+                
+                // ✅ GÜVENLİK: SADECE KULLANICININ KENDİ SEPETİNİ GÖRMESİ
                 var cart = await _context.Carts
-                    .Where(c => c.TableNumber == tableNumber && c.Status == CartStatus.Active)
+                    .Where(c => c.TableNumber == tableNumber && 
+                               c.Status == CartStatus.Active && 
+                               c.UserId == userId) // 🔒 Güvenlik: UserId kontrolü
                     .FirstOrDefaultAsync();
 
                 if (cart == null)
@@ -222,7 +257,7 @@ namespace KasseAPI_Final.Controllers
                         CartId = cartId,
                         TableNumber = tableNumber,
                         WaiterName = request.WaiterName ?? "Kasiyer",
-                        UserId = userId,
+                        UserId = userId, // 🔒 Güvenlik: UserId set et
                         ExpiresAt = DateTime.UtcNow.AddHours(24),
                         Status = CartStatus.Active
                     };
@@ -234,8 +269,8 @@ namespace KasseAPI_Final.Controllers
                 else
                 {
                     // Bu masada mevcut sepet bulundu
-                    _logger.LogInformation("Existing cart found for table {TableNumber}: {CartId}, ItemsCount={ItemsCount}", 
-                        tableNumber, cart.CartId, cart.Items?.Count ?? 0);
+                    _logger.LogInformation("Existing cart found for table {TableNumber}: {CartId}, ItemsCount={ItemsCount}, UserId={UserId}", 
+                        tableNumber, cart.CartId, cart.Items?.Count ?? 0, cart.UserId);
                 }
 
                 // Ürünü kontrol et
@@ -245,8 +280,8 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "Product not found" });
                 }
 
-                _logger.LogInformation("Processing cart item: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}", 
-                    cart.CartId, request.ProductId, request.Quantity);
+                _logger.LogInformation("Processing cart item: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}, UserId={UserId}", 
+                    cart.CartId, request.ProductId, request.Quantity, userId);
 
                 // Sepette bu ürün zaten var mı kontrol et
                 var existingItem = await _context.CartItems
@@ -257,8 +292,8 @@ namespace KasseAPI_Final.Controllers
                     // Miktarı güncelle
                     existingItem.Quantity += request.Quantity;
                     existingItem.Notes = request.Notes ?? existingItem.Notes;
-                    _logger.LogInformation("Updated existing cart item: ItemId={ItemId}, NewQuantity={NewQuantity}", 
-                        existingItem.Id, existingItem.Quantity);
+                    _logger.LogInformation("Updated existing cart item: ItemId={ItemId}, NewQuantity={NewQuantity}, UserId={UserId}", 
+                        existingItem.Id, existingItem.Quantity, userId);
                 }
                 else
                 {
@@ -272,13 +307,13 @@ namespace KasseAPI_Final.Controllers
                         Notes = request.Notes
                     };
                     _context.CartItems.Add(cartItem);
-                    _logger.LogInformation("Added new cart item: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}", 
-                        cart.CartId, request.ProductId, request.Quantity);
+                    _logger.LogInformation("Added new cart item: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}, UserId={UserId}", 
+                        cart.CartId, request.ProductId, request.Quantity, userId);
                 }
 
                 // Tüm değişiklikleri tek seferde kaydet
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("All changes saved to database for cart: {CartId}", cart.CartId);
+                _logger.LogInformation("All changes saved to database for cart: {CartId}, UserId: {UserId}", cart.CartId, userId);
 
                 // Güncellenmiş sepeti getir
                 var updatedCart = await _context.Carts
@@ -287,8 +322,8 @@ namespace KasseAPI_Final.Controllers
                     .FirstOrDefaultAsync(c => c.CartId == cart.CartId);
 
                 // Debug: CartItem'ları kontrol et
-                _logger.LogInformation("Updated cart retrieved: CartId={CartId}, ItemsCount={ItemsCount}", 
-                    updatedCart.CartId, updatedCart.Items.Count);
+                _logger.LogInformation("Updated cart retrieved: CartId={CartId}, ItemsCount={ItemsCount}, UserId={UserId}", 
+                    updatedCart.CartId, updatedCart.Items.Count, userId);
                 
                 foreach (var item in updatedCart.Items)
                 {
@@ -325,8 +360,8 @@ namespace KasseAPI_Final.Controllers
                     GrandTotal = updatedCart.Items.Sum(ci => ci.Quantity * ci.UnitPrice * (1 + GetTaxRate(ci.Product.TaxType)))
                 };
 
-                _logger.LogInformation("Item added to cart: Product {ProductId}, Quantity {Quantity}, Cart {CartId}", 
-                    request.ProductId, request.Quantity, cart.CartId);
+                _logger.LogInformation("Item added to cart: Product {ProductId}, Quantity {Quantity}, Cart {CartId}, UserId: {UserId}", 
+                    request.ProductId, request.Quantity, cart.CartId, userId);
 
                 return Ok(new { 
                     message = "Item added to cart successfully", 
@@ -346,11 +381,17 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var cart = await _context.Carts.FindAsync(cartId);
-                if (cart == null || cart.Status != CartStatus.Active)
-                {
-                    return NotFound(new { message = "Cart not found or expired" });
-                }
+                // ✅ Token'dan kullanıcı ID'sini al
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
+                var cart = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId && c.Status == CartStatus.Active);
+                
+                if (cart == null)
+                    return NotFound(new { message = $"Cart {cartId} not found or not accessible" });
 
                 var product = await _context.Products.FindAsync(request.ProductId);
                 if (product == null)
@@ -427,6 +468,18 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                // ✅ Token'dan kullanıcı ID'sini al
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
+                var cart = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId);
+                
+                if (cart == null)
+                    return NotFound(new { message = $"Cart {cartId} not found or not accessible" });
+
                 var cartItem = await _context.CartItems
                     .FirstOrDefaultAsync(ci => ci.CartId == cartId && ci.Id == itemId);
 
@@ -453,11 +506,17 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var cart = await _context.Carts.FindAsync(cartId);
+                // ✅ Token'dan kullanıcı ID'sini al
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
+                var cart = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId);
+                
                 if (cart == null)
-                {
-                    return NotFound(new { message = "Cart not found" });
-                }
+                    return NotFound(new { message = $"Cart {cartId} not found or not accessible" });
 
                 var cartItems = await _context.CartItems
                     .Where(ci => ci.CartId == cartId)
@@ -482,11 +541,17 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var cart = await _context.Carts.FindAsync(cartId);
+                // ✅ Token'dan kullanıcı ID'sini al
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
+                var cart = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId);
+                
                 if (cart == null)
-                {
-                    return NotFound(new { message = "Cart not found" });
-                }
+                    return NotFound(new { message = $"Cart {cartId} not found or not accessible" });
 
                 var cartItems = await _context.CartItems
                     .Where(ci => ci.CartId == cartId)
@@ -501,6 +566,155 @@ namespace KasseAPI_Final.Controllers
             {
                 _logger.LogError(ex, "Error clearing cart items");
                 return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // POST: api/cart/clear - Belirli masadaki sepeti temizle
+        [HttpPost("clear")]
+        public async Task<IActionResult> ClearCartByTable([FromQuery] int tableNumber)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                _logger.LogInformation("🧹 Clearing cart for table: TableNumber={TableNumber}, UserId={UserId}", 
+                    tableNumber, userId);
+
+                // ✅ GÜVENLİK: SADECE KULLANICININ KENDİ SEPETİNİ TEMİZLEMESİ
+                var carts = await _context.Carts
+                    .Include(c => c.Items)
+                    .Where(c => c.TableNumber == tableNumber && 
+                               c.Status == CartStatus.Active && 
+                               c.UserId == userId) // 🔒 Güvenlik: UserId kontrolü
+                    .ToListAsync();
+
+                if (!carts.Any())
+                {
+                    _logger.LogInformation("ℹ️ No active carts found for user {UserId} at table: TableNumber={TableNumber}", 
+                        userId, tableNumber);
+                    return Ok(new { message = $"No active carts found for table {tableNumber}", clearedCount = 0 });
+                }
+
+                // 🔍 DEBUG: Bu masa için hangi sepetler var kontrol et
+                var allCartsForTable = await _context.Carts
+                    .Where(c => c.TableNumber == tableNumber && c.Status == CartStatus.Active)
+                    .Select(c => new { c.CartId, c.UserId, c.CreatedAt, c.Items.Count })
+                    .ToListAsync();
+                
+                _logger.LogInformation("🔍 All carts for table {TableNumber}: {Carts}", tableNumber, 
+                    string.Join(", ", allCartsForTable.Select(c => $"CartId={c.CartId}, UserId={c.UserId}, Items={c.Count}")));
+
+                int totalItemsCleared = 0;
+                int totalCartsCleared = 0;
+
+                foreach (var cart in carts)
+                {
+                    // Sepet ürünlerini temizle
+                    if (cart.Items.Any())
+                    {
+                        totalItemsCleared += cart.Items.Count;
+                        _context.CartItems.RemoveRange(cart.Items);
+                        _logger.LogInformation("🧹 Cleared {ItemsCount} items from cart: CartId={CartId}, TableNumber={TableNumber}, UserId={UserId}", 
+                            cart.Items.Count, cart.CartId, tableNumber, cart.UserId);
+                    }
+
+                    // Sepeti sil
+                    _context.Carts.Remove(cart);
+                    totalCartsCleared++;
+                    _logger.LogInformation("🗑️ Removed cart: CartId={CartId}, TableNumber={TableNumber}, UserId={UserId}", 
+                        cart.CartId, tableNumber, cart.UserId);
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("✅ Successfully cleared {CartsCount} carts with {ItemsCount} total items for user {UserId} at table: TableNumber={TableNumber}", 
+                    totalCartsCleared, totalItemsCleared, userId, tableNumber);
+
+                return Ok(new { 
+                    message = $"Successfully cleared {totalCartsCleared} carts with {totalItemsCleared} total items for table {tableNumber}",
+                    clearedCarts = totalCartsCleared,
+                    clearedItems = totalItemsCleared,
+                    tableNumber = tableNumber,
+                    userId = userId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error clearing cart for table: TableNumber={TableNumber}", tableNumber);
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // POST: api/cart/{cartId}/reset-after-payment - Ödeme sonrası sepeti sıfırla ve yeni sipariş durumunu güncelle
+        [HttpPost("{cartId}/reset-after-payment")]
+        public async Task<IActionResult> ResetCartAfterPayment(string cartId, [FromBody] ResetCartAfterPaymentRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
+
+                _logger.LogInformation("Resetting cart after payment: CartId={CartId}, UserId={UserId}, UserRole={UserRole}", 
+                    cartId, userId, userRole);
+
+                var cart = await _context.Carts
+                    .Include(c => c.Items)
+                    .FirstOrDefaultAsync(c => c.CartId == cartId);
+
+                if (cart == null)
+                {
+                    _logger.LogWarning("Cart not found for reset after payment: CartId={CartId}", cartId);
+                    return NotFound(new { message = "Cart not found" });
+                }
+
+                // Sepet durumunu "Completed" olarak güncelle
+                cart.Status = CartStatus.Completed;
+                cart.UpdatedAt = DateTime.UtcNow;
+                cart.Notes = request.Notes ?? cart.Notes;
+
+                // Sepet ürünlerini temizle
+                var cartItems = await _context.CartItems
+                    .Where(ci => ci.CartId == cartId)
+                    .ToListAsync();
+
+                _context.CartItems.RemoveRange(cartItems);
+
+                // Yeni boş sepet oluştur (aynı masa için)
+                var newCart = new Cart
+                {
+                    CartId = Guid.NewGuid().ToString(),
+                    TableNumber = cart.TableNumber,
+                    WaiterName = cart.WaiterName,
+                    CustomerId = null, // Yeni müşteri için
+                    Status = CartStatus.Active,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    ExpiresAt = DateTime.UtcNow.AddHours(24),
+                    Notes = "New order after payment completion",
+                    UserId = userId
+                };
+
+                _context.Carts.Add(newCart);
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Cart reset after payment completed: OldCartId={OldCartId}, NewCartId={NewCartId}, TableNumber={TableNumber}", 
+                    cartId, newCart.CartId, cart.TableNumber);
+
+                return Ok(new { 
+                    message = "Cart reset after payment completed successfully",
+                    oldCartId = cartId,
+                    newCartId = newCart.CartId,
+                    tableNumber = cart.TableNumber,
+                    status = "ready_for_new_order"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting cart after payment: CartId={CartId}", cartId);
+                return StatusCode(500, new { message = "Internal server error during cart reset" });
             }
         }
 
@@ -673,5 +887,10 @@ namespace KasseAPI_Final.Controllers
         public DateTime? CompletedAt { get; set; }
         public int TotalItems { get; set; }
         public decimal TotalAmount { get; set; }
+    }
+
+    public class ResetCartAfterPaymentRequest
+    {
+        public string? Notes { get; set; }
     }
 }

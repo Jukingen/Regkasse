@@ -139,18 +139,30 @@ class PaymentService {
   }
 
   // Ödeme iptal
-  async cancelPayment(id: string): Promise<boolean> {
+  async cancelPayment(sessionId: string, reason?: string): Promise<PaymentCancelResponse> {
     try {
-      const response = await apiClient.post(`${this.baseUrl}/${id}/cancel`);
-      return response.status === 200;
+      const response = await apiClient.post<PaymentCancelResponse>('/api/payment/cancel', {
+        paymentSessionId: sessionId,
+        cancellationReason: reason || 'Kasiyer tarafından iptal edildi'
+      });
+      return response;
     } catch (error) {
       console.error('Payment cancellation failed:', error);
       
       // Çevrimdışı modda çalışıyorsa offline iptal et
       const { offlineManager } = await import('../offline/OfflineManager');
-      await offlineManager.cancelOfflinePayment(id);
+      await offlineManager.cancelOfflinePayment(sessionId);
       
-      return true;
+      // Offline response döndür
+      return {
+        success: true,
+        paymentSessionId: sessionId,
+        cartId: '',
+        cancelledAt: new Date(),
+        cancelledBy: 'Offline',
+        cancellationReason: reason || 'Offline iptal',
+        message: 'Payment cancelled offline'
+      };
     }
   }
 

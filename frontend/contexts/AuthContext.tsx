@@ -8,7 +8,9 @@ import { handleAPIError } from '../services/errorService';
 import { getUserSettings, getDefaultUserSettings } from '../services/api/userSettingsService';
 import i18n from '../i18n';
 import { useTranslation } from 'react-i18next';
-import { useCashRegister } from '../hooks/useCashRegister';
+
+// Cart cache temizleme için event listener
+const CART_CLEAR_EVENT = 'logout-clear-cache';
 
 interface User {
     id: string;
@@ -50,6 +52,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Inactivity timeout (30 dakika)
     const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 dakika
 
+    // 🧹 Cart cache temizleme fonksiyonu
+    const clearCartCache = async () => {
+        try {
+            console.log('🧹 Cart cache temizleniyor...');
+            
+            // AsyncStorage'dan cart verilerini temizle
+            const cartKeys = [
+                'currentCartId',
+                'tableCarts',
+                'cartData',
+                'cartItems',
+                'cartState'
+            ];
+            
+            for (const key of cartKeys) {
+                await AsyncStorage.removeItem(key);
+            }
+            
+            // Local storage'dan cart verilerini temizle (web için)
+            if (typeof window !== 'undefined') {
+                const localStorageKeys = Object.keys(localStorage).filter(key => 
+                    key.includes('cart') || key.includes('Cart') || key.includes('table')
+                );
+                
+                localStorageKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                    console.log(`🗑️ LocalStorage key removed: ${key}`);
+                });
+            }
+            
+            console.log('✅ Cart cache temizlendi');
+        } catch (error) {
+            console.error('❌ Cart cache temizleme hatası:', error);
+        }
+    };
+
     const checkTokenExpiration = (token: string): boolean => {
         try {
             const decoded = jwtDecode(token);
@@ -87,6 +125,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setInactivityTimer(null);
         }
     };
+
+    // 🧹 Logout event listener - Cart cache temizleme için
+    useEffect(() => {
+        const handleLogoutEvent = () => {
+            console.log('📡 Logout event received, clearing cart cache...');
+            clearCartCache();
+        };
+
+        // Event listener ekle
+        if (typeof window !== 'undefined') {
+            window.addEventListener(CART_CLEAR_EVENT, handleLogoutEvent);
+            
+            // Cleanup
+            return () => {
+                window.removeEventListener(CART_CLEAR_EVENT, handleLogoutEvent);
+            };
+        }
+    }, []);
 
     const checkAuthStatus = async () => {
         // Eğer yeni login olduysa auth check'i atla
@@ -238,7 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [justLoggedIn, isAuthenticated, user]);
 
-    const { resetCart } = useCashRegister(null); // user parametresi login öncesi null olabilir
+    // Cart reset will be handled by the component that uses AuthContext
 
     const login = async (username: string, password: string) => {
         console.log('Login function called with username:', username); // Debug log
@@ -276,7 +332,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // --- CART TEMİZLİĞİ ---
             await AsyncStorage.removeItem('currentCartId');
-            resetCart(); // FE cart state'ini de sıfırla
+            // Cart state will be reset by the component that uses AuthContext
             // --- CART TEMİZLİĞİ SONU ---
 
             console.log('Setting user state...'); // Debug log
@@ -338,12 +394,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Logout function called'); // Debug log
         
         try {
-            // Önce API logout çağrısı yap
+            // 🧹 ÖNCE CART CACHE'İ TEMİZLE
+            await clearCartCache();
+            
+            // Backend logout API çağrısı yap
             const token = await AsyncStorage.getItem('token');
             if (token) {
                 try {
                     await authService.logout();
                     console.log('Logout API request successful'); // Debug log
+                    
+                    // 🧹 BACKEND LOGOUT API - Kullanıcı sepetlerini temizle
+                    try {
+                        console.log('🧹 Backend logout API çağrılıyor...');
+                        
+                        // Token'ı temizle (Bearer prefix olmadan)
+                        const cleanToken = token.replace('Bearer ', '');
+                        
+                        const logoutResponse = await fetch('http://localhost:5183/api/auth/logout', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${cleanToken}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (logoutResponse.ok) {
+                            const result = await logoutResponse.json();
+                            console.log('✅ Backend logout başarılı:', result.message);
+                        } else {
+                            console.warn('⚠️ Backend logout hatası:', logoutResponse.status, logoutResponse.statusText);
+                        }
+                    } catch (logoutError) {
+                        console.warn('Backend logout API hatası:', logoutError);
+                    }
+                    
                 } catch (apiError) {
                     console.error('Logout API error:', apiError); // Debug log
                     // API hatası olsa bile devam et
@@ -383,6 +468,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(false);
             
             console.log('Auth state cleared successfully'); // Debug log
+            
+            // LOGOUT EVENT YAYINLA - Cache temizleme için
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent(CART_CLEAR_EVENT));
+                console.log('Logout cache clear event dispatched');
+            }
             
             // Navigation'ı yap
             try {

@@ -1,0 +1,96 @@
+# Yazıcı Entegrasyonu Test Dosyası
+# Bu dosya, yazıcı entegrasyonu API endpoint'lerini test etmek için kullanılır
+
+### 1. Yazıcı Durumu Kontrolü
+GET {{baseUrl}}/api/printer/status
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+###
+
+### 2. Mevcut Yazıcıları Listele
+GET {{baseUrl}}/api/printer/printers
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+###
+
+### 3. Yazıcı Bağlantı Testi (Varsayılan)
+POST {{baseUrl}}/api/printer/test
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "printerName": null
+}
+
+###
+
+### 4. Yazıcı Bağlantı Testi (EPSON TM-T88VI)
+POST {{baseUrl}}/api/printer/test
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "printerName": "EPSON TM-T88VI"
+}
+
+###
+
+### 5. Test Sayfası Yazdır (Varsayılan)
+POST {{baseUrl}}/api/printer/print-test
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "printerName": null
+}
+
+###
+
+### 6. Test Sayfası Yazdır (EPSON TM-T88VI)
+POST {{baseUrl}}/api/printer/print-test
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "printerName": "EPSON TM-T88VI"
+}
+
+###
+
+### 7. Yazıcı Entegrasyon Testi
+GET {{baseUrl}}/api/test/printer
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+###
+
+### 8. Ödeme Onaylama Testi (Fiş Yazdırma ile)
+POST {{baseUrl}}/api/payment/confirm
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "paymentSessionId": "test-session-123",
+  "tseSignature": "TEST-TSE-SIGNATURE-001",
+  "transactionId": "TEST-TXN-001",
+  "transactionReference": "TEST-REF-001"
+}
+
+###
+
+# Environment Variables
+# baseUrl: https://localhost:7001
+# authToken: [JWT token buraya eklenecek]
+
+# Test Senaryoları:
+# 1. Önce yazıcı durumunu kontrol et
+# 2. Mevcut yazıcıları listele
+# 3. Yazıcı bağlantısını test et
+# 4. Test sayfası yazdır
+# 5. Yazıcı entegrasyon testini çalıştır
+# 6. Ödeme onaylama ile fiş yazdırma testini yap
+
+# Not: Gerçek yazıcı bağlı değilse, sistem otomatik olarak dosyaya kaydedecektir
+# Receipts klasöründe .txt ve .html dosyaları oluşacaktır

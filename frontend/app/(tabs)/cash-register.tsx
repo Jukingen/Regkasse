@@ -1,488 +1,830 @@
-// Türkçe Açıklama: Bu ekran kasiyer için sade, hızlı ve modern bir ana satış arayüzü sunar. TSE durumu, aktif masa, toplam tutar üstte sabitlenmiş; ürünler backend API'den çekilir, yüklenirken spinner, hata varsa uyarı gösterilir; ürünler büyük kartlarla ortada; sepet ve büyük işlem butonları altta yer alır. Kod linter uyumludur ve kasiyer dostu tasarlanmıştır.
-import React, { useContext, useEffect, useState } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
-
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import { useRouter } from 'expo-router';
-
-import ProductList from '../../components/ProductList';
-import { TseStatusIndicator } from '../../components/TseStatusIndicator';
-import { TableSlotContext } from '../../contexts/TableSlotContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { useProductOperations } from '../../hooks/useProductOperations';
-import * as productService from '../../services/api/productService';
-import { Product } from '../../services/api/productService';
-import CartBar from '../../components/CartBar';
+// Türkçe Açıklama: Bu ekran kasiyer için sade, hızlı ve modern bir ana satış arayüzü sunar. Tab ile masa seçimi, basit sepet görünümü, manuel masa durumu yönetimi. Kod linter uyumludur ve kasiyer dostu tasarlanmıştır.
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  SafeAreaView,
+  Vibration,
+} from 'react-native';
 import { useCashRegister } from '../../hooks/useCashRegister';
-import { OrderConfirmationModal } from '../../components/OrderConfirmationModal';
-import TagesabschlussModal from '../../components/TagesabschlussModal';
+import { useProductOperations } from '../../hooks/useProductOperations';
+import { useCart } from '../../hooks/useCart';
+import { ToastContainer } from '../../components/ToastNotification';
+import CategoryFilter from '../../components/CategoryFilter';
 
+// English Description: Simplified cash register screen with tab-based table selection and clean cart view
 
-const CashRegisterScreen = () => {
-  const { products, productsActions } = useProductOperations();
-  const { activeSlot, setActiveSlot, slots } = useContext(TableSlotContext);
-  const { user, isAuthenticated } = useAuth();
-  const { t } = useTranslation();
+export default function CashRegisterScreen() {
+  const {
+    paymentProcessing,
+    preventDoubleClick,
+    error,
+    toasts,
+    processPayment,
+    loadCartForTable,
+    getPaymentMethodInfo,
+    isTseRequired,
+    addToast,
+    removeToast,
+    paymentMethods
+  } = useCashRegister();
+
+  const { products, refreshProducts } = useProductOperations();
+  const [selectedTable, setSelectedTable] = useState<number>(1);
+
   const { 
-    cart, 
-    loading: cartLoading, 
-    cartInfo,
+    getCartForTable,
     addToCart, 
+    updateCartItem, 
     removeFromCart, 
-    updateCartQuantity, 
-    clearCart, 
-    resetCart 
-  } = useCashRegister(user, activeSlot || 1); // Aktif masa numarası ile çağır
+    clearCart,
+    loading: cartLoading, 
+    error: cartError 
+  } = useCart();
 
-  const router = useRouter();
+  // Aktif masanın sepetini al
+  const cart = getCartForTable(selectedTable);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'Hauptgerichte' | 'Getränke' | 'Desserts' | 'Alkoholische Getränke' | 'Snacks' | 'Suppen' | 'Vorspeisen' | 'Salate' | 'Kaffee & Tee' | 'Süßigkeiten' | 'Spezialitäten' | 'Brot & Gebäck'>('all');
 
-  // Ekran ilk açıldığında ürünleri yükle - Sadece kullanıcı login olduktan sonra
+  // Table numbers for selection
+  const tableNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+  // Load products and cart when component mounts
   useEffect(() => {
-    console.log('🚀 Cash Register Screen - useEffect çalıştı');
-    console.log('🚀 Products state:', products);
-    console.log('🚀 Products actions:', productsActions);
-    
-    // Kullanıcı login olduktan sonra ürünleri yükle
-    // Bu sayfa sadece login sonrası erişilebilir olduğu için ürünleri yükle
-    console.log('🚀 Ürünler yükleniyor...');
-    productsActions.execute();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    refreshProducts();
+    // İlk yüklemede seçili masanın sepetini yükle
+    loadCartForTable(selectedTable);
   }, []);
 
-  // Aktif masa değiştiğinde sepeti yeniden yükle
+  // Load cart when table changes
   useEffect(() => {
-    if (isAuthenticated && user && activeSlot) {
-      console.log('🔄 Aktif masa değişti:', activeSlot, '→ Sepet yeniden yükleniyor...');
-      // Sepeti sıfırla ve yeni masadan yükle
-      // setCart(null); // useCashRegister hook'u otomatik olarak yeni masadan sepet yükleyecek
+    if (selectedTable) {
+      loadCartForTable(selectedTable);
     }
-  }, [activeSlot, isAuthenticated, user]);
+  }, [selectedTable]);
 
+  // Handle table selection
+  const handleTableSelect = (tableNumber: number) => {
+    console.log('🔄 Masa değiştiriliyor:', selectedTable, '->', tableNumber);
+    setSelectedTable(tableNumber);
+    addToast('info', `Switching to table ${tableNumber}`, 2000);
+    
+    // Masa değiştiğinde o masanın sepetini yükle
+    loadCartForTable(tableNumber);
+  };
 
-  // TSE cihazı uyarısı
-  const [tseWarning, setTseWarning] = useState<string | null>(null);
-  
-  // Sipariş onaylama modal state'i
-  const [orderModalVisible, setOrderModalVisible] = useState(false);
-  const [tagesabschlussModalVisible, setTagesabschlussModalVisible] = useState(false);
-  const handleTseStatusChange = (status: any) => {
-    if (!status?.isConnected || !status?.canCreateInvoices) {
-      let msg = t('errors.tseConnectionRequired', 'TSE device connection required');
-      if (status?.errorMessage) msg += `: ${status.errorMessage}`;
-      setTseWarning(msg + ' - e-Signatur nicht vorhanden');
+  // Handle category selection
+  const handleCategoryChange = (category: typeof selectedCategory) => {
+    setSelectedCategory(category);
+    addToast('info', `Filtering by: ${category === 'all' ? 'All Categories' : category}`, 2000);
+  };
+
+  // Filter products by selected category
+  const filteredProducts = products.data && Array.isArray(products.data) 
+    ? products.data.filter(product => 
+        selectedCategory === 'all' || product.category === selectedCategory
+      )
+    : [];
+
+  // Handle payment processing
+  const handlePayment = async () => {
+    if (!cart || cart.items.length === 0) {
+      addToast('warning', 'Cart is empty. Please add items first.', 3000);
+      return;
+    }
+
+    if (!selectedTable) {
+      addToast('error', 'No table selected. Please select a table first.', 3000);
+      return;
+    }
+
+    // Haptic feedback for payment button press
+    Vibration.vibrate(50);
+
+    try {
+      // Ödeme işlemini başlat
+      const result = await processPayment({
+        cartId: cart.cartId,
+        totalAmount: cart.grandTotal,
+        paymentMethod: 'card', // Varsayılan ödeme yöntemi
+        customerId: undefined,
+        customerName: undefined,
+        customerEmail: undefined,
+        customerPhone: undefined,
+        notes: `Table ${selectedTable}`,
+        tseRequired: isTseRequired('card'),
+        tableNumber: selectedTable
+      });
+
+      if (result.success) {
+        addToast('success', `Payment successful! Receipt: ${result.receiptNumber}`, 5000);
+        
+        // Başarılı ödemeden sonra masayı temizle
+        clearCart(selectedTable);
+        
+        // Masayı 1'e geri döndür
+        setSelectedTable(1);
+        
+      } else {
+        addToast('error', `Payment failed: ${result.message}`, 5000);
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      addToast('error', 'Payment processing failed. Please try again.', 5000);
+    }
+  };
+
+  // Handle quantity update
+  const handleQuantityUpdate = (itemId: string, newQuantity: number) => {
+    if (!selectedTable) {
+      addToast('error', 'No table selected. Please select a table first.', 3000);
+      return;
+    }
+
+    if (newQuantity <= 0) {
+      removeFromCart(itemId, selectedTable);
     } else {
-      setTseWarning(null);
+      updateCartItem(itemId, newQuantity, selectedTable);
     }
   };
 
-  // Ürün ekleme işlemi
-  const handleAddToCart = (product: Product) => {
-    if (!isAuthenticated || !user) {
-      Alert.alert('Giriş Gerekli', 'Ürün eklemek için lütfen giriş yapın.');
+  // Handle item removal
+  const handleItemRemove = (itemId: string) => {
+    if (!selectedTable) {
+      addToast('error', 'No table selected. Please select a table first.', 3000);
       return;
     }
-    
-    console.log('🛒 Ürün sepete ekleniyor:', product.name);
-    addToCart(product, 1);
+
+    removeFromCart(itemId, selectedTable);
   };
 
-  // Ana işlem butonları
-  const handleCompleteSale = async () => {
-    if (!isAuthenticated || !user) {
-      Alert.alert('Giriş Gerekli', 'Siparişi tamamlamak için lütfen giriş yapın.');
+  // Handle cart clearing
+  const handleClearCart = () => {
+    if (!selectedTable) {
+      addToast('error', 'No table selected. Please select a table first.', 3000);
       return;
     }
-    
-    if (!cart || !cart.items || cart.items.length === 0) {
-      Alert.alert('Sepet boş', 'Siparişi tamamlamak için önce ürün ekleyin.');
-      return;
-    }
-    
-    // Sipariş onaylama modal'ını aç
-    setOrderModalVisible(true);
-  };
-  
-  // Sipariş başarılı olduğunda
-  const handleOrderSuccess = (orderId: string) => {
-    console.log('Sipariş başarıyla oluşturuldu:', orderId);
-    // Sepeti temizle
-    clearCart();
-    // Modal'ı kapat
-    setOrderModalVisible(false);
-  };
-  const handleDayEnd = () => {
-    // Gün sonu işlemi
-  };
-  const handlePrintReceipt = () => {
-    // Fiş yazdır
-  };
 
-  // ProductList'e gönderilecek ürünleri hazırla (sadece aktif ve taxType string)
-  console.log('📊 Products state detayları:', {
-    loading: products.loading,
-    error: products.error,
-    data: products.data,
-    dataType: typeof products.data,
-    isArray: Array.isArray(products.data),
-    dataLength: Array.isArray(products.data) ? products.data.length : 'N/A'
-  });
-  
-  const productListData = (Array.isArray(products.data) ? products.data : [])
-    .filter((p: any) => p.isActive === true || p.isActive === 'true' || p.isActive === 1 || typeof p.isActive === 'undefined')
-    .map((p: any) => ({
-      ...p,
-      taxType: p.taxType === 0 ? 'Standard' : p.taxType === 1 ? 'Reduced' : 'Special'
-    }));
-    
-  console.log('📊 ProductListData hazırlandı:', {
-    filteredLength: productListData.length,
-    firstProduct: productListData[0] || 'Yok'
-  });
-  
+    Alert.alert(
+      'Clear Cart',
+      `Are you sure you want to clear the cart for table ${selectedTable}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear', 
+          style: 'destructive',
+          onPress: () => {
+            clearCart(selectedTable);
+            addToast('success', `Cart cleared for table ${selectedTable}`, 3000);
+          }
+        }
+      ]
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Üst Bar: TSE durumu, aktif masa, toplam */}
-      <View style={styles.topBar}>
-        <TseStatusIndicator onStatusChange={handleTseStatusChange} />
-        <View style={styles.slotInfoRow}>
-          <Text style={styles.slotLabel}>{t('cashRegister.activeSlot', 'Aktif Masa/Satış')}:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.slotScroll}>
-            {[...Array(9)].map((_, i) => {
-              const slotNumber = i + 1;
-              const isActive = activeSlot === slotNumber;
+    <SafeAreaView style={styles.container}>
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Cash Register</Text>
+        <Text style={styles.headerSubtitle}>Table Management & Payments</Text>
+        {selectedTable && (
+          <Text style={styles.activeTableInfo}>Active Table: {selectedTable}</Text>
+        )}
+      </View>
+
+      {/* Scrollable Content */}
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Table Selection - Tab Style */}
+        <View style={styles.tableSection}>
+          <Text style={styles.sectionTitle}>Select Table</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tableScroll}>
+            {tableNumbers.map((tableNumber) => {
+              const tableCart = getCartForTable(tableNumber);
+              const hasItems = tableCart && tableCart.items.length > 0;
+              
               return (
                 <TouchableOpacity
-                  key={slotNumber}
-                  style={[styles.slotButton, isActive && styles.activeSlotButton]}
-                  onPress={() => setActiveSlot(slotNumber)}
+                  key={tableNumber}
+                  style={[
+                    styles.tableTab,
+                    selectedTable === tableNumber && styles.selectedTableTab,
+                    hasItems && styles.tableTabWithItems
+                  ]}
+                  onPress={() => handleTableSelect(tableNumber)}
                 >
-                  <Text style={[styles.slotButtonText, isActive && styles.activeSlotButtonText]}>{slotNumber}</Text>
+                  <Text style={[
+                    styles.tableTabText,
+                    selectedTable === tableNumber && styles.selectedTableTabText,
+                    hasItems && styles.tableTabTextWithItems
+                  ]}>
+                    {tableNumber}
+                  </Text>
+                  {hasItems && (
+                    <View style={styles.tableItemIndicator}>
+                      <Text style={styles.tableItemIndicatorText}>{tableCart?.totalItems || 0}</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
         </View>
-        
-        {/* Sepet Durumu Bilgileri */}
-        {isAuthenticated && user && (
-          <View style={styles.cartStatusRow}>
-            <Text style={styles.cartStatusLabel}>
-              {t('cashRegister.cartStatus', 'Sepet Durumu')}:
-            </Text>
-            <Text style={styles.cartStatusValue}>
-              {cartInfo.hasItems ? `${cartInfo.totalItems} ürün - ${cartInfo.totalAmount.toFixed(2)} €` : 'Boş'}
-            </Text>
-          </View>
-        )}
-        {tseWarning && (
-          <View style={styles.tseWarningBar}>
-            <Text style={styles.tseWarningText}>{tseWarning}</Text>
-          </View>
-        )}
-        
 
-      </View>
-
-      {/* Orta Alan: Ürünler */}
-      <View style={styles.productListWrapper}>
-        {!isAuthenticated || !user ? (
-          <View style={styles.authRequiredContainer}>
-            <Ionicons name="lock-closed" size={60} color="#1976d2" />
-            <Text style={styles.authRequiredText}>{t('cashRegister.loginRequired', 'Ürünleri görmek ve sepete eklemek için lütfen giriş yapın')}</Text>
-            <TouchableOpacity 
-              style={styles.loginButton}
-              onPress={() => router.push('/(auth)/login')}
-            >
-              <Text style={styles.loginButtonText}>{t('common.login', 'Giriş Yap')}</Text>
-            </TouchableOpacity>
-          </View>
-        ) : products.loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#1976d2" />
-            <Text style={styles.loadingText}>{t('cashRegister.loadingProducts', 'Ürünler yükleniyor...')}</Text>
-          </View>
-        ) : products.error ? (
-          <View style={styles.errorContainer}>
-            <Ionicons name="alert-circle" size={40} color="#d32f2f" />
-            <Text style={styles.errorText}>{t('cashRegister.productLoadError', 'Ürünler yüklenirken hata oluştu')}</Text>
-            <Text style={styles.errorTextSmall}>{products.error}</Text>
-          </View>
-        ) : (
-          <ProductList
-            products={productListData}
-            userFavorites={[]}
-            onAddToCart={handleAddToCart}
-            onToggleFavorite={() => {}}
+        {/* Category Filter */}
+        <View style={styles.categorySection}>
+          <Text style={styles.sectionTitle}>Categories</Text>
+          <CategoryFilter
+            selectedCategory={selectedCategory}
+            onCategoryChange={handleCategoryChange}
           />
-        )}
-      </View>
-
-      {/* Alt Bar: İşlem butonları */}
-      <View style={styles.bottomBar}>
-        <CartBar 
-          cart={cart} 
-          loading={cartLoading}
-          onRemove={removeFromCart}
-          onUpdateQty={updateCartQuantity}
-          onClear={clearCart}
-          onConfirmOrder={handleCompleteSale}
-        />
-        
-        <View style={styles.actionButtonsRow}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.cancelButton]} 
-            onPress={clearCart}
-          >
-            <Ionicons name="trash-outline" size={16} color="#fff" />
-            <Text style={styles.actionButtonText}>{t('common.clear', 'Clear')}</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.printButton]} 
-            onPress={handlePrintReceipt}
-          >
-            <Ionicons name="print-outline" size={16} color="#fff" />
-            <Text style={styles.actionButtonText}>{t('common.print', 'Print')}</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.dayEndButton]} 
-            onPress={() => setTagesabschlussModalVisible(true)}
-          >
-            <Ionicons name="calendar-outline" size={16} color="#fff" />
-            <Text style={styles.actionButtonText}>{t('common.dayEnd', 'Day End')}</Text>
-          </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Sipariş Onaylama Modal */}
-      <OrderConfirmationModal
-        visible={orderModalVisible}
-        onClose={() => setOrderModalVisible(false)}
-        onSuccess={handleOrderSuccess}
-        cart={cart}
-        tableNumber={activeSlot?.toString() || '1'}
-        waiterName={'Kasiyer'}
-      />
+        {/* Products Section */}
+        <View style={styles.productsSection}>
+          <Text style={styles.sectionTitle}>Available Products</Text>
+          {products.loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading products...</Text>
+            </View>
+          ) : products.error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>Error loading products: {products.error}</Text>
+              <TouchableOpacity onPress={refreshProducts} style={styles.retryButton}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : filteredProducts.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
+              {filteredProducts.map((product: any) => {
+                // Sepetteki bu ürünün miktarını bul
+                const cartItem = cart?.items.find(item => item.productId === product.id);
+                const quantityInCart = cartItem?.quantity || 0;
+                
+                return (
+                  <TouchableOpacity
+                    key={product.id}
+                    style={[
+                      styles.productCard,
+                      quantityInCart > 0 && styles.productCardInCart
+                    ]}
+                    onPress={() => {
+                      if (!selectedTable) {
+                        addToast('error', 'Please select a table first', 3000);
+                        return;
+                      }
 
-      {/* Tagesabschluss Modal */}
-      <TagesabschlussModal
-        visible={tagesabschlussModalVisible}
-        onClose={() => setTagesabschlussModalVisible(false)}
-        cashRegisterId="KASSE-001" // Default cash register ID
-      />
+                      // Haptic feedback for product selection
+                      Vibration.vibrate(30);
+                      
+                      // Add product to cart with table number
+                      addToCart({
+                        productId: product.id,
+                        productName: product.name,
+                        quantity: 1,
+                        unitPrice: product.price,
+                        notes: undefined
+                      }, selectedTable);
+                      
+                      const newQuantity = quantityInCart + 1;
+                      addToast('success', `${product.name} added to table ${selectedTable} (${newQuantity}x)`, 2000);
+                    }}
+                  >
+                    {/* Quantity Badge */}
+                    {quantityInCart > 0 && (
+                      <View style={styles.quantityBadge}>
+                        <Text style={styles.quantityBadgeText}>{quantityInCart}x</Text>
+                      </View>
+                    )}
+                    
+                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.productPrice}>€{product.price.toFixed(2)}</Text>
+                    <Text style={styles.productStock}>Stock: {product.stockQuantity}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          ) : (
+            <View style={styles.noProductsContainer}>
+              <Text style={styles.noProductsText}>
+                {selectedCategory === 'all' ? 'No products available' : `No products in ${selectedCategory} category`}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Cart Items - Simplified */}
+        <View style={styles.cartSection}>
+          <View style={styles.cartHeader}>
+            <Text style={styles.sectionTitle}>Cart Items - Table {selectedTable}</Text>
+            {cart && cart.items.length > 0 && (
+              <TouchableOpacity onPress={handleClearCart} style={styles.clearButton}>
+                <Text style={styles.clearButtonText}>Clear Cart</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {cartLoading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading cart...</Text>
+            </View>
+          ) : cartError ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>Cart error: {cartError}</Text>
+            </View>
+          ) : cart && cart.items.length > 0 ? (
+            <ScrollView style={styles.cartItems}>
+              {cart.items.map((item) => (
+                <View key={item.id} style={styles.cartItem}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{item.productName}</Text>
+                    <Text style={styles.itemPrice}>€{item.unitPrice.toFixed(2)}</Text>
+                  </View>
+                  <View style={styles.itemActions}>
+                    <TouchableOpacity
+                      style={styles.quantityButton}
+                      onPress={() => handleQuantityUpdate(item.id, item.quantity - 1)}
+                    >
+                      <Text style={styles.quantityButtonText}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                    <TouchableOpacity
+                      style={styles.quantityButton}
+                      onPress={() => handleQuantityUpdate(item.id, item.quantity + 1)}
+                    >
+                      <Text style={styles.quantityButtonText}>+</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => handleItemRemove(item.id)}
+                    >
+                      <Text style={styles.removeButtonText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.itemTotal}>€{item.totalPrice.toFixed(2)}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <View style={styles.emptyCart}>
+              <Text style={styles.emptyCartText}>No items in cart for table {selectedTable}</Text>
+              <Text style={styles.emptyCartSubtext}>Select a table and add items to get started</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Cart Summary */}
+        {!cartLoading && !cartError && cart && cart.items.length > 0 && (
+          <View style={styles.summarySection}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Subtotal:</Text>
+              <Text style={styles.summaryValue}>€{cart.subtotal.toFixed(2)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Tax (20%):</Text>
+              <Text style={styles.summaryValue}>€{cart.totalTax.toFixed(2)}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Total:</Text>
+              <Text style={styles.summaryValue}>€{cart.grandTotal.toFixed(2)}</Text>
+            </View>
+          </View>
+        )}
+
+        {/* New Order Status Indicator */}
+        {!cartLoading && !cartError && (!cart || cart.items.length === 0) ? (
+          <View style={styles.newOrderSection}>
+            <View style={styles.newOrderStatus}>
+              <Text style={styles.newOrderTitle}>🆕 New Order Ready</Text>
+              <Text style={styles.newOrderSubtitle}>Table {selectedTable} is ready for new items</Text>
+              <Text style={styles.newOrderInfo}>Previous order completed successfully</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Payment Button - Simplified */}
+        {!cartLoading && !cartError && cart && cart.items.length > 0 && (
+          <View style={styles.paymentButtonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.paymentButton,
+                (paymentProcessing || preventDoubleClick) && styles.paymentButtonDisabled
+              ]}
+              onPress={handlePayment}
+              disabled={paymentProcessing || preventDoubleClick}
+              activeOpacity={paymentProcessing || preventDoubleClick ? 1.0 : 0.8}
+            >
+              <View style={styles.paymentButtonContent}>
+                {(paymentProcessing || preventDoubleClick) && (
+                  <View style={styles.loadingSpinner}>
+                    <Text style={styles.spinnerText}>⏳</Text>
+                  </View>
+                )}
+                <Text style={styles.paymentButtonText}>
+                  {paymentProcessing ? 'Processing Payment...' : 
+                   preventDoubleClick ? 'Payment in Progress...' : 
+                   `Complete Payment - €${cart.grandTotal.toFixed(2)}`}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Error Display */}
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
-};
+}
 
+// Styles
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
-    minHeight: 0,
-    overflow: 'visible',
+    backgroundColor: '#f5f5f5',
   },
-  topBar: {
+  header: {
+    backgroundColor: '#2196F3',
+    padding: 20,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#fff',
+    opacity: 0.9,
+  },
+  activeTableInfo: {
+    fontSize: 16,
+    color: '#fff',
+    marginTop: 5,
+    opacity: 0.9,
+  },
+  tableSection: {
     backgroundColor: '#fff',
+    padding: 20,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  tableScroll: {
+    flexDirection: 'row',
+  },
+  // Tab Style Table Buttons
+  tableTab: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginRight: 10,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  selectedTableTab: {
+    backgroundColor: '#2196F3',
+    borderColor: '#1976D2',
+  },
+  tableTabWithItems: {
+    borderColor: '#4CAF50',
+    borderWidth: 2,
+  },
+  tableTabText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  selectedTableTabText: {
+    color: '#fff',
+  },
+  tableTabTextWithItems: {
+    color: '#4CAF50',
+  },
+  tableItemIndicator: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#FF9800',
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  tableItemIndicatorText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  cartSection: {
+    backgroundColor: '#fff',
+    padding: 20,
+    marginBottom: 10,
+  },
+  cartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  clearButton: {
+    backgroundColor: '#f44336',
+    paddingHorizontal: 15,
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    borderRadius: 5,
+  },
+  clearButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  cartItems: {
+    maxHeight: 300,
+  },
+  cartItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#f0f0f0',
   },
-  slotInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
     marginBottom: 4,
   },
-  slotLabel: {
-    fontWeight: 'bold',
-    fontSize: 13,
-    marginRight: 8,
+  itemPrice: {
+    fontSize: 14,
+    color: '#666',
   },
-  slotScroll: {
-    flexGrow: 0,
+  itemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 15,
   },
-  slotButton: {
+  quantityButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#e0e0e0',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 6,
-  },
-  activeSlotButton: {
-    backgroundColor: '#1976d2',
-  },
-  slotButtonText: {
-    fontSize: 13,
-    color: '#222',
-    fontWeight: 'bold',
-  },
-  activeSlotButtonText: {
-    color: '#fff',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  totalLabel: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#059669',
-    marginRight: 8,
-  },
-  totalValue: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#059669',
-  },
-  tseWarningBar: {
-    backgroundColor: '#d32f2f',
-    padding: 8,
-    borderRadius: 8,
-    marginTop: 6,
-    marginBottom: 2,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  tseWarningText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    fontSize: 11,
-  },
-  productListWrapper: {
-    flex: 1,
-    minHeight: 0,
-    width: '100%',
-    paddingHorizontal: 4,
-    paddingTop: 2,
-    overflow: 'visible',
-  },
-  loadingContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 11,
-    color: '#1976d2',
+  quantityButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  quantityText: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginHorizontal: 15,
+    color: '#333',
+  },
+  removeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#ffebee',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  removeButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#f44336',
+  },
+  itemTotal: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  emptyCart: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyCartText: {
+    fontSize: 18,
+    color: '#999',
+    marginBottom: 10,
+  },
+  emptyCartSubtext: {
+    fontSize: 14,
+    color: '#ccc',
+    textAlign: 'center',
+  },
+  summarySection: {
+    backgroundColor: '#fff',
+    padding: 20,
+    marginBottom: 10,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  summaryLabel: {
+    fontSize: 16,
+    color: '#666',
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+
+  paymentButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  paymentButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  paymentButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  loadingSpinner: {
+    marginRight: 10,
+  },
+  spinnerText: {
+    fontSize: 20,
+  },
+  paymentButtonText: {
+    color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
   },
   errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
+    backgroundColor: '#ffebee',
+    padding: 15,
+    borderRadius: 5,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f44336',
   },
   errorText: {
-    color: '#d32f2f',
-    fontSize: 11,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 8,
+    color: '#f44336',
+    fontSize: 14,
   },
-  errorTextSmall: {
-    color: '#d32f2f',
-    fontSize: 9,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  authRequiredContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f8fafc',
-  },
-  authRequiredText: {
-    color: '#333',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 15,
-    marginBottom: 20,
-  },
-  loginButton: {
-    backgroundColor: '#1976d2',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  bottomBar: {
+  newOrderSection: {
     backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    minHeight: 90,
+    padding: 20,
+    marginBottom: 10,
+    borderRadius: 5,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4CAF50',
   },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    // gap: 8, // React Native desteklemez, kaldırıldı
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'column',
+  newOrderStatus: {
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1976d2',
-    borderRadius: 6,
-    paddingVertical: 4,
-    marginHorizontal: 2,
   },
-  actionButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 10,
-    marginTop: 2,
-    textAlign: 'center',
+  newOrderTitle: {
+    fontSize: 20,
   },
-  completeButton: {
-    backgroundColor: '#059669',
+  // Products Section Styles
+  productsSection: {
+    backgroundColor: '#fff',
+    padding: 20,
+    marginBottom: 10,
+    borderRadius: 5,
   },
-  cancelButton: {
-    backgroundColor: '#d32f2f',
-  },
-  printButton: {
-    backgroundColor: '#1976d2',
-  },
-  dayEndButton: {
-    backgroundColor: '#ff9800',
-  },
-  cartStatusRow: {
+  productsScroll: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 4,
-    backgroundColor: '#f0f9eb', // Light green background
-    padding: 8,
+  },
+  productCard: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
     borderRadius: 8,
+    marginRight: 15,
+    minWidth: 140,
     borderWidth: 1,
-    borderColor: '#a5d6a7', // Green border
+    borderColor: '#2196F3',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  cartStatusLabel: {
-    fontSize: 13,
+  productName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 5,
+  },
+  productPrice: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#4caf50', // Darker green
-    marginRight: 8,
+    color: '#2196F3',
+    marginBottom: 3,
   },
-  cartStatusValue: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#4caf50', // Darker green
+  productStock: {
+    fontSize: 12,
+    color: '#666',
   },
-});
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+  },
 
-export default CashRegisterScreen; 
+  retryButton: {
+    backgroundColor: '#f44336',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+    alignSelf: 'flex-start',
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  noProductsContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noProductsText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 5,
+  },
+
+  newOrderSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 10,
+  },
+  newOrderInfo: {
+    fontSize: 14,
+    color: '#999',
+  },
+  categorySection: {
+    backgroundColor: '#fff',
+    padding: 20,
+    marginBottom: 10,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  paymentButtonContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  quantityBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: '#4CAF50',
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    minWidth: 30,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  quantityBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  productCardInCart: {
+    backgroundColor: '#e8f5e8',
+    borderColor: '#4CAF50',
+    borderWidth: 2,
+  },
+}); 

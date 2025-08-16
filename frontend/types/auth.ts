@@ -25,6 +25,7 @@ export interface User {
   isActive: boolean;
   permissions: string[]; // resource.action formatında
   createdAt: string;
+  token?: string; // JWT token for API requests
 }
 
 // Kimlik doğrulama durumu
