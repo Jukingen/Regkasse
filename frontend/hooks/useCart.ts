@@ -3,15 +3,18 @@ import { cartService } from '../services/api/cartService';
 import { useAuth } from '../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Cart item interface
+// Cart item interface - API response formatına uygun
 interface CartItem {
   id: string;
   productId: string;
   productName: string;
+  productImage?: string | null;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
-  notes?: string;
+  notes?: string | null;
+  taxType?: string;
+  taxRate?: number;
 }
 
 // Cart interface - CartService ile uyumlu
@@ -192,7 +195,7 @@ export const useCart = () => {
         const response = await cartService.addItemToCart({
           productId: item.productId,
           quantity: item.quantity,
-          notes: item.notes,
+          notes: item.notes || undefined,
           tableNumber: tableNumber
         });
 
@@ -305,7 +308,7 @@ export const useCart = () => {
   }, [isTokenExpired, clearAllCarts]);
 
   // Load cart from backend for specific table
-  const loadCartForTable = useCallback(async (tableNumber: number) => {
+  const loadCartForTable = useCallback(async (tableNumber: number): Promise<{ success: boolean; error?: string; cart: Cart | null }> => {
     if (!tableNumber) {
       console.error('❌ Table number is required for loading cart');
       setError('Table number is required');
@@ -331,13 +334,32 @@ export const useCart = () => {
       try {
         const backendCart = await cartService.getCurrentCart(tableNumber);
         if (backendCart) {
-          // Backend'den gelen sepeti masa bazlı olarak sakla
+          console.log('📦 Backend\'den gelen sepet verileri:', {
+            cartId: backendCart.cartId,
+            tableNumber: backendCart.tableNumber,
+            itemsCount: backendCart.items?.length || 0,
+            items: backendCart.items?.map(item => ({
+              id: item.id,
+              productId: item.productId,
+              productName: item.productName,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              totalPrice: item.totalPrice
+            })) || []
+          });
+          
+          // Backend'den gelen sepeti masa bazlı olarak sakla (boş olsa bile)
           setTableCarts(prevTableCarts => {
             const newTableCarts = new Map(prevTableCarts);
             newTableCarts.set(tableNumber, backendCart);
             return newTableCarts;
           });
-          console.log('✅ Masa', tableNumber, 'sepeti backend\'den başarıyla yüklendi');
+          
+          if (backendCart.items && backendCart.items.length > 0) {
+            console.log('✅ Masa', tableNumber, 'sepeti backend\'den başarıyla yüklendi (items var)');
+          } else {
+            console.log('✅ Masa', tableNumber, 'sepeti backend\'den başarıyla yüklendi (boş sepet)');
+          }
           return { success: true, cart: backendCart };
         }
       } catch (backendError) {
@@ -363,7 +385,7 @@ export const useCart = () => {
     } finally {
       setLoading(false);
     }
-  }, [tableCarts, isTokenExpired, clearAllCarts]);
+  }, [isTokenExpired, clearAllCarts]);
 
   // Update item quantity in cart
   const updateItemQuantity = useCallback(async (tableNumber: number, itemId: string, newQuantity: number) => {

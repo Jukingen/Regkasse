@@ -122,12 +122,19 @@ export class CartService {
       console.log('📦 API Response:', {
         cartId: response.cartId,
         tableNumber: response.tableNumber,
-        itemsCount: response.items.length,
-        items: response.items.map(item => ({
+        status: response.status,
+        itemsCount: response.items?.length ?? 0,
+        items: response.items?.map(item => ({
+          id: item.id,
           productId: item.productId,
           productName: item.productName,
-          quantity: item.quantity
-        }))
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice
+        })) ?? [],
+        subtotal: response.subtotal,
+        totalTax: response.totalTax,
+        grandTotal: response.grandTotal
       });
       
       // Masa bazlı sepet ID'sini sakla

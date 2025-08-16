@@ -10,11 +10,12 @@ import {
   SafeAreaView,
   Vibration,
 } from 'react-native';
+
+import CategoryFilter from '../../components/CategoryFilter';
+import { ToastContainer } from '../../components/ToastNotification';
+import { useCart } from '../../hooks/useCart';
 import { useCashRegister } from '../../hooks/useCashRegister';
 import { useProductOperations } from '../../hooks/useProductOperations';
-import { useCart } from '../../hooks/useCart';
-import { ToastContainer } from '../../components/ToastNotification';
-import CategoryFilter from '../../components/CategoryFilter';
 
 // English Description: Simplified cash register screen with tab-based table selection and clean cart view
 
@@ -25,12 +26,9 @@ export default function CashRegisterScreen() {
     error,
     toasts,
     processPayment,
-    loadCartForTable,
-    getPaymentMethodInfo,
     isTseRequired,
     addToast,
     removeToast,
-    paymentMethods,
     clearCurrentCart
   } = useCashRegister();
 
@@ -43,14 +41,14 @@ export default function CashRegisterScreen() {
     getCartForTable,
     addToCart, 
     updateItemQuantity, 
-    removeFromCart, 
-    clearCartForTable,
+    removeFromCart,
+    loadCartForTable,
     loading: cartLoading, 
     error: cartError 
   } = useCart();
 
-  // Aktif masanın sepetini al
-  const cart = getCartForTable(selectedTable);
+  // Aktif masanın sepetini al - state olarak tanımla
+  const [cart, setCart] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'Hauptgerichte' | 'Getränke' | 'Desserts' | 'Alkoholische Getränke' | 'Snacks' | 'Suppen' | 'Vorspeisen' | 'Salate' | 'Kaffee & Tee' | 'Süßigkeiten' | 'Spezialitäten' | 'Brot & Gebäck'>('all');
 
   // Table numbers for selection
@@ -70,19 +68,66 @@ export default function CashRegisterScreen() {
     
     // İlk yüklemede seçili masanın sepetini yükle (sadece bir kere)
     if (selectedTable) {
-      loadCartForTable(selectedTable);
+      loadCartForTable(selectedTable).then((result) => {
+        if (result?.success) {
+          // Cart boş olsa bile setleyelim (backend'den geliyorsa)
+          setCart(result.cart);
+          console.log('✅ İlk yüklemede masa', selectedTable, 'sepeti yüklendi:', {
+            cartId: result.cart?.cartId,
+            itemsCount: result.cart?.items?.length ?? 0,
+            hasItems: result.cart?.items && result.cart.items.length > 0
+          });
+        } else {
+          console.log('ℹ️ İlk yüklemede masa', selectedTable, 'için sepet bulunamadı');
+          setCart(null);
+        }
+      }).catch((error) => {
+        console.error('❌ İlk yüklemede sepet hatası:', error);
+        setCart(null);
+      });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Sadece component mount'ta çalışsın
 
   // Load cart when table changes (sadece masa değiştiğinde)
   useEffect(() => {
     // İlk yüklemede çalışmasın, sadece masa değiştiğinde
     if (!isFirstLoad.current && selectedTable) {
-      loadCartForTable(selectedTable);
+      loadCartForTable(selectedTable).then((result) => {
+        if (result?.success) {
+          // Cart boş olsa bile setleyelim (backend'den geliyorsa)
+          setCart(result.cart);
+          console.log('✅ Masa', selectedTable, 'sepeti yüklendi:', {
+            cartId: result.cart?.cartId,
+            itemsCount: result.cart?.items?.length ?? 0,
+            hasItems: result.cart?.items && result.cart.items.length > 0
+          });
+        } else {
+          setCart(null);
+          console.log('ℹ️ Masa', selectedTable, 'için sepet bulunamadı:', result?.error ?? 'Unknown error');
+        }
+      }).catch((error) => {
+        console.error('❌ Masa', selectedTable, 'sepeti yükleme hatası:', error);
+        setCart(null);
+      });
     } else {
       isFirstLoad.current = false;
     }
-  }, [selectedTable]);
+  }, [selectedTable, loadCartForTable]);
+
+  // Cart state'ini sürekli güncellemek için useEffect ekle
+  useEffect(() => {
+    if (selectedTable) {
+      // useCart hook'undan gelen cart'ı al ve local state'i güncelle
+      const currentCart = getCartForTable(selectedTable);
+      if (currentCart !== cart) {
+        setCart(currentCart);
+        console.log('🔄 Cart state güncellendi:', currentCart);
+      }
+    }
+  }, [selectedTable, getCartForTable, cart]); // getCartForTable ve cart'ı dependency olarak ekle
+
+
 
   // Handle table selection
   const handleTableSelect = async (tableNumber: number) => {
@@ -201,27 +246,38 @@ export default function CashRegisterScreen() {
   };
 
   // Handle quantity update
-  const handleQuantityUpdate = (itemId: string, newQuantity: number) => {
+  const handleQuantityUpdate = async (itemId: string, newQuantity: number) => {
     if (!selectedTable) {
       addToast('error', 'No table selected. Please select a table first.', 3000);
       return;
     }
 
     if (newQuantity <= 0) {
-      removeFromCart(selectedTable, itemId);
+      await removeFromCart(selectedTable, itemId);
     } else {
-      updateItemQuantity(selectedTable, itemId, newQuantity);
+      await updateItemQuantity(selectedTable, itemId, newQuantity);
     }
+    
+    // İşlem tamamlandıktan sonra cart state'ini güncelle
+    const updatedCart = getCartForTable(selectedTable);
+    setCart(updatedCart);
+    console.log('🔄 Miktar güncellendi, cart state güncellendi:', updatedCart);
   };
 
   // Handle item removal
-  const handleItemRemove = (itemId: string) => {
+  const handleItemRemove = async (itemId: string) => {
     if (!selectedTable) {
       addToast('error', 'No table selected. Please select a table first.', 3000);
       return;
     }
 
-    removeFromCart(selectedTable, itemId);
+    await removeFromCart(selectedTable, itemId);
+    
+    // İşlem tamamlandıktan sonra cart state'ini güncelle
+    const updatedCart = getCartForTable(selectedTable);
+    setCart(updatedCart);
+    console.log('🗑️ Ürün kaldırıldı, cart state güncellendi:', updatedCart);
+    
     addToast('info', 'Item removed from cart', 2000);
   };
 
@@ -240,8 +296,14 @@ export default function CashRegisterScreen() {
         { 
           text: 'Clear', 
           style: 'destructive',
-          onPress: () => {
-            clearCurrentCart(selectedTable);
+          onPress: async () => {
+            await clearCurrentCart(selectedTable);
+            
+            // İşlem tamamlandıktan sonra cart state'ini güncelle
+            const updatedCart = getCartForTable(selectedTable);
+            setCart(updatedCart);
+            console.log('🧹 Sepet temizlendi, cart state güncellendi:', updatedCart);
+            
             addToast('success', `Cart cleared for table ${selectedTable}`, 3000);
           }
         }
@@ -298,7 +360,7 @@ export default function CashRegisterScreen() {
                     console.log('🔄 Loading state:', tableSelectionLoading);
                     console.log('🔄 Buton style:', {
                       isSelected: selectedTable === tableNumber,
-                      hasItems: hasItems,
+                      hasItems,
                       isLoading: tableSelectionLoading === tableNumber
                     });
                     
@@ -342,7 +404,7 @@ export default function CashRegisterScreen() {
                   delayPressOut={0}
                   disabled={false} // Disabled state'i kaldır - sadece loading kontrolü yap
                   pressRetentionOffset={{ top: 25, bottom: 25, left: 25, right: 25 }} // Press retention'ı büyüt
-                  accessible={true}
+                  accessible
                   accessibilityLabel={`Table ${tableNumber}`}
                   accessibilityHint={`Select table ${tableNumber}`}
                   accessibilityRole="button"
@@ -397,7 +459,7 @@ export default function CashRegisterScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
               {filteredProducts.map((product: any) => {
                 // Sepetteki bu ürünün miktarını bul
-                const cartItem = cart?.items.find(item => item.productId === product.id);
+                const cartItem = cart?.items.find((item: any) => item.productId === product.id);
                 const quantityInCart = cartItem?.quantity || 0;
                 
                 return (
@@ -407,7 +469,7 @@ export default function CashRegisterScreen() {
                       styles.productCard,
                       quantityInCart > 0 && styles.productCardInCart
                     ]}
-                    onPress={() => {
+                    onPress={async () => {
                       if (!selectedTable) {
                         addToast('error', 'Please select a table first', 3000);
                         return;
@@ -417,13 +479,18 @@ export default function CashRegisterScreen() {
                       Vibration.vibrate(30);
                       
                       // Add product to cart with table number
-                      addToCart({
+                      await addToCart({
                         productId: product.id,
                         productName: product.name,
                         quantity: 1,
                         unitPrice: product.price,
                         notes: undefined
                       }, selectedTable);
+                      
+                      // Ürün eklendikten sonra cart state'ini güncelle
+                      const updatedCart = getCartForTable(selectedTable);
+                      setCart(updatedCart);
+                      console.log('✅ Ürün eklendi, cart güncellendi:', updatedCart);
                       
                       const newQuantity = quantityInCart + 1;
                       addToast('success', `${product.name} added to table ${selectedTable} (${newQuantity}x)`, 2000);
@@ -473,7 +540,7 @@ export default function CashRegisterScreen() {
             </View>
           ) : cart && cart.items.length > 0 ? (
             <ScrollView style={styles.cartItems}>
-              {cart.items.map((item) => (
+              {cart.items.map((item: any) => (
                 <View key={item.id} style={styles.cartItem}>
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemName}>{item.productName}</Text>
