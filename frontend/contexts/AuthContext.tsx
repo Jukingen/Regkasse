@@ -133,14 +133,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             clearCartCache();
         };
 
-        // Event listener ekle
-        if (typeof window !== 'undefined') {
-            window.addEventListener(CART_CLEAR_EVENT, handleLogoutEvent);
-            
-            // Cleanup
-            return () => {
-                window.removeEventListener(CART_CLEAR_EVENT, handleLogoutEvent);
-            };
+        // Event listener ekle - Platform-aware
+        if (typeof window !== 'undefined' && window.addEventListener) {
+            try {
+                window.addEventListener(CART_CLEAR_EVENT, handleLogoutEvent);
+                console.log('✅ Web platform: cart clear event listener added');
+                
+                // Cleanup
+                return () => {
+                    if (typeof window !== 'undefined' && window.removeEventListener) {
+                        window.removeEventListener(CART_CLEAR_EVENT, handleLogoutEvent);
+                        console.log('✅ Web platform: cart clear event listener removed');
+                    }
+                };
+            } catch (error) {
+                console.warn('⚠️ Failed to add window event listener:', error);
+            }
+        } else {
+            console.log('📱 Mobile platform: window events not available, using direct method');
+            // Mobile platformda direkt çağrı kullanılabilir (gerekirse)
         }
     }, []);
 
@@ -334,11 +345,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('🧹 Login sonrası cart cache temizleniyor...');
             await AsyncStorage.removeItem('currentCartId');
             
-            // Cart cache temizleme event'ini tetikle
-            if (typeof window !== 'undefined') {
-                const clearCartEvent = new CustomEvent(CART_CLEAR_EVENT);
-                window.dispatchEvent(clearCartEvent);
-                console.log('✅ Cart clear event dispatched');
+            // Cart cache temizleme event'ini tetikle - Platform-aware
+            if (typeof window !== 'undefined' && window.dispatchEvent) {
+                try {
+                    const clearCartEvent = new CustomEvent(CART_CLEAR_EVENT);
+                    window.dispatchEvent(clearCartEvent);
+                    console.log('✅ Web platform: Cart clear event dispatched');
+                } catch (error) {
+                    console.warn('⚠️ Failed to dispatch cart clear event:', error);
+                }
+            } else {
+                console.log('📱 Mobile platform: Direct cart clear called');
+                // Mobile platformda direkt clearCartCache çağır
+                clearCartCache();
             }
             
             // Local storage'dan cart verilerini temizle
@@ -456,22 +475,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             console.warn('⚠️ Backend logout hatası:', errorMessage);
                             
                             // Kullanıcıya hata mesajını göster (toast ile)
-                            if (typeof window !== 'undefined') {
-                                // Web için toast göster
-                                const event = new CustomEvent('show-toast', {
-                                    detail: { type: 'warning', message: errorMessage, duration: 5000 }
-                                });
-                                window.dispatchEvent(event);
+                            if (typeof window !== 'undefined' && window.dispatchEvent) {
+                                try {
+                                    // Web için toast göster
+                                    const event = new CustomEvent('show-toast', {
+                                        detail: { type: 'warning', message: errorMessage, duration: 5000 }
+                                    });
+                                    window.dispatchEvent(event);
+                                    console.log('✅ Web platform: Warning toast dispatched');
+                                } catch (error) {
+                                    console.warn('⚠️ Failed to dispatch warning toast:', error);
+                                }
                             }
                         }
                     } catch (logoutError) {
                         console.warn('Backend logout API hatası:', logoutError);
                         // Kullanıcıya hata mesajını göster
-                        if (typeof window !== 'undefined') {
-                            const event = new CustomEvent('show-toast', {
-                                detail: { type: 'warning', message: 'Backend logout failed, but local cleanup completed', duration: 5000 }
-                            });
-                            window.dispatchEvent(event);
+                        if (typeof window !== 'undefined' && window.dispatchEvent) {
+                            try {
+                                const event = new CustomEvent('show-toast', {
+                                    detail: { type: 'warning', message: 'Backend logout failed, but local cleanup completed', duration: 5000 }
+                                });
+                                window.dispatchEvent(event);
+                                console.log('✅ Web platform: Backend logout warning toast dispatched');
+                            } catch (error) {
+                                console.warn('⚠️ Failed to dispatch backend logout warning toast:', error);
+                            }
                         }
                     }
                     
@@ -483,11 +512,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error('Logout error:', error); // Debug log
             // Kullanıcıya hata mesajını göster
-            if (typeof window !== 'undefined') {
-                const event = new CustomEvent('show-toast', {
-                    detail: { type: 'error', message: 'Logout error occurred, but cleanup will continue', duration: 5000 }
-                });
-                window.dispatchEvent(event);
+            if (typeof window !== 'undefined' && window.dispatchEvent) {
+                try {
+                    const event = new CustomEvent('show-toast', {
+                        detail: { type: 'error', message: 'Logout error occurred, but cleanup will continue', duration: 5000 }
+                    });
+                    window.dispatchEvent(event);
+                    console.log('✅ Web platform: Logout error toast dispatched');
+                } catch (error) {
+                    console.warn('⚠️ Failed to dispatch logout error toast:', error);
+                }
             }
         } finally {
             // AsyncStorage'ı kesinlikle temizle
@@ -522,10 +556,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             console.log('Auth state cleared successfully'); // Debug log
             
-            // LOGOUT EVENT YAYINLA - Cache temizleme için
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new CustomEvent(CART_CLEAR_EVENT));
-                console.log('Logout cache clear event dispatched');
+            // LOGOUT EVENT YAYINLA - Cache temizleme için - Platform-aware
+            if (typeof window !== 'undefined' && window.dispatchEvent) {
+                try {
+                    window.dispatchEvent(new CustomEvent(CART_CLEAR_EVENT));
+                    console.log('✅ Web platform: Logout cache clear event dispatched');
+                } catch (error) {
+                    console.warn('⚠️ Failed to dispatch logout cache clear event:', error);
+                }
+            } else {
+                console.log('📱 Mobile platform: Direct logout cache clear called');
+                // Mobile platformda direkt clearCartCache çağır
+                clearCartCache();
             }
             
             // Navigation'ı yap
@@ -542,9 +584,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         router.push('/(auth)/login');
                     } catch (retryError) {
                         console.error('Retry navigation failed:', retryError);
-                        // Son çare: window.location (web için)
-                        if (typeof window !== 'undefined') {
-                            window.location.href = '/(auth)/login';
+                        // Son çare: window.location (web için) - Platform-aware
+                        if (typeof window !== 'undefined' && window.location) {
+                            try {
+                                window.location.href = '/(auth)/login';
+                                console.log('✅ Web platform: Navigation via window.location');
+                            } catch (error) {
+                                console.warn('⚠️ Failed to navigate via window.location:', error);
+                            }
                         }
                     }
                 }, 100);

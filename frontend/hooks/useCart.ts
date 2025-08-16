@@ -72,20 +72,32 @@ export const useCart = () => {
     setError(null);
   }, []);
 
-  // LOGOUT EVENT DİNLEYİCİSİ - Cache temizleme için
+  // LOGOUT EVENT DİNLEYİCİSİ - Cache temizleme için (Platform-aware)
   useEffect(() => {
     const handleLogout = () => {
       console.log('🧹 Logout event received, clearing all carts...');
       clearAllCarts();
     };
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('logout-clear-cache', handleLogout);
-      
-      // Cleanup
-      return () => {
-        window.removeEventListener('logout-clear-cache', handleLogout);
-      };
+    // Web platform kontrolü - React Native'de window objesi yok
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      try {
+        window.addEventListener('logout-clear-cache', handleLogout);
+        console.log('✅ Web platform: logout event listener added');
+        
+        // Cleanup
+        return () => {
+          if (typeof window !== 'undefined' && window.removeEventListener) {
+            window.removeEventListener('logout-clear-cache', handleLogout);
+            console.log('✅ Web platform: logout event listener removed');
+          }
+        };
+      } catch (error) {
+        console.warn('⚠️ Failed to add window event listener:', error);
+      }
+    } else {
+      console.log('📱 Mobile platform: window events not available, using direct method');
+      // Mobile platformda direkt çağrı kullanılabilir (gerekirse)
     }
   }, [clearAllCarts]);
 
