@@ -18,11 +18,16 @@ namespace KasseAPI_Final.Services
         Task<TseCertificateInfo> GetTseCertificateInfoAsync(string deviceId);
         Task<bool> BackupTseDataAsync(string deviceId);
         Task<bool> RestoreTseDataAsync(string deviceId, byte[] backupData);
+        
+        // Yeni metodlar
+        Task<TseStatus> GetDeviceStatusAsync();
+        Task<bool> CancelInvoiceSignatureAsync(string signature);
     }
 
     public class TseStatus
     {
         public bool IsConnected { get; set; }
+        public bool IsReady { get; set; } // TSE cihazı hazır mı
         public string DeviceId { get; set; } = string.Empty;
         public string SerialNumber { get; set; } = string.Empty;
         public bool IsOperational { get; set; }

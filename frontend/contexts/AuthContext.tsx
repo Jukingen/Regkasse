@@ -423,10 +423,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             const result = await logoutResponse.json();
                             console.log('✅ Backend logout başarılı:', result.message);
                         } else {
-                            console.warn('⚠️ Backend logout hatası:', logoutResponse.status, logoutResponse.statusText);
+                            // Backend'den hata mesajını al
+                            let errorMessage = 'Backend logout failed';
+                            try {
+                                const errorData = await logoutResponse.json();
+                                errorMessage = errorData.message || errorMessage;
+                            } catch {
+                                errorMessage = `Backend logout failed: ${logoutResponse.status} ${logoutResponse.statusText}`;
+                            }
+                            console.warn('⚠️ Backend logout hatası:', errorMessage);
+                            
+                            // Kullanıcıya hata mesajını göster (toast ile)
+                            if (typeof window !== 'undefined') {
+                                // Web için toast göster
+                                const event = new CustomEvent('show-toast', {
+                                    detail: { type: 'warning', message: errorMessage, duration: 5000 }
+                                });
+                                window.dispatchEvent(event);
+                            }
                         }
                     } catch (logoutError) {
                         console.warn('Backend logout API hatası:', logoutError);
+                        // Kullanıcıya hata mesajını göster
+                        if (typeof window !== 'undefined') {
+                            const event = new CustomEvent('show-toast', {
+                                detail: { type: 'warning', message: 'Backend logout failed, but local cleanup completed', duration: 5000 }
+                            });
+                            window.dispatchEvent(event);
+                        }
                     }
                     
                 } catch (apiError) {
@@ -436,6 +460,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         } catch (error) {
             console.error('Logout error:', error); // Debug log
+            // Kullanıcıya hata mesajını göster
+            if (typeof window !== 'undefined') {
+                const event = new CustomEvent('show-toast', {
+                    detail: { type: 'error', message: 'Logout error occurred, but cleanup will continue', duration: 5000 }
+                });
+                window.dispatchEvent(event);
+            }
         } finally {
             // AsyncStorage'ı kesinlikle temizle
             try {

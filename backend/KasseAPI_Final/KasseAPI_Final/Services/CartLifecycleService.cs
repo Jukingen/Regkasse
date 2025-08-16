@@ -222,62 +222,82 @@ namespace KasseAPI_Final.Services
             {
                 _logger.LogInformation("🧹 Kullanıcı {UserId} için sepet temizleme başlatıldı", userId);
                 
-                // 🔒 GÜVENLİK: Sadece belirtilen kullanıcının aktif sepetlerini bul
-                var userCarts = await context.Carts
-                    .Include(c => c.Items)
-                    .Where(c => c.UserId == userId && 
-                               c.Status == CartStatus.Active)
-                    .Select(c => new { c.CartId, c.TableNumber, c.Items.Count })
-                    .ToListAsync();
-
-                if (userCarts.Any())
+                // Transaction kullanarak güvenli silme işlemi
+                using var transaction = await context.Database.BeginTransactionAsync();
+                
+                try
                 {
-                    _logger.LogInformation("🧹 Kullanıcı {UserId} için {CartsCount} aktif sepet bulundu, temizleniyor...", 
-                        userId, userCarts.Count);
-                    
-                    // Batch delete için ID'leri topla
-                    var cartIds = userCarts.Select(c => c.CartId).ToList();
-                    
-                    // Önce CartItems'ları sil
-                    var cartItemsToDelete = await context.CartItems
-                        .Where(ci => cartIds.Contains(ci.CartId))
+                    // 🔒 GÜVENLİK: Sadece belirtilen kullanıcının aktif sepetlerini bul
+                    var userCarts = await context.Carts
+                        .Include(c => c.Items)
+                        .Where(c => c.UserId == userId && 
+                                   c.Status == CartStatus.Active)
+                        .Select(c => new { c.CartId, c.TableNumber, c.Items.Count })
                         .ToListAsync();
-                    
-                    if (cartItemsToDelete.Any())
+
+                    if (userCarts.Any())
                     {
-                        context.CartItems.RemoveRange(cartItemsToDelete);
-                        _logger.LogInformation("🧹 Kullanıcı {UserId} için {ItemsCount} sepet ürünü silindi", 
-                            userId, cartItemsToDelete.Count);
+                        _logger.LogInformation("🧹 Kullanıcı {UserId} için {CartsCount} aktif sepet bulundu, temizleniyor...", 
+                            userId, userCarts.Count);
+                        
+                        // Batch delete için ID'leri topla
+                        var cartIds = userCarts.Select(c => c.CartId).ToList();
+                        
+                        // Önce CartItems'ları sil
+                        var cartItemsToDelete = await context.CartItems
+                            .Where(ci => cartIds.Contains(ci.CartId))
+                            .ToListAsync();
+                        
+                        if (cartItemsToDelete.Any())
+                        {
+                            context.CartItems.RemoveRange(cartItemsToDelete);
+                            _logger.LogInformation("🧹 Kullanıcı {UserId} için {ItemsCount} sepet ürünü silindi", 
+                                cartItemsToDelete.Count);
+                        }
+                        
+                        // Sonra Cart'ları sil
+                        var cartsToDelete = await context.Carts
+                            .Where(c => cartIds.Contains(c.CartId))
+                            .ToListAsync();
+                        
+                        context.Carts.RemoveRange(cartsToDelete);
+                        
+                        // Değişiklikleri kaydet
+                        var deletedCount = await context.SaveChangesAsync();
+                        
+                        // Transaction'ı commit et
+                        await transaction.CommitAsync();
+                        
+                        _logger.LogInformation("✅ Kullanıcı {UserId} için {CartsCount} sepet temizlendi, {DeletedCount} kayıt silindi", 
+                            userCarts.Count, deletedCount);
+                        
+                        // Güvenlik log'u
+                        foreach (var cart in userCarts)
+                        {
+                            _logger.LogInformation("🗑️ User cart cleaned: CartId={CartId}, UserId={UserId}, TableNumber={TableNumber}, ItemsCount={ItemsCount}", 
+                                cart.CartId, userId, cart.TableNumber, cart.Count);
+                        }
                     }
-                    
-                    // Sonra Cart'ları sil
-                    var cartsToDelete = await context.Carts
-                        .Where(c => cartIds.Contains(c.CartId))
-                        .ToListAsync();
-                    
-                    context.Carts.RemoveRange(cartsToDelete);
-                    
-                    // Değişiklikleri kaydet
-                    var deletedCount = await context.SaveChangesAsync();
-                    
-                    _logger.LogInformation("✅ Kullanıcı {UserId} için {CartsCount} sepet temizlendi, {DeletedCount} kayıt silindi", 
-                        userId, userCarts.Count, deletedCount);
-                    
-                    // Güvenlik log'u
-                    foreach (var cart in userCarts)
+                    else
                     {
-                        _logger.LogInformation("🗑️ User cart cleaned: CartId={CartId}, UserId={UserId}, TableNumber={TableNumber}, ItemsCount={ItemsCount}", 
-                            cart.CartId, userId, cart.TableNumber, cart.Count);
+                        _logger.LogInformation("ℹ️ Kullanıcı {UserId} için aktif sepet bulunamadı", userId);
+                        // Transaction'ı commit et (hiçbir değişiklik yok)
+                        await transaction.CommitAsync();
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogInformation("ℹ️ Kullanıcı {UserId} için aktif sepet bulunamadı", userId);
+                    // Hata durumunda transaction'ı rollback et
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "❌ Transaction hatası, rollback yapıldı: {UserId}", userId);
+                    throw; // Hatayı yukarı fırlat
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Kullanıcı sepet temizleme hatası: {UserId}", userId);
+                _logger.LogError(ex, "❌ Kullanıcı sepet temizleme hatası: {UserId}. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
+                    userId, ex.GetType().Name, ex.Message);
+                throw; // Hatayı yukarı fırlat
             }
         }
     }

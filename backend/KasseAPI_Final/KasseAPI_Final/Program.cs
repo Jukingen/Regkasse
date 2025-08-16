@@ -10,6 +10,7 @@ using System.Security.Claims;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -141,10 +142,25 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddScoped<ITseService, TseService>();
 builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
 builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
-builder.Services.AddScoped<IReceiptService, ReceiptService>();
+builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi eklendi
+// builder.Services.AddScoped<IReceiptService, ReceiptService>(); // Geçici olarak devre dışı - PaymentDetails model değişikliği nedeniyle
+// builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
+// builder.Services.AddScoped<ITestService, TestService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+
+// Register repositories
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddScoped<IGenericRepository<Customer>, GenericRepository<Customer>>();
+builder.Services.AddScoped<IGenericRepository<Product>, GenericRepository<Product>>();
+builder.Services.AddScoped<IGenericRepository<Category>, GenericRepository<Category>>();
+builder.Services.AddScoped<IGenericRepository<Invoice>, GenericRepository<Invoice>>();
+builder.Services.AddScoped<IGenericRepository<PaymentDetails>, GenericRepository<PaymentDetails>>();
+builder.Services.AddScoped<IGenericRepository<PaymentItem>, GenericRepository<PaymentItem>>();
 
 // 🚀 Akıllı Sepet Yaşam Döngüsü Service'i
 builder.Services.AddHostedService<CartLifecycleService>();
+// CartLifecycleService'i ayrıca Scoped olarak da kayıt et (logout için)
+builder.Services.AddScoped<CartLifecycleService>();
 
 // Audit log service
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();

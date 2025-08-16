@@ -1,5 +1,5 @@
 // Türkçe Açıklama: Bu ekran kasiyer için sade, hızlı ve modern bir ana satış arayüzü sunar. Tab ile masa seçimi, basit sepet görünümü, manuel masa durumu yönetimi. Kod linter uyumludur ve kasiyer dostu tasarlanmıştır.
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -30,18 +30,21 @@ export default function CashRegisterScreen() {
     isTseRequired,
     addToast,
     removeToast,
-    paymentMethods
+    paymentMethods,
+    clearCurrentCart
   } = useCashRegister();
 
   const { products, refreshProducts } = useProductOperations();
   const [selectedTable, setSelectedTable] = useState<number>(1);
+  const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null); // Masa seçim loading state
+  const isFirstLoad = useRef(true); // İlk yükleme kontrolü için
 
   const { 
     getCartForTable,
     addToCart, 
-    updateCartItem, 
+    updateItemQuantity, 
     removeFromCart, 
-    clearCart,
+    clearCartForTable,
     loading: cartLoading, 
     error: cartError 
   } = useCart();
@@ -55,26 +58,74 @@ export default function CashRegisterScreen() {
 
   // Load products and cart when component mounts
   useEffect(() => {
-    refreshProducts();
-    // İlk yüklemede seçili masanın sepetini yükle
-    loadCartForTable(selectedTable);
-  }, []);
-
-  // Load cart when table changes
-  useEffect(() => {
+    console.log('🔄 Component mount - Ürünler yükleniyor...');
+    console.log('🔍 refreshProducts fonksiyonu çağrılıyor...');
+    
+    refreshProducts().then(() => {
+      console.log('✅ Ürünler yüklendi');
+      console.log('📦 Products state:', products);
+    }).catch((error) => {
+      console.error('❌ Ürün yükleme hatası:', error);
+    });
+    
+    // İlk yüklemede seçili masanın sepetini yükle (sadece bir kere)
     if (selectedTable) {
       loadCartForTable(selectedTable);
+    }
+  }, []); // Sadece component mount'ta çalışsın
+
+  // Load cart when table changes (sadece masa değiştiğinde)
+  useEffect(() => {
+    // İlk yüklemede çalışmasın, sadece masa değiştiğinde
+    if (!isFirstLoad.current && selectedTable) {
+      loadCartForTable(selectedTable);
+    } else {
+      isFirstLoad.current = false;
     }
   }, [selectedTable]);
 
   // Handle table selection
-  const handleTableSelect = (tableNumber: number) => {
-    console.log('🔄 Masa değiştiriliyor:', selectedTable, '->', tableNumber);
-    setSelectedTable(tableNumber);
-    addToast('info', `Switching to table ${tableNumber}`, 2000);
-    
-    // Masa değiştiğinde o masanın sepetini yükle
-    loadCartForTable(tableNumber);
+  const handleTableSelect = async (tableNumber: number) => {
+    try {
+      // Input validation
+      if (!tableNumber || tableNumber < 1 || tableNumber > 10) {
+        console.error('❌ Geçersiz masa numarası:', tableNumber);
+        addToast('error', 'Invalid table number', 3000);
+        return;
+      }
+
+      // Aynı masaya tıklanırsa işlem yapma
+      if (selectedTable === tableNumber) {
+        console.log('ℹ️ Zaten seçili masa:', tableNumber);
+        return;
+      }
+
+      // Loading state kontrolü
+      if (tableSelectionLoading !== null) {
+        console.log('⚠️ Zaten masa değişimi yapılıyor, bekleniyor...');
+        return;
+      }
+
+      console.log('🔄 Masa değiştiriliyor:', selectedTable, '->', tableNumber);
+      
+      // Loading state'i set et
+      setTableSelectionLoading(tableNumber);
+      
+      // Masa değiştir
+      setSelectedTable(tableNumber);
+      addToast('info', `Switching to table ${tableNumber}`, 2000);
+      
+      // Loading state'i daha kısa tut
+      setTimeout(() => {
+        setTableSelectionLoading(null);
+        console.log('✅ Masa değişimi tamamlandı:', tableNumber);
+      }, 500); // 1 saniye yerine 500ms
+      
+    } catch (error) {
+      console.error('❌ Masa seçim hatası:', error);
+      addToast('error', 'Failed to switch table', 3000);
+      setTableSelectionLoading(null);
+    }
   };
 
   // Handle category selection
@@ -84,11 +135,22 @@ export default function CashRegisterScreen() {
   };
 
   // Filter products by selected category
-  const filteredProducts = products.data && Array.isArray(products.data) 
-    ? products.data.filter(product => 
+  // Backend'den gelen response formatı: { success: true, message: "...", data: { items: [...], pagination: {...} } }
+  const productsData = products.data?.data?.items || products.data?.items || products.data || [];
+  const filteredProducts = Array.isArray(productsData) 
+    ? productsData.filter((product: any) => 
         selectedCategory === 'all' || product.category === selectedCategory
       )
     : [];
+    
+  // Debug: Ürün durumunu kontrol et
+  console.log('🔍 Products state:', products);
+  console.log('🔍 Products.data:', products.data);
+  console.log('🔍 Products.data.data:', products.data?.data);
+  console.log('🔍 Products.data.data.items:', products.data?.data?.items);
+  console.log('🔍 ProductsData:', productsData);
+  console.log('🔍 Filtered products:', filteredProducts);
+  console.log('🔍 Selected category:', selectedCategory);
 
   // Handle payment processing
   const handlePayment = async () => {
@@ -124,7 +186,7 @@ export default function CashRegisterScreen() {
         addToast('success', `Payment successful! Receipt: ${result.receiptNumber}`, 5000);
         
         // Başarılı ödemeden sonra masayı temizle
-        clearCart(selectedTable);
+        clearCurrentCart(selectedTable);
         
         // Masayı 1'e geri döndür
         setSelectedTable(1);
@@ -146,9 +208,9 @@ export default function CashRegisterScreen() {
     }
 
     if (newQuantity <= 0) {
-      removeFromCart(itemId, selectedTable);
+      removeFromCart(selectedTable, itemId);
     } else {
-      updateCartItem(itemId, newQuantity, selectedTable);
+      updateItemQuantity(selectedTable, itemId, newQuantity);
     }
   };
 
@@ -159,7 +221,8 @@ export default function CashRegisterScreen() {
       return;
     }
 
-    removeFromCart(itemId, selectedTable);
+    removeFromCart(selectedTable, itemId);
+    addToast('info', 'Item removed from cart', 2000);
   };
 
   // Handle cart clearing
@@ -178,7 +241,7 @@ export default function CashRegisterScreen() {
           text: 'Clear', 
           style: 'destructive',
           onPress: () => {
-            clearCart(selectedTable);
+            clearCurrentCart(selectedTable);
             addToast('success', `Cart cleared for table ${selectedTable}`, 3000);
           }
         }
@@ -205,7 +268,17 @@ export default function CashRegisterScreen() {
         {/* Table Selection - Tab Style */}
         <View style={styles.tableSection}>
           <Text style={styles.sectionTitle}>Select Table</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tableScroll}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            style={styles.tableScroll}
+            contentContainerStyle={styles.tableScrollContent}
+            bounces={false}
+            decelerationRate="fast"
+            scrollEventThrottle={16} // Scroll event throttling
+            keyboardShouldPersistTaps="handled" // Keyboard ile touch handling
+            nestedScrollEnabled={false} // Nested scroll'u devre dışı bırak
+          >
             {tableNumbers.map((tableNumber) => {
               const tableCart = getCartForTable(tableNumber);
               const hasItems = tableCart && tableCart.items.length > 0;
@@ -216,16 +289,75 @@ export default function CashRegisterScreen() {
                   style={[
                     styles.tableTab,
                     selectedTable === tableNumber && styles.selectedTableTab,
-                    hasItems && styles.tableTabWithItems
+                    hasItems && styles.tableTabWithItems,
+                    tableSelectionLoading === tableNumber && styles.tableTabLoading
                   ]}
-                  onPress={() => handleTableSelect(tableNumber)}
+                  onPress={() => {
+                    console.log('🔄 Masa butonu tıklandı:', tableNumber);
+                    console.log('🔄 Mevcut seçili masa:', selectedTable);
+                    console.log('🔄 Loading state:', tableSelectionLoading);
+                    console.log('🔄 Buton style:', {
+                      isSelected: selectedTable === tableNumber,
+                      hasItems: hasItems,
+                      isLoading: tableSelectionLoading === tableNumber
+                    });
+                    
+                    // Loading state kontrolü - sadece farklı masaya tıklanırsa işlem yap
+                    if (tableSelectionLoading !== null) {
+                      console.log('⚠️ Loading state aktif, işlem bekleniyor...');
+                      addToast('info', 'Please wait, table switching in progress...', 2000);
+                      return;
+                    }
+                    
+                    // State validation
+                    if (typeof tableNumber !== 'number' || tableNumber < 1 || tableNumber > 10) {
+                      console.error('❌ Geçersiz masa numarası:', tableNumber);
+                      addToast('error', 'Invalid table number', 3000);
+                      return;
+                    }
+                    
+                    // Haptic feedback ekle
+                    Vibration.vibrate(30);
+                    
+                    // handleTableSelect'i try-catch ile çağır
+                    try {
+                      handleTableSelect(tableNumber);
+                    } catch (error) {
+                      console.error('❌ Masa seçim hatası:', error);
+                      addToast('error', 'Failed to select table', 3000);
+                    }
+                  }}
+                  onPressIn={() => {
+                    console.log('🔄 Masa butonu press in:', tableNumber);
+                  }}
+                  onPressOut={() => {
+                    console.log('🔄 Masa butonu press out:', tableNumber);
+                  }}
+                  onLongPress={() => {
+                    console.log('🔄 Masa butonu long press:', tableNumber);
+                  }}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} // Hit area'yı daha da büyüt
+                  delayPressIn={0}
+                  delayPressOut={0}
+                  disabled={false} // Disabled state'i kaldır - sadece loading kontrolü yap
+                  pressRetentionOffset={{ top: 25, bottom: 25, left: 25, right: 25 }} // Press retention'ı büyüt
+                  accessible={true}
+                  accessibilityLabel={`Table ${tableNumber}`}
+                  accessibilityHint={`Select table ${tableNumber}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ 
+                    selected: selectedTable === tableNumber,
+                    disabled: false
+                  }}
                 >
                   <Text style={[
                     styles.tableTabText,
                     selectedTable === tableNumber && styles.selectedTableTabText,
-                    hasItems && styles.tableTabTextWithItems
+                    hasItems && styles.tableTabTextWithItems,
+                    tableSelectionLoading === tableNumber && styles.tableTabTextLoading
                   ]}>
-                    {tableNumber}
+                    {tableSelectionLoading === tableNumber ? '...' : tableNumber}
                   </Text>
                   {hasItems && (
                     <View style={styles.tableItemIndicator}>
@@ -490,6 +622,9 @@ const styles = StyleSheet.create({
   tableScroll: {
     flexDirection: 'row',
   },
+  tableScrollContent: {
+    alignItems: 'center',
+  },
   // Tab Style Table Buttons
   tableTab: {
     paddingHorizontal: 20,
@@ -500,15 +635,46 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
     minWidth: 60,
+    minHeight: 50, // Minimum height ekle
     alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3, // Android için shadow - artır
+    shadowColor: '#000', // iOS için shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15, // Shadow opacity artır
+    shadowRadius: 4,
+    zIndex: 10, // Z-index artır
+    // Touch feedback için ek özellikler
+    transform: [{ scale: 1 }], // Transform ekle
+    // Touch handling için ek özellikler
+    overflow: 'visible', // Overflow visible yap
   },
   selectedTableTab: {
     backgroundColor: '#2196F3',
     borderColor: '#1976D2',
+    elevation: 6, // Seçili masa için daha yüksek elevation
+    shadowOpacity: 0.25, // Shadow opacity artır
+    zIndex: 15, // Z-index artır
+    transform: [{ scale: 1.05 }], // Seçili masa için büyüt
+    overflow: 'visible',
   },
   tableTabWithItems: {
     borderColor: '#4CAF50',
     borderWidth: 2,
+    elevation: 4, // Elevation artır
+    zIndex: 12, // Z-index artır
+    transform: [{ scale: 1.02 }], // Ürünü olan masa için hafif büyüt
+    overflow: 'visible',
+  },
+  tableTabLoading: {
+    backgroundColor: '#e0e0e0',
+    borderColor: '#ccc',
+    borderWidth: 2,
+    opacity: 0.8, // Opacity artır
+    transform: [{ scale: 0.98 }], // Loading sırasında hafif küçült
+    elevation: 2,
+    zIndex: 8,
+    overflow: 'visible',
   },
   tableTabText: {
     fontSize: 16,
@@ -521,6 +687,9 @@ const styles = StyleSheet.create({
   tableTabTextWithItems: {
     color: '#4CAF50',
   },
+  tableTabTextLoading: {
+    color: '#999',
+  },
   tableItemIndicator: {
     position: 'absolute',
     top: -5,
@@ -531,7 +700,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     minWidth: 20,
     alignItems: 'center',
-    zIndex: 1,
+    justifyContent: 'center',
+    zIndex: 20, // En yüksek z-index
+    elevation: 8, // Android için yüksek elevation
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.4, // Shadow opacity artır
+    shadowRadius: 3, // Shadow radius artır
+    overflow: 'visible',
   },
   tableItemIndicatorText: {
     color: '#fff',

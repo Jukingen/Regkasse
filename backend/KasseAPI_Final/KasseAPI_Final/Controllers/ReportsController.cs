@@ -218,7 +218,7 @@ namespace KasseAPI_Final.Controllers
                 var end = endDate ?? DateTime.UtcNow;
 
                 var payments = await _context.PaymentDetails
-                    .Where(p => p.PaymentDate >= start && p.PaymentDate <= end)
+                    .Where(p => p.CreatedAt >= start && p.CreatedAt <= end)
                     .ToListAsync();
 
                 var paymentReport = new PaymentReport
@@ -226,22 +226,22 @@ namespace KasseAPI_Final.Controllers
                     StartDate = start,
                     EndDate = end,
                     TotalPayments = payments.Count,
-                    TotalAmount = payments.Sum(p => p.Amount),
+                    TotalAmount = payments.Sum(p => p.TotalAmount),
                     PaymentsByMethod = payments.GroupBy(p => p.PaymentMethod)
                         .Select(g => new PaymentsByMethod
                         {
-                            Method = g.Key.ToString(),
+                            Method = g.Key,
                             Count = g.Count(),
-                            Total = g.Sum(p => p.Amount)
+                            Total = g.Sum(p => p.TotalAmount)
                         })
                         .OrderByDescending(p => p.Total)
                         .ToList(),
-                    PaymentsByStatus = payments.GroupBy(p => p.Status)
+                    PaymentsByStatus = payments.GroupBy(p => p.IsActive)
                         .Select(g => new PaymentsByStatus
                         {
-                            Status = g.Key.ToString(),
+                            Status = g.Key ? "Active" : "Inactive",
                             Count = g.Count(),
-                            Total = g.Sum(p => p.Amount)
+                            Total = g.Sum(p => p.TotalAmount)
                         })
                         .OrderByDescending(p => p.Total)
                         .ToList()

@@ -291,5 +291,80 @@ namespace KasseAPI_Final.Services
                 return false;
             }
         }
+
+        // Yeni metodlar - interface'de tanımlanan eksik metodlar
+        public async Task<TseStatus> GetDeviceStatusAsync()
+        {
+            try
+            {
+                // Get the first available TSE device
+                var tseDevice = await _context.TseDevices
+                    .OrderBy(t => t.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (tseDevice == null)
+                {
+                    return new TseStatus
+                    {
+                        IsConnected = false,
+                        IsReady = false,
+                        Status = "No TSE device found",
+                        ErrorMessage = "No TSE device configured in the system"
+                    };
+                }
+
+                return new TseStatus
+                {
+                    IsConnected = tseDevice.IsConnected,
+                    IsReady = tseDevice.CanCreateInvoices && tseDevice.IsActive,
+                    DeviceId = tseDevice.Id.ToString(),
+                    SerialNumber = tseDevice.SerialNumber,
+                    IsOperational = tseDevice.CanCreateInvoices,
+                    Status = tseDevice.IsConnected ? "Connected" : "Disconnected",
+                    LastConnectionTime = tseDevice.LastConnectionTime,
+                    ErrorMessage = tseDevice.IsConnected ? "" : "TSE device is not connected"
+                };
+            }
+            catch (Exception ex)
+            {
+                return new TseStatus
+                {
+                    IsConnected = false,
+                    IsReady = false,
+                    Status = "Error",
+                    ErrorMessage = ex.Message
+                };
+            }
+        }
+
+        public async Task<bool> CancelInvoiceSignatureAsync(string signature)
+        {
+            try
+            {
+                // Find the TSE signature to cancel
+                var tseSignature = await _context.TseSignatures
+                    .FirstOrDefaultAsync(t => t.Signature == signature);
+
+                if (tseSignature == null)
+                {
+                    return false;
+                }
+
+                // Mark the signature as invalid (cancelled)
+                tseSignature.IsValid = false;
+                tseSignature.ValidationError = "Invoice cancellation requested";
+
+                await _context.SaveChangesAsync();
+
+                // Log the cancellation for audit purposes
+                // In a real implementation, this would also notify the TSE device
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

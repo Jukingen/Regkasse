@@ -31,17 +31,17 @@ namespace KasseAPI_Final.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
-                // 🔍 DEBUG: Kullanıcı ID'sini logla
-                _logger.LogInformation("GetCurrentUserCart called - UserId: {UserId}, TableNumber: {TableNumber}", userId, tableNumber);
+                // 🔍 DEBUG: Masa numarasını logla
+                _logger.LogInformation("GetCurrentUserCart called - TableNumber: {TableNumber}", tableNumber);
 
-                // ✅ GÜVENLİK: SADECE KULLANICININ KENDİ SEPETİNİ GÖRMESİ
+                // ✅ GÜVENLİK: Masa bazlı sepet getirme - kullanıcı ID kontrolü kaldırıldı
+                // Çünkü kasiyer tüm masaların sepetlerini görebilmeli
                 var cart = await _context.Carts
                     .Include(c => c.Items)
                         .ThenInclude(ci => ci.Product)
                     .Include(c => c.Customer)
                     .Where(c => c.TableNumber == tableNumber && 
-                               c.Status == CartStatus.Active && 
-                               c.UserId == userId) // 🔒 Güvenlik: UserId kontrolü
+                               c.Status == CartStatus.Active) // UserId kontrolü kaldırıldı
                     .FirstOrDefaultAsync();
 
                 if (cart == null)
@@ -52,16 +52,16 @@ namespace KasseAPI_Final.Controllers
                         .Select(c => new { c.CartId, c.UserId, c.CreatedAt, c.Items.Count })
                         .ToListAsync();
                     
-                    _logger.LogInformation("No cart found for user {UserId} at table {TableNumber}. Available carts: {Carts}", 
-                        userId, tableNumber, 
+                    _logger.LogInformation("No cart found at table {TableNumber}. Available carts: {Carts}", 
+                        tableNumber, 
                         string.Join(", ", allCartsForTable.Select(c => $"CartId={c.CartId}, UserId={c.UserId}, Items={c.Count}")));
                     
                     return NotFound(new { message = $"No active cart found for table {tableNumber}" });
                 }
 
                 // Debug: Cart ve CartItem'ları kontrol et
-                _logger.LogInformation("GetCurrentUserCart: Table={TableNumber}, CartId={CartId}, ItemsCount={ItemsCount}, UserId={UserId}, CreatedAt={CreatedAt}", 
-                    tableNumber, cart.CartId, cart.Items.Count, userId, cart.CreatedAt);
+                _logger.LogInformation("GetCurrentUserCart: Table={TableNumber}, CartId={CartId}, ItemsCount={ItemsCount}, CreatedAt={CreatedAt}", 
+                    tableNumber, cart.CartId, cart.Items.Count, cart.CreatedAt);
                 
                 // 🔍 DEBUG: Tüm cart'ları listele (sadece debug için)
                 var allCarts = await _context.Carts
@@ -795,6 +795,51 @@ namespace KasseAPI_Final.Controllers
             {
                 _logger.LogError(ex, "Error getting cart history");
                 return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // DELETE: api/cart/items/{itemId} - Sepetten ürün sil
+        [HttpDelete("items/{itemId}")]
+        public async Task<IActionResult> RemoveCartItem(Guid itemId)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                _logger.LogInformation("RemoveCartItem called - ItemId: {ItemId}, UserId: {UserId}", itemId, userId);
+
+                // CartItem'ı bul
+                var cartItem = await _context.CartItems
+                    .Include(ci => ci.Cart)
+                    .FirstOrDefaultAsync(ci => ci.Id == itemId);
+
+                if (cartItem == null)
+                {
+                    _logger.LogWarning("CartItem not found - ItemId: {ItemId}", itemId);
+                    return NotFound(new { message = "Cart item not found" });
+                }
+
+                // Kullanıcının bu cart'a erişim yetkisi var mı kontrol et
+                if (cartItem.Cart.UserId != userId)
+                {
+                    _logger.LogWarning("User {UserId} does not have access to cart {CartId}", userId, cartItem.Cart.CartId);
+                    return Forbid();
+                }
+
+                // CartItem'ı sil
+                _context.CartItems.Remove(cartItem);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("CartItem removed successfully - ItemId: {ItemId}, CartId: {CartId}", itemId, cartItem.Cart.CartId);
+
+                return Ok(new { message = "Cart item removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing cart item - ItemId: {ItemId}", itemId);
+                return StatusCode(500, new { message = "Internal server error while removing cart item" });
             }
         }
 

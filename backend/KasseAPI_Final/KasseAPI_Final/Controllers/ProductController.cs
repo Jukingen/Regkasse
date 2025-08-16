@@ -3,244 +3,294 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.Authorization;
+using KasseAPI_Final.Controllers.Base;
+using KasseAPI_Final.Data.Repositories;
 
 namespace KasseAPI_Final.Controllers
 {
+    /// <summary>
+    /// Ürün yönetimi için controller
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class ProductController : ControllerBase
+    public class ProductController : EntityController<Product>
     {
         private readonly AppDbContext _context;
-        private readonly ILogger<ProductController> _logger;
+        private readonly IGenericRepository<Product> _productRepository;
 
-        public ProductController(AppDbContext context, ILogger<ProductController> logger)
+        public ProductController(
+            AppDbContext context, 
+            IGenericRepository<Product> productRepository,
+            ILogger<ProductController> logger) : base(productRepository, logger)
         {
             _context = context;
-            _logger = logger;
+            _productRepository = productRepository;
         }
 
-        // GET: api/Product
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+        /// <summary>
+        /// Barkod'a göre ürün getir
+        /// </summary>
+        [HttpGet("barcode/{barcode}")]
+        public async Task<IActionResult> GetByBarcode(string barcode)
         {
             try
             {
-                // Debug: Authentication bilgilerini logla
-                _logger.LogInformation("GetProducts called. User: {User}, IsAuthenticated: {IsAuthenticated}", 
-                    User?.Identity?.Name, User?.Identity?.IsAuthenticated);
-                
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Barcode == barcode && p.IsActive);
+
+                if (product == null)
+                {
+                    return ErrorResponse($"Product with barcode {barcode} not found", 404);
+                }
+
+                return SuccessResponse(product, "Product retrieved successfully");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"GetByBarcode with barcode {barcode}");
+            }
+        }
+
+        /// <summary>
+        /// Kategoriye göre ürünleri getir
+        /// </summary>
+        [HttpGet("category/{categoryName}")]
+        public async Task<IActionResult> GetByCategory(string categoryName)
+        {
+            try
+            {
                 var products = await _context.Products
-                    .Where(p => p.IsActive)
+                    .Where(p => p.Category == categoryName && p.IsActive)
                     .OrderBy(p => p.Name)
                     .ToListAsync();
 
-                _logger.LogInformation("Retrieved {Count} products", products.Count);
-                return Ok(products);
+                return SuccessResponse(products, $"Retrieved {products.Count} products in category {categoryName}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving products");
-                return StatusCode(500, "Internal server error");
+                return HandleException(ex, $"GetByCategory with category name {categoryName}");
             }
         }
 
-        // GET: api/Product/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Product>> GetProduct(Guid id)
+        /// <summary>
+        /// Stok durumuna göre ürünleri getir
+        /// </summary>
+        [HttpGet("stock/{status}")]
+        public async Task<IActionResult> GetByStockStatus(string status)
         {
             try
             {
-                var product = await _context.Products.FindAsync(id);
-
-                if (product == null || !product.IsActive)
+                var products = status.ToLower() switch
                 {
-                    return NotFound("Ürün bulunamadı");
-                }
+                    "in-stock" => await _context.Products
+                        .Where(p => p.StockQuantity > 0 && p.IsActive)
+                        .OrderBy(p => p.Name)
+                        .ToListAsync(),
+                    "out-of-stock" => await _context.Products
+                        .Where(p => p.StockQuantity <= 0 && p.IsActive)
+                        .OrderBy(p => p.Name)
+                        .ToListAsync(),
+                    "low-stock" => await _context.Products
+                        .Where(p => p.StockQuantity > 0 && p.StockQuantity <= p.MinStockLevel && p.IsActive)
+                        .OrderBy(p => p.Name)
+                        .ToListAsync(),
+                    _ => new List<Product>()
+                };
 
-                return Ok(product);
+                return SuccessResponse(products, $"Retrieved {products.Count} products with stock status: {status}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving product with ID: {Id}", id);
-                return StatusCode(500, "Internal server error");
+                return HandleException(ex, $"GetByStockStatus with status {status}");
             }
         }
 
-        // POST: api/Product
+        /// <summary>
+        /// Ürün oluştur (özel validation ile)
+        /// </summary>
         [HttpPost]
-        public async Task<ActionResult<Product>> CreateProduct(Product product)
+        public override async Task<IActionResult> Create([FromBody] Product product)
         {
             try
             {
-                if (!ModelState.IsValid)
+                var validationResult = ValidateModel();
+                if (validationResult != null)
                 {
-                    return BadRequest(ModelState);
+                    return validationResult;
                 }
 
-                // Validation
-                if (product.Price < 0)
+                // Özel validation
+                var validationErrors = await ValidateProductAsync(product);
+                if (validationErrors.Any())
                 {
-                    return BadRequest("Fiyat negatif olamaz");
+                    return ErrorResponse("Validation failed", 400, validationErrors);
                 }
 
-                if (product.StockQuantity < 0)
-                {
-                    return BadRequest("Stok miktarı negatif olamaz");
-                }
-
-                // Barcode uniqueness check
-                if (!string.IsNullOrEmpty(product.Barcode))
-                {
-                    var existingProduct = await _context.Products
-                        .FirstOrDefaultAsync(p => p.Barcode == product.Barcode && p.IsActive);
-                    
-                    if (existingProduct != null)
-                    {
-                        return BadRequest("Bu barkod zaten kullanılıyor");
-                    }
-                }
-
-                product.Id = Guid.NewGuid();
-                product.CreatedAt = DateTime.UtcNow;
-                product.IsActive = true;
-
-                _context.Products.Add(product);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Product created with ID: {Id}", product.Id);
-                return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+                var createdProduct = await _productRepository.AddAsync(product);
+                
+                return CreatedAtAction(nameof(GetById), new { id = createdProduct.Id }, 
+                    SuccessResponse(createdProduct, "Product created successfully"));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating product");
-                return StatusCode(500, "Internal server error");
+                return HandleException(ex, "Create Product");
             }
         }
 
-        // PUT: api/Product/5
+        /// <summary>
+        /// Ürün güncelle (özel validation ile)
+        /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(Guid id, Product product)
+        public override async Task<IActionResult> Update(Guid id, [FromBody] Product product)
         {
             try
             {
+                var validationResult = ValidateModel();
+                if (validationResult != null)
+                {
+                    return validationResult;
+                }
+
                 if (id != product.Id)
                 {
-                    return BadRequest("ID uyuşmazlığı");
+                    return ErrorResponse("ID mismatch between URL and request body", 400);
                 }
 
-                var existingProduct = await _context.Products.FindAsync(id);
-                if (existingProduct == null || !existingProduct.IsActive)
+                // Özel validation
+                var validationErrors = await ValidateProductAsync(product, id);
+                if (validationErrors.Any())
                 {
-                    return NotFound("Ürün bulunamadı");
+                    return ErrorResponse("Validation failed", 400, validationErrors);
                 }
 
-                // Validation
-                if (product.Price < 0)
-                {
-                    return BadRequest("Fiyat negatif olamaz");
-                }
-
-                if (product.StockQuantity < 0)
-                {
-                    return BadRequest("Stok miktarı negatif olamaz");
-                }
-
-                // Barcode uniqueness check (excluding current product)
-                if (!string.IsNullOrEmpty(product.Barcode))
-                {
-                    var duplicateProduct = await _context.Products
-                        .FirstOrDefaultAsync(p => p.Barcode == product.Barcode && p.Id != id && p.IsActive);
-                    
-                    if (duplicateProduct != null)
-                    {
-                        return BadRequest("Bu barkod zaten kullanılıyor");
-                    }
-                }
-
-                // Update properties
-                existingProduct.Name = product.Name;
-                existingProduct.Description = product.Description;
-                existingProduct.Price = product.Price;
-                existingProduct.Cost = product.Cost;
-                existingProduct.TaxType = product.TaxType;
-                existingProduct.TaxRate = product.TaxRate;
-                existingProduct.Barcode = product.Barcode;
-                existingProduct.Category = product.Category;
-                existingProduct.ImageUrl = product.ImageUrl;
-                existingProduct.StockQuantity = product.StockQuantity;
-                existingProduct.MinStockLevel = product.MinStockLevel;
-                existingProduct.Unit = product.Unit;
-                existingProduct.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Product updated with ID: {Id}", id);
-                return NoContent();
+                var updatedProduct = await _productRepository.UpdateAsync(product);
+                
+                return SuccessResponse(updatedProduct, "Product updated successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating product with ID: {Id}", id);
-                return StatusCode(500, "Internal server error");
+                return HandleException(ex, $"Update Product with ID {id}");
             }
         }
 
-        // DELETE: api/Product/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(Guid id)
+        /// <summary>
+        /// Ürün validation
+        /// </summary>
+        private async Task<List<string>> ValidateProductAsync(Product product, Guid? excludeId = null)
         {
-            try
+            var errors = new List<string>();
+
+            // Fiyat kontrolü
+            if (product.Price < 0)
             {
-                var product = await _context.Products.FindAsync(id);
-                if (product == null || !product.IsActive)
+                errors.Add("Price cannot be negative");
+            }
+
+            // Stok miktarı kontrolü
+            if (product.StockQuantity < 0)
+            {
+                errors.Add("Stock quantity cannot be negative");
+            }
+
+            // Barkod benzersizlik kontrolü
+            if (!string.IsNullOrEmpty(product.Barcode))
+            {
+                var existingProduct = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Barcode == product.Barcode && 
+                                            p.IsActive && 
+                                            p.Id != excludeId);
+                
+                if (existingProduct != null)
                 {
-                    return NotFound("Ürün bulunamadı");
+                    errors.Add("This barcode is already in use");
                 }
-
-                // Soft delete
-                product.IsActive = false;
-                product.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Product deleted (soft) with ID: {Id}", id);
-                return NoContent();
             }
-            catch (Exception ex)
+
+            // Ürün adı kontrolü
+            if (string.IsNullOrWhiteSpace(product.Name))
             {
-                _logger.LogError(ex, "Error deleting product with ID: {Id}", id);
-                return StatusCode(500, "Internal server error");
+                errors.Add("Product name is required");
             }
+
+            return errors;
         }
 
-        // GET: api/Product/search?query=...
+        /// <summary>
+        /// Ürün arama
+        /// </summary>
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Product>>> SearchProducts([FromQuery] string query)
+        public async Task<IActionResult> Search([FromQuery] string? name, [FromQuery] string? barcode, [FromQuery] string? category)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(query))
+                var query = _context.Products.Where(p => p.IsActive);
+
+                if (!string.IsNullOrWhiteSpace(name))
                 {
-                    return BadRequest("Arama sorgusu gerekli");
+                    query = query.Where(p => p.Name.Contains(name));
                 }
 
-                var products = await _context.Products
-                    .Where(p => p.IsActive && 
-                               (p.Name.Contains(query) || 
-                                p.Description.Contains(query) || 
-                                p.Barcode.Contains(query) ||
-                                p.Category.Contains(query)))
+                if (!string.IsNullOrWhiteSpace(barcode))
+                {
+                    query = query.Where(p => p.Barcode != null && p.Barcode.Contains(barcode));
+                }
+
+                if (!string.IsNullOrWhiteSpace(category))
+                {
+                    query = query.Where(p => p.Category.Contains(category));
+                }
+
+                var products = await query
                     .OrderBy(p => p.Name)
-                    .Take(20)
                     .ToListAsync();
 
-                return Ok(products);
+                return SuccessResponse(products, $"Found {products.Count} products matching search criteria");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error searching products with query: {Query}", query);
-                return StatusCode(500, "Internal server error");
+                return HandleException(ex, "Search Products");
             }
         }
+
+        /// <summary>
+        /// Stok güncelle
+        /// </summary>
+        [HttpPut("{id}/stock")]
+        public async Task<IActionResult> UpdateStock(Guid id, [FromBody] UpdateStockRequest request)
+        {
+            try
+            {
+                var product = await _productRepository.GetByIdAsync(id);
+                if (product == null)
+                {
+                    return ErrorResponse($"Product with ID {id} not found", 404);
+                }
+
+                if (request.Quantity < 0)
+                {
+                    return ErrorResponse("Stock quantity cannot be negative", 400);
+                }
+
+                product.StockQuantity = request.Quantity;
+                product.UpdatedAt = DateTime.UtcNow;
+
+                var updatedProduct = await _productRepository.UpdateAsync(product);
+                
+                return SuccessResponse(updatedProduct, "Stock updated successfully");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"UpdateStock for Product with ID {id}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Stok güncelleme request modeli
+    /// </summary>
+    public class UpdateStockRequest
+    {
+        public int Quantity { get; set; }
     }
 }

@@ -8,11 +8,31 @@ import { ErrorMessages } from '../services/errorService';
 
 // API fonksiyonları
 const productService = {
-  getProducts: () => {
+  getProducts: async () => {
     console.log('🔍 getProducts çağrılıyor...');
     console.log('🔍 API endpoint: /product');
     console.log('🔍 API base URL:', 'http://localhost:5183/api');
-    return apiClient.get('/product');
+    
+    try {
+      const response = await apiClient.get('/product');
+      console.log('✅ API Response:', response);
+      console.log('✅ Response type:', typeof response);
+      console.log('✅ Response keys:', Object.keys(response));
+      
+      // API response'unu doğru şekilde parse et
+      // Backend'den gelen format: { success: true, message: "...", data: { items: [...], pagination: {...} } }
+      if (response.data && response.data.success && response.data.data) {
+        console.log('✅ Response parsed successfully');
+        console.log('✅ Items count:', response.data.data.items?.length || 0);
+        return response.data; // Sadece data kısmını döndür
+      } else {
+        console.warn('⚠️ Unexpected response format:', response);
+        return response; // Fallback
+      }
+    } catch (error) {
+      console.error('❌ API Error:', error);
+      throw error;
+    }
   },
   createProduct: (data: any) => apiClient.post('/product', data),
   updateProduct: (id: string, data: any) => apiClient.put(`/product/${id}`, data),

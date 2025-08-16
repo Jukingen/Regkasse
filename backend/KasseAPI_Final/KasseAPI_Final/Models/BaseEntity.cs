@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KasseAPI_Final.Models
 {
-    public abstract class BaseEntity
+    public abstract class BaseEntity : IEntity
     {
         [Key]
         [Column("id")]

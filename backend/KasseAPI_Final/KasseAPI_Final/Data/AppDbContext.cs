@@ -22,6 +22,7 @@ namespace KasseAPI_Final.Data
         public DbSet<CashRegisterTransaction> CashRegisterTransactions { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<PaymentDetails> PaymentDetails { get; set; }
+        public DbSet<PaymentItem> PaymentItems { get; set; }
         public DbSet<InventoryItem> Inventory { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
         public DbSet<SystemSettings> SystemSettings { get; set; }
@@ -172,21 +173,38 @@ namespace KasseAPI_Final.Data
             builder.Entity<PaymentDetails>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.InvoiceId).IsRequired();
-                entity.Property(e => e.CustomerId);
-                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.PaymentMethod).IsRequired();
-                entity.Property(e => e.PaymentDate).IsRequired();
-                entity.Property(e => e.Status).IsRequired();
-                entity.Property(e => e.Reference).HasMaxLength(100);
+                entity.Property(e => e.CustomerId).IsRequired();
+                entity.Property(e => e.CustomerName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.PaymentMethod).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.TransactionId).HasMaxLength(100);
+                entity.Property(e => e.TseSignature).HasMaxLength(100);
+                entity.Property(e => e.TaxDetails).HasColumnType("jsonb");
+                entity.Property(e => e.Items).HasColumnType("jsonb");
+                entity.Property(e => e.OriginalPaymentId);
+                entity.Property(e => e.CancellationReason).HasMaxLength(500);
+                entity.Property(e => e.IsRefund);
                 
-                entity.HasIndex(e => e.InvoiceId);
                 entity.HasIndex(e => e.CustomerId);
                 entity.HasIndex(e => e.PaymentMethod);
-                entity.HasIndex(e => e.PaymentDate);
-                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.TseSignature);
+            });
+
+            // PaymentItem configuration
+            builder.Entity<PaymentItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ProductId).IsRequired();
+                entity.Property(e => e.ProductName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Quantity).IsRequired();
+                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalPrice).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.TaxRate).HasColumnType("decimal(5,4)");
+                entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
             });
 
             // InventoryItem configuration

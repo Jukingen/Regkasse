@@ -7,60 +7,60 @@ namespace KasseAPI_Final.Models
     public class PaymentDetails : BaseEntity
     {
         [Required]
-        public Guid InvoiceId { get; set; }
-
-        public Guid? CustomerId { get; set; }
-
+        public Guid CustomerId { get; set; }
+        
         [Required]
         [MaxLength(100)]
-        public string UserId { get; set; } = string.Empty;
+        public string CustomerName { get; set; } = string.Empty;
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
-        public decimal Amount { get; set; }
-
+        public decimal TotalAmount { get; set; }
+        
         [Required]
-        public PaymentMethod PaymentMethod { get; set; }
-
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TaxAmount { get; set; }
+        
         [Required]
-        public DateTime PaymentDate { get; set; }
-
-        [Required]
-        public PaymentStatus Status { get; set; }
-
-        [MaxLength(100)]
-        public string? Reference { get; set; }
-
+        [MaxLength(50)]
+        public string PaymentMethod { get; set; } = string.Empty;
+        
         [MaxLength(500)]
         public string? Notes { get; set; }
-
+        
         [MaxLength(100)]
         public string? TransactionId { get; set; }
-
-        // Refund related properties
-        public Guid? OriginalPaymentId { get; set; } // Reference to original payment for refunds
-        [MaxLength(500)]
-        public string? RefundReason { get; set; } // Reason for refund
-        public PaymentMethod? RefundMethod { get; set; } // Method used for refund
+        
         [MaxLength(100)]
-        public string? RefundedBy { get; set; } // User who processed the refund
-        public DateTime? RefundedAt { get; set; } // When the refund was processed
-
+        public string? TseSignature { get; set; }
+        
+        // Tax details as JSON
+        [Column(TypeName = "jsonb")]
+        public Dictionary<string, decimal> TaxDetails { get; set; } = new();
+        
+        // Payment items
+        public List<PaymentItem> Items { get; set; } = new();
+        
+        // Refund related properties
+        public Guid? OriginalPaymentId { get; set; }
+        [MaxLength(500)]
+        public string? CancellationReason { get; set; }
+        public bool IsRefund { get; set; } = false;
+        
+        // Cancellation and refund details
+        public DateTime? CancelledAt { get; set; }
+        [MaxLength(500)]
+        public string? RefundReason { get; set; }
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? RefundAmount { get; set; }
+        
+        // FinanzOnline integration
+        public bool IsFinanzOnlineSent { get; set; } = false;
+        public DateTime? FinanzOnlineSentAt { get; set; }
+        
         // Navigation properties
-        public virtual Invoice? Invoice { get; set; }
         public virtual Customer? Customer { get; set; }
-        public virtual PaymentDetails? OriginalPayment { get; set; } // Navigation to original payment
-        public virtual ICollection<PaymentDetails> Refunds { get; set; } = new List<PaymentDetails>(); // Collection of refunds for this payment
-    }
-
-    public enum PaymentStatus
-    {
-        Pending,
-        Completed,
-        Failed,
-        Cancelled,
-        Refunded,
-        PartiallyRefunded,
-        FullyRefunded
+        public virtual PaymentDetails? OriginalPayment { get; set; }
+        public virtual ICollection<PaymentDetails> Refunds { get; set; } = new List<PaymentDetails>();
     }
 }

@@ -98,17 +98,34 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogInformation("Logout requested for user: {UserId}", userId);
 
                 // 🧹 KULLANICI SEPETLERİNİ TEMİZLE
-                var cartLifecycleService = HttpContext.RequestServices.GetRequiredService<CartLifecycleService>();
-                await cartLifecycleService.CleanupUserCarts(userId);
+                try
+                {
+                    // CartLifecycleService'i IServiceProvider üzerinden al
+                    var cartLifecycleService = HttpContext.RequestServices.GetRequiredService<CartLifecycleService>();
+                    await cartLifecycleService.CleanupUserCarts(userId);
+                    _logger.LogInformation("User carts cleanup completed for user: {UserId}", userId);
+                }
+                catch (Exception cartCleanupEx)
+                {
+                    // Cart cleanup hatası logout'u engellemesin
+                    _logger.LogWarning(cartCleanupEx, "Cart cleanup failed for user: {UserId}, but logout will continue", userId);
+                }
 
-                _logger.LogInformation("Logout successful for user: {UserId} - All carts cleaned", userId);
-                return Ok(new { message = "Logout successful, all user carts cleaned" });
+                _logger.LogInformation("Logout successful for user: {UserId}", userId);
+                return Ok(new { message = "Logout successful" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Logout error for user: {UserId}", 
-                    User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-                return StatusCode(500, new { message = "Logout işlemi sırasında hata oluştu" });
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                _logger.LogError(ex, "Logout error for user: {UserId}. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
+                    userId, ex.GetType().Name, ex.Message);
+                
+                // Daha detaylı hata mesajı
+                var errorMessage = ex.InnerException != null 
+                    ? $"Logout error: {ex.Message} - Inner: {ex.InnerException.Message}"
+                    : $"Logout error: {ex.Message}";
+                
+                return StatusCode(500, new { message = errorMessage });
             }
         }
 
