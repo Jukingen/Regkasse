@@ -378,19 +378,92 @@ export class CartService {
     }
   }
 
-  // Masa bazlı sepeti temizle
-  async clearCart(tableNumber: number): Promise<{ success: boolean; message: string }> {
+  // Tüm masaların sepetlerini temizle
+  async clearAllCarts(): Promise<{ success: boolean; message: string; clearedCarts: number; clearedItems: number; affectedTables: number[] }> {
+    console.log('🚀 cartService.clearAllCarts() method called');
+    
     // 🔒 Güvenlik kontrolü
+    console.log('🔒 Checking security...');
     await this.checkSecurity();
+    console.log('✅ Security check passed');
 
     try {
-      console.log('🧹 Masa', tableNumber, 'sepeti temizleniyor...');
+      console.log('🧹 TÜM MASALAR temizleniyor (DANGEROUS OPERATION)...');
+      console.log('🔍 API Call: POST /cart/clear-all');
+      console.log('🌐 Making HTTP request to API...');
+      
+      const response = await apiClient.post<{ 
+        message: string; 
+        clearedCarts: number; 
+        clearedItems: number; 
+        affectedTables: number[];
+        clearedTablesDetails: any[];
+        userId: string;
+        clearedAt: string;
+      }>('/cart/clear-all');
+      
+      console.log('🎯 HTTP request completed, response received:', response);
+      
+      console.log('📦 Clear All Carts Response:', {
+        message: response.message,
+        clearedCarts: response.clearedCarts,
+        clearedItems: response.clearedItems,
+        affectedTables: response.affectedTables,
+        tablesCount: response.affectedTables.length
+      });
+      
+      // Tüm masa bazlı sepet ID'lerini temizle
+      this.tableCarts.clear();
+      
+      console.log('✅ TÜM MASALAR başarıyla temizlendi');
+      return { 
+        success: true, 
+        message: response.message,
+        clearedCarts: response.clearedCarts,
+        clearedItems: response.clearedItems,
+        affectedTables: response.affectedTables
+      };
+    } catch (error) {
+      console.error('❌ TÜM MASALAR temizleme hatası:', error);
+      return { 
+        success: false, 
+        message: 'Tüm masalar temizlenemedi',
+        clearedCarts: 0,
+        clearedItems: 0,
+        affectedTables: []
+      };
+    }
+  }
+
+  // Masa bazlı sepeti temizle
+  async clearCart(tableNumber: number): Promise<{ success: boolean; message: string }> {
+    console.log('🚀 cartService.clearCart() method called for table:', tableNumber);
+    
+    // 🔒 Güvenlik kontrolü
+    console.log('🔒 Checking security for clear cart...');
+    await this.checkSecurity();
+    console.log('✅ Security check passed for clear cart');
+
+    try {
+      console.log('🧹 SADECE Masa', tableNumber, 'sepeti temizleniyor (diğer masalar etkilenmeyecek)...');
+      console.log('🔍 API Call: POST /cart/clear?tableNumber=' + tableNumber);
+      console.log('🌐 Making HTTP request to clear single table...');
+      
       const response = await apiClient.post<{ 
         message: string; 
         clearedCarts: number; 
         clearedItems: number; 
         tableNumber: number 
       }>('/cart/clear', null, { params: { tableNumber } });
+      
+      console.log('🎯 HTTP request completed for clear cart, response received:', response);
+      
+      console.log('📦 Clear Cart Response:', {
+        message: response.message,
+        clearedCarts: response.clearedCarts,
+        clearedItems: response.clearedItems,
+        tableNumber: response.tableNumber
+      });
       
       // Masa bazlı sepet ID'sini temizle
       this.tableCarts.delete(tableNumber);

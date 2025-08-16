@@ -536,8 +536,57 @@ export const useCart = () => {
     }
   }, [isTokenExpired, clearAllCarts, loadCartForTable]);
 
+  // Clear all carts for all tables
+  const clearAllTables = useCallback(async () => {
+    console.log('🧹 clearAllTables called');
+    
+    // 🧹 Token expire kontrolü
+    const expired = await isTokenExpired();
+    if (expired) {
+      console.error('❌ Token expired, cannot clear all carts');
+      setError('Session expired, please login again');
+      clearAllCarts();
+      return { success: false, message: 'Session expired' };
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('🧹 TÜM MASALAR temizleniyor (DANGEROUS OPERATION)...');
+      console.log('🔍 About to call cartService.clearAllCarts()...');
+
+      // Backend'den tüm sepetleri temizle
+      console.log('🚀 Calling cartService.clearAllCarts() now...');
+      const response = await cartService.clearAllCarts();
+      console.log('📦 cartService.clearAllCarts() response received:', response);
+      
+      if (response && response.success) {
+        console.log('✅ TÜM MASALAR backend\'de temizlendi');
+        
+        // Local state'i tamamen temizle
+        setTableCarts(new Map());
+        
+        console.log('✅ TÜM MASALAR local state\'de temizlendi');
+        return response;
+      } else {
+        console.error('❌ TÜM MASALAR temizleme başarısız');
+        return response || { success: false, message: 'Clear all failed', clearedCarts: 0, clearedItems: 0, affectedTables: [] };
+      }
+    } catch (error: any) {
+      console.error('❌ TÜM MASALAR temizleme hatası:', error);
+      const errorMessage = error?.message || 'Failed to clear all carts';
+      setError(errorMessage);
+      return { success: false, message: errorMessage, clearedCarts: 0, clearedItems: 0, affectedTables: [] };
+    } finally {
+      setLoading(false);
+    }
+  }, [isTokenExpired, clearAllCarts]);
+
   // Clear cart for specific table
   const clearCartForTable = useCallback(async (tableNumber: number) => {
+    console.log('🧹 clearCartForTable called with tableNumber:', tableNumber);
+    
     if (!tableNumber) {
       console.error('❌ Table number is required for clearing cart');
       setError('Table number is required');
@@ -557,13 +606,19 @@ export const useCart = () => {
       setLoading(true);
       setError(null);
 
-      console.log('🧹 Masa', tableNumber, 'sepeti temizleniyor...');
+      console.log('🧹 SADECE Masa', tableNumber, 'sepeti temizleniyor (diğer masalar korunuyor)...');
+      console.log('🔍 About to call cartService.clearCart()...');
 
       // Try to clear backend first
       try {
+        console.log('🚀 Calling cartService.clearCart() for table:', tableNumber);
         const response = await cartService.clearCart(tableNumber);
+        console.log('📦 cartService.clearCart() response:', response);
+        
         if (response && response.success) {
           console.log('✅ Masa', tableNumber, 'sepeti backend\'de temizlendi');
+        } else {
+          console.warn('⚠️ Backend clear cart response not successful:', response);
         }
       } catch (apiError) {
         console.warn('⚠️ Backend API failed, using local fallback:', apiError);
@@ -618,6 +673,8 @@ export const useCart = () => {
     updateItemQuantity,
     removeFromCart,
     clearCartForTable,
+    clearCart: clearCartForTable, // clearCart alias eklendi
+    clearAllTables, // Tüm masaları temizle
     setCartFromBackend,
     loadCartForTable,
     clearAllCarts

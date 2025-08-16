@@ -43,6 +43,7 @@ export default function CashRegisterScreen() {
     updateItemQuantity, 
     removeFromCart,
     loadCartForTable,
+    clearAllTables,
     loading: cartLoading, 
     error: cartError 
   } = useCart();
@@ -115,17 +116,21 @@ export default function CashRegisterScreen() {
     }
   }, [selectedTable, loadCartForTable]);
 
-  // Cart state'ini sürekli güncellemek için useEffect ekle
+  // Cart state'ini sürekli güncellemek için useEffect ekle - Force refresh
   useEffect(() => {
     if (selectedTable) {
       // useCart hook'undan gelen cart'ı al ve local state'i güncelle
       const currentCart = getCartForTable(selectedTable);
-      if (currentCart !== cart) {
-        setCart(currentCart);
-        console.log('🔄 Cart state güncellendi:', currentCart);
-      }
+      // Her zaman güncelle - comparison kaldırıldı
+      setCart(currentCart);
+      console.log('🔄 Cart state force güncellendi:', {
+        tableNumber: selectedTable,
+        hasCart: !!currentCart,
+        itemsCount: currentCart?.items?.length || 0,
+        cartData: currentCart
+      });
     }
-  }, [selectedTable, getCartForTable, cart]); // getCartForTable ve cart'ı dependency olarak ekle
+  }, [selectedTable, getCartForTable]); // cart dependency kaldırıldı - infinite loop önlemek için
 
 
 
@@ -281,34 +286,101 @@ export default function CashRegisterScreen() {
     addToast('info', 'Item removed from cart', 2000);
   };
 
-  // Handle cart clearing
-  const handleClearCart = () => {
+  // Handle cart clearing - Direct execution without confirmation
+  const handleClearCart = async () => {
+    console.log('🧹 handleClearCart called for table:', selectedTable);
     if (!selectedTable) {
       addToast('error', 'No table selected. Please select a table first.', 3000);
       return;
     }
 
-    Alert.alert(
-      'Clear Cart',
-      `Are you sure you want to clear the cart for table ${selectedTable}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Clear', 
-          style: 'destructive',
-          onPress: async () => {
-            await clearCurrentCart(selectedTable);
-            
-            // İşlem tamamlandıktan sonra cart state'ini güncelle
-            const updatedCart = getCartForTable(selectedTable);
-            setCart(updatedCart);
-            console.log('🧹 Sepet temizlendi, cart state güncellendi:', updatedCart);
-            
-            addToast('success', `Cart cleared for table ${selectedTable}`, 3000);
-          }
+    console.log(`🚀 Direct clear table ${selectedTable} - no confirmation needed`);
+    console.log('🔍 clearCurrentCart function type:', typeof clearCurrentCart);
+    console.log('🔍 clearCurrentCart function:', clearCurrentCart);
+    
+    try {
+      console.log(`🚀 About to call clearCurrentCart(${selectedTable})...`);
+      await clearCurrentCart(selectedTable);
+      console.log(`✅ clearCurrentCart(${selectedTable}) completed`);
+      
+      // Force UI refresh - cart state'ini agresif şekilde güncelle
+      console.log('🔄 Force refreshing UI state...');
+      
+      // 1. Local cart state'ini direkt null yap
+      setCart(null);
+      console.log('✅ Cart state set to null');
+      
+      // 2. Backend'den fresh cart yükle
+      try {
+        const freshCartResult = await loadCartForTable(selectedTable);
+        if (freshCartResult?.success && freshCartResult.cart) {
+          setCart(freshCartResult.cart);
+          console.log('✅ Fresh cart loaded from backend:', freshCartResult.cart);
+        } else {
+          // Backend'de cart yoksa null kalsın
+          setCart(null);
+          console.log('✅ No cart found in backend, keeping null');
         }
-      ]
-    );
+      } catch (loadError) {
+        console.warn('⚠️ Failed to load fresh cart, keeping null:', loadError);
+        setCart(null);
+      }
+      
+      // 3. useCart hook'undan da güncelle
+      const hookCart = getCartForTable(selectedTable);
+      console.log('🔍 Hook cart after clear:', hookCart);
+      
+      console.log('🧹 UI force refresh completed');
+    } catch (error) {
+      console.error(`❌ Error clearing table ${selectedTable}:`, error);
+      addToast('error', `Failed to clear table ${selectedTable}`, 3000);
+    }
+  };
+
+  // Handle clear all tables - Direct execution without confirmation
+  const handleClearAllTables = async () => {
+    console.log('🧹 handleClearAllTables called - direct execution');
+    console.log('🔍 clearAllTables function type:', typeof clearAllTables);
+    console.log('🔍 clearAllTables function:', clearAllTables);
+    
+    try {
+      console.log('🚀 About to call clearAllTables()...');
+      const result = await clearAllTables();
+      console.log('📦 clearAllTables() result:', result);
+      
+      if (result && result.success) {
+        // Force UI refresh for all tables
+        console.log('🔄 Force refreshing UI state for all tables...');
+        
+        // 1. Tüm local state'leri sıfırla
+        setCart(null);
+        setSelectedTable(1);
+        console.log('✅ All local states cleared');
+        
+        // 2. Selected table için fresh cart yükle (masa 1)
+        try {
+          const freshCartResult = await loadCartForTable(1);
+          if (freshCartResult?.success && freshCartResult.cart) {
+            setCart(freshCartResult.cart);
+            console.log('✅ Fresh cart loaded for table 1:', freshCartResult.cart);
+          } else {
+            setCart(null);
+            console.log('✅ No cart found for table 1, keeping null');
+          }
+        } catch (loadError) {
+          console.warn('⚠️ Failed to load fresh cart for table 1:', loadError);
+          setCart(null);
+        }
+        
+        console.log('✅ ALL TABLES CLEARED:', result);
+        console.log('🧹 All tables UI force refresh completed');
+      } else {
+        addToast('error', `Failed to clear all tables: ${result?.message || 'Unknown error'}`, 5000);
+      }
+    } catch (error) {
+      console.error('❌ Error clearing all tables:', error);
+      addToast('error', 'Error clearing all tables', 3000);
+    }
   };
 
   return (
@@ -429,6 +501,23 @@ export default function CashRegisterScreen() {
                 </TouchableOpacity>
               );
             })}
+            
+            {/* Clear All Tables Button - Son masanın sağında */}
+            <TouchableOpacity
+              style={styles.clearAllTablesButton}
+              onPress={() => {
+                console.log('🧹 Clear ALL Tables button clicked!');
+                handleClearAllTables();
+              }}
+              activeOpacity={0.7}
+              accessible
+              accessibilityLabel="Clear All Tables"
+              accessibilityHint="Clear all items from all tables - DANGEROUS!"
+              accessibilityRole="button"
+            >
+              <Text style={styles.clearAllTablesIcon}>🧹</Text>
+              <Text style={styles.clearAllTablesText}>Clear{'\n'}ALL</Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
 
@@ -520,12 +609,21 @@ export default function CashRegisterScreen() {
         </View>
 
         {/* Cart Items - Simplified */}
-        <View style={styles.cartSection}>
+        <View 
+          key={`cart-section-${selectedTable}-${cart?.cartId || 'empty'}-${cart?.items?.length || 0}`} 
+          style={styles.cartSection}
+        >
           <View style={styles.cartHeader}>
             <Text style={styles.sectionTitle}>Cart Items - Table {selectedTable}</Text>
             {cart && cart.items.length > 0 && (
-              <TouchableOpacity onPress={handleClearCart} style={styles.clearButton}>
-                <Text style={styles.clearButtonText}>Clear Cart</Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  console.log('🧹 Clear Table button clicked!');
+                  handleClearCart();
+                }} 
+                style={styles.clearButton}
+              >
+                <Text style={styles.clearButtonText}>Clear Table {selectedTable}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -539,9 +637,12 @@ export default function CashRegisterScreen() {
               <Text style={styles.errorText}>Cart error: {cartError}</Text>
             </View>
           ) : cart && cart.items.length > 0 ? (
-            <ScrollView style={styles.cartItems}>
+            <ScrollView 
+              key={`cart-items-${selectedTable}-${cart.cartId}-${cart.items.length}`}
+              style={styles.cartItems}
+            >
               {cart.items.map((item: any) => (
-                <View key={item.id} style={styles.cartItem}>
+                <View key={`${item.id}-${item.quantity}-${selectedTable}`} style={styles.cartItem}>
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemName}>{item.productName}</Text>
                     <Text style={styles.itemPrice}>€{item.unitPrice.toFixed(2)}</Text>
@@ -1069,5 +1170,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#e8f5e8',
     borderColor: '#4CAF50',
     borderWidth: 2,
+  },
+  
+  // Clear All Tables Button Styles
+  clearAllTablesButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginLeft: 20, // Son masadan sonra boşluk
+    borderRadius: 8,
+    backgroundColor: '#ffebee', // Açık kırmızı arka plan
+    borderWidth: 2,
+    borderColor: '#f44336', // Kırmızı border
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 80,
+    minHeight: 50,
+    elevation: 4,
+    shadowColor: '#f44336',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    zIndex: 10,
+  },
+  clearAllTablesIcon: {
+    fontSize: 20,
+    marginBottom: 2,
+  },
+  clearAllTablesText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#f44336', // Kırmızı metin
+    textAlign: 'center',
+    lineHeight: 12,
   },
 }); 

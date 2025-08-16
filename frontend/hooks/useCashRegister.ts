@@ -317,16 +317,27 @@ export const useCashRegister = () => {
   }, [removeFromCart, addToast]);
 
   // Clear current cart for specific table
-  const clearCurrentCart = useCallback((tableNumber: number) => {
+  const clearCurrentCart = useCallback(async (tableNumber: number) => {
+    console.log('🧹 clearCurrentCart called with tableNumber:', tableNumber);
+    console.log('🔍 clearCart function type:', typeof clearCart);
+    console.log('🔍 clearCart function:', clearCart);
+    
     if (!tableNumber) {
       console.error('❌ Table number is required for clearing cart');
       addToast('error', 'Table number is required');
       return;
     }
 
-    clearCart(tableNumber);
-    setActiveTableNumber(null);
-    addToast('success', 'Cart cleared successfully', 2000);
+    try {
+      console.log('🚀 About to call clearCart for table:', tableNumber);
+      await clearCart(tableNumber);
+      console.log('✅ clearCart API call completed for table:', tableNumber);
+      setActiveTableNumber(null);
+      // Success toast kaldırıldı - sessiz temizleme
+    } catch (error) {
+      console.error('❌ Error clearing cart:', error);
+      addToast('error', 'Failed to clear cart', 3000);
+    }
   }, [clearCart, addToast]);
 
   // Reset cart function for AuthContext

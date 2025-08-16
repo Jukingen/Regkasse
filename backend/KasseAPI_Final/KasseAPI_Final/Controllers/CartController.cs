@@ -473,7 +473,55 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // PUT: api/cart/{cartId}/items/{itemId} - Sepet ürününü güncelle
+        // PUT: api/cart/items/{itemId} - Sepet ürününü güncelle (basit versiyon)
+        [HttpPut("items/{itemId}")]
+        public async Task<IActionResult> UpdateCartItemSimple(Guid itemId, [FromBody] UpdateCartItemRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                _logger.LogInformation("UpdateCartItemSimple called - ItemId: {ItemId}, Quantity: {Quantity}, UserId: {UserId}", 
+                    itemId, request.Quantity, userId);
+
+                // CartItem'ı bul ve kullanıcı doğrulaması yap
+                var cartItem = await _context.CartItems
+                    .Include(ci => ci.Cart)
+                    .FirstOrDefaultAsync(ci => ci.Id == itemId);
+
+                if (cartItem == null)
+                {
+                    _logger.LogWarning("CartItem not found - ItemId: {ItemId}", itemId);
+                    return NotFound(new { message = "Cart item not found" });
+                }
+
+                // Kullanıcının bu cart'a erişim yetkisi var mı kontrol et
+                if (cartItem.Cart.UserId != userId)
+                {
+                    _logger.LogWarning("User {UserId} does not have access to cart {CartId}", userId, cartItem.Cart.CartId);
+                    return Forbid();
+                }
+
+                // Ürün miktarını güncelle
+                cartItem.Quantity = request.Quantity;
+                cartItem.Notes = request.Notes ?? cartItem.Notes;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("CartItem updated successfully - ItemId: {ItemId}, NewQuantity: {Quantity}", itemId, request.Quantity);
+
+                return Ok(new { message = "Cart item updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating cart item - ItemId: {ItemId}", itemId);
+                return StatusCode(500, new { message = "Internal server error while updating cart item" });
+            }
+        }
+
+        // PUT: api/cart/{cartId}/items/{itemId} - Sepet ürününü güncelle (cartId ile)
         [HttpPut("{cartId}/items/{itemId}")]
         public async Task<IActionResult> UpdateCartItem(string cartId, Guid itemId, [FromBody] UpdateCartItemRequest request)
         {
@@ -683,6 +731,93 @@ namespace KasseAPI_Final.Controllers
             {
                 _logger.LogError(ex, "❌ Error clearing cart for table: TableNumber={TableNumber}", tableNumber);
                 return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // POST: api/cart/clear-all - Kullanıcının tüm masalarındaki sepetleri temizle
+        [HttpPost("clear-all")]
+        public async Task<IActionResult> ClearAllUserCarts()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                _logger.LogInformation("🧹 CLEAR ALL CARTS requested by UserId: {UserId}, Role: {UserRole}", userId, userRole);
+
+                // ✅ GÜVENLİK: SADECE KULLANICININ KENDİ TÜM SEPETLERİNİ TEMİZLEME
+                var allUserCarts = await _context.Carts
+                    .Include(c => c.Items)
+                    .Where(c => c.Status == CartStatus.Active && c.UserId == userId) // 🔒 Sadece şu anki kullanıcının sepetleri
+                    .ToListAsync();
+
+                if (!allUserCarts.Any())
+                {
+                    _logger.LogInformation("ℹ️ No active carts found for user {UserId}", userId);
+                    return Ok(new { 
+                        message = "No active carts found to clear", 
+                        clearedCarts = 0,
+                        clearedItems = 0,
+                        affectedTables = new List<int>()
+                    });
+                }
+
+                var clearedTablesInfo = new List<object>();
+                int totalItemsCleared = 0;
+                int totalCartsCleared = 0;
+
+                foreach (var cart in allUserCarts)
+                {
+                    var itemsCount = cart.Items.Count;
+                    totalItemsCleared += itemsCount;
+                    totalCartsCleared++;
+
+                    clearedTablesInfo.Add(new {
+                        tableNumber = cart.TableNumber,
+                        cartId = cart.CartId,
+                        itemsCount = itemsCount,
+                        clearedAt = DateTime.UtcNow
+                    });
+
+                    // Sepet ürünlerini sil
+                    if (cart.Items.Any())
+                    {
+                        _context.CartItems.RemoveRange(cart.Items);
+                        _logger.LogInformation("🧹 Cleared {ItemsCount} items from table {TableNumber}, CartId: {CartId}, UserId: {UserId}", 
+                            itemsCount, cart.TableNumber, cart.CartId, userId);
+                    }
+
+                    // Sepeti sil
+                    _context.Carts.Remove(cart);
+                    _logger.LogInformation("🗑️ Removed cart from table {TableNumber}, CartId: {CartId}, UserId: {UserId}", 
+                        cart.TableNumber, cart.CartId, userId);
+                }
+
+                // Değişiklikleri kaydet
+                await _context.SaveChangesAsync();
+
+                var affectedTables = allUserCarts.Select(c => c.TableNumber).Distinct().OrderBy(t => t).ToList();
+
+                _logger.LogInformation("✅ ALL CARTS CLEARED: {CartsCount} carts, {ItemsCount} items from {TablesCount} tables by UserId: {UserId}. Affected tables: {Tables}", 
+                    totalCartsCleared, totalItemsCleared, affectedTables.Count, userId, string.Join(", ", affectedTables));
+
+                return Ok(new { 
+                    message = $"Successfully cleared all carts: {totalCartsCleared} carts with {totalItemsCleared} items from {affectedTables.Count} tables",
+                    clearedCarts = totalCartsCleared,
+                    clearedItems = totalItemsCleared,
+                    affectedTables = affectedTables,
+                    clearedTablesDetails = clearedTablesInfo,
+                    userId = userId,
+                    clearedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error clearing all carts for user");
+                return StatusCode(500, new { message = "Internal server error during clear all operation" });
             }
         }
 
