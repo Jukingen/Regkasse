@@ -7,8 +7,15 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { SystemProvider } from '../contexts/SystemContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { AppStateProvider } from '../contexts/AppStateContext';
+import { useMemoryMonitor } from '../hooks/useMemoryOptimization';
+
 
 export default function RootLayout() {
+  // Memory kullanımını izle
+  useMemoryMonitor();
+
+
+
   return (
     <AuthProvider>
       <SystemProvider>

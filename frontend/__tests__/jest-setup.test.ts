@@ -3,6 +3,9 @@ import { jest } from '@jest/globals';
 
 // Global test setup
 beforeAll(() => {
+  // Global değişkenleri tanımla
+  (global as any).__DEV__ = true;
+  
   // Console.log'ları test ortamında sustur
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'warn').mockImplementation(() => {});

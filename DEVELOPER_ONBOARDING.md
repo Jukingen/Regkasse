@@ -8,7 +8,8 @@
 5. [Kodlama Standartları](#kodlama-standartları)
 6. [Geliştirme Ortamı](#geliştirme-ortamı)
 7. [Test Stratejisi](#test-stratejisi)
-8. [Deployment](#deployment)
+8. [Deprecated Uyarıları Bastırma](#deprecated-uyarıları-bastırma)
+9. [Deployment](#deployment)
 
 ---
 

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { canUseAsyncStorage, platformLog } from '../utils/platformUtils';
 
 // Dil dosyalarını import et
 import de from './locales/de.json';
@@ -33,7 +34,10 @@ i18n
 // Dil tercihini kaydet
 export const setLanguage = async (language: string) => {
   try {
-    await AsyncStorage.setItem('userLanguage', language);
+    if (canUseAsyncStorage()) {
+      await AsyncStorage.setItem('userLanguage', language);
+      platformLog(`Dil değiştirildi: ${language}`, 'all');
+    }
     await i18n.changeLanguage(language);
   } catch (error) {
     console.error('Dil değiştirilirken hata:', error);
@@ -43,16 +47,21 @@ export const setLanguage = async (language: string) => {
 // Kaydedilmiş dil tercihini yükle
 export const loadSavedLanguage = async () => {
   try {
-    const savedLanguage = await AsyncStorage.getItem('userLanguage');
-    if (savedLanguage) {
-      await i18n.changeLanguage(savedLanguage);
+    if (canUseAsyncStorage()) {
+      const savedLanguage = await AsyncStorage.getItem('userLanguage');
+      if (savedLanguage) {
+        await i18n.changeLanguage(savedLanguage);
+        platformLog(`Kaydedilmiş dil yüklendi: ${savedLanguage}`, 'all');
+      }
     }
   } catch (error) {
     console.error('Kaydedilmiş dil yüklenirken hata:', error);
   }
 };
 
-// Uygulama başlarken kaydedilmiş dili yükle
-loadSavedLanguage();
+// Uygulama başlarken kaydedilmiş dili yükle (sadece client-side)
+if (canUseAsyncStorage()) {
+  loadSavedLanguage();
+}
 
 export default i18n; 

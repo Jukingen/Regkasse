@@ -1,8 +1,34 @@
 // Bu komponent, sadece backend'den gelen sepet ve hesaplama verilerini gösterir. Local hesaplama yapılmaz.
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  StyleSheet,
+  Dimensions,
+  Animated,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { Colors } from '../constants/Colors';
+import { shadowStyles } from '../utils/shadowUtils';
 import { useTranslation } from 'react-i18next';
+
+// COLORS'ı Colors'dan al - light mode varsayılan
+const COLORS = {
+  background: Colors.light.background,
+  card: Colors.light.card,
+  accent: Colors.light.primary,
+  accentSoft: '#E3F2FD',
+  danger: Colors.light.error,
+  dangerSoft: '#FFEBEE',
+  success: Colors.light.success,
+  successSoft: '#E8F5E9',
+  text: Colors.light.text,
+  textSoft: Colors.light.textSecondary,
+  border: Colors.light.border,
+};
 
 // Yeni Cart interface'i ile uyumlu
 interface CartItem {
@@ -186,20 +212,6 @@ const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty,
   );
 };
 
-const COLORS = {
-  background: '#F7F8FA',
-  card: '#FFFFFF',
-  accent: '#1976D2',
-  accentSoft: '#E3F2FD',
-  danger: '#E53935',
-  dangerSoft: '#FFEBEE',
-  success: '#43A047',
-  successSoft: '#E8F5E9',
-  text: '#222',
-  textSoft: '#666',
-  border: '#E0E0E0',
-};
-
 const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.background,
@@ -228,11 +240,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    ...shadowStyles.medium,
   },
   itemBoxSelected: {
     borderColor: COLORS.accent,
@@ -321,10 +329,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 200,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    ...shadowStyles.small,
     elevation: 3,
   },
   confirmOrderBtnText: {
