@@ -52,7 +52,7 @@ export const platformLog = (message: string, level: 'log' | 'warn' | 'error' = '
 };
 
 /**
- * Memory kullanım logları
+ * Memory kullanım logları (sadece web'de)
  */
 export const logMemoryUsage = () => {
   if (isWeb && isDevelopment && global.performance && (global.performance as any).memory) {

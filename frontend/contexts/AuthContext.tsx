@@ -13,13 +13,14 @@ import { useTranslation } from 'react-i18next';
 const CART_CLEAR_EVENT = 'logout-clear-cache';
 
 interface User {
-    id: string;
+    id: string; // Required field
     username?: string;
     email: string;
     role: string;
     firstName?: string;
     lastName?: string;
     roles?: string[];
+    token?: string; // Token field'ı eklendi
 }
 
 interface AuthResponse {
@@ -181,8 +182,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
+            // Token'ı temizle (Bearer prefix olmadan)
+            const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
+            console.log('Token cleaned:', cleanToken.substring(0, 20) + '...');
+
             // Token geçerliliğini kontrol et
-            if (!checkTokenExpiration(token)) {
+            if (!checkTokenExpiration(cleanToken)) {
                 console.log('Token expired, checking for refresh token...'); // Debug log
                 
                 // RefreshToken var mı kontrol et
@@ -220,9 +225,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     // Token geçerliyse kullanıcı bilgilerini kontrol et
                     const userResponse = await authService.getCurrentUser();
                     console.log('User info:', userResponse); // Debug log
-                    setUser(userResponse);
+                    
+                    // userResponse'da id field'ının olduğunu kontrol et
+                    if (!userResponse || !userResponse.id) {
+                        throw new Error('Invalid user response - missing ID');
+                    }
+                    
+                    // Token'ı temizle (Bearer prefix olmadan)
+                    const userWithToken: User = {
+                        ...userResponse,
+                        token: cleanToken // cleanToken'ı ekle (Bearer prefix olmadan)
+                    };
+                    
+                    setUser(userWithToken);
                     setIsAuthenticated(true);
-                    await AsyncStorage.setItem('user', JSON.stringify(userResponse));
+                    await AsyncStorage.setItem('user', JSON.stringify(userWithToken));
                 } catch (userError) {
                     console.error('User info fetch failed:', userError); // Debug log
                     // Kullanıcı bilgisi alınamazsa oturumu sonlandır
@@ -334,10 +351,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             console.log('Storing token and user data...'); // Debug log
             
-            // Token'ı doğru formatta kaydet
-            const tokenWithBearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-            await AsyncStorage.setItem('token', tokenWithBearer);
-            console.log('Token stored with format:', tokenWithBearer);
+            // Token'ı Bearer prefix olmadan kaydet
+            const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
+            await AsyncStorage.setItem('token', cleanToken);
+            console.log('Token stored without Bearer prefix:', cleanToken);
             
             await AsyncStorage.setItem('user', JSON.stringify(loggedInUser));
             
@@ -386,8 +403,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('User data to set:', loggedInUser); // Debug log
             
             // State'leri birlikte set et - önce user, sonra authentication
-            setUser(loggedInUser);
-            console.log('User state set to:', loggedInUser); // Debug log
+            const userWithToken = {
+                ...loggedInUser,
+                token: cleanToken // cleanToken'ı user state'ine ekle (Bearer prefix olmadan)
+            };
+            setUser(userWithToken);
+            console.log('User state set to:', userWithToken); // Debug log
             
             // Kısa bir gecikme ile authentication state'ini set et
             setTimeout(() => {

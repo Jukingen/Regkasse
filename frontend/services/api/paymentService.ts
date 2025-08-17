@@ -52,7 +52,7 @@ export interface Receipt {
 }
 
 class PaymentService {
-  private baseUrl = '/api/payments';
+  private baseUrl = '/api/Payment'; // Backend'deki route ile eşleştirildi
 
   // Ödeme yöntemlerini getir
   async getPaymentMethods(): Promise<PaymentMethod[]> {
@@ -141,7 +141,7 @@ class PaymentService {
   // Ödeme iptal
   async cancelPayment(sessionId: string, reason?: string): Promise<PaymentCancelResponse> {
     try {
-      const response = await apiClient.post<PaymentCancelResponse>('/api/payment/cancel', {
+      const response = await apiClient.post<PaymentCancelResponse>(`${this.baseUrl}/cancel`, {
         paymentSessionId: sessionId,
         cancellationReason: reason || 'Kasiyer tarafından iptal edildi'
       });

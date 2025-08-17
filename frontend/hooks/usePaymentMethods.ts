@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config'; // Config'den API URL'ini al
 
 // English Description: Hook for fetching and managing payment methods from backend. Also checks TSE status.
 
@@ -34,8 +36,11 @@ export function usePaymentMethods(user: any) {
 
   // Fetch payment methods from backend
   const fetchPaymentMethods = useCallback(async () => {
-    if (!user) {
-      console.log('❌ User not logged in, payment methods cannot be fetched');
+    // Token kontrolü
+    if (!user || !user.token) {
+      console.error('❌ No user or token available');
+      setError('User not authenticated. Please login first.');
+      setPaymentMethods([]);
       return;
     }
 
@@ -43,16 +48,20 @@ export function usePaymentMethods(user: any) {
       setLoading(true);
       setError(null);
       console.log('🔄 Fetching payment methods from backend...');
+      console.log('🔐 Using token:', user.token ? 'Available' : 'Missing');
 
-      const response = await fetch('/api/payments/methods', {
+      const response = await fetch(`${API_BASE_URL}/Payment/methods`, { // Absolute URL kullan
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${user.token}`,
+          'Authorization': `Bearer ${user.token}`, // Token zaten Bearer prefix olmadan, burada ekliyoruz
           'Content-Type': 'application/json'
         }
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please login again.');
+        }
         const errorData = await response.json();
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }

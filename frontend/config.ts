@@ -20,7 +20,7 @@ const getApiBaseUrl = () => {
     console.log('🤖 Android platform detected, using:', androidApiUrl);
     return androidApiUrl;
   } else {
-    // Web için localhost
+    // Web için localhost:5183 (backend API port'u)
     const webApiUrl = 'http://localhost:5183/api';
     console.log('🌐 Web platform detected, using:', webApiUrl);
     return webApiUrl;

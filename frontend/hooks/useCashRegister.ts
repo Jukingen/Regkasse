@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCart } from './useCart';
 import { usePaymentMethods } from './usePaymentMethods';
 import { cartService } from '../services/api/cartService';
+import { API_BASE_URL } from '../config'; // Config'den API URL'ini al
 
 // English Description: Simple and reliable hook for cash register operations. Only works with backend, does not use local storage.
 
@@ -121,13 +122,13 @@ export const useCashRegister = () => {
     addToast('info', 'Payment process started...', 2000);
 
     try {
-      // Step 1: Initiate payment (/api/payments/initiate)
+      // Step 1: Initiate payment (/api/Payment/initiate)
       addToast('info', 'Initiating payment session...', 2000);
       
-      const initiateResponse = await fetch('/api/payments/initiate', {
+      const initiateResponse = await fetch(`${API_BASE_URL}/Payment/initiate`, { // Absolute URL kullan
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${user.token}`,
+          'Authorization': `Bearer ${user.token}`, // Token zaten Bearer prefix olmadan, burada ekliyoruz
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -170,13 +171,13 @@ export const useCashRegister = () => {
       addToast('success', 'Payment session initiated successfully', 2000);
       console.log('✅ Payment initiated, session ID:', initiateResult.paymentSessionId);
 
-      // Step 2: Confirm payment (/api/payments/confirm)
+      // Step 2: Confirm payment (/api/Payment/confirm)
       addToast('info', 'Confirming payment...', 2000);
       
-      const confirmResponse = await fetch('/api/payments/confirm', {
+      const confirmResponse = await fetch(`${API_BASE_URL}/Payment/confirm`, { // Absolute URL kullan
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${user.token}`,
+          'Authorization': `Bearer ${user.token}`, // Token zaten Bearer prefix olmadan, burada ekliyoruz
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

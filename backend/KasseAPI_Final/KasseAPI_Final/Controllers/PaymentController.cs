@@ -30,6 +30,38 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
+        /// Mevcut ödeme yöntemlerini getir
+        /// </summary>
+        [HttpGet("methods")]
+        [Authorize] // Authentication gerekli
+        public IActionResult GetPaymentMethods()
+        {
+            try
+            {
+                // Kullanıcı ID'sini al
+                var userId = GetCurrentUserId();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return ErrorResponse("User not authenticated", 401);
+                }
+
+                var paymentMethods = new[]
+                {
+                    new { id = "cash", name = "Nakit", type = "cash", icon = "cash-outline" },
+                    new { id = "card", name = "Kart", type = "card", icon = "card-outline" },
+                    new { id = "voucher", name = "Kupon", type = "voucher", icon = "ticket-outline" },
+                    new { id = "transfer", name = "Havale", type = "transfer", icon = "swap-horizontal-outline" }
+                };
+
+                return SuccessResponse(paymentMethods, "Payment methods retrieved successfully");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "Get Payment Methods");
+            }
+        }
+
+        /// <summary>
         /// Yeni ödeme oluştur
         /// </summary>
         [HttpPost]

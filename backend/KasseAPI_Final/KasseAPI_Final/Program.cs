@@ -103,12 +103,12 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", policy =>
     {
         policy.WithOrigins(
-                  "http://localhost:8081", 
-                  "http://localhost:3000", 
-                  "http://localhost:19006",
-                  "http://192.168.1.2:8081",    // iOS Expo client
-                  "http://192.168.1.2:3000",    // iOS Web client
-                  "http://192.168.1.2:19006"    // iOS Expo web
+                  "http://localhost:8081",     // Frontend Expo dev server
+                  "http://localhost:3000",     // Frontend web dev server
+                  "http://localhost:19006",    // Expo web
+                  "http://192.168.1.2:8081",  // iOS Expo client
+                  "http://192.168.1.2:3000",  // iOS Web client
+                  "http://192.168.1.2:19006"  // iOS Expo web
               )
               .AllowAnyMethod()
               .AllowAnyHeader()
