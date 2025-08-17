@@ -376,7 +376,7 @@ namespace KasseAPI_Final.Services
                         {
                             context.CartItems.RemoveRange(cartItemsToDelete);
                             _logger.LogInformation("🧹 Kullanıcı {UserId} için {ItemsCount} sepet ürünü silindi", 
-                                cartItemsToDelete.Count);
+                                userId, cartItemsToDelete.Count);
                         }
                         
                         // Sonra Cart'ları sil
@@ -393,7 +393,7 @@ namespace KasseAPI_Final.Services
                         await transaction.CommitAsync();
                         
                         _logger.LogInformation("✅ Kullanıcı {UserId} için {CartsCount} sepet temizlendi, {DeletedCount} kayıt silindi", 
-                            userCarts.Count, deletedCount);
+                            userId, userCarts.Count, deletedCount);
                         
                         // Güvenlik log'u
                         foreach (var cart in userCarts)
