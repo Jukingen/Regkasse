@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
+import { useTableOrdersRecovery } from '../hooks/useTableOrdersRecovery';
 
 interface TableOrder {
   id: string;
@@ -60,7 +61,7 @@ const TableManager: React.FC<TableManagerProps> = ({
   selectedTable,
   tableOrders = {},
 }) => {
-  const { t } = useTranslation();
+  const { t: _t } = useTranslation();
   const [tables, setTables] = useState<Table[]>([]);
   const [showCustomerInput, setShowCustomerInput] = useState(false);
   const [editingTable, setEditingTable] = useState<string | null>(null);
@@ -81,14 +82,16 @@ const TableManager: React.FC<TableManagerProps> = ({
       { number: '10', status: 'reserved', customerName: 'Reserviert' },
     ];
 
-    // Masaları güncel siparişlerle güncelle
+    // Masaları güncel siparişlerle güncelle - önce local tableOrders, sonra recovery data
     const tablesWithOrders = demoTables.map(table => {
       const currentTableOrders = tableOrders[table.number] || [];
+      const tableNum = parseInt(table.number, 10);
       
+      // Local sipariş varsa o öncelikli
       if (currentTableOrders.length > 0) {
         // Güncel siparişlerden toplam hesapla
         const total = currentTableOrders.reduce((sum, item) => {
-          const price = item.product ? item.product.price : item.price;
+          const price = item.product?.price ?? item.price;
           return sum + (price * item.quantity);
         }, 0);
 
@@ -97,11 +100,11 @@ const TableManager: React.FC<TableManagerProps> = ({
         const updatedOrder: TableOrder = {
           id: `order-${table.number}`,
           tableNumber: table.number,
-          items: currentTableOrders.map(item => ({
-            productId: item.product ? item.product.id : item.productId,
-            productName: item.product ? item.product.name : item.productName,
+          items: currentTableOrders.map((item: any) => ({
+            productId: item.product?.id ?? item.productId,
+            productName: item.product?.name ?? item.productName,
             quantity: item.quantity,
-            price: item.product ? item.product.price : item.price,
+            price: item.product?.price ?? item.price,
             notes: item.notes
           })),
           total,
@@ -116,17 +119,55 @@ const TableManager: React.FC<TableManagerProps> = ({
           currentOrder: updatedOrder,
           status: 'occupied' as const
         };
-      } else {
-        return { 
-          ...table, 
-          currentOrder: undefined,
-          status: 'empty' as const
-        };
       }
+      
+      // Recovery data'dan sipariş varsa onu kullan (F5 sonrası)
+      if (isRecoveryCompleted && recoveryData) {
+        const recoveryOrder = getOrderForTable(tableNum);
+        if (recoveryOrder && recoveryOrder.itemCount > 0) {
+          console.log(`🔄 Recovery: Masa ${table.number} - Toplam: €${recoveryOrder.totalAmount.toFixed(2)}, Ürün sayısı: ${recoveryOrder.itemCount}`);
+          
+          const currentOrder: TableOrder = {
+            id: recoveryOrder.cartId,
+            tableNumber: table.number,
+            items: recoveryOrder.items.map(item => ({
+              productId: item.productId,
+              productName: item.productName,
+              quantity: item.quantity,
+              price: item.price,
+              notes: item.notes,
+            })),
+            total: recoveryOrder.totalAmount,
+            status: 'pending', // Status mapping yapılabilir
+            createdAt: new Date(recoveryOrder.createdAt),
+            customerName: recoveryOrder.customerName || table.customerName,
+            notes: 'Wiederhergestellt nach F5',
+          };
+
+          return {
+            ...table,
+            status: 'occupied' as const,
+            currentOrder,
+            customerName: recoveryOrder.customerName || table.customerName,
+          };
+        }
+      }
+      
+      // Boş masa
+      return { 
+        ...table, 
+        currentOrder: undefined,
+        status: 'empty' as const
+      };
     });
 
     setTables(tablesWithOrders);
-  }, [tableOrders]);
+    
+    // Recovery tamamlandığında kullanıcıya bildirim göster
+    if (isRecoveryCompleted && hasActiveOrders) {
+      console.log(`✅ Recovery completed: ${recoveryData?.totalActiveTables} active table orders restored`);
+    }
+  }, [tableOrders, isRecoveryCompleted, recoveryData, getOrderForTable, hasActiveOrders]);
 
   const getTableStatusColor = (status: string) => {
     switch (status) {

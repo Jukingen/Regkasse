@@ -1130,6 +1130,122 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        // GET: api/cart/table-orders-recovery - F5 sonrası masa siparişlerini geri yükleme
+        [HttpGet("table-orders-recovery")]
+        public async Task<IActionResult> GetTableOrdersForRecovery()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "User not authenticated" });
+
+                _logger.LogInformation("🔄 Table orders recovery requested by user {UserId}", userId);
+
+                                               // Kullanıcının tüm aktif masa siparişlerini getir - RKSV uyumlu güvenlik kontrolü
+                // Önce TableOrder'lardan kontrol et, yoksa Cart'tan al
+                var userActiveTableOrders = await _context.TableOrders
+                    .Include(to => to.Items)
+                        .ThenInclude(toi => toi.Product)
+                    .Include(to => to.Customer)
+                    .Where(to => to.UserId == userId &&
+                                (to.Status == TableOrderStatus.Active ||
+                                 to.Status == TableOrderStatus.Preparing ||
+                                 to.Status == TableOrderStatus.Ready))
+                    .OrderBy(to => to.TableNumber)
+                    .ToListAsync();
+
+                // Eğer TableOrder yoksa Cart'tan al (backward compatibility)
+                var userActiveCarts = await _context.Carts
+                    .Include(c => c.Items)
+                        .ThenInclude(ci => ci.Product)
+                    .Include(c => c.Customer)
+                    .Where(c => c.UserId == userId && c.Status == CartStatus.Active)
+                    .OrderBy(c => c.TableNumber)
+                    .ToListAsync();
+
+                // TableOrder'ları öncelikle kullan
+                var tableOrderResponses = userActiveTableOrders.Select(tableOrder => new TableOrderRecoveryResponse
+                {
+                    TableNumber = tableOrder.TableNumber,
+                    CartId = tableOrder.TableOrderId, // TableOrderId'yi CartId olarak kullan
+                    CustomerName = tableOrder.CustomerName ?? tableOrder.WaiterName,
+                    ItemCount = tableOrder.Items?.Count ?? 0,
+                    TotalAmount = tableOrder.TotalAmount,
+                    Status = tableOrder.Status.ToString(),
+                    CreatedAt = tableOrder.OrderStartTime,
+                    LastUpdated = tableOrder.LastModifiedTime ?? tableOrder.OrderStartTime,
+                    Items = tableOrder.Items?.Select(item => new TableOrderItemInfo
+                    {
+                        ProductId = item.ProductId,
+                        ProductName = item.ProductName,
+                        Quantity = item.Quantity,
+                        Price = item.UnitPrice,
+                        Total = item.TotalPrice,
+                        Notes = item.Notes
+                    }).ToList() ?? new List<TableOrderItemInfo>()
+                }).ToList();
+
+                // Cart'lardan gelen siparişleri ekle (TableOrder yoksa)
+                var cartBasedOrders = userActiveCarts
+                    .Where(cart => !userActiveTableOrders.Any(to => to.TableNumber == cart.TableNumber))
+                    .Select(cart => new TableOrderRecoveryResponse
+                    {
+                        TableNumber = cart.TableNumber,
+                        CartId = cart.CartId,
+                        CustomerName = cart.Customer?.Name ?? cart.WaiterName,
+                        ItemCount = cart.Items?.Count ?? 0,
+                        TotalAmount = cart.Items?.Sum(i => i.UnitPrice * i.Quantity) ?? 0,
+                        Status = cart.Status.ToString(),
+                        CreatedAt = cart.CreatedAt,
+                        LastUpdated = cart.UpdatedAt ?? cart.CreatedAt,
+                        Items = cart.Items?.Select(item => new TableOrderItemInfo
+                        {
+                            ProductId = item.ProductId,
+                            ProductName = item.Product?.Name ?? "Unknown Product",
+                            Quantity = item.Quantity,
+                            Price = item.UnitPrice,
+                            Total = item.UnitPrice * item.Quantity,
+                            Notes = item.Notes
+                        }).ToList() ?? new List<TableOrderItemInfo>()
+                    });
+
+                // Tüm siparişleri birleştir
+                var allTableOrders = tableOrderResponses.Concat(cartBasedOrders).ToList();
+
+                // İngilizce teknik log - RKSV uyumlu
+                _logger.LogInformation("Table orders recovery completed for user {UserId}: {TableOrderCount} TableOrders + {CartCount} Cart-based orders = {TotalCount} total active table orders", 
+                    userId, tableOrderResponses.Count, cartBasedOrders.Count(), allTableOrders.Count);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Table orders retrieved successfully for page refresh recovery (TableOrder + Cart hybrid)",
+                    userId = userId,
+                    tableOrders = allTableOrders,
+                    totalActiveTables = allTableOrders.Count,
+                    dataSource = new 
+                    {
+                        tableOrdersCount = tableOrderResponses.Count,
+                        cartBasedCount = cartBasedOrders.Count(),
+                        hybridApproach = true
+                    },
+                    retrievedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                // İngilizce teknik log - RKSV uyumlu
+                _logger.LogError(ex, "🚨 Error retrieving table orders for recovery - UserId: {UserId}", 
+                    User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown");
+                
+                return StatusCode(500, new { 
+                    success = false, 
+                    message = "Internal server error during table orders recovery" 
+                });
+            }
+        }
+
         // Yardımcı metod: Vergi oranını hesapla
         private decimal GetTaxRate(TaxType taxType)
         {
@@ -1249,5 +1365,29 @@ namespace KasseAPI_Final.Controllers
         public string UserId { get; set; } = string.Empty;
         public int ItemsCount { get; set; }
         public DateTime CreatedAt { get; set; }
+    }
+
+    // Recovery için masa sipariş bilgi modeli
+    public class TableOrderRecoveryResponse
+    {
+        public int? TableNumber { get; set; }
+        public string CartId { get; set; } = string.Empty;
+        public string? CustomerName { get; set; }
+        public int ItemCount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime LastUpdated { get; set; }
+        public List<TableOrderItemInfo> Items { get; set; } = new List<TableOrderItemInfo>();
+    }
+
+    public class TableOrderItemInfo
+    {
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal Price { get; set; }
+        public decimal Total { get; set; }
+        public string? Notes { get; set; }
     }
 }

@@ -163,6 +163,7 @@ builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi 
 // builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 // builder.Services.AddScoped<ITestService, TestService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
 
 // Register repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));

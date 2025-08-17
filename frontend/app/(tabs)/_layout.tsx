@@ -1,16 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, Redirect } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { useTableOrdersRecovery } from '../../hooks/useTableOrdersRecovery';
 
 export default function TabLayout() {
     const { isAuthenticated, isLoading, user, checkAuthStatus } = useAuth();
+    
+    // F5 sonrası masa siparişlerini geri yükleme hook'u
+    const { 
+        isLoading: recoveryLoading, 
+        error: recoveryError, 
+        isRecoveryCompleted,
+        hasActiveOrders,
+        totalActiveTables
+    } = useTableOrdersRecovery();
 
     // Debug logları
     console.log('TabLayout render:', { isAuthenticated, isLoading, user: user?.email, role: user?.role });
     console.log('TabLayout: Full user object:', user);
+    console.log('TableOrders Recovery:', { recoveryLoading, recoveryError, isRecoveryCompleted, hasActiveOrders, totalActiveTables });
 
     // Periyodik olarak oturum durumunu kontrol et
     useEffect(() => {
@@ -27,7 +38,7 @@ export default function TabLayout() {
             clearTimeout(initialCheck);
             clearInterval(interval);
         };
-    }, []);
+    }, [checkAuthStatus]);
 
     if (isLoading) {
         console.log('TabLayout: Loading state, showing spinner');

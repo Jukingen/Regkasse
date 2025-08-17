@@ -39,6 +39,10 @@ namespace KasseAPI_Final.Data
         public DbSet<PaymentLogEntry> PaymentLogs { get; set; }
         public DbSet<PaymentSession> PaymentSessions { get; set; }
         public DbSet<PaymentMetrics> PaymentMetrics { get; set; }
+        
+        // Masa siparişleri için yeni tablolar
+        public DbSet<TableOrder> TableOrders { get; set; }
+        public DbSet<TableOrderItem> TableOrderItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -592,7 +596,63 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ProductCategory).HasMaxLength(100);
             });
 
-            Console.WriteLine("AppDbContext model configuration completed");
+            // TableOrder configuration - Masa siparişleri için - Basit konfigürasyon
+            builder.Entity<TableOrder>(entity =>
+            {
+                entity.HasKey(e => e.TableOrderId); // TableOrderId'yi primary key yap
+                entity.Ignore(e => e.Id); // BaseEntity'den gelen Id property'sini ignore et
+                entity.Property(e => e.CreatedAt).HasColumnName("CreatedAt"); // BaseEntity'den gelen CreatedAt'i CreatedAt sütununa map et
+                entity.Property(e => e.UpdatedAt).HasColumnName("UpdatedAt"); // BaseEntity'den gelen UpdatedAt'i UpdatedAt sütununa map et
+                entity.Property(e => e.CreatedBy).HasColumnName("CreatedBy"); // BaseEntity'den gelen CreatedBy'i CreatedBy sütununa map et
+                entity.Property(e => e.UpdatedBy).HasColumnName("UpdatedBy"); // BaseEntity'den gelen UpdatedBy'i UpdatedBy sütununa map et
+                entity.Property(e => e.IsActive).HasColumnName("IsActive"); // BaseEntity'den gelen IsActive'i IsActive sütununa map et
+                entity.Property(e => e.TableOrderId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.TableNumber).IsRequired();
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.WaiterName).HasMaxLength(100);
+                entity.Property(e => e.CustomerName).HasMaxLength(100);
+                entity.Property(e => e.CustomerPhone).HasMaxLength(20);
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.Status).IsRequired();
+                entity.Property(e => e.Subtotal).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.OrderStartTime).IsRequired();
+                entity.Property(e => e.CartId).HasMaxLength(50);
+                entity.Property(e => e.SessionId).HasMaxLength(100);
+                entity.Property(e => e.StatusHistory).HasMaxLength(1000);
+            });
+
+            // TableOrderItem configuration - Basit konfigürasyon
+            builder.Entity<TableOrderItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnName("Id"); // Id property'sini Id sütununa map et (PostgreSQL case sensitivity için)
+                entity.Property(e => e.CreatedAt).HasColumnName("CreatedAt"); // BaseEntity'den gelen CreatedAt'i CreatedAt sütununa map et
+                entity.Property(e => e.UpdatedAt).HasColumnName("UpdatedAt"); // BaseEntity'den gelen UpdatedAt'i UpdatedAt sütununa map et
+                entity.Property(e => e.CreatedBy).HasColumnName("CreatedBy"); // BaseEntity'den gelen CreatedBy'i CreatedBy sütununa map et
+                entity.Property(e => e.UpdatedBy).HasColumnName("UpdatedBy"); // BaseEntity'den gelen UpdatedBy'i UpdatedBy sütununa map et
+                entity.Property(e => e.IsActive).HasColumnName("IsActive"); // BaseEntity'den gelen IsActive'i IsActive sütununa map et
+                entity.Property(e => e.TableOrderId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ProductId).IsRequired();
+                entity.Property(e => e.ProductName).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Quantity).IsRequired();
+                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalPrice).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.TaxType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");
+                entity.Property(e => e.Status).IsRequired();
+                
+                // Foreign key ilişkisi - TableOrderId string olarak tanımlanmış
+                entity.HasOne(e => e.TableOrder)
+                      .WithMany(o => o.Items)
+                      .HasForeignKey(e => e.TableOrderId)
+                      .HasPrincipalKey(o => o.TableOrderId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            Console.WriteLine("AppDbContext model configuration completed with TableOrder support");
         }
     }
 }
