@@ -16,6 +16,7 @@ import { ToastContainer } from '../../components/ToastNotification';
 import { useCart } from '../../hooks/useCart';
 import { useCashRegister } from '../../hooks/useCashRegister';
 import { useProductOperations } from '../../hooks/useProductOperations';
+import { useTableOrdersRecovery } from '../../hooks/useTableOrdersRecovery';
 
 // English Description: Simplified cash register screen with tab-based table selection and clean cart view
 
@@ -36,6 +37,13 @@ export default function CashRegisterScreen() {
   const [selectedTable, setSelectedTable] = useState<number>(1);
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null); // Masa seçim loading state
   const isFirstLoad = useRef(true); // İlk yükleme kontrolü için
+
+  // Table orders recovery hook'u ekle - F5 sonrası masa siparişlerini geri yüklemek için
+  const { 
+    recoveryData, 
+    isRecoveryCompleted, 
+    isLoading: recoveryLoading 
+  } = useTableOrdersRecovery();
 
   const { 
     getCartForTable,
@@ -98,23 +106,69 @@ export default function CashRegisterScreen() {
         if (result?.success) {
           // Cart boş olsa bile setleyelim (backend'den geliyorsa)
           setCart(result.cart);
-          console.log('✅ Masa', selectedTable, 'sepeti yüklendi:', {
+          console.log('✅ Masa değişti, yeni masa', selectedTable, 'sepeti yüklendi:', {
             cartId: result.cart?.cartId,
             itemsCount: result.cart?.items?.length ?? 0,
             hasItems: result.cart?.items && result.cart.items.length > 0
           });
         } else {
+          console.log('ℹ️ Masa değişti, yeni masa', selectedTable, 'için sepet bulunamadı');
           setCart(null);
-          console.log('ℹ️ Masa', selectedTable, 'için sepet bulunamadı:', result?.error ?? 'Unknown error');
         }
       }).catch((error) => {
-        console.error('❌ Masa', selectedTable, 'sepeti yükleme hatası:', error);
+        console.error('❌ Masa değişti, yeni masa', selectedTable, 'sepet hatası:', error);
         setCart(null);
       });
     } else {
       isFirstLoad.current = false;
     }
   }, [selectedTable, loadCartForTable]);
+
+  // Recovery data değiştiğinde masaları güncelle
+  useEffect(() => {
+    if (isRecoveryCompleted && recoveryData) {
+      console.log('🔄 Recovery data güncellendi, masalar güncelleniyor...');
+      console.log('📊 Recovery data:', recoveryData);
+      
+      // Recovery data'dan gelen siparişleri masalarda göster
+      // Bu useEffect sadece recovery data değiştiğinde çalışır
+      
+      // Recovery data'dan seçili masa için cart yükle
+      if (selectedTable && recoveryData.tableOrders) {
+        const recoveryOrder = recoveryData.tableOrders.find(
+          order => order.tableNumber === selectedTable
+        );
+        
+        if (recoveryOrder && recoveryOrder.itemCount > 0) {
+          console.log(`🔄 Recovery: Masa ${selectedTable} için ${recoveryOrder.itemCount} ürün bulundu`);
+          
+                     // Recovery data'dan cart state'ini güncelle
+           const recoveryCart = {
+             cartId: recoveryOrder.cartId,
+             items: recoveryOrder.items.map(item => ({
+               id: item.productId, // ID alanı ekle
+               productId: item.productId,
+               productName: item.productName,
+               quantity: item.quantity,
+               unitPrice: item.price, // unitPrice alanı ekle
+               price: item.price,
+               totalPrice: item.total, // totalPrice alanı ekle
+               total: item.total,
+               notes: item.notes
+             })),
+             totalItems: recoveryOrder.itemCount,
+             grandTotal: recoveryOrder.totalAmount,
+             subtotal: recoveryOrder.totalAmount * 0.8, // Subtotal hesapla
+             totalTax: recoveryOrder.totalAmount * 0.2, // Tax hesapla
+             status: recoveryOrder.status
+           };
+          
+          setCart(recoveryCart);
+          console.log('✅ Recovery cart state güncellendi:', recoveryCart);
+        }
+      }
+    }
+  }, [isRecoveryCompleted, recoveryData, selectedTable]);
 
   // Cart state'ini sürekli güncellemek için useEffect ekle - Force refresh
   useEffect(() => {
@@ -395,6 +449,9 @@ export default function CashRegisterScreen() {
         {selectedTable && (
           <Text style={styles.activeTableInfo}>Active Table: {selectedTable}</Text>
         )}
+        {recoveryLoading && (
+          <Text style={styles.recoveryLoadingText}>🔄 Loading table orders...</Text>
+        )}
       </View>
 
       {/* Scrollable Content */}
@@ -417,13 +474,23 @@ export default function CashRegisterScreen() {
               const tableCart = getCartForTable(tableNumber);
               const hasItems = tableCart && tableCart.items.length > 0;
               
+              // Recovery data'dan masa için ürün sayısını al
+              const recoveryOrder = recoveryData?.tableOrders?.find(
+                order => order.tableNumber === tableNumber
+              );
+              const recoveryItemCount = recoveryOrder?.itemCount || 0;
+              
+              // Hem local cart hem de recovery data'dan ürün sayısını kontrol et
+              const finalItemCount = hasItems ? (tableCart?.totalItems || tableCart?.items?.length || 0) : recoveryItemCount;
+              const shouldShowItemCount = finalItemCount > 0;
+              
               return (
                 <TouchableOpacity
                   key={tableNumber}
                   style={[
                     styles.tableTab,
                     selectedTable === tableNumber && styles.selectedTableTab,
-                    hasItems && styles.tableTabWithItems,
+                    shouldShowItemCount && styles.tableTabWithItems,
                     tableSelectionLoading === tableNumber && styles.tableTabLoading
                   ]}
                   onPress={() => {
@@ -488,14 +555,14 @@ export default function CashRegisterScreen() {
                   <Text style={[
                     styles.tableTabText,
                     selectedTable === tableNumber && styles.selectedTableTabText,
-                    hasItems && styles.tableTabTextWithItems,
+                    shouldShowItemCount && styles.tableTabTextWithItems,
                     tableSelectionLoading === tableNumber && styles.tableTabTextLoading
                   ]}>
                     {tableSelectionLoading === tableNumber ? '...' : tableNumber}
                   </Text>
-                  {hasItems && (
+                  {shouldShowItemCount && (
                     <View style={styles.tableItemIndicator}>
-                      <Text style={styles.tableItemIndicatorText}>{tableCart?.totalItems || 0}</Text>
+                      <Text style={styles.tableItemIndicatorText}>{finalItemCount}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -645,7 +712,7 @@ export default function CashRegisterScreen() {
                 <View key={`${item.id}-${item.quantity}-${selectedTable}`} style={styles.cartItem}>
                   <View style={styles.itemInfo}>
                     <Text style={styles.itemName}>{item.productName}</Text>
-                    <Text style={styles.itemPrice}>€{item.unitPrice.toFixed(2)}</Text>
+                    <Text style={styles.itemPrice}>€{(item.unitPrice || item.price || 0).toFixed(2)}</Text>
                   </View>
                   <View style={styles.itemActions}>
                     <TouchableOpacity
@@ -668,7 +735,7 @@ export default function CashRegisterScreen() {
                       <Text style={styles.removeButtonText}>×</Text>
                     </TouchableOpacity>
                   </View>
-                  <Text style={styles.itemTotal}>€{item.totalPrice.toFixed(2)}</Text>
+                  <Text style={styles.itemTotal}>€{(item.totalPrice || item.total || 0).toFixed(2)}</Text>
                 </View>
               ))}
             </ScrollView>
@@ -685,15 +752,15 @@ export default function CashRegisterScreen() {
           <View style={styles.summarySection}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Subtotal:</Text>
-              <Text style={styles.summaryValue}>€{cart.subtotal.toFixed(2)}</Text>
+              <Text style={styles.summaryValue}>€{(cart.subtotal || cart.grandTotal || 0).toFixed(2)}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Tax (20%):</Text>
-              <Text style={styles.summaryValue}>€{cart.totalTax.toFixed(2)}</Text>
+              <Text style={styles.summaryValue}>€{(cart.totalTax || ((cart.grandTotal || 0) * 0.2)).toFixed(2)}</Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Total:</Text>
-              <Text style={styles.summaryValue}>€{cart.grandTotal.toFixed(2)}</Text>
+              <Text style={styles.summaryValue}>€{(cart.grandTotal || 0).toFixed(2)}</Text>
             </View>
           </View>
         )}
@@ -727,11 +794,11 @@ export default function CashRegisterScreen() {
                     <Text style={styles.spinnerText}>⏳</Text>
                   </View>
                 )}
-                <Text style={styles.paymentButtonText}>
-                  {paymentProcessing ? 'Processing Payment...' : 
-                   preventDoubleClick ? 'Payment in Progress...' : 
-                   `Complete Payment - €${cart.grandTotal.toFixed(2)}`}
-                </Text>
+                                 <Text style={styles.paymentButtonText}>
+                   {paymentProcessing ? 'Processing Payment...' : 
+                    preventDoubleClick ? 'Payment in Progress...' : 
+                    `Complete Payment - €${(cart.grandTotal || 0).toFixed(2)}`}
+                 </Text>
               </View>
             </TouchableOpacity>
 
@@ -1202,5 +1269,11 @@ const styles = StyleSheet.create({
     color: '#f44336', // Kırmızı metin
     textAlign: 'center',
     lineHeight: 12,
+  },
+  recoveryLoadingText: {
+    fontSize: 12,
+    color: '#2196F3',
+    fontStyle: 'italic',
+    marginTop: 5,
   },
 }); 
