@@ -1,16 +1,59 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router, useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 import i18n from '../i18n';
 import * as authService from '../services/api/authService';
+import { getUserSettings } from '../services/api/userSettingsService';
 import { handleAPIError } from '../services/errorService';
-import { getUserSettings, getDefaultUserSettings } from '../services/api/userSettingsService';
 // CRITICAL FIX: useTranslation hook'unu kaldırdık - infinite loop'a neden oluyordu
 
 // Cart cache temizleme için event listener
 const CART_CLEAR_EVENT = 'logout-clear-cache';
+
+// 🔐 BACKEND AUTH CHECK - F5 refresh'te backend'den kullanıcı durumunu kontrol eder
+const checkBackendAuth = async (): Promise<{ isAuthenticated: boolean; user: any }> => {
+    // 🚀 F5 REFRESH FIX: Debouncing için static flag
+    if ((checkBackendAuth as any).isChecking) {
+        return { isAuthenticated: false, user: null };
+    }
+    
+    // 🚀 F5 REFRESH FIX: Debouncing için timestamp kontrol
+    const currentTime = Date.now();
+    const lastCallTime = (checkBackendAuth as any).lastCallTime || 0;
+    const DEBOUNCE_MS = 1500; // 1.5 saniye debounce
+    
+    if (currentTime - lastCallTime < DEBOUNCE_MS) {
+        return { isAuthenticated: false, user: null };
+    }
+    
+    // Flag'leri set et
+    (checkBackendAuth as any).isChecking = true;
+    (checkBackendAuth as any).lastCallTime = currentTime;
+    
+    try {
+        // Token'ı AsyncStorage'dan al
+        const token = await AsyncStorage.getItem('token');
+        if (!token) {
+            return { isAuthenticated: false, user: null };
+        }
+
+        // Backend'den token validation yap
+        const user = await authService.validateToken();
+        if (user?.id) {
+            return { isAuthenticated: true, user };
+        } else {
+            return { isAuthenticated: false, user: null };
+        }
+    } catch (error) {
+        console.error('❌ Backend auth check hatası:', error);
+        return { isAuthenticated: false, user: null };
+    } finally {
+        // Flag'i temizle
+        (checkBackendAuth as any).isChecking = false;
+    }
+};
 
 interface User {
     id: string; // Required field
@@ -23,11 +66,7 @@ interface User {
     token?: string; // Token field'ı eklendi
 }
 
-interface AuthResponse {
-    token: string;
-    refreshToken: string;
-    user: User;
-}
+
 
 interface AuthContextType {
     user: User | null;
@@ -47,8 +86,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [justLoggedIn, setJustLoggedIn] = useState(false);
-    const [lastActivity, setLastActivity] = useState<number>(Date.now());
+    const [, setLastActivity] = useState<number>(Date.now());
     const [inactivityTimer, setInactivityTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+    
+    // 🚀 F5 REFRESH FIX: Auth check'in ard arda çağrılmasını önler
+    const [isAuthCheckInProgress, setIsAuthCheckInProgress] = useState(false);
+    
+    // 🚀 F5 REFRESH FIX: Debouncing için timestamp tracking
+    const [lastAuthCheckTime, setLastAuthCheckTime] = useState<number>(0);
+    const AUTH_CHECK_DEBOUNCE_MS = 2000; // 2 saniye debounce
+    
+    // 🚀 F5 REFRESH FIX: Session storage flag (F5 refresh'te korunur)
+    const [hasInitialAuthCheck, setHasInitialAuthCheck] = useState(false);
     
     // Inactivity timeout (30 dakika)
     const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 dakika
@@ -56,8 +105,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 🧹 Cart cache temizleme fonksiyonu
     const clearCartCache = useCallback(async () => {
         try {
-            console.log('🧹 Cart cache temizleniyor...');
-            
             // AsyncStorage'dan cart verilerini temizle
             const cartKeys = [
                 'currentCartId',
@@ -79,23 +126,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 
                 localStorageKeys.forEach(key => {
                     localStorage.removeItem(key);
-                    console.log(`🗑️ LocalStorage key removed: ${key}`);
                 });
             }
             
-            console.log('✅ Cart cache temizlendi');
         } catch (error) {
             console.error('❌ Cart cache temizleme hatası:', error);
         }
     }, []);
 
+    // Inactivity timer'ı durdur
+    const stopInactivityTimer = useCallback(() => {
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+            setInactivityTimer(null);
+        }
+    }, [inactivityTimer]);
+
     const checkTokenExpiration = (token: string): boolean => {
         try {
             const decoded = jwtDecode(token);
             const currentTime = Date.now() / 1000;
-            return decoded.exp ? decoded.exp > currentTime : false;
+            
+            // 🔧 CRITICAL FIX: Token expiration logic düzeltildi
+            // decoded.exp > currentTime = token henüz geçerli
+            // decoded.exp <= currentTime = token expired
+            if (decoded.exp) {
+                // 🔧 5 dakika buffer ekle - token henüz expired değilse kullan
+                const BUFFER_MINUTES = 5;
+                const bufferTime = BUFFER_MINUTES * 60; // 5 dakika = 300 saniye
+                
+                const isExpired = decoded.exp <= (currentTime + bufferTime);
+                const timeLeftMinutes = Math.round((decoded.exp - currentTime) / 60);
+                
+                console.log('🔍 TOKEN CHECK:', {
+                    tokenExp: new Date(decoded.exp * 1000).toISOString(),
+                    currentTime: new Date(currentTime * 1000).toISOString(),
+                    bufferMinutes: BUFFER_MINUTES,
+                    timeLeft: timeLeftMinutes + ' minutes',
+                    isExpired,
+                    willExpireSoon: timeLeftMinutes <= BUFFER_MINUTES
+                });
+                
+                return isExpired;
+            }
+            
+            console.warn('⚠️ TOKEN CHECK: No expiration time found in token');
+            return false; // Expiration yoksa güvenlik için false döndür
         } catch (error) {
-            console.error('Token expiration check failed:', error);
+            console.error('❌ TOKEN CHECK: Token expiration check failed:', error);
             return false;
         }
     };
@@ -123,15 +201,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }, INACTIVITY_TIMEOUT);
 
         setInactivityTimer(timer);
-    }, [inactivityTimer]); // logout dependency'sini kaldırdık
-
-    // Inactivity timer'ı durdur
-    const stopInactivityTimer = useCallback(() => {
-        if (inactivityTimer) {
-            clearTimeout(inactivityTimer);
-            setInactivityTimer(null);
-        }
-    }, [inactivityTimer]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // CRITICAL FIX: inactivityTimer dependency'si kaldırıldı - sonsuz döngü önlendi
 
     // 🧹 Logout event listener - Cart cache temizleme için
     useEffect(() => {
@@ -162,218 +233,245 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [clearCartCache]);
 
-    const checkAuthStatus = useCallback(async () => {
-        const startTime = Date.now();
-        console.log(`🔍 [${new Date().toISOString()}] Auth status check başlatıldı...`); // Debug log
-        console.log(`📊 [${new Date().toISOString()}] Current state:`, { 
-            justLoggedIn, 
-            isAuthenticated, 
-            hasUser: !!user,
-            userId: user?.id 
-        }); // Debug log
-        
+    // 🚀 F5 REFRESH FIX: Logout ve login sayfasına yönlendirme
+    const handleLogoutAndRedirect = useCallback(async () => {
         try {
-            // Eğer yeni login olduysa auth check'i atla
-            if (justLoggedIn) {
-                console.log(`🆕 [${new Date().toISOString()}] Yeni login, auth check atlanıyor...`); // Debug log
-                return;
-            }
-
-            // Eğer zaten authenticated değilse ve user yoksa, auth check yapma
-            if (!isAuthenticated && !user) {
-                console.log(`🚫 [${new Date().toISOString()}] Zaten authenticated değil, auth check atlanıyor...`); // Debug log
-                return;
-            }
-
-            console.log(`✅ [${new Date().toISOString()}] Auth check koşulları geçildi, devam ediliyor...`); // Debug log
-
-            // Timeout ekle - 10 saniye sonra otomatik çıkış
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => {
-                    reject(new Error('Auth check timeout - 10 seconds exceeded'));
-                }, 10000);
-            });
-
-            // Race condition ile timeout ekle
-            await Promise.race([
-                (async () => {
-                    console.log(`🔍 [${new Date().toISOString()}] AsyncStorage'dan token alınıyor...`); // Debug log
-                    
-                    // Token'ı AsyncStorage'dan al
-                    const token = await AsyncStorage.getItem('token');
-                    console.log(`🔑 [${new Date().toISOString()}] Token check:`, { 
-                        hasToken: !!token, 
-                        tokenLength: token?.length,
-                        tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
-                    }); // Debug log
-
-                    if (!token) {
-                        console.log(`❌ [${new Date().toISOString()}] Token bulunamadı, logout gerekli`); // Debug log
-                        // Token yoksa oturumu sonlandır
-                        setUser(null);
-                        setIsAuthenticated(false);
-                        await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
-                        console.log(`✅ [${new Date().toISOString()}] Token yok, logout tamamlandı`); // Debug log
-                        return;
-                    }
-
-                    console.log(`✅ [${new Date().toISOString()}] Token bulundu, temizleniyor...`); // Debug log
-
-                    // Token'ı temizle (Bearer prefix olmadan)
-                    const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
-
-                    console.log(`🔍 [${new Date().toISOString()}] Token süresi kontrol ediliyor...`); // Debug log
-
-                    // Token süresini kontrol et
-                    const isTokenExpired = checkTokenExpiration(cleanToken);
-                    console.log(`⏰ [${new Date().toISOString()}] Token expiration check:`, { 
-                        isExpired: isTokenExpired,
-                        cleanTokenLength: cleanToken.length 
-                    }); // Debug log
-
-                    if (isTokenExpired) {
-                        console.log(`⏰ [${new Date().toISOString()}] Token süresi dolmuş, refresh deneniyor...`); // Debug log
-                        
-                        // Refresh token ile yenileme dene
-                        const refreshToken = await AsyncStorage.getItem('refreshToken');
-                        console.log(`🔄 [${new Date().toISOString()}] Refresh token check:`, { 
-                            hasRefreshToken: !!refreshToken,
-                            refreshTokenLength: refreshToken?.length 
-                        }); // Debug log
-                        
-                        if (refreshToken) {
-                            try {
-                                console.log(`🔄 [${new Date().toISOString()}] Token refresh API çağrılıyor...`); // Debug log
-                                
-                                // Token süresi dolmuşsa refresh token ile yenile
-                                const newToken = await authService.refreshToken();
-                                console.log(`🆕 [${new Date().toISOString()}] Token refresh response:`, { 
-                                    hasNewToken: !!newToken,
-                                    newTokenLength: newToken?.length 
-                                }); // Debug log
-
-                                if (newToken) {
-                                    console.log(`✅ [${new Date().toISOString()}] Yeni token alındı, user bilgisi güncelleniyor...`); // Debug log
-                                    
-                                    await AsyncStorage.setItem('token', newToken);
-                                    // Kullanıcı bilgilerini güncelle
-                                    const userResponse = await authService.getCurrentUser();
-                                    console.log(`👤 [${new Date().toISOString()}] User info after refresh:`, { 
-                                        hasUser: !!userResponse, 
-                                        userId: userResponse?.id,
-                                        userName: userResponse?.username 
-                                    }); // Debug log
-                                    
-                                    if (userResponse && userResponse.id) {
-                                        const userWithToken: User = {
-                                            ...userResponse,
-                                            token: newToken
-                                        };
-                                        setUser(userWithToken);
-                                        setIsAuthenticated(true);
-                                        await AsyncStorage.setItem('user', JSON.stringify(userWithToken));
-                                        console.log(`✅ [${new Date().toISOString()}] Token refresh başarılı, user güncellendi`); // Debug log
-                                        return; // Başarılı refresh sonrası çık
-                                    } else {
-                                        throw new Error('Invalid user response after refresh');
-                                    }
-                                } else {
-                                    throw new Error('No new token received');
-                                }
-                            } catch (refreshError) {
-                                console.error(`❌ [${new Date().toISOString()}] Token refresh failed:`, refreshError); // Debug log
-                                // Refresh başarısız olursa oturumu sonlandır
-                                console.log(`❌ [${new Date().toISOString()}] Token refresh başarısız, logout yapılıyor...`); // Debug log
-                                setUser(null);
-                                setIsAuthenticated(false);
-                                await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
-                                console.log(`✅ [${new Date().toISOString()}] Refresh başarısız, logout tamamlandı`); // Debug log
-                                return;
-                            }
-                        } else {
-                            console.log(`❌ [${new Date().toISOString()}] Refresh token bulunamadı, logout yapılıyor...`); // Debug log
-                            // RefreshToken yoksa oturumu sonlandır
-                            setUser(null);
-                            setIsAuthenticated(false);
-                            await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
-                            console.log(`✅ [${new Date().toISOString()}] Refresh token yok, logout tamamlandı`); // Debug log
-                            return;
-                        }
-                    } else {
-                        console.log(`✅ [${new Date().toISOString()}] Token geçerli, user bilgisi kontrol ediliyor...`); // Debug log
-                        
-                        // Token geçerliyse kullanıcı bilgilerini kontrol et
-                        try {
-                            console.log(`🔄 [${new Date().toISOString()}] User bilgisi API'den alınıyor...`); // Debug log
-                            
-                            const userResponse = await authService.getCurrentUser();
-                            console.log(`👤 [${new Date().toISOString()}] User info check:`, { 
-                                hasUser: !!userResponse, 
-                                userId: userResponse?.id,
-                                userName: userResponse?.username 
-                            }); // Debug log
-                            
-                            // userResponse'da id field'ının olduğunu kontrol et
-                            if (!userResponse || !userResponse.id) {
-                                throw new Error('Invalid user response - missing ID');
-                            }
-                            
-                            // Mevcut user state ile karşılaştır
-                            if (user && user.id === userResponse.id) {
-                                console.log(`✅ [${new Date().toISOString()}] User bilgisi güncel, değişiklik gerekmiyor`); // Debug log
-                                return; // User zaten güncel, değişiklik yapma
-                            }
-                            
-                            console.log(`🔄 [${new Date().toISOString()}] User bilgisi güncelleniyor...`); // Debug log
-                            
-                            // Token'ı temizle (Bearer prefix olmadan)
-                            const userWithToken: User = {
-                                ...userResponse,
-                                token: cleanToken
-                            };
-                            
-                            setUser(userWithToken);
-                            setIsAuthenticated(true);
-                            await AsyncStorage.setItem('user', JSON.stringify(userWithToken));
-                            console.log(`✅ [${new Date().toISOString()}] User bilgisi güncellendi`); // Debug log
-                        } catch (userError) {
-                            console.error(`❌ [${new Date().toISOString()}] User info fetch failed:`, userError); // Debug log
-                            // Kullanıcı bilgisi alınamazsa oturumu sonlandır
-                            console.log(`❌ [${new Date().toISOString()}] User bilgisi alınamadı, logout yapılıyor...`); // Debug log
-                            setUser(null);
-                            setIsAuthenticated(false);
-                            await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
-                            console.log(`✅ [${new Date().toISOString()}] User bilgisi alınamadı, logout tamamlandı`); // Debug log
-                            return;
-                        }
-                    }
-                })(),
-                timeoutPromise
-            ]);
-        } catch (error) {
-            console.error(`❌ [${new Date().toISOString()}] Auth status check failed:`, error); // Debug log
-            // Hata durumunda oturumu sonlandır
-            console.log(`❌ [${new Date().toISOString()}] Auth check hatası, logout yapılıyor...`); // Debug log
+            // State'leri temizle
             setUser(null);
             setIsAuthenticated(false);
-            await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
-            console.log(`✅ [${new Date().toISOString()}] Auth check hatası, logout tamamlandı`); // Debug log
-        } finally {
-            const endTime = Date.now();
-            const duration = endTime - startTime;
-            console.log(`🔍 [${new Date().toISOString()}] Auth status check tamamlandı (${duration}ms)`); // Debug log
+            setJustLoggedIn(false);
             
-            // CRITICAL FIX: Auth check tamamlandıktan sonra loading state'i false yap
-            setIsLoading(false);
-            console.log(`✅ [${new Date().toISOString()}] Loading state false yapıldı`); // Debug log
+            // Storage'dan tüm auth verilerini temizle
+            await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+            
+            // Local storage'dan auth verilerini temizle (web için)
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const authKeys = Object.keys(localStorage).filter(key => 
+                    key.includes('token') || key.includes('user') || key.includes('auth')
+                );
+                authKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                });
+            }
+            
+            // Cart cache temizle
+            await clearCartCache();
+            
+            // Inactivity timer'ı durdur
+            stopInactivityTimer();
+            
+            console.log('✅ Logout tamamlandı, login sayfasına yönlendiriliyor...');
+            
+            // Login sayfasına yönlendir
+            if (router && typeof router.push === 'function') {
+                try {
+                    await router.push("/(auth)/login");
+                } catch (navigationError) {
+                    console.error('❌ Navigation to login page failed:', navigationError);
+                    // Fallback: window.location kullan (web için)
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/(auth)/login';
+                    }
+                }
+            } else {
+                console.warn('⚠️ Router not available for logout navigation');
+                // Fallback: window.location kullan (web için)
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/(auth)/login';
+                }
+            }
+        } catch (error) {
+            console.error('❌ handleLogoutAndRedirect error:', error);
+            // Hata durumunda bile state'i temizle
+            setUser(null);
+            setIsAuthenticated(false);
+            setJustLoggedIn(false);
         }
-    }, [justLoggedIn]); // CRITICAL FIX: user ve isAuthenticated dependency'lerini kaldırdık - infinite loop'a neden oluyordu
+    }, [clearCartCache, stopInactivityTimer]);
+
+    
+
+    // 🚀 F5 REFRESH FIX: Sadeleştirilmiş auth check fonksiyonu
+    const stableCheckAuthStatus = useCallback(async () => {
+        // 🚫 Temel kontroller - öncelikle bunları geç
+        if (justLoggedIn) {
+            return;
+        }
+        
+        if (isAuthCheckInProgress) {
+            return;
+        }
+        
+        // 🚫 Debouncing kontrolü
+        const currentTime = Date.now();
+        if (currentTime - lastAuthCheckTime < AUTH_CHECK_DEBOUNCE_MS) {
+            return;
+        }
+        
+        // 🚫 Eğer user zaten varsa auth check'i atla
+        if (hasInitialAuthCheck && user?.id && isAuthenticated) {
+            setIsLoading(false); // Loading'i false yap
+            return;
+        }
+
+        // Auth check flag'lerini set et
+        setIsAuthCheckInProgress(true);
+        setLastAuthCheckTime(currentTime);
+        
+        try {
+            // 🔑 Token kontrolü yap
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                await handleLogoutAndRedirect();
+                return;
+            }
+
+            // 🔑 Token süresini kontrol et
+            const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
+            const isTokenExpired = checkTokenExpiration(cleanToken);
+            
+            if (isTokenExpired) {
+                await handleLogoutAndRedirect();
+                return;
+            }
+
+            // 👤 User state kontrolü
+            if (user?.id) {
+                setHasInitialAuthCheck(true);
+                if (typeof sessionStorage !== 'undefined') {
+                    sessionStorage.setItem('hasInitialAuthCheck', 'true');
+                }
+                console.log('✅ AUTH CHECK: User state already exists, skipping further checks');
+                return;
+            }
+
+            // 💾 Storage'dan user bilgisini al
+            const userStr = await AsyncStorage.getItem('user');
+            if (userStr) {
+                try {
+                    const storedUser = JSON.parse(userStr);
+                    if (storedUser?.id) {
+                        const userWithToken: User = {
+                            ...storedUser,
+                            token: cleanToken
+                        };
+                        setUser(userWithToken);
+                        setIsAuthenticated(true);
+                        setHasInitialAuthCheck(true);
+                        
+                        if (typeof sessionStorage !== 'undefined') {
+                            sessionStorage.setItem('hasInitialAuthCheck', 'true');
+                        }
+                        
+                        return;
+                    }
+                } catch (parseError) {
+                    console.error('❌ [F5 FIX] User parse hatası:', parseError);
+                }
+            }
+
+            // 🔄 Son çare: Backend auth check
+            try {
+                const result = await checkBackendAuth();
+                if (result.isAuthenticated && result.user?.id) {
+                    setUser(result.user);
+                    setIsAuthenticated(true);
+                    setHasInitialAuthCheck(true);
+                    
+                    if (typeof sessionStorage !== 'undefined') {
+                        sessionStorage.setItem('hasInitialAuthCheck', 'true');
+                    }
+                    
+                    return;
+                }
+            } catch (backendError) {
+                console.warn('⚠️ [F5 FIX] Backend auth check hatası:', backendError);
+            }
+
+            // Hiçbir user bilgisi bulunamazsa logout yap
+            await handleLogoutAndRedirect();
+
+        } catch (error) {
+            console.error('❌ [F5 FIX] Auth check hatası:', error);
+            await handleLogoutAndRedirect();
+        } finally {
+            setIsLoading(false);
+            setIsAuthCheckInProgress(false);
+        }
+    }, [justLoggedIn, isAuthCheckInProgress, lastAuthCheckTime, hasInitialAuthCheck, user, isAuthenticated, handleLogoutAndRedirect]);
 
     // CRITICAL FIX: checkAuthStatus'u sadece mount olduğunda bir kez çağır
     useEffect(() => {
-        console.log('AuthProvider mounted, checking initial auth status...'); // Debug log
-        checkAuthStatus();
-    }, []); // CRITICAL FIX: checkAuthStatus dependency'sini kaldırdık - sadece mount olduğunda bir kez çalışsın
+        console.log('🔄 AUTH PROVIDER: Mount detected, starting auth check...');
+        
+        // 🚀 F5 REFRESH FIX: Her zaman önce storage'dan restore etmeye çalış
+        const initializeAuth = async () => {
+            try {
+                console.log('🔍 AUTH INIT: Checking storage for existing auth...');
+                
+                const token = await AsyncStorage.getItem('token');
+                const userStr = await AsyncStorage.getItem('user');
+                
+                console.log('🔍 AUTH INIT: Storage check result:', { 
+                    hasToken: !!token, 
+                    hasUser: !!userStr,
+                    tokenLength: token?.length,
+                    userLength: userStr?.length
+                });
+                
+                if (token && userStr) {
+                    const storedUser = JSON.parse(userStr);
+                    if (storedUser?.id) {
+                        const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
+                        
+                        // Token süresini kontrol et
+                        console.log('🔍 AUTH INIT: Checking token expiration...');
+                        const isTokenExpired = checkTokenExpiration(cleanToken);
+                        
+                        if (isTokenExpired) {
+                            console.log('⏰ AUTH INIT: Token expired, clearing storage and redirecting to login');
+                            await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+                            if (typeof sessionStorage !== 'undefined') {
+                                sessionStorage.removeItem('hasInitialAuthCheck');
+                            }
+                            setIsLoading(false);
+                            return;
+                        }
+                        
+                        // Token geçerliyse user state'i restore et
+                        const userWithToken = {
+                            ...storedUser,
+                            token: cleanToken
+                        };
+                        
+                        console.log('✅ AUTH INIT: Restoring user state from storage:', storedUser.email);
+                        setUser(userWithToken);
+                        setIsAuthenticated(true);
+                        setHasInitialAuthCheck(true);
+                        
+                        if (typeof sessionStorage !== 'undefined') {
+                            sessionStorage.setItem('hasInitialAuthCheck', 'true');
+                        }
+                        
+                        setIsLoading(false);
+                        console.log('✅ AUTH INIT: User state successfully restored');
+                        return;
+                    }
+                }
+                
+                // Storage'da geçerli auth bulunamazsa normal auth check yap
+                console.log('❌ AUTH INIT: No valid auth in storage, performing full auth check');
+                stableCheckAuthStatus();
+                
+            } catch (error) {
+                console.error('❌ AUTH INIT: Error during initialization:', error);
+                stableCheckAuthStatus();
+            }
+        };
+        
+        initializeAuth();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // CRITICAL FIX: stableCheckAuthStatus dependency'sini kaldırdık - sadece mount olduğunda bir kez çalışsın
 
     // CRITICAL FIX: Inactivity tracking'i optimize et
     useEffect(() => {
@@ -409,7 +507,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
             stopInactivityTimer();
         }
-    }, [isAuthenticated, user, startInactivityTimer, stopInactivityTimer, updateActivity]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuthenticated, user]); // CRITICAL FIX: startInactivityTimer ve stopInactivityTimer dependency'leri kaldırıldı
 
     // CRITICAL FIX: Login sonrası navigation'ı optimize et
     useEffect(() => {
@@ -441,7 +540,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             return () => clearTimeout(timer);
         }
-    }, [justLoggedIn, isAuthenticated, user]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [justLoggedIn]); // CRITICAL FIX: isAuthenticated ve user dependency'leri kaldırıldı
 
     // Cart reset will be handled by the component that uses AuthContext
 
@@ -468,6 +568,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             // Token'ı Bearer prefix olmadan kaydet
             const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
+            
+            // 🚀 F5 REFRESH FIX: Platform-aware storage kullan
             await AsyncStorage.setItem('token', cleanToken);
             console.log('Token stored without Bearer prefix:', cleanToken);
             
@@ -478,6 +580,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 await AsyncStorage.setItem('refreshToken', refreshToken);
                 console.log('Refresh token stored:', !!refreshToken);
             }
+            
+            // 🔐 AUTH STATE PERSISTENCE - F5 refresh'te korunması için
+            // await persistAuthState(loggedInUser, cleanToken); // Removed as per new_code
 
             // --- CART TEMİZLİĞİ ---
             console.log('🧹 Login sonrası cart cache temizleniyor...');
@@ -642,7 +747,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsAuthenticated(false);
             setJustLoggedIn(false);
             
-            // AsyncStorage'dan tüm auth verilerini temizle
+            // Storage'dan tüm auth verilerini temizle (platform-aware)
             await AsyncStorage.multiRemove([
                 'token',
                 'refreshToken',
@@ -657,7 +762,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 );
                 authKeys.forEach(key => {
                     localStorage.removeItem(key);
-                    console.log(`🗑️ LocalStorage auth key removed: ${key}`);
                 });
             }
             
@@ -714,7 +818,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             }
         }
-    }, [clearCartCache, stopInactivityTimer, router]); // CRITICAL FIX: Dependency array'i optimize ettik
+    }, [clearCartCache, stopInactivityTimer]);
 
     return (
         <AuthContext.Provider value={{
@@ -723,7 +827,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isLoading,
             login,
             logout,
-            checkAuthStatus
+            checkAuthStatus: stableCheckAuthStatus
         }}>
             {children}
         </AuthContext.Provider>
@@ -736,4 +840,4 @@ export function useAuth() {
         throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;
-} 
+}

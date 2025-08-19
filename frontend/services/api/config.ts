@@ -83,6 +83,24 @@ const axiosInstance = axios.create({
 // Request interceptor - Token kontrolü ve ekleme
 axiosInstance.interceptors.request.use(
     async (config) => {
+        // 🚀 F5 REFRESH FIX: Debouncing için request tracking
+        const requestKey = `${config.method}:${config.url}`;
+        const currentTime = Date.now();
+        const lastRequestTime = (axiosInstance as any).requestTimes?.[requestKey] || 0;
+        const DEBOUNCE_MS = 500; // 500ms debounce
+        
+        if (currentTime - lastRequestTime < DEBOUNCE_MS) {
+            console.log(`🚫 [${new Date().toISOString()}] Request debouncing: ${requestKey} - ${currentTime - lastRequestTime}ms < ${DEBOUNCE_MS}ms`);
+            // Debouncing durumunda request'i iptal et
+            return Promise.reject(new Error('Request debounced'));
+        }
+        
+        // Request time'ı kaydet
+        if (!(axiosInstance as any).requestTimes) {
+            (axiosInstance as any).requestTimes = {};
+        }
+        (axiosInstance as any).requestTimes[requestKey] = currentTime;
+        
         console.log('🚀 Making API request:', {
             method: config.method,
             url: config.url,
@@ -215,11 +233,17 @@ axiosInstance.interceptors.response.use(
         return response.data;
     },
     async (error) => {
+        // 🚀 F5 REFRESH FIX: Debounced request'leri handle et
+        if (error.message === 'Request debounced') {
+            console.log('🚫 Debounced request ignored');
+            return Promise.resolve(null); // Debounced request'ler için null döndür
+        }
+        
         console.error('❌ API error:', {
             status: error.response?.status,
             statusText: error.response?.statusText,
             url: error.config?.url,
-            fullUrl: error.config?.baseURL ? `${error.config.baseURL}${error.config.url}` : error.config?.url,
+            fullUrl: error.config?.baseURL ? `${error.config?.baseURL}${error.config?.url}` : error.config?.url,
             data: error.response?.data,
             message: error.message,
             code: error.code,

@@ -129,6 +129,90 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        // 🔐 GET CURRENT USER - F5 refresh'te kullanıcı durumunu kontrol eder
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            try
+            {
+                _logger.LogInformation("GetCurrentUser endpoint called");
+                
+                // JWT token'dan user ID'yi al
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("GetCurrentUser: User ID not found in token claims");
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                _logger.LogInformation("GetCurrentUser: User ID from token: {UserId}", userId);
+
+                // Kullanıcıyı veritabanından bul
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    _logger.LogWarning("GetCurrentUser: User not found in database for ID: {UserId}", userId);
+                    return NotFound(new { message = "User not found" });
+                }
+
+                if (!user.IsActive)
+                {
+                    _logger.LogWarning("GetCurrentUser: User account is not active for ID: {UserId}", userId);
+                    return BadRequest(new { message = "User account is not active" });
+                }
+
+                // Kullanıcı rollerini al
+                var roles = await _userManager.GetRolesAsync(user);
+
+                var userResponse = new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    role = user.Role,
+                    roles = roles
+                };
+
+                _logger.LogInformation("GetCurrentUser: Successfully retrieved user {Email} with role {Role}", user.Email, user.Role);
+                return Ok(userResponse);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetCurrentUser error. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
+                    ex.GetType().Name, ex.Message);
+                
+                return StatusCode(500, new { message = "Error retrieving user information" });
+            }
+        }
+
+        // 🔄 REFRESH TOKEN - Token süresi dolduğunda yenileme
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenModel model)
+        {
+            try
+            {
+                _logger.LogInformation("Refresh token request received");
+
+                if (string.IsNullOrWhiteSpace(model.RefreshToken))
+                {
+                    return BadRequest(new { message = "Refresh token is required" });
+                }
+
+                // TODO: Refresh token validation logic will be implemented here
+                // For now, return a simple response
+                _logger.LogWarning("Refresh token endpoint not fully implemented yet");
+                return BadRequest(new { message = "Refresh token functionality not implemented yet" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Refresh token error. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
+                    ex.GetType().Name, ex.Message);
+                
+                return StatusCode(500, new { message = "Error during token refresh" });
+            }
+        }
+
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterModel model)
         {
@@ -199,5 +283,10 @@ namespace KasseAPI_Final.Controllers
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string EmployeeNumber { get; set; } = string.Empty;
+    }
+
+    public class RefreshTokenModel
+    {
+        public string RefreshToken { get; set; } = string.Empty;
     }
 }

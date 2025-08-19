@@ -66,6 +66,16 @@ export default function TabLayout() {
         );
     }
 
+    // F5 REFRESH FIX: Loading sırasında redirect yapma
+    if (isLoading) {
+        console.log('TabLayout: Auth is loading, waiting...', { isAuthenticated, hasUser: !!user });
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Text>Loading...</Text>
+            </View>
+        );
+    }
+
     // Kullanıcı giriş yapmamışsa veya oturumu sona ermişse login sayfasına yönlendir
     if (!isAuthenticated || !user) {
         console.log('TabLayout: Not authenticated or no user, redirecting to login');
