@@ -18,8 +18,8 @@ export const NetworkStatusIndicator: React.FC<NetworkStatusIndicatorProps> = ({
   useEffect(() => {
     checkNetworkStatus();
     
-    // Periyodik kontrol başlat
-    const interval = setInterval(checkNetworkStatus, 30000); // 30 saniyede bir
+    // OPTIMIZATION: Periyodik kontrolü daha az sıklıkta yap
+    const interval = setInterval(checkNetworkStatus, 2 * 60 * 1000); // 2 dakika
 
     return () => clearInterval(interval);
   }, []);

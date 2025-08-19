@@ -1,5 +1,5 @@
 // Bu komponent, kullanıcıya Almanca, Türkçe veya İngilizce dil seçimi sunar. Erişilebilir ve dokunmatik uyumludur.
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,28 +12,44 @@ const LANGUAGES = [
 
 const LanguageSelector = () => {
   const { i18n } = useTranslation();
-  const currentLang = i18n.language;
+  
+  // CRITICAL FIX: currentLang'i useMemo ile optimize et
+  const currentLang = useMemo(() => i18n.language, [i18n.language]);
 
-  const handleSelect = async (code: string) => {
-    await i18n.changeLanguage(code);
-    await AsyncStorage.setItem('userLanguage', code);
-  };
+  // CRITICAL FIX: handleSelect fonksiyonunu useCallback ile optimize et
+  const handleSelect = useCallback(async (code: string) => {
+    // Eğer dil zaten seçiliyse, tekrar değiştirme
+    if (currentLang === code) {
+      return;
+    }
+    
+    try {
+      await i18n.changeLanguage(code);
+      await AsyncStorage.setItem('userLanguage', code);
+    } catch (error) {
+      console.error('Dil değiştirme hatası:', error);
+    }
+  }, [currentLang, i18n]);
+
+  // CRITICAL FIX: LANGUAGES array'ini useMemo ile optimize et
+  const languageButtons = useMemo(() => 
+    LANGUAGES.map(lang => (
+      <TouchableOpacity
+        key={lang.code}
+        style={[styles.button, currentLang === lang.code && styles.selected]}
+        onPress={() => handleSelect(lang.code)}
+        accessibilityRole="radio"
+        accessibilityState={{ selected: currentLang === lang.code }}
+        accessibilityLabel={lang.label}
+        activeOpacity={0.85}
+      >
+        <Text style={[styles.text, currentLang === lang.code && styles.selectedText]}>{lang.label}</Text>
+      </TouchableOpacity>
+    )), [currentLang, handleSelect]);
 
   return (
     <View style={styles.row} accessibilityRole="radiogroup">
-      {LANGUAGES.map(lang => (
-        <TouchableOpacity
-          key={lang.code}
-          style={[styles.button, currentLang === lang.code && styles.selected]}
-          onPress={() => handleSelect(lang.code)}
-          accessibilityRole="radio"
-          accessibilityState={{ selected: currentLang === lang.code }}
-          accessibilityLabel={lang.label}
-          activeOpacity={0.85}
-        >
-          <Text style={[styles.text, currentLang === lang.code && styles.selectedText]}>{lang.label}</Text>
-        </TouchableOpacity>
-      ))}
+      {languageButtons}
     </View>
   );
 };

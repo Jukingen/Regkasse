@@ -22,11 +22,11 @@ export const PendingInvoicesIndicator: React.FC<PendingInvoicesIndicatorProps> =
     checkPendingInvoices();
     checkNetworkStatus();
     
-    // Periyodik kontrol başlat
+    // OPTIMIZATION: Periyodik kontrolü daha az sıklıkta yap
     const interval = setInterval(() => {
       checkPendingInvoices();
       checkNetworkStatus();
-    }, 60000); // 1 dakikada bir
+    }, 5 * 60 * 1000); // 5 dakika
 
     return () => clearInterval(interval);
   }, []);

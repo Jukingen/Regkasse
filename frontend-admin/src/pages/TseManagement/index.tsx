@@ -146,7 +146,7 @@ const TseManagement: React.FC = () => {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 30000); // Her 30 saniyede bir güncelle
+    const interval = setInterval(fetchStatus, 2 * 60 * 1000); // OPTIMIZATION: Her 30 saniye yerine 2 dakikada bir güncelle
     return () => clearInterval(interval);
   }, []);
 

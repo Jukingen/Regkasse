@@ -1,5 +1,6 @@
 // Bu hook, sayfa yenileme (F5) sonrası masa siparişlerini geri yüklemek için kullanılır
 // RKSV uyumlu güvenlik kontrolü ve kullanıcı bazlı veri erişimi sağlar
+// OPTIMIZATION: Sürekli API çağrısı yerine sadece gerekli durumlarda fetch yapar
 
 import { useState, useEffect, useCallback } from 'react';
 
@@ -41,12 +42,14 @@ interface RecoveryState {
   error: string | null;
   recoveryData: TableOrdersRecoveryData | null;
   isRecoveryCompleted: boolean;
+  isInitialized: boolean; // Yeni: Sadece bir kere fetch yapılsın
 }
 
 /**
  * F5 sonrası masa siparişlerini geri yükleme hook'u
  * RKSV kurallarına uygun güvenlik kontrolü yapar
  * Yalnızca kullanıcının kendi masa siparişlerini getirir
+ * OPTIMIZATION: Sürekli API çağrısı yerine sadece gerekli durumlarda fetch yapar
  */
 export const useTableOrdersRecovery = () => {
   const { user } = useAuth();
@@ -55,6 +58,7 @@ export const useTableOrdersRecovery = () => {
     error: null,
     recoveryData: null,
     isRecoveryCompleted: false,
+    isInitialized: false, // Yeni: Initialization flag
   });
 
   // ⚠️ GÜNCELLEME: AsyncStorage yerine tamamen backend-first yaklaşım
@@ -64,11 +68,18 @@ export const useTableOrdersRecovery = () => {
   /**
    * Backend'den tüm aktif masa siparişlerini getir
    * RKSV uyumlu - yalnızca kullanıcının kendi siparişleri
+   * OPTIMIZATION: Sadece gerekli durumlarda fetch yapar
    */
   const fetchTableOrdersRecovery = useCallback(async (): Promise<TableOrdersRecoveryData | null> => {
     if (!user) {
       console.warn('User not authenticated for table orders recovery');
       return null;
+    }
+
+    // OPTIMIZATION: Eğer zaten fetch edildiyse ve data varsa, tekrar fetch yapma
+    if (recoveryState.isInitialized && recoveryState.recoveryData) {
+      console.log('🔄 Table orders already fetched, returning cached data');
+      return recoveryState.recoveryData;
     }
 
     setRecoveryState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -87,6 +98,7 @@ export const useTableOrdersRecovery = () => {
           error: null,
           recoveryData,
           isRecoveryCompleted: true,
+          isInitialized: true, // Yeni: Fetch tamamlandı olarak işaretle
         });
 
         return recoveryData;
@@ -102,11 +114,26 @@ export const useTableOrdersRecovery = () => {
         error: errorMessage,
         recoveryData: null,
         isRecoveryCompleted: false,
+        isInitialized: false, // Hata durumunda false bırak
       });
 
       return null;
     }
-  }, [user]);
+  }, [user, recoveryState.isInitialized, recoveryState.recoveryData]);
+
+  /**
+   * Manuel refresh için - sadece gerektiğinde kullanılır
+   */
+  const refreshTableOrders = useCallback(async (): Promise<TableOrdersRecoveryData | null> => {
+    if (!user) return null;
+    
+    console.log('🔄 Manual refresh of table orders...');
+    
+    // Reset initialization flag to force fresh fetch
+    setRecoveryState(prev => ({ ...prev, isInitialized: false }));
+    
+    return await fetchTableOrdersRecovery();
+  }, [user, fetchTableOrdersRecovery]);
 
   /**
    * Belirli bir masa için sipariş bilgilerini getir
@@ -140,30 +167,33 @@ export const useTableOrdersRecovery = () => {
       error: null,
       recoveryData: null,
       isRecoveryCompleted: false,
+      isInitialized: false, // Reset initialization flag
     });
   }, []);
 
   /**
    * Sayfa yüklendiğinde otomatik recovery yapar
-   * Backend-first yaklaşım: Her zaman güncel data'yı backend'den alır
+   * OPTIMIZATION: Sadece user değiştiğinde ve henüz initialize edilmemişse çalışır
    */
   useEffect(() => {
     let isMounted = true;
 
     const performRecovery = async () => {
-      if (!user) return;
+      if (!user || recoveryState.isInitialized) return;
 
       console.log('🔄 Starting table orders recovery from backend...');
       // Direkt backend'den en güncel data'yı al
       await fetchTableOrdersRecovery();
     };
 
-    performRecovery();
+    if (isMounted) {
+      performRecovery();
+    }
 
     return () => {
       isMounted = false;
     };
-  }, [user, fetchTableOrdersRecovery]);
+  }, [user]); // OPTIMIZATION: fetchTableOrdersRecovery dependency'sini kaldırdık
 
   return {
     // State
@@ -171,9 +201,11 @@ export const useTableOrdersRecovery = () => {
     error: recoveryState.error,
     recoveryData: recoveryState.recoveryData,
     isRecoveryCompleted: recoveryState.isRecoveryCompleted,
+    isInitialized: recoveryState.isInitialized, // Yeni: Initialization status
     
     // Actions
     fetchTableOrdersRecovery,
+    refreshTableOrders, // Yeni: Manuel refresh fonksiyonu
     getOrderForTable,
     getActiveTableNumbers,
     resetRecovery,

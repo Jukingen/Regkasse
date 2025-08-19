@@ -49,7 +49,7 @@ export const loadSavedLanguage = async () => {
   try {
     if (canUseAsyncStorage()) {
       const savedLanguage = await AsyncStorage.getItem('userLanguage');
-      if (savedLanguage) {
+      if (savedLanguage && savedLanguage !== i18n.language) {
         await i18n.changeLanguage(savedLanguage);
         platformLog(`Kaydedilmiş dil yüklendi: ${savedLanguage}`, 'all');
       }
@@ -59,8 +59,10 @@ export const loadSavedLanguage = async () => {
   }
 };
 
-// Uygulama başlarken kaydedilmiş dili yükle (sadece client-side)
-if (canUseAsyncStorage()) {
+// CRITICAL FIX: Uygulama başlarken kaydedilmiş dili yükle (sadece client-side ve bir kez)
+let isLanguageLoaded = false;
+if (canUseAsyncStorage() && !isLanguageLoaded) {
+  isLanguageLoaded = true;
   loadSavedLanguage();
 }
 

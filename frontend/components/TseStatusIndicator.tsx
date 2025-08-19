@@ -32,8 +32,9 @@ export const TseStatusIndicator: React.FC<TseStatusIndicatorProps> = ({
   useEffect(() => {
     checkTseStatusAndUpdate();
     
+    // OPTIMIZATION: autoRefresh true ise sadece 2 dakikada bir kontrol et (30 saniye yerine)
     if (autoRefresh) {
-      const interval = setInterval(checkTseStatusAndUpdate, 30000); // 30 saniyede bir
+      const interval = setInterval(checkTseStatusAndUpdate, 2 * 60 * 1000); // 2 dakika
       return () => clearInterval(interval);
     }
   }, [autoRefresh]);

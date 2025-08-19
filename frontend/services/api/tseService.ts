@@ -122,7 +122,7 @@ export const createTseSignature = async (request: TseSignatureRequest): Promise<
 };
 
 // TSE cihazı bağlantı durumunu periyodik olarak kontrol et
-export const startTseMonitoring = (callback: (status: TseStatus) => void, intervalMs: number = 30000) => {
+export const startTseMonitoring = (callback: (status: TseStatus) => void, intervalMs: number = 2 * 60 * 1000) => {
   const checkStatus = async () => {
     try {
       const status = await checkTseStatus();

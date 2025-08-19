@@ -158,7 +158,7 @@ export const updateValidationSettings = async (enableValidation: boolean): Promi
 };
 
 // FinanzOnline durumunu periyodik olarak kontrol et
-export const startFinanzOnlineMonitoring = (callback: (status: FinanzOnlineStatus) => void, intervalMs: number = 60000) => {
+export const startFinanzOnlineMonitoring = (callback: (status: FinanzOnlineStatus) => void, intervalMs: number = 5 * 60 * 1000) => {
   const checkStatus = async () => {
     try {
       const status = await getFinanzOnlineStatus();

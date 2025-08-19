@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 
+import i18n from '../i18n';
 import * as authService from '../services/api/authService';
 import { handleAPIError } from '../services/errorService';
 import { getUserSettings, getDefaultUserSettings } from '../services/api/userSettingsService';
-import i18n from '../i18n';
-import { useTranslation } from 'react-i18next';
+// CRITICAL FIX: useTranslation hook'unu kaldırdık - infinite loop'a neden oluyordu
 
 // Cart cache temizleme için event listener
 const CART_CLEAR_EVENT = 'logout-clear-cache';
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 dakika
 
     // 🧹 Cart cache temizleme fonksiyonu
-    const clearCartCache = async () => {
+    const clearCartCache = useCallback(async () => {
         try {
             console.log('🧹 Cart cache temizleniyor...');
             
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error('❌ Cart cache temizleme hatası:', error);
         }
-    };
+    }, []);
 
     const checkTokenExpiration = (token: string): boolean => {
         try {
@@ -101,31 +101,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Kullanıcı aktivitesini kaydet
-    const updateActivity = () => {
+    const updateActivity = useCallback(() => {
         setLastActivity(Date.now());
-    };
+    }, []);
 
     // Inactivity timer'ı başlat
-    const startInactivityTimer = () => {
+    const startInactivityTimer = useCallback(() => {
         if (inactivityTimer) {
             clearTimeout(inactivityTimer);
         }
 
         const timer = setTimeout(() => {
             console.log('User inactive for 30 minutes, logging out...');
-            logout();
+            // CRITICAL FIX: Circular dependency'yi önlemek için logout'u direkt çağırmıyoruz
+            // Bunun yerine state'i temizliyoruz
+            setUser(null);
+            setIsAuthenticated(false);
+            setJustLoggedIn(false);
+            // AsyncStorage temizliği
+            AsyncStorage.multiRemove(['token', 'refreshToken', 'user', 'tokenExpiry']);
         }, INACTIVITY_TIMEOUT);
 
         setInactivityTimer(timer);
-    };
+    }, [inactivityTimer]); // logout dependency'sini kaldırdık
 
     // Inactivity timer'ı durdur
-    const stopInactivityTimer = () => {
+    const stopInactivityTimer = useCallback(() => {
         if (inactivityTimer) {
             clearTimeout(inactivityTimer);
             setInactivityTimer(null);
         }
-    };
+    }, [inactivityTimer]);
 
     // 🧹 Logout event listener - Cart cache temizleme için
     useEffect(() => {
@@ -154,113 +160,222 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('📱 Mobile platform: window events not available, using direct method');
             // Mobile platformda direkt çağrı kullanılabilir (gerekirse)
         }
-    }, []);
+    }, [clearCartCache]);
 
-    const checkAuthStatus = async () => {
-        // Eğer yeni login olduysa auth check'i atla
-        if (justLoggedIn) {
-            console.log('Skipping auth check - just logged in'); // Debug log
-            return;
-        }
+    const checkAuthStatus = useCallback(async () => {
+        const startTime = Date.now();
+        console.log(`🔍 [${new Date().toISOString()}] Auth status check başlatıldı...`); // Debug log
+        console.log(`📊 [${new Date().toISOString()}] Current state:`, { 
+            justLoggedIn, 
+            isAuthenticated, 
+            hasUser: !!user,
+            userId: user?.id 
+        }); // Debug log
         
-        console.log('Checking auth status...'); // Debug log
         try {
-            const token = await AsyncStorage.getItem('token');
-            const storedUser = await AsyncStorage.getItem('user');
-
-            console.log('Auth check - Tokens found:', { 
-                hasToken: !!token, 
-                hasStoredUser: !!storedUser
-            }); // Debug log
-
-            // Token yoksa kesinlikle logout yap
-            if (!token) {
-                console.log('No token found, forcing logout'); // Debug log
-                setUser(null);
-                setIsAuthenticated(false);
-                setIsLoading(false);
+            // Eğer yeni login olduysa auth check'i atla
+            if (justLoggedIn) {
+                console.log(`🆕 [${new Date().toISOString()}] Yeni login, auth check atlanıyor...`); // Debug log
                 return;
             }
 
-            // Token'ı temizle (Bearer prefix olmadan)
-            const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
-            console.log('Token cleaned:', cleanToken.substring(0, 20) + '...');
-
-            // Token geçerliliğini kontrol et
-            if (!checkTokenExpiration(cleanToken)) {
-                console.log('Token expired, checking for refresh token...'); // Debug log
-                
-                // RefreshToken var mı kontrol et
-                const refreshToken = await AsyncStorage.getItem('refreshToken');
-                if (refreshToken) {
-                    try {
-                        // Token süresi dolmuşsa refresh token ile yenile
-                        const newToken = await authService.refreshToken();
-                        console.log('Token refresh response:', newToken); // Debug log
-
-                        if (newToken) {
-                            await AsyncStorage.setItem('token', newToken);
-                            // Kullanıcı bilgilerini güncelle
-                            const userResponse = await authService.getCurrentUser();
-                            console.log('User info after refresh:', userResponse); // Debug log
-                            setUser(userResponse);
-                            setIsAuthenticated(true);
-                            await AsyncStorage.setItem('user', JSON.stringify(userResponse));
-                        } else {
-                            throw new Error('No new token received');
-                        }
-                    } catch (refreshError) {
-                        console.error('Token refresh failed:', refreshError); // Debug log
-                        // Refresh başarısız olursa oturumu sonlandır
-                        await logout();
-                    }
-                } else {
-                    console.log('No refresh token available, forcing logout'); // Debug log
-                    // RefreshToken yoksa oturumu sonlandır
-                    await logout();
-                }
-            } else {
-                console.log('Token still valid, fetching user info...'); // Debug log
-                try {
-                    // Token geçerliyse kullanıcı bilgilerini kontrol et
-                    const userResponse = await authService.getCurrentUser();
-                    console.log('User info:', userResponse); // Debug log
-                    
-                    // userResponse'da id field'ının olduğunu kontrol et
-                    if (!userResponse || !userResponse.id) {
-                        throw new Error('Invalid user response - missing ID');
-                    }
-                    
-                    // Token'ı temizle (Bearer prefix olmadan)
-                    const userWithToken: User = {
-                        ...userResponse,
-                        token: cleanToken // cleanToken'ı ekle (Bearer prefix olmadan)
-                    };
-                    
-                    setUser(userWithToken);
-                    setIsAuthenticated(true);
-                    await AsyncStorage.setItem('user', JSON.stringify(userWithToken));
-                } catch (userError) {
-                    console.error('User info fetch failed:', userError); // Debug log
-                    // Kullanıcı bilgisi alınamazsa oturumu sonlandır
-                    await logout();
-                }
+            // Eğer zaten authenticated değilse ve user yoksa, auth check yapma
+            if (!isAuthenticated && !user) {
+                console.log(`🚫 [${new Date().toISOString()}] Zaten authenticated değil, auth check atlanıyor...`); // Debug log
+                return;
             }
-        } catch (error) {
-            console.error('Auth status check failed:', error); // Debug log
-            // Hata durumunda oturumu sonlandır
-            await logout();
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
+            console.log(`✅ [${new Date().toISOString()}] Auth check koşulları geçildi, devam ediliyor...`); // Debug log
+
+            // Timeout ekle - 10 saniye sonra otomatik çıkış
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error('Auth check timeout - 10 seconds exceeded'));
+                }, 10000);
+            });
+
+            // Race condition ile timeout ekle
+            await Promise.race([
+                (async () => {
+                    console.log(`🔍 [${new Date().toISOString()}] AsyncStorage'dan token alınıyor...`); // Debug log
+                    
+                    // Token'ı AsyncStorage'dan al
+                    const token = await AsyncStorage.getItem('token');
+                    console.log(`🔑 [${new Date().toISOString()}] Token check:`, { 
+                        hasToken: !!token, 
+                        tokenLength: token?.length,
+                        tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
+                    }); // Debug log
+
+                    if (!token) {
+                        console.log(`❌ [${new Date().toISOString()}] Token bulunamadı, logout gerekli`); // Debug log
+                        // Token yoksa oturumu sonlandır
+                        setUser(null);
+                        setIsAuthenticated(false);
+                        await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+                        console.log(`✅ [${new Date().toISOString()}] Token yok, logout tamamlandı`); // Debug log
+                        return;
+                    }
+
+                    console.log(`✅ [${new Date().toISOString()}] Token bulundu, temizleniyor...`); // Debug log
+
+                    // Token'ı temizle (Bearer prefix olmadan)
+                    const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
+
+                    console.log(`🔍 [${new Date().toISOString()}] Token süresi kontrol ediliyor...`); // Debug log
+
+                    // Token süresini kontrol et
+                    const isTokenExpired = checkTokenExpiration(cleanToken);
+                    console.log(`⏰ [${new Date().toISOString()}] Token expiration check:`, { 
+                        isExpired: isTokenExpired,
+                        cleanTokenLength: cleanToken.length 
+                    }); // Debug log
+
+                    if (isTokenExpired) {
+                        console.log(`⏰ [${new Date().toISOString()}] Token süresi dolmuş, refresh deneniyor...`); // Debug log
+                        
+                        // Refresh token ile yenileme dene
+                        const refreshToken = await AsyncStorage.getItem('refreshToken');
+                        console.log(`🔄 [${new Date().toISOString()}] Refresh token check:`, { 
+                            hasRefreshToken: !!refreshToken,
+                            refreshTokenLength: refreshToken?.length 
+                        }); // Debug log
+                        
+                        if (refreshToken) {
+                            try {
+                                console.log(`🔄 [${new Date().toISOString()}] Token refresh API çağrılıyor...`); // Debug log
+                                
+                                // Token süresi dolmuşsa refresh token ile yenile
+                                const newToken = await authService.refreshToken();
+                                console.log(`🆕 [${new Date().toISOString()}] Token refresh response:`, { 
+                                    hasNewToken: !!newToken,
+                                    newTokenLength: newToken?.length 
+                                }); // Debug log
+
+                                if (newToken) {
+                                    console.log(`✅ [${new Date().toISOString()}] Yeni token alındı, user bilgisi güncelleniyor...`); // Debug log
+                                    
+                                    await AsyncStorage.setItem('token', newToken);
+                                    // Kullanıcı bilgilerini güncelle
+                                    const userResponse = await authService.getCurrentUser();
+                                    console.log(`👤 [${new Date().toISOString()}] User info after refresh:`, { 
+                                        hasUser: !!userResponse, 
+                                        userId: userResponse?.id,
+                                        userName: userResponse?.username 
+                                    }); // Debug log
+                                    
+                                    if (userResponse && userResponse.id) {
+                                        const userWithToken: User = {
+                                            ...userResponse,
+                                            token: newToken
+                                        };
+                                        setUser(userWithToken);
+                                        setIsAuthenticated(true);
+                                        await AsyncStorage.setItem('user', JSON.stringify(userWithToken));
+                                        console.log(`✅ [${new Date().toISOString()}] Token refresh başarılı, user güncellendi`); // Debug log
+                                        return; // Başarılı refresh sonrası çık
+                                    } else {
+                                        throw new Error('Invalid user response after refresh');
+                                    }
+                                } else {
+                                    throw new Error('No new token received');
+                                }
+                            } catch (refreshError) {
+                                console.error(`❌ [${new Date().toISOString()}] Token refresh failed:`, refreshError); // Debug log
+                                // Refresh başarısız olursa oturumu sonlandır
+                                console.log(`❌ [${new Date().toISOString()}] Token refresh başarısız, logout yapılıyor...`); // Debug log
+                                setUser(null);
+                                setIsAuthenticated(false);
+                                await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+                                console.log(`✅ [${new Date().toISOString()}] Refresh başarısız, logout tamamlandı`); // Debug log
+                                return;
+                            }
+                        } else {
+                            console.log(`❌ [${new Date().toISOString()}] Refresh token bulunamadı, logout yapılıyor...`); // Debug log
+                            // RefreshToken yoksa oturumu sonlandır
+                            setUser(null);
+                            setIsAuthenticated(false);
+                            await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+                            console.log(`✅ [${new Date().toISOString()}] Refresh token yok, logout tamamlandı`); // Debug log
+                            return;
+                        }
+                    } else {
+                        console.log(`✅ [${new Date().toISOString()}] Token geçerli, user bilgisi kontrol ediliyor...`); // Debug log
+                        
+                        // Token geçerliyse kullanıcı bilgilerini kontrol et
+                        try {
+                            console.log(`🔄 [${new Date().toISOString()}] User bilgisi API'den alınıyor...`); // Debug log
+                            
+                            const userResponse = await authService.getCurrentUser();
+                            console.log(`👤 [${new Date().toISOString()}] User info check:`, { 
+                                hasUser: !!userResponse, 
+                                userId: userResponse?.id,
+                                userName: userResponse?.username 
+                            }); // Debug log
+                            
+                            // userResponse'da id field'ının olduğunu kontrol et
+                            if (!userResponse || !userResponse.id) {
+                                throw new Error('Invalid user response - missing ID');
+                            }
+                            
+                            // Mevcut user state ile karşılaştır
+                            if (user && user.id === userResponse.id) {
+                                console.log(`✅ [${new Date().toISOString()}] User bilgisi güncel, değişiklik gerekmiyor`); // Debug log
+                                return; // User zaten güncel, değişiklik yapma
+                            }
+                            
+                            console.log(`🔄 [${new Date().toISOString()}] User bilgisi güncelleniyor...`); // Debug log
+                            
+                            // Token'ı temizle (Bearer prefix olmadan)
+                            const userWithToken: User = {
+                                ...userResponse,
+                                token: cleanToken
+                            };
+                            
+                            setUser(userWithToken);
+                            setIsAuthenticated(true);
+                            await AsyncStorage.setItem('user', JSON.stringify(userWithToken));
+                            console.log(`✅ [${new Date().toISOString()}] User bilgisi güncellendi`); // Debug log
+                        } catch (userError) {
+                            console.error(`❌ [${new Date().toISOString()}] User info fetch failed:`, userError); // Debug log
+                            // Kullanıcı bilgisi alınamazsa oturumu sonlandır
+                            console.log(`❌ [${new Date().toISOString()}] User bilgisi alınamadı, logout yapılıyor...`); // Debug log
+                            setUser(null);
+                            setIsAuthenticated(false);
+                            await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+                            console.log(`✅ [${new Date().toISOString()}] User bilgisi alınamadı, logout tamamlandı`); // Debug log
+                            return;
+                        }
+                    }
+                })(),
+                timeoutPromise
+            ]);
+        } catch (error) {
+            console.error(`❌ [${new Date().toISOString()}] Auth status check failed:`, error); // Debug log
+            // Hata durumunda oturumu sonlandır
+            console.log(`❌ [${new Date().toISOString()}] Auth check hatası, logout yapılıyor...`); // Debug log
+            setUser(null);
+            setIsAuthenticated(false);
+            await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
+            console.log(`✅ [${new Date().toISOString()}] Auth check hatası, logout tamamlandı`); // Debug log
+        } finally {
+            const endTime = Date.now();
+            const duration = endTime - startTime;
+            console.log(`🔍 [${new Date().toISOString()}] Auth status check tamamlandı (${duration}ms)`); // Debug log
+            
+            // CRITICAL FIX: Auth check tamamlandıktan sonra loading state'i false yap
+            setIsLoading(false);
+            console.log(`✅ [${new Date().toISOString()}] Loading state false yapıldı`); // Debug log
+        }
+    }, [justLoggedIn]); // CRITICAL FIX: user ve isAuthenticated dependency'lerini kaldırdık - infinite loop'a neden oluyordu
+
+    // CRITICAL FIX: checkAuthStatus'u sadece mount olduğunda bir kez çağır
     useEffect(() => {
         console.log('AuthProvider mounted, checking initial auth status...'); // Debug log
         checkAuthStatus();
-    }, []);
+    }, []); // CRITICAL FIX: checkAuthStatus dependency'sini kaldırdık - sadece mount olduğunda bir kez çalışsın
 
-    // Inactivity tracking
+    // CRITICAL FIX: Inactivity tracking'i optimize et
     useEffect(() => {
         if (isAuthenticated && user) {
             // Timer'ı başlat
@@ -294,9 +409,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
             stopInactivityTimer();
         }
-    }, [isAuthenticated, user]);
+    }, [isAuthenticated, user, startInactivityTimer, stopInactivityTimer, updateActivity]);
 
-    // Login sonrası flag'i temizle ve navigation yap
+    // CRITICAL FIX: Login sonrası navigation'ı optimize et
     useEffect(() => {
         if (justLoggedIn && isAuthenticated && user) {
             console.log('Login successful, attempting navigation...'); // Debug log
@@ -428,17 +543,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.log('User settings fetched successfully:', userSettings);
                 
                 if (userSettings?.language) {
-                    await i18n.changeLanguage(userSettings.language);
-                    console.log('Language changed to:', userSettings.language);
+                    // CRITICAL FIX: Dil değiştirme işlemini optimize et
+                    const currentLang = i18n.language;
+                    if (currentLang !== userSettings.language) {
+                        await i18n.changeLanguage(userSettings.language);
+                        console.log('Language changed to:', userSettings.language);
+                    }
                 } else {
                     // Varsayılan dil olarak de-DE kullan (Avusturya Almancası)
-                    await i18n.changeLanguage('de-DE');
-                    console.log('Default language set: de-DE');
+                    const currentLang = i18n.language;
+                    if (currentLang !== 'de-DE') {
+                        await i18n.changeLanguage('de-DE');
+                        console.log('Default language set: de-DE');
+                    }
                 }
             } catch (err) {
                 console.warn('Kullanıcı ayarları backendden alınamadı, varsayılan dil kullanılıyor:', err);
                 // Varsayılan dil olarak de-DE kullan
-                await i18n.changeLanguage('de-DE');
+                const currentLang = i18n.language;
+                if (currentLang !== 'de-DE') {
+                    await i18n.changeLanguage('de-DE');
+                }
             }
 
             // State güncellemesinin tamamlanmasını bekle
@@ -458,7 +583,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         console.log('Logout function called'); // Debug log
         
         try {
@@ -499,132 +624,97 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             } catch {
                                 errorMessage = `Backend logout failed: ${logoutResponse.status} ${logoutResponse.statusText}`;
                             }
-                            console.warn('⚠️ Backend logout hatası:', errorMessage);
-                            
-                            // Kullanıcıya hata mesajını göster (toast ile)
-                            if (typeof window !== 'undefined' && window.dispatchEvent) {
-                                try {
-                                    // Web için toast göster
-                                    const event = new CustomEvent('show-toast', {
-                                        detail: { type: 'warning', message: errorMessage, duration: 5000 }
-                                    });
-                                    window.dispatchEvent(event);
-                                    console.log('✅ Web platform: Warning toast dispatched');
-                                } catch (error) {
-                                    console.warn('⚠️ Failed to dispatch warning toast:', error);
-                                }
-                            }
+                            console.warn('⚠️ Backend logout warning:', errorMessage);
                         }
-                    } catch (logoutError) {
-                        console.warn('Backend logout API hatası:', logoutError);
-                        // Kullanıcıya hata mesajını göster
-                        if (typeof window !== 'undefined' && window.dispatchEvent) {
-                            try {
-                                const event = new CustomEvent('show-toast', {
-                                    detail: { type: 'warning', message: 'Backend logout failed, but local cleanup completed', duration: 5000 }
-                                });
-                                window.dispatchEvent(event);
-                                console.log('✅ Web platform: Backend logout warning toast dispatched');
-                            } catch (error) {
-                                console.warn('⚠️ Failed to dispatch backend logout warning toast:', error);
-                            }
-                        }
+                    } catch (backendError) {
+                        console.warn('⚠️ Backend logout API hatası (non-critical):', backendError);
                     }
-                    
                 } catch (apiError) {
-                    console.error('Logout API error:', apiError); // Debug log
-                    // API hatası olsa bile devam et
-                }
-            }
-        } catch (error) {
-            console.error('Logout error:', error); // Debug log
-            // Kullanıcıya hata mesajını göster
-            if (typeof window !== 'undefined' && window.dispatchEvent) {
-                try {
-                    const event = new CustomEvent('show-toast', {
-                        detail: { type: 'error', message: 'Logout error occurred, but cleanup will continue', duration: 5000 }
-                    });
-                    window.dispatchEvent(event);
-                    console.log('✅ Web platform: Logout error toast dispatched');
-                } catch (error) {
-                    console.warn('⚠️ Failed to dispatch logout error toast:', error);
-                }
-            }
-        } finally {
-            // AsyncStorage'ı kesinlikle temizle
-            try {
-                await AsyncStorage.multiRemove(['token', 'user', 'refreshToken']);
-                console.log('AsyncStorage cleared successfully'); // Debug log
-                
-                // Temizleme işlemini doğrula
-                const remainingToken = await AsyncStorage.getItem('token');
-                const remainingUser = await AsyncStorage.getItem('user');
-                const remainingRefreshToken = await AsyncStorage.getItem('refreshToken');
-                console.log('Verification - Remaining token:', !!remainingToken, 'Remaining user:', !!remainingUser, 'Remaining refreshToken:', !!remainingRefreshToken);
-                
-            } catch (storageError) {
-                console.error('AsyncStorage clear error:', storageError); // Debug log
-                // Hata durumunda tek tek silmeyi dene
-                try {
-                    await AsyncStorage.removeItem('token');
-                    await AsyncStorage.removeItem('user');
-                    await AsyncStorage.removeItem('refreshToken');
-                    console.log('Individual AsyncStorage clear successful'); // Debug log
-                } catch (individualError) {
-                    console.error('Individual AsyncStorage clear failed:', individualError);
+                    console.warn('⚠️ Auth service logout hatası (non-critical):', apiError);
                 }
             }
             
-            // State'leri kesinlikle temizle
+            // 🧹 LOCAL STATE VE STORAGE TEMİZLİĞİ
+            console.log('🧹 Local state ve storage temizleniyor...');
+            
+            // State'leri temizle
             setUser(null);
             setIsAuthenticated(false);
             setJustLoggedIn(false);
-            setIsLoading(false);
             
-            console.log('Auth state cleared successfully'); // Debug log
+            // AsyncStorage'dan tüm auth verilerini temizle
+            await AsyncStorage.multiRemove([
+                'token',
+                'refreshToken',
+                'user',
+                'tokenExpiry'
+            ]);
             
-            // LOGOUT EVENT YAYINLA - Cache temizleme için - Platform-aware
+            // Local storage'dan auth verilerini temizle (web için)
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const authKeys = Object.keys(localStorage).filter(key => 
+                    key.includes('token') || key.includes('user') || key.includes('auth')
+                );
+                authKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                    console.log(`🗑️ LocalStorage auth key removed: ${key}`);
+                });
+            }
+            
+            console.log('✅ Local state ve storage temizlendi');
+            
+            // 🧹 CART CACHE TEMİZLİĞİ - Event ile
             if (typeof window !== 'undefined' && window.dispatchEvent) {
                 try {
-                    window.dispatchEvent(new CustomEvent(CART_CLEAR_EVENT));
-                    console.log('✅ Web platform: Logout cache clear event dispatched');
+                    const clearCartEvent = new CustomEvent(CART_CLEAR_EVENT);
+                    window.dispatchEvent(clearCartEvent);
+                    console.log('✅ Web platform: Cart clear event dispatched during logout');
                 } catch (error) {
-                    console.warn('⚠️ Failed to dispatch logout cache clear event:', error);
+                    console.warn('⚠️ Failed to dispatch cart clear event during logout:', error);
                 }
-            } else {
-                console.log('📱 Mobile platform: Direct logout cache clear called');
-                // Mobile platformda direkt clearCartCache çağır
-                clearCartCache();
             }
             
-            // Navigation'ı yap
-            try {
-                console.log('Attempting navigation to login...'); // Debug log
-                router.replace('/(auth)/login');
-                console.log('Navigation to login successful'); // Debug log
-            } catch (navigationError) {
-                console.error('Navigation error during logout:', navigationError);
-                // Alternatif navigation yöntemi
-                setTimeout(() => {
-                    try {
-                        console.log('Retrying navigation with push...'); // Debug log
-                        router.push('/(auth)/login');
-                    } catch (retryError) {
-                        console.error('Retry navigation failed:', retryError);
-                        // Son çare: window.location (web için) - Platform-aware
-                        if (typeof window !== 'undefined' && window.location) {
-                            try {
-                                window.location.href = '/(auth)/login';
-                                console.log('✅ Web platform: Navigation via window.location');
-                            } catch (error) {
-                                console.warn('⚠️ Failed to navigate via window.location:', error);
-                            }
-                        }
+            // 🧹 INACTIVITY TIMER TEMİZLİĞİ
+            stopInactivityTimer();
+            
+            console.log('✅ Logout completed successfully');
+            
+            // Login sayfasına yönlendir
+            if (router && typeof router.push === 'function') {
+                try {
+                    await router.push("/(auth)/login");
+                    console.log('✅ Navigation to login page successful');
+                } catch (navigationError) {
+                    console.error('❌ Navigation to login page failed:', navigationError);
+                    // Fallback: window.location kullan (web için)
+                    if (typeof window !== 'undefined') {
+                        window.location.href = '/(auth)/login';
                     }
-                }, 100);
+                }
+            } else {
+                console.warn('⚠️ Router not available for logout navigation');
+                // Fallback: window.location kullan (web için)
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/(auth)/login';
+                }
+            }
+        } catch (error) {
+            console.error('❌ Logout error:', error);
+            // Hata durumunda bile state'i temizle
+            setUser(null);
+            setIsAuthenticated(false);
+            setJustLoggedIn(false);
+            
+            // Login sayfasına yönlendir
+            if (router && typeof router.push === 'function') {
+                try {
+                    await router.push("/(auth)/login");
+                } catch (navigationError) {
+                    console.error('Navigation failed after logout error:', navigationError);
+                }
             }
         }
-    };
+    }, [clearCartCache, stopInactivityTimer, router]); // CRITICAL FIX: Dependency array'i optimize ettik
 
     return (
         <AuthContext.Provider value={{

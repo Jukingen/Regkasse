@@ -101,10 +101,13 @@ export const useCart = () => {
     }
   }, [clearAllCarts]);
 
-  // 🧹 Token expire kontrolü ve sepet temizleme
+  // 🧹 TOKEN EXPIRE KONTROLÜ: 5 dakikada bir
   useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
     const checkTokenAndCleanup = async () => {
-      if (!isAuthenticated || !user) {
+      if (!user?.token) {
+        console.log('⚠️ No token found, clearing all carts...');
         clearAllCarts();
         return;
       }
@@ -118,8 +121,8 @@ export const useCart = () => {
 
     checkTokenAndCleanup();
     
-    // Her 5 dakikada bir token kontrolü yap
-    const interval = setInterval(checkTokenAndCleanup, 5 * 60 * 1000);
+    // OPTIMIZATION: Her 5 dakika yerine 15 dakikada bir token kontrolü yap
+    const interval = setInterval(checkTokenAndCleanup, 15 * 60 * 1000); // 15 dakika
     
     return () => clearInterval(interval);
   }, [isAuthenticated, user, isTokenExpired, clearAllCarts]);
@@ -165,8 +168,8 @@ export const useCart = () => {
       });
     };
 
-    // Her dakika kontrol et
-    const interval = setInterval(checkCartExpiration, 60 * 1000);
+    // OPTIMIZATION: Her dakika yerine 5 dakikada bir kontrol et
+    const interval = setInterval(checkCartExpiration, 5 * 60 * 1000); // 5 dakika
     
     // İlk kontrolü hemen yap
     checkCartExpiration();

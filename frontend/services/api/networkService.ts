@@ -97,7 +97,7 @@ class NetworkService {
   }
 
   // Periyodik network durumu kontrolü
-  async startPeriodicCheck(callback: (status: NetworkStatus) => void, intervalMs: number = 30000): Promise<number> {
+  async startPeriodicCheck(callback: (status: NetworkStatus) => void, intervalMs: number = 2 * 60 * 1000): Promise<number> {
     const checkStatus = async () => {
       try {
         const status = await this.getNetworkStatus();

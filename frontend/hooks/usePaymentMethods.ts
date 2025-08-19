@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../config'; // Config'den API URL'ini al
 
 // English Description: Hook for fetching and managing payment methods from backend. Also checks TSE status.
+// OPTIMIZATION: Sürekli API çağrısı yerine sadece gerekli durumlarda fetch yapar
 
 export interface PaymentMethodInfo {
   method: 'cash' | 'card' | 'voucher';
@@ -33,6 +34,7 @@ export function usePaymentMethods(user: any) {
   const [tseStatus, setTseStatus] = useState<TseStatusInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false); // Yeni: Initialization flag
 
   // Fetch payment methods from backend
   const fetchPaymentMethods = useCallback(async () => {
@@ -41,6 +43,12 @@ export function usePaymentMethods(user: any) {
       console.error('❌ No user or token available');
       setError('User not authenticated. Please login first.');
       setPaymentMethods([]);
+      return;
+    }
+
+    // OPTIMIZATION: Eğer zaten fetch edildiyse ve data varsa, tekrar fetch yapma
+    if (isInitialized && paymentMethods.length > 0) {
+      console.log('🔄 Payment methods already fetched, returning cached data');
       return;
     }
 
@@ -71,6 +79,7 @@ export function usePaymentMethods(user: any) {
       if (data.success) {
         setPaymentMethods(data.methods);
         setTseStatus(data.tseStatus);
+        setIsInitialized(true); // Yeni: Fetch tamamlandı olarak işaretle
         console.log('✅ Payment methods fetched successfully:', {
           methodsCount: data.methods.length,
           tseConnected: data.tseStatus.isConnected
@@ -96,21 +105,23 @@ export function usePaymentMethods(user: any) {
           maxAmount: 1000.00
         }
       ]);
+      setIsInitialized(true); // Hata durumunda da initialized olarak işaretle
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isInitialized, paymentMethods.length]);
 
-  // Reload payment methods when user changes
+  // OPTIMIZATION: Sadece user değiştiğinde ve henüz initialize edilmemişse fetch yap
   useEffect(() => {
-    if (user) {
+    if (user && !isInitialized) {
       fetchPaymentMethods();
-    } else {
+    } else if (!user) {
       setPaymentMethods([]);
       setTseStatus(null);
       setError(null);
+      setIsInitialized(false); // Reset initialization flag
     }
-  }, [user, fetchPaymentMethods]);
+  }, [user]); // fetchPaymentMethods dependency'sini kaldırdık
 
   // Get specific payment method
   const getPaymentMethod = useCallback((method: string): PaymentMethodInfo | undefined => {
@@ -141,8 +152,10 @@ export function usePaymentMethods(user: any) {
     setError(null);
   }, []);
 
-  // Refresh payment methods
+  // OPTIMIZATION: Manuel refresh için - sadece gerektiğinde kullanılır
   const refreshPaymentMethods = useCallback(() => {
+    console.log('🔄 Manual refresh of payment methods...');
+    setIsInitialized(false); // Reset initialization flag to force fresh fetch
     fetchPaymentMethods();
   }, [fetchPaymentMethods]);
 
@@ -151,6 +164,7 @@ export function usePaymentMethods(user: any) {
     tseStatus,
     loading,
     error,
+    isInitialized, // Yeni: Initialization status
     getPaymentMethod,
     getActivePaymentMethods,
     getTseRequiredMethods,

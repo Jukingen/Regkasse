@@ -1,5 +1,5 @@
 // Türkçe Açıklama: Ayarlar ekranına büyük ve kolay erişilebilen bir Logout (Çıkış Yap) butonu eklendi.
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import LanguageSelector from '../../components/LanguageSelector';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,24 +9,33 @@ export default function SettingsScreen() {
   const { t } = useTranslation();
   const { logout } = useAuth();
 
+  // CRITICAL FIX: Translation değerlerini useMemo ile cache'le
+  const translations = useMemo(() => ({
+    settings: t('settings'),
+    otherSettings: t('settings.other_settings', 'Diğer Ayarlar'),
+    comingSoon: t('settings.coming_soon', 'Çok yakında'),
+    logout: t('logout', 'Çıkış Yap')
+  }), [t]);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t('settings')}</Text>
+        <Text style={styles.title}>{translations.settings}</Text>
       </View>
+      
       <View style={styles.section}>
         <LanguageSelector />
       </View>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('settings.other_settings', 'Diğer Ayarlar')}</Text>
+        <Text style={styles.sectionTitle}>{translations.otherSettings}</Text>
         <Text style={styles.description}>
-          {t('settings.coming_soon', 'Çok yakında')}
+          {translations.comingSoon}
         </Text>
       </View>
       {/* Çıkış Yap Butonu */}
       <View style={styles.section}>
         <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-          <Text style={styles.logoutButtonText}>{t('logout', 'Çıkış Yap')}</Text>
+          <Text style={styles.logoutButtonText}>{translations.logout}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

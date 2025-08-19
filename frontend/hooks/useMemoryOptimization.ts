@@ -44,7 +44,7 @@ export const useMemoryMonitor = () => {
             console.warn(`Memory usage high: ${usedMB}MB / ${totalMB}MB`);
           }
         }
-      }, 10000); // 10 saniyede bir kontrol
+      }, 60 * 1000); // OPTIMIZATION: 10 saniye yerine 1 dakikada bir kontrol
 
       return () => clearInterval(interval);
     }

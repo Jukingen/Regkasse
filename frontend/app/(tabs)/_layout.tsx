@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, Redirect } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,30 +15,47 @@ export default function TabLayout() {
         error: recoveryError, 
         isRecoveryCompleted,
         hasActiveOrders,
-        totalActiveTables
+        totalActiveTables,
+        isInitialized: recoveryInitialized // Yeni: Initialization status
     } = useTableOrdersRecovery();
 
     // Debug logları
     console.log('TabLayout render:', { isAuthenticated, isLoading, user: user?.email, role: user?.role });
     console.log('TabLayout: Full user object:', user);
-    console.log('TableOrders Recovery:', { recoveryLoading, recoveryError, isRecoveryCompleted, hasActiveOrders, totalActiveTables });
+    console.log('TableOrders Recovery:', { recoveryLoading, recoveryError, isRecoveryCompleted, hasActiveOrders, totalActiveTables, recoveryInitialized });
 
-    // Periyodik olarak oturum durumunu kontrol et
+    // OPTIMIZATION: Auth status kontrolünü daha az sıklıkta yap
+    // CRITICAL FIX: checkAuthStatus dependency'sini kaldırdık - sürekli re-render'a neden oluyordu
     useEffect(() => {
-        // İlk yüklemede hemen kontrol etme, biraz bekle
-        const initialCheck = setTimeout(() => {
-            checkAuthStatus();
-        }, 1000); // 1 saniye bekle
-
+        // Sadece authenticated user varsa auth check yap
+        if (!user || !isAuthenticated) {
+            console.log('🚫 TabLayout: User veya authentication yok, auth check atlanıyor...'); // Debug log
+            return;
+        }
+        
+        // İlk yüklemede hemen kontrol et
+        console.log('🔄 TabLayout: İlk auth check başlatılıyor...'); // Debug log
+        checkAuthStatus();
+        
+        // OPTIMIZATION: Her dakika yerine 5 dakikada bir kontrol et
         const interval = setInterval(() => {
+            console.log('⏰ TabLayout: Periyodik auth check başlatılıyor...'); // Debug log
             checkAuthStatus();
-        }, 60000); // Her dakika kontrol et
-
+        }, 5 * 60 * 1000); // 5 dakika
+        
         return () => {
-            clearTimeout(initialCheck);
+            console.log('🧹 TabLayout: Auth check interval temizleniyor...'); // Debug log
             clearInterval(interval);
         };
-    }, [checkAuthStatus]);
+    }, [user]); // CRITICAL FIX: isAuthenticated dependency'sini kaldırdık - infinite loop'a neden oluyordu
+
+    // OPTIMIZATION: Recovery data sadece user değiştiğinde ve henüz initialize edilmemişse yüklensin
+    useEffect(() => {
+        if (user && !recoveryInitialized) {
+            console.log('🔄 User changed, recovery data will be loaded automatically');
+            // Recovery data otomatik olarak useTableOrdersRecovery hook'unda yüklenecek
+        }
+    }, [user, recoveryInitialized]);
 
     if (isLoading) {
         console.log('TabLayout: Loading state, showing spinner');
