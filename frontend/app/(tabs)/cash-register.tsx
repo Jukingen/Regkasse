@@ -235,7 +235,6 @@ export default function CashRegisterScreen() {
   // Handle category selection
   const handleCategoryChange = (category: typeof selectedCategory) => {
     setSelectedCategory(category);
-    addToast('info', `Filtering by: ${category === 'all' ? 'All Categories' : category}`, 2000);
   };
 
   // Filter products by selected category

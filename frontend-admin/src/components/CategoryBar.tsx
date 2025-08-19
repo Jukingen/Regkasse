@@ -1,9 +1,11 @@
 import React from 'react';
 import { Box, Chip, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { useProduct } from '../contexts/ProductContext';
 
 const CategoryBar: React.FC = () => {
   const { categories, selectedCategory, setSelectedCategory } = useProduct();
+  const { t } = useTranslation();
 
   // Kategori renkleri
   const getCategoryColor = (categoryName: string) => {
@@ -22,11 +24,11 @@ const CategoryBar: React.FC = () => {
   return (
     <Box sx={{ mb: 2 }}>
       <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
-        Kategoriler
+        {t('categories.title', 'Kategoriler')}
       </Typography>
       <Box sx={{ 
         display: 'flex', 
-        gap: 1, 
+        gap: 1,
         overflowX: 'auto', 
         pb: 1,
         '&::-webkit-scrollbar': {
@@ -44,7 +46,7 @@ const CategoryBar: React.FC = () => {
         {categories.map(cat => (
           <Chip
             key={cat.id}
-            label={cat.name}
+            label={cat.id === 'all' ? t('categories.all') : cat.id === 'favorites' ? t('categories.favorites') : t(`categories.${cat.name}`)}
             color={selectedCategory === cat.id ? 'primary' : 'default'}
             onClick={() => setSelectedCategory(cat.id)}
             sx={{ 

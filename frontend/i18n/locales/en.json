@@ -15,7 +15,96 @@
     "close": "Close",
     "yes": "Yes",
     "no": "No",
-    "step": "Step"
+    "step": "Step",
+    "ok": "OK"
+  },
+  "loading": {
+    "roleLoading": "Loading role..."
+  },
+  "navigation": {
+    "sales": "Sales",
+    "products": "Products",
+    "cart": "Cart",
+    "customers": "Customers",
+    "barcode": "Barcode Scanner",
+    "tables": "Tables",
+    "users": "User Management",
+    "roles": "Role Management",
+    "system": "System Settings",
+    "demo": "Demo Users",
+    "hardware": "Hardware Management",
+    "inventory": "Inventory Management",
+    "finanzonline": "FinanzOnline",
+    "backup": "Backup",
+    "reports": "Reports",
+    "audit": "Audit Logs",
+    "staff": "Staff Management",
+    "schedule": "Schedule",
+    "menu": "Menu",
+    "accessibleScreens": "Accessible Screens",
+    "demoUserInfo": "Demo User: Only test functions available"
+  },
+  "categories": {
+    "title": "Categories",
+    "all": "All",
+    "favorites": "⭐ Favorites",
+    "hauptgerichte": "Main Dishes",
+    "vorspeisen": "Appetizers",
+    "suppen": "Soups",
+    "salate": "Salads",
+    "desserts": "Desserts",
+    "getraenke": "Beverages",
+    "alkoholischeGetraenke": "Alcoholic Beverages",
+    "kaffeeTee": "Coffee & Tea",
+    "suessigkeiten": "Sweets",
+    "spezialitaeten": "Specialties",
+    "snacks": "Snacks",
+    "brotGebaeck": "Bread & Pastries",
+    "Hauptgerichte": "Main Dishes",
+    "Getränke": "Beverages",
+    "Desserts": "Desserts",
+    "Alkoholische Getränke": "Alcoholic Beverages",
+    "Snacks": "Snacks",
+    "Suppen": "Soups",
+    "Vorspeisen": "Appetizers",
+    "Salate": "Salads",
+    "Kaffee & Tee": "Coffee & Tea",
+    "Süßigkeiten": "Sweets",
+    "Spezialitäten": "Specialties",
+    "Brot & Gebäck": "Bread & Pastries"
+  },
+  "categoryDescriptions": {
+    "hauptgerichte": "Main dishes and meat dishes",
+    "vorspeisen": "Appetizers and meze",
+    "suppen": "Soups and hot beverages",
+    "salate": "Fresh salads and greens",
+    "desserts": "Desserts and sweets",
+    "getraenke": "Non-alcoholic beverages",
+    "alkoholischeGetraenke": "Beer, wine and other alcoholic beverages",
+    "kaffeeTee": "Coffee and tea varieties",
+    "suessigkeiten": "Chocolate and sweets",
+    "spezialitaeten": "Special and traditional products",
+    "snacks": "Snacks and light foods",
+    "brotGebaeck": "Bread and pastry products"
+  },
+  "search": {
+    "placeholder": "Search products...",
+    "recentSearches": "Recent Searches",
+    "noResults": "No results found",
+    "startTyping": "Start typing...",
+    "filters": "Filters",
+    "categories": "Categories",
+    "stock": "Stock",
+    "clearFilters": "Clear Filters",
+    "applyFilters": "Apply Filters"
+  },
+  "product": {
+    "stock": "Stock"
+  },
+  "tax": {
+    "standard": "Standard",
+    "reduced": "Reduced",
+    "special": "Special"
   },
   "auth": {
     "login": "Login",
@@ -159,7 +248,9 @@
     "serverError": "Server error",
     "sessionExpired": "Session expired",
     "validationError": "Validation error",
-    "permissionDenied": "Permission denied"
+    "permissionDenied": "Permission denied",
+    "unauthorized": "Unauthorized Access",
+    "noAccess": "You don't have access to this screen"
   },
   "tables": {
     "title": "Tables",

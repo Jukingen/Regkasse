@@ -236,7 +236,7 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
                         styles.filterOptionText,
                         filters.category === category && styles.filterOptionTextActive
                       ]}>
-                        {t(`category.${category}`)}
+                        {t(`categories.${category}`)}
                       </Text>
                     </TouchableOpacity>
                   ))}

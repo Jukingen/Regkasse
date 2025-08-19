@@ -18,151 +18,151 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
   // Kasiyer menüleri
   {
     id: 'sales',
-    title: 'Satış',
+    title: 'navigation.sales',
     icon: 'point-of-sale',
     screen: 'SalesScreen',
     roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
-    description: 'Ürün satışı ve ödeme alma'
+    description: 'navigation.sales'
   },
   {
     id: 'products',
-    title: 'Ürünler',
+    title: 'navigation.products',
     icon: 'inventory',
     screen: 'ProductListScreen',
     roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
-    description: 'Ürün listesi ve arama'
+    description: 'navigation.products'
   },
   {
     id: 'cart',
-    title: 'Sepet',
+    title: 'navigation.cart',
     icon: 'shopping-cart',
     screen: 'CartScreen',
     roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
-    description: 'Sepet yönetimi'
+    description: 'navigation.cart'
   },
   {
     id: 'customers',
-    title: 'Müşteriler',
+    title: 'navigation.customers',
     icon: 'people',
     screen: 'CustomerScreen',
     roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
-    description: 'Müşteri bilgileri'
+    description: 'navigation.customers'
   },
   {
     id: 'barcode',
-    title: 'Barkod Tarama',
+    title: 'navigation.barcode',
     icon: 'qr-code-scanner',
     screen: 'BarcodeScannerScreen',
     roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
-    description: 'Barkod/QR kod okuma'
+    description: 'navigation.barcode'
   },
   {
     id: 'tables',
-    title: 'Masalar',
+    title: 'navigation.tables',
     icon: 'table-restaurant',
     screen: 'TableSelectionScreen',
     roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
-    description: 'Masa seçimi ve yönetimi'
+    description: 'navigation.tables'
   },
 
   // Admin menüleri
   {
     id: 'users',
-    title: 'Kullanıcı Yönetimi',
+    title: 'navigation.users',
     icon: 'admin-panel-settings',
     screen: 'UserManagementScreen',
     roles: [UserRole.Admin],
-    description: 'Kullanıcı hesapları yönetimi'
+    description: 'navigation.users'
   },
   {
     id: 'roles',
-    title: 'Rol Yönetimi',
+    title: 'navigation.roles',
     icon: 'security',
     screen: 'RoleManagementScreen',
     roles: [UserRole.Admin],
-    description: 'Kullanıcı rolleri ve yetkileri'
+    description: 'navigation.roles'
   },
   {
     id: 'system',
-    title: 'Sistem Ayarları',
+    title: 'navigation.system',
     icon: 'settings',
     screen: 'SystemSettingsScreen',
     roles: [UserRole.Admin],
-    description: 'Sistem konfigürasyonu'
+    description: 'navigation.system'
   },
   {
     id: 'demo',
-    title: 'Demo Kullanıcılar',
+    title: 'navigation.demo',
     icon: 'person-add',
     screen: 'DemoUserManagementScreen',
     roles: [UserRole.Admin],
-    description: 'Demo kullanıcı yönetimi'
+    description: 'navigation.demo'
   },
   {
     id: 'hardware',
-    title: 'Donanım Yönetimi',
+    title: 'navigation.hardware',
     icon: 'devices',
     screen: 'HardwareManagementScreen',
     roles: [UserRole.Admin],
-    description: 'Yazıcı ve TSE cihazları'
+    description: 'navigation.hardware'
   },
   {
     id: 'inventory',
-    title: 'Stok Yönetimi',
+    title: 'navigation.inventory',
     icon: 'inventory-2',
     screen: 'InventoryManagementScreen',
     roles: [UserRole.Admin],
-    description: 'Stok takibi ve güncelleme'
+    description: 'navigation.inventory'
   },
   {
     id: 'finanzonline',
-    title: 'FinanzOnline',
+    title: 'navigation.finanzonline',
     icon: 'account-balance',
     screen: 'FinanzOnlineScreen',
     roles: [UserRole.Admin],
-    description: 'FinanzOnline entegrasyonu'
+    description: 'navigation.finanzonline'
   },
   {
     id: 'backup',
-    title: 'Yedekleme',
+    title: 'navigation.backup',
     icon: 'backup',
     screen: 'BackupRestoreScreen',
     roles: [UserRole.Admin],
-    description: 'Veri yedekleme ve geri yükleme'
+    description: 'navigation.backup'
   },
 
   // Manager menüleri
   {
     id: 'reports',
-    title: 'Raporlar',
+    title: 'navigation.reports',
     icon: 'assessment',
     screen: 'ReportsScreen',
     roles: [UserRole.Admin, UserRole.Manager],
-    description: 'Satış ve performans raporları'
+    description: 'navigation.reports'
   },
   {
     id: 'audit',
-    title: 'Denetim Logları',
+    title: 'navigation.audit',
     icon: 'history',
     screen: 'AuditLogsScreen',
     roles: [UserRole.Admin, UserRole.Manager],
-    description: 'Sistem aktivite logları'
+    description: 'navigation.audit'
   },
   {
     id: 'staff',
-    title: 'Personel Yönetimi',
+    title: 'navigation.staff',
     icon: 'groups',
     screen: 'StaffManagementScreen',
     roles: [UserRole.Manager],
-    description: 'Personel bilgileri ve vardiya'
+    description: 'navigation.staff'
   },
   {
     id: 'schedule',
-    title: 'Vardiya Planı',
+    title: 'navigation.schedule',
     icon: 'schedule',
     screen: 'ScheduleScreen',
     roles: [UserRole.Manager],
-    description: 'Personel vardiya planlaması'
+    description: 'navigation.schedule'
   }
 ];
 
@@ -230,14 +230,14 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
               isActive && styles.activeNavItemTitle,
               !hasAccess && styles.disabledNavItemTitle
             ]}>
-              {item.title}
+              {t(item.title)}
             </Text>
             <Text style={[
               styles.navItemDescription,
               isActive && styles.activeNavItemDescription,
               !hasAccess && styles.disabledNavItemDescription
             ]}>
-              {item.description}
+              {t(item.description)}
             </Text>
           </View>
         </View>

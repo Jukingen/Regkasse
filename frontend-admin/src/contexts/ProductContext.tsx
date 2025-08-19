@@ -67,8 +67,8 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
         
         setProducts(productsWithFavorites);
         setCategories([
-          { id: 'all', name: 'Tümü' }, 
-          { id: 'favorites', name: '⭐ Favoriler' },
+          { id: 'all', name: 'all' }, 
+          { id: 'favorites', name: 'favorites' },
           ...catRes.data
         ]);
         

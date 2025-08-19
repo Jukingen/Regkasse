@@ -15,7 +15,96 @@
     "close": "Schließen",
     "yes": "Ja",
     "no": "Nein",
-    "step": "Schritt"
+    "step": "Schritt",
+    "ok": "OK"
+  },
+  "loading": {
+    "roleLoading": "Rolle wird geladen..."
+  },
+  "navigation": {
+    "sales": "Verkauf",
+    "products": "Produkte",
+    "cart": "Warenkorb",
+    "customers": "Kunden",
+    "barcode": "Barcode-Scanner",
+    "tables": "Tische",
+    "users": "Benutzerverwaltung",
+    "roles": "Rollenverwaltung",
+    "system": "Systemeinstellungen",
+    "demo": "Demo-Benutzer",
+    "hardware": "Hardware-Verwaltung",
+    "inventory": "Lagerverwaltung",
+    "finanzonline": "FinanzOnline",
+    "backup": "Backup",
+    "reports": "Berichte",
+    "audit": "Audit-Protokolle",
+    "staff": "Personalverwaltung",
+    "schedule": "Schichtplan",
+    "menu": "Menü",
+    "accessibleScreens": "Zugängliche Bildschirme",
+    "demoUserInfo": "Demo-Benutzer: Nur Testfunktionen verfügbar"
+  },
+  "categories": {
+    "title": "Kategorien",
+    "all": "Alle",
+    "favorites": "⭐ Favoriten",
+    "hauptgerichte": "Hauptgerichte",
+    "vorspeisen": "Vorspeisen",
+    "suppen": "Suppen",
+    "salate": "Salate",
+    "desserts": "Desserts",
+    "getraenke": "Getränke",
+    "alkoholischeGetraenke": "Alkoholische Getränke",
+    "kaffeeTee": "Kaffee & Tee",
+    "suessigkeiten": "Süßigkeiten",
+    "spezialitaeten": "Spezialitäten",
+    "snacks": "Snacks",
+    "brotGebaeck": "Brot & Gebäck",
+    "Hauptgerichte": "Hauptgerichte",
+    "Getränke": "Getränke",
+    "Desserts": "Desserts",
+    "Alkoholische Getränke": "Alkoholische Getränke",
+    "Snacks": "Snacks",
+    "Suppen": "Suppen",
+    "Vorspeisen": "Vorspeisen",
+    "Salate": "Salate",
+    "Kaffee & Tee": "Kaffee & Tee",
+    "Süßigkeiten": "Süßigkeiten",
+    "Spezialitäten": "Spezialitäten",
+    "Brot & Gebäck": "Brot & Gebäck"
+  },
+  "categoryDescriptions": {
+    "hauptgerichte": "Hauptgerichte und Fleischgerichte",
+    "vorspeisen": "Vorspeisen und Meze",
+    "suppen": "Suppen und heiße Getränke",
+    "salate": "Frische Salate und Grüns",
+    "desserts": "Süßigkeiten und Desserts",
+    "getraenke": "Alkoholfreie Getränke",
+    "alkoholischeGetraenke": "Bier, Wein und andere alkoholische Getränke",
+    "kaffeeTee": "Kaffee- und Teesorten",
+    "suessigkeiten": "Schokolade und Süßigkeiten",
+    "spezialitaeten": "Spezielle und traditionelle Produkte",
+    "snacks": "Snacks und leichte Speisen",
+    "brotGebaeck": "Brot und Gebäckprodukte"
+  },
+  "search": {
+    "placeholder": "Produkte suchen...",
+    "recentSearches": "Letzte Suchen",
+    "noResults": "Keine Ergebnisse gefunden",
+    "startTyping": "Beginnen Sie mit der Eingabe...",
+    "filters": "Filter",
+    "categories": "Kategorien",
+    "stock": "Lagerbestand",
+    "clearFilters": "Filter löschen",
+    "applyFilters": "Filter anwenden"
+  },
+  "product": {
+    "stock": "Lagerbestand"
+  },
+  "tax": {
+    "standard": "Standard",
+    "reduced": "Ermäßigt",
+    "special": "Spezial"
   },
   "auth": {
     "login": "Anmelden",
@@ -159,7 +248,9 @@
     "serverError": "Serverfehler",
     "sessionExpired": "Sitzung abgelaufen",
     "validationError": "Validierungsfehler",
-    "permissionDenied": "Zugriff verweigert"
+    "permissionDenied": "Zugriff verweigert",
+    "unauthorized": "Nicht autorisiert",
+    "noAccess": "Sie haben keinen Zugriff auf diesen Bildschirm"
   },
   "tables": {
     "title": "Tische",

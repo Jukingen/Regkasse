@@ -81,48 +81,48 @@ export async function searchProducts(query: string) {
 
 // Önceden tanımlanmış kategoriler (Avusturya restoran için)
 export const PREDEFINED_CATEGORIES = [
-  'Hauptgerichte',      // Ana yemekler
-  'Vorspeisen',         // Başlangıçlar
-  'Suppen',             // Çorbalar
-  'Salate',             // Salatalar
-  'Desserts',           // Tatlılar
-  'Getränke',           // İçecekler (alkolsüz)
-  'Alkoholische Getränke', // Alkol içeren içecekler
-  'Kaffee & Tee',       // Kahve ve çay
-  'Süßigkeiten',        // Şekerlemeler
-  'Spezialitäten',      // Özel ürünler
-  'Snacks',             // Atıştırmalıklar
-  'Brot & Gebäck'       // Ekmek ve hamur işleri
+  'hauptgerichte',      // Ana yemekler
+  'vorspeisen',         // Başlangıçlar
+  'suppen',             // Çorbalar
+  'salate',             // Salatalar
+  'desserts',           // Tatlılar
+  'getraenke',          // İçecekler (alkolsüz)
+  'alkoholischeGetraenke', // Alkol içeren içecekler
+  'kaffeeTee',          // Kahve ve çay
+  'suessigkeiten',      // Şekerlemeler
+  'spezialitaeten',     // Özel ürünler
+  'snacks',             // Atıştırmalıklar
+  'brotGebaeck'         // Ekmek ve hamur işleri
 ];
 
 // Kategori renkleri
 export const CATEGORY_COLORS: Record<string, string> = {
-  'Hauptgerichte': '#ff6b6b',
-  'Vorspeisen': '#4ecdc4',
-  'Suppen': '#45b7d1',
-  'Salate': '#96ceb4',
-  'Desserts': '#feca57',
-  'Getränke': '#ff9ff3',
-  'Alkoholische Getränke': '#54a0ff',
-  'Kaffee & Tee': '#5f27cd',
-  'Süßigkeiten': '#ff9f43',
-  'Spezialitäten': '#00d2d3',
-  'Snacks': '#ff6348',
-  'Brot & Gebäck': '#cd6133'
+  'hauptgerichte': '#ff6b6b',
+  'vorspeisen': '#4ecdc4',
+  'suppen': '#45b7d1',
+  'salate': '#96ceb4',
+  'desserts': '#feca57',
+  'getraenke': '#ff9ff3',
+  'alkoholischeGetraenke': '#54a0ff',
+  'kaffeeTee': '#5f27cd',
+  'suessigkeiten': '#ff9f43',
+  'spezialitaeten': '#00d2d3',
+  'snacks': '#ff6348',
+  'brotGebaeck': '#cd6133'
 };
 
-// Kategori açıklamaları
+// Kategori açıklamaları (i18n key'leri)
 export const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  'Hauptgerichte': 'Ana yemekler ve et yemekleri',
-  'Vorspeisen': 'Başlangıç yemekleri ve mezeler',
-  'Suppen': 'Çorbalar ve sıcak içecekler',
-  'Salate': 'Taze salatalar ve yeşillikler',
-  'Desserts': 'Tatlılar ve şekerlemeler',
-  'Getränke': 'Alkolsüz içecekler',
-  'Alkoholische Getränke': 'Bira, şarap ve diğer alkollü içecekler',
-  'Kaffee & Tee': 'Kahve ve çay çeşitleri',
-  'Süßigkeiten': 'Çikolata ve şekerlemeler',
-  'Spezialitäten': 'Özel ve geleneksel ürünler',
-  'Snacks': 'Atıştırmalık ve hafif yiyecekler',
-  'Brot & Gebäck': 'Ekmek ve hamur işi ürünleri'
+  'hauptgerichte': 'categoryDescriptions.hauptgerichte',
+  'vorspeisen': 'categoryDescriptions.vorspeisen',
+  'suppen': 'categoryDescriptions.suppen',
+  'salate': 'categoryDescriptions.salate',
+  'desserts': 'categoryDescriptions.desserts',
+  'getraenke': 'categoryDescriptions.getraenke',
+  'alkoholischeGetraenke': 'categoryDescriptions.alkoholischeGetraenke',
+  'kaffeeTee': 'categoryDescriptions.kaffeeTee',
+  'suessigkeiten': 'categoryDescriptions.suessigkeiten',
+  'spezialitaeten': 'categoryDescriptions.spezialitaeten',
+  'snacks': 'categoryDescriptions.snacks',
+  'brotGebaeck': 'categoryDescriptions.brotGebaeck'
 }; 
