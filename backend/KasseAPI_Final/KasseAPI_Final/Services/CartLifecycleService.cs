@@ -17,7 +17,7 @@ namespace KasseAPI_Final.Services
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<CartLifecycleService> _logger;
-        private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1); // 1 dakikada bir kontrol (15 dakika + gece 00:00 için)
+        private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1); // 1 dakikada bir kontrol (45 dakika + gece 00:00 için)
 
         public CartLifecycleService(
             IServiceProvider serviceProvider,
@@ -29,7 +29,7 @@ namespace KasseAPI_Final.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("🚀 CartLifecycleService başlatıldı - Akıllı sepet yönetimi aktif");
+            _logger.LogInformation("🚀 CartLifecycleService started - Smart cart management active");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -37,12 +37,12 @@ namespace KasseAPI_Final.Services
                 {
                     await CleanupExpiredCarts();
                     await CleanupOrphanedCarts();
-                    await CleanupCartsByTimeRules(); // 15 dakika + gece 00:00 kontrolü
+                    await CleanupCartsByTimeRules(); // 45 dakika + gece 00:00 kontrolü
                     await LogCartStatistics();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "❌ CartLifecycleService hatası");
+                    _logger.LogError(ex, "❌ CartLifecycleService error");
                 }
 
                 await Task.Delay(_checkInterval, stoppingToken);
@@ -69,7 +69,7 @@ namespace KasseAPI_Final.Services
 
                 if (expiredCarts.Any())
                 {
-                    _logger.LogInformation("🧹 {ExpiredCartsCount} süresi dolmuş sepet bulundu, temizleniyor...", 
+                    _logger.LogInformation("🧹 {ExpiredCartsCount} expired carts found, cleaning...", 
                         expiredCarts.Count);
                     
                     // Batch delete için ID'leri topla
@@ -83,7 +83,7 @@ namespace KasseAPI_Final.Services
                     if (cartItemsToDelete.Any())
                     {
                         context.CartItems.RemoveRange(cartItemsToDelete);
-                        _logger.LogInformation("🧹 {ItemsCount} sepet ürünü silindi", cartItemsToDelete.Count);
+                        _logger.LogInformation("🧹 {ItemsCount} cart items deleted", cartItemsToDelete.Count);
                     }
                     
                     // Sonra Cart'ları sil
@@ -96,7 +96,7 @@ namespace KasseAPI_Final.Services
                     // Değişiklikleri kaydet
                     var deletedCount = await context.SaveChangesAsync();
                     
-                    _logger.LogInformation("✅ {ExpiredCartsCount} süresi dolmuş sepet temizlendi, {DeletedCount} kayıt silindi", 
+                    _logger.LogInformation("✅ {ExpiredCartsCount} expired carts cleaned, {DeletedCount} records deleted", 
                         expiredCarts.Count, deletedCount);
                     
                     // Güvenlik log'u
@@ -107,10 +107,10 @@ namespace KasseAPI_Final.Services
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Süresi dolmuş sepet temizleme hatası");
-            }
+                            catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ Expired cart cleanup error");
+                }
         }
 
         /// <summary>
@@ -133,7 +133,7 @@ namespace KasseAPI_Final.Services
 
                 if (orphanedCarts.Any())
                 {
-                    _logger.LogWarning("⚠️ {OrphanedCartsCount} kullanıcısız sepet bulundu, güvenlik için temizleniyor...", 
+                    _logger.LogWarning("⚠️ {OrphanedCartsCount} orphaned carts found, cleaning for security...", 
                         orphanedCarts.Count);
                     
                     // Batch delete için ID'leri topla
@@ -147,7 +147,7 @@ namespace KasseAPI_Final.Services
                     if (cartItemsToDelete.Any())
                     {
                         context.CartItems.RemoveRange(cartItemsToDelete);
-                        _logger.LogInformation("🧹 {ItemsCount} kullanıcısız sepet ürünü silindi", cartItemsToDelete.Count);
+                        _logger.LogInformation("🧹 {ItemsCount} orphaned cart items deleted", cartItemsToDelete.Count);
                     }
                     
                     // Sonra Cart'ları sil
@@ -160,7 +160,7 @@ namespace KasseAPI_Final.Services
                     // Değişiklikleri kaydet
                     var deletedCount = await context.SaveChangesAsync();
                     
-                    _logger.LogInformation("✅ {OrphanedCartsCount} kullanıcısız sepet temizlendi, {DeletedCount} kayıt silindi", 
+                    _logger.LogInformation("✅ {OrphanedCartsCount} orphaned carts cleaned, {DeletedCount} records deleted", 
                         orphanedCarts.Count, deletedCount);
                     
                     // Güvenlik log'u
@@ -171,14 +171,14 @@ namespace KasseAPI_Final.Services
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Kullanıcısız sepet temizleme hatası");
-            }
+                            catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ Orphaned cart cleanup error");
+                }
         }
 
         /// <summary>
-        /// Zaman kurallarına göre sepet temizleme (15 dakika + gece 00:00)
+        /// Zaman kurallarına göre sepet temizleme (45 dakika + gece 00:00)
         /// </summary>
         private async Task CleanupCartsByTimeRules()
         {
@@ -194,7 +194,7 @@ namespace KasseAPI_Final.Services
                 // 🌙 Gece 00:00 kontrolü - Tüm aktif sepetleri temizle
                 if (currentHour == 0 && currentMinute == 0)
                 {
-                    _logger.LogInformation("🌙 Gece 00:00 - Tüm aktif sepetler otomatik sıfırlanıyor...");
+                    _logger.LogInformation("🌙 Midnight 00:00 - All active carts automatically resetting...");
                     
                     var allActiveCarts = await context.Carts
                         .Include(c => c.Items)
@@ -204,7 +204,7 @@ namespace KasseAPI_Final.Services
 
                     if (allActiveCarts.Any())
                     {
-                        _logger.LogInformation("🧹 {ActiveCartsCount} aktif sepet bulundu, gece 00:00 temizliği yapılıyor...", 
+                        _logger.LogInformation("🧹 {ActiveCartsCount} active carts found, performing midnight cleanup...", 
                             allActiveCarts.Count);
 
                         // Önce CartItems'ları sil
@@ -218,7 +218,7 @@ namespace KasseAPI_Final.Services
                         if (cartItemsToDelete.Any())
                         {
                             context.CartItems.RemoveRange(cartItemsToDelete);
-                            _logger.LogInformation("🧹 {ItemsCount} sepet ürünü silindi (gece 00:00)", cartItemsToDelete.Count);
+                            _logger.LogInformation("🧹 {ItemsCount} cart items deleted (midnight cleanup)", cartItemsToDelete.Count);
                         }
 
                         // Sonra Cart'ları sil
@@ -231,30 +231,30 @@ namespace KasseAPI_Final.Services
                         // Değişiklikleri kaydet
                         var deletedCount = await context.SaveChangesAsync();
                         
-                        _logger.LogInformation("✅ Gece 00:00 temizliği tamamlandı: {CartsCount} sepet, {ItemsCount} ürün silindi", 
+                        _logger.LogInformation("✅ Midnight cleanup completed: {CartsCount} carts, {ItemsCount} items deleted", 
                             cartsToDelete.Count, cartItemsToDelete.Count);
                     }
                     else
                     {
-                        _logger.LogInformation("ℹ️ Gece 00:00 - Temizlenecek aktif sepet bulunamadı");
+                        _logger.LogInformation("ℹ️ Midnight 00:00 - No active carts found to clean");
                     }
                     
                     return; // Gece 00:00 işlemi yapıldıysa diğer kontrolleri atla
                 }
 
-                // ⏰ 15 dakika kontrolü - Her sepet için oluşturulma zamanından 15 dakika geçtiyse temizle
-                var fifteenMinutesAgo = now.AddMinutes(-15);
+                // ⏰ 45 dakika kontrolü - Her sepet için oluşturulma zamanından 45 dakika geçtiyse temizle
+                var fortyFiveMinutesAgo = now.AddMinutes(-45);
                 
                 var expiredByTimeRule = await context.Carts
                     .Include(c => c.Items)
                     .Where(c => c.Status == CartStatus.Active && 
-                               c.CreatedAt < fifteenMinutesAgo)
+                               c.CreatedAt < fortyFiveMinutesAgo)
                     .Select(c => new { c.CartId, c.UserId, c.TableNumber, c.Items.Count, c.CreatedAt })
                     .ToListAsync();
 
                 if (expiredByTimeRule.Any())
                 {
-                    _logger.LogInformation("⏰ {ExpiredCartsCount} sepet 15 dakika kuralına göre süresi doldu, temizleniyor...", 
+                    _logger.LogInformation("⏰ {ExpiredCartsCount} carts expired by 45-minute rule, cleaning...", 
                         expiredByTimeRule.Count);
 
                     // Batch delete için ID'leri topla
@@ -268,7 +268,7 @@ namespace KasseAPI_Final.Services
                     if (cartItemsToDelete.Any())
                     {
                         context.CartItems.RemoveRange(cartItemsToDelete);
-                        _logger.LogInformation("🧹 {ItemsCount} sepet ürünü silindi (15 dakika kuralı)", cartItemsToDelete.Count);
+                        _logger.LogInformation("🧹 {ItemsCount} cart items deleted (45-minute rule)", cartItemsToDelete.Count);
                     }
 
                     // Sonra Cart'ları sil
@@ -281,7 +281,7 @@ namespace KasseAPI_Final.Services
                     // Değişiklikleri kaydet
                     var deletedCount = await context.SaveChangesAsync();
 
-                    _logger.LogInformation("✅ 15 dakika kuralı temizliği tamamlandı: {CartsCount} sepet, {ItemsCount} ürün silindi", 
+                    _logger.LogInformation("✅ 45-minute rule cleanup completed: {CartsCount} carts, {ItemsCount} items deleted", 
                         cartsToDelete.Count, cartItemsToDelete.Count);
 
                     // Detaylı log
@@ -289,15 +289,15 @@ namespace KasseAPI_Final.Services
                     {
                         var timeDiff = now - cart.CreatedAt;
                         var minutesDiff = (int)timeDiff.TotalMinutes;
-                        _logger.LogInformation("⏰ Masa {TableNumber} sepeti {MinutesDiff} dakika geçti, sıfırlandı (UserId: {UserId})", 
+                        _logger.LogInformation("⏰ Table {TableNumber} cart expired after {MinutesDiff} minutes, reset (UserId: {UserId})", 
                             cart.TableNumber, minutesDiff, cart.UserId);
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ CleanupCartsByTimeRules hatası");
-            }
+                            catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ CleanupCartsByTimeRules error");
+                }
         }
 
         /// <summary>
@@ -322,16 +322,16 @@ namespace KasseAPI_Final.Services
                     .Distinct()
                     .CountAsync();
 
-                _logger.LogInformation("📊 Sepet İstatistikleri - Aktif: {Active}, Tamamlanan: {Completed}, Toplam Ürün: {TotalItems}, Aktif Kullanıcı: {ActiveUsers}", 
+                _logger.LogInformation("📊 Cart Statistics - Active: {Active}, Completed: {Completed}, Total Items: {TotalItems}, Active Users: {ActiveUsers}", 
                     stats.FirstOrDefault(s => s.Status == CartStatus.Active)?.Count ?? 0,
                     stats.FirstOrDefault(s => s.Status == CartStatus.Completed)?.Count ?? 0,
                     totalItems,
                     activeUsers);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Sepet istatistikleri loglama hatası");
-            }
+                            catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ Cart statistics logging error");
+                }
         }
 
         /// <summary>
@@ -344,7 +344,7 @@ namespace KasseAPI_Final.Services
 
             try
             {
-                _logger.LogInformation("🧹 Kullanıcı {UserId} için sepet temizleme başlatıldı", userId);
+                _logger.LogInformation("🧹 Cart cleanup started for user {UserId}", userId);
                 
                 // Transaction kullanarak güvenli silme işlemi
                 using var transaction = await context.Database.BeginTransactionAsync();
@@ -361,8 +361,8 @@ namespace KasseAPI_Final.Services
 
                     if (userCarts.Any())
                     {
-                        _logger.LogInformation("🧹 Kullanıcı {UserId} için {CartsCount} aktif sepet bulundu, temizleniyor...", 
-                            userId, userCarts.Count);
+                        _logger.LogInformation("🧹 {CartsCount} active carts found for user {UserId}, cleaning...", 
+                            userCarts.Count, userId);
                         
                         // Batch delete için ID'leri topla
                         var cartIds = userCarts.Select(c => c.CartId).ToList();
@@ -375,8 +375,8 @@ namespace KasseAPI_Final.Services
                         if (cartItemsToDelete.Any())
                         {
                             context.CartItems.RemoveRange(cartItemsToDelete);
-                            _logger.LogInformation("🧹 Kullanıcı {UserId} için {ItemsCount} sepet ürünü silindi", 
-                                userId, cartItemsToDelete.Count);
+                                                    _logger.LogInformation("🧹 {ItemsCount} cart items deleted for user {UserId}", 
+                            cartItemsToDelete.Count, userId);
                         }
                         
                         // Sonra Cart'ları sil
@@ -392,8 +392,8 @@ namespace KasseAPI_Final.Services
                         // Transaction'ı commit et
                         await transaction.CommitAsync();
                         
-                        _logger.LogInformation("✅ Kullanıcı {UserId} için {CartsCount} sepet temizlendi, {DeletedCount} kayıt silindi", 
-                            userId, userCarts.Count, deletedCount);
+                        _logger.LogInformation("✅ {CartsCount} carts cleaned for user {UserId}, {DeletedCount} records deleted", 
+                            userCarts.Count, userId, deletedCount);
                         
                         // Güvenlik log'u
                         foreach (var cart in userCarts)
@@ -404,7 +404,7 @@ namespace KasseAPI_Final.Services
                     }
                     else
                     {
-                        _logger.LogInformation("ℹ️ Kullanıcı {UserId} için aktif sepet bulunamadı", userId);
+                        _logger.LogInformation("ℹ️ No active carts found for user {UserId}", userId);
                         // Transaction'ı commit et (hiçbir değişiklik yok)
                         await transaction.CommitAsync();
                     }
@@ -413,13 +413,13 @@ namespace KasseAPI_Final.Services
                 {
                     // Hata durumunda transaction'ı rollback et
                     await transaction.RollbackAsync();
-                    _logger.LogError(ex, "❌ Transaction hatası, rollback yapıldı: {UserId}", userId);
+                    _logger.LogError(ex, "❌ Transaction error, rollback performed: {UserId}", userId);
                     throw; // Hatayı yukarı fırlat
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Kullanıcı sepet temizleme hatası: {UserId}. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
+                _logger.LogError(ex, "❌ User cart cleanup error: {UserId}. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
                     userId, ex.GetType().Name, ex.Message);
                 throw; // Hatayı yukarı fırlat
             }
