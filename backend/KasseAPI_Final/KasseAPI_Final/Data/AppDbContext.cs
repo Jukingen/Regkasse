@@ -186,10 +186,11 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TransactionId).HasMaxLength(100);
                 entity.Property(e => e.TseSignature).HasMaxLength(100);
                 entity.Property(e => e.TaxDetails).HasColumnType("jsonb");
-                entity.Property(e => e.Items).HasColumnType("jsonb");
-                entity.Property(e => e.OriginalPaymentId);
-                entity.Property(e => e.CancellationReason).HasMaxLength(500);
-                entity.Property(e => e.IsRefund);
+                entity.Property(e => e.PaymentItems).HasColumnType("jsonb");
+                // TODO: Bu alanlar daha sonra eklenecek
+                // entity.Property(e => e.OriginalPaymentId);
+                // entity.Property(e => e.CancellationReason).HasMaxLength(500);
+                // entity.Property(e => e.IsRefund);
                 
                 entity.HasIndex(e => e.CustomerId);
                 entity.HasIndex(e => e.PaymentMethod);

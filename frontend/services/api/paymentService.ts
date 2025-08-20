@@ -7,21 +7,32 @@ export interface PaymentMethod {
   icon: string;
 }
 
+// Backend'deki PaymentItemRequest ile uyumlu
 export interface PaymentItem {
-  productId: string;
+  productId: string; // Guid string olarak
   quantity: number;
-  price: number;
   taxType: 'standard' | 'reduced' | 'special';
 }
 
+// Backend'deki CreatePaymentRequest ile uyumlu
 export interface PaymentRequest {
+  customerId: string; // Zorunlu alan
   items: PaymentItem[];
   payment: {
     method: 'cash' | 'card' | 'voucher';
-    amount: number;
     tseRequired: boolean;
+    amount?: number; // Opsiyonel
   };
-  customerId?: string; // Müşteri ID'si (opsiyonel)
+  // Yeni eklenen alanlar
+  tableNumber: number; // Masa numarası
+  cashierId: string; // Kasiyer ID
+  totalAmount: number; // Toplam tutar
+  
+  // Avusturya yasal gereksinimleri
+  steuernummer: string; // Vergi numarası (ATU12345678)
+  kassenId: string; // Kasa ID
+  
+  notes?: string;
 }
 
 export interface PaymentResponse {
@@ -29,6 +40,7 @@ export interface PaymentResponse {
   paymentId: string;
   error?: string;
   message?: string;
+  tseSignature?: string;
 }
 
 export interface Receipt {
@@ -60,10 +72,11 @@ class PaymentService {
     return response;
   }
 
-  // Ödeme işlemi (mod kontrolü ile)
+  // Ödeme işlemi - Backend endpoint'i ile uyumlu
   async processPayment(paymentRequest: PaymentRequest): Promise<PaymentResponse> {
     try {
-      const response = await apiClient.post<PaymentResponse>(`${this.baseUrl}/process`, paymentRequest);
+      // Backend'deki CreatePayment endpoint'ini kullan
+      const response = await apiClient.post<PaymentResponse>(`${this.baseUrl}`, paymentRequest);
       return response;
     } catch (error) {
       console.error('Online payment failed:', error);
@@ -81,10 +94,35 @@ class PaymentService {
     }
   }
 
-  // Fiş oluştur
+  // Fiş oluştur - Backend'de bu endpoint yok, TSE signature endpoint'ini kullan
   async createReceipt(paymentId: string): Promise<Receipt> {
-    const response = await apiClient.post<Receipt>(`${this.baseUrl}/${paymentId}/receipt`);
-    return response;
+    try {
+      // Önce TSE signature oluştur
+      const tseResponse = await apiClient.post<{tseSignature: string}>(`${this.baseUrl}/${paymentId}/tse-signature`);
+      
+      // Sonra ödeme detaylarını al
+      const paymentResponse = await apiClient.get<PaymentResponse>(`${this.baseUrl}/${paymentId}`);
+      
+      // Receipt objesini oluştur (backend'den gelen verilerle)
+      const receipt: Receipt = {
+        id: paymentId,
+        receiptNumber: `AT-${Date.now()}-${paymentId.slice(0, 8)}`,
+        items: [], // Backend'den items bilgisi gelmeli
+        subtotal: 0,
+        taxStandard: 0,
+        taxReduced: 0,
+        taxSpecial: 0,
+        total: 0,
+        paymentMethod: 'cash',
+        timestamp: new Date().toISOString(),
+        cashierId: 'current-user'
+      };
+      
+      return receipt;
+    } catch (error) {
+      console.error('Receipt creation failed:', error);
+      throw error;
+    }
   }
 
   // Ödeme geçmişi

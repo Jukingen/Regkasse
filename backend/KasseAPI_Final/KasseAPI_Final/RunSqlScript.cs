@@ -25,12 +25,12 @@ namespace KasseAPI_Final
                 try
                 {
                     // SQL dosyasını oku
-                    string sqlScript = File.ReadAllText("create-user-settings-table.sql");
+                    string sqlScript = File.ReadAllText("add-payment-details-fields.sql");
                     
                     // SQL komutunu çalıştır
                     await dbContext.Database.ExecuteSqlRawAsync(sqlScript);
                     
-                    Console.WriteLine("SQL script başarıyla çalıştırıldı!");
+                    Console.WriteLine("PaymentDetails tablosu başarıyla güncellendi! Frontend için gerekli tüm alanlar eklendi.");
                 }
                 catch (Exception ex)
                 {

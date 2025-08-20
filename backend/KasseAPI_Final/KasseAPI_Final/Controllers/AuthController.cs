@@ -260,7 +260,9 @@ namespace KasseAPI_Final.Controllers
                     new Claim(ClaimTypes.Name, user.Email),
                     new Claim(ClaimTypes.Email, user.Email),
                     new Claim("user_id", user.Id),
-                    new Claim("user_role", user.Role ?? "User")
+                    new Claim("user_role", user.Role ?? "User"),
+                    // ASP.NET Core role-based authorization bu claim'i bekler
+                    new Claim(ClaimTypes.Role, user.Role ?? "User")
                 },
                 expires: expires,
                 signingCredentials: creds

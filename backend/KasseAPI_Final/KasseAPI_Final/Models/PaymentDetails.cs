@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 
 namespace KasseAPI_Final.Models
 {
@@ -13,6 +14,14 @@ namespace KasseAPI_Final.Models
         [MaxLength(100)]
         public string CustomerName { get; set; } = string.Empty;
 
+        // Yeni eklenen alanlar - Frontend PaymentModal'dan gelen
+        [Required]
+        public int TableNumber { get; set; } // Masa numarası
+        
+        [Required]
+        [MaxLength(100)]
+        public string CashierId { get; set; } = string.Empty; // Kasiyer ID
+
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
@@ -22,8 +31,17 @@ namespace KasseAPI_Final.Models
         public decimal TaxAmount { get; set; }
         
         [Required]
+        public PaymentMethod PaymentMethod { get; set; }
+        
+        // Avusturya yasal gereksinimleri (RKSV & DSGVO)
+        [Required]
+        [MaxLength(12)]
+        [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer formatı ATU12345678 olmalıdır")]
+        public string Steuernummer { get; set; } = string.Empty; // Vergi numarası (ATU12345678)
+        
+        [Required]
         [MaxLength(50)]
-        public string PaymentMethod { get; set; } = string.Empty;
+        public string KassenId { get; set; } = string.Empty; // Kasa ID
         
         [MaxLength(500)]
         public string? Notes { get; set; }
@@ -31,36 +49,28 @@ namespace KasseAPI_Final.Models
         [MaxLength(100)]
         public string? TransactionId { get; set; }
         
-        [MaxLength(100)]
-        public string? TseSignature { get; set; }
+        [Required]
+        [MaxLength(500)]
+        public string TseSignature { get; set; } = string.Empty; // RKSV §6 zorunlu
         
-        // Tax details as JSON
+        [Required]
+        public DateTime TseTimestamp { get; set; } // TSE zaman damgası
+        
+        // Tax details as JSONB (PostgreSQL)
         [Column(TypeName = "jsonb")]
-        public Dictionary<string, decimal> TaxDetails { get; set; } = new();
+        public JsonDocument TaxDetails { get; set; } = JsonDocument.Parse("{}");
         
-        // Payment items
-        public List<PaymentItem> Items { get; set; } = new();
+        // Payment items as JSONB
+        [Column(TypeName = "jsonb")]
+        public JsonDocument PaymentItems { get; set; } = JsonDocument.Parse("[]");
         
-        // Refund related properties
-        public Guid? OriginalPaymentId { get; set; }
-        [MaxLength(500)]
-        public string? CancellationReason { get; set; }
-        public bool IsRefund { get; set; } = false;
+        // Receipt/Invoice fields
+        [MaxLength(50)]
+        public string ReceiptNumber { get; set; } = string.Empty; // Format: AT-{TSE_ID}-{YYYYMMDD}-{SEQ}
         
-        // Cancellation and refund details
-        public DateTime? CancelledAt { get; set; }
-        [MaxLength(500)]
-        public string? RefundReason { get; set; }
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal? RefundAmount { get; set; }
-        
-        // FinanzOnline integration
-        public bool IsFinanzOnlineSent { get; set; } = false;
-        public DateTime? FinanzOnlineSentAt { get; set; }
+        public bool IsPrinted { get; set; } = false;
         
         // Navigation properties
         public virtual Customer? Customer { get; set; }
-        public virtual PaymentDetails? OriginalPayment { get; set; }
-        public virtual ICollection<PaymentDetails> Refunds { get; set; } = new List<PaymentDetails>();
     }
 }

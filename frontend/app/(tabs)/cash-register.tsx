@@ -17,6 +17,7 @@ import { useCart } from '../../hooks/useCart';
 import { useCashRegister } from '../../hooks/useCashRegister';
 import { useProductOperations } from '../../hooks/useProductOperations';
 import { useTableOrdersRecovery } from '../../hooks/useTableOrdersRecovery';
+import PaymentModal from '../../components/PaymentModal';
 
 // English Description: Simplified cash register screen with tab-based table selection and clean cart view
 
@@ -59,6 +60,10 @@ export default function CashRegisterScreen() {
   // Aktif masanın sepetini al - state olarak tanımla
   const [cart, setCart] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'Hauptgerichte' | 'Getränke' | 'Desserts' | 'Alkoholische Getränke' | 'Snacks' | 'Suppen' | 'Vorspeisen' | 'Salate' | 'Kaffee & Tee' | 'Süßigkeiten' | 'Spezialitäten' | 'Brot & Gebäck'>('all');
+  
+  // PaymentModal state'leri
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [customerId, setCustomerId] = useState<string>('demo-customer-001'); // Demo müşteri ID
 
   // Table numbers for selection
   const tableNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -255,8 +260,8 @@ export default function CashRegisterScreen() {
   console.log('🔍 Filtered products:', filteredProducts);
   console.log('🔍 Selected category:', selectedCategory);
 
-  // Handle payment processing
-  const handlePayment = async () => {
+  // Handle payment processing - PaymentModal'ı açar
+  const handlePayment = () => {
     if (!cart || cart.items.length === 0) {
       addToast('warning', 'Cart is empty. Please add items first.', 3000);
       return;
@@ -270,36 +275,24 @@ export default function CashRegisterScreen() {
     // Haptic feedback for payment button press
     Vibration.vibrate(50);
 
-    try {
-      // Ödeme işlemini başlat
-      const result = await processPayment({
-        cartId: cart.cartId,
-        totalAmount: cart.grandTotal,
-        paymentMethod: 'card', // Varsayılan ödeme yöntemi
-        customerId: undefined,
-        customerName: undefined,
-        customerEmail: undefined,
-        customerPhone: undefined,
-        notes: `Table ${selectedTable}`,
-        tseRequired: isTseRequired('card'),
-        tableNumber: selectedTable
-      });
+    // PaymentModal'ı aç
+    setPaymentModalVisible(true);
+  };
 
-      if (result.success) {
-        addToast('success', `Payment successful! Receipt: ${result.receiptNumber}`, 5000);
-        
-        // Başarılı ödemeden sonra masayı temizle
-        clearCurrentCart(selectedTable);
-        
-        // Masayı 1'e geri döndür
-        setSelectedTable(1);
-        
-      } else {
-        addToast('error', `Payment failed: ${result.message}`, 5000);
-      }
+  // PaymentModal'dan gelen başarılı ödeme
+  const handlePaymentSuccess = async (paymentId: string) => {
+    try {
+      addToast('success', `Payment successful! Payment ID: ${paymentId}`, 5000);
+      
+      // Başarılı ödemeden sonra masayı temizle
+      clearCurrentCart(selectedTable);
+      
+      // Masayı 1'e geri döndür
+      setSelectedTable(1);
+      
     } catch (error) {
-      console.error('Payment error:', error);
-      addToast('error', 'Payment processing failed. Please try again.', 5000);
+      console.error('Payment success handling error:', error);
+      addToast('error', 'Payment success handling failed.', 5000);
     }
   };
 
@@ -810,6 +803,16 @@ export default function CashRegisterScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* PaymentModal */}
+      <PaymentModal
+        visible={paymentModalVisible}
+        onClose={() => setPaymentModalVisible(false)}
+        onSuccess={handlePaymentSuccess}
+        cartItems={cart?.items || []}
+        customerId={customerId}
+        tableNumber={selectedTable}
+      />
     </SafeAreaView>
   );
 }

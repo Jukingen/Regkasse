@@ -1,0 +1,126 @@
+import { useState, useCallback } from 'react';
+import { paymentService, PaymentRequest, PaymentResponse, PaymentMethod } from '../services/api/paymentService';
+import { useAuth } from '../contexts/AuthContext';
+
+// Türkçe Açıklama: Ödeme işlemleri için hook - Backend API ile entegre çalışır
+export const usePayment = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  
+  const { user } = useAuth();
+
+  // Ödeme yöntemlerini getir
+  const getPaymentMethods = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const methods = await paymentService.getPaymentMethods();
+      setPaymentMethods(methods);
+      return methods;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ödeme yöntemleri alınamadı';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Ödeme işlemi
+  const processPayment = useCallback(async (paymentRequest: PaymentRequest): Promise<PaymentResponse> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Kullanıcı kimlik doğrulaması kontrol et
+      if (!user) {
+        throw new Error('Kullanıcı girişi yapılmamış');
+      }
+
+      // Ödeme işlemini gerçekleştir
+      const response = await paymentService.processPayment(paymentRequest);
+      
+      if (!response.success) {
+        throw new Error(response.error ?? 'Ödeme işlemi başarısız');
+      }
+
+      return response;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ödeme işlemi başarısız';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Fiş oluştur
+  const createReceipt = useCallback(async (paymentId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const receipt = await paymentService.createReceipt(paymentId);
+      return receipt;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Fiş oluşturulamadı';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Ödeme iptal
+  const cancelPayment = useCallback(async (paymentId: string, reason: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await paymentService.cancelPayment(paymentId, reason);
+      return response;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ödeme iptal edilemedi';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Ödeme iade
+  const refundPayment = useCallback(async (paymentId: string, amount: number, reason: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await paymentService.refundPayment(paymentId, amount, reason);
+      return response;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ödeme iade edilemedi';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Hata temizle
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    loading,
+    error,
+    paymentMethods,
+    getPaymentMethods,
+    processPayment,
+    createReceipt,
+    cancelPayment,
+    refundPayment,
+    clearError
+  };
+};

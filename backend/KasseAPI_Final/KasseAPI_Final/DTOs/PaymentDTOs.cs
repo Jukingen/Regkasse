@@ -17,6 +17,26 @@ namespace KasseAPI_Final.DTOs
         [Required]
         public PaymentMethodRequest Payment { get; set; } = new();
         
+        // Yeni eklenen alanlar
+        [Required]
+        public int TableNumber { get; set; } // Masa numarası
+        
+        [Required]
+        public string CashierId { get; set; } = string.Empty; // Kasiyer ID
+        
+        [Required]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Total amount must be greater than 0")]
+        public decimal TotalAmount { get; set; } // Toplam tutar
+        
+        // Avusturya yasal gereksinimleri
+        [Required]
+        [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer must be in format ATU12345678")]
+        public string Steuernummer { get; set; } = string.Empty; // Vergi numarası (ATU12345678)
+        
+        [Required]
+        [StringLength(50, MinimumLength = 3, ErrorMessage = "KassenId must be between 3 and 50 characters")]
+        public string KassenId { get; set; } = string.Empty; // Kasa ID
+        
         public string? Notes { get; set; }
     }
     

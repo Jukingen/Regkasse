@@ -132,3 +132,53 @@ export const validateField = (fieldName: string, value: string): string | undefi
       return undefined;
   }
 };
+
+// Avusturya yasal gereksinimleri için validasyon fonksiyonları
+
+/**
+ * Steuernummer validasyonu (ATU12345678 format)
+ * @param steuernummer - Vergi numarası
+ * @returns Validasyon sonucu
+ */
+export const validateSteuernummer = (steuernummer: string): boolean => {
+  const steuernummerRegex = /^ATU\d{8}$/;
+  return steuernummerRegex.test(steuernummer);
+};
+
+/**
+ * KassenId validasyonu (3-50 karakter)
+ * @param kassenId - Kasa ID
+ * @returns Validasyon sonucu
+ */
+export const validateKassenId = (kassenId: string): boolean => {
+  return kassenId.length >= 3 && kassenId.length <= 50;
+};
+
+/**
+ * Avusturya vergi oranları validasyonu
+ * @param taxType - Vergi tipi
+ * @returns Validasyon sonucu
+ */
+export const validateTaxType = (taxType: string): boolean => {
+  const validTaxTypes = ['standard', 'reduced', 'special'];
+  return validTaxTypes.includes(taxType);
+};
+
+/**
+ * TSE gerekli mi kontrolü
+ * @param paymentMethod - Ödeme yöntemi
+ * @returns TSE gerekli mi
+ */
+export const isTseRequired = (paymentMethod: string): boolean => {
+  // Avusturya yasalarına göre tüm ödemelerde TSE gerekli
+  return true;
+};
+
+/**
+ * Ödeme tutarı validasyonu (0.01'den büyük olmalı)
+ * @param amount - Tutar
+ * @returns Validasyon sonucu
+ */
+export const validateAmount = (amount: number): boolean => {
+  return amount > 0.01;
+};

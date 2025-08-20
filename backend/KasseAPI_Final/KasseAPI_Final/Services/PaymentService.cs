@@ -84,15 +84,15 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                // Vergi numarası validasyonu (ATU formatında olmalı)
-                if (!string.IsNullOrEmpty(customer.TaxNumber) && !IsValidAustrianTaxNumber(customer.TaxNumber))
+                // Steuernummer (request) kontrolü - ATU formatı
+                if (!IsValidAustrianTaxNumber(request.Steuernummer))
                 {
-                    _logger.LogWarning("Invalid Austrian tax number format: {TaxNumber}", customer.TaxNumber);
+                    _logger.LogWarning("Invalid Austrian tax number in request: {TaxNumber}", request.Steuernummer);
                     return new PaymentResult
                     {
                         Success = false,
                         Message = "Invalid Austrian tax number format",
-                        Errors = { "Tax number must be in ATU format (e.g., ATU12345678)" }
+                        Errors = { "Steuernummer must be in ATU format (e.g., ATU12345678)" }
                     };
                 }
 
@@ -186,15 +186,23 @@ namespace KasseAPI_Final.Services
                 {
                     CustomerId = customer.Id,
                     CustomerName = customer.Name,
-                    Items = paymentItems,
+                    PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(paymentItems)),
                     TotalAmount = totalAmount,
                     TaxAmount = taxDetails.Values.Sum(),
-                    TaxDetails = taxDetails,
-                    PaymentMethod = request.Payment.Method,
+                    TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(taxDetails)),
+                    PaymentMethod = GetPaymentMethodEnum(request.Payment.Method),
                     Notes = request.Notes,
                     CreatedBy = userId,
                     CreatedAt = DateTime.UtcNow,
-                    IsActive = true
+                    IsActive = true,
+                    // Yeni alanlar
+                    TableNumber = request.TableNumber,
+                    CashierId = request.CashierId,
+                    Steuernummer = request.Steuernummer,
+                    KassenId = request.KassenId,
+                    TseTimestamp = DateTime.UtcNow,
+                    IsPrinted = false,
+                    ReceiptNumber = string.Empty
                 };
 
                 // TSE imzası oluştur (eğer gerekliyse)
@@ -223,6 +231,14 @@ namespace KasseAPI_Final.Services
                 // Ödemeyi kaydet
                 var createdPayment = await _paymentRepository.AddAsync(payment);
 
+                // ReceiptNumber'ı kuralına göre set et (AT-{KassenId}-{YYYYMMDD}-{SEQ})
+                if (string.IsNullOrEmpty(createdPayment.ReceiptNumber))
+                {
+                    var seq = createdPayment.Id.ToString("N").Substring(0, 8);
+                    createdPayment.ReceiptNumber = $"AT-{createdPayment.KassenId}-{DateTime.UtcNow:yyyyMMdd}-{seq}";
+                    await _paymentRepository.UpdateAsync(createdPayment);
+                }
+
                 // FinanzOnline'a gönder (Invoice olarak)
                 if (request.Payment.TseRequired)
                 {
@@ -248,7 +264,7 @@ namespace KasseAPI_Final.Services
                             KassenId = "KASSE001", // Gerçek implementasyonda config'den alınmalı
                             TseTimestamp = payment.CreatedAt,
                             CashRegisterId = Guid.NewGuid(), // Gerçek implementasyonda config'den alınmalı
-                            PaymentMethod = GetPaymentMethodEnum(payment.PaymentMethod),
+                            PaymentMethod = payment.PaymentMethod,
                             PaymentReference = payment.TransactionId,
                             PaymentDate = payment.CreatedAt
                         };
@@ -379,7 +395,7 @@ namespace KasseAPI_Final.Services
                 var (items, totalCount) = await _paymentRepository.GetPagedAsync(
                     pageNumber, 
                     pageSize, 
-                    p => p.PaymentMethod == paymentMethod && p.IsActive,
+                    p => p.PaymentMethod == GetPaymentMethodEnum(paymentMethod) && p.IsActive,
                     p => p.CreatedAt,
                     false);
 
@@ -508,14 +524,18 @@ namespace KasseAPI_Final.Services
                 }
 
                 // Stok geri ekle - transaction içinde yapılmalı
-                foreach (var item in payment.Items)
+                var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.ToString());
+                if (paymentItems != null)
                 {
-                    var product = await _productRepository.GetByIdAsync(item.ProductId);
-                    if (product != null)
+                    foreach (var item in paymentItems)
                     {
-                        product.StockQuantity += item.Quantity;
-                        product.UpdatedAt = DateTime.UtcNow;
-                        await _productRepository.UpdateAsync(product);
+                        var product = await _productRepository.GetByIdAsync(item.ProductId);
+                        if (product != null)
+                        {
+                            product.StockQuantity += item.Quantity;
+                            product.UpdatedAt = DateTime.UtcNow;
+                            await _productRepository.UpdateAsync(product);
+                        }
                     }
                 }
 
@@ -523,8 +543,7 @@ namespace KasseAPI_Final.Services
                 payment.IsActive = false;
                 payment.UpdatedAt = DateTime.UtcNow;
                 payment.UpdatedBy = userId;
-                payment.CancellationReason = reason;
-                payment.CancelledAt = DateTime.UtcNow;
+                // TODO: CancellationReason ve CancelledAt alanları eklenecek
 
                 await _paymentRepository.UpdateAsync(payment);
 
@@ -607,15 +626,19 @@ namespace KasseAPI_Final.Services
                 if (amount < payment.TotalAmount)
                 {
                     var refundRatio = amount / payment.TotalAmount;
-                    foreach (var item in payment.Items)
+                    var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.ToString());
+                    if (paymentItems != null)
                     {
-                        var product = await _productRepository.GetByIdAsync(item.ProductId);
-                        if (product != null)
+                        foreach (var item in paymentItems)
                         {
-                            var refundQuantity = (int)(item.Quantity * refundRatio);
-                            product.StockQuantity += refundQuantity;
-                            product.UpdatedAt = DateTime.UtcNow;
-                            await _productRepository.UpdateAsync(product);
+                            var product = await _productRepository.GetByIdAsync(item.ProductId);
+                            if (product != null)
+                            {
+                                var refundQuantity = (int)(item.Quantity * refundRatio);
+                                product.StockQuantity += refundQuantity;
+                                product.UpdatedAt = DateTime.UtcNow;
+                                await _productRepository.UpdateAsync(product);
+                            }
                         }
                     }
                 }
@@ -625,18 +648,15 @@ namespace KasseAPI_Final.Services
                 {
                     CustomerId = payment.CustomerId,
                     CustomerName = payment.CustomerName,
-                    Items = payment.Items,
+                    PaymentItems = payment.PaymentItems, // JSON olarak kopyala
                     TotalAmount = -amount, // Negatif tutar
                     TaxAmount = -payment.TaxAmount * (amount / payment.TotalAmount),
                     PaymentMethod = payment.PaymentMethod,
                     Notes = $"Refund: {reason}",
                     CreatedBy = userId,
                     CreatedAt = DateTime.UtcNow,
-                    IsActive = true,
-                    IsRefund = true,
-                    OriginalPaymentId = payment.Id,
-                    RefundReason = reason,
-                    RefundAmount = amount
+                    IsActive = true
+                    // TODO: IsRefund, OriginalPaymentId, RefundReason, RefundAmount alanları eklenecek
                 };
 
                 await _paymentRepository.AddAsync(refund);
@@ -687,7 +707,7 @@ namespace KasseAPI_Final.Services
                 }
 
                 var payments = await _context.PaymentDetails
-                    .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate && p.IsActive && !p.IsRefund)
+                    .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate && p.IsActive)
                     .ToListAsync();
 
                 var statistics = new PaymentStatistics
@@ -702,21 +722,25 @@ namespace KasseAPI_Final.Services
                 // Ödeme yöntemine göre grupla
                 statistics.PaymentsByMethod = payments
                     .GroupBy(p => p.PaymentMethod)
-                    .ToDictionary(g => g.Key, g => g.Count());
+                    .ToDictionary(g => g.Key.ToString(), g => g.Count());
 
                 statistics.AmountByMethod = payments
                     .GroupBy(p => p.PaymentMethod)
-                    .ToDictionary(g => g.Key, g => g.Sum(p => p.TotalAmount));
+                    .ToDictionary(g => g.Key.ToString(), g => g.Sum(p => p.TotalAmount));
 
                 // Vergi tipine göre grupla
                 foreach (var payment in payments)
                 {
-                    foreach (var item in payment.Items)
+                    var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.ToString());
+                    if (paymentItems != null)
                     {
-                        var taxType = item.TaxType;
-                        if (!statistics.PaymentsByTaxType.ContainsKey(taxType))
-                            statistics.PaymentsByTaxType[taxType] = 0;
-                        statistics.PaymentsByTaxType[taxType]++;
+                        foreach (var item in paymentItems)
+                        {
+                            var taxType = item.TaxType;
+                            if (!statistics.PaymentsByTaxType.ContainsKey(taxType))
+                                statistics.PaymentsByTaxType[taxType] = 0;
+                            statistics.PaymentsByTaxType[taxType]++;
+                        }
                     }
                 }
 
@@ -726,9 +750,9 @@ namespace KasseAPI_Final.Services
                 statistics.TseSignedAmount = tsePayments.Sum(p => p.TotalAmount);
 
                 // FinanzOnline'a gönderilen ödemeler
-                var finanzOnlinePayments = payments.Where(p => p.IsFinanzOnlineSent).ToList();
-                statistics.FinanzOnlineSentPayments = finanzOnlinePayments.Count;
-                statistics.FinanzOnlineSentAmount = finanzOnlinePayments.Sum(p => p.TotalAmount);
+                // TODO: IsFinanzOnlineSent alanı eklenecek
+                statistics.FinanzOnlineSentPayments = 0;
+                statistics.FinanzOnlineSentAmount = 0;
 
                 _logger.LogInformation("Payment statistics generated for period {StartDate} to {EndDate}: {TotalPayments} payments, {TotalAmount} total", 
                     startDate, endDate, statistics.TotalPayments, statistics.TotalAmount);
@@ -815,7 +839,7 @@ namespace KasseAPI_Final.Services
                     KassenId = "KASSE001", // Gerçek implementasyonda config'den alınmalı
                     TseTimestamp = payment.CreatedAt,
                     CashRegisterId = Guid.NewGuid(), // Gerçek implementasyonda config'den alınmalı
-                    PaymentMethod = GetPaymentMethodEnum(payment.PaymentMethod),
+                    PaymentMethod = payment.PaymentMethod,
                     PaymentReference = payment.TransactionId,
                     PaymentDate = payment.CreatedAt
                 };

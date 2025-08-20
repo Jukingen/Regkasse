@@ -230,7 +230,7 @@ namespace KasseAPI_Final.Controllers
                     PaymentsByMethod = payments.GroupBy(p => p.PaymentMethod)
                         .Select(g => new PaymentsByMethod
                         {
-                            Method = g.Key,
+                            Method = g.Key.ToString(),
                             Count = g.Count(),
                             Total = g.Sum(p => p.TotalAmount)
                         })
