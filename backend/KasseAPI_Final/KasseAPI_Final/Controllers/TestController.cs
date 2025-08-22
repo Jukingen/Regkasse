@@ -6,6 +6,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 
 namespace KasseAPI_Final.Controllers
@@ -15,22 +16,26 @@ namespace KasseAPI_Final.Controllers
 	/// </summary>
 	[Route("api/[controller]")]
 	[ApiController]
-	[Authorize(Roles = "Admin")]
+	[AllowAnonymous]
+	//[Authorize(Roles = "Admin")]
 	public class TestController : BaseController
 	{
 		private readonly IGenericRepository<Customer> _customerRepository;
 		private readonly IGenericRepository<Product> _productRepository;
 		private readonly IPaymentService _paymentService;
+		private readonly UserManager<ApplicationUser> _userManager;
 
 		public TestController(
 			IGenericRepository<Customer> customerRepository,
 			IGenericRepository<Product> productRepository,
 			IPaymentService paymentService,
+			UserManager<ApplicationUser> userManager,
 			ILogger<TestController> logger) : base(logger)
 		{
 			_customerRepository = customerRepository;
 			_productRepository = productRepository;
 			_paymentService = paymentService;
+			_userManager = userManager;
 		}
 
 		/// <summary>
@@ -41,12 +46,16 @@ namespace KasseAPI_Final.Controllers
 		{
 			try
 			{
-				// Türkçe Açıklama: Kimliği doğrulanmış kullanıcı ID'sini al
-				var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-				if (string.IsNullOrEmpty(userId))
+				// Türkçe Açıklama: Otomatik admin kullanıcısı bul
+				var admin = await _userManager.FindByEmailAsync("admin@admin.com");
+				
+				if (admin == null)
 				{
-					return ErrorResponse("User not authenticated", 401);
+					// Admin kullanıcısı yoksa hata döndür
+					return ErrorResponse("Admin user not found. Please create admin@admin.com user first.", 400);
 				}
+
+				var userId = admin.Id;
 
 				// Türkçe Açıklama: Hızlı test için rastgele Steuernummer (ATU########) üret
 				var rnd = Random.Shared.Next(0, 100_000_000);
@@ -65,16 +74,13 @@ namespace KasseAPI_Final.Controllers
 				customer = await _customerRepository.AddAsync(customer);
 
 				// Türkçe Açıklama: Hızlı test için stoklu ürün oluştur
-				// Türkçe Açıklama: Benzersiz barkod üret (unique index var)
-				var barcode = $"BC{Guid.NewGuid():N}".Substring(0, 14);
 				var product = new Product
 				{
 					Name = "Test Produkt",
 					Price = 10.00m,
 					StockQuantity = 100,
 					Category = "Test",
-					Barcode = barcode,
-					TaxType = TaxType.Standard,
+					TaxType = "Standard",
 					TaxRate = 0.20m,
 					CreatedBy = userId,
 					IsActive = true

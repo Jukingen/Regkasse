@@ -125,7 +125,7 @@ export const useCart = () => {
     const interval = setInterval(checkTokenAndCleanup, 15 * 60 * 1000); // 15 dakika
     
     return () => clearInterval(interval);
-  }, [isAuthenticated, user, isTokenExpired, clearAllCarts]);
+  }, [isAuthenticated, user]); // ✅ YENİ: Minimal dependency - isTokenExpired ve clearAllCarts kaldırıldı
 
   // ⏰ OTOMATİK SEPET SIFIRLAMA: 15 dakika + gece 00:00
   useEffect(() => {
@@ -175,29 +175,29 @@ export const useCart = () => {
     checkCartExpiration();
     
     return () => clearInterval(interval);
-  }, [isAuthenticated, user, clearAllCarts]);
+  }, [isAuthenticated, user]); // ✅ YENİ: Minimal dependency - clearAllCarts kaldırıldı
 
   // Sepet getter fonksiyonu - tableNumber parametresi ile
   const getCartForTable = useCallback((tableNumber: number) => {
     return tableCarts.get(tableNumber) || null;
-  }, [tableCarts]);
+  }, []); // Dependency array boş - fonksiyon sürekli yeniden oluşturulmasın
 
   // Add item to cart with backend API integration
-  const addToCart = useCallback(async (item: Omit<CartItem, 'id' | 'totalPrice'>, tableNumber: number) => {
-    if (!tableNumber) {
-      console.error('❌ Table number is required for cart operations');
-      setError('Table number is required');
-      return;
-    }
+  const addToCart = useCallback(async (item: Omit<CartItem, 'id' | 'totalPrice'>, tableNumber: number): Promise<{ success: boolean; message: string; cart?: Cart }> => {
+            if (!tableNumber) {
+          console.error('❌ Table number is required for cart operations');
+          setError('Table number is required');
+          return { success: false, message: 'Table number is required' };
+        }
 
-    // 🧹 Token expire kontrolü
-    const expired = await isTokenExpired();
-    if (expired) {
-      console.error('❌ Token expired, cannot add to cart');
-      setError('Session expired, please login again');
-      clearAllCarts();
-      return;
-    }
+        // 🧹 Token expire kontrolü
+        const expired = await isTokenExpired();
+        if (expired) {
+          console.error('❌ Token expired, cannot add to cart');
+          setError('Session expired, please login again');
+          clearAllCarts();
+          return { success: false, message: 'Session expired, please login again' };
+        }
 
     try {
       setLoading(true);
@@ -222,7 +222,7 @@ export const useCart = () => {
             return newTableCarts;
           });
           console.log('✅ Ürün backend\'e başarıyla eklendi');
-          return;
+          return { success: true, message: 'Item added successfully', cart: response.cart };
         }
       } catch (apiError) {
         console.warn('⚠️ Backend API failed, using local fallback:', apiError);
@@ -235,6 +235,8 @@ export const useCart = () => {
         id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Unique local ID
         totalPrice: item.quantity * item.unitPrice
       };
+
+      let updatedCart: Cart | undefined;
 
       setTableCarts(prevTableCarts => {
         const prevCart = prevTableCarts.get(tableNumber);
@@ -259,6 +261,7 @@ export const useCart = () => {
           
           const newTableCarts = new Map(prevTableCarts);
           newTableCarts.set(tableNumber, newCart);
+          updatedCart = newCart;
           return newTableCarts;
         }
 
@@ -280,7 +283,7 @@ export const useCart = () => {
             totalPrice: newTotalPrice
           };
 
-          const updatedCart: Cart = {
+          const updatedCartLocal: Cart = {
             ...prevCart,
             items: updatedItems, // Keep original order
             totalItems: updatedItems.reduce((sum: number, item: CartItem) => sum + item.quantity, 0),
@@ -290,7 +293,8 @@ export const useCart = () => {
           };
           
           const newTableCarts = new Map(prevTableCarts);
-          newTableCarts.set(tableNumber, updatedCart);
+          newTableCarts.set(tableNumber, updatedCartLocal);
+          updatedCart = updatedCartLocal;
           return newTableCarts;
         } else {
           // Add new item to the end of the list (maintain order)
@@ -312,11 +316,13 @@ export const useCart = () => {
       });
 
       console.log('✅ Ürün local state\'e başarıyla eklendi');
+      return { success: true, message: 'Item added successfully', cart: updatedCart };
 
     } catch (error) {
       const errorMessage = 'Failed to add item to cart';
       setError(errorMessage);
       console.error('❌ Error adding to cart:', error);
+      return { success: false, message: errorMessage };
     } finally {
       setLoading(false);
     }
@@ -599,13 +605,13 @@ export const useCart = () => {
   }, [isTokenExpired, clearAllCarts]);
 
   // Clear cart for specific table
-  const clearCartForTable = useCallback(async (tableNumber: number) => {
+  const clearCartForTable = useCallback(async (tableNumber: number): Promise<{ success: boolean; message: string }> => {
     console.log('🧹 clearCartForTable called with tableNumber:', tableNumber);
     
     if (!tableNumber) {
       console.error('❌ Table number is required for clearing cart');
       setError('Table number is required');
-      return;
+      return { success: false, message: 'Table number is required' };
     }
 
     // 🧹 Token expire kontrolü
@@ -614,7 +620,7 @@ export const useCart = () => {
       console.error('❌ Token expired, cannot clear cart');
       setError('Session expired, please login again');
       clearAllCarts();
-      return;
+      return { success: false, message: 'Session expired, please login again' };
     }
 
     try {
@@ -648,11 +654,13 @@ export const useCart = () => {
       });
 
       console.log('✅ Masa', tableNumber, 'sepeti local state\'de temizlendi');
+      return { success: true, message: 'Cart cleared successfully' };
 
     } catch (error) {
       const errorMessage = 'Failed to clear cart';
       setError(errorMessage);
       console.error('❌ Error clearing cart:', error);
+      return { success: false, message: errorMessage };
     } finally {
       setLoading(false);
     }

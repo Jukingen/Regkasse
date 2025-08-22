@@ -50,11 +50,11 @@ const TokenManager = {
   // Güvenli token saklama
   storeToken: async (token: string) => {
     try {
-      // Token'ı 'Bearer ' ile sakla
-      const tokenWithBearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-      await AsyncStorage.setItem('token', tokenWithBearer);
+      // Token'ı 'Bearer ' prefix olmadan sakla (sadece JWT token)
+      const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
+      await AsyncStorage.setItem('token', cleanToken);
       await AsyncStorage.setItem('tokenExpiry', Date.now().toString());
-      console.log('Token stored successfully with format:', tokenWithBearer);
+      console.log('Token stored successfully (JWT only):', cleanToken.substring(0, 20) + '...');
     } catch (error) {
       console.error('Token storage failed:', error);
     }
@@ -76,146 +76,38 @@ const axiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 10000, // 10 saniye timeout
+    timeout: 30000, // ✅ YENİ: 30 saniye timeout - RKSV işlemleri için optimize edildi
     withCredentials: false, // CORS hatası için false yapıldı
 });
 
 // Request interceptor - Token kontrolü ve ekleme
 axiosInstance.interceptors.request.use(
     async (config) => {
-        // 🚀 F5 REFRESH FIX: Debouncing için request tracking
-        const requestKey = `${config.method}:${config.url}`;
-        const currentTime = Date.now();
-        const lastRequestTime = (axiosInstance as any).requestTimes?.[requestKey] || 0;
-        const DEBOUNCE_MS = 500; // 500ms debounce
+        // 🚀 DEBOUNCING KALDIRILDI - Ürün yükleme için basitleştirildi
         
-        if (currentTime - lastRequestTime < DEBOUNCE_MS) {
-            console.log(`🚫 [${new Date().toISOString()}] Request debouncing: ${requestKey} - ${currentTime - lastRequestTime}ms < ${DEBOUNCE_MS}ms`);
-            // Debouncing durumunda request'i iptal et
-            return Promise.reject(new Error('Request debounced'));
-        }
-        
-        // Request time'ı kaydet
-        if (!(axiosInstance as any).requestTimes) {
-            (axiosInstance as any).requestTimes = {};
-        }
-        (axiosInstance as any).requestTimes[requestKey] = currentTime;
-        
-        console.log('🚀 Making API request:', {
-            method: config.method,
-            url: config.url,
-            baseURL: config.baseURL,
-            fullUrl: `${config.baseURL}${config.url}`,
-            headers: config.headers,
-            timeout: config.timeout
-        });
-
-        try {
-            // Login endpoint'inde token kontrolü yapma
-            if (config.url === '/auth/login' || config.url === '/auth/register') {
-                console.log('🔐 Login/Register endpoint - skipping token check');
-                return config;
+        // Token kontrolü
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+            // Token'ın geçerlilik süresini kontrol et
+            if (TokenManager.isTokenExpired(token)) {
+                console.log('Token expired, clearing...');
+                await TokenManager.clearTokens();
+                // router.replace('/login'); // router kaldırıldığı için bu satır kaldırıldı
+                return Promise.reject(new Error('Token expired'));
             }
             
-            // Token'ı AsyncStorage'dan al
-            const token = await AsyncStorage.getItem('token');
-            console.log('🔐 Request Interceptor - Token found:', !!token, 'Token length:', token?.length);
-            
-            // Token varsa ve headers varsa
-            if (token && config.headers) {
-                // Headers'ı oluştur veya güncelle
-                if (!config.headers) {
-                    config.headers = new AxiosHeaders();
-                }
-                
-                // Content-Type header'ını ayarla (eğer yoksa)
-                if (!config.headers['Content-Type']) {
-                    config.headers['Content-Type'] = 'application/json';
-                }
-                
-                // Token'ı header'a ekle - token zaten 'Bearer ' ile başlıyorsa olduğu gibi kullan
-                // Eğer token 'Bearer ' ile başlamıyorsa ekle
-                if (token.startsWith('Bearer ')) {
-                    config.headers.Authorization = token;
-                } else {
-                    config.headers.Authorization = `Bearer ${token}`;
-                }
-                
-                // Debug: Token header'ı kontrol et
-                console.log('🔐 Token Debug:', {
-                    originalToken: token?.substring(0, 50) + '...',
-                    startsWithBearer: token?.startsWith('Bearer '),
-                    finalAuthHeader: config.headers.Authorization?.substring(0, 50) + '...',
-                    url: config.url,
-                    method: config.method
-                });
-                
-                // Token içeriğini göster (debug için)
-                try {
-                    // Eğer token 'Bearer ' ile başlıyorsa kaldır
-                    const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
-                    const decoded = jwtDecode(cleanToken);
-                    console.log('🔍 Token decoded:', {
-                        exp: decoded.exp,
-                        sub: decoded.sub,
-                        currentTime: Date.now() / 1000,
-                        isExpired: TokenManager.isTokenExpired(token)
-                    });
-                } catch (decodeError) {
-                    console.error('❌ Token decode error:', decodeError);
-                }
-                
-                // Token geçerlilik kontrolü
-                if (TokenManager.isTokenExpired(token)) {
-                    console.log('⚠️ Token expired, checking for refresh token...');
-                    const refreshToken = await AsyncStorage.getItem('refreshToken');
-                    if (refreshToken) {
-                        try {
-                            const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-                                refreshToken: refreshToken
-                            });
-                            const newToken = response.data.token;
-                            await TokenManager.storeToken(newToken);
-                            // Yeni token'ı header'a ekle
-                            config.headers.Authorization = `Bearer ${newToken}`;
-                            console.log('✅ Token refreshed successfully');
-                        } catch (refreshError) {
-                            console.error('❌ Token refresh failed:', refreshError);
-                            await TokenManager.clearTokens();
-                            // Login sayfasına yönlendirme gerekebilir
-                            throw new Error('Token refresh failed');
-                        }
-                    } else {
-                        console.log('❌ No refresh token available, token expired');
-                        await TokenManager.clearTokens();
-                        // Login sayfasına yönlendirme gerekebilir
-                        throw new Error('Token expired and no refresh token available');
-                    }
-                } else {
-                    console.log('✅ Valid token added to request:', {
-                        hasToken: !!token,
-                        tokenStart: token?.substring(0, 20) + '...',
-                        authHeader: config.headers.Authorization,
-                        allHeaders: JSON.stringify(config.headers)
-                    });
-                }
-            } else {
-                console.log('❌ No token found for request or no headers');
-            }
-            
-            // Son kontrol - header'lar doğru mu?
-            console.log('🔍 Final request headers:', {
-                hasAuthHeader: !!config.headers?.Authorization,
-                authHeader: config.headers?.Authorization,
-                contentType: config.headers?.['Content-Type']
-            });
-        } catch (error) {
-            console.error('❌ Error in request interceptor:', error);
+            // Token'ı header'a ekle (JWT token'a Bearer prefix ekle)
+            config.headers.Authorization = `Bearer ${token}`;
+            console.log('✅ Token added to request:', config.url, 'Token length:', token.length);
+        } else {
+            console.log('⚠️ No token found, proceeding without auth');
         }
+        
+        console.log(`🚀 [${new Date().toISOString()}] Request: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
     },
     (error) => {
-        console.error('Request interceptor error:', error);
+        console.error('❌ Request interceptor error:', error);
         return Promise.reject(error);
     }
 );
@@ -226,35 +118,20 @@ axiosInstance.interceptors.response.use(
         console.log('✅ API response received:', {
             status: response.status,
             url: response.config.url,
-            fullUrl: `${response.config.baseURL}${response.config.url}`,
-            data: response.data,
-            headers: response.headers
+            data: response.data
         });
         return response.data;
     },
     async (error) => {
-        // 🚀 F5 REFRESH FIX: Debounced request'leri handle et
-        if (error.message === 'Request debounced') {
-            console.log('🚫 Debounced request ignored');
-            return Promise.resolve(null); // Debounced request'ler için null döndür
-        }
-        
         console.error('❌ API error:', {
             status: error.response?.status,
             statusText: error.response?.statusText,
             url: error.config?.url,
-            fullUrl: error.config?.baseURL ? `${error.config?.baseURL}${error.config?.url}` : error.config?.url,
             data: error.response?.data,
             message: error.message,
-            code: error.code,
-            isAxiosError: error.isAxiosError,
-            timeout: error.code === 'ECONNABORTED' ? 'TIMEOUT' : 'NO_TIMEOUT',
-            headers: error.config?.headers
+            code: error.code
         });
 
-        // Request headers'ı kontrol et
-        console.log('🔍 Request headers on error:', error.config?.headers);
-        
         // 401 Unauthorized - Token geçersiz
         if (error.response?.status === 401) {
             console.log('⚠️ Unauthorized error (401), checking token status...');
@@ -286,6 +163,7 @@ axiosInstance.interceptors.response.use(
                         
                         // Orijinal isteği yeni token ile tekrarla
                         const originalRequest = error.config;
+                        // newToken zaten JWT token, Bearer prefix ekle
                         originalRequest.headers.Authorization = `Bearer ${newToken}`;
                         return axiosInstance(originalRequest);
                     } catch (refreshError) {
@@ -305,7 +183,6 @@ axiosInstance.interceptors.response.use(
         // 403 Forbidden - Yetkisiz erişim
         if (error.response?.status === 403) {
             console.log('⛔ Forbidden error (403) - insufficient permissions');
-            // Kullanıcıya yetkisiz erişim mesajı gösterilebilir
         }
 
         // Hata detaylarını döndür

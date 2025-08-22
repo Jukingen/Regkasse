@@ -1,218 +1,116 @@
-import { useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import { useState, useEffect } from 'react';
 
-import { useAsyncState } from './useAsyncState';
-import { useAppState } from '../contexts/AppStateContext';
 import { apiClient } from '../services/api/config';
-import { Product } from '../services/api/productService';
-import { ErrorMessages } from '../services/errorService';
 
-// API fonksiyonları
-const productService = {
-  getProducts: async () => {
-    console.log('🔍 getProducts çağrılıyor...');
-    console.log('🔍 API endpoint: /product');
-    console.log('🔍 API base URL:', 'http://localhost:5183/api');
-    
-    try {
-      const response = await apiClient.get('/product');
-      console.log('✅ API Response:', response);
-      console.log('✅ Response type:', typeof response);
-      console.log('✅ Response keys:', Object.keys(response));
-      
-      // API response'unu doğru şekilde parse et
-      // Backend'den gelen format: { success: true, message: "...", data: { items: [...], pagination: {...} } }
-      if (response.data && response.data.success && response.data.data) {
-        console.log('✅ Response parsed successfully');
-        console.log('✅ Items count:', response.data.data.items?.length || 0);
-        return response.data; // Sadece data kısmını döndür
-      } else {
-        console.warn('⚠️ Unexpected response format:', response);
-        return response; // Fallback
-      }
-    } catch (error) {
-      console.error('❌ API Error:', error);
-      throw error;
-    }
-  },
-  createProduct: (data: any) => apiClient.post('/product', data),
-  updateProduct: (id: string, data: any) => apiClient.put(`/product/${id}`, data),
-  deleteProduct: (id: string) => apiClient.delete(`/product/${id}`),
-  searchProducts: (query: string) => apiClient.get(`/product/search?q=${encodeURIComponent(query)}`)
-};
+// Basit ürün tipi
+export interface SimpleProduct {
+  Id: string;
+  Name: string;
+  Price: number;
+  Category: string;
+  StockQuantity: number;
+  Description: string;
+  TaxType: number;
+}
 
 export function useProductOperations() {
-  const { showError, showSuccess, addNotification } = useAppState();
+  const [products, setProducts] = useState<SimpleProduct[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Ürün listesi yükleme - Sadece manuel olarak execute edildiğinde çalışır
-  const [productsState, productsActions] = useAsyncState(
-    productService.getProducts,
-    {
-      autoExecute: false, // Otomatik çalışmasın
-      showErrorAlert: false,
-      onError: (error) => {
-        showError(error, 'Products Load Error');
-        addNotification({
-          type: 'error',
-          title: 'Products Load Failed',
-          message: error,
-          duration: 5000
-        });
+  // Ürünleri yükle
+  const loadProducts = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Token kontrolü
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        console.log('❌ Token bulunamadı, login sayfasına yönlendiriliyor...');
+        router.replace('/login');
+        return;
       }
-    }
-  );
 
-  // Ürün oluşturma
-  const [createState, createActions] = useAsyncState(
-    productService.createProduct,
-    {
-      autoExecute: false, // Otomatik çalışmasın
-      showErrorAlert: false,
-      showSuccessAlert: false,
-      onSuccess: (product: any) => {
-        showSuccess('Product created successfully');
-        addNotification({
-          type: 'success',
-          title: 'Product Created',
-          message: `${product.name} has been created successfully`,
-          duration: 3000
-        });
-        // Ürün listesini yenile
-        productsActions.execute();
-      },
-      onError: (error) => {
-        showError(error, 'Create Product Error');
-        addNotification({
-          type: 'error',
-          title: 'Create Product Failed',
-          message: error,
-          duration: 5000
-        });
+      console.log('🔄 Ürünler yükleniyor...');
+      console.log('🔧 API URL:', apiClient.get.toString());
+      
+      const response = await apiClient.get('/products');
+      console.log('✅ API Response:', response);
+
+      // Response format kontrolü
+      if (response) {
+        let productsData: SimpleProduct[] = [];
+        const responseAny = response as any;
+        
+        // Farklı response formatlarını destekle
+        if (Array.isArray(responseAny)) {
+          // Direkt array: [{...}, {...}]
+          productsData = responseAny;
+        } else if (responseAny.items && Array.isArray(responseAny.items)) {
+          // { items: [...] } formatı
+          productsData = responseAny.items;
+        } else if (responseAny.data && responseAny.data.items && Array.isArray(responseAny.data.items)) {
+          // { data: { items: [...] } } formatı
+          productsData = responseAny.data.items;
+        } else {
+          console.warn('⚠️ Beklenmeyen response formatı:', responseAny);
+          throw new Error('Unexpected API response format');
+        }
+        
+        console.log(`✅ ${productsData.length} ürün başarıyla yüklendi`);
+        setProducts(productsData);
+      } else {
+        throw new Error('API response is empty or invalid');
       }
-    }
-  );
-
-  // Ürün güncelleme
-  const [updateState, updateActions] = useAsyncState(
-    productService.updateProduct,
-    {
-      autoExecute: false, // Otomatik çalışmasın
-      showErrorAlert: false,
-      showSuccessAlert: false,
-      onSuccess: (product: any) => {
-        showSuccess('Product updated successfully');
-        addNotification({
-          type: 'success',
-          title: 'Product Updated',
-          message: `${product.name} has been updated successfully`,
-          duration: 3000
-        });
-        // Ürün listesini yenile
-        productsActions.execute();
-      },
-      onError: (error) => {
-        showError(error, 'Update Product Error');
-        addNotification({
-          type: 'error',
-          title: 'Update Product Failed',
-          message: error,
-          duration: 5000
-        });
+    } catch (error: any) {
+      console.error('❌ Ürün yükleme hatası:', error);
+      
+      // Daha detaylı error mesajları
+      let errorMessage = 'Ürünler yüklenemedi';
+      if (error.response) {
+        // HTTP error response
+        errorMessage = `HTTP ${error.response.status}: ${error.response.data?.message || 'Server error'}`;
+      } else if (error.request) {
+        // Network error
+        errorMessage = 'Network error - Backend bağlantısı kurulamadı';
+      } else if (error.message) {
+        // Other error
+        errorMessage = error.message;
       }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
-  );
+  };
 
-  // Ürün silme
-  const [deleteState, deleteActions] = useAsyncState(
-    productService.deleteProduct,
-    {
-      autoExecute: false, // Otomatik çalışmasın
-      showErrorAlert: false,
-      showSuccessAlert: false,
-      onSuccess: () => {
-        showSuccess('Product deleted successfully');
-        addNotification({
-          type: 'success',
-          title: 'Product Deleted',
-          message: 'Product has been deleted successfully',
-          duration: 3000
-        });
-        // Ürün listesini yenile
-        productsActions.execute();
-      },
-      onError: (error) => {
-        showError(error, 'Delete Product Error');
-        addNotification({
-          type: 'error',
-          title: 'Delete Product Failed',
-          message: error,
-          duration: 5000
-        });
-      }
-    }
-  );
+  // Component mount olduğunda ürünleri yükle
+  useEffect(() => {
+    console.log('🚀 useProductOperations mount - ürünler yükleniyor');
+    loadProducts();
+  }, []);
 
-  // Ürün arama
-  const [searchState, searchActions] = useAsyncState(
-    productService.searchProducts,
-    {
-      autoExecute: false, // Otomatik çalışmasın
-      showErrorAlert: false,
-      onError: (error) => {
-        addNotification({
-          type: 'error',
-          title: 'Search Failed',
-          message: error,
-          duration: 3000
-        });
-      }
-    }
-  );
+  // Manuel refresh için
+  const refreshProducts = () => {
+    console.log('🔄 Manuel refresh - ürünler yenileniyor...');
+    loadProducts();
+  };
 
-  // Ürün oluşturma fonksiyonu
-  const createProduct = useCallback(async (productData: any) => {
-    return await createActions.execute(productData);
-  }, [createActions]);
-
-  // Ürün güncelleme fonksiyonu
-  const updateProduct = useCallback(async (id: string, productData: any) => {
-    return await updateActions.execute(id, productData);
-  }, [updateActions]);
-
-  // Ürün silme fonksiyonu
-  const deleteProduct = useCallback(async (id: string) => {
-    return await deleteActions.execute(id);
-  }, [deleteActions]);
-
-  // Ürün arama fonksiyonu
-  const searchProducts = useCallback(async (query: string) => {
-    return await searchActions.execute(query);
-  }, [searchActions]);
-
-  // Ürün listesini yenileme
-  const refreshProducts = useCallback(async () => {
-    return await productsActions.execute();
-  }, [productsActions]);
+  // Force refresh için
+  const forceRefreshProducts = () => {
+    console.log('🔄 Force refresh - ürünler zorla yenileniyor...');
+    setError(null);
+    loadProducts();
+  };
 
   return {
-    // States
-    products: productsState,
-    create: createState,
-    update: updateState,
-    delete: deleteState,
-    search: searchState,
-    
-    // Actions
-    createProduct,
-    updateProduct,
-    deleteProduct,
-    searchProducts,
+    products,
+    loading,
+    error,
     refreshProducts,
-    
-    // Raw actions (for advanced usage)
-    productsActions,
-    createActions,
-    updateActions,
-    deleteActions,
-    searchActions
+    forceRefreshProducts
   };
 } 

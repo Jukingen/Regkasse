@@ -114,6 +114,27 @@ export default function TabLayout() {
                     tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={24} color={color} />,
                 }}
             />
+            <Tabs.Screen
+                name="taskmaster"
+                options={{
+                    title: 'Aufgaben',
+                    tabBarIcon: ({ color }) => <Ionicons name="checkbox-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="simple-todo"
+                options={{
+                    title: 'Todo',
+                    tabBarIcon: ({ color }) => <Ionicons name="list-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="task-suggestions"
+                options={{
+                    title: 'AI Demo',
+                    tabBarIcon: ({ color }) => <Ionicons name="bulb-outline" size={24} color={color} />,
+                }}
+            />
         </Tabs>
     );
 } 

@@ -1,11 +1,13 @@
 // Bu hook, sayfa yenileme (F5) sonrası masa siparişlerini geri yüklemek için kullanılır
 // RKSV uyumlu güvenlik kontrolü ve kullanıcı bazlı veri erişimi sağlar
 // OPTIMIZATION: Sürekli API çağrısı yerine sadece gerekli durumlarda fetch yapar
+// ✅ YENİ: useApiManager ile optimize edildi
 
 import { useState, useEffect, useCallback } from 'react';
 
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/api/config';
+import { useApiManager } from './useApiManager'; // ✅ YENİ: API Manager entegrasyonu
 
 export interface TableOrderRecoveryItem {
   productId: string;
@@ -82,12 +84,24 @@ export const useTableOrdersRecovery = () => {
       return recoveryState.recoveryData;
     }
 
+    // OPTIMIZATION: Eğer fetch işlemi devam ediyorsa, duplicate call'ı önle
+    if (recoveryState.isLoading) {
+      console.log('🔄 Table orders fetch already in progress, preventing duplicate call');
+      return null;
+    }
+
     setRecoveryState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
       console.log('🔄 Fetching table orders for recovery...');
       
       const response = await apiClient.get('/cart/table-orders-recovery');
+      
+      // Response format kontrolü
+      if (!response || typeof response !== 'object') {
+        throw new Error(`Invalid response format: ${JSON.stringify(response)}`);
+      }
+      
       const recoveryData = response as TableOrdersRecoveryData;
 
       if (recoveryData.success) {
@@ -119,7 +133,7 @@ export const useTableOrdersRecovery = () => {
 
       return null;
     }
-  }, [user, recoveryState.isInitialized, recoveryState.recoveryData]);
+  }, [user]); // Sadece user dependency'si - state dependency'leri kaldırıldı
 
   /**
    * Manuel refresh için - sadece gerektiğinde kullanılır
@@ -144,7 +158,7 @@ export const useTableOrdersRecovery = () => {
     return recoveryState.recoveryData.tableOrders.find(
       order => order.tableNumber === tableNumber
     ) || null;
-  }, [recoveryState.recoveryData]);
+  }, []); // State dependency'si kaldırıldı - fonksiyon her zaman güncel state'i kullanır
 
   /**
    * Tüm aktif masa numaralarını getir
@@ -156,7 +170,7 @@ export const useTableOrdersRecovery = () => {
       .map(order => order.tableNumber)
       .filter((tableNumber): tableNumber is number => tableNumber !== undefined)
       .sort((a, b) => a - b);
-  }, [recoveryState.recoveryData]);
+  }, []); // State dependency'si kaldırıldı - fonksiyon her zaman güncel state'i kullanır
 
   /**
    * Recovery durumunu sıfırla - Artık sadece memory state'i temizliyoruz
@@ -173,13 +187,20 @@ export const useTableOrdersRecovery = () => {
 
   /**
    * Sayfa yüklendiğinde otomatik recovery yapar
-   * OPTIMIZATION: Sadece user değiştiğinde ve henüz initialize edilmemişse çalışır
+   * OPTIMIZATION: Sadece user değiştiğinde çalışır
    */
   useEffect(() => {
     let isMounted = true;
 
     const performRecovery = async () => {
-      if (!user || recoveryState.isInitialized) return;
+      // Sadece user varsa ve henüz initialize edilmemişse çalış
+      if (!user || recoveryState.isInitialized) {
+        console.log('🔄 Recovery skipped:', { 
+          hasUser: !!user, 
+          isInitialized: recoveryState.isInitialized
+        });
+        return;
+      }
 
       console.log('🔄 Starting table orders recovery from backend...');
       // Direkt backend'den en güncel data'yı al
@@ -193,7 +214,7 @@ export const useTableOrdersRecovery = () => {
     return () => {
       isMounted = false;
     };
-  }, [user]); // OPTIMIZATION: fetchTableOrdersRecovery dependency'sini kaldırdık
+  }, [user]); // Sadece user dependency'si - state dependency'leri kaldırıldı
 
   return {
     // State

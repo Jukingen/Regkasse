@@ -84,7 +84,7 @@ export default function ProductSelectionModal({
       filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(query) ||
         p.description.toLowerCase().includes(query) ||
-        p.barcode.includes(query) ||
+
         p.category.toLowerCase().includes(query)
       );
     }
@@ -148,7 +148,7 @@ export default function ProductSelectionModal({
         
         <View style={styles.productMeta}>
           <Text style={styles.productCategory}>{item.category}</Text>
-          <Text style={styles.productBarcode}>{item.barcode}</Text>
+  
         </View>
       </View>
       
@@ -404,10 +404,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
   },
-  productBarcode: {
-    fontSize: 12,
-    color: Colors.light.textSecondary,
-  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

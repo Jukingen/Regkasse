@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Alert } from 'react-native';
 
 export interface AsyncState<T = any> {
@@ -148,6 +148,19 @@ export function useAsyncState<T = any>(
       const finalErrorMessage = errorMessage || error?.message || 'An error occurred';
       console.log('❌ Final error message:', finalErrorMessage);
       
+      // Debouncing hatası varsa error state'i set etme
+      if (finalErrorMessage === 'API response is null or undefined') {
+        console.log('🚫 Debouncing hatası tespit edildi, error state set edilmiyor');
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          success: false,
+          error: null // Error state'i temizle
+        }));
+        onError?.(finalErrorMessage); // External logging için onError çağır
+        return null;
+      }
+      
       setState(prev => ({
         ...prev,
         error: finalErrorMessage,
@@ -166,6 +179,22 @@ export function useAsyncState<T = any>(
       abortControllerRef.current = null;
     }
   }, [asyncFunction, showErrorAlert, showSuccessAlert, successMessage, errorMessage, onSuccess, onError]);
+
+  // autoExecute true ise component mount olduğunda otomatik çalıştır
+  useEffect(() => {
+    if (autoExecute) {
+      console.log('🔄 useAsyncState autoExecute useEffect çalışıyor...');
+      // execute fonksiyonunu dependency array'den çıkararak sonsuz döngüyü önle
+      const executeOnce = async () => {
+        try {
+          await execute();
+        } catch (error) {
+          console.error('❌ AutoExecute error:', error);
+        }
+      };
+      executeOnce();
+    }
+  }, [autoExecute]); // execute dependency'sini kaldır
 
   return [state, { execute, reset, setData, setError, setLoading }];
 } 

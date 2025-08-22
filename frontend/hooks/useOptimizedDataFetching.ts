@@ -147,7 +147,7 @@ export function useOptimizedDataFetching<T>(
     if (enabled && user && shouldFetch()) {
       fetchData();
     }
-  }, dependencies); // fetchData dependency'sini kaldırdık
+  }, [enabled, user, shouldFetch, fetchData]); // fetchData dependency'sini geri ekledik
 
   // Network durumu değiştiğinde kontrol et
   useEffect(() => {
@@ -155,7 +155,7 @@ export function useOptimizedDataFetching<T>(
       console.log('🔄 Network restored, fetching fresh data...');
       fetchData();
     }
-  }, [isConnected, isInternetReachable]);
+  }, [isConnected, isInternetReachable, enabled, user, shouldFetch, fetchData]); // fetchData dependency'sini ekledik
 
   return {
     // State
@@ -182,12 +182,12 @@ export function useOptimizedTableOrdersRecovery() {
   const { user } = useAuth();
   
   const fetchTableOrders = useCallback(async () => {
-    if (!user) return null;
+    if (!user || !user.token) return null;
     
     try {
       const response = await fetch('/api/cart/table-orders-recovery', {
         headers: {
-          'Authorization': `Bearer ${user.token}`,
+          'Authorization': `Bearer ${user.token}`, // user.token JWT token, Bearer prefix ekle
           'Content-Type': 'application/json',
         },
       });
@@ -216,12 +216,12 @@ export function useOptimizedPaymentMethods() {
   const { user } = useAuth();
   
   const fetchPaymentMethods = useCallback(async () => {
-    if (!user) return null;
+    if (!user || !user.token) return null;
     
     try {
       const response = await fetch('/api/Payment/methods', {
         headers: {
-          'Authorization': `Bearer ${user.token}`,
+          'Authorization': `Bearer ${user.token}`, // user.token JWT token, Bearer prefix ekle
           'Content-Type': 'application/json',
         },
       });

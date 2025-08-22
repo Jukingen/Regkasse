@@ -117,14 +117,53 @@ export class CartService {
       console.log('🛒 Masa', tableNumber, 'sepeti getiriliyor...');
       console.log('🔍 API endpoint: /cart/current?tableNumber=' + tableNumber);
       
-      const response = await apiClient.get<Cart>(`/cart/current?tableNumber=${tableNumber}`);
+      const response = await apiClient.get<any>(`/cart/current?tableNumber=${tableNumber}`);
       
-      console.log('📦 API Response:', {
-        cartId: response.cartId,
-        tableNumber: response.tableNumber,
-        status: response.status,
-        itemsCount: response.items?.length ?? 0,
-        items: response.items?.map(item => ({
+      // Debouncing kontrolü - null response handle et
+      if (response === null) {
+        console.log('⚠️ API response null (debouncing), throwing error for retry...');
+        throw new Error('API response is null due to debouncing');
+      }
+      
+      // Response format kontrolü
+      if (!response || typeof response !== 'object') {
+        throw new Error(`Invalid response format: ${JSON.stringify(response)}`);
+      }
+      
+      // Backend response'unu frontend interface'ine uygun hale getir
+      const mappedCart: Cart = {
+        cartId: response.CartId || response.cartId,
+        tableNumber: response.TableNumber || response.tableNumber,
+        waiterName: response.WaiterName || response.waiterName,
+        customerId: response.CustomerId || response.customerId,
+        notes: response.Notes || response.notes,
+        status: response.Status?.toString() || response.status?.toString() || 'active',
+        createdAt: response.CreatedAt || response.createdAt,
+        expiresAt: response.ExpiresAt || response.expiresAt,
+        items: (response.Items || response.items || []).map((item: any) => ({
+          id: item.Id || item.id,
+          productId: item.ProductId || item.productId,
+          productName: item.ProductName || item.productName,
+          productImage: item.ProductImage || item.productImage,
+          quantity: item.Quantity || item.quantity,
+          unitPrice: item.UnitPrice || item.unitPrice,
+          totalPrice: item.TotalPrice || item.totalPrice,
+          notes: item.Notes || item.notes,
+          taxType: item.TaxType || item.taxType || 'standard',
+          taxRate: item.TaxRate || item.taxRate || 0.20
+        })),
+        totalItems: response.TotalItems || response.totalItems || 0,
+        subtotal: response.Subtotal || response.subtotal || 0,
+        totalTax: response.TotalTax || response.totalTax || 0,
+        grandTotal: response.GrandTotal || response.grandTotal || 0
+      };
+      
+      console.log('📦 Mapped Cart:', {
+        cartId: mappedCart.cartId,
+        tableNumber: mappedCart.tableNumber,
+        status: mappedCart.status,
+        itemsCount: mappedCart.items?.length ?? 0,
+        items: mappedCart.items?.map(item => ({
           id: item.id,
           productId: item.productId,
           productName: item.productName,
@@ -132,16 +171,16 @@ export class CartService {
           unitPrice: item.unitPrice,
           totalPrice: item.totalPrice
         })) ?? [],
-        subtotal: response.subtotal,
-        totalTax: response.totalTax,
-        grandTotal: response.grandTotal
+        subtotal: mappedCart.subtotal,
+        totalTax: mappedCart.totalTax,
+        grandTotal: mappedCart.grandTotal
       });
       
       // Masa bazlı sepet ID'sini sakla
-      this.tableCarts.set(tableNumber, response.cartId);
+      this.tableCarts.set(tableNumber, mappedCart.cartId);
       
-      console.log('✅ Masa', tableNumber, 'sepeti başarıyla getirildi:', response.cartId);
-      return response;
+      console.log('✅ Masa', tableNumber, 'sepeti başarıyla getirildi:', mappedCart.cartId);
+      return mappedCart;
     } catch (error) {
       console.error('❌ Masa', tableNumber, 'sepeti getirme hatası:', error);
       throw new Error('Sepet getirilemedi');
@@ -203,13 +242,41 @@ export class CartService {
 
     try {
       console.log('🛒 Sepete ürün ekleniyor:', request);
-      const response = await apiClient.post<{ message: string; cart: Cart }>('/cart/add-item', request);
+      const response = await apiClient.post<{ message: string; cart: any }>('/cart/add-item', request);
+      
+      // Backend response'unu frontend interface'ine uygun hale getir
+      const mappedCart: Cart = {
+        cartId: response.cart.CartId || response.cart.cartId,
+        tableNumber: response.cart.TableNumber || response.cart.tableNumber,
+        waiterName: response.cart.WaiterName || response.cart.waiterName,
+        customerId: response.cart.CustomerId || response.cart.customerId,
+        notes: response.cart.Notes || response.cart.notes,
+        status: response.cart.Status?.toString() || response.cart.status?.toString() || 'active',
+        createdAt: response.cart.CreatedAt || response.cart.createdAt,
+        expiresAt: response.cart.ExpiresAt || response.cart.expiresAt,
+        items: (response.cart.Items || response.cart.items || []).map((item: any) => ({
+          id: item.Id || item.id,
+          productId: item.ProductId || item.productId,
+          productName: item.ProductName || item.productName,
+          productImage: item.ProductImage || item.productImage,
+          quantity: item.Quantity || item.quantity,
+          unitPrice: item.UnitPrice || item.unitPrice,
+          totalPrice: item.TotalPrice || item.totalPrice,
+          notes: item.Notes || item.notes,
+          taxType: item.TaxType || item.taxType || 'standard',
+          taxRate: item.TaxRate || item.taxRate || 0.20
+        })),
+        totalItems: response.cart.TotalItems || response.cart.totalItems || 0,
+        subtotal: response.cart.Subtotal || response.cart.subtotal || 0,
+        totalTax: response.cart.TotalTax || response.cart.totalTax || 0,
+        grandTotal: response.cart.GrandTotal || response.cart.grandTotal || 0
+      };
       
       // Masa bazlı sepet ID'sini güncelle
-      this.tableCarts.set(request.tableNumber, response.cart.cartId);
+      this.tableCarts.set(request.tableNumber, mappedCart.cartId);
       
-      console.log('✅ Ürün başarıyla sepete eklendi');
-      return response;
+      console.log('✅ Ürün başarıyla sepete eklendi, mapped cart:', mappedCart);
+      return { message: response.message, cart: mappedCart };
     } catch (error) {
       console.error('❌ Ürün ekleme hatası:', error);
       throw new Error('Ürün sepete eklenemedi');

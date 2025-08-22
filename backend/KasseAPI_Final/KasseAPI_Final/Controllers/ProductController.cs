@@ -9,9 +9,9 @@ using KasseAPI_Final.Data.Repositories;
 namespace KasseAPI_Final.Controllers
 {
     /// <summary>
-    /// Ürün yönetimi için controller
+    /// Ürün yönetimi için controller - RKSV uyumlu ürün işlemleri
     /// </summary>
-    [Route("api/[controller]")]
+    [Route("api/products")]
     [ApiController]
     [Authorize]
     public class ProductController : EntityController<Product>
@@ -28,27 +28,142 @@ namespace KasseAPI_Final.Controllers
             _productRepository = productRepository;
         }
 
-        /// <summary>
-        /// Barkod'a göre ürün getir
-        /// </summary>
-        [HttpGet("barcode/{barcode}")]
-        public async Task<IActionResult> GetByBarcode(string barcode)
+            /// <summary>
+    /// Tüm aktif ürünleri getir (sayfalama ile)
+    /// </summary>
+    [HttpGet]
+    public override async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
         {
             try
             {
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.Barcode == barcode && p.IsActive);
-
-                if (product == null)
+                var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
+                
+                var query = _context.Products.Where(p => p.IsActive);
+                var totalCount = await query.CountAsync();
+                
+                var products = await query
+                    .OrderBy(p => p.Category)
+                    .ThenBy(p => p.Name)
+                    .Skip((validPageNumber - 1) * validPageSize)
+                    .Take(validPageSize)
+                    .ToListAsync();
+                
+                var response = new
                 {
-                    return ErrorResponse($"Product with barcode {barcode} not found", 404);
-                }
+                    items = products,
+                    pagination = new
+                    {
+                        pageNumber = validPageNumber,
+                        pageSize = validPageSize,
+                        totalCount = totalCount,
+                        totalPages = (int)Math.Ceiling((double)totalCount / validPageSize)
+                    }
+                };
 
-                return SuccessResponse(product, "Product retrieved successfully");
+                // İngilizce teknik log
+                _logger.LogInformation($"Retrieved {products.Count} active products from page {validPageNumber}");
+                
+                return SuccessResponse(response, $"Retrieved {products.Count} active products");
             }
             catch (Exception ex)
             {
-                return HandleException(ex, $"GetByBarcode with barcode {barcode}");
+                return HandleException(ex, "GetAll");
+            }
+        }
+
+        /// <summary>
+        /// Tüm aktif ürünleri tek çağrıda getir (sayfalama yok)
+        /// </summary>
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllWithoutPagination()
+        {
+            try
+            {
+                var products = await _context.Products
+                    .Where(p => p.IsActive)
+                    .OrderBy(p => p.Category)
+                    .ThenBy(p => p.Name)
+                    .ToListAsync();
+
+                _logger.LogInformation($"Retrieved {products.Count} active products without pagination");
+                return SuccessResponse(products, $"Retrieved {products.Count} active products");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "GetAllWithoutPagination");
+            }
+        }
+
+        /// <summary>
+        /// Ana sayfa için tüm aktif ürünleri getir (kategori bazlı gruplandırılmış)
+        /// </summary>
+        [HttpGet("active")]
+        public async Task<IActionResult> GetAllActiveProducts()
+        {
+            try
+            {
+                var products = await _context.Products
+                    .Where(p => p.IsActive)
+                    .OrderBy(p => p.Category)
+                    .ThenBy(p => p.Name)
+                    .ToListAsync();
+
+                // Kategori bazlı gruplandırma
+                var groupedProducts = products
+                    .GroupBy(p => p.Category)
+                    .Select(g => new
+                    {
+                        Category = g.Key,
+                        Products = g.Select(p => new
+                        {
+                            p.Id,
+                            p.Name,
+                            p.Description,
+                            p.Price,
+                            p.ImageUrl,
+                            p.StockQuantity,
+                            p.TaxType,
+                            p.TaxRate,
+                            p.IsActive
+                        }).ToList()
+                    })
+                    .OrderBy(g => g.Category)
+                    .ToList();
+
+                // İngilizce teknik log
+                _logger.LogInformation($"Retrieved {products.Count} active products grouped by {groupedProducts.Count} categories");
+                
+                return SuccessResponse(groupedProducts, $"Retrieved {products.Count} active products grouped by {groupedProducts.Count} categories");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "GetAllActiveProducts");
+            }
+        }
+
+        /// <summary>
+        /// Tüm kategorileri getir
+        /// </summary>
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetAllCategories()
+        {
+            try
+            {
+                var categories = await _context.Products
+                    .Where(p => p.IsActive)
+                    .Select(p => p.Category)
+                    .Distinct()
+                    .OrderBy(c => c)
+                    .ToListAsync();
+
+                // İngilizce teknik log
+                _logger.LogInformation($"Retrieved {categories.Count} unique categories");
+                
+                return SuccessResponse(categories, $"Retrieved {categories.Count} categories");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "GetAllCategories");
             }
         }
 
@@ -56,20 +171,39 @@ namespace KasseAPI_Final.Controllers
         /// Kategoriye göre ürünleri getir
         /// </summary>
         [HttpGet("category/{categoryName}")]
-        public async Task<IActionResult> GetByCategory(string categoryName)
+        public async Task<IActionResult> GetProductsByCategory(string categoryName)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(categoryName))
+                {
+                    return ErrorResponse("Category name cannot be empty", 400);
+                }
+
                 var products = await _context.Products
                     .Where(p => p.Category == categoryName && p.IsActive)
                     .OrderBy(p => p.Name)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.Name,
+                        p.Description,
+                        p.Price,
+                        p.ImageUrl,
+                        p.StockQuantity,
+                        p.TaxType,
+                        p.TaxRate,
+                        p.IsActive,
+                        p.Category
+                    })
                     .ToListAsync();
 
-                return SuccessResponse(products, $"Retrieved {products.Count} products in category {categoryName}");
+                _logger.LogInformation($"Retrieved {products.Count} products for category: {categoryName}");
+                return SuccessResponse(products, $"Retrieved {products.Count} products for category {categoryName}");
             }
             catch (Exception ex)
             {
-                return HandleException(ex, $"GetByCategory with category name {categoryName}");
+                return HandleException(ex, "GetProductsByCategory");
             }
         }
 
@@ -77,150 +211,46 @@ namespace KasseAPI_Final.Controllers
         /// Stok durumuna göre ürünleri getir
         /// </summary>
         [HttpGet("stock/{status}")]
-        public async Task<IActionResult> GetByStockStatus(string status)
+        public async Task<IActionResult> GetProductsByStockStatus(string status)
         {
             try
             {
-                var products = status.ToLower() switch
+                var products = status switch
                 {
                     "in-stock" => await _context.Products
-                        .Where(p => p.StockQuantity > 0 && p.IsActive)
+                        .Where(p => p.StockQuantity > p.MinStockLevel && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
+                    
                     "out-of-stock" => await _context.Products
-                        .Where(p => p.StockQuantity <= 0 && p.IsActive)
+                        .Where(p => p.StockQuantity == 0 && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
+                    
                     "low-stock" => await _context.Products
-                        .Where(p => p.StockQuantity > 0 && p.StockQuantity <= p.MinStockLevel && p.IsActive)
+                        .Where(p => p.StockQuantity <= p.MinStockLevel && p.StockQuantity > 0 && p.IsActive)
                         .OrderBy(p => p.Name)
                         .ToListAsync(),
-                    _ => new List<Product>()
+                    
+                    _ => throw new ArgumentException("Invalid stock status. Use: in-stock, out-of-stock, or low-stock")
                 };
 
-                return SuccessResponse(products, $"Retrieved {products.Count} products with stock status: {status}");
+                _logger.LogInformation($"Retrieved {products.Count} products with stock status: {status}");
+                return SuccessResponse(products, $"Retrieved {products.Count} products with {status} status");
             }
             catch (Exception ex)
             {
-                return HandleException(ex, $"GetByStockStatus with status {status}");
+                return HandleException(ex, "GetProductsByStockStatus");
             }
         }
 
         /// <summary>
-        /// Ürün oluştur (özel validation ile)
-        /// </summary>
-        [HttpPost]
-        public override async Task<IActionResult> Create([FromBody] Product product)
-        {
-            try
-            {
-                var validationResult = ValidateModel();
-                if (validationResult != null)
-                {
-                    return validationResult;
-                }
-
-                // Özel validation
-                var validationErrors = await ValidateProductAsync(product);
-                if (validationErrors.Any())
-                {
-                    return ErrorResponse("Validation failed", 400, validationErrors);
-                }
-
-                var createdProduct = await _productRepository.AddAsync(product);
-                
-                return CreatedAtAction(nameof(GetById), new { id = createdProduct.Id }, 
-                    SuccessResponse(createdProduct, "Product created successfully"));
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex, "Create Product");
-            }
-        }
-
-        /// <summary>
-        /// Ürün güncelle (özel validation ile)
-        /// </summary>
-        [HttpPut("{id}")]
-        public override async Task<IActionResult> Update(Guid id, [FromBody] Product product)
-        {
-            try
-            {
-                var validationResult = ValidateModel();
-                if (validationResult != null)
-                {
-                    return validationResult;
-                }
-
-                if (id != product.Id)
-                {
-                    return ErrorResponse("ID mismatch between URL and request body", 400);
-                }
-
-                // Özel validation
-                var validationErrors = await ValidateProductAsync(product, id);
-                if (validationErrors.Any())
-                {
-                    return ErrorResponse("Validation failed", 400, validationErrors);
-                }
-
-                var updatedProduct = await _productRepository.UpdateAsync(product);
-                
-                return SuccessResponse(updatedProduct, "Product updated successfully");
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex, $"Update Product with ID {id}");
-            }
-        }
-
-        /// <summary>
-        /// Ürün validation
-        /// </summary>
-        private async Task<List<string>> ValidateProductAsync(Product product, Guid? excludeId = null)
-        {
-            var errors = new List<string>();
-
-            // Fiyat kontrolü
-            if (product.Price < 0)
-            {
-                errors.Add("Price cannot be negative");
-            }
-
-            // Stok miktarı kontrolü
-            if (product.StockQuantity < 0)
-            {
-                errors.Add("Stock quantity cannot be negative");
-            }
-
-            // Barkod benzersizlik kontrolü
-            if (!string.IsNullOrEmpty(product.Barcode))
-            {
-                var existingProduct = await _context.Products
-                    .FirstOrDefaultAsync(p => p.Barcode == product.Barcode && 
-                                            p.IsActive && 
-                                            p.Id != excludeId);
-                
-                if (existingProduct != null)
-                {
-                    errors.Add("This barcode is already in use");
-                }
-            }
-
-            // Ürün adı kontrolü
-            if (string.IsNullOrWhiteSpace(product.Name))
-            {
-                errors.Add("Product name is required");
-            }
-
-            return errors;
-        }
-
-        /// <summary>
-        /// Ürün arama
+        /// Ürün arama (çoklu kriter ile)
         /// </summary>
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string? name, [FromQuery] string? barcode, [FromQuery] string? category)
+        public async Task<IActionResult> SearchProducts(
+            [FromQuery] string? name,
+            [FromQuery] string? category)
         {
             try
             {
@@ -228,61 +258,227 @@ namespace KasseAPI_Final.Controllers
 
                 if (!string.IsNullOrWhiteSpace(name))
                 {
-                    query = query.Where(p => p.Name.Contains(name));
-                }
-
-                if (!string.IsNullOrWhiteSpace(barcode))
-                {
-                    query = query.Where(p => p.Barcode != null && p.Barcode.Contains(barcode));
+                    query = query.Where(p => p.Name.ToLower().Contains(name.ToLower()));
                 }
 
                 if (!string.IsNullOrWhiteSpace(category))
                 {
-                    query = query.Where(p => p.Category.Contains(category));
+                    query = query.Where(p => p.Category.ToLower().Contains(category.ToLower()));
                 }
 
-                var products = await query
-                    .OrderBy(p => p.Name)
-                    .ToListAsync();
+                var products = await query.OrderBy(p => p.Name).ToListAsync();
 
+                _logger.LogInformation($"Search completed. Found {products.Count} products matching criteria");
                 return SuccessResponse(products, $"Found {products.Count} products matching search criteria");
             }
             catch (Exception ex)
             {
-                return HandleException(ex, "Search Products");
+                return HandleException(ex, "SearchProducts");
             }
         }
 
         /// <summary>
-        /// Stok güncelle
+        /// Yeni ürün oluştur
         /// </summary>
-        [HttpPut("{id}/stock")]
-        public async Task<IActionResult> UpdateStock(Guid id, [FromBody] UpdateStockRequest request)
+        [HttpPost("create")]
+        public override async Task<IActionResult> Create([FromBody] Product product)
         {
             try
             {
-                var product = await _productRepository.GetByIdAsync(id);
-                if (product == null)
+                if (!ModelState.IsValid)
                 {
-                    return ErrorResponse($"Product with ID {id} not found", 404);
+                    return ErrorResponse("Invalid product data", 400);
                 }
 
+                // RKSV validasyonu
+                var validationResult = await ValidateProductForRKSVAsync(product);
+                if (!validationResult.IsValid)
+                {
+                    return ErrorResponse(validationResult.ErrorMessage, 400);
+                }
+
+                // Audit alanları
+                product.CreatedAt = DateTime.UtcNow;
+                product.UpdatedAt = DateTime.UtcNow;
+                product.CreatedBy = User.Identity?.Name ?? "system";
+                product.UpdatedBy = User.Identity?.Name ?? "system";
+                product.IsActive = true;
+
+                var createdProduct = await _productRepository.AddAsync(product);
+
+                _logger.LogInformation($"Product created successfully: {product.Name} (ID: {createdProduct.Id})");
+                return SuccessResponse(createdProduct, "Product created successfully");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "Create");
+            }
+        }
+
+        /// <summary>
+        /// Ürün güncelle
+        /// </summary>
+        [HttpPut("update/{id}")]
+        public override async Task<IActionResult> Update(Guid id, [FromBody] Product product)
+        {
+            try
+            {
+                if (id != product.Id)
+                {
+                    return ErrorResponse("ID mismatch", 400);
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return ErrorResponse("Invalid product data", 400);
+                }
+
+                // RKSV validasyonu
+                var validationResult = await ValidateProductForRKSVAsync(product);
+                if (!validationResult.IsValid)
+                {
+                    return ErrorResponse(validationResult.ErrorMessage, 400);
+                }
+
+                var existingProduct = await _productRepository.GetByIdAsync(id);
+                if (existingProduct == null)
+                {
+                    return ErrorResponse("Product not found", 404);
+                }
+
+                // Audit alanları
+                product.UpdatedAt = DateTime.UtcNow;
+                product.UpdatedBy = User.Identity?.Name ?? "system";
+                product.CreatedAt = existingProduct.CreatedAt;
+                product.CreatedBy = existingProduct.CreatedBy;
+
+                var updatedProduct = await _productRepository.UpdateAsync(product);
+
+                _logger.LogInformation($"Product updated successfully: {product.Name} (ID: {id})");
+                return SuccessResponse(updatedProduct, "Product updated successfully");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "Update");
+            }
+        }
+
+        /// <summary>
+        /// Ürün stok güncelle
+        /// </summary>
+        [HttpPut("stock/{id}")]
+        public async Task<IActionResult> UpdateProductStock(Guid id, [FromBody] UpdateStockRequest request)
+        {
+            try
+            {
                 if (request.Quantity < 0)
                 {
                     return ErrorResponse("Stock quantity cannot be negative", 400);
                 }
 
-                product.StockQuantity = request.Quantity;
-                product.UpdatedAt = DateTime.UtcNow;
+                var product = await _productRepository.GetByIdAsync(id);
+                if (product == null)
+                {
+                    return ErrorResponse("Product not found", 404);
+                }
 
-                var updatedProduct = await _productRepository.UpdateAsync(product);
-                
-                return SuccessResponse(updatedProduct, "Stock updated successfully");
+                // Transaction kullanarak stok güncelle
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var oldStock = product.StockQuantity;
+                    product.StockQuantity = request.Quantity;
+                    product.UpdatedAt = DateTime.UtcNow;
+                    product.UpdatedBy = User.Identity?.Name ?? "system";
+
+                    var updatedProduct = await _productRepository.UpdateAsync(product);
+
+                    await transaction.CommitAsync();
+
+                    _logger.LogInformation($"Product stock updated: {product.Name} (ID: {id}) - Old: {oldStock}, New: {request.Quantity}");
+                    return SuccessResponse(updatedProduct, "Product stock updated successfully");
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
             catch (Exception ex)
             {
-                return HandleException(ex, $"UpdateStock for Product with ID {id}");
+                return HandleException(ex, "UpdateProductStock");
             }
+        }
+
+        /// <summary>
+        /// RKSV uyumlu ürün validasyonu
+        /// </summary>
+        private async Task<ValidationResult> ValidateProductForRKSVAsync(Product product)
+        {
+            // Fiyat kontrolü
+            if (product.Price <= 0)
+            {
+                return ValidationResult.Error("Price must be greater than zero");
+            }
+
+            // Stok kontrolü
+            if (product.StockQuantity < 0)
+            {
+                return ValidationResult.Error("Stock quantity cannot be negative");
+            }
+
+            // Minimum stok seviyesi kontrolü
+            if (product.MinStockLevel < 0)
+            {
+                return ValidationResult.Error("Minimum stock level cannot be negative");
+            }
+
+            // Kategori kontrolü
+            if (string.IsNullOrWhiteSpace(product.Category))
+            {
+                return ValidationResult.Error("Category is required");
+            }
+
+            // Vergi tipi kontrolü
+            if (!TaxTypes.All.Contains(product.TaxType))
+            {
+                return ValidationResult.Error($"Tax type must be one of: {string.Join(", ", TaxTypes.All)}");
+            }
+
+            // RKSV Compliance Validations
+            if (!product.IsFiscalCompliant)
+            {
+                return ValidationResult.Error("Product must be fiscally compliant for RKSV standards");
+            }
+
+            if (!product.IsTaxable && string.IsNullOrWhiteSpace(product.TaxExemptionReason))
+            {
+                return ValidationResult.Error("Tax exemption reason is required for non-taxable products");
+            }
+
+            if (!RksvProductTypes.IsValidRksvType(product.RksvProductType))
+            {
+                return ValidationResult.Error($"RKSV product type must be one of: {string.Join(", ", RksvProductTypes.All)}");
+            }
+
+            // Austrian VAT Rate Validation
+            var expectedTaxRate = TaxTypes.GetTaxRate(product.TaxType);
+            if (product.TaxRate != expectedTaxRate)
+            {
+                return ValidationResult.Error($"Tax rate mismatch: Expected {expectedTaxRate}% for {product.TaxType} tax type");
+            }
+
+            return ValidationResult.Success();
+        }
+
+        /// <summary>
+        /// Sayfalama validasyonu
+        /// </summary>
+        private (int pageNumber, int pageSize) ValidatePagination(int pageNumber, int pageSize)
+        {
+            var validPageNumber = Math.Max(1, pageNumber);
+            var validPageSize = Math.Clamp(pageSize, 1, 100);
+            return (validPageNumber, validPageSize);
         }
     }
 
@@ -292,5 +488,23 @@ namespace KasseAPI_Final.Controllers
     public class UpdateStockRequest
     {
         public int Quantity { get; set; }
+    }
+
+    /// <summary>
+    /// Validasyon sonucu
+    /// </summary>
+    public class ValidationResult
+    {
+        public bool IsValid { get; private set; }
+        public string? ErrorMessage { get; private set; }
+
+        private ValidationResult(bool isValid, string? errorMessage = null)
+        {
+            IsValid = isValid;
+            ErrorMessage = errorMessage;
+        }
+
+        public static ValidationResult Success() => new(true);
+        public static ValidationResult Error(string message) => new(false, message);
     }
 }

@@ -40,9 +40,9 @@ namespace KasseAPI_Final
                 Console.WriteLine($"- Ürünler: {productCount}");
                 
                 // Vergi gruplarına göre ürün sayıları
-                var standardTaxCount = await context.Products.CountAsync(p => p.TaxType == TaxType.Standard);
-                var reducedTaxCount = await context.Products.CountAsync(p => p.TaxType == TaxType.Reduced);
-                var specialTaxCount = await context.Products.CountAsync(p => p.TaxType == TaxType.Special);
+                var standardTaxCount = await context.Products.CountAsync(p => p.TaxType == "Standard");
+                var reducedTaxCount = await context.Products.CountAsync(p => p.TaxType == "Reduced");
+                var specialTaxCount = await context.Products.CountAsync(p => p.TaxType == "Special");
                 
                 Console.WriteLine($"\nVergi grupları:");
                 Console.WriteLine($"- Standard (20%): {standardTaxCount} ürün");

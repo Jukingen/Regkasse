@@ -16,7 +16,14 @@
     "yes": "Evet",
     "no": "Hayır",
     "step": "Adım",
-    "ok": "Tamam"
+    "ok": "Tamam",
+    "retry": "Tekrar Dene",
+    "errorLoadingProducts": "Ürünler yüklenemedi",
+    "loadingMore": "Daha fazla yükleniyor...",
+    "noSearchResults": "Arama sonucu bulunamadı",
+    "noProductsFound": "Ürün bulunamadı",
+    "page": "Sayfa",
+    "products": "ürün"
   },
   "loading": {
     "roleLoading": "Rol yükleniyor..."
@@ -26,7 +33,7 @@
     "products": "Ürünler",
     "cart": "Sepet",
     "customers": "Müşteriler",
-    "barcode": "Barkod Tarayıcı",
+
     "tables": "Masalar",
     "users": "Kullanıcı Yönetimi",
     "roles": "Rol Yönetimi",
@@ -104,7 +111,23 @@
   "tax": {
     "standard": "Standart",
     "reduced": "İndirimli",
-    "special": "Özel"
+    "special": "Özel",
+    "exempt": "Muaf"
+  },
+  "taxType": {
+    "standard": "Standart (20%)",
+    "reduced": "İndirimli (10%)",
+    "special": "Özel (13%)",
+    "exempt": "Muaf (0%)"
+  },
+  "rksv": {
+    "compliant": "RKSV Uyumlu",
+    "nonCompliant": "RKSV Uyumsuz",
+    "productType": "RKSV Ürün Tipi",
+    "fiscalCode": "Vergi Kodu",
+    "exemptionReason": "Muafiyet Nedeni",
+    "taxable": "Vergiye Tabi",
+    "nonTaxable": "Vergiye Tabi Değil"
   },
   "auth": {
     "login": "Giriş Yap",
@@ -293,7 +316,7 @@
     "editProduct": "Ürün Düzenle",
     "deleteProduct": "Ürün Sil",
     "category": "Kategori",
-    "barcode": "Barkod",
+
     "supplier": "Tedarikçi",
     "reorderLevel": "Yeniden Sipariş Seviyesi",
     "currentStock": "Mevcut Stok"

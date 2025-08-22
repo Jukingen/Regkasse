@@ -79,13 +79,13 @@ class ProductService {
 
   // Yeni ürün oluştur
   async createProduct(data: CreateProductRequest): Promise<Product> {
-    const response = await apiClient.post('/products', data);
+    const response = await apiClient.post('/products/create', data);
     return response.data;
   }
 
   // Ürün güncelle
   async updateProduct(id: string, data: UpdateProductRequest): Promise<Product> {
-    const response = await apiClient.put(`/products/${id}`, data);
+    const response = await apiClient.put(`/products/update/${id}`, data);
     return response.data;
   }
 
@@ -119,7 +119,7 @@ class ProductService {
 
   // Kategoriye göre ürünler
   async getProductsByCategory(category: string): Promise<Product[]> {
-    const response = await apiClient.get(`/products/by-category/${encodeURIComponent(category)}`);
+    const response = await apiClient.get(`/products/category/${encodeURIComponent(category)}`);
     return response.data;
   }
 
@@ -137,9 +137,8 @@ class ProductService {
 
   // Stok güncelle
   async updateStock(id: string, newQuantity: number): Promise<Product> {
-    const product = await this.getProduct(id);
-    const updatedProduct = { ...product, stockQuantity: newQuantity };
-    return this.updateProduct(id, updatedProduct);
+    const response = await apiClient.put(`/products/stock/${id}`, { quantity: newQuantity });
+    return response.data;
   }
 
   // İstatistikler

@@ -29,7 +29,7 @@ namespace KasseAPI_Final.Models
         public string? Notes { get; set; }
 
         // Navigation properties
-        public virtual Product Product { get; set; } = null!;
+        // Product navigation property removed to prevent shadow property conflicts
         public virtual ICollection<InventoryTransaction> Transactions { get; set; } = new List<InventoryTransaction>();
     }
 }

@@ -1,9 +1,11 @@
-import { useState, useCallback, useContext } from 'react';
+import { useState, useCallback } from 'react';
+
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from './useCart';
 import { usePaymentMethods } from './usePaymentMethods';
+
 import { cartService } from '../services/api/cartService';
-import { API_BASE_URL } from '../config'; // Config'den API URL'ini al
+import { apiClient } from '../services/api/config'; // ✅ YENİ: apiClient import edildi
 
 // English Description: Simple and reliable hook for cash register operations. Only works with backend, does not use local storage.
 
@@ -44,8 +46,8 @@ export const useCashRegister = () => {
   const { 
     getCartForTable, 
     clearCart, 
-    updateCartItem, 
     removeFromCart, 
+    updateItemQuantity: updateCartItemQuantity,
     loadCartForTable: loadCartFromHook 
   } = useCart();
   const { paymentMethods, getPaymentMethod } = usePaymentMethods(user);
@@ -125,44 +127,24 @@ export const useCashRegister = () => {
       // Step 1: Initiate payment (/api/Payment/initiate)
       addToast('info', 'Initiating payment session...', 2000);
       
-      const initiateResponse = await fetch(`${API_BASE_URL}/Payment/initiate`, { // Absolute URL kullan
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${user.token}`, // Token zaten Bearer prefix olmadan, burada ekliyoruz
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          cartId: paymentData.cartId,
-          totalAmount: paymentData.totalAmount,
-          paymentMethod: paymentData.paymentMethod,
-          customerId: paymentData.customerId,
-          customerName: paymentData.customerName,
-          customerEmail: paymentData.customerEmail,
-          customerPhone: paymentData.customerPhone,
-          notes: paymentData.notes,
-          tseRequired: paymentData.tseRequired,
-          taxNumber: paymentData.taxNumber,
-          tableNumber: paymentData.tableNumber // Masa numarası eklendi
-        })
+      // ✅ YENİ: apiClient kullanımı - token management otomatik
+      const initiateResult = await apiClient.post<any>('/Payment/initiate', {
+        cartId: paymentData.cartId,
+        totalAmount: paymentData.totalAmount,
+        paymentMethod: paymentData.paymentMethod,
+        customerId: paymentData.customerId,
+        customerName: paymentData.customerName,
+        customerEmail: paymentData.customerEmail,
+        customerPhone: paymentData.customerPhone,
+        notes: paymentData.notes,
+        tseRequired: paymentData.tseRequired,
+        taxNumber: paymentData.taxNumber,
+        tableNumber: paymentData.tableNumber // Masa numarası eklendi
       });
 
-      if (!initiateResponse.ok) {
-        let errorMessage = 'Payment could not be initiated';
-        try {
-          const errorData = await initiateResponse.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          // If response is not JSON, use default message
-        }
-        
-        addToast('error', errorMessage);
-        setError(errorMessage);
-        return { success: false, message: errorMessage };
-      }
-
-      const initiateResult = await initiateResponse.json();
-      if (!initiateResult.success) {
-        const errorMessage = initiateResult.message || 'Payment could not be initiated';
+      // ✅ YENİ: apiClient hata yönetimi otomatik, sadace success kontrolü
+      if (!initiateResult || !initiateResult.success) {
+        const errorMessage = initiateResult?.message || 'Payment could not be initiated';
         addToast('error', errorMessage);
         setError(errorMessage);
         return { success: false, message: errorMessage };
@@ -174,36 +156,16 @@ export const useCashRegister = () => {
       // Step 2: Confirm payment (/api/Payment/confirm)
       addToast('info', 'Confirming payment...', 2000);
       
-      const confirmResponse = await fetch(`${API_BASE_URL}/Payment/confirm`, { // Absolute URL kullan
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${user.token}`, // Token zaten Bearer prefix olmadan, burada ekliyoruz
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          paymentSessionId: initiateResult.paymentSessionId,
-          transactionReference: `TXN-${Date.now()}`,
-          transactionId: `TID-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          tseSignature: paymentData.tseRequired ? `TSE-${Date.now()}` : null,
-          tableNumber: paymentData.tableNumber // Masa numarası eklendi
-        })
+      // ✅ YENİ: apiClient kullanımı - token management otomatik
+      const confirmResult = await apiClient.post<any>('/Payment/confirm', {
+        paymentSessionId: initiateResult.paymentSessionId,
+        transactionReference: `TXN-${Date.now()}`,
+        transactionId: `TID-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        tseSignature: paymentData.tseRequired ? `TSE-${Date.now()}` : null,
+        tableNumber: paymentData.tableNumber // Masa numarası eklendi
       });
 
-      if (!confirmResponse.ok) {
-        let errorMessage = 'Payment could not be completed';
-        try {
-          const errorData = await confirmResponse.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          // If response is not JSON, use default message
-        }
-        
-        addToast('error', errorMessage);
-        setError(errorMessage);
-        return { success: false, message: errorMessage };
-      }
-
-      const confirmResult = await confirmResponse.json();
+      // ✅ YENİ: apiClient kullanımı - hata yönetimi basitleşti
       if (confirmResult.success) {
         const successMessage = `Payment completed successfully! Invoice: ${confirmResult.invoiceNumber}`;
         addToast('success', successMessage, 8000);
@@ -297,13 +259,14 @@ export const useCashRegister = () => {
     }
 
     if (quantity <= 0) {
-      removeFromCart(itemId, tableNumber);
+      removeFromCart(tableNumber, itemId); // ✅ YENİ: Doğru parameter sırası
       addToast('info', 'Item removed from cart', 2000);
     } else {
-      updateCartItem(itemId, quantity, tableNumber);
+      // ✅ YENİ: useCart'dan updateItemQuantity kullan (parameter sırası: tableNumber, itemId, quantity)
+      updateCartItemQuantity(tableNumber, itemId, quantity);
       addToast('success', 'Cart updated successfully', 2000);
     }
-  }, [removeFromCart, updateCartItem, addToast]);
+  }, [removeFromCart, updateCartItemQuantity, addToast]);
 
   // Remove item from cart for specific table
   const removeItem = useCallback((itemId: string, tableNumber: number) => {
@@ -313,12 +276,12 @@ export const useCashRegister = () => {
       return;
     }
 
-    removeFromCart(itemId, tableNumber);
+    removeFromCart(tableNumber, itemId); // ✅ YENİ: Doğru parameter sırası
     addToast('info', 'Item removed from cart', 2000);
   }, [removeFromCart, addToast]);
 
   // Clear current cart for specific table
-  const clearCurrentCart = useCallback(async (tableNumber: number) => {
+  const clearCurrentCart = useCallback(async (tableNumber: number): Promise<{ success: boolean; message: string }> => {
     console.log('🧹 clearCurrentCart called with tableNumber:', tableNumber);
     console.log('🔍 clearCart function type:', typeof clearCart);
     console.log('🔍 clearCart function:', clearCart);
@@ -326,18 +289,25 @@ export const useCashRegister = () => {
     if (!tableNumber) {
       console.error('❌ Table number is required for clearing cart');
       addToast('error', 'Table number is required');
-      return;
+      return { success: false, message: 'Table number is required' };
     }
 
     try {
       console.log('🚀 About to call clearCart for table:', tableNumber);
-      await clearCart(tableNumber);
+      const result = await clearCart(tableNumber);
       console.log('✅ clearCart API call completed for table:', tableNumber);
       setActiveTableNumber(null);
-      // Success toast kaldırıldı - sessiz temizleme
+      
+      if (result && result.success) {
+        return { success: true, message: 'Cart cleared successfully' };
+      } else {
+        return { success: false, message: result?.message || 'Failed to clear cart' };
+      }
     } catch (error) {
       console.error('❌ Error clearing cart:', error);
-      addToast('error', 'Failed to clear cart', 3000);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to clear cart';
+      addToast('error', errorMessage, 3000);
+      return { success: false, message: errorMessage };
     }
   }, [clearCart, addToast]);
 

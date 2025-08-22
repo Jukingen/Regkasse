@@ -1,31 +1,35 @@
-import { useFetch } from './useFetch';
+// ❌ DEPRECATED: useFetch kaldırıldı - useApiManager kullanın
+// import { useFetch } from './useFetch';
 import { apiClient, API_BASE_URL } from './config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export function useInvoices(params?: any) {
-  let url = '/api/invoices';
-  if (params) {
-    const queryParams = new URLSearchParams(params);
-    url += `?${queryParams.toString()}`;
-  }
-  return useFetch<any[]>(url);
-}
+// ❌ DEPRECATED: Bu hook'lar artık kullanılmamalı
+// ✅ YENİ: useApiManager ile apiClient.get/post/put/delete kullanın
 
-export function useInvoice(id: string) {
-  return useFetch<any>(`/api/invoices/${id}`);
-}
+// export function useInvoices(params?: any) {
+//   let url = '/api/invoices';
+//   if (params) {
+//     const queryParams = new URLSearchParams(params);
+//     url += `?${queryParams.toString()}`;
+//   }
+//   return useFetch<any[]>(url);
+// }
 
-export function useCreateInvoice() {
-  return useFetch<any>('/api/invoices', { method: 'POST' });
-}
+// export function useInvoice(id: string) {
+//   return useFetch<any>(`/api/invoices/${id}`);
+// }
 
-export function useUpdateInvoice(id: string) {
-  return useFetch<any>(`/api/invoices/${id}`, { method: 'PUT' });
-}
+// export function useCreateInvoice() {
+//   return useFetch<any>('/api/invoices', { method: 'POST' });
+// }
 
-export function useDeleteInvoice(id: string) {
-  return useFetch<any>(`/api/invoices/${id}`, { method: 'DELETE' });
-}
+// export function useUpdateInvoice(id: string) {
+//   return useFetch<any>(`/api/invoices/${id}`, { method: 'PUT' });
+// }
+
+// export function useDeleteInvoice(id: string) {
+//   return useFetch<any>(`/api/invoices/${id}`, { method: 'DELETE' });
+// }
 
 // Tüm faturaları getir
 export const getInvoices = async () => {

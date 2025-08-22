@@ -38,7 +38,7 @@ export default function PaymentModal({
   onClose,
   onSuccess,
   cartItems,
-  customerId,
+  customerId = '00000000-0000-0000-0000-000000000000', // Default Guid formatında
   tableNumber
 }: PaymentModalProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'voucher'>('cash');
@@ -74,6 +74,13 @@ export default function PaymentModal({
         return;
       }
 
+      // Guid formatı validasyonu
+      const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!guidRegex.test(customerId)) {
+        Alert.alert('Hata', 'Geçersiz Müşteri ID formatı (GUID formatında olmalı)');
+        return;
+      }
+
       if (cartItems.length === 0) {
         Alert.alert('Hata', 'Sepet boş');
         return;
@@ -105,9 +112,9 @@ export default function PaymentModal({
         taxType: (item.taxType as 'standard' | 'reduced' | 'special') || 'standard'
       }));
 
-      // Ödeme request'i oluştur - Yeni alanlarla
+      // Ödeme request'i oluştur - Backend'deki CreatePaymentRequest ile uyumlu
       const paymentRequest: PaymentRequest = {
-        customerId,
+        customerId: customerId || '00000000-0000-0000-0000-000000000000', // Guid formatında
         items: paymentItems,
         payment: {
           method: selectedPaymentMethod,
@@ -125,6 +132,9 @@ export default function PaymentModal({
         
         notes: notes || `Masa ${tableNumber} - ${new Date().toLocaleString('de-DE')}`
       };
+
+      // Debug: Request'i logla
+      console.log('🔍 Payment Request:', JSON.stringify(paymentRequest, null, 2));
 
       // Ödeme işlemini gerçekleştir
       const response = await processPayment(paymentRequest);
@@ -193,32 +203,36 @@ export default function PaymentModal({
               </View>
             </View>
 
-            {/* Ödeme Yöntemi */}
+            {/* Ödeme Yöntemleri */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Ödeme Yöntemi</Text>
-              <View style={styles.paymentMethods}>
-                {paymentMethods.map((method) => (
-                  <TouchableOpacity
-                    key={method.id}
-                    style={[
-                      styles.paymentMethod,
-                      selectedPaymentMethod === method.type && styles.selectedPaymentMethod
-                    ]}
-                    onPress={() => setSelectedPaymentMethod(method.type as any)}
-                  >
-                    <Ionicons 
-                      name={method.icon as any} 
-                      size={24} 
-                      color={selectedPaymentMethod === method.type ? '#007AFF' : '#666'} 
-                    />
-                    <Text style={[
-                      styles.paymentMethodText,
-                      selectedPaymentMethod === method.type && styles.selectedPaymentMethodText
-                    ]}>
-                      {method.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.paymentMethodsContainer}>
+                {paymentMethods && paymentMethods.length > 0 ? (
+                  paymentMethods.map((method) => (
+                    <TouchableOpacity
+                      key={method.id}
+                      style={[
+                        styles.paymentMethod,
+                        selectedPaymentMethod === method.type && styles.selectedPaymentMethod
+                      ]}
+                      onPress={() => setSelectedPaymentMethod(method.type as any)}
+                    >
+                      <Ionicons 
+                        name={method.icon as any} 
+                        size={24} 
+                        color={selectedPaymentMethod === method.type ? '#007AFF' : '#666'} 
+                      />
+                      <Text style={[
+                        styles.paymentMethodText,
+                        selectedPaymentMethod === method.type && styles.selectedPaymentMethodText
+                      ]}>
+                        {method.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.loadingText}>Ödeme yöntemleri yükleniyor...</Text>
+                )}
               </View>
             </View>
 
@@ -479,5 +493,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  paymentMethodsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    paddingVertical: 10,
   },
 });

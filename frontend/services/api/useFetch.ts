@@ -1,11 +1,16 @@
 import { useState, useCallback } from 'react';
 
+// ❌ DEPRECATED: Bu hook artık kullanılmamalı
+// ✅ YENİ: useApiManager hook'unu kullanın
+// import { useApiManager } from '../hooks/useApiManager';
+
 export interface FetchOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
   body?: any;
 }
 
+// ❌ DEPRECATED: Direct fetch() kullanımı - apiClient kullanın
 export function useFetch<T = any>(url: string, options?: FetchOptions) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<any>(null);

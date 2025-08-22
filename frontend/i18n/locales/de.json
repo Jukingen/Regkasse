@@ -16,7 +16,14 @@
     "yes": "Ja",
     "no": "Nein",
     "step": "Schritt",
-    "ok": "OK"
+    "ok": "OK",
+    "retry": "Wiederholen",
+    "errorLoadingProducts": "Fehler beim Laden der Produkte",
+    "loadingMore": "Lade mehr...",
+    "noSearchResults": "Keine Suchergebnisse gefunden",
+    "noProductsFound": "Keine Produkte gefunden",
+    "page": "Seite",
+    "products": "Produkte"
   },
   "loading": {
     "roleLoading": "Rolle wird geladen..."
@@ -26,7 +33,7 @@
     "products": "Produkte",
     "cart": "Warenkorb",
     "customers": "Kunden",
-    "barcode": "Barcode-Scanner",
+
     "tables": "Tische",
     "users": "Benutzerverwaltung",
     "roles": "Rollenverwaltung",
@@ -104,7 +111,23 @@
   "tax": {
     "standard": "Standard",
     "reduced": "Ermäßigt",
-    "special": "Spezial"
+    "special": "Spezial",
+    "exempt": "Befreit"
+  },
+  "taxType": {
+    "standard": "Standard (20%)",
+    "reduced": "Ermäßigt (10%)",
+    "special": "Spezial (13%)",
+    "exempt": "Befreit (0%)"
+  },
+  "rksv": {
+    "compliant": "RKSV Konform",
+    "nonCompliant": "RKSV Nicht-konform",
+    "productType": "RKSV Produkttyp",
+    "fiscalCode": "Steuerkode",
+    "exemptionReason": "Befreiungsgrund",
+    "taxable": "Steuerpflichtig",
+    "nonTaxable": "Nicht steuerpflichtig"
   },
   "auth": {
     "login": "Anmelden",
@@ -293,7 +316,7 @@
     "editProduct": "Produkt bearbeiten",
     "deleteProduct": "Produkt löschen",
     "category": "Kategorie",
-    "barcode": "Barcode",
+
     "supplier": "Lieferant",
     "reorderLevel": "Nachbestellungsgrenze",
     "currentStock": "Aktueller Bestand"

@@ -8,23 +8,11 @@ const getApiBaseUrl = () => {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
-  // Platform-based fallback
-  if (Platform.OS === 'ios') {
-    // iOS Simulator için local machine IP kullan
-    const iosApiUrl = 'http://192.168.1.2:5183/api'; // User'ın gerçek IP adresi
-    console.log('🍎 iOS platform detected, using:', iosApiUrl);
-    return iosApiUrl;
-  } else if (Platform.OS === 'android') {
-    // Android Emulator için 10.0.2.2 kullan
-    const androidApiUrl = 'http://10.0.2.2:5183/api';
-    console.log('🤖 Android platform detected, using:', androidApiUrl);
-    return androidApiUrl;
-  } else {
-    // Web için localhost:5183 (backend API port'u)
-    const webApiUrl = 'http://localhost:5183/api';
-    console.log('🌐 Web platform detected, using:', webApiUrl);
-    return webApiUrl;
-  }
+  // Tüm platformlar için backend port'unu kullan (5183)
+  // Frontend 8081'de çalışıyor, backend 5183'te
+  const backendApiUrl = 'http://localhost:5183/api';
+  console.log('🔧 Using backend API URL:', backendApiUrl);
+  return backendApiUrl;
 };
 
 export const API_BASE_URL = getApiBaseUrl();

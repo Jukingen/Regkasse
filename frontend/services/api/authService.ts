@@ -37,9 +37,9 @@ export const login = async (credentials: LoginRequest): Promise<LoginResponse> =
   try {
     const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
     
-    // Token'ı kaydet
-    await AsyncStorage.setItem('token', response.token);
-    await AsyncStorage.setItem('user', JSON.stringify(response.user));
+    // Token storage'ı AuthContext'te yapılıyor, burada yapmıyoruz
+    // await AsyncStorage.setItem('token', response.token);
+    // await AsyncStorage.setItem('user', JSON.stringify(response.user));
     
     // Eğer refreshToken varsa onu da kaydet
     if (response.refreshToken) {

@@ -1,30 +1,35 @@
-import api from '@/services/api';
+import api from './api';
 
 export interface Product {
   id: number;
   name: string;
-  code: string;
-  category: string;
+  description: string;
   price: number;
+  stockQuantity: number;
+  minStockLevel: number;
+  barcode: string;
+  category: string;
+  unit: string;
   taxRate: number;
-  description?: string;
-  active: boolean;
-  barcode?: string;
-  stockQuantity?: number;
-  unit?: string;
+  taxType: 'Standard' | 'Reduced' | 'Special';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateProductRequest {
   name: string;
-  code: string;
-  category: string;
+  description: string;
   price: number;
+  stockQuantity: number;
+  minStockLevel: number;
+  barcode: string;
+  category: string;
+  unit: string;
   taxRate: number;
-  description?: string;
-  active?: boolean;
-  barcode?: string;
-  stockQuantity?: number;
-  unit?: string;
+  taxType: 'Standard' | 'Reduced' | 'Special';
+  maxStockLevel?: number;
+  location?: string;
 }
 
 export interface ProductFilters {
@@ -38,44 +43,44 @@ export async function getProducts(filters?: ProductFilters) {
   if (filters?.category) params.append('category', filters.category);
   if (filters?.search) params.append('search', filters.search);
   
-  const response = await api.get<Product[]>(`/api/product?${params.toString()}`);
+  const response = await api.get<Product[]>(`/api/products?${params.toString()}`);
   return response.data;
 }
 
 export async function getProduct(id: number) {
-  const response = await api.get<Product>(`/api/product/${id}`);
+  const response = await api.get<Product>(`/api/products/${id}`);
   return response.data;
 }
 
 export async function createProduct(data: CreateProductRequest) {
-  const response = await api.post<Product>('/api/product', data);
+  const response = await api.post<Product>('/api/products/create', data);
   return response.data;
 }
 
 export async function updateProduct(id: number, data: CreateProductRequest) {
-  const response = await api.put<Product>(`/api/product/${id}`, data);
+  const response = await api.put<Product>(`/api/products/update/${id}`, data);
   return response.data;
 }
 
 export async function deleteProduct(id: number) {
-  const response = await api.delete(`/api/product/${id}`);
+  const response = await api.delete(`/api/products/${id}`);
   return response.data;
 }
 
 // Kategori yönetimi
 export async function getCategories() {
-  const response = await api.get<string[]>('/api/product/categories');
+  const response = await api.get<string[]>('/api/products/categories');
   return response.data;
 }
 
 export async function getProductsByCategory(category: string) {
-  const response = await api.get<Product[]>(`/api/product/by-category/${encodeURIComponent(category)}`);
+  const response = await api.get<Product[]>(`/api/products/category/${encodeURIComponent(category)}`);
   return response.data;
 }
 
 // Arama işlemleri
 export async function searchProducts(query: string) {
-  const response = await api.get<Product[]>(`/api/product/search?q=${encodeURIComponent(query)}`);
+  const response = await api.get<Product[]>(`/api/products/search?q=${encodeURIComponent(query)}`);
   return response.data;
 }
 

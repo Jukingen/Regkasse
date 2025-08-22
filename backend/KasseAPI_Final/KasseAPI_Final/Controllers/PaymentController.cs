@@ -69,9 +69,31 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                // Debug: Request'i logla
+                _logger.LogInformation("CreatePayment called with request: {@Request}", request);
+                
+                // ModelState'i kontrol et
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .ToList();
+                    
+                    _logger.LogWarning("ModelState validation failed: {Errors}", string.Join("; ", errors));
+                    
+                    return BadRequest(new
+                    {
+                        message = "Model validation failed",
+                        errors = errors,
+                        modelState = ModelState
+                    });
+                }
+                
                 var validationResult = ValidateModel();
                 if (validationResult != null)
                 {
+                    _logger.LogWarning("Base validation failed: {@ValidationResult}", validationResult);
                     return validationResult;
                 }
 

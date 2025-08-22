@@ -40,6 +40,6 @@ namespace KasseAPI_Final.Models
         public decimal TaxAmount { get; set; }
         
         // Navigation property
-        public virtual Product? Product { get; set; }
+        // Product navigation property removed to prevent shadow property conflicts
     }
 }

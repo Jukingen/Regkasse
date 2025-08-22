@@ -25,6 +25,6 @@ namespace KasseAPI_Final.Models
 
         // Navigation properties
         public virtual Cart Cart { get; set; } = null!;
-        public virtual Product Product { get; set; } = null!;
+        // Product navigation property removed to prevent shadow property conflicts
     }
 }

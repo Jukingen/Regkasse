@@ -22,7 +22,15 @@ export const usePayment = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ödeme yöntemleri alınamadı';
       setError(errorMessage);
-      throw err;
+      
+      // Hata durumunda default değerler kullan
+      const defaultMethods: PaymentMethod[] = [
+        { id: 'cash', name: 'Nakit', type: 'cash', icon: 'cash-outline' },
+        { id: 'card', name: 'Kart', type: 'card', icon: 'card-outline' },
+        { id: 'voucher', name: 'Kupon', type: 'voucher', icon: 'gift-outline' }
+      ];
+      setPaymentMethods(defaultMethods);
+      return defaultMethods;
     } finally {
       setLoading(false);
     }

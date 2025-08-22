@@ -5,11 +5,12 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
-export type ProductCategory = 'all' | 'Hauptgerichte' | 'Getränke' | 'Desserts' | 'Alkoholische Getränke' | 'Snacks' | 'Suppen' | 'Vorspeisen' | 'Salate' | 'Kaffee & Tee' | 'Süßigkeiten' | 'Spezialitäten' | 'Brot & Gebäck';
+export type ProductCategory = string;
 
 type CategoryFilterProps = {
-  selectedCategory: ProductCategory;
-  onCategoryChange: (category: ProductCategory) => void;
+  selectedCategory: string;
+  onCategoryChange: (category: string) => void;
+  categories: string[];
 };
 
 // Kategori konfigürasyonu - Backend'deki kategori isimleriyle eşleştirildi
@@ -70,11 +71,13 @@ const CATEGORY_CONFIG = {
 
 const CategoryFilter: React.FC<CategoryFilterProps> = ({
   selectedCategory,
-  onCategoryChange
+  onCategoryChange,
+  categories
 }) => {
   const { t } = useTranslation();
 
-  const categories: ProductCategory[] = ['all', 'Hauptgerichte', 'Getränke', 'Desserts', 'Alkoholische Getränke', 'Snacks', 'Suppen', 'Vorspeisen', 'Salate', 'Kaffee & Tee', 'Süßigkeiten', 'Spezialitäten', 'Brot & Gebäck'];
+  // 'all' kategorisini başa ekle
+  const allCategories = ['all', ...categories];
 
   return (
     <ScrollView
@@ -82,9 +85,9 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
     >
-      {categories.map((category) => {
-        const config = CATEGORY_CONFIG[category];
-        const label = t(`categories.${category}`);
+      {allCategories.map((category) => {
+        const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG.all;
+        const label = category === 'all' ? t('categories.all') : category;
         
         return (
           <TouchableOpacity

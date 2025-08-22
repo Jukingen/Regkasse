@@ -132,8 +132,7 @@ namespace KasseAPI_Final.Models
         [ForeignKey("TableOrderId")]
         public virtual TableOrder TableOrder { get; set; } = null!;
         
-        [ForeignKey("ProductId")]
-        public virtual Product Product { get; set; } = null!;
+        // Product navigation property removed to prevent shadow property conflicts
     }
 
     public enum TableOrderStatus

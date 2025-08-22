@@ -7,7 +7,7 @@ import { NotificationToast } from '../components/ui/NotificationToast';
 import { useAppState } from '../contexts/AppStateContext';
 import { useAsyncState } from '../hooks/useAsyncState';
 import { useFormState } from '../hooks/useFormState';
-import { useProductOperations } from '../hooks/useProductOperations';
+import { useProductOperationsOptimized } from '../hooks/useProductOperationsOptimized'; // ✅ YENİ: Optimize edilmiş versiyon
 
 // 1. Basit Async State Kullanımı
 export const SimpleAsyncExample: React.FC = () => {
@@ -147,7 +147,7 @@ export const FormStateExample: React.FC = () => {
 
 // 3. Ürün İşlemleri Kullanımı
 export const ProductOperationsExample: React.FC = () => {
-  const { products, create, createProduct, refreshProducts } = useProductOperations();
+  const { products, loading, error, refreshProducts } = useProductOperationsOptimized(); // ✅ YENİ: Optimize edilmiş versiyon
 
   const handleCreateProduct = async () => {
     const newProduct = {
@@ -156,14 +156,15 @@ export const ProductOperationsExample: React.FC = () => {
       price: 9.99,
       stockQuantity: 100,
       minStockLevel: 10,
-      barcode: '123456789',
+      
       category: 'Test',
       unit: 'piece',
       taxRate: 20,
       isActive: true
     };
 
-    await createProduct(newProduct);
+    // ❌ REMOVED: createProduct - API'den kaldırıldı
+    console.log('createProduct removed - API cleaned up', newProduct);
   };
 
   return (

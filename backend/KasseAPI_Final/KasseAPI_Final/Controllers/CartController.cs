@@ -37,7 +37,6 @@ namespace KasseAPI_Final.Controllers
                 // 🔒 GÜVENLİK: SADECE KULLANICININ KENDİ SEPETİNİ GÖRMESİ
                 var cart = await _context.Carts
                     .Include(c => c.Items)
-                        .ThenInclude(ci => ci.Product)
                     .Include(c => c.Customer)
                     .Where(c => c.TableNumber == tableNumber && 
                                c.Status == CartStatus.Active &&
@@ -117,6 +116,12 @@ namespace KasseAPI_Final.Controllers
                         item.Id, item.ProductId, item.Quantity);
                 }
 
+                // Product bilgilerini ayrı sorgu ile al
+                var productIds = cart.Items.Select(ci => ci.ProductId).ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, p => p);
+
                 var cartResponse = new CartResponse
                 {
                     CartId = cart.CartId,
@@ -131,19 +136,25 @@ namespace KasseAPI_Final.Controllers
                     {
                         Id = ci.Id,
                         ProductId = ci.ProductId,
-                        ProductName = ci.Product.Name,
-                        ProductImage = ci.Product.ImageUrl,
+                        ProductName = products.TryGetValue(ci.ProductId, out var product) ? product.Name : "Unknown Product",
+                        ProductImage = products.TryGetValue(ci.ProductId, out var p) ? p.ImageUrl : null,
                         Quantity = ci.Quantity,
                         UnitPrice = ci.UnitPrice,
                         TotalPrice = ci.Quantity * ci.UnitPrice,
                         Notes = ci.Notes,
-                        TaxType = ci.Product.TaxType.ToString(),
-                        TaxRate = GetTaxRate(ci.Product.TaxType)
+                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : "Standard",
+                        TaxRate = products.TryGetValue(ci.ProductId, out var pr) ? GetTaxRate(pr.TaxType) : 0.20m
                     }).ToList(),
                     TotalItems = cart.Items.Sum(ci => ci.Quantity),
                     Subtotal = cart.Items.Sum(ci => ci.Quantity * ci.UnitPrice),
-                    TotalTax = cart.Items.Sum(ci => ci.Quantity * ci.UnitPrice * GetTaxRate(ci.Product.TaxType)),
-                    GrandTotal = cart.Items.Sum(ci => ci.Quantity * ci.UnitPrice * (1 + GetTaxRate(ci.Product.TaxType)))
+                    TotalTax = cart.Items.Sum(ci => {
+                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
+                        return ci.Quantity * ci.UnitPrice * (product != null ? GetTaxRate(product.TaxType) : 0.20m);
+                    }),
+                    GrandTotal = cart.Items.Sum(ci => {
+                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
+                        return ci.Quantity * ci.UnitPrice * (1 + (product != null ? GetTaxRate(product.TaxType) : 0.20m));
+                    })
                 };
 
                 return Ok(cartResponse);
@@ -169,7 +180,6 @@ namespace KasseAPI_Final.Controllers
                 // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
                 var cart = await _context.Carts
                     .Include(c => c.Items)
-                        .ThenInclude(ci => ci.Product)
                     .Include(c => c.Customer)
                     .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId && c.Status == CartStatus.Active);
 
@@ -177,6 +187,12 @@ namespace KasseAPI_Final.Controllers
                 {
                     return NotFound(new { message = "Cart not found or expired" });
                 }
+
+                // Product bilgilerini ayrı sorgu ile al
+                var productIds = cart.Items.Select(ci => ci.ProductId).ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, p => p);
 
                 var cartResponse = new CartResponse
                 {
@@ -192,19 +208,25 @@ namespace KasseAPI_Final.Controllers
                     {
                         Id = ci.Id,
                         ProductId = ci.ProductId,
-                        ProductName = ci.Product.Name,
-                        ProductImage = ci.Product.ImageUrl,
+                        ProductName = products.TryGetValue(ci.ProductId, out var product) ? product.Name : "Unknown Product",
+                        ProductImage = products.TryGetValue(ci.ProductId, out var p) ? p.ImageUrl : null,
                         Quantity = ci.Quantity,
                         UnitPrice = ci.UnitPrice,
                         TotalPrice = ci.Quantity * ci.UnitPrice,
                         Notes = ci.Notes,
-                        TaxType = ci.Product.TaxType.ToString(),
-                        TaxRate = GetTaxRate(ci.Product.TaxType)
+                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : "Standard",
+                        TaxRate = products.TryGetValue(ci.ProductId, out var pr) ? GetTaxRate(pr.TaxType) : 0.20m
                     }).ToList(),
                     TotalItems = cart.Items.Sum(ci => ci.Quantity),
                     Subtotal = cart.Items.Sum(ci => ci.Quantity * ci.UnitPrice),
-                    TotalTax = cart.Items.Sum(ci => ci.Quantity * ci.UnitPrice * GetTaxRate(ci.Product.TaxType)),
-                    GrandTotal = cart.Items.Sum(ci => ci.Quantity * ci.UnitPrice * (1 + GetTaxRate(ci.Product.TaxType)))
+                    TotalTax = cart.Items.Sum(ci => {
+                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
+                        return ci.Quantity * ci.UnitPrice * (product != null ? GetTaxRate(product.TaxType) : 0.20m);
+                    }),
+                    GrandTotal = cart.Items.Sum(ci => {
+                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
+                        return ci.Quantity * ci.UnitPrice * (1 + (product != null ? GetTaxRate(product.TaxType) : 0.20m));
+                    })
                 };
 
                 return Ok(cartResponse);
@@ -357,7 +379,6 @@ namespace KasseAPI_Final.Controllers
                 // Güncellenmiş sepeti getir
                 var updatedCart = await _context.Carts
                     .Include(c => c.Items)
-                        .ThenInclude(ci => ci.Product)
                     .FirstOrDefaultAsync(c => c.CartId == cart.CartId);
 
                 // Debug: CartItem'ları kontrol et
@@ -369,6 +390,12 @@ namespace KasseAPI_Final.Controllers
                     _logger.LogInformation("CartItem: Id={Id}, ProductId={ProductId}, Quantity={Quantity}, UnitPrice={UnitPrice}", 
                         item.Id, item.ProductId, item.Quantity, item.UnitPrice);
                 }
+
+                // Product bilgilerini ayrı sorgu ile al
+                var productIds = updatedCart.Items.Select(ci => ci.ProductId).ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, p => p);
 
                 var cartResponse = new CartResponse
                 {
@@ -384,19 +411,25 @@ namespace KasseAPI_Final.Controllers
                     {
                         Id = ci.Id,
                         ProductId = ci.ProductId,
-                        ProductName = ci.Product.Name,
-                        ProductImage = ci.Product.ImageUrl,
+                        ProductName = products.TryGetValue(ci.ProductId, out var product) ? product.Name : "Unknown Product",
+                        ProductImage = products.TryGetValue(ci.ProductId, out var p) ? p.ImageUrl : null,
                         Quantity = ci.Quantity,
                         UnitPrice = ci.UnitPrice,
                         TotalPrice = ci.Quantity * ci.UnitPrice,
                         Notes = ci.Notes,
-                        TaxType = ci.Product.TaxType.ToString(),
-                        TaxRate = GetTaxRate(ci.Product.TaxType)
+                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : "Standard",
+                        TaxRate = products.TryGetValue(ci.ProductId, out var pr) ? GetTaxRate(pr.TaxType) : 0.20m
                     }).ToList(),
                     TotalItems = updatedCart.Items.Sum(ci => ci.Quantity),
                     Subtotal = updatedCart.Items.Sum(ci => ci.Quantity * ci.UnitPrice),
-                    TotalTax = updatedCart.Items.Sum(ci => ci.Quantity * ci.UnitPrice * GetTaxRate(ci.Product.TaxType)),
-                    GrandTotal = updatedCart.Items.Sum(ci => ci.Quantity * ci.UnitPrice * (1 + GetTaxRate(ci.Product.TaxType)))
+                    TotalTax = updatedCart.Items.Sum(ci => {
+                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
+                        return ci.Quantity * ci.UnitPrice * (product != null ? GetTaxRate(product.TaxType) : 0.20m);
+                    }),
+                    GrandTotal = updatedCart.Items.Sum(ci => {
+                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
+                        return ci.Quantity * ci.UnitPrice * (1 + (product != null ? GetTaxRate(product.TaxType) : 0.20m));
+                    })
                 };
 
                 _logger.LogInformation("Item added to cart: Product {ProductId}, Quantity {Quantity}, Cart {CartId}, UserId: {UserId}", 
@@ -946,7 +979,6 @@ namespace KasseAPI_Final.Controllers
 
                 var carts = await _context.Carts
                     .Include(c => c.Items)
-                        .ThenInclude(ci => ci.Product)
                     .Where(c => c.UserId == userId && c.Status == CartStatus.Completed)
                     .OrderByDescending(c => c.CreatedAt)
                     .Take(20)
@@ -1146,8 +1178,9 @@ namespace KasseAPI_Final.Controllers
                 // Önce TableOrder'lardan kontrol et, yoksa Cart'tan al
                 var userActiveTableOrders = await _context.TableOrders
                     .Include(to => to.Items)
-                        .ThenInclude(toi => toi.Product)
+                    // .ThenInclude(toi => toi.Product) // Temporarily disabled due to CategoryId1 conflict
                     .Include(to => to.Customer)
+                    .Include(to => to.User) // User navigation property'yi ekle
                     .Where(to => to.UserId == userId &&
                                 (to.Status == TableOrderStatus.Active ||
                                  to.Status == TableOrderStatus.Preparing ||
@@ -1158,8 +1191,9 @@ namespace KasseAPI_Final.Controllers
                 // Eğer TableOrder yoksa Cart'tan al (backward compatibility)
                 var userActiveCarts = await _context.Carts
                     .Include(c => c.Items)
-                        .ThenInclude(ci => ci.Product)
+                    // .ThenInclude(ci => ci.Product) // Temporarily disabled due to CategoryId1 conflict
                     .Include(c => c.Customer)
+                    .Include(c => c.User) // User navigation property'yi ekle
                     .Where(c => c.UserId == userId && c.Status == CartStatus.Active)
                     .OrderBy(c => c.TableNumber)
                     .ToListAsync();
@@ -1202,7 +1236,7 @@ namespace KasseAPI_Final.Controllers
                         Items = cart.Items?.Select(item => new TableOrderItemInfo
                         {
                             ProductId = item.ProductId,
-                            ProductName = item.Product?.Name ?? "Unknown Product",
+                            ProductName = "Product", // Temporarily hardcoded due to CategoryId1 conflict
                             Quantity = item.Quantity,
                             Price = item.UnitPrice,
                             Total = item.UnitPrice * item.Quantity,
@@ -1247,13 +1281,13 @@ namespace KasseAPI_Final.Controllers
         }
 
         // Yardımcı metod: Vergi oranını hesapla
-        private decimal GetTaxRate(TaxType taxType)
+        private decimal GetTaxRate(string taxType)
         {
             return taxType switch
             {
-                TaxType.Standard => 0.20m, // %20
-                TaxType.Reduced => 0.10m,   // %10
-                TaxType.Special => 0.13m,   // %13
+                "Standard" => 0.20m, // %20
+                "Reduced" => 0.10m,   // %10
+                "Special" => 0.13m,   // %13
                 _ => 0.00m
             };
         }

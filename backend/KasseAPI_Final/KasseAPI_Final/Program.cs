@@ -108,7 +108,10 @@ builder.Services.AddCors(options =>
                   "http://localhost:19006",    // Expo web
                   "http://192.168.1.2:8081",  // iOS Expo client
                   "http://192.168.1.2:3000",  // iOS Web client
-                  "http://192.168.1.2:19006"  // iOS Expo web
+                  "http://192.168.1.2:19006", // iOS Expo web
+                  "http://localhost:5173",     // Vite dev server
+                  "http://127.0.0.1:8081",    // Localhost alternative
+                  "http://127.0.0.1:3000"     // Localhost alternative
               )
               .AllowAnyMethod()
               .AllowAnyHeader()
@@ -117,7 +120,14 @@ builder.Services.AddCors(options =>
 });
 
 // API servisleri
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+.AddJsonOptions(options =>
+{
+    // JSON serialization ayarları
+    options.JsonSerializerOptions.PropertyNamingPolicy = null; // PascalCase koru
+    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Case insensitive
+    options.JsonSerializerOptions.WriteIndented = true; // Debug için indented
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -204,6 +214,10 @@ using (var scope = app.Services.CreateScope())
         
         // Demo verileri ekle
         await AddDemoData.AddDemoDataAsync();
+        
+        // Test ürünlerini ekle
+        var context = services.GetRequiredService<AppDbContext>();
+        await SeedData.SeedProductsAsync(context);
         
         Console.WriteLine("Database seeding completed successfully");
     }

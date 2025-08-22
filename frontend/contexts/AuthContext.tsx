@@ -327,7 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             // 🔑 Token süresini kontrol et
-            const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
+            const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
             const isTokenExpired = checkTokenExpiration(cleanToken);
             
             if (isTokenExpired) {
@@ -398,7 +398,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(false);
             setIsAuthCheckInProgress(false);
         }
-    }, [justLoggedIn, isAuthCheckInProgress, lastAuthCheckTime, hasInitialAuthCheck, user, isAuthenticated, handleLogoutAndRedirect]);
+    }, [justLoggedIn]); // ✅ YENİ: Minimal dependency - sadece justLoggedIn (diğerleri infinite loop'a neden oluyor)
 
     // CRITICAL FIX: checkAuthStatus'u sadece mount olduğunda bir kez çağır
     useEffect(() => {
@@ -513,35 +513,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // CRITICAL FIX: Login sonrası navigation'ı optimize et
     useEffect(() => {
         if (justLoggedIn && isAuthenticated && user) {
-            console.log('Login successful, attempting navigation...'); // Debug log
+            console.log('🚀 Login successful, attempting navigation...'); // Debug log
+            console.log('🚀 Navigation state:', { justLoggedIn, isAuthenticated, hasUser: !!user, userEmail: user?.email }); // Debug log
             
             // Navigation'ı dene
             const attemptNavigation = async () => {
                 try {
                     if (router && typeof router.push === 'function') {
-                        console.log('Navigating to cash-register...'); // Debug log
+                        console.log('🧭 Navigating to cash-register...'); // Debug log
                         await router.push("/(tabs)/cash-register");
-                        console.log('Navigation successful!'); // Debug log
+                        console.log('✅ Navigation successful!'); // Debug log
                     } else {
-                        console.error('Router not available for navigation'); // Debug log
+                        console.error('❌ Router not available for navigation'); // Debug log
                     }
                 } catch (error) {
-                    console.error('Navigation failed:', error); // Debug log
+                    console.error('❌ Navigation failed:', error); // Debug log
                 }
             };
             
-            // Kısa bir gecikme ile navigation'ı dene
-            setTimeout(attemptNavigation, 100);
+            // Daha uzun bir gecikme ile navigation'ı dene (state'lerin set olması için)
+            setTimeout(attemptNavigation, 500);
             
-            // 2 saniye sonra flag'i temizle
+            // 3 saniye sonra flag'i temizle
             const timer = setTimeout(() => {
                 setJustLoggedIn(false);
-            }, 2000);
+                console.log('🔄 justLoggedIn flag cleared'); // Debug log
+            }, 3000);
             
             return () => clearTimeout(timer);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [justLoggedIn]); // CRITICAL FIX: isAuthenticated ve user dependency'leri kaldırıldı
+    }, [justLoggedIn]); // ✅ YENİ: Minimal dependency - sadece justLoggedIn (isAuthenticated ve user infinite loop'a neden oluyor)
 
     // Cart reset will be handled by the component that uses AuthContext
 
@@ -566,12 +568,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             console.log('Storing token and user data...'); // Debug log
             
-            // Token'ı Bearer prefix olmadan kaydet
-            const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
+            // Token'ı JWT olarak kaydet (Bearer prefix olmadan)
+            const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
             
             // 🚀 F5 REFRESH FIX: Platform-aware storage kullan
             await AsyncStorage.setItem('token', cleanToken);
-            console.log('Token stored without Bearer prefix:', cleanToken);
+            console.log('Token stored (JWT only):', cleanToken.substring(0, 20) + '...');
             
             await AsyncStorage.setItem('user', JSON.stringify(loggedInUser));
             
@@ -625,7 +627,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // State'leri birlikte set et - önce user, sonra authentication
             const userWithToken = {
                 ...loggedInUser,
-                token: cleanToken // cleanToken'ı user state'ine ekle (Bearer prefix olmadan)
+                token: cleanToken // cleanToken'ı user state'ine ekle (JWT only)
             };
             setUser(userWithToken);
             console.log('User state set to:', userWithToken); // Debug log
@@ -634,6 +636,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setTimeout(() => {
                 setIsAuthenticated(true);
                 console.log('Authentication state set to true'); // Debug log
+                console.log('Full state after login:', { user: userWithToken, isAuthenticated: true }); // Debug log
             }, 100);
             
             // Kullanıcı ayarlarını backend'den çek
@@ -706,13 +709,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     try {
                         console.log('🧹 Backend logout API çağrılıyor...');
                         
-                        // Token'ı temizle (Bearer prefix olmadan)
-                        const cleanToken = token.replace('Bearer ', '');
-                        
+                        // Token'ı kullan (zaten Bearer prefix ile saklanıyor)
                         const logoutResponse = await fetch('http://localhost:5183/api/auth/logout', {
                             method: 'POST',
                             headers: {
-                                'Authorization': `Bearer ${cleanToken}`,
+                                'Authorization': token,
                                 'Content-Type': 'application/json'
                             }
                         });

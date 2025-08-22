@@ -62,25 +62,47 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TaxNumber).IsUnique();
             });
 
-            // Product configuration - Sadece mevcut sütunlar
+            // Product configuration - RKSV uyumlu güncellenmiş yapı
             builder.Entity<Product>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Description).HasMaxLength(500);
-                entity.Property(e => e.Barcode).HasMaxLength(50);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasColumnType("text");
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Cost).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");
-                entity.Property(e => e.Category).HasMaxLength(50);
+                entity.Property(e => e.TaxType).HasMaxLength(20);
+                entity.Property(e => e.Category).HasMaxLength(100);
+                // entity.Property(e => e.CategoryId).IsRequired(false); // Geçici olarak kapatıldı
                 entity.Property(e => e.ImageUrl).HasMaxLength(500);
                 entity.Property(e => e.StockQuantity).IsRequired();
                 entity.Property(e => e.MinStockLevel).IsRequired();
                 entity.Property(e => e.Unit).HasMaxLength(20);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+                entity.Property(e => e.CreatedBy).HasMaxLength(100);
+                entity.Property(e => e.UpdatedBy).HasMaxLength(100);
+                entity.Property(e => e.IsActive).IsRequired();
                 
-                entity.HasIndex(e => e.Barcode).IsUnique();
+                // Indexes
                 entity.HasIndex(e => e.Name);
                 entity.HasIndex(e => e.Category);
+                entity.HasIndex(e => e.TaxType);
+                // entity.HasIndex(e => e.CategoryId); // Geçici olarak kapatıldı
+                
+                // Navigation property relationship - CategoryId foreign key
+                // entity.HasOne<Category>()
+                //       .WithMany(c => c.Products)
+                //       .HasForeignKey(p => p.CategoryId)
+                //       .OnDelete(DeleteBehavior.SetNull)
+                //       .IsRequired(false); // Geçici olarak kapatıldı
+                
+                // Constraints
+                entity.HasCheckConstraint("CK_products_price_positive", "\"Price\" >= 0");
+                entity.HasCheckConstraint("CK_products_stock_quantity_non_negative", "\"StockQuantity\" >= 0");
+                entity.HasCheckConstraint("CK_products_min_stock_level_non_negative", "\"MinStockLevel\" >= 0");
+                entity.HasCheckConstraint("CK_products_cost_non_negative", "\"Cost\" >= 0");
+                entity.HasCheckConstraint("CK_products_tax_rate_range", "\"TaxRate\" >= 0 AND \"TaxRate\" <= 100");
             });
 
             // Customer configuration - Sadece mevcut sütunlar
@@ -554,10 +576,11 @@ namespace KasseAPI_Final.Data
                     .HasForeignKey(e => e.CartId)
                     .OnDelete(DeleteBehavior.Cascade);
                 
-                entity.HasOne(e => e.Product)
-                    .WithMany()
-                    .HasForeignKey(e => e.ProductId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                // Product relationship removed to prevent shadow property conflicts
+                // entity.HasOne(e => e.Product)
+                //     .WithMany()
+                //     .HasForeignKey(e => e.ProductId)
+                //     .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Order configuration

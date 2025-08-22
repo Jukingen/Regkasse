@@ -30,7 +30,7 @@ export const SecureApiExamples: React.FC = () => {
   const handleSecureGet = async () => {
     setLoading(true);
     try {
-      const result = await secureGet('/api/product');
+      const result = await secureGet('/api/products');
       setData(result);
       Alert.alert('Başarılı', 'Ürünler başarıyla getirildi');
     } catch (error) {
@@ -69,7 +69,7 @@ export const SecureApiExamples: React.FC = () => {
       };
 
       const result = await securePost(
-        '/api/product',
+        '/api/products',
         newProduct,
         { resource: 'products', action: 'create' }
       );

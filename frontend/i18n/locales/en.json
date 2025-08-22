@@ -16,7 +16,14 @@
     "yes": "Yes",
     "no": "No",
     "step": "Step",
-    "ok": "OK"
+    "ok": "OK",
+    "retry": "Retry",
+    "errorLoadingProducts": "Error loading products",
+    "loadingMore": "Loading more...",
+    "noSearchResults": "No search results found",
+    "noProductsFound": "No products found",
+    "page": "Page",
+    "products": "products"
   },
   "loading": {
     "roleLoading": "Loading role..."
@@ -26,7 +33,7 @@
     "products": "Products",
     "cart": "Cart",
     "customers": "Customers",
-    "barcode": "Barcode Scanner",
+
     "tables": "Tables",
     "users": "User Management",
     "roles": "Role Management",
@@ -104,7 +111,23 @@
   "tax": {
     "standard": "Standard",
     "reduced": "Reduced",
-    "special": "Special"
+    "special": "Special",
+    "exempt": "Exempt"
+  },
+  "taxType": {
+    "standard": "Standard (20%)",
+    "reduced": "Reduced (10%)",
+    "special": "Special (13%)",
+    "exempt": "Exempt (0%)"
+  },
+  "rksv": {
+    "compliant": "RKSV Compliant",
+    "nonCompliant": "RKSV Non-compliant",
+    "productType": "RKSV Product Type",
+    "fiscalCode": "Fiscal Code",
+    "exemptionReason": "Exemption Reason",
+    "taxable": "Taxable",
+    "nonTaxable": "Non-taxable"
   },
   "auth": {
     "login": "Login",
@@ -293,7 +316,7 @@
     "editProduct": "Edit Product",
     "deleteProduct": "Delete Product",
     "category": "Category",
-    "barcode": "Barcode",
+
     "supplier": "Supplier",
     "reorderLevel": "Reorder Level",
     "currentStock": "Current Stock"

@@ -28,7 +28,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var categories = await _context.Categories
-                    .Include(c => c.Products)
+                    // .Include(c => c.Products) // Geçici olarak kapatıldı - navigation property yok
                     .Where(c => c.IsActive)
                     .OrderBy(c => c.Name)
                     .ToListAsync();
@@ -49,7 +49,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var category = await _context.Categories
-                    .Include(c => c.Products)
+                    // .Include(c => c.Products) // Geçici olarak kapatıldı - navigation property yok
                     .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
 
                 if (category == null)
@@ -163,7 +163,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var category = await _context.Categories
-                    .Include(c => c.Products)
+                    // .Include(c => c.Products) // Geçici olarak kapatıldı - navigation property yok
                     .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
 
                 if (category == null)
@@ -171,8 +171,9 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "Category not found" });
                 }
 
-                // Kategoriye bağlı ürünler varsa silme
-                if (category.Products.Any())
+                // Kategoriye bağlı ürünler varsa silme - manuel kontrol
+                var hasProducts = await _context.Products.AnyAsync(p => p.Category == category.Name && p.IsActive);
+                if (hasProducts)
                 {
                     return BadRequest(new { message = "Cannot delete category with associated products" });
                 }
@@ -199,7 +200,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var category = await _context.Categories
-                    .Include(c => c.Products.Where(p => p.IsActive))
+                    // .Include(c => c.Products.Where(p => p.IsActive)) // Geçici olarak kapatıldı
                     .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
 
                 if (category == null)
@@ -207,7 +208,12 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "Category not found" });
                 }
 
-                return Ok(category.Products);
+                // Manuel olarak kategoriye ait ürünleri getir
+                var products = await _context.Products
+                    .Where(p => p.Category == category.Name && p.IsActive)
+                    .ToListAsync();
+
+                return Ok(products);
             }
             catch (Exception ex)
             {

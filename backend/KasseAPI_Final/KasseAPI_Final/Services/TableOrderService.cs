@@ -32,7 +32,6 @@ namespace KasseAPI_Final.Services
                 // Cart'ı bul
                 var cart = await _context.Carts
                     .Include(c => c.Items)
-                        .ThenInclude(ci => ci.Product)
                     .Include(c => c.Customer)
                     .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId);
 
@@ -82,21 +81,30 @@ namespace KasseAPI_Final.Services
                     })
                 };
 
+                // Product bilgilerini ayrı sorgu ile al
+                var productIds = cart.Items.Select(ci => ci.ProductId).ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, p => p);
+
                 // Items'ları dönüştür
-                var tableOrderItems = cart.Items.Select(cartItem => new TableOrderItem
-                {
-                    TableOrderId = tableOrder.TableOrderId,
-                    ProductId = cartItem.ProductId,
-                    ProductName = cartItem.Product?.Name ?? "Unknown Product",
-                    Quantity = cartItem.Quantity,
-                    UnitPrice = cartItem.UnitPrice,
-                    TotalPrice = cartItem.UnitPrice * cartItem.Quantity,
-                    Notes = cartItem.Notes,
-                    TaxType = cartItem.Product?.TaxType.ToString() ?? "standard",
-                    TaxRate = GetTaxRate(cartItem.Product?.TaxType ?? TaxType.Standard),
-                    Status = ItemStatus.Pending,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                var tableOrderItems = cart.Items.Select(cartItem => {
+                    var product = products.TryGetValue(cartItem.ProductId, out var p) ? p : null;
+                    return new TableOrderItem
+                    {
+                        TableOrderId = tableOrder.TableOrderId,
+                        ProductId = cartItem.ProductId,
+                        ProductName = product?.Name ?? "Unknown Product",
+                        Quantity = cartItem.Quantity,
+                        UnitPrice = cartItem.UnitPrice,
+                        TotalPrice = cartItem.UnitPrice * cartItem.Quantity,
+                        Notes = cartItem.Notes,
+                        TaxType = product?.TaxType.ToString() ?? "standard",
+                        TaxRate = GetTaxRate(product?.TaxType ?? "Standard"),
+                        Status = ItemStatus.Pending,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
                 }).ToList();
 
                 // Toplamları hesapla
@@ -145,20 +153,29 @@ namespace KasseAPI_Final.Services
                 // Mevcut items'ları temizle ve yenilerini ekle
                 _context.TableOrderItems.RemoveRange(existingTableOrder.Items);
 
-                var newItems = cart.Items.Select(cartItem => new TableOrderItem
-                {
-                    TableOrderId = existingTableOrder.TableOrderId,
-                    ProductId = cartItem.ProductId,
-                    ProductName = cartItem.Product?.Name ?? "Unknown Product",
-                    Quantity = cartItem.Quantity,
-                    UnitPrice = cartItem.UnitPrice,
-                    TotalPrice = cartItem.UnitPrice * cartItem.Quantity,
-                    Notes = cartItem.Notes,
-                    TaxType = cartItem.Product?.TaxType.ToString() ?? "standard",
-                    TaxRate = GetTaxRate(cartItem.Product?.TaxType ?? TaxType.Standard),
-                    Status = ItemStatus.Pending,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                // Product bilgilerini ayrı sorgu ile al
+                var productIds = cart.Items.Select(ci => ci.ProductId).ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, p => p);
+
+                var newItems = cart.Items.Select(cartItem => {
+                    var product = products.TryGetValue(cartItem.ProductId, out var p) ? p : null;
+                    return new TableOrderItem
+                    {
+                        TableOrderId = existingTableOrder.TableOrderId,
+                        ProductId = cartItem.ProductId,
+                        ProductName = product?.Name ?? "Unknown Product",
+                        Quantity = cartItem.Quantity,
+                        UnitPrice = cartItem.UnitPrice,
+                        TotalPrice = cartItem.UnitPrice * cartItem.Quantity,
+                        Notes = cartItem.Notes,
+                        TaxType = product?.TaxType.ToString() ?? "standard",
+                        TaxRate = GetTaxRate(product?.TaxType ?? "Standard"),
+                        Status = ItemStatus.Pending,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
                 }).ToList();
 
                 // Toplamları yeniden hesapla
@@ -255,13 +272,13 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// Tax rate hesaplama - RKSV uyumlu
         /// </summary>
-        private decimal GetTaxRate(TaxType taxType)
+        private decimal GetTaxRate(string taxType)
         {
             return taxType switch
             {
-                TaxType.Standard => 20.0m,    // %20 KDV
-                TaxType.Reduced => 10.0m,     // %10 KDV
-                TaxType.Special => 13.0m,     // %13 KDV
+                "Standard" => 20.0m,    // %20 KDV
+                "Reduced" => 10.0m,     // %10 KDV
+                "Special" => 13.0m,     // %13 KDV
                 _ => 20.0m
             };
         }
@@ -273,11 +290,10 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var activeCarts = await _context.Carts
-                    .Include(c => c.Items)
-                        .ThenInclude(ci => ci.Product)
-                    .Where(c => c.Status == CartStatus.Active && c.TableNumber.HasValue)
-                    .ToListAsync();
+                        var activeCarts = await _context.Carts
+            .Include(c => c.Items)
+            .Where(c => c.Status == CartStatus.Active && c.TableNumber.HasValue)
+            .ToListAsync();
 
                 int migratedCount = 0;
 

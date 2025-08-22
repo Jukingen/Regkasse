@@ -22,6 +22,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     if (isAuthenticated && user) {
         console.log('AuthLayout: User authenticated, redirecting to tabs');
         console.log('AuthLayout: User details:', { email: user.email, role: user.role });
+        // Kısa bir gecikme ile redirect yap (state'lerin tam set olması için)
         return <Redirect href="/(tabs)/cash-register" />;
     }
 

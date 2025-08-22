@@ -20,7 +20,7 @@ import { Product } from '../services/api/productService';
 interface QuickProductSearchProps {
   products: Product[];
   onProductSelect: (product: Product) => void;
-  onBarcodeScan: () => void;
+
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -28,7 +28,7 @@ const { width: screenWidth } = Dimensions.get('window');
 const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
   products,
   onProductSelect,
-  onBarcodeScan,
+
 }) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,7 +59,7 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
     filtered = filtered.filter(product =>
       product.name.toLowerCase().includes(query.toLowerCase()) ||
       product.description?.toLowerCase().includes(query.toLowerCase()) ||
-      product.barcode?.includes(query) ||
+      
       product.category.toLowerCase().includes(query.toLowerCase())
     );
 
@@ -115,17 +115,13 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
         <Text style={styles.productCategory} numberOfLines={1}>
           {item.category}
         </Text>
-        {item.barcode && (
-          <Text style={styles.productBarcode} numberOfLines={1}>
-            {item.barcode}
-          </Text>
-        )}
+        
       </View>
       <View style={styles.productPrice}>
         <Text style={styles.priceText}>€{item.price.toFixed(2)}</Text>
-        <Text style={styles.stockText}>
-          {item.stock > 0 ? `${item.stock} in stock` : 'Out of stock'}
-        </Text>
+                 <Text style={styles.stockText}>
+           {item.stockQuantity > 0 ? `${item.stockQuantity} in stock` : 'Out of stock'}
+         </Text>
       </View>
       <Ionicons name="chevron-forward" size={20} color={Colors.light.textSecondary} />
     </TouchableOpacity>
@@ -329,11 +325,11 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
-  sectionTitle: {
-    ...Typography.h4,
-    color: Colors.light.text,
-    marginBottom: Spacing.sm,
-  },
+     sectionTitle: {
+     ...Typography.h3,
+     color: Colors.light.text,
+     marginBottom: Spacing.sm,
+   },
   quickProductItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -404,12 +400,7 @@ const styles = StyleSheet.create({
     color: Colors.light.textSecondary,
     marginTop: Spacing.xs,
   },
-  productBarcode: {
-    ...Typography.bodySmall,
-    color: Colors.light.textSecondary,
-    fontFamily: 'monospace',
-    marginTop: Spacing.xs,
-  },
+
   productPrice: {
     alignItems: 'flex-end',
     marginRight: Spacing.sm,
@@ -430,12 +421,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.xl,
   },
-  emptyStateText: {
-    ...Typography.h4,
-    color: Colors.light.text,
-    textAlign: 'center',
-    marginTop: Spacing.md,
-  },
+     emptyStateText: {
+     ...Typography.h3,
+     color: Colors.light.text,
+     textAlign: 'center',
+     marginTop: Spacing.md,
+   },
   emptyStateSubtext: {
     ...Typography.body,
     color: Colors.light.textSecondary,

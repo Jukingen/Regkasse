@@ -75,7 +75,7 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.barcode?.includes(searchQuery)
+
       );
     }
 

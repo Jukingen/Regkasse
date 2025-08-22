@@ -28,13 +28,36 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var inventory = await _context.Inventory
-                    .Include(i => i.Product)
-                    .Include(i => i.Product.Category)
                     .Where(i => i.IsActive)
-                    .OrderBy(i => i.Product.Name)
                     .ToListAsync();
 
-                return Ok(inventory);
+                // Product bilgilerini ayrı sorgu ile al
+                var productIds = inventory.Select(i => i.ProductId).ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, p => p);
+
+                // Inventory item'ları product bilgileri ile zenginleştir
+                var enrichedInventory = inventory.Select(item => {
+                    var product = products.TryGetValue(item.ProductId, out var p) ? p : null;
+                    return new
+                    {
+                        item.Id,
+                        item.ProductId,
+                        ProductName = product?.Name ?? "Unknown Product",
+                        ProductCategory = product?.Category ?? "Unknown Category",
+                        item.CurrentStock,
+                        item.MinStockLevel,
+                        item.MaxStockLevel,
+                        item.ReorderPoint,
+                        item.UnitCost,
+                        item.LastRestocked,
+                        item.Notes,
+                        item.IsActive
+                    };
+                }).OrderBy(i => i.ProductName).ToList();
+
+                return Ok(enrichedInventory);
             }
             catch (Exception ex)
             {
@@ -50,8 +73,6 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var inventoryItem = await _context.Inventory
-                    .Include(i => i.Product)
-                    .Include(i => i.Product.Category)
                     .FirstOrDefaultAsync(i => i.Id == id && i.IsActive);
 
                 if (inventoryItem == null)
@@ -59,7 +80,31 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "Inventory item not found" });
                 }
 
-                return Ok(inventoryItem);
+                if (inventoryItem == null)
+                {
+                    return NotFound(new { message = "Inventory item not found" });
+                }
+
+                // Product bilgilerini ayrı sorgu ile al
+                var product = await _context.Products.FindAsync(inventoryItem.ProductId);
+                
+                var enrichedItem = new
+                {
+                    inventoryItem.Id,
+                    inventoryItem.ProductId,
+                    ProductName = product?.Name ?? "Unknown Product",
+                    ProductCategory = product?.Category ?? "Unknown Category",
+                    inventoryItem.CurrentStock,
+                    inventoryItem.MinStockLevel,
+                    inventoryItem.MaxStockLevel,
+                    inventoryItem.ReorderPoint,
+                    inventoryItem.UnitCost,
+                    inventoryItem.LastRestocked,
+                    inventoryItem.Notes,
+                    inventoryItem.IsActive
+                };
+
+                return Ok(enrichedItem);
             }
             catch (Exception ex)
             {
@@ -120,7 +165,6 @@ namespace KasseAPI_Final.Controllers
 
                 // Oluşturulan inventory item'ı döndür
                 var createdItem = await _context.Inventory
-                    .Include(i => i.Product)
                     .FirstOrDefaultAsync(i => i.Id == inventoryItem.Id);
 
                 return CreatedAtAction(nameof(GetInventoryItem), new { id = createdItem.Id }, createdItem);
@@ -303,13 +347,37 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var lowStockItems = await _context.Inventory
-                    .Include(i => i.Product)
-                    .Include(i => i.Product.Category)
                     .Where(i => i.IsActive && i.CurrentStock <= i.MinStockLevel)
                     .OrderBy(i => i.CurrentStock)
                     .ToListAsync();
 
-                return Ok(lowStockItems);
+                // Product bilgilerini ayrı sorgu ile al
+                var productIds = lowStockItems.Select(i => i.ProductId).ToList();
+                var products = await _context.Products
+                    .Where(p => productIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, p => p);
+
+                // Low stock item'ları product bilgileri ile zenginleştir
+                var enrichedLowStockItems = lowStockItems.Select(item => {
+                    var product = products.TryGetValue(item.ProductId, out var p) ? p : null;
+                    return new
+                    {
+                        item.Id,
+                        item.ProductId,
+                        ProductName = product?.Name ?? "Unknown Product",
+                        ProductCategory = product?.Category ?? "Unknown Category",
+                        item.CurrentStock,
+                        item.MinStockLevel,
+                        item.MaxStockLevel,
+                        item.ReorderPoint,
+                        item.UnitCost,
+                        item.LastRestocked,
+                        item.Notes,
+                        item.IsActive
+                    };
+                }).ToList();
+
+                return Ok(enrichedLowStockItems);
             }
             catch (Exception ex)
             {

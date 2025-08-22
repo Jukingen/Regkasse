@@ -1,4 +1,4 @@
-import { apiClient } from './config';
+import { apiClient, TokenManager } from './config'; // ✅ YENİ: TokenManager import
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Kullanıcı ayarları interface'i - Kasa mantığına uygun
@@ -55,19 +55,12 @@ export const getUserSettings = async (): Promise<UserSettings> => {
   try {
     console.log('Fetching user settings from API...');
     
-    // Token'ı manuel olarak kontrol et
-    const token = await AsyncStorage.getItem('token');
-    console.log('Token before user settings request:', !!token, 'length:', token?.length);
+    // ✅ YENİ: TokenManager ile token kontrolü - manual header ekleme gerekmez
+    // apiClient zaten otomatik token management yapıyor
+    console.log('User settings request - token management via apiClient');
     
-    // Manuel olarak headers ekleyerek deneyelim
-    const headers = {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json'
-    };
-    
-    console.log('Manual headers for user settings request:', headers);
-    
-    const response = await apiClient.get<UserSettings>('/user/settings', { headers });
+    // ✅ YENİ: apiClient otomatik header management
+    const response = await apiClient.get<UserSettings>('/user/settings');
     console.log('User settings API response:', response);
     return response;
   } catch (error) {

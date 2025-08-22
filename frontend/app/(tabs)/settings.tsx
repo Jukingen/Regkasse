@@ -1,7 +1,9 @@
 // Türkçe Açıklama: Ayarlar ekranına büyük ve kolay erişilebilen bir Logout (Çıkış Yap) butonu eklendi.
+// ✅ YENİ: Infinite loop detection eklendi
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import LanguageSelector from '../../components/LanguageSelector';
+import InfiniteLoopDetector from '../../components/debug/InfiniteLoopDetector'; // ✅ YENİ: Loop detector
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 
@@ -38,6 +40,9 @@ export default function SettingsScreen() {
           <Text style={styles.logoutButtonText}>{translations.logout}</Text>
         </TouchableOpacity>
       </View>
+      
+      {/* ✅ YENİ: Infinite Loop Detector - sadece development modunda görünür */}
+      <InfiniteLoopDetector threshold={50} />
     </ScrollView>
   );
 }

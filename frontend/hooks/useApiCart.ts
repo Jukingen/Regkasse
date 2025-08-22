@@ -1,7 +1,9 @@
 // Bu hook, sepet işlemlerini sadece backend API ile yapar, local state tutmaz.
+// ✅ YENİ: useApiManager ile optimize edildi
 import { useEffect, useState } from 'react';
 import { apiClient } from '../services/api/config';
 import { cartService } from '../services/api/cartService';
+import { useApiManager } from './useApiManager'; // ✅ YENİ: API Manager entegrasyonu
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 
@@ -24,6 +26,9 @@ export interface Cart {
 }
 
 export function useApiCart() {
+  // ✅ YENİ: useApiManager entegrasyonu
+  const { apiCall, getCachedData, setCachedData } = useApiManager();
+  
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentCartId, setCurrentCartId] = useState<string | null>(null);

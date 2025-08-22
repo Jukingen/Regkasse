@@ -48,14 +48,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
     description: 'navigation.customers'
   },
-  {
-    id: 'barcode',
-    title: 'navigation.barcode',
-    icon: 'qr-code-scanner',
-    screen: 'BarcodeScannerScreen',
-    roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
-    description: 'navigation.barcode'
-  },
+
   {
     id: 'tables',
     title: 'navigation.tables',
