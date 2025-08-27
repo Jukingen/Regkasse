@@ -1,18 +1,36 @@
-// Türkçe Açıklama: Ürün listesi ve ürün kartları için ayrı component
-// Karmaşık cash-register.tsx dosyasından ürün gösterimi logic'ini ayırır
+// Türkçe Açıklama: Ürün grid komponenti - Kategorilere göre ürünleri filtreler ve görsel olarak sunar
+// Backend'den gelen ürün verilerini kullanarak kategori bazlı filtreleme yapar
 
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { Vibration } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Vibration,
+} from 'react-native';
 
 interface Product {
-  Id: string;
-  Name: string;
-  Price: number;
-  Category: string;
-  StockQuantity: number;
-  Description: string;
-  TaxType: number;
+  // Backend'den gelen field'lar (lowercase)
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  stockQuantity: number;
+  description: string;
+  taxType: string;
+  // Backend catalog endpoint'inden gelen field'lar
+  productCategory?: string; // Backend'de ProductCategory olarak map edildi
+  categoryId?: string; // Backend'de CategoryId olarak map edildi
+  // Eski field'lar (geriye uyumluluk için)
+  Id?: string;
+  Name?: string;
+  Price?: number;
+  Category?: string;
+  StockQuantity?: number;
+  Description?: string;
+  TaxType?: number;
 }
 
 interface ProductGridProps {
@@ -38,10 +56,15 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   onRefreshProducts,
   onForceRefreshProducts,
 }) => {
-  // Ürün filtreleme
-  const filteredProducts = products.filter((product: Product) => 
-    selectedCategory === 'all' || product.Category === selectedCategory
-  );
+  // Ürün filtreleme - Backend'den gelen category field'ını öncelikle kullan
+  const filteredProducts = products.filter((product: Product) => {
+    if (selectedCategory === 'all') return true;
+    
+    // Backend'den gelen category field'larını öncelikle kullan
+    const productCategory = product.productCategory || product.category || product.Category;
+    console.log(`🔍 Filtering product: ${product.name || product.Name}, category: ${productCategory}, selected: ${selectedCategory}`);
+    return productCategory === selectedCategory;
+  });
 
   const handleProductPress = (product: Product) => {
     if (!selectedTable) {
@@ -59,6 +82,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     const cartItem = cartItems?.find((item: any) => item.productId === productId);
     return cartItem?.quantity || 0;
   };
+
+  // Debug bilgisi
+  console.log(`🔍 ProductGrid: ${products.length} total products, ${filteredProducts.length} filtered for category: ${selectedCategory}`);
 
   if (loading) {
     return (
@@ -111,11 +137,17 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       <Text style={styles.sectionTitle}>Available Products</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.productsScroll}>
         {filteredProducts.map((product: Product) => {
-          const quantityInCart = getQuantityInCart(product.Id);
+          const quantityInCart = getQuantityInCart(product.id || product.Id || '');
+          const productCategory = product.productCategory || product.category || product.Category;
+          const productName = product.name || product.Name || '';
+          const productPrice = product.price || product.Price || 0;
+          const productStock = product.stockQuantity || product.StockQuantity || 0;
+          
+          console.log(`📦 Rendering product: ${productName}, category: ${productCategory}`);
           
           return (
             <TouchableOpacity
-              key={product.Id}
+              key={product.id || product.Id}
               style={[
                 styles.productCard,
                 quantityInCart > 0 && styles.productCardInCart
@@ -130,11 +162,11 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 </View>
               )}
               
-              <Text style={styles.productName}>{product.Name}</Text>
-              <Text style={styles.productPrice}>€{(product.Price || 0).toFixed(2)}</Text>
-              <Text style={styles.productStock}>Stock: {product.StockQuantity || 0}</Text>
-              {product.Category && (
-                <Text style={styles.productCategory}>{product.Category}</Text>
+              <Text style={styles.productName}>{productName}</Text>
+              <Text style={styles.productPrice}>€{productPrice.toFixed(2)}</Text>
+              <Text style={styles.productStock}>Stock: {productStock}</Text>
+              {productCategory && (
+                <Text style={styles.productCategory}>{productCategory}</Text>
               )}
             </TouchableOpacity>
           );

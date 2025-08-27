@@ -1,268 +1,274 @@
 -- Demo Kategoriler ve Ürünler Ekleme Scripti
 -- RKSV uyumlu vergi grupları ile
+-- Veritabanı kolon isimlerine göre düzeltildi
 
--- Kategoriler ekle
-INSERT INTO "Categories" ("Id", "Name", "Description", "Color", "Icon", "SortOrder", "IsActive", "CreatedAt", "UpdatedAt")
-VALUES 
-    (gen_random_uuid(), 'Getränke', 'Alkoholfreie und alkoholische Getränke', '#3498db', 'wine', 1, true, NOW(), NOW()),
-    (gen_random_uuid(), 'Speisen', 'Hauptgerichte und Vorspeisen', '#e74c3c', 'restaurant', 2, true, NOW(), NOW()),
-    (gen_random_uuid(), 'Desserts', 'Süße Nachspeisen und Kuchen', '#f39c12', 'ice-cream', 3, true, NOW(), NOW()),
-    (gen_random_uuid(), 'Snacks', 'Kleine Zwischenmahlzeiten', '#27ae60', 'fast-food', 4, true, NOW(), NOW()),
-    (gen_random_uuid(), 'Kaffee & Tee', 'Heiße Getränke', '#8e44ad', 'cafe', 5, true, NOW(), NOW());
+-- Önce mevcut verileri temizle (isteğe bağlı)
+-- DELETE FROM "products" WHERE "category" IN ('Getränke', 'Speisen', 'Desserts', 'Snacks', 'Kaffee & Tee');
+-- DELETE FROM "categories" WHERE "Name" IN ('Getränke', 'Speisen', 'Desserts', 'Snacks', 'Kaffee & Tee');
+
+-- Kategoriler ekle (eğer yoksa) - Veritabanı kolon isimlerine göre
+INSERT INTO "categories" ("id", "Name", "Description", "Color", "Icon", "SortOrder", "is_active", "created_at", "updated_at")
+SELECT 
+    gen_random_uuid(), 'Getränke', 'Alkoholfreie und alkoholische Getränke', '#3498db', 'wine', 1, true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM "categories" WHERE "Name" = 'Getränke');
+
+INSERT INTO "categories" ("id", "Name", "Description", "Color", "Icon", "SortOrder", "is_active", "created_at", "updated_at")
+SELECT 
+    gen_random_uuid(), 'Speisen', 'Hauptgerichte und Vorspeisen', '#e74c3c', 'restaurant', 2, true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM "categories" WHERE "Name" = 'Speisen');
+
+INSERT INTO "categories" ("id", "Name", "Description", "Color", "Icon", "SortOrder", "is_active", "created_at", "updated_at")
+SELECT 
+    gen_random_uuid(), 'Desserts', 'Süße Nachspeisen und Kuchen', '#f39c12', 'ice-cream', 3, true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM "categories" WHERE "Name" = 'Desserts');
+
+INSERT INTO "categories" ("id", "Name", "Description", "Color", "Icon", "SortOrder", "is_active", "created_at", "updated_at")
+SELECT 
+    gen_random_uuid(), 'Snacks', 'Kleine Zwischenmahlzeiten', '#27ae60', 'fast-food', 4, true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM "categories" WHERE "Name" = 'Snacks');
+
+INSERT INTO "categories" ("id", "Name", "Description", "Color", "Icon", "SortOrder", "is_active", "created_at", "updated_at")
+SELECT 
+    gen_random_uuid(), 'Kaffee & Tee', 'Heiße Getränke', '#8e44ad', 'cafe', 5, true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM "categories" WHERE "Name" = 'Kaffee & Tee');
 
 -- Getränke Kategorisi - Standard Tax (20%)
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Cola 0.33L',
     'Erfrischendes Cola-Getränk',
     2.50,
-    0, -- Standard Tax (20%)
+    'Standard', -- Standard Tax (20%)
     'Getränke',
     true,
     100,
-    '4001234567890',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Getränke');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Cola 0.33L' AND "category" = 'Getränke');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Bier 0.5L',
     'Helles Lagerbier',
     4.80,
-    0, -- Standard Tax (20%)
+    'Standard', -- Standard Tax (20%)
     'Getränke',
     true,
     50,
-    '4001234567891',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Getränke');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Bier 0.5L' AND "category" = 'Getränke');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Wein 0.2L',
     'Rotwein aus Österreich',
     6.50,
-    0, -- Standard Tax (20%)
+    'Standard', -- Standard Tax (20%)
     'Getränke',
     true,
     30,
-    '4001234567892',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Getränke');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Wein 0.2L' AND "category" = 'Getränke');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Mineralwasser 0.5L',
     'Natürliches Mineralwasser',
     1.80,
-    0, -- Standard Tax (20%)
+    'Standard', -- Standard Tax (20%)
     'Getränke',
     true,
     80,
-    '4001234567893',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Getränke');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Mineralwasser 0.5L' AND "category" = 'Getränke');
 
 -- Speisen Kategorisi - Standard Tax (20%)
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Wiener Schnitzel',
     'Klassisches Wiener Schnitzel mit Pommes',
     18.90,
-    0, -- Standard Tax (20%)
+    'Standard', -- Standard Tax (20%)
     'Speisen',
     true,
     25,
-    '4001234567894',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Speisen');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Wiener Schnitzel' AND "category" = 'Speisen');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Gulasch',
     'Traditionelles Rindergulasch mit Semmelknödel',
     16.50,
-    0, -- Standard Tax (20%)
+    'Standard', -- Standard Tax (20%)
     'Speisen',
     true,
     20,
-    '4001234567895',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Speisen');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Gulasch' AND "category" = 'Speisen');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Salat',
     'Gemischter Salat mit hausgemachtem Dressing',
     8.90,
-    0, -- Standard Tax (20%)
+    'Standard', -- Standard Tax (20%)
     'Speisen',
     true,
     15,
-    '4001234567896',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Speisen');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Salat' AND "category" = 'Speisen');
 
 -- Desserts Kategorisi - Reduced Tax (10%)
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Apfelstrudel',
     'Hausgemachter Apfelstrudel mit Vanillesauce',
     6.90,
-    1, -- Reduced Tax (10%)
+    'Reduced', -- Reduced Tax (10%)
     'Desserts',
     true,
     12,
-    '4001234567897',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Desserts');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Apfelstrudel' AND "category" = 'Desserts');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Sachertorte',
     'Original Wiener Sachertorte',
     7.50,
-    1, -- Reduced Tax (10%)
+    'Reduced', -- Reduced Tax (10%)
     'Desserts',
     true,
     10,
-    '4001234567898',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Desserts');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Sachertorte' AND "category" = 'Desserts');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Eisbecher',
     '3 Kugeln Eis mit Sahne und Schokoladensauce',
     5.90,
-    1, -- Reduced Tax (10%)
+    'Reduced', -- Reduced Tax (10%)
     'Desserts',
     true,
     20,
-    '4001234567899',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Desserts');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Eisbecher' AND "category" = 'Desserts');
 
 -- Snacks Kategorisi - Reduced Tax (10%)
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Chips',
     'Kartoffelchips mit Salz',
     3.50,
-    1, -- Reduced Tax (10%)
+    'Reduced', -- Reduced Tax (10%)
     'Snacks',
     true,
     40,
-    '4001234567900',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Snacks');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Chips' AND "category" = 'Snacks');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Nüsse',
     'Gemischte Nüsse 100g',
     4.20,
-    1, -- Reduced Tax (10%)
+    'Reduced', -- Reduced Tax (10%)
     'Snacks',
     true,
     25,
-    '4001234567901',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Snacks');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Nüsse' AND "category" = 'Snacks');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Schokolade',
     'Milchschokolade 100g',
     2.80,
-    1, -- Reduced Tax (10%)
+    'Reduced', -- Reduced Tax (10%)
     'Snacks',
     true,
     35,
-    '4001234567902',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Snacks');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Schokolade' AND "category" = 'Snacks');
 
 -- Kaffee & Tee Kategorisi - Special Tax (13%)
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Espresso',
     'Starker italienischer Espresso',
     3.20,
-    2, -- Special Tax (13%)
+    'Special', -- Special Tax (13%)
     'Kaffee & Tee',
     true,
     60,
-    '4001234567903',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Kaffee & Tee');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Espresso' AND "category" = 'Kaffee & Tee');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Cappuccino',
     'Cappuccino mit Milchschaum',
     4.50,
-    2, -- Special Tax (13%)
+    'Special', -- Special Tax (13%)
     'Kaffee & Tee',
     true,
     45,
-    '4001234567904',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Kaffee & Tee');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Cappuccino' AND "category" = 'Kaffee & Tee');
 
-INSERT INTO "Products" ("Id", "Name", "Description", "Price", "TaxType", "Category", "IsActive", "StockQuantity", "Barcode", "CreatedAt", "UpdatedAt")
+INSERT INTO "products" ("id", "name", "description", "price", "tax_type", "category", "is_active", "stock_quantity", "created_at", "updated_at")
 SELECT 
     gen_random_uuid(),
     'Tee',
     'Kräutertee aus Österreich',
     3.80,
-    2, -- Special Tax (13%)
+    'Special', -- Special Tax (13%)
     'Kaffee & Tee',
     true,
     30,
-    '4001234567905',
     NOW(),
     NOW()
-WHERE EXISTS (SELECT 1 FROM "Categories" WHERE "Name" = 'Kaffee & Tee');
+WHERE NOT EXISTS (SELECT 1 FROM "products" WHERE "name" = 'Tee' AND "category" = 'Kaffee & Tee');
 
 -- Demo veriler eklendi mesajı
 SELECT 
     'Demo veriler başarıyla eklendi!' as message,
-    COUNT(DISTINCT c."Id") as category_count,
-    COUNT(p."Id") as product_count,
-    COUNT(CASE WHEN p."TaxType" = 0 THEN 1 END) as standard_tax_products,
-    COUNT(CASE WHEN p."TaxType" = 1 THEN 1 END) as reduced_tax_products,
-    COUNT(CASE WHEN p."TaxType" = 2 THEN 1 END) as special_tax_products
-FROM "Categories" c
-LEFT JOIN "Products" p ON c."Name" = p."Category"
-WHERE c."IsActive" = true;
+    COUNT(DISTINCT c."id") as category_count,
+    COUNT(p."id") as product_count,
+    COUNT(CASE WHEN p."tax_type" = 'Standard' THEN 1 END) as standard_tax_products,
+    COUNT(CASE WHEN p."tax_type" = 'Reduced' THEN 1 END) as reduced_tax_products,
+    COUNT(CASE WHEN p."tax_type" = 'Special' THEN 1 END) as special_tax_products
+FROM "categories" c
+LEFT JOIN "products" p ON c."Name" = p."category"
+WHERE c."is_active" = true;

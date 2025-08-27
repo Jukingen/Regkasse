@@ -2,7 +2,7 @@
 // Duplicate hook'ları kaldırır ve consistent API kullanımı sağlar
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Product, getAllProducts, getAllCategories, clearProductCache } from '../services/api/productService';
+import { Product, getAllProducts, getAllCategories, clearProductCache, getProductCatalog } from '../services/api/productService';
 
 interface UseProductsUnifiedState {
   products: Product[];
@@ -80,25 +80,65 @@ class ProductCache {
     try {
       this.updateState({ loading: true, error: null });
 
-      // Paralel olarak products ve categories yükle
-      const [productsResponse, categoriesResponse] = await Promise.all([
-        getAllProducts(1, 1000), // Sayfalama ile tüm ürünleri al
-        getAllCategories()
-      ]);
+      console.log('🔄 Loading products and categories via catalog...');
+      
+      // Katalog endpoint'i ile tek çağrıda hem kategori hem ürün al
+      try {
+        const catalog = await getProductCatalog();
+        const products = catalog.products;
+        const categories = catalog.categories.map(c => c.name);
+        
+        console.log(`📦 Catalog data received:`, {
+          productsCount: products.length,
+          categoriesCount: categories.length,
+          sampleProduct: products[0] ? { 
+            id: products[0].id, 
+            name: products[0].name, 
+            category: products[0].category,
+            productCategory: products[0].productCategory,
+            categoryId: products[0].categoryId
+          } : null,
+          sampleCategory: categories[0],
+          allProducts: products.map(p => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            productCategory: p.productCategory
+          }))
+        });
 
-      // Response format kontrolü
-      const products = productsResponse.items || productsResponse;
-      const categories = categoriesResponse || [];
+        this.updateState({
+          products: Array.isArray(products) ? products : [],
+          categories: Array.isArray(categories) ? categories : [],
+          loading: false,
+          initialized: true,
+          error: null
+        });
 
-      this.updateState({
-        products: Array.isArray(products) ? products : [],
-        categories: Array.isArray(categories) ? categories : [],
-        loading: false,
-        initialized: true,
-        error: null
-      });
+        console.log(`✅ Loaded ${products.length} products and ${categories.length} categories from catalog`);
+      } catch (catalogError) {
+        console.error('❌ Catalog loading failed, falling back to separate endpoints:', catalogError);
+        
+        // Fallback: ayrı endpoint'lerden yükle
+        const [productsResponse, categoriesResponse] = await Promise.all([
+          getAllProducts(1, 1000),
+          getAllCategories()
+        ]);
 
-      console.log(`✅ Loaded ${products.length} products and ${categories.length} categories`);
+        // Response format kontrolü - getAllProducts artık Product[] döndürüyor
+        const products = Array.isArray(productsResponse) ? productsResponse : [];
+        const categories = Array.isArray(categoriesResponse) ? categoriesResponse : [];
+
+        this.updateState({
+          products: Array.isArray(products) ? products : [],
+          categories: Array.isArray(categories) ? categories : [],
+          loading: false,
+          initialized: true,
+          error: null
+        });
+
+        console.log(`✅ Fallback loaded ${products.length} products and ${categories.length} categories`);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load data';
       this.updateState({
@@ -139,9 +179,12 @@ class ProductCache {
     if (category === 'all' || !category) {
       return this.state.products;
     }
-    return this.state.products.filter(product => 
-      product.category.toLowerCase() === category.toLowerCase()
-    );
+    
+    return this.state.products.filter(product => {
+      // Backend'den gelen category field'larını kullan
+      const productCategory = product.productCategory || product.category;
+      return productCategory?.toLowerCase() === category.toLowerCase();
+    });
   }
 
   // Ürün arama
@@ -151,11 +194,12 @@ class ProductCache {
     }
     
     const searchTerm = query.toLowerCase();
-    return this.state.products.filter(product =>
-      product.name.toLowerCase().includes(searchTerm) ||
-      product.description?.toLowerCase().includes(searchTerm) ||
-      product.category.toLowerCase().includes(searchTerm)
-    );
+    return this.state.products.filter(product => {
+      const productCategory = product.productCategory || product.category;
+      return product.name?.toLowerCase().includes(searchTerm) ||
+             product.description?.toLowerCase().includes(searchTerm) ||
+             productCategory?.toLowerCase().includes(searchTerm);
+    });
   }
 }
 

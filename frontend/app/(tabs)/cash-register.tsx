@@ -407,7 +407,7 @@ export default function CashRegisterScreen() {
           <CategoryFilter
             selectedCategory={selectedCategory}
             onCategoryChange={handleCategoryChange}
-            categories={['all', ...categories]}
+            categories={categories}
           />
         </View>
 

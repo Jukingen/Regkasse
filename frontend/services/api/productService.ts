@@ -68,13 +68,17 @@ export interface Product {
   isTaxable: boolean; // Vergiye tabi olup olmadığı
   taxExemptionReason?: string; // Vergi muafiyeti nedeni
   rksvProductType: RksvProductType; // RKSV ürün tipi
+  
+  // Backend catalog endpoint'inden gelen ek field'lar
+  productCategory?: string; // Backend'de ProductCategory olarak map edildi
+  categoryId?: string; // Backend'de CategoryId olarak map edildi
 }
 
 export interface ProductCategory {
   id: string;
   name: string;
   description?: string;
-  isActive: boolean;
+  isActive?: boolean;
 }
 
 // Sayfalama response interface'i
@@ -102,22 +106,25 @@ const mapProduct = (p: any): Product => ({
   name: p.Name ?? p.name,
   description: p.Description ?? p.description,
   price: p.Price ?? p.price,
-  stockQuantity: p.StockQuantity ?? p.stockQuantity ?? 0,
-  minStockLevel: p.MinStockLevel ?? p.minStockLevel ?? 0,
-  unit: p.Unit ?? p.unit ?? '',
-  category: p.Category ?? p.category ?? '',
-  taxType: (p.TaxType ?? p.taxType) as TaxType,
-  isActive: p.IsActive ?? p.isActive ?? true,
+  stockQuantity: p.StockQuantity ?? p.stockQuantity,
+  minStockLevel: p.MinStockLevel ?? p.minStockLevel,
+  unit: p.Unit ?? p.unit,
+  category: p.Category ?? p.category,
+  taxType: p.TaxType ?? p.taxType,
+  isActive: p.IsActive ?? p.isActive,
   imageUrl: p.ImageUrl ?? p.imageUrl,
-  createdAt: p.CreatedAt ?? p.createdAt ?? '',
-  updatedAt: p.UpdatedAt ?? p.updatedAt ?? '',
-  cost: p.Cost ?? p.cost ?? 0,
-  taxRate: p.TaxRate ?? p.taxRate ?? 0,
-  isFiscalCompliant: p.IsFiscalCompliant ?? p.isFiscalCompliant ?? true,
+  createdAt: p.CreatedAt ?? p.createdAt,
+  updatedAt: p.UpdatedAt ?? p.updatedAt,
+  cost: p.Cost ?? p.cost,
+  taxRate: p.TaxRate ?? p.taxRate,
+  isFiscalCompliant: p.IsFiscalCompliant ?? p.isFiscalCompliant,
   fiscalCategoryCode: p.FiscalCategoryCode ?? p.fiscalCategoryCode,
-  isTaxable: p.IsTaxable ?? p.isTaxable ?? true,
+  isTaxable: p.IsTaxable ?? p.isTaxable,
   taxExemptionReason: p.TaxExemptionReason ?? p.taxExemptionReason,
   rksvProductType: p.RksvProductType ?? p.rksvProductType,
+  // Backend catalog endpoint'inden gelen field'lar
+  productCategory: p.ProductCategory ?? p.productCategory,
+  categoryId: p.CategoryId ?? p.categoryId,
 });
 
 const unwrapData = <T>(resp: any): T => {
@@ -190,6 +197,49 @@ export const getAllCategories = async (): Promise<string[]> => {
   } catch (error) {
     console.error('Error fetching all categories:', error);
     throw new Error('Failed to load categories');
+  }
+};
+
+// Katalog endpoint'i: kategorileri ID'lerle ve ürünleri categoryId ile döndürür
+export const getProductCatalog = async (): Promise<{
+  categories: { id: string; name: string }[];
+  products: (Product & { categoryId?: string })[];
+}> => {
+  try {
+    console.log('🔄 Fetching product catalog...');
+    const resp = await apiClient.get<any>('/products/catalog');
+    
+    // Response format kontrolü - SuccessResponse sarmalaması olabilir
+    let data = resp;
+    if (resp?.data) {
+      data = resp.data; // SuccessResponse format
+    }
+    
+    console.log('📦 Catalog response received:', { 
+      hasData: !!data, 
+      hasCategories: !!data?.Categories, 
+      hasProducts: !!data?.Products,
+      categoriesCount: data?.Categories?.length || 0,
+      productsCount: data?.Products?.length || 0
+    });
+    
+    const categories = (data?.Categories ?? data?.categories ?? []).map((c: any) => ({
+      id: c.Id ?? c.id,
+      name: c.Name ?? c.name,
+    }));
+    
+    const productsRaw = data?.Products ?? data?.products ?? [];
+    const products = productsRaw.map((p: any) => ({
+      ...mapProduct(p),
+      categoryId: p.CategoryId ?? p.categoryId,
+    }));
+    
+    console.log(`✅ Catalog loaded: ${categories.length} categories, ${products.length} products`);
+    return { categories, products };
+  } catch (error) {
+    console.error('❌ Error fetching product catalog:', error);
+    const apiError = handleAPIError(error);
+    throw new Error(`Failed to load catalog: ${apiError.message}`);
   }
 };
 

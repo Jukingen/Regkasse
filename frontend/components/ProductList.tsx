@@ -43,7 +43,7 @@ export const ProductList: React.FC<ProductListProps> = ({
     loading: cacheLoading,
     error: cacheError,
     refreshData,
-    searchProducts: searchProductsInCache
+    searchProducts
   } = useProductsUnified();
   
   const [products, setProducts] = useState<Product[]>([]);
@@ -54,21 +54,39 @@ export const ProductList: React.FC<ProductListProps> = ({
     try {
       let productsData: Product[];
 
+      console.log(`🔍 ProductList: Filtering products:`, {
+        categoryFilter,
+        stockStatusFilter,
+        searchQuery,
+        totalCachedProducts: cachedProducts.length,
+        productsWithCategories: cachedProducts.map(p => ({
+          name: p.name,
+          category: p.category,
+          productCategory: p.productCategory
+        }))
+      });
+
       if (searchQuery) {
         // Arama yapılıyorsa - unified hook cache üzerinden
-        productsData = searchProductsInCache(searchQuery).filter(p =>
-          categoryFilter ? p.category === categoryFilter : true
-        );
+        productsData = searchProducts(searchQuery).filter(p => {
+          const productCategory = p.productCategory || p.category;
+          return categoryFilter ? productCategory === categoryFilter : true;
+        });
       } else if (categoryFilter) {
         // Kategori filtresi varsa - cache'den filtrele
-        productsData = cachedProducts.filter(p => p.category === categoryFilter);
+        productsData = cachedProducts.filter(p => {
+          const productCategory = p.productCategory || p.category;
+          const matches = productCategory === categoryFilter;
+          console.log(`🔍 Product ${p.name}: category=${productCategory}, filter=${categoryFilter}, matches=${matches}`);
+          return matches;
+        });
       } else if (stockStatusFilter) {
         // Stok durumu filtresi varsa - cache'den filtrele
         productsData = cachedProducts.filter(p => {
           switch (stockStatusFilter) {
-            case 'in-stock': return p.stockQuantity > p.minStockLevel;
+            case 'in-stock': return p.stockQuantity > (p.minStockLevel || 0);
             case 'out-of-stock': return p.stockQuantity === 0;
-            case 'low-stock': return p.stockQuantity <= p.minStockLevel && p.stockQuantity > 0;
+            case 'low-stock': return p.stockQuantity <= (p.minStockLevel || 0) && p.stockQuantity > 0;
             default: return true;
           }
         });
@@ -77,6 +95,7 @@ export const ProductList: React.FC<ProductListProps> = ({
         productsData = cachedProducts;
       }
 
+      console.log(`🔍 ProductList: Filtered ${productsData.length} products for category: ${categoryFilter || 'all'}`);
       setProducts(productsData);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('common.errorLoadingProducts');
@@ -89,7 +108,14 @@ export const ProductList: React.FC<ProductListProps> = ({
     if (cachedProducts.length > 0) {
       loadProducts(false);
     }
-  }, [cachedProducts.length]); // ✅ YENİ: loadProducts dependency kaldırıldı, sadece length kontrol
+  }, [cachedProducts.length, loadProducts]); // loadProducts dependency eklendi
+
+  // Kategori filtresi değiştiğinde ürünleri yeniden yükle
+  useEffect(() => {
+    if (cachedProducts.length > 0) {
+      loadProducts(false);
+    }
+  }, [categoryFilter, cachedProducts.length, loadProducts]); // categoryFilter değişikliğini dinle
 
   // Debug: API çağrılarını kontrol et
   useEffect(() => {
@@ -165,7 +191,7 @@ export const ProductList: React.FC<ProductListProps> = ({
 
         <View style={styles.productMeta}>
           <Text style={styles.productCategory}>
-            {item.category}
+            {item.productCategory || item.category}
           </Text>
           
           {showStockInfo && (
@@ -286,126 +312,126 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
   },
   listContainer: {
-    padding: 16,
+    padding: 8, // 16'dan 8'e düşürüldü
   },
   productItem: {
     backgroundColor: Colors.light.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
+    borderRadius: 8, // 12'den 8'e düşürüldü
+    padding: 12, // 16'dan 12'ye düşürüldü
+    marginBottom: 8, // 12'den 8'e düşürüldü
+    elevation: 1, // 2'den 1'e düşürüldü
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 }, // 2'den 1'e düşürüldü
+    shadowOpacity: 0.08, // 0.1'den 0.08'e düşürüldü
+    shadowRadius: 2, // 4'ten 2'ye düşürüldü
   },
   productHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 6, // 8'den 6'ya düşürüldü
   },
   productName: {
-    fontSize: 16,
+    fontSize: 14, // 16'dan 14'e düşürüldü
     fontWeight: '600',
     color: Colors.light.text,
     flex: 1,
-    marginRight: 12,
+    marginRight: 8, // 12'den 8'e düşürüldü
   },
   productPrice: {
-    fontSize: 18,
+    fontSize: 16, // 18'den 16'ya düşürüldü
     fontWeight: '700',
     color: Colors.light.primary,
   },
   productDetails: {
-    marginBottom: 8,
+    marginBottom: 6, // 8'den 6'ya düşürüldü
   },
   productDescription: {
-    fontSize: 14,
+    fontSize: 12, // 14'ten 12'ye düşürüldü
     color: Colors.light.textSecondary,
-    marginBottom: 8,
-    lineHeight: 20,
+    marginBottom: 6, // 8'den 6'ya düşürüldü
+    lineHeight: 16, // 20'den 16'ya düşürüldü
   },
   productMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6, // 8'den 6'ya düşürüldü
   },
   productCategory: {
-    fontSize: 12,
+    fontSize: 10, // 12'den 10'a düşürüldü
     color: Colors.light.textSecondary,
     backgroundColor: Colors.light.surface,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 6, // 8'den 6'ya düşürüldü
+    paddingVertical: 2, // 4'ten 2'ye düşürüldü
+    borderRadius: 8, // 12'den 8'e düşürüldü
   },
   stockInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   stockIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+    width: 6, // 8'den 6'ya düşürüldü
+    height: 6, // 8'den 6'ya düşürüldü
+    borderRadius: 3, // 4'ten 3'e düşürüldü
+    marginRight: 4, // 6'dan 4'e düşürüldü
   },
   stockQuantity: {
-    fontSize: 12,
+    fontSize: 10, // 12'den 10'a düşürüldü
     color: Colors.light.textSecondary,
   },
   taxInfo: {
     alignItems: 'flex-end',
   },
   taxType: {
-    fontSize: 12,
+    fontSize: 10, // 12'den 10'a düşürüldü
     fontWeight: '500',
     backgroundColor: Colors.light.surface,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 6, // 8'den 6'ya düşürüldü
+    paddingVertical: 2, // 4'ten 2'ye düşürüldü
+    borderRadius: 8, // 12'den 8'e düşürüldü
   },
   complianceInfo: {
-    marginTop: 8,
-    padding: 8,
+    marginTop: 6, // 8'den 6'ya düşürüldü
+    padding: 6, // 8'den 6'ya düşürüldü
     backgroundColor: Colors.light.surface,
-    borderRadius: 8,
+    borderRadius: 6, // 8'den 6'ya düşürüldü
   },
   complianceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2, // 4'ten 2'ye düşürüldü
   },
   complianceIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
+    width: 6, // 8'den 6'ya düşürüldü
+    height: 6, // 8'den 6'ya düşürüldü
+    borderRadius: 3, // 4'ten 3'e düşürüldü
+    marginRight: 6, // 8'den 6'ya düşürüldü
   },
   complianceText: {
-    fontSize: 11,
+    fontSize: 10, // 11'den 10'a düşürüldü
     fontWeight: '500',
     color: Colors.light.text,
     flex: 1,
   },
   rksvType: {
-    fontSize: 10,
+    fontSize: 9, // 10'dan 9'a düşürüldü
     color: Colors.light.textSecondary,
     backgroundColor: Colors.light.surface,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 4, // 6'dan 4'e düşürüldü
+    paddingVertical: 1, // 2'den 1'e düşürüldü
+    borderRadius: 6, // 8'den 6'ya düşürüldü
   },
   exemptionReason: {
-    fontSize: 10,
+    fontSize: 9, // 10'dan 9'a düşürüldü
     color: Colors.light.warning,
     fontStyle: 'italic',
-    marginTop: 2,
+    marginTop: 1, // 2'den 1'e düşürüldü
   },
   fiscalCode: {
-    fontSize: 10,
+    fontSize: 9, // 10'dan 9'a düşürüldü
     color: Colors.light.textSecondary,
-    marginTop: 2,
+    marginTop: 1, // 2'den 1'e düşürüldü
   },
 
   loadingFooter: {

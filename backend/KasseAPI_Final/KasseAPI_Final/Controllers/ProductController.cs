@@ -5,6 +5,8 @@ using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.Authorization;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data.Repositories;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -95,6 +97,86 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
+        /// Katalog: Kategorileri sabit ID'lerle ve ürünleri categoryId ile birlikte döndürür
+        /// </summary>
+        [HttpGet("catalog")]
+        public async Task<IActionResult> GetCatalog()
+        {
+            try
+            {
+                var activeProducts = await _context.Products
+                    .Where(p => p.IsActive)
+                    .OrderBy(p => p.Category)
+                    .ThenBy(p => p.Name)
+                    .ToListAsync();
+
+                // Kategori isimlerinden deterministik GUID üret (case-insensitive)
+                Guid GenerateCategoryId(string categoryName)
+                {
+                    if (string.IsNullOrWhiteSpace(categoryName))
+                    {
+                        categoryName = "Uncategorized";
+                    }
+                    var normalized = categoryName.Trim().ToLowerInvariant();
+                    // Stabil olması için Name-based GUID (V5 benzeri) - .NET'te hazır yok, basit hash ile seedle
+                    var bytes = Encoding.UTF8.GetBytes(normalized);
+                    var hash = SHA1.HashData(bytes);
+                    var guidBytes = new byte[16];
+                    Array.Copy(hash, guidBytes, 16);
+                    return new Guid(guidBytes);
+                }
+
+                var categories = activeProducts
+                    .Select(p => p.Category)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(c => c)
+                    .Select(name => new
+                    {
+                        Id = GenerateCategoryId(name),
+                        Name = name
+                    })
+                    .ToList();
+
+                // Ürünleri categoryId ile eşleştir - duplicate property isimlerini önle
+                var products = activeProducts.Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.Description,
+                    p.Price,
+                    p.ImageUrl,
+                    p.StockQuantity,
+                    p.MinStockLevel,
+                    p.Unit,
+                    ProductCategory = p.Category, // Duplicate property ismini önle
+                    CategoryId = GenerateCategoryId(p.Category ?? "Uncategorized"),
+                    p.TaxType,
+                    p.TaxRate,
+                    p.IsActive,
+                    p.IsFiscalCompliant,
+                    p.FiscalCategoryCode,
+                    p.IsTaxable,
+                    p.TaxExemptionReason,
+                    p.RksvProductType,
+                    p.Cost
+                }).ToList();
+
+                var response = new
+                {
+                    Categories = categories,
+                    Products = products
+                };
+
+                _logger.LogInformation($"Catalog built: {categories.Count} categories, {products.Count} products");
+                return SuccessResponse(response, $"Retrieved catalog with {categories.Count} categories and {products.Count} products");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "GetCatalog");
+            }
+        }
+
+        /// <summary>
         /// Ana sayfa için tüm aktif ürünleri getir (kategori bazlı gruplandırılmış)
         /// </summary>
         [HttpGet("active")]
@@ -138,6 +220,58 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 return HandleException(ex, "GetAllActiveProducts");
+            }
+        }
+
+        /// <summary>
+        /// Debug: Veritabanındaki mevcut kategorileri ve ürünleri göster
+        /// </summary>
+        [HttpGet("debug/categories-products")]
+        public async Task<IActionResult> GetDebugCategoriesAndProducts()
+        {
+            try
+            {
+                var allProducts = await _context.Products.ToListAsync();
+                var activeProducts = allProducts.Where(p => p.IsActive).ToList();
+                var inactiveProducts = allProducts.Where(p => !p.IsActive).ToList();
+                
+                var categories = allProducts.Select(p => p.Category).Distinct().OrderBy(c => c).ToList();
+                var activeCategories = activeProducts.Select(p => p.Category).Distinct().OrderBy(c => c).ToList();
+                
+                var categoryProductCounts = categories.Select(cat => new
+                {
+                    Category = cat,
+                    TotalProducts = allProducts.Count(p => p.Category == cat),
+                    ActiveProducts = activeProducts.Count(p => p.Category == cat),
+                    InactiveProducts = inactiveProducts.Count(p => p.Category == cat)
+                }).ToList();
+
+                var debugInfo = new
+                {
+                    TotalProducts = allProducts.Count,
+                    ActiveProducts = activeProducts.Count,
+                    InactiveProducts = inactiveProducts.Count,
+                    TotalCategories = categories.Count,
+                    ActiveCategories = activeCategories.Count,
+                    CategoryList = categories, // Duplicate property ismini önle
+                    ActiveCategoryList = activeCategories, // Duplicate property ismini önle
+                    CategoryProductCounts = categoryProductCounts,
+                    SampleProducts = activeProducts.Take(5).Select(p => new
+                    {
+                        p.Id,
+                        p.Name,
+                        p.Category,
+                        p.IsActive,
+                        p.Price
+                    }).ToList()
+                };
+
+                _logger.LogInformation($"Debug info: {activeProducts.Count} active products in {activeCategories.Count} categories");
+                return SuccessResponse(debugInfo, "Debug information retrieved successfully");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "GetDebugCategoriesAndProducts");
             }
         }
 

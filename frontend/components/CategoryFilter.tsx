@@ -1,4 +1,4 @@
-// Türkçe Açıklama: Kategori bazlı filtreleme için görsel kategori seçici. Dil dosyalarından kategori isimlerini okur ve seçilen kategoriye göre ürünleri filtreler.
+// Türkçe Açıklama: Kategori bazlı filtreleme için görsel kategori seçici. Backend'den gelen kategorileri dinamik olarak yükler ve seçilen kategoriye göre ürünleri filtreler.
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
@@ -19,25 +19,35 @@ const CATEGORY_CONFIG = {
     icon: 'grid' as const,
     color: '#6C757D'
   },
+  // Backend'deki kategori isimleri
+  Getränke: {
+    icon: 'wine' as const,
+    color: '#3498db'
+  },
+  Speisen: {
+    icon: 'restaurant' as const,
+    color: '#e74c3c'
+  },
+  Desserts: {
+    icon: 'ice-cream' as const,
+    color: '#f39c12'
+  },
+  Snacks: {
+    icon: 'fast-food' as const,
+    color: '#27ae60'
+  },
+  'Kaffee & Tee': {
+    icon: 'cafe' as const,
+    color: '#8e44ad'
+  },
+  // Eski kategoriler (geriye uyumluluk için)
   Hauptgerichte: {
     icon: 'restaurant' as const,
     color: '#FF6B6B'
   },
-  Getränke: {
-    icon: 'cafe' as const,
-    color: '#4ECDC4'
-  },
-  Desserts: {
-    icon: 'ice-cream' as const,
-    color: '#FFE66D'
-  },
   'Alkoholische Getränke': {
     icon: 'wine' as const,
     color: '#A8E6CF'
-  },
-  Snacks: {
-    icon: 'fast-food' as const,
-    color: '#FF9F43'
   },
   Suppen: {
     icon: 'water' as const,
@@ -50,10 +60,6 @@ const CATEGORY_CONFIG = {
   Salate: {
     icon: 'nutrition' as const,
     color: '#00B894'
-  },
-  'Kaffee & Tee': {
-    icon: 'cafe' as const,
-    color: '#6C5CE7'
   },
   Süßigkeiten: {
     icon: 'happy' as const,
@@ -79,6 +85,14 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
   // 'all' kategorisini başa ekle
   const allCategories = ['all', ...categories];
 
+  // Kategori bulunamadığında varsayılan konfigürasyon
+  const getCategoryConfig = (category: string) => {
+    return CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG] || {
+      icon: 'folder' as const,
+      color: '#6C757D'
+    };
+  };
+
   return (
     <ScrollView
       horizontal
@@ -86,7 +100,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
       contentContainerStyle={styles.container}
     >
       {allCategories.map((category) => {
-        const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG.all;
+        const config = getCategoryConfig(category);
         const label = category === 'all' ? t('categories.all') : category;
         
         return (
