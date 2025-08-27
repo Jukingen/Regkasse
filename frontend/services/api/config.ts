@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios, { AxiosHeaders } from 'axios';
+import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
 import { API_BASE_URL as CONFIGURED_API_BASE_URL } from '../../config';
@@ -55,6 +55,19 @@ const TokenManager = {
       await AsyncStorage.setItem('token', cleanToken);
       await AsyncStorage.setItem('tokenExpiry', Date.now().toString());
       console.log('Token stored successfully (JWT only):', cleanToken.substring(0, 20) + '...');
+
+      // Global event: token updated (login/refresh)
+      try {
+        // Store last token on globalThis for non-web platforms if needed
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (globalThis as any).__lastAuthToken__ = cleanToken;
+        if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+          const evt = new CustomEvent('auth-token-updated', { detail: { token: cleanToken } });
+          window.dispatchEvent(evt);
+        }
+      } catch (eventError) {
+        console.warn('Token update event dispatch failed:', eventError);
+      }
     } catch (error) {
       console.error('Token storage failed:', error);
     }

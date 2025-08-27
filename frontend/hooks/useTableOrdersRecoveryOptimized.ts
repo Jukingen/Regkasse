@@ -2,8 +2,8 @@
 // useApiManager kullanarak duplicate API çağrılarını önler ve akıllı cache yönetimi sağlar
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { useApiManager } from './useApiManager';
+import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/api/config';
 
 // Table order recovery interfaces
@@ -93,7 +93,8 @@ export const useTableOrdersRecoveryOptimized = () => {
     }
 
     // Cache kontrolü
-    const cachedData = getCachedData<TableOrdersRecoveryData>('table-orders-recovery');
+    const userCacheKey = `table-orders-recovery:${user.id}`;
+    const cachedData = getCachedData<TableOrdersRecoveryData>(userCacheKey);
     if (cachedData) {
       console.log('✅ Cache hit for table orders recovery');
       updateRecoveryState({
@@ -137,7 +138,7 @@ export const useTableOrdersRecoveryOptimized = () => {
           }
         },
         {
-          cacheKey: 'table-orders-recovery',
+          cacheKey: userCacheKey,
           cacheTTL: 5, // 5 dakika cache
           skipDuplicate: true,
           retryCount: 2,
@@ -155,8 +156,8 @@ export const useTableOrdersRecoveryOptimized = () => {
           isInitialized: true,
         });
 
-        // Cache'e kaydet
-        setCachedData('table-orders-recovery', result, 5);
+        // Cache'e kaydet (user scoped)
+        setCachedData(userCacheKey, result, 5);
 
         return result;
       }
@@ -176,7 +177,7 @@ export const useTableOrdersRecoveryOptimized = () => {
 
       return null;
     }
-  }, [user, apiCall, setCachedData]); // Gereksiz dependency'ler kaldırıldı
+  }, [user, apiCall, setCachedData, getCachedData, updateRecoveryState]);
 
   /**
    * Manuel refresh için - sadece gerektiğinde kullanılır
@@ -186,14 +187,15 @@ export const useTableOrdersRecoveryOptimized = () => {
     
     console.log('🔄 Manual refresh of table orders...');
     
-    // Cache'i temizle
-    setCachedData('table-orders-recovery', null, 0);
+    // Cache'i temizle (user scoped)
+    const userCacheKey = `table-orders-recovery:${user.id}`;
+    setCachedData(userCacheKey, null as unknown as TableOrdersRecoveryData, 0);
     
     // Reset initialization flag to force fresh fetch
     updateRecoveryState({ isInitialized: false });
     
     return await fetchTableOrdersRecovery();
-  }, [user, fetchTableOrdersRecovery, setCachedData]); // updateRecoveryState dependency'si kaldırıldı
+  }, [user, fetchTableOrdersRecovery, setCachedData, updateRecoveryState]);
 
   /**
    * Belirli bir masa için sipariş bilgilerini getir
@@ -203,7 +205,7 @@ export const useTableOrdersRecoveryOptimized = () => {
     
     return recoveryStateRef.current.recoveryData.tableOrders.find(
       order => order.tableNumber === tableNumber
-    ) || null;
+    ) ?? null;
   }, []);
 
   /**
@@ -222,8 +224,11 @@ export const useTableOrdersRecoveryOptimized = () => {
    * Recovery durumunu sıfırla
    */
   const resetRecovery = useCallback(() => {
-    // Cache'i temizle
-    setCachedData('table-orders-recovery', null, 0);
+    // Cache'i temizle (user scoped)
+    if (user?.id) {
+      const userCacheKey = `table-orders-recovery:${user.id}`;
+      setCachedData(userCacheKey, null as unknown as TableOrdersRecoveryData, 0);
+    }
     
     updateRecoveryState({
       isLoading: false,
@@ -232,7 +237,7 @@ export const useTableOrdersRecoveryOptimized = () => {
       isRecoveryCompleted: false,
       isInitialized: false,
     });
-  }, [setCachedData]); // updateRecoveryState dependency'si kaldırıldı
+  }, [setCachedData, user, updateRecoveryState]);
 
   /**
    * Sayfa yüklendiğinde otomatik recovery yapar
@@ -263,6 +268,21 @@ export const useTableOrdersRecoveryOptimized = () => {
       isMounted = false;
     };
   }, [user, fetchTableOrdersRecovery]); // fetchTableOrdersRecovery dependency'si eklendi
+
+  // Token güncellenince recovery'yi tekrar dene (örn. login/refresh sonrası)
+  useEffect(() => {
+    const handler = () => {
+      if (user) {
+        console.log('🔄 auth-token-updated received, refreshing table orders');
+        refreshTableOrders();
+      }
+    };
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('auth-token-updated', handler);
+      return () => window.removeEventListener('auth-token-updated', handler);
+    }
+    return () => {};
+  }, [user, refreshTableOrders]);
 
   return {
     // State
