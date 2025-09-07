@@ -2,20 +2,25 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
+  FlatList,
   ActivityIndicator,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../services/api/productService';
 import { useProductsUnified } from '../hooks/useProductsUnified';
 import { Colors } from '../constants/Colors';
 
+// Ekran boyutlarını al
+const { width: screenWidth } = Dimensions.get('window');
+const isTablet = screenWidth > 768;
+
 /**
- * Ürün listesi komponenti - RKSV uyumlu ürün yönetimi
- * Filtreleme ve arama özellikleri ile, sayfalama olmadan
+ * Mobile-optimized ürün listesi komponenti
+ * Grid layout ve responsive tasarım
  */
 interface ProductListProps {
   categoryFilter?: string;
@@ -36,7 +41,7 @@ export const ProductList: React.FC<ProductListProps> = ({
 }) => {
   const { t } = useTranslation();
   
-  // Unified products hook'unu kullan - tek kaynak, duplicate fetch yok
+  // Unified products hook'unu kullan
   const {
     products: cachedProducts,
     categories: cachedCategories,
@@ -48,8 +53,15 @@ export const ProductList: React.FC<ProductListProps> = ({
   
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid'); // Grid/List toggle
 
-  // Ürünleri yükle - cache hook'undan gelen verileri kullan
+  // Grid için sütun sayısını hesapla
+  const getGridColumns = () => {
+    if (isTablet) return 3;
+    return 2; // Mobile: 2 sütun
+  };
+
+  // Ürünleri yükle
   const loadProducts = useCallback(async (refresh: boolean = false) => {
     try {
       let productsData: Product[];
@@ -67,13 +79,13 @@ export const ProductList: React.FC<ProductListProps> = ({
       });
 
       if (searchQuery) {
-        // Arama yapılıyorsa - unified hook cache üzerinden
+        // Arama yapılıyorsa
         productsData = searchProducts(searchQuery).filter(p => {
           const productCategory = p.productCategory || p.category;
           return categoryFilter ? productCategory === categoryFilter : true;
         });
       } else if (categoryFilter) {
-        // Kategori filtresi varsa - cache'den filtrele
+        // Kategori filtresi varsa
         productsData = cachedProducts.filter(p => {
           const productCategory = p.productCategory || p.category;
           const matches = productCategory === categoryFilter;
@@ -81,7 +93,7 @@ export const ProductList: React.FC<ProductListProps> = ({
           return matches;
         });
       } else if (stockStatusFilter) {
-        // Stok durumu filtresi varsa - cache'den filtrele
+        // Stok durumu filtresi varsa
         productsData = cachedProducts.filter(p => {
           switch (stockStatusFilter) {
             case 'in-stock': return p.stockQuantity > (p.minStockLevel || 0);
@@ -101,21 +113,21 @@ export const ProductList: React.FC<ProductListProps> = ({
       const errorMessage = err instanceof Error ? err.message : t('common.errorLoadingProducts');
       console.error('Error loading products:', err);
     }
-  }, [categoryFilter, stockStatusFilter, searchQuery]); // ✅ YENİ: Minimal dependency - cachedProducts ve t kaldırıldı
+  }, [categoryFilter, stockStatusFilter, searchQuery, cachedProducts, searchProducts, t]);
 
-  // İlk yükleme - cache'den veriler hazır olduğunda
+  // İlk yükleme
   useEffect(() => {
     if (cachedProducts.length > 0) {
       loadProducts(false);
     }
-  }, [cachedProducts.length, loadProducts]); // loadProducts dependency eklendi
+  }, [cachedProducts.length, loadProducts]);
 
   // Kategori filtresi değiştiğinde ürünleri yeniden yükle
   useEffect(() => {
     if (cachedProducts.length > 0) {
       loadProducts(false);
     }
-  }, [categoryFilter, cachedProducts.length, loadProducts]); // categoryFilter değişikliğini dinle
+  }, [categoryFilter, cachedProducts.length, loadProducts]);
 
   // Debug: API çağrılarını kontrol et
   useEffect(() => {
@@ -159,97 +171,128 @@ export const ProductList: React.FC<ProductListProps> = ({
     }
   };
 
-  // RKSV compliance status rengi
-  const getComplianceStatusColor = (isFiscalCompliant: boolean, isTaxable: boolean) => {
-    if (!isFiscalCompliant) return Colors.light.error;
-    if (!isTaxable) return Colors.light.warning;
-    return Colors.light.success;
-  };
-
-  // Ürün render
-  const renderProduct = ({ item }: { item: Product }) => (
+  // Grid ürün render (mobile-optimized)
+  const renderGridProduct = ({ item }: { item: Product }) => (
     <TouchableOpacity
-      style={styles.productItem}
+      style={styles.gridProductItem}
       onPress={() => handleProductSelect(item)}
       activeOpacity={0.7}
     >
-      <View style={styles.productHeader}>
-        <Text style={styles.productName} numberOfLines={2}>
-          {item.name}
-        </Text>
-        <Text style={styles.productPrice}>
-          €{item.price.toFixed(2)}
+      {/* Ürün resmi placeholder */}
+      <View style={styles.productImagePlaceholder}>
+        <Text style={styles.productImageText}>
+          {item.name?.charAt(0)?.toUpperCase() || 'P'}
         </Text>
       </View>
 
-      <View style={styles.productDetails}>
+      {/* Ürün bilgileri */}
+      <View style={styles.gridProductInfo}>
+        <Text style={styles.gridProductName} numberOfLines={2}>
+          {item.name}
+        </Text>
+        
+        <Text style={styles.gridProductPrice}>
+          €{item.price?.toFixed(2) || '0.00'}
+        </Text>
+
+        {/* Kategori badge */}
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryBadgeText}>
+            {item.productCategory || item.category}
+          </Text>
+        </View>
+
+        {/* Stok durumu */}
+        {showStockInfo && (
+          <View style={styles.stockBadge}>
+            <View style={[
+              styles.stockIndicator,
+              { backgroundColor: getStockStatusColor(item.stockQuantity || 0, item.minStockLevel || 0) }
+            ]} />
+            <Text style={styles.stockText}>
+              {item.stockQuantity || 0}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+
+  // List ürün render (mevcut)
+  const renderListProduct = ({ item }: { item: Product }) => (
+    <TouchableOpacity
+      style={styles.listProductItem}
+      onPress={() => handleProductSelect(item)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.listProductHeader}>
+        <Text style={styles.listProductName} numberOfLines={2}>
+          {item.name}
+        </Text>
+        <Text style={styles.listProductPrice}>
+          €{item.price?.toFixed(2) || '0.00'}
+        </Text>
+      </View>
+
+      <View style={styles.listProductDetails}>
         {item.description && (
-          <Text style={styles.productDescription} numberOfLines={2}>
+          <Text style={styles.listProductDescription} numberOfLines={2}>
             {item.description}
           </Text>
         )}
 
-        <View style={styles.productMeta}>
-          <Text style={styles.productCategory}>
+        <View style={styles.listProductMeta}>
+          <Text style={styles.listProductCategory}>
             {item.productCategory || item.category}
           </Text>
           
           {showStockInfo && (
-            <View style={styles.stockInfo}>
+            <View style={styles.listStockInfo}>
               <View style={[
-                styles.stockIndicator,
-                { backgroundColor: getStockStatusColor(item.stockQuantity, item.minStockLevel || 0) }
+                styles.listStockIndicator,
+                { backgroundColor: getStockStatusColor(item.stockQuantity || 0, item.minStockLevel || 0) }
               ]} />
-              <Text style={styles.stockQuantity}>
-                {item.stockQuantity} {item.unit}
+              <Text style={styles.listStockQuantity}>
+                {item.stockQuantity || 0} {item.unit || 'Stück'}
               </Text>
             </View>
           )}
 
           {showTaxInfo && (
-            <View style={styles.taxInfo}>
+            <View style={styles.listTaxInfo}>
               <Text style={[
-                styles.taxType,
-                { color: getTaxTypeColor(item.taxType) }
+                styles.listTaxType,
+                { color: getTaxTypeColor(item.taxType || 'Standard') }
               ]}>
-                {t(`taxType.${item.taxType.toLowerCase()}`)}
+                {t(`taxType.${(item.taxType || 'Standard').toLowerCase()}`)}
               </Text>
             </View>
           )}
         </View>
-
-        {/* RKSV Compliance bilgileri */}
-        <View style={styles.complianceInfo}>
-          <View style={styles.complianceRow}>
-            <View style={[
-              styles.complianceIndicator,
-              { backgroundColor: getComplianceStatusColor(item.isFiscalCompliant, item.isTaxable) }
-            ]} />
-            <Text style={styles.complianceText}>
-              {item.isFiscalCompliant ? t('rksv.compliant') : t('rksv.nonCompliant')}
-            </Text>
-            {item.rksvProductType && (
-              <Text style={styles.rksvType}>
-                {item.rksvProductType}
-              </Text>
-            )}
-          </View>
-          
-          {!item.isTaxable && item.taxExemptionReason && (
-            <Text style={styles.exemptionReason} numberOfLines={1}>
-              {t('rksv.exemptionReason')}: {item.taxExemptionReason}
-            </Text>
-          )}
-          
-          {item.fiscalCategoryCode && (
-            <Text style={styles.fiscalCode}>
-              {t('rksv.fiscalCode')}: {item.fiscalCategoryCode}
-            </Text>
-          )}
-        </View>
-
       </View>
     </TouchableOpacity>
+  );
+
+  // View mode toggle
+  const renderViewModeToggle = () => (
+    <View style={styles.viewModeToggle}>
+      <TouchableOpacity
+        style={[styles.toggleButton, viewMode === 'grid' && styles.toggleButtonActive]}
+        onPress={() => setViewMode('grid')}
+      >
+        <Text style={[styles.toggleButtonText, viewMode === 'grid' && styles.toggleButtonTextActive]}>
+          Grid
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+        onPress={() => setViewMode('list')}
+      >
+        <Text style={[styles.toggleButtonText, viewMode === 'list' && styles.toggleButtonTextActive]}>
+          List
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 
   // Yükleme komponenti
@@ -278,11 +321,19 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* View Mode Toggle */}
+      {renderViewModeToggle()}
+
+      {/* Products Grid/List */}
       <FlatList
         data={products}
-        renderItem={renderProduct}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        renderItem={viewMode === 'grid' ? renderGridProduct : renderListProduct}
+        keyExtractor={(item) => item.id || Math.random().toString()}
+        numColumns={viewMode === 'grid' ? getGridColumns() : 1}
+        contentContainerStyle={[
+          styles.listContainer,
+          viewMode === 'grid' && styles.gridContainer
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -301,6 +352,8 @@ export const ProductList: React.FC<ProductListProps> = ({
             </View>
           ) : null
         }
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
       />
     </View>
   );
@@ -314,6 +367,9 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 8, // 16'dan 8'e düşürüldü
   },
+  gridContainer: {
+    padding: 8, // Grid modunda padding ekleniyor
+  },
   productItem: {
     backgroundColor: Colors.light.surface,
     borderRadius: 8, // 12'den 8'e düşürüldü
@@ -325,115 +381,176 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08, // 0.1'den 0.08'e düşürüldü
     shadowRadius: 2, // 4'ten 2'ye düşürüldü
   },
-  productHeader: {
+  listProductItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 6, // 8'den 6'ya düşürüldü
+    backgroundColor: Colors.light.surface,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
   },
-  productName: {
-    fontSize: 14, // 16'dan 14'e düşürüldü
+  listProductHeader: {
+    flex: 1,
+    marginRight: 12,
+  },
+  listProductName: {
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.light.text,
-    flex: 1,
-    marginRight: 8, // 12'den 8'e düşürüldü
+    marginBottom: 4,
   },
-  productPrice: {
-    fontSize: 16, // 18'den 16'ya düşürüldü
+  listProductPrice: {
+    fontSize: 16,
     fontWeight: '700',
     color: Colors.light.primary,
   },
-  productDetails: {
-    marginBottom: 6, // 8'den 6'ya düşürüldü
+  listProductDetails: {
+    flex: 1,
   },
-  productDescription: {
-    fontSize: 12, // 14'ten 12'ye düşürüldü
+  listProductDescription: {
+    fontSize: 12,
     color: Colors.light.textSecondary,
-    marginBottom: 6, // 8'den 6'ya düşürüldü
-    lineHeight: 16, // 20'den 16'ya düşürüldü
+    marginBottom: 6,
+    lineHeight: 16,
   },
-  productMeta: {
+  listProductMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6, // 8'den 6'ya düşürüldü
+    marginBottom: 6,
   },
-  productCategory: {
-    fontSize: 10, // 12'den 10'a düşürüldü
+  listProductCategory: {
+    fontSize: 10,
     color: Colors.light.textSecondary,
     backgroundColor: Colors.light.surface,
-    paddingHorizontal: 6, // 8'den 6'ya düşürüldü
-    paddingVertical: 2, // 4'ten 2'ye düşürüldü
-    borderRadius: 8, // 12'den 8'e düşürüldü
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
-  stockInfo: {
+  listStockInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  stockIndicator: {
-    width: 6, // 8'den 6'ya düşürüldü
-    height: 6, // 8'den 6'ya düşürüldü
-    borderRadius: 3, // 4'ten 3'e düşürüldü
-    marginRight: 4, // 6'dan 4'e düşürüldü
+  listStockIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
   },
-  stockQuantity: {
-    fontSize: 10, // 12'den 10'a düşürüldü
+  listStockQuantity: {
+    fontSize: 10,
     color: Colors.light.textSecondary,
   },
-  taxInfo: {
+  listTaxInfo: {
     alignItems: 'flex-end',
   },
-  taxType: {
-    fontSize: 10, // 12'den 10'a düşürüldü
+  listTaxType: {
+    fontSize: 10,
     fontWeight: '500',
     backgroundColor: Colors.light.surface,
-    paddingHorizontal: 6, // 8'den 6'ya düşürüldü
-    paddingVertical: 2, // 4'ten 2'ye düşürüldü
-    borderRadius: 8, // 12'den 8'e düşürüldü
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
-  complianceInfo: {
-    marginTop: 6, // 8'den 6'ya düşürüldü
-    padding: 6, // 8'den 6'ya düşürüldü
+  gridProductItem: {
+    flex: 1, // Grid modunda eşit genişlik
     backgroundColor: Colors.light.surface,
-    borderRadius: 6, // 8'den 6'ya düşürüldü
+    borderRadius: 8,
+    margin: 4, // Grid modunda margin ekleniyor
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
   },
-  complianceRow: {
-    flexDirection: 'row',
+  productImagePlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 2, // 4'ten 2'ye düşürüldü
+    backgroundColor: Colors.light.surface,
   },
-  complianceIndicator: {
-    width: 6, // 8'den 6'ya düşürüldü
-    height: 6, // 8'den 6'ya düşürüldü
-    borderRadius: 3, // 4'ten 3'e düşürüldü
-    marginRight: 6, // 8'den 6'ya düşürüldü
+  productImageText: {
+    fontSize: 24,
+    color: Colors.light.primary,
   },
-  complianceText: {
-    fontSize: 10, // 11'den 10'a düşürüldü
-    fontWeight: '500',
-    color: Colors.light.text,
+  gridProductInfo: {
+    padding: 8,
     flex: 1,
   },
-  rksvType: {
-    fontSize: 9, // 10'dan 9'a düşürüldü
-    color: Colors.light.textSecondary,
+  gridProductName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 4,
+  },
+  gridProductPrice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.light.primary,
+  },
+  categoryBadge: {
     backgroundColor: Colors.light.surface,
-    paddingHorizontal: 4, // 6'dan 4'e düşürüldü
-    paddingVertical: 1, // 2'den 1'e düşürüldü
-    borderRadius: 6, // 8'den 6'ya düşürüldü
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 6,
   },
-  exemptionReason: {
-    fontSize: 9, // 10'dan 9'a düşürüldü
-    color: Colors.light.warning,
-    fontStyle: 'italic',
-    marginTop: 1, // 2'den 1'e düşürüldü
+  categoryBadgeText: {
+    fontSize: 9,
+    color: Colors.light.primary,
+    fontWeight: '500',
   },
-  fiscalCode: {
-    fontSize: 9, // 10'dan 9'a düşürüldü
+  stockBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    backgroundColor: Colors.light.surface,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  stockIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
+  },
+  stockText: {
+    fontSize: 10,
     color: Colors.light.textSecondary,
-    marginTop: 1, // 2'den 1'e düşürüldü
   },
-
+  viewModeToggle: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    backgroundColor: Colors.light.surface,
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  toggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+  },
+  toggleButtonActive: {
+    backgroundColor: Colors.light.primary,
+  },
+  toggleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.textSecondary,
+  },
+  toggleButtonTextActive: {
+    color: '#FFFFFF',
+  },
   loadingFooter: {
     flexDirection: 'row',
     justifyContent: 'center',
