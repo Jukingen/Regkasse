@@ -21,7 +21,7 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
 
   // Production mode kontrolü
   const isDevelopment = __DEV__ || process.env.NODE_ENV === 'development';
-  
+
   if (!isDevelopment && !showInProduction) {
     return null; // Production'da gösterme (showInProduction false ise)
   }
@@ -33,9 +33,12 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
   useEffect(() => {
     const now = Date.now();
     const timeSinceLastCheck = now - lastCheckTimeRef.current;
-    
-    setRenderCount(currentCount);
-    
+
+    // CRITICAL FIX: Throttle state updates to avoid self-induced infinite loops
+    if (currentCount % 50 === 0 || currentCount > threshold) {
+      setRenderCount(currentCount);
+    }
+
     // Status belirleme
     if (currentCount > threshold) {
       setStatus('critical');
@@ -47,15 +50,15 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
           timeElapsed: timeSinceLastCheck,
           component: 'InfiniteLoopDetector'
         });
-        
+
         // Alert göster (sadece bir kez)
         Alert.alert(
           '🚨 Infinite Loop Detected',
           `Component rendered ${currentCount} times!\n\nThis indicates a potential infinite loop.\n\nCheck your useEffect dependencies and state updates.`,
           [
             { text: 'OK', style: 'default' },
-            { 
-              text: 'Reset Counter', 
+            {
+              text: 'Reset Counter',
               onPress: () => {
                 renderCountRef.current = 0;
                 setRenderCount(0);
@@ -121,7 +124,7 @@ export const InfiniteLoopDetector: React.FC<InfiniteLoopDetectorProps> = ({
           <Text style={styles.resetText}>Reset</Text>
         </TouchableOpacity>
       </View>
-      
+
       <View style={styles.content}>
         <Text style={[styles.count, { color: getStatusColor() }]}>
           {renderCount} renders

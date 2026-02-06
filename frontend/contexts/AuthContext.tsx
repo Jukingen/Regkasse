@@ -572,7 +572,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Cart reset will be handled by the component that uses AuthContext
 
-    const login = async (username: string, password: string) => {
+    const login = useCallback(async (username: string, password: string) => {
         console.log('Login function called with username:', username); // Debug log
         try {
             setIsLoading(true);
@@ -714,7 +714,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [clearCartCache]);
 
     const logout = useCallback(async () => {
         console.log('Logout function called'); // Debug log
@@ -846,23 +846,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [clearCartCache, stopInactivityTimer]);
 
-    console.log('🔐 AUTH PROVIDER: Returning context provider with value:', {
-        hasUser: !!user,
+    // 🚀 STABLE CONTEXT VALUE to prevent infinite loops
+    const contextValue = React.useMemo(() => ({
+        user,
         isAuthenticated,
         isLoading,
-        userEmail: user?.email
-    });
+        isAuthReady,
+        login,
+        logout,
+        checkAuthStatus: stableCheckAuthStatus
+    }), [user, isAuthenticated, isLoading, isAuthReady, login, logout, stableCheckAuthStatus]);
 
     return (
-        <AuthContext.Provider value={{
-            user,
-            isAuthenticated,
-            isLoading,
-            isAuthReady, // ✅ Added
-            login,
-            logout,
-            checkAuthStatus: stableCheckAuthStatus
-        }}>
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     );
