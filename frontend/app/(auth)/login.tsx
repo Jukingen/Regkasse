@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
@@ -30,6 +31,25 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { login } = useAuth();
+
+  // Load saved credentials on mount
+  useEffect(() => {
+    loadSavedCredentials();
+  }, []);
+
+  const loadSavedCredentials = async () => {
+    try {
+      const savedUsername = await AsyncStorage.getItem('savedUsername');
+      const savedPassword = await AsyncStorage.getItem('savedPassword');
+
+      if (savedUsername) setUsername(savedUsername);
+      if (savedPassword) setPassword(savedPassword);
+
+      console.log('✅ Loaded saved credentials from AsyncStorage');
+    } catch (error) {
+      console.log('ℹ️ No saved credentials found');
+    }
+  };
 
   // Validate form fields
   const validateForm = useCallback((): boolean => {
@@ -59,6 +79,11 @@ export default function LoginScreen() {
       setIsLoading(true);
       setErrors({});
       await login(username, password);
+
+      // Save credentials after successful login
+      await AsyncStorage.setItem('savedUsername', username);
+      await AsyncStorage.setItem('savedPassword', password);
+      console.log('✅ Saved credentials to AsyncStorage');
     } catch (error) {
       console.error('Login failed:', error);
       setErrors({
@@ -69,10 +94,17 @@ export default function LoginScreen() {
     }
   }, [username, password, login, validateForm]);
 
+  // Handle dismissing keyboard only on mobile (not web)
+  const handleDismissKeyboard = useCallback(() => {
+    if (Platform.OS !== 'web') {
+      Keyboard.dismiss();
+    }
+  }, []);
+
   return (
     <>
       <StatusBar style="light" />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <TouchableWithoutFeedback onPress={handleDismissKeyboard}>
         <View style={styles.container}>
           {/* Gradient Header */}
           <LinearGradient
@@ -105,6 +137,8 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={!isLoading}
+                  onFocus={() => console.log('📍 Username input focused')}
+                  onBlur={() => console.log('📍 Username input blurred')}
                 />
                 <View style={styles.inputLine} />
                 {errors.username && (
@@ -123,6 +157,8 @@ export default function LoginScreen() {
                   secureTextEntry
                   editable={!isLoading}
                   onSubmitEditing={handleLogin}
+                  onFocus={() => console.log('📍 Password input focused')}
+                  onBlur={() => console.log('📍 Password input blurred')}
                 />
                 <View style={styles.inputLine} />
                 {errors.password && (
