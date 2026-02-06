@@ -50,7 +50,7 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     onSearch(query);
-    
+
     // Son aramaları güncelle
     if (query.trim()) {
       setRecentSearches(prev => {
@@ -75,7 +75,7 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-
+        product.category?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -156,7 +156,7 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
             </TouchableOpacity>
           )}
         </View>
-        
+
         <TouchableOpacity
           style={styles.filterButton}
           onPress={() => setShowFilters(true)}
@@ -303,7 +303,7 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
               >
                 <Text style={styles.clearFiltersText}>{t('search.clearFilters')}</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.applyFiltersButton}
                 onPress={() => setShowFilters(false)}

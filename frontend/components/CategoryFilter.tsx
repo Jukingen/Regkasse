@@ -1,9 +1,9 @@
-// Türkçe Açıklama: Kategori bazlı filtreleme için görsel kategori seçici. Backend'den gelen kategorileri dinamik olarak yükler ve seçilen kategoriye göre ürünleri filtreler.
-
+// Soft minimal category filter with warm brown tones
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
 
 export type ProductCategory = string;
 
@@ -13,66 +13,22 @@ type CategoryFilterProps = {
   categories: string[];
 };
 
-// Kategori konfigürasyonu - Backend'deki kategori isimleriyle eşleştirildi
-const CATEGORY_CONFIG = {
-  all: {
-    icon: 'grid' as const,
-    color: '#6C757D'
-  },
-  // Backend'deki kategori isimleri
-  Getränke: {
-    icon: 'wine' as const,
-    color: '#3498db'
-  },
-  Speisen: {
-    icon: 'restaurant' as const,
-    color: '#e74c3c'
-  },
-  Desserts: {
-    icon: 'ice-cream' as const,
-    color: '#f39c12'
-  },
-  Snacks: {
-    icon: 'fast-food' as const,
-    color: '#27ae60'
-  },
-  'Kaffee & Tee': {
-    icon: 'cafe' as const,
-    color: '#8e44ad'
-  },
-  // Eski kategoriler (geriye uyumluluk için)
-  Hauptgerichte: {
-    icon: 'restaurant' as const,
-    color: '#FF6B6B'
-  },
-  'Alkoholische Getränke': {
-    icon: 'wine' as const,
-    color: '#A8E6CF'
-  },
-  Suppen: {
-    icon: 'water' as const,
-    color: '#FF7675'
-  },
-  Vorspeisen: {
-    icon: 'leaf' as const,
-    color: '#74B9FF'
-  },
-  Salate: {
-    icon: 'nutrition' as const,
-    color: '#00B894'
-  },
-  Süßigkeiten: {
-    icon: 'happy' as const,
-    color: '#FDCB6E'
-  },
-  Spezialitäten: {
-    icon: 'star' as const,
-    color: '#E17055'
-  },
-  'Brot & Gebäck': {
-    icon: 'pizza' as const,
-    color: '#DDA0DD'
-  }
+// Soft theme category icons (using muted accent color)
+const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  all: 'grid-outline',
+  Getränke: 'wine-outline',
+  Speisen: 'restaurant-outline',
+  Desserts: 'ice-cream-outline',
+  Snacks: 'fast-food-outline',
+  'Kaffee & Tee': 'cafe-outline',
+  Hauptgerichte: 'restaurant-outline',
+  'Alkoholische Getränke': 'wine-outline',
+  Suppen: 'water-outline',
+  Vorspeisen: 'leaf-outline',
+  Salate: 'nutrition-outline',
+  Süßigkeiten: 'happy-outline',
+  Spezialitäten: 'star-outline',
+  'Brot & Gebäck': 'pizza-outline',
 };
 
 const CategoryFilter: React.FC<CategoryFilterProps> = ({
@@ -81,16 +37,10 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
   categories
 }) => {
   const { t } = useTranslation();
-
-  // 'all' kategorisini başa ekle
   const allCategories = ['all', ...categories];
 
-  // Kategori bulunamadığında varsayılan konfigürasyon
-  const getCategoryConfig = (category: string) => {
-    return CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG] || {
-      icon: 'folder' as const,
-      color: '#6C757D'
-    };
+  const getIcon = (category: string): keyof typeof Ionicons.glyphMap => {
+    return CATEGORY_ICONS[category] || 'folder-outline';
   };
 
   return (
@@ -100,38 +50,28 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
       contentContainerStyle={styles.container}
     >
       {allCategories.map((category) => {
-        const config = getCategoryConfig(category);
+        const isSelected = selectedCategory === category;
         const label = category === 'all' ? t('categories.all') : category;
-        
+
         return (
-          <TouchableOpacity
+          <Pressable
             key={category}
-            style={[
-              styles.categoryButton,
-              {
-                backgroundColor: selectedCategory === category ? config.color : '#f8f9fa',
-                borderColor: config.color,
-              }
+            style={({ pressed }) => [
+              styles.chip,
+              isSelected && styles.chipSelected,
+              pressed && styles.chipPressed,
             ]}
             onPress={() => onCategoryChange(category)}
-            activeOpacity={0.7}
           >
             <Ionicons
-              name={config.icon}
-              size={20}
-              color={selectedCategory === category ? '#fff' : config.color}
+              name={getIcon(category)}
+              size={16}
+              color={isSelected ? SoftColors.textInverse : SoftColors.textSecondary}
             />
-            <Text
-              style={[
-                styles.categoryText,
-                {
-                  color: selectedCategory === category ? '#fff' : config.color,
-                }
-              ]}
-            >
+            <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
               {label}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         );
       })}
     </ScrollView>
@@ -140,24 +80,34 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
+    paddingHorizontal: SoftSpacing.lg,
+    paddingVertical: SoftSpacing.md,
+    gap: SoftSpacing.sm,
   },
-  categoryButton: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    gap: 6,
-    minWidth: 80,
-    justifyContent: 'center',
+    paddingHorizontal: SoftSpacing.lg,
+    paddingVertical: SoftSpacing.sm + 2,
+    borderRadius: SoftRadius.full,
+    backgroundColor: SoftColors.bgCard,
+    marginRight: SoftSpacing.sm,
+    gap: SoftSpacing.xs,
+    ...SoftShadows.sm,
   },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: '600',
+  chipSelected: {
+    backgroundColor: SoftColors.accent,
+  },
+  chipPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
+  chipText: {
+    ...SoftTypography.label,
+    color: SoftColors.textSecondary,
+  },
+  chipTextSelected: {
+    color: SoftColors.textInverse,
   },
 });
 

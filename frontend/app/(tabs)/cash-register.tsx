@@ -25,6 +25,9 @@ import { useCart } from '../../contexts/CartContext';
 // Yeni ürün API servislerini import et
 import { Product } from '../../services/api/productService';
 
+// Soft minimal theme
+import { SoftColors, SoftSpacing, SoftRadius, SoftTypography } from '../../constants/SoftTheme';
+
 export default function CashRegisterScreen() {
   // Unified product hook - tüm ürün işlemlerini tek noktada yönet
   const {
@@ -450,24 +453,25 @@ export default function CashRegisterScreen() {
   );
 }
 
-// Basit styles - ana styling component'larda
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: SoftColors.bgPrimary,
   },
   scrollContainer: {
     flex: 1,
   },
   categorySection: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginBottom: 10,
+    backgroundColor: SoftColors.bgCard,
+    paddingVertical: SoftSpacing.lg,
+    paddingHorizontal: SoftSpacing.lg,
+    marginBottom: SoftSpacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: SoftColors.borderLight,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
+    ...SoftTypography.h3,
+    color: SoftColors.textPrimary,
+    marginBottom: SoftSpacing.md,
   },
 }); 

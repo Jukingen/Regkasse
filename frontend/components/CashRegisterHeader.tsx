@@ -1,8 +1,7 @@
-// Türkçe Açıklama: Cash register header'ı için ayrı component
-// Karmaşık cash-register.tsx dosyasından header logic'ini ayırır
-
+// Soft minimal cash register header
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
 
 interface CashRegisterHeaderProps {
   selectedTable: number;
@@ -15,13 +14,24 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
 }) => {
   return (
     <View style={styles.header}>
-      <Text style={styles.headerTitle}>Cash Register</Text>
-      <Text style={styles.headerSubtitle}>Table Management & Payments</Text>
+      <View style={styles.headerContent}>
+        <Text style={styles.headerEmoji}>☕</Text>
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle}>Cash Register</Text>
+          <Text style={styles.headerSubtitle}>Table Management & Payments</Text>
+        </View>
+      </View>
+
       {selectedTable && (
-        <Text style={styles.activeTableInfo}>Active Table: {selectedTable}</Text>
+        <View style={styles.tableBadge}>
+          <Text style={styles.tableBadgeText}>Table {selectedTable}</Text>
+        </View>
       )}
+
       {recoveryLoading && (
-        <Text style={styles.recoveryLoadingText}>🔄 Loading table orders...</Text>
+        <View style={styles.recoveryBadge}>
+          <Text style={styles.recoveryText}>🔄 Loading orders...</Text>
+        </View>
       )}
     </View>
   );
@@ -29,31 +39,58 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: '#2196F3',
-    padding: 20,
+    backgroundColor: SoftColors.accent,
+    paddingTop: SoftSpacing.xl,
+    paddingBottom: SoftSpacing.lg,
+    paddingHorizontal: SoftSpacing.lg,
+    borderBottomLeftRadius: SoftRadius.xxl,
+    borderBottomRightRadius: SoftRadius.xxl,
+    ...SoftShadows.md,
+  },
+  headerContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: SoftSpacing.sm,
+  },
+  headerEmoji: {
+    fontSize: 32,
+    marginRight: SoftSpacing.md,
+  },
+  headerText: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 5,
+    ...SoftTypography.h1,
+    color: SoftColors.textInverse,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: '#fff',
-    opacity: 0.9,
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textInverse,
+    opacity: 0.85,
+    marginTop: SoftSpacing.xs,
   },
-  activeTableInfo: {
-    fontSize: 16,
-    color: '#fff',
-    marginTop: 5,
-    opacity: 0.9,
+  tableBadge: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.xs,
+    borderRadius: SoftRadius.full,
+    marginTop: SoftSpacing.sm,
   },
-  recoveryLoadingText: {
-    fontSize: 12,
-    color: '#2196F3',
-    fontStyle: 'italic',
-    marginTop: 5,
+  tableBadgeText: {
+    ...SoftTypography.label,
+    color: SoftColors.textInverse,
+  },
+  recoveryBadge: {
+    backgroundColor: SoftColors.bgCard,
+    alignSelf: 'flex-start',
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.xs,
+    borderRadius: SoftRadius.full,
+    marginTop: SoftSpacing.sm,
+  },
+  recoveryText: {
+    ...SoftTypography.caption,
+    color: SoftColors.accent,
   },
 });
