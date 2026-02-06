@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTableOrdersRecovery } from '../../hooks/useTableOrdersRecovery';
 
 export default function TabLayout() {
-    const { isAuthenticated, isLoading, user, checkAuthStatus } = useAuth();
+    const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus } = useAuth();
 
     // F5 sonrası masa siparişlerini geri yükleme hook'u
     const {
@@ -38,16 +38,20 @@ export default function TabLayout() {
         checkAuthStatus();
 
         // OPTIMIZATION: Her dakika yerine 5 dakikada bir kontrol et
+        // FIX: Dependency array [] yapılarak loop önlendi.
         const interval = setInterval(() => {
-            console.log('⏰ TabLayout: Periyodik auth check başlatılıyor...'); // Debug log
+            console.log('[AUTH] interval task running...', interval);
+            // Check auth status without causing re-renders if nothing changed
             checkAuthStatus();
         }, 5 * 60 * 1000); // 5 dakika
 
+        console.log("[AUTH] interval started", interval);
+
         return () => {
-            console.log('🧹 TabLayout: Auth check interval temizleniyor...'); // Debug log
+            console.log("[AUTH] interval cleared", interval);
             clearInterval(interval);
         };
-    }, [user]); // CRITICAL FIX: isAuthenticated dependency'sini kaldırdık - infinite loop'a neden oluyordu
+    }, []); // CRITICAL FIX: Empty dependency array prevents re-creation of interval on user update
 
     // OPTIMIZATION: Recovery data sadece user değiştiğinde ve henüz initialize edilmemişse yüklensin
     useEffect(() => {
@@ -57,8 +61,10 @@ export default function TabLayout() {
         }
     }, [user, recoveryInitialized]);
 
-    if (isLoading) {
-        console.log('TabLayout: Loading state, showing spinner');
+    // Use isAuthReady explicitly to ensure auth hydration is complete
+    // If not ready, show spinner.
+    if (!isAuthReady || isLoading) {
+        console.log('TabLayout: Loading state (isAuthReady: ' + isAuthReady + '), showing spinner');
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#007AFF" />
