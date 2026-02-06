@@ -3,14 +3,19 @@ import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftShadows } from '../constants/SoftTheme';
 import { calculateCartTotals } from '../contexts/CartContext';
+import { CartItemRow } from './CartItemRow';
+import { formatPrice } from '../utils/formatPrice';
 
 interface CartItem {
-  itemId: string; // ✅ Fixed: Matched with CartContext (was id)
+  itemId: string;
   productId: string;
   productName: string;
-  quantity: number; // or qty
+  quantity: number;
   unitPrice: number;
   totalPrice: number;
+  taxType?: string;
+  taxRate?: number;
+  notes?: string;
 }
 
 interface CartDisplayProps {
@@ -36,19 +41,18 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   const totals = useMemo(() => {
     const items = cart?.items ?? [];
     return calculateCartTotals(items);
-  }, [cart?.items, cart?.updatedAt]); // ✅ Deps: items + updatedAt
+  }, [cart?.items, cart?.updatedAt]);
 
   const itemCount = totals.itemCount;
-  const totalAmount = totals.grandTotal;
 
   // Loading state
   if (loading) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Table {selectedTable}</Text>
+          <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
         </View>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>Lädt...</Text>
       </View>
     );
   }
@@ -58,7 +62,7 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Table {selectedTable}</Text>
+          <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
         </View>
         <Text style={styles.errorText}>{error}</Text>
       </View>
@@ -70,8 +74,8 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Table {selectedTable}</Text>
-          <Text style={styles.emptyBadge}>Empty</Text>
+          <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
+          <Text style={styles.emptyBadge}>Leer</Text>
         </View>
       </View>
     );
@@ -81,84 +85,26 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
     <View style={styles.container}>
       {/* Compact header with summary */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Table {selectedTable}</Text>
+        <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
         <View style={styles.headerRight}>
-          <Text style={styles.itemCount}>{itemCount} items</Text>
+          <Text style={styles.itemCount}>{itemCount} Artikel</Text>
           <Pressable onPress={onClearCart} style={styles.clearBtn}>
             <Text style={styles.clearBtnText}>×</Text>
           </Pressable>
         </View>
       </View>
 
-      {/* Scrollable compact item list */}
+      {/* Scrollable item list with professional CartItemRow */}
       <ScrollView
         style={styles.itemList}
         showsVerticalScrollIndicator={true}
         nestedScrollEnabled={true}
       >
         {cart.items.map((item: CartItem) => {
-          // Safe ID fallback logic
-          const safeId = (item as any).itemId || (item as any).id || (item as any).productId;
-          const qty = item.quantity || (item as any).qty || 0;
-
-          return (
-            <View key={safeId || Math.random().toString()} style={styles.itemRow}>
-              {/* Quantity controls - left */}
-              <View style={styles.qtyGroup}>
-                <Pressable
-                  style={({ pressed }) => [styles.qtyBtn, pressed && styles.qtyBtnPressed]}
-                  hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-                  onPressIn={() => console.log(`👆 PRESS IN: Item ${safeId} (Minus)`)}
-                  onPress={() => {
-                    if (!safeId) {
-                      console.error("❌ MINUS PRESSED: Item ID is undefined! Item Dump:", JSON.stringify(item));
-                      return;
-                    }
-                    console.log('➖ MINUS PRESSED for item:', safeId, 'Current Qty:', qty);
-                    onQuantityUpdate(safeId, qty - 1);
-                  }}
-                >
-                  <Text style={styles.qtyBtnText}>−</Text>
-                </Pressable>
-
-                <Text style={styles.qtyValue}>{qty}</Text>
-
-                <Pressable
-                  style={({ pressed }) => [styles.qtyBtn, pressed && styles.qtyBtnPressed]}
-                  hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-                  onPressIn={() => console.log(`👆 PRESS IN: Item ${safeId} (Plus)`)}
-                  onPress={() => {
-                    if (!safeId) {
-                      console.error("❌ PLUS PRESSED: Item ID is undefined! Item Dump:", JSON.stringify(item));
-                      return;
-                    }
-                    console.log('➕ PLUS PRESSED for item:', safeId, 'Current Qty:', qty);
-                    onQuantityUpdate(safeId, qty + 1);
-                  }}
-                >
-                  <Text style={styles.qtyBtnText}>+</Text>
-                </Pressable>
-              </View>
-
-              {/* Product name - center, truncated */}
-              <Text style={styles.itemName} numberOfLines={1}>
-                {item.productName}
-              </Text>
-
-              {/* Price - right */}
-              <Text style={styles.itemPrice}>
-                €{(item.totalPrice || 0).toFixed(2)}
-              </Text>
-            </View>
-          );
+          const safeId = item.itemId || item.productId;
+          return <CartItemRow key={safeId} item={item} />;
         })}
       </ScrollView>
-
-      {/* Total row */}
-      <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>Total</Text>
-        <Text style={styles.totalValue}>€{totalAmount.toFixed(2)}</Text>
-      </View>
     </View>
   );
 };
@@ -278,24 +224,6 @@ const styles = StyleSheet.create({
     color: SoftColors.accent,
     minWidth: 60,
     textAlign: 'right',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SoftSpacing.md,
-    paddingVertical: SoftSpacing.sm,
-    backgroundColor: SoftColors.accentLight,
-  },
-  totalLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: SoftColors.accentDark,
-  },
-  totalValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: SoftColors.accentDark,
   },
   loadingText: {
     padding: SoftSpacing.md,
