@@ -200,7 +200,7 @@ export const apiClient = {
     },
 
     post: async <T>(url: string, data?: any, config?: any): Promise<T> => {
-        console.log('POST request:', { url, data, config });
+        console.log(`🌐 API POST CALL: ${url}`, { data });
         try {
             const response = await axiosInstance.post<T>(url, data, config);
             return response as T;
@@ -211,7 +211,7 @@ export const apiClient = {
     },
 
     put: async <T>(url: string, data?: any, config?: any): Promise<T> => {
-        console.log('PUT request:', { url, data, config });
+        console.log(`🌐 API PUT CALL: ${url}`, { data });
         try {
             const response = await axiosInstance.put<T>(url, data, config);
             return response as T;

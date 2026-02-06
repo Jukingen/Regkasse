@@ -328,45 +328,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, [activeTableId, cartsByTable, setLoading, setError]);
 
-    const increment = useCallback(async (productId: string) => {
-        await addItem(productId, 1);
-    }, [addItem]);
-
-    const decrement = useCallback(async (productId: string) => {
-        const currentCart = cartsByTable[activeTableId];
-        if (!currentCart) return;
-
-        const item = currentCart.items.find(i => i.productId === productId);
-        if (!item) return;
-
-        if (item.qty <= 1) {
-            await remove(productId);
-        } else {
-            setLoading(true);
-            try {
-                const response = await apiClient.get<AddItemResponse['cart']>(`/cart/current?tableNumber=${activeTableId}`);
-                const backendItem = response.items.find((i: any) => i.productId === productId);
-
-                if (backendItem) {
-                    await apiClient.put(`/cart/items/${backendItem.id}`, {
-                        quantity: item.qty - 1,
-                        notes: item.notes
-                    });
-
-                    const updatedItems = currentCart.items.map(i => i.productId === productId ? { ...i, qty: i.qty - 1 } : i);
-                    setCartsByTable(prev => ({
-                        ...prev,
-                        [activeTableId]: { ...currentCart, items: updatedItems, updatedAt: Date.now() }
-                    }));
-                }
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoading(false);
-            }
-        }
-    }, [activeTableId, cartsByTable, remove]);
-
     // ✅ Helper: Update specific quantity
     const updateItemQuantity = useCallback(async (productId: string, quantity: number) => {
         const currentCart = cartsByTable[activeTableId];
@@ -412,20 +373,157 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, [activeTableId, cartsByTable, remove]);
 
+    const increment = useCallback(async (productId: string) => {
+        const currentCart = cartsByTable[activeTableId];
+        if (!currentCart) return;
+
+        const item = currentCart.items.find(i => i.productId === productId);
+        if (!item || !item.itemId) {
+            console.error('❌ Cannot increment: item or itemId missing', { productId, item });
+            setError('Invalid cart item');
+            return;
+        }
+
+        const newQuantity = item.qty + 1;
+        console.log('🔼 CALLING UPDATE QUANTITY', { itemId: item.itemId, newQuantity });
+
+        setLoading(true);
+        try {
+            // Optimistic update
+            const updatedItems = currentCart.items.map(i =>
+                i.productId === productId ? { ...i, qty: newQuantity } : i
+            );
+            setCartsByTable(prev => ({
+                ...prev,
+                [activeTableId]: {
+                    ...currentCart,
+                    items: updatedItems,
+                    updatedAt: Date.now()
+                }
+            }));
+
+            // Try POST increment first, fallback to PUT on 404
+            try {
+                await apiClient.post(`/cart/items/${item.itemId}/increment`);
+                console.log('✅ Quantity incremented via POST');
+            } catch (postError: any) {
+                if (postError.status === 404) {
+                    console.log('⚠️ POST /increment not available, falling back to PUT');
+                    await apiClient.put(`/cart/items/${item.itemId}`, {
+                        quantity: newQuantity,
+                        notes: item.notes
+                    });
+                    console.log('✅ Quantity updated via PUT fallback');
+                } else {
+                    throw postError;
+                }
+            }
+        } catch (e: any) {
+            console.error('❌ Failed to update item quantity', e);
+            setError('Failed to update item quantity');
+
+            // Rollback optimistic update
+            setCartsByTable(prev => ({
+                ...prev,
+                [activeTableId]: currentCart
+            }));
+        } finally {
+            setLoading(false);
+        }
+    }, [activeTableId, cartsByTable, setLoading, setError]);
+
+    const decrement = useCallback(async (productId: string) => {
+        const currentCart = cartsByTable[activeTableId];
+        if (!currentCart) return;
+
+        const item = currentCart.items.find(i => i.productId === productId);
+        if (!item || !item.itemId) {
+            console.error('❌ Cannot decrement: item or itemId missing', { productId, item });
+            setError('Invalid cart item');
+            return;
+        }
+
+        // If quantity is 1, remove the item instead
+        if (item.qty <= 1) {
+            await remove(productId);
+            return;
+        }
+
+        const newQuantity = item.qty - 1;
+        console.log('🔽 CALLING UPDATE QUANTITY', { itemId: item.itemId, newQuantity });
+
+        setLoading(true);
+        try {
+            // Optimistic update
+            const updatedItems = currentCart.items.map(i =>
+                i.productId === productId ? { ...i, qty: newQuantity } : i
+            );
+            setCartsByTable(prev => ({
+                ...prev,
+                [activeTableId]: {
+                    ...currentCart,
+                    items: updatedItems,
+                    updatedAt: Date.now()
+                }
+            }));
+
+            // Try POST decrement first, fallback to PUT on 404
+            try {
+                await apiClient.post(`/cart/items/${item.itemId}/decrement`);
+                console.log('✅ Quantity decremented via POST');
+            } catch (postError: any) {
+                if (postError.status === 404) {
+                    console.log('⚠️ POST /decrement not available, falling back to PUT');
+                    await apiClient.put(`/cart/items/${item.itemId}`, {
+                        quantity: newQuantity,
+                        notes: item.notes
+                    });
+                    console.log('✅ Quantity updated via PUT fallback');
+                } else if (postError.status === 409) {
+                    setError('Cannot decrement below 1');
+                    throw postError;
+                } else {
+                    throw postError;
+                }
+            }
+        } catch (e: any) {
+            console.error('❌ Failed to update item quantity', e);
+            if (e.status !== 409) {
+                setError('Failed to update item quantity');
+            }
+
+            // Rollback optimistic update
+            setCartsByTable(prev => ({
+                ...prev,
+                [activeTableId]: currentCart
+            }));
+        } finally {
+            setLoading(false);
+        }
+    }, [activeTableId, cartsByTable, remove, setLoading, setError]);
+
     const clearCart = useCallback(async (tableNumber?: number) => {
         const target = tableNumber ?? activeTableId;
         setLoading(true);
         try {
             await apiClient.post(`/cart/clear?tableNumber=${target}`);
-            const updated = { ...cartsByTable };
-            delete updated[target];
-            setCartsByTable(updated);
+
+            // ✅ Fix: Don't delete the key, just empty the items
+            setCartsByTable(prev => ({
+                ...prev,
+                [target]: {
+                    ...prev[target],
+                    items: [],
+                    updatedAt: Date.now()
+                }
+            }));
         } catch (e) {
             console.error(e);
+            throw e; // Re-throw to allow component to handle error
         } finally {
             setLoading(false);
         }
-    }, [activeTableId, cartsByTable]);
+    }, [activeTableId]);
 
     const checkout = useCallback(async (tableNumber?: number) => {
         const target = tableNumber ?? activeTableId;

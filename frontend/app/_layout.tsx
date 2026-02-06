@@ -18,6 +18,11 @@ export default function RootLayout() {
   // Memory kullanımını izle
   useMemoryMonitor();
 
+  React.useEffect(() => {
+    console.log('🌳 ROOT LAYOUT: Mounted');
+    return () => console.log('🌳 ROOT LAYOUT: Unmounted');
+  }, []);
+
   return (
     <ErrorBoundary>
       <AuthProvider>

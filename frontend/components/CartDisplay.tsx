@@ -4,10 +4,10 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftShadows } from '../constants/SoftTheme';
 
 interface CartItem {
-  id: string;
+  itemId: string; // ✅ Fixed: Matched with CartContext (was id)
   productId: string;
   productName: string;
-  quantity: number;
+  quantity: number; // or qty
   unitPrice: number;
   totalPrice: number;
 }
@@ -89,36 +89,62 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
         showsVerticalScrollIndicator={true}
         nestedScrollEnabled={true}
       >
-        {cart.items.map((item: CartItem) => (
-          <View key={item.id} style={styles.itemRow}>
-            {/* Quantity controls - left */}
-            <View style={styles.qtyGroup}>
-              <Pressable
-                style={styles.qtyBtn}
-                onPress={() => onQuantityUpdate(item.id, item.quantity - 1)}
-              >
-                <Text style={styles.qtyBtnText}>−</Text>
-              </Pressable>
-              <Text style={styles.qtyValue}>{item.quantity}</Text>
-              <Pressable
-                style={styles.qtyBtn}
-                onPress={() => onQuantityUpdate(item.id, item.quantity + 1)}
-              >
-                <Text style={styles.qtyBtnText}>+</Text>
-              </Pressable>
+        {cart.items.map((item: CartItem) => {
+          // Safe ID fallback logic
+          const safeId = (item as any).itemId || (item as any).id || (item as any).productId;
+          const qty = item.quantity || (item as any).qty || 0;
+
+          return (
+            <View key={safeId || Math.random().toString()} style={styles.itemRow}>
+              {/* Quantity controls - left */}
+              <View style={styles.qtyGroup}>
+                <Pressable
+                  style={({ pressed }) => [styles.qtyBtn, pressed && styles.qtyBtnPressed]}
+                  hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                  onPressIn={() => console.log(`👆 PRESS IN: Item ${safeId} (Minus)`)}
+                  onPress={() => {
+                    if (!safeId) {
+                      console.error("❌ MINUS PRESSED: Item ID is undefined! Item Dump:", JSON.stringify(item));
+                      return;
+                    }
+                    console.log('➖ MINUS PRESSED for item:', safeId, 'Current Qty:', qty);
+                    onQuantityUpdate(safeId, qty - 1);
+                  }}
+                >
+                  <Text style={styles.qtyBtnText}>−</Text>
+                </Pressable>
+
+                <Text style={styles.qtyValue}>{qty}</Text>
+
+                <Pressable
+                  style={({ pressed }) => [styles.qtyBtn, pressed && styles.qtyBtnPressed]}
+                  hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                  onPressIn={() => console.log(`👆 PRESS IN: Item ${safeId} (Plus)`)}
+                  onPress={() => {
+                    if (!safeId) {
+                      console.error("❌ PLUS PRESSED: Item ID is undefined! Item Dump:", JSON.stringify(item));
+                      return;
+                    }
+                    console.log('➕ PLUS PRESSED for item:', safeId, 'Current Qty:', qty);
+                    onQuantityUpdate(safeId, qty + 1);
+                  }}
+                >
+                  <Text style={styles.qtyBtnText}>+</Text>
+                </Pressable>
+              </View>
+
+              {/* Product name - center, truncated */}
+              <Text style={styles.itemName} numberOfLines={1}>
+                {item.productName}
+              </Text>
+
+              {/* Price - right */}
+              <Text style={styles.itemPrice}>
+                €{(item.totalPrice || 0).toFixed(2)}
+              </Text>
             </View>
-
-            {/* Product name - center, truncated */}
-            <Text style={styles.itemName} numberOfLines={1}>
-              {item.productName}
-            </Text>
-
-            {/* Price - right */}
-            <Text style={styles.itemPrice}>
-              €{(item.totalPrice || 0).toFixed(2)}
-            </Text>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
 
       {/* Total row */}
@@ -203,17 +229,28 @@ const styles = StyleSheet.create({
     marginRight: SoftSpacing.sm,
   },
   qtyBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32, // Increased from 28
+    height: 32, // Increased from 28
+    borderRadius: 16,
     backgroundColor: SoftColors.bgSecondary,
     alignItems: 'center',
     justifyContent: 'center',
+    // 🚀 VISIBILITY & TOUCH FIXES
+    zIndex: 10,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: SoftColors.borderLight,
+  },
+  qtyBtnPressed: {
+    backgroundColor: SoftColors.borderLight,
+    opacity: 0.8,
   },
   qtyBtnText: {
-    fontSize: 16,
+    fontSize: 18, // Increased from 16
     fontWeight: '600',
     color: SoftColors.accent,
+    // Ensure text doesn't block press
+    zIndex: -1,
   },
   qtyValue: {
     width: 28,

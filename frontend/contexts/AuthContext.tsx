@@ -94,15 +94,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const inactivityTimerRef = React.useRef<NodeJS.Timeout | null>(null); // ✅ FIX: State yerine Ref kullan
 
-    // 🚀 F5 REFRESH FIX: Auth check'in ard arda çağrılmasını önler
-    const [isAuthCheckInProgress, setIsAuthCheckInProgress] = useState(false);
-
-    // 🚀 F5 REFRESH FIX: Debouncing için timestamp tracking
-    const [lastAuthCheckTime, setLastAuthCheckTime] = useState<number>(0);
-    const AUTH_CHECK_DEBOUNCE_MS = 2000; // 2 saniye debounce
-
-    // 🚀 F5 REFRESH FIX: Session storage flag (F5 refresh'te korunur)
-    const [hasInitialAuthCheck, setHasInitialAuthCheck] = useState(false);
+    // 🚀 F5 REFRESH FIX: Use refs for auth check status to prevent re-renders
+    const isAuthCheckInProgressRef = React.useRef(false);
+    const lastAuthCheckTimeRef = React.useRef(0);
+    const hasInitialAuthCheckRef = React.useRef(false);
+    const AUTH_CHECK_DEBOUNCE_MS = 2000;
 
     // Inactivity timeout (30 dakika)
     const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 dakika
@@ -164,14 +160,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const isExpired = decoded.exp <= (currentTime + bufferTime);
                 const timeLeftMinutes = Math.round((decoded.exp - currentTime) / 60);
 
-                console.log('🔍 TOKEN CHECK:', {
-                    tokenExp: new Date(decoded.exp * 1000).toISOString(),
-                    currentTime: new Date(currentTime * 1000).toISOString(),
-                    bufferMinutes: BUFFER_MINUTES,
-                    timeLeft: timeLeftMinutes + ' minutes',
-                    isExpired,
-                    willExpireSoon: timeLeftMinutes <= BUFFER_MINUTES
-                });
+                // Reduce log noise
+                if (isExpired || timeLeftMinutes < 60) {
+                    console.log('🔍 TOKEN CHECK:', {
+                        timeLeft: timeLeftMinutes + ' minutes',
+                        isExpired
+                    });
+                }
 
                 return isExpired;
             }
@@ -206,8 +201,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             AsyncStorage.multiRemove(['token', 'refreshToken', 'user', 'tokenExpiry']);
         }, INACTIVITY_TIMEOUT);
 
-        console.log('[AUTH] inactivity timer started');
-    }, [INACTIVITY_TIMEOUT]); // ✅ FIX: Stable dependency
+        // console.log('[AUTH] inactivity timer started'); // Reduced log noise
+    }, [INACTIVITY_TIMEOUT]);
 
     // 🚀 F5 REFRESH FIX: Logout ve login sayfasına yönlendirme
     const handleLogoutAndRedirect = useCallback(async () => {
@@ -281,24 +276,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (typeof window !== 'undefined' && window.addEventListener) {
             try {
                 window.addEventListener(CART_CLEAR_EVENT, handleLogoutEvent);
-                window.addEventListener('AUTH_SESSION_EXPIRED', handleAuthExpiredEvent); // ✅ Added
-                console.log('✅ [AUTH] Web platform: auth event listeners added');
+                window.addEventListener('AUTH_SESSION_EXPIRED', handleAuthExpiredEvent);
+                // console.log('✅ [AUTH] Web platform: auth event listeners added');
 
                 // Cleanup
                 return () => {
                     if (typeof window !== 'undefined' && window.removeEventListener) {
-                        // FIX: Listener'ları temizlemeyi unutma, ama loop'a girmesin
                         window.removeEventListener(CART_CLEAR_EVENT, handleLogoutEvent);
-                        window.removeEventListener('AUTH_SESSION_EXPIRED', handleAuthExpiredEvent); // ✅ Added
-                        console.log('✅ [AUTH] Web platform: auth event listeners removed');
+                        window.removeEventListener('AUTH_SESSION_EXPIRED', handleAuthExpiredEvent);
                     }
                 };
             } catch (error) {
                 console.warn('⚠️ Failed to add window event listener:', error);
             }
         }
-    }, [clearCartCache, handleLogoutAndRedirect]); // Stable dependencies now
-
+    }, [clearCartCache, handleLogoutAndRedirect]);
 
 
     // 🚀 F5 REFRESH FIX: Sadeleştirilmiş auth check fonksiyonu
@@ -308,25 +300,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
-        if (isAuthCheckInProgress) {
+        if (isAuthCheckInProgressRef.current) {
             return;
         }
 
         // 🚫 Debouncing kontrolü
         const currentTime = Date.now();
-        if (currentTime - lastAuthCheckTime < AUTH_CHECK_DEBOUNCE_MS) {
+        if (currentTime - lastAuthCheckTimeRef.current < AUTH_CHECK_DEBOUNCE_MS) {
             return;
         }
 
         // 🚫 Eğer user zaten varsa auth check'i atla
-        if (hasInitialAuthCheck && user?.id && isAuthenticated) {
+        if (hasInitialAuthCheckRef.current && user?.id && isAuthenticated) {
             setIsLoading(false); // Loading'i false yap
             return;
         }
 
         // Auth check flag'lerini set et
-        setIsAuthCheckInProgress(true);
-        setLastAuthCheckTime(currentTime);
+        isAuthCheckInProgressRef.current = true;
+        lastAuthCheckTimeRef.current = currentTime;
 
         try {
             // 🔑 Token kontrolü yap
@@ -347,7 +339,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // 👤 User state kontrolü
             if (user?.id) {
-                setHasInitialAuthCheck(true);
+                hasInitialAuthCheckRef.current = true;
                 if (typeof sessionStorage !== 'undefined') {
                     sessionStorage.setItem('hasInitialAuthCheck', 'true');
                 }
@@ -367,13 +359,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         };
 
                         // FIX: Only update if user actually changed to reference loop
-                        if (JSON.stringify(user) !== JSON.stringify(userWithToken)) {
+                        // Deep compare basic properties to avoid loop
+                        const shouldUpdate = !user || user.id !== userWithToken.id || user.email !== userWithToken.email;
+
+                        if (shouldUpdate) {
                             setUser(userWithToken);
                             console.log('✅ [AUTH CHECK] User state updated from storage');
                         }
 
                         setIsAuthenticated(true);
-                        setHasInitialAuthCheck(true);
+                        hasInitialAuthCheckRef.current = true;
 
                         if (typeof sessionStorage !== 'undefined') {
                             sessionStorage.setItem('hasInitialAuthCheck', 'true');
@@ -391,12 +386,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const result = await checkBackendAuth();
                 if (result.isAuthenticated && result.user?.id) {
                     // FIX: Only update if user actually changed
-                    if (JSON.stringify(user) !== JSON.stringify(result.user)) {
+                    const shouldUpdate = !user || user.id !== result.user.id;
+
+                    if (shouldUpdate) {
                         setUser(result.user);
                         console.log('✅ [AUTH CHECK] User state updated from backend');
                     }
                     setIsAuthenticated(true);
-                    setHasInitialAuthCheck(true);
+                    hasInitialAuthCheckRef.current = true;
 
                     if (typeof sessionStorage !== 'undefined') {
                         sessionStorage.setItem('hasInitialAuthCheck', 'true');
@@ -417,9 +414,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setIsLoading(false);
             setIsAuthReady(true); // ✅ Ready
-            setIsAuthCheckInProgress(false);
+            isAuthCheckInProgressRef.current = false;
         }
-    }, [justLoggedIn]); // ✅ YENİ: Minimal dependency - sadece justLoggedIn (diğerleri infinite loop'a neden oluyor)
+    }, [justLoggedIn, user, isAuthenticated, handleLogoutAndRedirect]); // Dependencies are cleaner now
 
     // CRITICAL FIX: checkAuthStatus'u sadece mount olduğunda bir kez çağır
     useEffect(() => {
@@ -433,20 +430,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const token = await AsyncStorage.getItem('token');
                 const userStr = await AsyncStorage.getItem('user');
 
-                console.log('🔍 AUTH INIT: Storage check result:', {
-                    hasToken: !!token,
-                    hasUser: !!userStr,
-                    tokenLength: token?.length,
-                    userLength: userStr?.length
-                });
-
                 if (token && userStr) {
                     const storedUser = JSON.parse(userStr);
                     if (storedUser?.id) {
                         const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
 
                         // Token süresini kontrol et
-                        console.log('🔍 AUTH INIT: Checking token expiration...');
                         const isTokenExpired = checkTokenExpiration(cleanToken);
 
                         if (isTokenExpired) {
@@ -456,7 +445,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                 sessionStorage.removeItem('hasInitialAuthCheck');
                             }
                             setIsLoading(false);
-                            setIsAuthReady(true); // ✅ Ready even if expired (ready to redirect)
+                            setIsAuthReady(true);
                             return;
                         }
 
@@ -466,10 +455,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             token: cleanToken
                         };
 
-                        console.log('✅ AUTH INIT: Restoring user state from storage:', storedUser.email);
+                        console.log('✅ AUTH INIT: Restoring user state from storage');
                         setUser(userWithToken);
                         setIsAuthenticated(true);
-                        setHasInitialAuthCheck(true);
+                        hasInitialAuthCheckRef.current = true;
 
                         if (typeof sessionStorage !== 'undefined') {
                             sessionStorage.setItem('hasInitialAuthCheck', 'true');
@@ -477,7 +466,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                         setIsLoading(false);
                         setIsAuthReady(true); // ✅ Ready
-                        console.log('✅ AUTH INIT: User state successfully restored');
                         return;
                     }
                 }
@@ -496,7 +484,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         initializeAuth();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // CRITICAL FIX: stableCheckAuthStatus dependency'sini kaldırdık - sadece mount olduğunda bir kez çalışsın
+    }, []); // Only run once on mount
 
     // CRITICAL FIX: Inactivity tracking'i optimize et
     useEffect(() => {
@@ -506,6 +494,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Global event listener'ları ekle
             const handleActivity = () => {
+                // Optimization: debounce activity updates in logic or just trust simple restart
                 updateActivity();
                 startInactivityTimer(); // Timer'ı yeniden başlat
             };
@@ -513,10 +502,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Touch, scroll, key press event'lerini dinle
             // Platform-aware event listeners - document only exists in web
             if (typeof document !== 'undefined') {
-                document?.addEventListener?.('touchstart', handleActivity);
-                document?.addEventListener?.('scroll', handleActivity);
-                document?.addEventListener?.('keydown', handleActivity);
-                document?.addEventListener?.('mousedown', handleActivity);
+                document?.addEventListener?.('touchstart', handleActivity, { passive: true });
+                document?.addEventListener?.('scroll', handleActivity, { passive: true });
+                document?.addEventListener?.('keydown', handleActivity, { passive: true });
+                document?.addEventListener?.('mousedown', handleActivity, { passive: true });
             }
 
             return () => {
@@ -533,7 +522,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             stopInactivityTimer();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAuthenticated, user]); // CRITICAL FIX: startInactivityTimer ve stopInactivityTimer dependency'leri kaldırıldı
+    }, [isAuthenticated]); // Removed user from dependency to avoid loop if user object ref changes but id is same
 
     // CRITICAL FIX: Login sonrası navigation'ı optimize et
     useEffect(() => {

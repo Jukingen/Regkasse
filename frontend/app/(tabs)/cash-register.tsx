@@ -24,6 +24,7 @@ import { useCart } from '../../contexts/CartContext';
 
 // Yeni ürün API servislerini import et
 import { Product } from '../../services/api/productService';
+import { apiClient } from '../../services/api/config';
 
 // Soft minimal theme
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography } from '../../constants/SoftTheme';
@@ -235,19 +236,54 @@ export default function CashRegisterScreen() {
     }
   };
 
-  // Sepet miktar güncelleme handler'ı
+  // Sepet miktar güncelleme handler'ı - uses dedicated increment/decrement endpoints
   const handleQuantityUpdate = async (itemId: string, newQuantity: number) => {
     if (!activeTableId) {
       addToast('error', 'No table selected. Please select a table first.', 3000);
       return;
     }
 
-    if (newQuantity <= 0) {
-      await removeFromCart(activeTableId, itemId);
-    } else {
-      await updateItemQuantity(activeTableId, itemId, newQuantity);
+    const currentCart = getCartForTable(activeTableId);
+    const item = currentCart?.items?.find((i: any) => i.id === itemId || i.itemId === itemId);
+    if (!item) {
+      addToast('error', 'Item not found', 2000);
+      return;
     }
-    // No explicit setCart needed
+
+    const currentQty = item.qty || 0;
+
+    const productId = item.productId;
+    if (!productId) {
+      console.error('❌ ProductId missing for item', item);
+      addToast('error', 'Cannot update item', 2000);
+      return;
+    }
+
+    try {
+      if (newQuantity <= 0) {
+        // Use CartContext remove (proper error handling)
+        await remove(productId);
+        addToast('info', 'Item removed from cart', 2000);
+      } else if (newQuantity > currentQty) {
+        // Use CartContext increment (has POST→PUT fallback)
+        await increment(productId);
+        addToast('success', 'Quantity increased', 2000);
+      } else if (newQuantity < currentQty) {
+        // Use CartContext decrement (has POST→PUT fallback)
+        await decrement(productId);
+        if (currentQty === 1) {
+          addToast('info', 'Item removed from cart', 2000);
+        } else {
+          addToast('success', 'Quantity decreased', 2000);
+        }
+      }
+
+      // CartContext already handles state updates
+
+    } catch (err: any) {
+      console.error('❌ Quantity update error:', err);
+      addToast('error', err?.message || 'Failed to update quantity', 3000);
+    }
   };
 
   // Ürün kaldırma handler'ı
@@ -257,8 +293,14 @@ export default function CashRegisterScreen() {
       return;
     }
 
-    await removeFromCart(activeTableId, itemId);
-    addToast('info', 'Item removed from cart', 2000);
+    try {
+      await apiClient.delete(`/cart/items/${itemId}`);
+      addToast('info', 'Item removed from cart', 2000);
+      await switchTable(activeTableId);
+    } catch (err: any) {
+      console.error('❌ Remove item error:', err);
+      addToast('error', err?.message || 'Failed to remove item', 3000);
+    }
   };
 
   // Sepet temizleme handler'ı
@@ -270,7 +312,7 @@ export default function CashRegisterScreen() {
 
     try {
       await clearCart(activeTableId);
-      // No setCart needed
+      addToast('success', `Cart cleared for Table ${activeTableId}`, 2000);
 
     } catch (error) {
       console.error(`❌ Error clearing table ${activeTableId}:`, error);

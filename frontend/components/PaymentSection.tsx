@@ -53,11 +53,11 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   const handleCalculateChange = () => {
     const totalWithTax = calculateTotal() + calculateTax();
     const change = parseFloat(paymentAmount) - totalWithTax;
-    
+
     if (change >= 0) {
       setChangeAmount(change);
       setShowChangeResult(true);
-      
+
       changeAnimation.setValue(0);
       Animated.spring(changeAnimation, {
         toValue: 1,
@@ -65,7 +65,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
         tension: 200,
         friction: 4,
       }).start();
-      
+
       setTimeout(() => {
         setShowChangeResult(false);
       }, 1500);
@@ -78,12 +78,13 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
     }
   };
 
-  if (cart?.items?.length === 0) return null;
+  // ✅ Defensive Check: Prevent crash if cart items are missing
+  if (!cart || !cart.length) return null;
 
   return (
     <View style={styles.paymentSection}>
       <Text style={styles.paymentTitle}>{t('cashRegister.payment')}</Text>
-      
+
       {/* Ödeme Yöntemi */}
       <View style={styles.paymentMethodContainer}>
         <Text style={styles.paymentLabel}>{t('cashRegister.paymentMethod')}:</Text>
@@ -111,7 +112,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
       {/* Ödeme Tutarı */}
       <View style={styles.paymentAmountContainer}>
         <Text style={styles.paymentLabel}>{t('cashRegister.amountReceived')}:</Text>
-        
+
         <TextInput
           style={styles.paymentAmountInput}
           placeholder="0.00"
@@ -131,7 +132,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
             }
           }}
         />
-        
+
         <View style={styles.quickAmountButtons}>
           <TouchableOpacity
             style={[
@@ -145,7 +146,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
               paymentAmount === '5' && styles.quickAmountButtonTextActive
             ]}>5€</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.quickAmountButton,
@@ -158,7 +159,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
               paymentAmount === '10' && styles.quickAmountButtonTextActive
             ]}>10€</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.quickAmountButton,
@@ -171,7 +172,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
               paymentAmount === '20' && styles.quickAmountButtonTextActive
             ]}>20€</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.quickAmountButton,
@@ -184,7 +185,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
               paymentAmount === '50' && styles.quickAmountButtonTextActive
             ]}>50€</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.quickAmountButton}
             onPress={() => setPaymentAmount('')}
@@ -217,10 +218,10 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
           onPress={handleCalculateChange}
           disabled={parseFloat(paymentAmount) < (calculateTotal() + calculateTax())}
         >
-          <Ionicons 
-            name="calculator-outline" 
-            size={16} 
-            color={parseFloat(paymentAmount) < (calculateTotal() + calculateTax()) ? Colors.light.textSecondary : "white"} 
+          <Ionicons
+            name="calculator-outline"
+            size={16}
+            color={parseFloat(paymentAmount) < (calculateTotal() + calculateTax()) ? Colors.light.textSecondary : "white"}
           />
           <Text style={[
             styles.changeButtonText,
@@ -233,7 +234,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
 
       {/* Para Üstü Sonucu */}
       {showChangeResult && (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.changeResultContainer,
             {

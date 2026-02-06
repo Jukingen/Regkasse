@@ -1279,6 +1279,146 @@ namespace KasseAPI_Final.Controllers
                 });
             }
         }
+        // ============================================
+        // QUANTITY MANAGEMENT ENDPOINTS
+        // ============================================
+
+        // Helper: Get cart item with ownership validation
+        private async Task<(CartItem? Item, Cart? Cart, string? UserId, string? Error)> GetOwnedCartItemAsync(Guid itemId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+                return (null, null, null, "User not authenticated");
+
+            var cartItem = await _context.CartItems
+                .Include(ci => ci.Cart)
+                .FirstOrDefaultAsync(ci => ci.Id == itemId);
+
+            if (cartItem == null)
+                return (null, null, userId, "Cart item not found");
+
+            if (cartItem.Cart.UserId != userId)
+                return (null, null, userId, "You do not have access to this cart");
+
+            return (cartItem, cartItem.Cart, userId, null);
+        }
+
+        // POST: api/cart/items/{itemId}/increment - Increase quantity by 1
+        [HttpPost("items/{itemId}/increment")]
+        public async Task<IActionResult> IncrementItemQuantity(Guid itemId)
+        {
+            try
+            {
+                var (cartItem, cart, userId, error) = await GetOwnedCartItemAsync(itemId);
+                
+                if (error != null)
+                {
+                    if (error == "User not authenticated")
+                        return Unauthorized(new { message = error });
+                    if (error == "You do not have access to this cart")
+                        return StatusCode(403, new { message = error });
+                    return NotFound(new { message = error });
+                }
+
+                cartItem!.Quantity += 1;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Item quantity incremented: ItemId={ItemId}, NewQuantity={Quantity}, UserId={UserId}",
+                    itemId, cartItem.Quantity, userId);
+
+                return Ok(new { 
+                    message = "Quantity incremented successfully",
+                    itemId = itemId,
+                    newQuantity = cartItem.Quantity
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error incrementing item quantity: ItemId={ItemId}", itemId);
+                return StatusCode(500, new { message = "Failed to update quantity" });
+            }
+        }
+
+        // POST: api/cart/items/{itemId}/decrement - Decrease quantity by 1 (min 1)
+        [HttpPost("items/{itemId}/decrement")]
+        public async Task<IActionResult> DecrementItemQuantity(Guid itemId)
+        {
+            try
+            {
+                var (cartItem, cart, userId, error) = await GetOwnedCartItemAsync(itemId);
+                
+                if (error != null)
+                {
+                    if (error == "User not authenticated")
+                        return Unauthorized(new { message = error });
+                    if (error == "You do not have access to this cart")
+                        return StatusCode(403, new { message = error });
+                    return NotFound(new { message = error });
+                }
+
+                if (cartItem!.Quantity <= 1)
+                {
+                    // Cannot decrement below 1 - frontend should use DELETE instead
+                    return Conflict(new { 
+                        message = "Cannot decrement below 1. Use DELETE to remove item.",
+                        requiresRemoval = true,
+                        currentQuantity = cartItem.Quantity
+                    });
+                }
+
+                cartItem.Quantity -= 1;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Item quantity decremented: ItemId={ItemId}, NewQuantity={Quantity}, UserId={UserId}",
+                    itemId, cartItem.Quantity, userId);
+
+                return Ok(new { 
+                    message = "Quantity decremented successfully",
+                    itemId = itemId,
+                    newQuantity = cartItem.Quantity
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error decrementing item quantity: ItemId={ItemId}", itemId);
+                return StatusCode(500, new { message = "Failed to update quantity" });
+            }
+        }
+
+        // DELETE: api/cart/items/{itemId} - Remove item from cart (simple version without cartId)
+        [HttpDelete("items/{itemId}")]
+        public async Task<IActionResult> RemoveItemSimple(Guid itemId)
+        {
+            try
+            {
+                var (cartItem, cart, userId, error) = await GetOwnedCartItemAsync(itemId);
+                
+                if (error != null)
+                {
+                    if (error == "User not authenticated")
+                        return Unauthorized(new { message = error });
+                    if (error == "You do not have access to this cart")
+                        return StatusCode(403, new { message = error });
+                    return NotFound(new { message = error });
+                }
+
+                _context.CartItems.Remove(cartItem!);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Item removed from cart: ItemId={ItemId}, CartId={CartId}, UserId={UserId}",
+                    itemId, cart!.CartId, userId);
+
+                return Ok(new { 
+                    message = "Item removed from cart successfully",
+                    itemId = itemId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing item from cart: ItemId={ItemId}", itemId);
+                return StatusCode(500, new { message = "Failed to remove item" });
+            }
+        }
 
         // Yardımcı metod: Vergi oranını hesapla
         private decimal GetTaxRate(string taxType)
