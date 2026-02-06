@@ -304,25 +304,54 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const remove = useCallback(async (productId: string) => {
         const currentCart = cartsByTable[activeTableId];
-        if (!currentCart?.cartId) return;
+        if (!currentCart) {
+            console.warn('⚠️ [remove] No cart found for table', activeTableId);
+            return;
+        }
+
+        // Find the item in local state
+        const item = currentCart.items.find(i => i.productId === productId);
+        if (!item) {
+            console.warn('⚠️ [remove] Item not found in cart', { productId });
+            return;
+        }
+
+        if (!item.itemId) {
+            console.error('❌ [remove] Item missing itemId', { productId, item });
+            setError('Cannot remove item: missing item ID');
+            return;
+        }
+
+        if (!currentCart.cartId) {
+            console.error('❌ [remove] Cart missing cartId');
+            setError('Cannot remove item: invalid cart');
+            return;
+        }
+
+        console.log('🗑️ [remove] Removing item', { productId, itemId: item.itemId, cartId: currentCart.cartId });
 
         setLoading(true);
         try {
-            // Backend item ID bul
-            const response = await apiClient.get<AddItemResponse['cart']>(`/cart/current?tableNumber=${activeTableId}`);
-            const backendItem = response.items.find((item: any) => item.productId === productId);
+            // Optimistic update
+            const updatedItems = currentCart.items.filter(i => i.productId !== productId);
+            setCartsByTable(prev => ({
+                ...prev,
+                [activeTableId]: { ...currentCart, items: updatedItems, updatedAt: Date.now() }
+            }));
 
-            if (backendItem) {
-                await apiClient.delete(`/cart/${currentCart.cartId}/items/${backendItem.id}`);
+            // Backend DELETE using itemId directly from local state
+            await apiClient.delete(`/cart/${currentCart.cartId}/items/${item.itemId}`);
 
-                const updatedItems = currentCart.items.filter(item => item.productId !== productId);
-                setCartsByTable(prev => ({
-                    ...prev,
-                    [activeTableId]: { ...currentCart, items: updatedItems, updatedAt: Date.now() }
-                }));
-            }
+            console.log('✅ [remove] Item removed successfully');
         } catch (err: any) {
-            setError(err.message || 'Failed to remove');
+            console.error('❌ [remove] Failed to remove item', err);
+            setError(err.message || 'Failed to remove item');
+
+            // Rollback on error
+            setCartsByTable(prev => ({
+                ...prev,
+                [activeTableId]: currentCart
+            }));
         } finally {
             setLoading(false);
         }
@@ -331,15 +360,30 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // ✅ Helper: Update specific quantity
     const updateItemQuantity = useCallback(async (productId: string, quantity: number) => {
         const currentCart = cartsByTable[activeTableId];
-        if (!currentCart) return;
+        if (!currentCart) {
+            console.warn('⚠️ [updateItemQuantity] No cart found for table', activeTableId);
+            return;
+        }
 
+        // If quantity is 0 or negative, remove the item
         if (quantity <= 0) {
             await remove(productId);
             return;
         }
 
         const item = currentCart.items.find(i => i.productId === productId);
-        if (!item) return;
+        if (!item) {
+            console.warn('⚠️ [updateItemQuantity] Item not found', { productId });
+            return;
+        }
+
+        if (!item.itemId) {
+            console.error('❌ [updateItemQuantity] Item missing itemId', { productId, item });
+            setError('Cannot update item: missing item ID');
+            return;
+        }
+
+        console.log('🔄 [updateItemQuantity] Updating quantity', { itemId: item.itemId, oldQty: item.qty, newQty: quantity });
 
         setLoading(true);
         try {
@@ -354,38 +398,43 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             }));
 
-            // Backend Update
-            const response = await apiClient.get<AddItemResponse['cart']>(`/cart/current?tableNumber=${activeTableId}`);
-            const backendItem = response.items.find((i: any) => i.productId === productId);
+            // PUT /cart/items/{itemId} with {quantity} - using itemId directly from state
+            await apiClient.put(`/cart/items/${item.itemId}`, {
+                quantity: quantity,
+                notes: item.notes
+            });
 
-            if (backendItem) {
-                await apiClient.put(`/cart/items/${backendItem.id}`, {
-                    quantity: quantity,
-                    notes: item.notes
-                });
-            }
+            console.log('✅ [updateItemQuantity] Quantity updated successfully');
         } catch (e: any) {
-            console.error(e);
+            console.error('❌ [updateItemQuantity] Failed to update quantity', e);
             setError(e.message || 'Failed to update quantity');
-            // Revert could be added here
+
+            // Rollback on error
+            setCartsByTable(prev => ({
+                ...prev,
+                [activeTableId]: currentCart
+            }));
         } finally {
             setLoading(false);
         }
-    }, [activeTableId, cartsByTable, remove]);
+    }, [activeTableId, cartsByTable, remove, setLoading, setError]);
 
     const increment = useCallback(async (productId: string) => {
         const currentCart = cartsByTable[activeTableId];
-        if (!currentCart) return;
+        if (!currentCart) {
+            console.warn('⚠️ [increment] No cart found for table', activeTableId);
+            return;
+        }
 
         const item = currentCart.items.find(i => i.productId === productId);
         if (!item || !item.itemId) {
-            console.error('❌ Cannot increment: item or itemId missing', { productId, item });
+            console.error('❌ [increment] Item or itemId missing', { productId, item });
             setError('Invalid cart item');
             return;
         }
 
         const newQuantity = item.qty + 1;
-        console.log('🔼 CALLING UPDATE QUANTITY', { itemId: item.itemId, newQuantity });
+        console.log('🔼 [increment] Updating quantity', { itemId: item.itemId, oldQty: item.qty, newQty: newQuantity });
 
         setLoading(true);
         try {
@@ -402,24 +451,14 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             }));
 
-            // Try POST increment first, fallback to PUT on 404
-            try {
-                await apiClient.post(`/cart/items/${item.itemId}/increment`);
-                console.log('✅ Quantity incremented via POST');
-            } catch (postError: any) {
-                if (postError.status === 404) {
-                    console.log('⚠️ POST /increment not available, falling back to PUT');
-                    await apiClient.put(`/cart/items/${item.itemId}`, {
-                        quantity: newQuantity,
-                        notes: item.notes
-                    });
-                    console.log('✅ Quantity updated via PUT fallback');
-                } else {
-                    throw postError;
-                }
-            }
+            // PUT /cart/items/{itemId} with {quantity}
+            await apiClient.put(`/cart/items/${item.itemId}`, {
+                quantity: newQuantity,
+                notes: item.notes
+            });
+            console.log('✅ [increment] Quantity updated successfully');
         } catch (e: any) {
-            console.error('❌ Failed to update item quantity', e);
+            console.error('❌ [increment] Failed to update quantity', e);
             setError('Failed to update item quantity');
 
             // Rollback optimistic update
@@ -434,23 +473,27 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const decrement = useCallback(async (productId: string) => {
         const currentCart = cartsByTable[activeTableId];
-        if (!currentCart) return;
+        if (!currentCart) {
+            console.warn('⚠️ [decrement] No cart found for table', activeTableId);
+            return;
+        }
 
         const item = currentCart.items.find(i => i.productId === productId);
         if (!item || !item.itemId) {
-            console.error('❌ Cannot decrement: item or itemId missing', { productId, item });
+            console.error('❌ [decrement] Item or itemId missing', { productId, item });
             setError('Invalid cart item');
             return;
         }
 
-        // If quantity is 1, remove the item instead
+        // If quantity is 1, DELETE the item instead of decrementing
         if (item.qty <= 1) {
+            console.log('🔽 [decrement] Quantity is 1, removing item instead');
             await remove(productId);
             return;
         }
 
         const newQuantity = item.qty - 1;
-        console.log('🔽 CALLING UPDATE QUANTITY', { itemId: item.itemId, newQuantity });
+        console.log('🔽 [decrement] Updating quantity', { itemId: item.itemId, oldQty: item.qty, newQty: newQuantity });
 
         setLoading(true);
         try {
@@ -467,30 +510,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             }));
 
-            // Try POST decrement first, fallback to PUT on 404
-            try {
-                await apiClient.post(`/cart/items/${item.itemId}/decrement`);
-                console.log('✅ Quantity decremented via POST');
-            } catch (postError: any) {
-                if (postError.status === 404) {
-                    console.log('⚠️ POST /decrement not available, falling back to PUT');
-                    await apiClient.put(`/cart/items/${item.itemId}`, {
-                        quantity: newQuantity,
-                        notes: item.notes
-                    });
-                    console.log('✅ Quantity updated via PUT fallback');
-                } else if (postError.status === 409) {
-                    setError('Cannot decrement below 1');
-                    throw postError;
-                } else {
-                    throw postError;
-                }
-            }
+            // PUT /cart/items/{itemId} with {quantity}
+            await apiClient.put(`/cart/items/${item.itemId}`, {
+                quantity: newQuantity,
+                notes: item.notes
+            });
+            console.log('✅ [decrement] Quantity updated successfully');
         } catch (e: any) {
-            console.error('❌ Failed to update item quantity', e);
-            if (e.status !== 409) {
-                setError('Failed to update item quantity');
-            }
+            console.error('❌ [decrement] Failed to update quantity', e);
+            setError('Failed to update item quantity');
 
             // Rollback optimistic update
             setCartsByTable(prev => ({
