@@ -62,7 +62,7 @@ export const useApiManager = () => {
   const checkTokenExpiry = useCallback(async (): Promise<boolean> => {
     const now = Date.now();
     const lastCheck = stateRef.current.lastTokenCheck;
-    
+
     // 5 dakikada bir kontrol et
     if (now - lastCheck < 5 * 60 * 1000) {
       return false; // Henüz kontrol edilmedi
@@ -78,7 +78,7 @@ export const useApiManager = () => {
       // JWT decode ve expire kontrolü
       const payload = JSON.parse(atob(token.split('.')[1]));
       const currentTime = Math.floor(now / 1000);
-      
+
       if (payload.exp && payload.exp < currentTime) {
         console.log('⚠️ Token expired');
         return true;
@@ -142,7 +142,7 @@ export const useApiManager = () => {
   const setCachedData = useCallback(<T>(key: string, data: T, ttlMinutes: number = 5) => {
     const now = Date.now();
     const expiresAt = now + (ttlMinutes * 60 * 1000);
-    
+
     setState(prev => {
       const newCache = new Map(prev.cache);
       newCache.set(key, { data, timestamp: now, expiresAt });
@@ -248,7 +248,7 @@ export const useApiManager = () => {
       if (newRetryCount <= retryCount) {
         // Retry logic
         console.log(`🔄 Retrying API call ${key} (${newRetryCount}/${retryCount})`);
-        
+
         const timeoutId = setTimeout(() => {
           apiCall(key, apiFunction, options);
         }, Math.pow(2, newRetryCount) * 1000); // Exponential backoff
@@ -306,7 +306,7 @@ export const useApiManager = () => {
 
       const onlineCheckInterval = setInterval(async () => {
         await checkOnlineStatus();
-      }, 30 * 1000); // 30 saniye
+      }, 5 * 60 * 1000); // 5 dakika (Reduced from 30s to prevent spam)
 
       // Store on globalThis for cleanup on HMR if needed
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -325,20 +325,20 @@ export const useApiManager = () => {
     // State
     isOnline: state.isOnline,
     isTokenExpired: state.tokenExpiryTime ? Date.now() > state.tokenExpiryTime : false,
-    
+
     // API Management
     apiCall,
     getCachedData,
     setCachedData,
-    
+
     // Cache Management
     clearCache,
     clearActiveCalls,
-    
+
     // Utility
     checkTokenExpiry,
     checkOnlineStatus,
-    
+
     // Active calls info
     getActiveCallStatus: (key: string) => state.activeCalls.get(key),
     hasActiveCalls: state.activeCalls.size > 0,

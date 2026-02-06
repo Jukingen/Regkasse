@@ -6,25 +6,25 @@ export interface AppState {
   // Global loading states
   globalLoading: boolean;
   networkLoading: boolean;
-  
+
   // Error states
   globalError: string | null;
   networkError: string | null;
-  
+
   // Success states
   globalSuccess: string | null;
-  
+
   // Modal states
   showGlobalLoading: boolean;
   showErrorModal: boolean;
   showSuccessModal: boolean;
-  
+
   // Notification states
   notifications: NotificationItem[];
-  
+
   // Offline state
   isOffline: boolean;
-  
+
   // App state
   isAppReady: boolean;
   isInitialized: boolean;
@@ -45,32 +45,32 @@ export interface AppStateActions {
   setNetworkLoading: (loading: boolean) => void;
   showGlobalLoading: () => void;
   hideGlobalLoading: () => void;
-  
+
   // Error actions
   setGlobalError: (error: string | null) => void;
   setNetworkError: (error: string | null) => void;
   showError: (error: string, title?: string) => void;
   clearError: () => void;
-  
+
   // Success actions
   setGlobalSuccess: (message: string | null) => void;
   showSuccess: (message: string, title?: string) => void;
   clearSuccess: () => void;
-  
+
   // Modal actions
   setShowErrorModal: (show: boolean) => void;
   setShowSuccessModal: (show: boolean) => void;
-  
+
   // Notification actions
   addNotification: (notification: Omit<NotificationItem, 'id' | 'timestamp'>) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
-  
+
   // App state actions
   setOffline: (offline: boolean) => void;
   setAppReady: (ready: boolean) => void;
   setInitialized: (initialized: boolean) => void;
-  
+
   // Utility actions
   reset: () => void;
 }
@@ -128,11 +128,11 @@ export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   const clearError = useCallback(() => {
-    setState(prev => ({ 
-      ...prev, 
-      globalError: null, 
+    setState(prev => ({
+      ...prev,
+      globalError: null,
       networkError: null,
-      showErrorModal: false 
+      showErrorModal: false
     }));
   }, []);
 
@@ -147,10 +147,10 @@ export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   const clearSuccess = useCallback(() => {
-    setState(prev => ({ 
-      ...prev, 
+    setState(prev => ({
+      ...prev,
       globalSuccess: null,
-      showSuccessModal: false 
+      showSuccessModal: false
     }));
   }, []);
 
@@ -236,6 +236,8 @@ export const AppStateProvider: React.FC<{ children: ReactNode }> = ({ children }
     setInitialized,
     reset
   };
+
+  console.log('📱 APP STATE PROVIDER: Rendering children...');
 
   return (
     <AppStateContext.Provider value={contextValue}>

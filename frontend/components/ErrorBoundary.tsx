@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-import { useTheme } from '../contexts/ThemeContext';
+
 
 interface Props {
   children: ReactNode;
@@ -33,8 +33,8 @@ class ErrorBoundaryClass extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <ErrorFallback 
-          error={this.state.error} 
+        <ErrorFallback
+          error={this.state.error}
           onReset={this.handleReset}
         />
       );
@@ -50,8 +50,9 @@ interface ErrorFallbackProps {
 }
 
 const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onReset }) => {
-  const { theme } = useTheme();
-  const styles = createStyles(theme);
+  // ThemeProvider context dışında kullanılabileceği için (Root ErrorBoundary)
+  // useTheme hook'u yerine statik stiller kullanıyoruz.
+  const styles = defaultStyles;
 
   return (
     <View style={styles.container}>
@@ -66,34 +67,34 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onReset }) => {
   );
 };
 
-const createStyles = (theme: any) => StyleSheet.create({
+const defaultStyles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: theme.background,
+    backgroundColor: '#fff',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: theme.error,
+    color: '#dc3545',
     marginBottom: 16,
   },
   message: {
     fontSize: 16,
-    color: theme.text,
+    color: '#333',
     textAlign: 'center',
     marginBottom: 24,
   },
   button: {
-    backgroundColor: theme.primary,
+    backgroundColor: '#007AFF',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   buttonText: {
-    color: theme.buttonText,
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

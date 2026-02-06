@@ -1,15 +1,15 @@
+import { View, Text, StyleSheet } from 'react-native';
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import SimpleApiTest from '../components/SimpleApiTest';
 
-/**
- * Basit API Test Sayfası
- * Türkçe açıklama: Bu sayfa basit API testleri için kullanılır
- */
-export default function SimpleTestPage() {
+console.log('🧪 SIMPLE TEST: Module loaded');
+
+export default function SimpleTest() {
+  console.log('🧪 SIMPLE TEST: Component rendering');
+
   return (
     <View style={styles.container}>
-      <SimpleApiTest />
+      <Text style={styles.text}>✅ SIMPLE TEST PAGE (FIXED)</Text>
+      <Text style={styles.subtext}>If you see this, config is fixed and render is working!</Text>
     </View>
   );
 }
@@ -17,6 +17,18 @@ export default function SimpleTestPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  text: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 16,
+  },
+  subtext: {
+    fontSize: 16,
+    color: '#666',
   },
 });

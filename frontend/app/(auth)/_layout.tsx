@@ -1,14 +1,12 @@
-import { Stack, Redirect } from 'expo-router';
+import { Slot, Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import React from 'react';
 
-interface AuthLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function AuthLayout({ children }: AuthLayoutProps) {
+export default function AuthLayout() {
     const { isAuthenticated, isLoading, user } = useAuth();
+
+    console.log('🔐 AUTH LAYOUT: Checking auth state:', { isAuthenticated, isLoading });
 
     if (isLoading) {
         return (
@@ -21,27 +19,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     // Eğer kullanıcı giriş yapmışsa ana sayfaya yönlendir
     if (isAuthenticated && user) {
         console.log('AuthLayout: User authenticated, redirecting to tabs');
-        console.log('AuthLayout: User details:', { email: user.email, role: user.role });
-        // Kısa bir gecikme ile redirect yap (state'lerin tam set olması için)
         return <Redirect href="/(tabs)/cash-register" />;
     }
 
-    return (
-        <Stack 
-            screenOptions={{ 
-                headerShown: false,
-                headerStyle: { 
-                    display: 'none',
-                    height: 0,
-                    opacity: 0
-                },
-                headerTitle: '',
-                headerBackVisible: false,
-                headerTransparent: true,
-                headerMode: 'none'
-            }}
-        >
-            {children}
-        </Stack>
-    );
-} 
+    console.log('🔐 AUTH LAYOUT: Rendering Slot');
+    return <Slot />;
+}

@@ -6,6 +6,12 @@ const config = getDefaultConfig(__dirname);
 config.maxWorkers = 2; // CPU kullanımını azalt
 config.resetCache = false; // Cache'i koru
 
+// FIX: import.meta error - Web için ES module desteği
+config.resolver = {
+  ...config.resolver,
+  sourceExts: [...(config.resolver?.sourceExts || []), 'mjs', 'cjs'],
+};
+
 // Bundle analizi için
 config.transformer = {
   ...config.transformer,

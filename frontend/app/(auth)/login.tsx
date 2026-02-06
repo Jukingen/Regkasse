@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Alert, 
-  KeyboardAvoidingView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   TouchableWithoutFeedback,
@@ -25,15 +25,17 @@ import { validateField } from '../../utils/validation';
 
 const { width, height } = Dimensions.get('window');
 
+console.log('LoginScreen module loaded');
+
 export default function LoginScreen() {
-  console.log('LoginScreen loaded');
-  
+  console.log('LoginScreen component rendering...');
+
   // State management
   const [formData, setFormData] = useState<Record<string, string>>({
     username: '',
     password: ''
   });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -41,14 +43,14 @@ export default function LoginScreen() {
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [generalError, setGeneralError] = useState<string>('');
-  
+
   const { login } = useAuth();
   const { t } = useTranslation();
 
   // Form değerlerini güncelle
   const handleInputChange = useCallback((field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     // Real-time validasyon
     if (touched[field]) {
       const error = validateField(field, value);
@@ -62,7 +64,7 @@ export default function LoginScreen() {
   // Input focus/blur işlemleri
   const handleInputBlur = useCallback((field: string) => {
     setTouched(prev => ({ ...prev, [field]: true }));
-    
+
     // Validasyon çalıştır
     const error = validateField(field, formData[field]);
     setErrors(prev => ({
@@ -85,22 +87,22 @@ export default function LoginScreen() {
       Alert.alert('Hesap Kilitli', 'Çok fazla başarısız giriş denemesi. Lütfen 15 dakika bekleyin.');
       return;
     }
-    
+
     // Tüm alanları touched olarak işaretle
     const allTouched = { username: true, password: true };
     setTouched(allTouched);
-    
+
     // Form validasyonu
     const validationErrors: Record<string, string> = {};
-    
+
     if (!formData.username.trim()) {
       validationErrors.username = 'Kullanıcı adı gereklidir';
     }
-    
+
     if (!formData.password) {
       validationErrors.password = 'Şifre gereklidir';
     }
-    
+
     // Diğer validasyonlar
     Object.keys(formData).forEach(field => {
       const error = validateField(field, formData[field]);
@@ -108,33 +110,33 @@ export default function LoginScreen() {
         validationErrors[field] = error;
       }
     });
-    
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-    
+
     try {
       setIsLoading(true);
       await login(formData.username, formData.password);
       console.log('Login successful!');
-      
+
       // Başarılı giriş sonrası sayaçları sıfırla
       setLoginAttempts(0);
       setIsLocked(false);
       setGeneralError('');
     } catch (error) {
       console.error('Login error details:', error);
-      
+
       // Başarısız giriş sayacını artır
       const newAttempts = loginAttempts + 1;
       setLoginAttempts(newAttempts);
-      
+
       // 5 başarısız deneme sonrası hesabı kilitle
       if (newAttempts >= 5) {
         setIsLocked(true);
         Alert.alert(
-          'Hesap Kilitlendi', 
+          'Hesap Kilitlendi',
           'Çok fazla başarısız giriş denemesi. Hesabınız 15 dakika kilitlendi.',
           [
             {
@@ -151,10 +153,10 @@ export default function LoginScreen() {
         );
         return;
       }
-      
+
       // Kullanıcı dostu hata mesajları
       let errorMessage = 'Giriş başarısız';
-      
+
       if (error instanceof Error) {
         if (error.message.includes('network') || error.message.includes('Network')) {
           errorMessage = 'Ağ bağlantısı hatası. Lütfen internet bağlantınızı kontrol edin.';
@@ -166,7 +168,7 @@ export default function LoginScreen() {
           errorMessage = error.message;
         }
       }
-      
+
       // Genel hata mesajını göster
       setGeneralError(errorMessage);
     } finally {
@@ -186,63 +188,63 @@ export default function LoginScreen() {
     <>
       <StatusBar style="light" hidden={true} />
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardAvoidingView}
         >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView 
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Logo ve Başlık */}
-            <View style={styles.header}>
-              <View style={styles.logoContainer}>
-                <Ionicons name="cash-outline" size={64} color="#007AFF" />
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Logo ve Başlık */}
+              <View style={styles.header}>
+                <View style={styles.logoContainer}>
+                  <Ionicons name="cash-outline" size={64} color="#007AFF" />
+                </View>
+                <Text style={styles.title}>KasseAPP</Text>
+                <Text style={styles.subtitle}>Kasiyer Giriş Sistemi</Text>
               </View>
-              <Text style={styles.title}>KasseAPP</Text>
-              <Text style={styles.subtitle}>Kasiyer Giriş Sistemi</Text>
-            </View>
 
-            {/* Giriş Formu */}
-            <View style={styles.formContainer}>
-              <Text style={styles.formTitle}>Giriş Yap</Text>
-              
-              {/* Güvenlik Göstergesi */}
-              <SecurityIndicator 
-                isSecure={true} 
-                message="HTTPS güvenli bağlantı aktif"
-              />
-              
-              {/* Giriş Denemeleri Bilgisi */}
-              {loginAttempts > 0 && (
-                <View style={styles.attemptsInfo}>
-                  <Ionicons name="information-circle-outline" size={16} color="#007AFF" />
-                  <Text style={styles.attemptsText}>
-                    Başarısız giriş denemesi: {loginAttempts}/5
+              {/* Giriş Formu */}
+              <View style={styles.formContainer}>
+                <Text style={styles.formTitle}>Giriş Yap</Text>
+
+                {/* Güvenlik Göstergesi */}
+                <SecurityIndicator
+                  isSecure={true}
+                  message="HTTPS güvenli bağlantı aktif"
+                />
+
+                {/* Giriş Denemeleri Bilgisi */}
+                {loginAttempts > 0 && (
+                  <View style={styles.attemptsInfo}>
+                    <Ionicons name="information-circle-outline" size={16} color="#007AFF" />
+                    <Text style={styles.attemptsText}>
+                      Başarısız giriş denemesi: {loginAttempts}/5
+                    </Text>
+                  </View>
+                )}
+
+                {/* Giriş Geçmişi Bilgisi */}
+                <View style={styles.loginHistoryInfo}>
+                  <Ionicons name="time-outline" size={16} color="#6c757d" />
+                  <Text style={styles.loginHistoryText}>
+                    Son giriş: {new Date().toLocaleDateString('tr-TR')}
                   </Text>
                 </View>
-              )}
-              
-              {/* Giriş Geçmişi Bilgisi */}
-              <View style={styles.loginHistoryInfo}>
-                <Ionicons name="time-outline" size={16} color="#6c757d" />
-                <Text style={styles.loginHistoryText}>
-                  Son giriş: {new Date().toLocaleDateString('tr-TR')}
-                </Text>
-              </View>
-              
-              {/* Genel Hata Mesajı */}
-              {generalError && (
-                <ErrorMessage 
-                  message={generalError} 
-                  type="error" 
-                  showIcon={true}
-                />
-              )}
-              
-              <FormInput
+
+                {/* Genel Hata Mesajı */}
+                {generalError && (
+                  <ErrorMessage
+                    message={generalError}
+                    type="error"
+                    showIcon={true}
+                  />
+                )}
+
+                <FormInput
                   label="Kullanıcı Adı veya Email"
                   placeholder="Kullanıcı adı, ID veya email adresinizi giriniz"
                   value={formData.username}
@@ -256,7 +258,7 @@ export default function LoginScreen() {
                   editable={!isLoading}
                   returnKeyType="next"
                 />
-                
+
                 {/* Kullanıcı Adı Karakter Sayacı */}
                 <View style={styles.characterCounter}>
                   <Text style={styles.counterText}>
@@ -264,7 +266,7 @@ export default function LoginScreen() {
                   </Text>
                 </View>
 
-                              <FormInput
+                <FormInput
                   label="Şifre"
                   placeholder="Şifrenizi giriniz"
                   value={formData.password}
@@ -280,42 +282,42 @@ export default function LoginScreen() {
                   returnKeyType="done"
                   onSubmitEditing={handleSubmit}
                 />
-                
+
                 {/* Şifre Gücü Göstergesi */}
                 <PasswordStrength password={formData.password} />
 
-              {/* Giriş Butonu */}
-              <Button
-                title={isLocked ? "Hesap Kilitli" : "Giriş Yap"}
-                onPress={handleSubmit}
-                loading={isLoading}
-                disabled={isLoading || isLocked}
-                style={styles.loginButton}
-              />
-              
-              {/* Güvenlik Uyarısı */}
-              <View style={styles.securityWarning}>
-                <Ionicons name="shield-outline" size={16} color="#6c757d" />
-                <Text style={styles.securityWarningText}>
-                  Giriş bilgileriniz güvenli şekilde şifrelenerek iletilir
-                </Text>
-              </View>
-              
-              {/* Ek Güvenlik Bilgileri */}
-              <View style={styles.additionalSecurityInfo}>
-                <View style={styles.securityFeature}>
-                  <Ionicons name="lock-closed-outline" size={16} color="#34C759" />
-                  <Text style={styles.securityFeatureText}>SSL/TLS Şifreleme</Text>
+                {/* Giriş Butonu */}
+                <Button
+                  title={isLocked ? "Hesap Kilitli" : "Giriş Yap"}
+                  onPress={handleSubmit}
+                  loading={isLoading}
+                  disabled={isLoading || isLocked}
+                  style={styles.loginButton}
+                />
+
+                {/* Güvenlik Uyarısı */}
+                <View style={styles.securityWarning}>
+                  <Ionicons name="shield-outline" size={16} color="#6c757d" />
+                  <Text style={styles.securityWarningText}>
+                    Giriş bilgileriniz güvenli şekilde şifrelenerek iletilir
+                  </Text>
                 </View>
-                <View style={styles.securityFeature}>
-                  <Ionicons name="shield-checkmark-outline" size={16} color="#34C759" />
-                  <Text style={styles.securityFeatureText}>RKSV Uyumlu</Text>
+
+                {/* Ek Güvenlik Bilgileri */}
+                <View style={styles.additionalSecurityInfo}>
+                  <View style={styles.securityFeature}>
+                    <Ionicons name="lock-closed-outline" size={16} color="#34C759" />
+                    <Text style={styles.securityFeatureText}>SSL/TLS Şifreleme</Text>
+                  </View>
+                  <View style={styles.securityFeature}>
+                    <Ionicons name="shield-checkmark-outline" size={16} color="#34C759" />
+                    <Text style={styles.securityFeatureText}>RKSV Uyumlu</Text>
+                  </View>
                 </View>
               </View>
-            </View>
-            
-            {/* Alt Bilgi */}
-            <View style={styles.footer}>
+
+              {/* Alt Bilgi */}
+              <View style={styles.footer}>
                 <View style={styles.securityInfo}>
                   <Ionicons name="shield-checkmark-outline" size={16} color="#34C759" />
                   <Text style={styles.securityText}>
@@ -327,10 +329,10 @@ export default function LoginScreen() {
                 </Text>
                 <Text style={styles.versionText}>v2.1.0</Text>
               </View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </>
   );
 }
@@ -339,13 +341,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
-    paddingTop: 0,
-    marginTop: 0,
-    top: 0,
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -358,7 +353,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     minHeight: height - 60, // Safe area için
   },
-  
+
   // Header Styles
   header: {
     alignItems: 'center',
@@ -390,7 +385,7 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
-  
+
   // Form Styles
   formContainer: {
     backgroundColor: 'white',
@@ -414,7 +409,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 20,
   },
-  
+
   // Attempts Info
   attemptsInfo: {
     flexDirection: 'row',
@@ -431,7 +426,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: '500',
   },
-  
+
   // Character Counter
   characterCounter: {
     alignItems: 'flex-end',
@@ -442,7 +437,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-  
+
   // Login History Info
   loginHistoryInfo: {
     flexDirection: 'row',
@@ -459,7 +454,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: '500',
   },
-  
+
   // Security Warning
   securityWarning: {
     flexDirection: 'row',
@@ -477,7 +472,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flex: 1,
   },
-  
+
   // Additional Security Info
   additionalSecurityInfo: {
     flexDirection: 'row',
@@ -496,7 +491,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  
+
   // Footer
   footer: {
     alignItems: 'center',

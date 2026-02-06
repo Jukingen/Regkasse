@@ -1,16 +1,7 @@
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [
-      ['babel-preset-expo', {
-        // Memory optimizasyonları
-        useBuiltIns: 'usage',
-        corejs: 3,
-        targets: {
-          node: 'current'
-        }
-      }]
-    ],
+    presets: ['babel-preset-expo'],
     plugins: [
       'react-native-reanimated/plugin',
       ['module-resolver', {
@@ -32,11 +23,22 @@ module.exports = function (api) {
       // Memory leak önleme
       '@babel/plugin-transform-runtime',
       '@babel/plugin-transform-optional-chaining',
-      '@babel/plugin-transform-nullish-coalescing-operator'
+      '@babel/plugin-transform-nullish-coalescing-operator',
+      // FIX: import.meta transformation for web compatibility
+      ['babel-plugin-transform-import-meta', { module: 'CommonJS' }],
     ],
     // Memory optimizasyonları
     compact: false,
     sourceMaps: false,
-    retainLines: false
+    retainLines: false,
+    // Environment-specific overrides
+    env: {
+      production: {
+        plugins: [
+          // Remove console.logs in production
+          ['transform-remove-console', { exclude: ['error', 'warn'] }],
+        ],
+      },
+    },
   };
 }; 

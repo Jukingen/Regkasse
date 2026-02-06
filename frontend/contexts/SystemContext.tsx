@@ -68,6 +68,8 @@ interface SystemProviderProps {
 }
 
 export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
+
+
   const { t } = useTranslation();
   const [isOnline, setIsOnline] = useState(true);
   const [systemConfig, setSystemConfig] = useState<SystemConfiguration>(defaultConfig);

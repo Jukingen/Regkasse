@@ -54,7 +54,7 @@ interface RecoveryState {
 export const useTableOrdersRecoveryOptimized = () => {
   const { user } = useAuth();
   const { apiCall, getCachedData, setCachedData } = useApiManager();
-  
+
   const [recoveryState, setRecoveryState] = useState<RecoveryState>({
     isLoading: false,
     error: null,
@@ -92,6 +92,12 @@ export const useTableOrdersRecoveryOptimized = () => {
       return recoveryStateRef.current.recoveryData;
     }
 
+    // Guard against double invocation
+    if (recoveryStateRef.current.isLoading) {
+      console.log('🔄 Recovery already in progress, skipping...');
+      return null;
+    }
+
     // Cache kontrolü
     const userCacheKey = `table-orders-recovery:${user.id}`;
     const cachedData = getCachedData<TableOrdersRecoveryData>(userCacheKey);
@@ -111,24 +117,24 @@ export const useTableOrdersRecoveryOptimized = () => {
 
     try {
       console.log('🔄 Fetching table orders for recovery...');
-      
+
       // API çağrısı - useApiManager ile
       const result = await apiCall(
         'fetch-table-orders-recovery',
         async () => {
           const response = await apiClient.get('/cart/table-orders-recovery');
-          
+
           // Debouncing kontrolü - null response handle et
           if (response === null) {
             console.log('⚠️ API response null (debouncing), throwing error for retry...');
             throw new Error('API response is null due to debouncing');
           }
-          
+
           // Response format kontrolü
           if (!response || typeof response !== 'object') {
             throw new Error(`Invalid response format: ${JSON.stringify(response)}`);
           }
-          
+
           const recoveryData = response as TableOrdersRecoveryData;
 
           if (recoveryData.success) {
@@ -147,7 +153,7 @@ export const useTableOrdersRecoveryOptimized = () => {
 
       if (result) {
         console.log(`✅ Recovery completed: ${result.totalActiveTables} active table orders found`);
-        
+
         updateRecoveryState({
           isLoading: false,
           error: null,
@@ -166,13 +172,13 @@ export const useTableOrdersRecoveryOptimized = () => {
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message ?? error.message ?? 'Unknown error during recovery';
       console.error('❌ Table orders recovery failed:', errorMessage);
-      
+
       updateRecoveryState({
         isLoading: false,
         error: errorMessage,
         recoveryData: null,
-        isRecoveryCompleted: false,
-        isInitialized: false,
+        isRecoveryCompleted: true, // Mark as completed even on error to stop loop
+        isInitialized: true,       // Mark as initialized to prevent retry loop
       });
 
       return null;
@@ -184,16 +190,16 @@ export const useTableOrdersRecoveryOptimized = () => {
    */
   const refreshTableOrders = useCallback(async (): Promise<TableOrdersRecoveryData | null> => {
     if (!user) return null;
-    
+
     console.log('🔄 Manual refresh of table orders...');
-    
+
     // Cache'i temizle (user scoped)
     const userCacheKey = `table-orders-recovery:${user.id}`;
     setCachedData(userCacheKey, null as unknown as TableOrdersRecoveryData, 0);
-    
+
     // Reset initialization flag to force fresh fetch
     updateRecoveryState({ isInitialized: false });
-    
+
     return await fetchTableOrdersRecovery();
   }, [user, fetchTableOrdersRecovery, setCachedData, updateRecoveryState]);
 
@@ -202,7 +208,7 @@ export const useTableOrdersRecoveryOptimized = () => {
    */
   const getOrderForTable = useCallback((tableNumber: number): TableOrderRecovery | null => {
     if (!recoveryStateRef.current.recoveryData) return null;
-    
+
     return recoveryStateRef.current.recoveryData.tableOrders.find(
       order => order.tableNumber === tableNumber
     ) ?? null;
@@ -213,7 +219,7 @@ export const useTableOrdersRecoveryOptimized = () => {
    */
   const getActiveTableNumbers = useCallback((): number[] => {
     if (!recoveryStateRef.current.recoveryData) return [];
-    
+
     return recoveryStateRef.current.recoveryData.tableOrders
       .map(order => order.tableNumber)
       .filter((tableNumber): tableNumber is number => tableNumber !== undefined)
@@ -229,7 +235,7 @@ export const useTableOrdersRecoveryOptimized = () => {
       const userCacheKey = `table-orders-recovery:${user.id}`;
       setCachedData(userCacheKey, null as unknown as TableOrdersRecoveryData, 0);
     }
-    
+
     updateRecoveryState({
       isLoading: false,
       error: null,
@@ -249,9 +255,9 @@ export const useTableOrdersRecoveryOptimized = () => {
     const performRecovery = async () => {
       // Sadece user varsa ve henüz initialize edilmemişse çalış
       if (!user || recoveryStateRef.current.isInitialized) {
-        console.log('🔄 Recovery skipped:', { 
-          hasUser: !!user, 
-          isInitialized: recoveryStateRef.current.isInitialized 
+        console.log('🔄 Recovery skipped:', {
+          hasUser: !!user,
+          isInitialized: recoveryStateRef.current.isInitialized
         });
         return;
       }
@@ -281,7 +287,7 @@ export const useTableOrdersRecoveryOptimized = () => {
       window.addEventListener('auth-token-updated', handler);
       return () => window.removeEventListener('auth-token-updated', handler);
     }
-    return () => {};
+    return () => { };
   }, [user, refreshTableOrders]);
 
   return {
@@ -291,14 +297,14 @@ export const useTableOrdersRecoveryOptimized = () => {
     recoveryData: recoveryStateRef.current.recoveryData,
     isRecoveryCompleted: recoveryStateRef.current.isRecoveryCompleted,
     isInitialized: recoveryStateRef.current.isInitialized,
-    
+
     // Actions
     fetchTableOrdersRecovery,
     refreshTableOrders,
     getOrderForTable,
     getActiveTableNumbers,
     resetRecovery,
-    
+
     // Helper properties
     hasActiveOrders: (recoveryStateRef.current.recoveryData?.totalActiveTables ?? 0) > 0,
     totalActiveTables: recoveryStateRef.current.recoveryData?.totalActiveTables ?? 0,

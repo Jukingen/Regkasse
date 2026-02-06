@@ -1,18 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, Redirect } from 'expo-router';
 import React, { useEffect, useCallback } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useTableOrdersRecovery } from '../../hooks/useTableOrdersRecovery';
 
 export default function TabLayout() {
     const { isAuthenticated, isLoading, user, checkAuthStatus } = useAuth();
-    
+
     // F5 sonrası masa siparişlerini geri yükleme hook'u
-    const { 
-        isLoading: recoveryLoading, 
-        error: recoveryError, 
+    const {
+        isLoading: recoveryLoading,
+        error: recoveryError,
         isRecoveryCompleted,
         hasActiveOrders,
         totalActiveTables,
@@ -32,17 +32,17 @@ export default function TabLayout() {
             console.log('🚫 TabLayout: User veya authentication yok, auth check atlanıyor...'); // Debug log
             return;
         }
-        
+
         // İlk yüklemede hemen kontrol et
         console.log('🔄 TabLayout: İlk auth check başlatılıyor...'); // Debug log
         checkAuthStatus();
-        
+
         // OPTIMIZATION: Her dakika yerine 5 dakikada bir kontrol et
         const interval = setInterval(() => {
             console.log('⏰ TabLayout: Periyodik auth check başlatılıyor...'); // Debug log
             checkAuthStatus();
         }, 5 * 60 * 1000); // 5 dakika
-        
+
         return () => {
             console.log('🧹 TabLayout: Auth check interval temizleniyor...'); // Debug log
             clearInterval(interval);
@@ -62,16 +62,6 @@ export default function TabLayout() {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#007AFF" />
-            </View>
-        );
-    }
-
-    // F5 REFRESH FIX: Loading sırasında redirect yapma
-    if (isLoading) {
-        console.log('TabLayout: Auth is loading, waiting...', { isAuthenticated, hasUser: !!user });
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <Text>Loading...</Text>
             </View>
         );
     }
@@ -105,34 +95,6 @@ export default function TabLayout() {
                 options={{
                     title: 'Einstellungen',
                     tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color={color} />,
-                }}
-            />
-            <Tabs.Screen
-                name="invoices"
-                options={{
-                    title: 'Rechnungen',
-                    tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={24} color={color} />,
-                }}
-            />
-            <Tabs.Screen
-                name="taskmaster"
-                options={{
-                    title: 'Aufgaben',
-                    tabBarIcon: ({ color }) => <Ionicons name="checkbox-outline" size={24} color={color} />,
-                }}
-            />
-            <Tabs.Screen
-                name="simple-todo"
-                options={{
-                    title: 'Todo',
-                    tabBarIcon: ({ color }) => <Ionicons name="list-outline" size={24} color={color} />,
-                }}
-            />
-            <Tabs.Screen
-                name="task-suggestions"
-                options={{
-                    title: 'AI Demo',
-                    tabBarIcon: ({ color }) => <Ionicons name="bulb-outline" size={24} color={color} />,
                 }}
             />
         </Tabs>

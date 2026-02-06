@@ -18,20 +18,20 @@ const checkBackendAuth = async (): Promise<{ isAuthenticated: boolean; user: any
     if ((checkBackendAuth as any).isChecking) {
         return { isAuthenticated: false, user: null };
     }
-    
+
     // 🚀 F5 REFRESH FIX: Debouncing için timestamp kontrol
     const currentTime = Date.now();
     const lastCallTime = (checkBackendAuth as any).lastCallTime || 0;
     const DEBOUNCE_MS = 1500; // 1.5 saniye debounce
-    
+
     if (currentTime - lastCallTime < DEBOUNCE_MS) {
         return { isAuthenticated: false, user: null };
     }
-    
+
     // Flag'leri set et
     (checkBackendAuth as any).isChecking = true;
     (checkBackendAuth as any).lastCallTime = currentTime;
-    
+
     try {
         // Token'ı AsyncStorage'dan al
         const token = await AsyncStorage.getItem('token');
@@ -82,23 +82,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export { AuthContext };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+    console.log('🔐 AUTH PROVIDER: Component mounting...');
+
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [justLoggedIn, setJustLoggedIn] = useState(false);
     const [, setLastActivity] = useState<number>(Date.now());
     const [inactivityTimer, setInactivityTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-    
+
     // 🚀 F5 REFRESH FIX: Auth check'in ard arda çağrılmasını önler
     const [isAuthCheckInProgress, setIsAuthCheckInProgress] = useState(false);
-    
+
     // 🚀 F5 REFRESH FIX: Debouncing için timestamp tracking
     const [lastAuthCheckTime, setLastAuthCheckTime] = useState<number>(0);
     const AUTH_CHECK_DEBOUNCE_MS = 2000; // 2 saniye debounce
-    
+
     // 🚀 F5 REFRESH FIX: Session storage flag (F5 refresh'te korunur)
     const [hasInitialAuthCheck, setHasInitialAuthCheck] = useState(false);
-    
+
     // Inactivity timeout (30 dakika)
     const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 dakika
 
@@ -113,22 +115,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 'cartItems',
                 'cartState'
             ];
-            
+
             for (const key of cartKeys) {
                 await AsyncStorage.removeItem(key);
             }
-            
+
             // Local storage'dan cart verilerini temizle (web için)
             if (typeof window !== 'undefined') {
-                const localStorageKeys = Object.keys(localStorage).filter(key => 
+                const localStorageKeys = Object.keys(localStorage).filter(key =>
                     key.includes('cart') || key.includes('Cart') || key.includes('table')
                 );
-                
+
                 localStorageKeys.forEach(key => {
                     localStorage.removeItem(key);
                 });
             }
-            
+
         } catch (error) {
             console.error('❌ Cart cache temizleme hatası:', error);
         }
@@ -146,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const decoded = jwtDecode(token);
             const currentTime = Date.now() / 1000;
-            
+
             // 🔧 CRITICAL FIX: Token expiration logic düzeltildi
             // decoded.exp > currentTime = token henüz geçerli
             // decoded.exp <= currentTime = token expired
@@ -154,10 +156,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // 🔧 5 dakika buffer ekle - token henüz expired değilse kullan
                 const BUFFER_MINUTES = 5;
                 const bufferTime = BUFFER_MINUTES * 60; // 5 dakika = 300 saniye
-                
+
                 const isExpired = decoded.exp <= (currentTime + bufferTime);
                 const timeLeftMinutes = Math.round((decoded.exp - currentTime) / 60);
-                
+
                 console.log('🔍 TOKEN CHECK:', {
                     tokenExp: new Date(decoded.exp * 1000).toISOString(),
                     currentTime: new Date(currentTime * 1000).toISOString(),
@@ -166,10 +168,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     isExpired,
                     willExpireSoon: timeLeftMinutes <= BUFFER_MINUTES
                 });
-                
+
                 return isExpired;
             }
-            
+
             console.warn('⚠️ TOKEN CHECK: No expiration time found in token');
             return false; // Expiration yoksa güvenlik için false döndür
         } catch (error) {
@@ -216,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 window.addEventListener(CART_CLEAR_EVENT, handleLogoutEvent);
                 console.log('✅ Web platform: cart clear event listener added');
-                
+
                 // Cleanup
                 return () => {
                     if (typeof window !== 'undefined' && window.removeEventListener) {
@@ -240,28 +242,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(null);
             setIsAuthenticated(false);
             setJustLoggedIn(false);
-            
+
             // Storage'dan tüm auth verilerini temizle
             await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
-            
+
             // Local storage'dan auth verilerini temizle (web için)
             if (typeof window !== 'undefined' && window.localStorage) {
-                const authKeys = Object.keys(localStorage).filter(key => 
+                const authKeys = Object.keys(localStorage).filter(key =>
                     key.includes('token') || key.includes('user') || key.includes('auth')
                 );
                 authKeys.forEach(key => {
                     localStorage.removeItem(key);
                 });
             }
-            
+
             // Cart cache temizle
             await clearCartCache();
-            
+
             // Inactivity timer'ı durdur
             stopInactivityTimer();
-            
+
             console.log('✅ Logout tamamlandı, login sayfasına yönlendiriliyor...');
-            
+
             // Login sayfasına yönlendir
             if (router && typeof router.push === 'function') {
                 try {
@@ -289,7 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [clearCartCache, stopInactivityTimer]);
 
-    
+
 
     // 🚀 F5 REFRESH FIX: Sadeleştirilmiş auth check fonksiyonu
     const stableCheckAuthStatus = useCallback(async () => {
@@ -297,17 +299,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (justLoggedIn) {
             return;
         }
-        
+
         if (isAuthCheckInProgress) {
             return;
         }
-        
+
         // 🚫 Debouncing kontrolü
         const currentTime = Date.now();
         if (currentTime - lastAuthCheckTime < AUTH_CHECK_DEBOUNCE_MS) {
             return;
         }
-        
+
         // 🚫 Eğer user zaten varsa auth check'i atla
         if (hasInitialAuthCheck && user?.id && isAuthenticated) {
             setIsLoading(false); // Loading'i false yap
@@ -317,7 +319,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Auth check flag'lerini set et
         setIsAuthCheckInProgress(true);
         setLastAuthCheckTime(currentTime);
-        
+
         try {
             // 🔑 Token kontrolü yap
             const token = await AsyncStorage.getItem('token');
@@ -329,7 +331,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 🔑 Token süresini kontrol et
             const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
             const isTokenExpired = checkTokenExpiration(cleanToken);
-            
+
             if (isTokenExpired) {
                 await handleLogoutAndRedirect();
                 return;
@@ -358,11 +360,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         setUser(userWithToken);
                         setIsAuthenticated(true);
                         setHasInitialAuthCheck(true);
-                        
+
                         if (typeof sessionStorage !== 'undefined') {
                             sessionStorage.setItem('hasInitialAuthCheck', 'true');
                         }
-                        
+
                         return;
                     }
                 } catch (parseError) {
@@ -377,11 +379,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setUser(result.user);
                     setIsAuthenticated(true);
                     setHasInitialAuthCheck(true);
-                    
+
                     if (typeof sessionStorage !== 'undefined') {
                         sessionStorage.setItem('hasInitialAuthCheck', 'true');
                     }
-                    
+
                     return;
                 }
             } catch (backendError) {
@@ -403,31 +405,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // CRITICAL FIX: checkAuthStatus'u sadece mount olduğunda bir kez çağır
     useEffect(() => {
         console.log('🔄 AUTH PROVIDER: Mount detected, starting auth check...');
-        
+
         // 🚀 F5 REFRESH FIX: Her zaman önce storage'dan restore etmeye çalış
         const initializeAuth = async () => {
             try {
                 console.log('🔍 AUTH INIT: Checking storage for existing auth...');
-                
+
                 const token = await AsyncStorage.getItem('token');
                 const userStr = await AsyncStorage.getItem('user');
-                
-                console.log('🔍 AUTH INIT: Storage check result:', { 
-                    hasToken: !!token, 
+
+                console.log('🔍 AUTH INIT: Storage check result:', {
+                    hasToken: !!token,
                     hasUser: !!userStr,
                     tokenLength: token?.length,
                     userLength: userStr?.length
                 });
-                
+
                 if (token && userStr) {
                     const storedUser = JSON.parse(userStr);
                     if (storedUser?.id) {
                         const cleanToken = token.startsWith('Bearer ') ? token.replace('Bearer ', '') : token;
-                        
+
                         // Token süresini kontrol et
                         console.log('🔍 AUTH INIT: Checking token expiration...');
                         const isTokenExpired = checkTokenExpiration(cleanToken);
-                        
+
                         if (isTokenExpired) {
                             console.log('⏰ AUTH INIT: Token expired, clearing storage and redirecting to login');
                             await AsyncStorage.multiRemove(['token', 'refreshToken', 'user']);
@@ -437,38 +439,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             setIsLoading(false);
                             return;
                         }
-                        
+
                         // Token geçerliyse user state'i restore et
                         const userWithToken = {
                             ...storedUser,
                             token: cleanToken
                         };
-                        
+
                         console.log('✅ AUTH INIT: Restoring user state from storage:', storedUser.email);
                         setUser(userWithToken);
                         setIsAuthenticated(true);
                         setHasInitialAuthCheck(true);
-                        
+
                         if (typeof sessionStorage !== 'undefined') {
                             sessionStorage.setItem('hasInitialAuthCheck', 'true');
                         }
-                        
+
                         setIsLoading(false);
                         console.log('✅ AUTH INIT: User state successfully restored');
                         return;
                     }
                 }
-                
+
                 // Storage'da geçerli auth bulunamazsa normal auth check yap
                 console.log('❌ AUTH INIT: No valid auth in storage, performing full auth check');
                 stableCheckAuthStatus();
-                
+
             } catch (error) {
                 console.error('❌ AUTH INIT: Error during initialization:', error);
                 stableCheckAuthStatus();
             }
         };
-        
+
         initializeAuth();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // CRITICAL FIX: stableCheckAuthStatus dependency'sini kaldırdık - sadece mount olduğunda bir kez çalışsın
@@ -515,7 +517,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (justLoggedIn && isAuthenticated && user) {
             console.log('🚀 Login successful, attempting navigation...'); // Debug log
             console.log('🚀 Navigation state:', { justLoggedIn, isAuthenticated, hasUser: !!user, userEmail: user?.email }); // Debug log
-            
+
             // Navigation'ı dene
             const attemptNavigation = async () => {
                 try {
@@ -530,16 +532,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     console.error('❌ Navigation failed:', error); // Debug log
                 }
             };
-            
+
             // Daha uzun bir gecikme ile navigation'ı dene (state'lerin set olması için)
             setTimeout(attemptNavigation, 500);
-            
+
             // 3 saniye sonra flag'i temizle
             const timer = setTimeout(() => {
                 setJustLoggedIn(false);
                 console.log('🔄 justLoggedIn flag cleared'); // Debug log
             }, 3000);
-            
+
             return () => clearTimeout(timer);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -553,7 +555,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(true);
             setJustLoggedIn(true); // Login başladığında flag'i set et
             console.log('Making login API request...'); // Debug log
-            
+
             // Backend Email ve Password bekliyor
             const response = await authService.login({ email: username, password });
             console.log('Login API response:', response); // Debug log
@@ -567,29 +569,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             console.log('Storing token and user data...'); // Debug log
-            
+
             // Token'ı JWT olarak kaydet (Bearer prefix olmadan)
             const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
-            
+
             // 🚀 F5 REFRESH FIX: Platform-aware storage kullan
             await AsyncStorage.setItem('token', cleanToken);
             console.log('Token stored (JWT only):', cleanToken.substring(0, 20) + '...');
-            
+
             await AsyncStorage.setItem('user', JSON.stringify(loggedInUser));
-            
+
             // Eğer refreshToken varsa onu da kaydet
             if (refreshToken) {
                 await AsyncStorage.setItem('refreshToken', refreshToken);
                 console.log('Refresh token stored:', !!refreshToken);
             }
-            
+
             // 🔐 AUTH STATE PERSISTENCE - F5 refresh'te korunması için
             // await persistAuthState(loggedInUser, cleanToken); // Removed as per new_code
 
             // --- CART TEMİZLİĞİ ---
             console.log('🧹 Login sonrası cart cache temizleniyor...');
             await AsyncStorage.removeItem('currentCartId');
-            
+
             // Cart cache temizleme event'ini tetikle - Platform-aware
             if (typeof window !== 'undefined' && window.dispatchEvent) {
                 try {
@@ -604,7 +606,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Mobile platformda direkt clearCartCache çağır
                 clearCartCache();
             }
-            
+
             // Local storage'dan cart verilerini temizle
             const cartKeys = [
                 'currentCartId',
@@ -613,17 +615,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 'cartItems',
                 'cartState'
             ];
-            
+
             for (const key of cartKeys) {
                 await AsyncStorage.removeItem(key);
             }
-            
+
             console.log('✅ Cart cache temizlendi');
             // --- CART TEMİZLİĞİ SONU ---
 
             console.log('Setting user state...'); // Debug log
             console.log('User data to set:', loggedInUser); // Debug log
-            
+
             // State'leri birlikte set et - önce user, sonra authentication
             const userWithToken = {
                 ...loggedInUser,
@@ -631,25 +633,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             };
             setUser(userWithToken);
             console.log('User state set to:', userWithToken); // Debug log
-            
+
             // Kısa bir gecikme ile authentication state'ini set et
             setTimeout(() => {
                 setIsAuthenticated(true);
                 console.log('Authentication state set to true'); // Debug log
                 console.log('Full state after login:', { user: userWithToken, isAuthenticated: true }); // Debug log
             }, 100);
-            
+
             // Kullanıcı ayarlarını backend'den çek
             try {
                 console.log('Fetching user settings after login...');
-                
+
                 // Token'ın doğru şekilde kaydedildiğini kontrol et
                 const savedToken = await AsyncStorage.getItem('token');
                 console.log('Saved token before user settings request:', !!savedToken, 'length:', savedToken?.length);
-                
+
                 const userSettings = await getUserSettings();
                 console.log('User settings fetched successfully:', userSettings);
-                
+
                 if (userSettings?.language) {
                     // CRITICAL FIX: Dil değiştirme işlemini optimize et
                     const currentLang = i18n.language;
@@ -693,22 +695,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const logout = useCallback(async () => {
         console.log('Logout function called'); // Debug log
-        
+
         try {
             // 🧹 ÖNCE CART CACHE'İ TEMİZLE
             await clearCartCache();
-            
+
             // Backend logout API çağrısı yap
             const token = await AsyncStorage.getItem('token');
             if (token) {
                 try {
                     await authService.logout();
                     console.log('Logout API request successful'); // Debug log
-                    
+
                     // 🧹 BACKEND LOGOUT API - Kullanıcı sepetlerini temizle
                     try {
                         console.log('🧹 Backend logout API çağrılıyor...');
-                        
+
                         // Token'ı kullan (zaten Bearer prefix ile saklanıyor)
                         const logoutResponse = await fetch('http://localhost:5183/api/auth/logout', {
                             method: 'POST',
@@ -717,7 +719,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                 'Content-Type': 'application/json'
                             }
                         });
-                        
+
                         if (logoutResponse.ok) {
                             const result = await logoutResponse.json();
                             console.log('✅ Backend logout başarılı:', result.message);
@@ -739,15 +741,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     console.warn('⚠️ Auth service logout hatası (non-critical):', apiError);
                 }
             }
-            
+
             // 🧹 LOCAL STATE VE STORAGE TEMİZLİĞİ
             console.log('🧹 Local state ve storage temizleniyor...');
-            
+
             // State'leri temizle
             setUser(null);
             setIsAuthenticated(false);
             setJustLoggedIn(false);
-            
+
             // Storage'dan tüm auth verilerini temizle (platform-aware)
             await AsyncStorage.multiRemove([
                 'token',
@@ -755,19 +757,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 'user',
                 'tokenExpiry'
             ]);
-            
+
             // Local storage'dan auth verilerini temizle (web için)
             if (typeof window !== 'undefined' && window.localStorage) {
-                const authKeys = Object.keys(localStorage).filter(key => 
+                const authKeys = Object.keys(localStorage).filter(key =>
                     key.includes('token') || key.includes('user') || key.includes('auth')
                 );
                 authKeys.forEach(key => {
                     localStorage.removeItem(key);
                 });
             }
-            
+
             console.log('✅ Local state ve storage temizlendi');
-            
+
             // 🧹 CART CACHE TEMİZLİĞİ - Event ile
             if (typeof window !== 'undefined' && window.dispatchEvent) {
                 try {
@@ -778,12 +780,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     console.warn('⚠️ Failed to dispatch cart clear event during logout:', error);
                 }
             }
-            
+
             // 🧹 INACTIVITY TIMER TEMİZLİĞİ
             stopInactivityTimer();
-            
+
             console.log('✅ Logout completed successfully');
-            
+
             // Login sayfasına yönlendir
             if (router && typeof router.push === 'function') {
                 try {
@@ -809,7 +811,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(null);
             setIsAuthenticated(false);
             setJustLoggedIn(false);
-            
+
             // Login sayfasına yönlendir
             if (router && typeof router.push === 'function') {
                 try {
@@ -820,6 +822,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         }
     }, [clearCartCache, stopInactivityTimer]);
+
+    console.log('🔐 AUTH PROVIDER: Returning context provider with value:', {
+        hasUser: !!user,
+        isAuthenticated,
+        isLoading,
+        userEmail: user?.email
+    });
 
     return (
         <AuthContext.Provider value={{
