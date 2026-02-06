@@ -6,7 +6,7 @@ namespace DatabaseCleanup
 {
     class Program
     {
-        static string connectionString = "Host=localhost;Database=kassedb;Username=postgres;Password=Juke1034#";
+        static string connectionString = "Host=localhost;Database=kassedb;Username=postgres;Password=Juke";
 
         static void Main(string[] args)
         {
