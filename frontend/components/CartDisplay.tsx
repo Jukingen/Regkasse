@@ -1,7 +1,8 @@
 // Compact POS cart display - optimized for speed and minimal space
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftShadows } from '../constants/SoftTheme';
+import { calculateCartTotals } from '../contexts/CartContext';
 
 interface CartItem {
   itemId: string; // ✅ Fixed: Matched with CartContext (was id)
@@ -31,8 +32,14 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   onItemRemove,
   onClearCart,
 }) => {
-  const itemCount = cart?.items?.length || 0;
-  const totalAmount = cart?.grandTotal || 0;
+  // ✅ Derive totals from items (always fresh, never stale)
+  const totals = useMemo(() => {
+    const items = cart?.items ?? [];
+    return calculateCartTotals(items);
+  }, [cart?.items, cart?.updatedAt]); // ✅ Deps: items + updatedAt
+
+  const itemCount = totals.itemCount;
+  const totalAmount = totals.grandTotal;
 
   // Loading state
   if (loading) {

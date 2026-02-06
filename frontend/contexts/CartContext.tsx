@@ -23,6 +23,27 @@ export interface Cart {
     cartId?: string;
 }
 
+// ============================================
+// HELPER: Calculate Cart Totals from Items
+// ============================================
+export const calculateCartTotals = (items: CartItem[]) => {
+    const subtotal = items.reduce((sum, item) => {
+        const unitPrice = item.unitPrice || item.price || 0;
+        const itemTotal = unitPrice * item.qty;
+        return sum + itemTotal;
+    }, 0);
+
+    const tax = subtotal * 0.20; // 20% tax rate
+    const grandTotal = subtotal + tax;
+
+    return {
+        subtotal,
+        tax,
+        grandTotal,
+        itemCount: items.reduce((sum, item) => sum + item.qty, 0),
+    };
+};
+
 export interface CartsByTable {
     [tableNumber: number]: Cart;
 }
@@ -438,16 +459,24 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setLoading(true);
         try {
-            // Optimistic update
-            const updatedItems = currentCart.items.map(i =>
-                i.productId === productId ? { ...i, qty: newQuantity } : i
-            );
+            // Optimistic update - recalculate totalPrice for UI
+            const updatedItems = currentCart.items.map(i => {
+                if (i.productId === productId) {
+                    const unitPrice = i.unitPrice || i.price || 0;
+                    return {
+                        ...i,
+                        qty: newQuantity,
+                        totalPrice: unitPrice * newQuantity, // ✅ Recalculate for UI
+                    };
+                }
+                return i;
+            });
             setCartsByTable(prev => ({
                 ...prev,
                 [activeTableId]: {
                     ...currentCart,
                     items: updatedItems,
-                    updatedAt: Date.now()
+                    updatedAt: Date.now() // ✅ Force re-render
                 }
             }));
 
@@ -497,16 +526,24 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setLoading(true);
         try {
-            // Optimistic update
-            const updatedItems = currentCart.items.map(i =>
-                i.productId === productId ? { ...i, qty: newQuantity } : i
-            );
+            // Optimistic update - recalculate totalPrice for UI
+            const updatedItems = currentCart.items.map(i => {
+                if (i.productId === productId) {
+                    const unitPrice = i.unitPrice || i.price || 0;
+                    return {
+                        ...i,
+                        qty: newQuantity,
+                        totalPrice: unitPrice * newQuantity, // ✅ Recalculate for UI
+                    };
+                }
+                return i;
+            });
             setCartsByTable(prev => ({
                 ...prev,
                 [activeTableId]: {
                     ...currentCart,
                     items: updatedItems,
-                    updatedAt: Date.now()
+                    updatedAt: Date.now() // ✅ Force re-render
                 }
             }));
 
