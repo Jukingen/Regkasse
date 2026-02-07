@@ -361,7 +361,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }));
 
             // Backend DELETE using itemId directly from local state
-            await apiClient.delete(`/cart/${currentCart.cartId}/items/${item.itemId}`);
+            await apiClient.delete(`/Cart/items/${item.itemId}`);
 
             console.log('✅ [remove] Item removed successfully');
         } catch (err: any) {
@@ -420,9 +420,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }));
 
             // PUT /cart/items/{itemId} with {quantity} - using itemId directly from state
-            await apiClient.put(`/cart/items/${item.itemId}`, {
-                quantity: quantity,
-                notes: item.notes
+            await apiClient.put(`/Cart/items/${item.itemId}`, {
+                Quantity: quantity,
+                Notes: item.notes || ""
             });
 
             console.log('✅ [updateItemQuantity] Quantity updated successfully');
@@ -481,9 +481,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }));
 
             // PUT /cart/items/{itemId} with {quantity}
-            await apiClient.put(`/cart/items/${item.itemId}`, {
-                quantity: newQuantity,
-                notes: item.notes
+            await apiClient.put(`/Cart/items/${item.itemId}`, {
+                Quantity: newQuantity,
+                Notes: item.notes || ""
             });
             console.log('✅ [increment] Quantity updated successfully');
         } catch (e: any) {
@@ -548,9 +548,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }));
 
             // PUT /cart/items/{itemId} with {quantity}
-            await apiClient.put(`/cart/items/${item.itemId}`, {
-                quantity: newQuantity,
-                notes: item.notes
+            await apiClient.put(`/Cart/items/${item.itemId}`, {
+                Quantity: newQuantity,
+                Notes: item.notes || ""
             });
             console.log('✅ [decrement] Quantity updated successfully');
         } catch (e: any) {

@@ -48,7 +48,7 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   const [products, setProducts] = useState<Product[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
   const getGridColumns = () => isTablet ? 3 : 2;
 
@@ -203,19 +203,19 @@ export const ProductList: React.FC<ProductListProps> = ({
     <View style={styles.viewToggleContainer}>
       <View style={styles.viewToggle}>
         <Pressable
-          style={[styles.toggleBtn, viewMode === 'grid' && styles.toggleBtnActive]}
-          onPress={() => setViewMode('grid')}
-        >
-          <Text style={[styles.toggleBtnText, viewMode === 'grid' && styles.toggleBtnTextActive]}>
-            Grid
-          </Text>
-        </Pressable>
-        <Pressable
           style={[styles.toggleBtn, viewMode === 'list' && styles.toggleBtnActive]}
           onPress={() => setViewMode('list')}
         >
           <Text style={[styles.toggleBtnText, viewMode === 'list' && styles.toggleBtnTextActive]}>
             List
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.toggleBtn, viewMode === 'grid' && styles.toggleBtnActive]}
+          onPress={() => setViewMode('grid')}
+        >
+          <Text style={[styles.toggleBtnText, viewMode === 'grid' && styles.toggleBtnTextActive]}>
+            Grid
           </Text>
         </Pressable>
       </View>

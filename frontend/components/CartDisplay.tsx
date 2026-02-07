@@ -11,6 +11,7 @@ interface CartItem {
   productId: string;
   productName: string;
   quantity: number;
+  qty?: number;
   unitPrice: number;
   totalPrice: number;
   taxType?: string;
@@ -23,7 +24,7 @@ interface CartDisplayProps {
   selectedTable: number;
   loading: boolean;
   error: string | null;
-  onQuantityUpdate: (itemId: string, newQuantity: number) => void;
+  onQuantityUpdate: (itemId: string, action: 'increment' | 'decrement') => void;
   onItemRemove: (itemId: string) => void;
   onClearCart: () => void;
 }
@@ -102,7 +103,14 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
       >
         {cart.items.map((item: CartItem) => {
           const safeId = item.itemId || item.productId;
-          return <CartItemRow key={safeId} item={item} />;
+          return (
+            <CartItemRow
+              key={safeId}
+              item={item}
+              onIncrease={async () => onQuantityUpdate(safeId, 'increment')}
+              onDecrease={async () => onQuantityUpdate(safeId, 'decrement')}
+            />
+          );
         })}
       </ScrollView>
     </View>

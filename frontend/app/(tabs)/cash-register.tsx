@@ -236,55 +236,58 @@ export default function CashRegisterScreen() {
     }
   };
 
-  // Sepet miktar güncelleme handler'ı - uses dedicated increment/decrement endpoints
-  const handleQuantityUpdate = async (itemId: string, newQuantity: number) => {
-    if (!activeTableId) {
-      addToast('error', 'No table selected. Please select a table first.', 3000);
-      return;
-    }
+  // Sepet miktar güncelleme handler'ı - Direct API Implementation with fresh state
+  const handleQuantityUpdate = async (itemId: string, action: 'increment' | 'decrement') => {
+    if (!activeTableId) return;
 
+    // 🔥 Read FRESH item to avoid stale closure
     const currentCart = getCartForTable(activeTableId);
-    const item = currentCart?.items?.find((i: any) => i.id === itemId || i.itemId === itemId);
+    const item = currentCart?.items?.find((i: any) => {
+      const id = i.itemId || i.id || i.productId;
+      return id === itemId;
+    });
+
     if (!item) {
-      addToast('error', 'Item not found', 2000);
+      console.error('❌ Item not found:', itemId);
       return;
     }
 
-    const currentQty = item.qty || 0;
 
-    const productId = item.productId;
-    if (!productId) {
-      console.error('❌ ProductId missing for item', item);
-      addToast('error', 'Cannot update item', 2000);
-      return;
-    }
+    const currentQty = (item as any).quantity || item.qty || 0;
+    const currentNotes = item.notes || '';
+
+
+    // Calculate new quantity based on action
+    const newQty = action === 'increment' ? currentQty + 1 : currentQty - 1;
+
+    console.log('🔄 Quantity Update (via Context):', {
+      itemId,
+      productId: item.productId,
+      action,
+      currentQty,
+      newQty
+    });
 
     try {
-      if (newQuantity <= 0) {
-        // Use CartContext remove (proper error handling)
-        await remove(productId);
-        addToast('info', 'Item removed from cart', 2000);
-      } else if (newQuantity > currentQty) {
-        // Use CartContext increment (has POST→PUT fallback)
-        await increment(productId);
-        addToast('success', 'Quantity increased', 2000);
-      } else if (newQuantity < currentQty) {
-        // Use CartContext decrement (has POST→PUT fallback)
-        await decrement(productId);
-        if (currentQty === 1) {
-          addToast('info', 'Item removed from cart', 2000);
-        } else {
-          addToast('success', 'Quantity decreased', 2000);
-        }
+      // Use Context method which handles Optimistic Update + API Call
+      // We need productId for the context method
+      if (!item.productId) {
+        console.error('❌ Product ID missing for item:', item);
+        return;
       }
 
-      // CartContext already handles state updates
+      await contextUpdateItemQuantity(item.productId, newQty);
+
+      // No need to manually call switchTable, context updates local state immediately
+      // and then syncs with backend.
 
     } catch (err: any) {
       console.error('❌ Quantity update error:', err);
-      addToast('error', err?.message || 'Failed to update quantity', 3000);
+      addToast('error', 'Update failed', 2000);
+      // Context handles rollback internaly
     }
   };
+
 
   // Ürün kaldırma handler'ı
   const handleItemRemove = async (itemId: string) => {
