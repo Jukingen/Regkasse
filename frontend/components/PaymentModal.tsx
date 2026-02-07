@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -41,12 +41,13 @@ export default function PaymentModal({
   customerId = '00000000-0000-0000-0000-000000000000', // Default Guid formatında
   tableNumber
 }: PaymentModalProps) {
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'voucher'>('cash');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'voucher' | 'transfer'>('cash');
   const [amountReceived, setAmountReceived] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
-  
+
   const {
     loading,
+    methodsLoading,
     error,
     paymentMethods,
     getPaymentMethods,
@@ -54,9 +55,36 @@ export default function PaymentModal({
     clearError
   } = usePayment();
 
-  // Toplam tutarı hesapla
-  const totalAmount = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
+  // Hesaplamalar: Single Source of Truth olarak quantity * unitPrice kullan
+  const calculatedCartItems = useMemo(() => {
+    return cartItems.map(item => ({
+      ...item,
+      lineTotal: item.quantity * item.unitPrice
+    }));
+  }, [cartItems]);
+
+  const totalAmount = useMemo(() => {
+    return calculatedCartItems.reduce((sum, item) => sum + item.lineTotal, 0);
+  }, [calculatedCartItems]);
+
   const changeAmount = parseFloat(amountReceived) - totalAmount;
+
+  // Smart Cash Presets Logic
+  const getCashPresets = (total: number): number[] => {
+    const presets: number[] = [];
+    // Base denominations (Euro)
+    const bills = [5, 10, 20, 50, 100, 200, 500];
+
+    for (const bill of bills) {
+      if (bill >= total) {
+        presets.push(bill);
+      }
+    }
+    // Limit to 4 options
+    return presets.slice(0, 4);
+  };
+
+  const cashPresets = getCashPresets(totalAmount);
 
   // Ödeme yöntemlerini yükle
   useEffect(() => {
@@ -65,10 +93,20 @@ export default function PaymentModal({
     }
   }, [visible, getPaymentMethods]);
 
+  // Handler for preset buttons
+  const handlePresetPress = (amount: number) => {
+    setAmountReceived(amount.toString());
+  };
+
   // Ödeme işlemi
   const handlePayment = async () => {
     try {
       // Validasyon
+      if (!tableNumber) {
+        Alert.alert('Hata', 'Masa numarası gerekli');
+        return;
+      }
+
       if (!customerId) {
         Alert.alert('Hata', 'Müşteri ID gerekli');
         return;
@@ -84,6 +122,14 @@ export default function PaymentModal({
       if (cartItems.length === 0) {
         Alert.alert('Hata', 'Sepet boş');
         return;
+      }
+
+      if (selectedPaymentMethod === 'cash') {
+        const received = parseFloat(amountReceived);
+        if (isNaN(received) || received < totalAmount) {
+          Alert.alert('Hata', 'Alınan tutar toplam tutardan az olamaz');
+          return;
+        }
       }
 
       // Avusturya yasal gereksinimleri validasyonu
@@ -113,11 +159,12 @@ export default function PaymentModal({
       }));
 
       // Ödeme request'i oluştur - Backend'deki CreatePaymentRequest ile uyumlu
+      // Varsayılan payload oluşturuyoruz
       const paymentRequest: PaymentRequest = {
         customerId: customerId || '00000000-0000-0000-0000-000000000000', // Guid formatında
         items: paymentItems,
         payment: {
-          method: selectedPaymentMethod,
+          method: selectedPaymentMethod as 'cash' | 'card' | 'voucher', // Tip uyuşmazlığı varsa casting
           tseRequired: true, // Avusturya yasaları gereği
           amount: selectedPaymentMethod === 'cash' ? parseFloat(amountReceived) : undefined
         },
@@ -125,30 +172,27 @@ export default function PaymentModal({
         tableNumber: tableNumber || 1,
         cashierId: 'demo-cashier-001', // TODO: Gerçek kasiyer ID'si kullan
         totalAmount: totalAmount,
-        
+
         // Avusturya yasal gereksinimleri
         steuernummer: steuernummer,
         kassenId: kassenId,
-        
-        notes: notes || `Masa ${tableNumber} - ${new Date().toLocaleString('de-DE')}`
-      };
 
-      // Debug: Request'i logla
-      console.log('🔍 Payment Request:', JSON.stringify(paymentRequest, null, 2));
+        notes: notes || `Masa ${tableNumber} - ${new Date().toLocaleString('de-DE')} `
+      };
 
       // Ödeme işlemini gerçekleştir
       const response = await processPayment(paymentRequest);
-      
+
       if (response.success) {
         Alert.alert(
           'Başarılı',
-          `Ödeme tamamlandı!\nÖdeme ID: ${response.paymentId}`,
+          `Ödeme tamamlandı!\nÖdeme ID: ${response.paymentId} `,
           [
             {
               text: 'Tamam',
               onPress: () => {
                 onSuccess(response.paymentId);
-                onClose();
+                handleClose();
               }
             }
           ]
@@ -189,11 +233,11 @@ export default function PaymentModal({
             {/* Sepet Özeti */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Sepet Özeti</Text>
-              {cartItems.map((item, index) => (
+              {calculatedCartItems.map((item, index) => (
                 <View key={index} style={styles.cartItem}>
                   <Text style={styles.itemName}>{item.productName}</Text>
                   <Text style={styles.itemDetails}>
-                    {item.quantity} x €{item.unitPrice.toFixed(2)} = €{item.totalPrice.toFixed(2)}
+                    {item.quantity} x €{item.unitPrice.toFixed(2)} = €{item.lineTotal.toFixed(2)}
                   </Text>
                 </View>
               ))}
@@ -207,7 +251,9 @@ export default function PaymentModal({
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Ödeme Yöntemi</Text>
               <View style={styles.paymentMethodsContainer}>
-                {paymentMethods && paymentMethods.length > 0 ? (
+                {methodsLoading ? (
+                  <Text style={styles.loadingText}>Ödeme yöntemleri yükleniyor...</Text>
+                ) : paymentMethods && paymentMethods.length > 0 ? (
                   paymentMethods.map((method) => (
                     <TouchableOpacity
                       key={method.id}
@@ -217,10 +263,10 @@ export default function PaymentModal({
                       ]}
                       onPress={() => setSelectedPaymentMethod(method.type as any)}
                     >
-                      <Ionicons 
-                        name={method.icon as any} 
-                        size={24} 
-                        color={selectedPaymentMethod === method.type ? '#007AFF' : '#666'} 
+                      <Ionicons
+                        name={method.icon as any}
+                        size={24}
+                        color={selectedPaymentMethod === method.type ? '#007AFF' : '#666'}
                       />
                       <Text style={[
                         styles.paymentMethodText,
@@ -231,7 +277,12 @@ export default function PaymentModal({
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.loadingText}>Ödeme yöntemleri yükleniyor...</Text>
+                  <View style={{ width: '100%', alignItems: 'center' }}>
+                    <Text style={styles.errorText}>Yöntem bulunamadı</Text>
+                    <TouchableOpacity onPress={getPaymentMethods} style={{ marginTop: 10 }}>
+                      <Text style={{ color: '#007AFF' }}>Tekrar Dene</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             </View>
@@ -240,6 +291,20 @@ export default function PaymentModal({
             {selectedPaymentMethod === 'cash' && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Nakit Ödeme</Text>
+
+                {/* Smart Cash Presets */}
+                <View style={styles.presetsContainer}>
+                  {cashPresets.map((preset) => (
+                    <TouchableOpacity
+                      key={preset}
+                      style={styles.presetButton}
+                      onPress={() => handlePresetPress(preset)}
+                    >
+                      <Text style={styles.presetButtonText}>€{preset}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
                 <View style={styles.inputRow}>
                   <Text style={styles.label}>Alınan Tutar:</Text>
                   <TextInput
@@ -285,8 +350,8 @@ export default function PaymentModal({
             <TouchableOpacity onPress={handleClose} style={styles.cancelButton}>
               <Text style={styles.cancelButtonText}>İptal</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={handlePayment} 
+            <TouchableOpacity
+              onPress={handlePayment}
               style={[styles.payButton, loading && styles.payButtonDisabled]}
               disabled={loading}
             >
@@ -380,9 +445,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#007AFF',
   },
-  paymentMethods: {
+  paymentMethodsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    flexWrap: 'wrap',
   },
   paymentMethod: {
     alignItems: 'center',
@@ -494,15 +560,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
-  paymentMethodsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    flexWrap: 'wrap',
-  },
   loadingText: {
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
     paddingVertical: 10,
   },
-});
+  presetsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  presetButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#90caf9',
+    minWidth: 60,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 2,
+  },
+  presetButtonText: {
+    color: '#1976d2',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+}); 

@@ -1,0 +1,21 @@
+
+  presetsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  presetButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#90caf9',
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  presetButtonText: {
+    color: '#1976d2',
+    fontWeight: '600',
+    fontSize: 16,
+  },

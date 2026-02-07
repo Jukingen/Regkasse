@@ -439,7 +439,7 @@ export default function CashRegisterScreen() {
         <TableSelector
           selectedTable={activeTableId}
           onTableSelect={handleTableSelect}
-          tableCarts={new Map()} // Bu kısmı daha sonra optimize edebiliriz
+          tableCarts={new Map()}
           recoveryData={recoveryData}
           tableSelectionLoading={tableSelectionLoading}
           onClearAllTables={handleClearAllTables}

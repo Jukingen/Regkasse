@@ -67,24 +67,30 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
               onPress={() => handleTablePress(tableNumber)}
               disabled={isLoading}
             >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={SoftColors.accent} />
-              ) : (
-                <>
-                  <Text style={[
-                    styles.tableTabText,
-                    isSelected && styles.tableTabTextSelected,
-                    hasItems && !isSelected && styles.tableTabTextWithItems,
-                  ]}>
-                    {tableNumber}
-                  </Text>
-                  {hasItems && (
-                    <View style={styles.itemBadge}>
-                      <Text style={styles.itemBadgeText}>{itemCount}</Text>
-                    </View>
-                  )}
-                </>
-              )}
+              <>
+                <Text style={[
+                  styles.tableTabText,
+                  isSelected && styles.tableTabTextSelected,
+                  hasItems && !isSelected && styles.tableTabTextWithItems,
+                  isLoading && { opacity: 0.5 } // Lightly dim text when loading
+                ]}>
+                  {tableNumber}
+                </Text>
+
+                {isLoading && (
+                  <ActivityIndicator
+                    size="small"
+                    color={isSelected ? SoftColors.textInverse : SoftColors.accent}
+                    style={styles.loadingOverlay}
+                  />
+                )}
+
+                {hasItems && !isLoading && (
+                  <View style={styles.itemBadge}>
+                    <Text style={styles.itemBadgeText}>{itemCount}</Text>
+                  </View>
+                )}
+              </>
             </Pressable>
           );
         })}
@@ -147,7 +153,7 @@ const styles = StyleSheet.create({
     borderColor: SoftColors.success,
   },
   tableTabLoading: {
-    opacity: 0.7,
+    // opacity: 0.7, // ❌ Removed to keep text visible
   },
   tableTabPressed: {
     opacity: 0.85,
@@ -201,5 +207,16 @@ const styles = StyleSheet.create({
     ...SoftTypography.caption,
     fontWeight: '600',
     color: SoftColors.error,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    // backgroundColor: 'rgba(255,255,255,0.2)', // Optional: subtle overlay back
+    borderRadius: SoftRadius.lg,
   },
 });

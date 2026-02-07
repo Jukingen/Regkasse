@@ -27,11 +27,11 @@ export interface PaymentRequest {
   tableNumber: number; // Masa numarası
   cashierId: string; // Kasiyer ID
   totalAmount: number; // Toplam tutar
-  
+
   // Avusturya yasal gereksinimleri
   steuernummer: string; // Vergi numarası (ATU12345678)
   kassenId: string; // Kasa ID
-  
+
   notes?: string;
 }
 
@@ -68,8 +68,18 @@ class PaymentService {
 
   // Ödeme yöntemlerini getir
   async getPaymentMethods(): Promise<PaymentMethod[]> {
-    const response = await apiClient.get<PaymentMethod[]>(`${this.baseUrl}/methods`);
-    return response;
+    const response = await apiClient.get<any>(`${this.baseUrl}/methods`);
+    // API yanıtı { success: true, data: [...] } formatındaysa data'yı dön
+    if (response && response.data && Array.isArray(response.data)) {
+      return response.data;
+    }
+    // Direkt array dönüyorsa
+    if (Array.isArray(response)) {
+      return response;
+    }
+    // Beklenmedik format
+    console.warn('Unexpected payment methods response:', response);
+    return [];
   }
 
   // Ödeme işlemi - Backend endpoint'i ile uyumlu
@@ -80,11 +90,11 @@ class PaymentService {
       return response;
     } catch (error) {
       console.error('Payment failed:', error);
-      
+
       // Basit offline kaydetme
       const offlinePaymentId = `offline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       console.log('Payment saved offline:', offlinePaymentId);
-      
+
       return {
         success: true,
         paymentId: offlinePaymentId,
@@ -97,11 +107,11 @@ class PaymentService {
   async createReceipt(paymentId: string): Promise<Receipt> {
     try {
       // Önce TSE signature oluştur
-      const tseResponse = await apiClient.post<{tseSignature: string}>(`${this.baseUrl}/${paymentId}/tse-signature`);
-      
+      const tseResponse = await apiClient.post<{ tseSignature: string }>(`${this.baseUrl}/${paymentId}/tse-signature`);
+
       // Sonra ödeme detaylarını al
       const paymentResponse = await apiClient.get<PaymentResponse>(`${this.baseUrl}/${paymentId}`);
-      
+
       // Receipt objesini oluştur (backend'den gelen verilerle)
       const receipt: Receipt = {
         id: paymentId,
@@ -116,7 +126,7 @@ class PaymentService {
         timestamp: new Date().toISOString(),
         cashierId: 'current-user'
       };
-      
+
       return receipt;
     } catch (error) {
       console.error('Receipt creation failed:', error);
@@ -133,7 +143,7 @@ class PaymentService {
       return response;
     } catch (error) {
       console.error('Payment history fetch failed:', error);
-      
+
       // Basit offline response
       return [{
         success: true,
@@ -150,7 +160,7 @@ class PaymentService {
       return response;
     } catch (error) {
       console.error('Payment fetch failed:', error);
-      
+
       return {
         success: false,
         paymentId: '',
@@ -169,7 +179,7 @@ class PaymentService {
       return response;
     } catch (error) {
       console.error('Payment cancellation failed:', error);
-      
+
       // Basit offline response
       return {
         success: true,
@@ -189,7 +199,7 @@ class PaymentService {
       return response;
     } catch (error) {
       console.error('Payment refund failed:', error);
-      
+
       return {
         success: true,
         paymentId: `refund-${id}`,
@@ -215,7 +225,7 @@ class PaymentService {
       };
     } catch (error) {
       console.error('Daily payment report failed:', error);
-      
+
       // Basit offline response
       return {
         totalPayments: 0,
@@ -243,7 +253,7 @@ class PaymentService {
       };
     } catch (error) {
       console.error('Payment statistics failed:', error);
-      
+
       // Basit offline response
       return {
         totalPayments: 0,

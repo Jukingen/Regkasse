@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions, 
-  TextField, 
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
   Typography,
   Alert,
   CircularProgress,
   Divider
 } from '@mui/material';
-import { 
-  Payment as PaymentIcon, 
-  Print as PrintIcon, 
+import {
+  Payment as PaymentIcon,
+  Print as PrintIcon,
   Receipt as ReceiptIcon,
   CheckCircle as CheckIcon
 } from '@mui/icons-material';
@@ -37,7 +37,7 @@ const QuickActions: React.FC = () => {
     try {
       // Simüle edilmiş ödeme işlemi
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Başarılı ödeme
       setSuccess(true);
       setTimeout(() => {
@@ -58,15 +58,15 @@ const QuickActions: React.FC = () => {
       === KASA FİŞİ ===
       Tarih: ${new Date().toLocaleString()}
       
-      ${items.map(item => 
-        `${item.product.name} x${item.quantity} = ${(item.product.price * item.quantity).toFixed(2)} €`
-      ).join('\n')}
+      ${items.map(item =>
+      `${item.product.name} x${item.quantity} = ${(item.product.price * item.quantity).toFixed(2)} €`
+    ).join('\n')}
       
       ================
       TOPLAM: ${total.toFixed(2)} €
       ================
     `;
-    
+
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`<pre>${printContent}</pre>`);
@@ -90,9 +90,9 @@ const QuickActions: React.FC = () => {
         disabled={items.length === 0}
         onClick={handlePayment}
         startIcon={<PaymentIcon />}
-        sx={{ 
-          mb: 2, 
-          py: 1.5, 
+        sx={{
+          mb: 2,
+          py: 1.5,
           fontWeight: 700,
           fontSize: '1.1rem'
         }}
@@ -112,7 +112,7 @@ const QuickActions: React.FC = () => {
         >
           Yazdır
         </Button>
-        
+
         <Button
           variant="outlined"
           color="secondary"
@@ -133,7 +133,7 @@ const QuickActions: React.FC = () => {
             Ödeme Al
           </Box>
         </DialogTitle>
-        
+
         <DialogContent>
           {success ? (
             <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -150,9 +150,9 @@ const QuickActions: React.FC = () => {
               <Typography variant="h6" gutterBottom>
                 Toplam Tutar: {total.toFixed(2)} €
               </Typography>
-              
+
               <Divider sx={{ my: 2 }} />
-              
+
               <TextField
                 fullWidth
                 label="Alınan Tutar"
@@ -164,7 +164,7 @@ const QuickActions: React.FC = () => {
                   endAdornment: <Typography>€</Typography>
                 }}
               />
-              
+
               {receivedAmount && (
                 <Alert severity="info" sx={{ mb: 2 }}>
                   Para Üstü: {calculateChange().toFixed(2)} €
@@ -173,17 +173,17 @@ const QuickActions: React.FC = () => {
             </Box>
           )}
         </DialogContent>
-        
+
         <DialogActions>
-          <Button 
-            onClick={() => setPaymentDialog(false)} 
+          <Button
+            onClick={() => setPaymentDialog(false)}
             disabled={processing}
           >
             İptal
           </Button>
-          <Button 
-            onClick={processPayment} 
-            variant="contained" 
+          <Button
+            onClick={processPayment}
+            variant="contained"
             disabled={processing || !receivedAmount || parseFloat(receivedAmount) < total}
             startIcon={processing ? <CircularProgress size={20} /> : <PaymentIcon />}
           >

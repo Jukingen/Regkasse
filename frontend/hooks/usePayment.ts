@@ -4,26 +4,26 @@ import { useAuth } from '../contexts/AuthContext';
 
 // Türkçe Açıklama: Ödeme işlemleri için hook - Backend API ile entegre çalışır
 export const usePayment = () => {
+  // State split: loading (genel/action) vs methodsLoading (init)
+  const [methodsLoading, setMethodsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  
+
   const { user } = useAuth();
 
   // Ödeme yöntemlerini getir
   const getPaymentMethods = useCallback(async () => {
     try {
-      setLoading(true);
+      setMethodsLoading(true);
       setError(null);
-      
+
       const methods = await paymentService.getPaymentMethods();
       setPaymentMethods(methods);
       return methods;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Ödeme yöntemleri alınamadı';
-      setError(errorMessage);
-      
-      // Hata durumunda default değerler kullan
+      console.error('Failed to load payment methods', err);
+      // Hata olsa bile UI bloklanmasın, default listeyi dön
       const defaultMethods: PaymentMethod[] = [
         { id: 'cash', name: 'Nakit', type: 'cash', icon: 'cash-outline' },
         { id: 'card', name: 'Kart', type: 'card', icon: 'card-outline' },
@@ -32,7 +32,7 @@ export const usePayment = () => {
       setPaymentMethods(defaultMethods);
       return defaultMethods;
     } finally {
-      setLoading(false);
+      setMethodsLoading(false);
     }
   }, []);
 
@@ -49,7 +49,7 @@ export const usePayment = () => {
 
       // Ödeme işlemini gerçekleştir
       const response = await paymentService.processPayment(paymentRequest);
-      
+
       if (!response.success) {
         throw new Error(response.error ?? 'Ödeme işlemi başarısız');
       }
@@ -121,7 +121,8 @@ export const usePayment = () => {
   }, []);
 
   return {
-    loading,
+    loading, // İşlem yükleniyor
+    methodsLoading, // Liste yükleniyor
     error,
     paymentMethods,
     getPaymentMethods,
