@@ -190,7 +190,7 @@ namespace KasseAPI_Final.Services
                     TotalAmount = totalAmount,
                     TaxAmount = taxDetails.Values.Sum(),
                     TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(taxDetails)),
-                    PaymentMethod = GetPaymentMethodEnum(request.Payment.Method),
+                    PaymentMethodRaw = GetPaymentMethodEnum(request.Payment.Method),
                     Notes = request.Notes,
                     CreatedBy = userId,
                     CreatedAt = DateTime.UtcNow,
@@ -286,7 +286,8 @@ namespace KasseAPI_Final.Services
                 {
                     Success = true,
                     Message = "Payment created successfully",
-                    Payment = createdPayment
+                    Payment = createdPayment,
+                    PaymentId = createdPayment.Id
                 };
             }
             catch (Exception ex)
@@ -395,7 +396,7 @@ namespace KasseAPI_Final.Services
                 var (items, totalCount) = await _paymentRepository.GetPagedAsync(
                     pageNumber, 
                     pageSize, 
-                    p => p.PaymentMethod == GetPaymentMethodEnum(paymentMethod) && p.IsActive,
+                    p => p.PaymentMethodRaw == GetPaymentMethodEnum(paymentMethod) && p.IsActive,
                     p => p.CreatedAt,
                     false);
 
@@ -524,7 +525,7 @@ namespace KasseAPI_Final.Services
                 }
 
                 // Stok geri ekle - transaction içinde yapılmalı
-                var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.ToString());
+                var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText());
                 if (paymentItems != null)
                 {
                     foreach (var item in paymentItems)
@@ -626,7 +627,7 @@ namespace KasseAPI_Final.Services
                 if (amount < payment.TotalAmount)
                 {
                     var refundRatio = amount / payment.TotalAmount;
-                    var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.ToString());
+                    var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText());
                     if (paymentItems != null)
                     {
                         foreach (var item in paymentItems)
@@ -684,86 +685,116 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
-        /// Ödeme istatistiklerini getir
+        /// Get payment statistics for date range
         /// </summary>
         public async Task<PaymentStatistics> GetPaymentStatisticsAsync(DateTime startDate, DateTime endDate)
         {
-            try
+            // Initialize DTO with request dates immediately (never returns DateTime.MinValue)
+            var statistics = new PaymentStatistics
             {
-                // Tarih aralığı validasyonu
-                if (startDate > endDate)
+                StartDate = startDate,
+                EndDate = endDate,
+                TotalPayments = 0,
+                TotalAmount = 0,
+                AverageAmount = 0,
+                PaymentsByMethod = new Dictionary<string, int>(),
+                AmountByMethod = new Dictionary<string, decimal>(),
+                PaymentsByTaxType = new Dictionary<string, int>(),
+                TseSignedPayments = 0,
+                TseSignedAmount = 0
+            };
+
+            // Query using PaymentMethodRaw - no InvalidCastException since it's varchar
+            var payments = await _context.PaymentDetails
+                .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate && p.IsActive)
+                .ToListAsync();
+
+            // Diagnostic log to confirm PaymentMethodRaw reads as string
+            if (payments.Any())
+            {
+                var firstPayment = payments.First();
+                _logger.LogInformation("DIAGNOSTIC: PaymentMethodRaw type={Type}, value={Value}", 
+                    firstPayment.PaymentMethodRaw?.GetType().Name ?? "null", 
+                    firstPayment.PaymentMethodRaw ?? "null");
+            }
+
+            if (!payments.Any())
+            {
+                _logger.LogInformation("No payments found for period {StartDate} to {EndDate}", startDate, endDate);
+                return statistics;
+            }
+
+            // Calculate basic statistics
+            statistics.TotalPayments = payments.Count;
+            statistics.TotalAmount = payments.Sum(p => p.TotalAmount);
+            statistics.AverageAmount = payments.Average(p => p.TotalAmount);
+
+            // Group by payment method - parse varchar numeric strings to enum names
+            var paymentMethodGroups = payments
+                .Select(p => new 
+                { 
+                    Payment = p,
+                    MethodName = ParsePaymentMethodName(p.PaymentMethodRaw)
+                })
+                .GroupBy(x => x.MethodName)
+                .ToList();
+
+            statistics.PaymentsByMethod = paymentMethodGroups
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            statistics.AmountByMethod = paymentMethodGroups
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Payment.TotalAmount));
+
+            // Group by tax type (safe JSON parsing)
+            foreach (var payment in payments)
+            {
+                try 
                 {
-                    _logger.LogWarning("Invalid date range: startDate {StartDate} is after endDate {EndDate}", startDate, endDate);
-                    return new PaymentStatistics();
-                }
-
-                // Maksimum tarih aralığı kontrolü (7 yıl)
-                var maxDateRange = TimeSpan.FromDays(365 * 7);
-                if (endDate - startDate > maxDateRange)
-                {
-                    _logger.LogWarning("Date range too large: {Days} days. Maximum allowed: {MaxDays} days", 
-                        (endDate - startDate).Days, maxDateRange.Days);
-                    return new PaymentStatistics();
-                }
-
-                var payments = await _context.PaymentDetails
-                    .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate && p.IsActive)
-                    .ToListAsync();
-
-                var statistics = new PaymentStatistics
-                {
-                    TotalPayments = payments.Count,
-                    TotalAmount = payments.Sum(p => p.TotalAmount),
-                    AverageAmount = payments.Any() ? payments.Average(p => p.TotalAmount) : 0,
-                    StartDate = startDate,
-                    EndDate = endDate
-                };
-
-                // Ödeme yöntemine göre grupla
-                statistics.PaymentsByMethod = payments
-                    .GroupBy(p => p.PaymentMethod)
-                    .ToDictionary(g => g.Key.ToString(), g => g.Count());
-
-                statistics.AmountByMethod = payments
-                    .GroupBy(p => p.PaymentMethod)
-                    .ToDictionary(g => g.Key.ToString(), g => g.Sum(p => p.TotalAmount));
-
-                // Vergi tipine göre grupla
-                foreach (var payment in payments)
-                {
-                    var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.ToString());
-                    if (paymentItems != null)
+                    if (payment.PaymentItems != null && payment.PaymentItems.RootElement.ValueKind != JsonValueKind.Undefined)
                     {
-                        foreach (var item in paymentItems)
+                        var jsonText = payment.PaymentItems.RootElement.GetRawText();
+                        var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(jsonText);
+                        
+                        if (paymentItems != null)
                         {
-                            var taxType = item.TaxType;
-                            if (!statistics.PaymentsByTaxType.ContainsKey(taxType))
-                                statistics.PaymentsByTaxType[taxType] = 0;
-                            statistics.PaymentsByTaxType[taxType]++;
+                            foreach (var item in paymentItems)
+                            {
+                                var taxType = item.TaxType;
+                                if (!statistics.PaymentsByTaxType.ContainsKey(taxType))
+                                    statistics.PaymentsByTaxType[taxType] = 0;
+                                statistics.PaymentsByTaxType[taxType]++;
+                            }
                         }
                     }
                 }
-
-                // TSE imzalı ödemeler
-                var tsePayments = payments.Where(p => !string.IsNullOrEmpty(p.TseSignature)).ToList();
-                statistics.TseSignedPayments = tsePayments.Count;
-                statistics.TseSignedAmount = tsePayments.Sum(p => p.TotalAmount);
-
-                // FinanzOnline'a gönderilen ödemeler
-                // TODO: IsFinanzOnlineSent alanı eklenecek
-                statistics.FinanzOnlineSentPayments = 0;
-                statistics.FinanzOnlineSentAmount = 0;
-
-                _logger.LogInformation("Payment statistics generated for period {StartDate} to {EndDate}: {TotalPayments} payments, {TotalAmount} total", 
-                    startDate, endDate, statistics.TotalPayments, statistics.TotalAmount);
-
-                return statistics;
+                catch (Exception jsonEx)
+                {
+                    _logger.LogWarning(jsonEx, "Failed to deserialize payment items for payment {PaymentId}", payment.Id);
+                }
             }
-            catch (Exception ex)
+
+            // TSE statistics
+            var tsePayments = payments.Where(p => !string.IsNullOrEmpty(p.TseSignature)).ToList();
+            statistics.TseSignedPayments = tsePayments.Count;
+            statistics.TseSignedAmount = tsePayments.Sum(p => p.TotalAmount);
+
+            _logger.LogInformation("Payment statistics: {StartDate} to {EndDate}, {Count} payments, {Amount} total", 
+                startDate, endDate, statistics.TotalPayments, statistics.TotalAmount);
+
+            return statistics;
+            // No try-catch - exceptions propagate to controller for proper 500 response
+        }
+
+        /// <summary>
+        /// Parse varchar payment method string ('0', '1', etc.) to readable enum name
+        /// </summary>
+        private string ParsePaymentMethodName(string rawValue)
+        {
+            if (int.TryParse(rawValue, out int methodInt) && Enum.IsDefined(typeof(PaymentMethod), methodInt))
             {
-                _logger.LogError(ex, "Error getting payment statistics from {StartDate} to {EndDate}", startDate, endDate);
-                return new PaymentStatistics();
+                return ((PaymentMethod)methodInt).ToString();
             }
+            return "Unknown";
         }
 
         /// <summary>
@@ -884,14 +915,22 @@ namespace KasseAPI_Final.Services
             return amount * taxRate;
         }
 
-        private PaymentMethod GetPaymentMethodEnum(string paymentMethod)
+        /// <summary>
+        /// Convert payment method string to DB format (numeric string)
+        /// </summary>
+        private string GetPaymentMethodEnum(string paymentMethod)
         {
-            return paymentMethod.ToLower() switch
+            // Map common payment method strings to numeric strings
+            return paymentMethod?.ToLower() switch
             {
-                "cash" => PaymentMethod.Cash,
-                "card" => PaymentMethod.Card,
-                "voucher" => PaymentMethod.Voucher,
-                _ => PaymentMethod.Cash
+                "cash" => "0",
+                "card" => "1",
+                "banktransfer" => "2",
+                "transfer" => "2",
+                "check" => "3",
+                "voucher" => "4",
+                "mobile" => "5",
+                _ => "0" // Default to Cash
             };
         }
 

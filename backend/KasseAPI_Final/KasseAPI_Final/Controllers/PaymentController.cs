@@ -107,8 +107,16 @@ namespace KasseAPI_Final.Controllers
                 
                 if (result.Success)
                 {
+                    var responseData = new
+                    {
+                        success = true,
+                        paymentId = result.PaymentId,
+                        message = result.Message,
+                        payment = result.Payment,
+                        tseSignature = result.Payment?.TseSignature
+                    };
                     return CreatedAtAction(nameof(GetPayment), new { id = result.Payment!.Id }, 
-                        SuccessResponse(result, "Payment created successfully"));
+                        responseData);
                 }
 
                 return ErrorResponse(result.Message, 400, result.Errors);
@@ -320,23 +328,69 @@ namespace KasseAPI_Final.Controllers
         /// </summary>
         [HttpGet("statistics")]
         public async Task<IActionResult> GetPaymentStatistics(
-            [FromQuery] DateTime startDate, 
-            [FromQuery] DateTime endDate)
+            [FromQuery] string? startDate, 
+            [FromQuery] string? endDate)
         {
             try
             {
-                if (startDate > endDate)
+                // 1. Validate inputs existence
+                if (string.IsNullOrWhiteSpace(startDate) || string.IsNullOrWhiteSpace(endDate))
                 {
-                    return ErrorResponse("Start date cannot be after end date", 400);
+                    return ErrorResponse("StartDate and EndDate are required query parameters.", 400);
                 }
 
-                var statistics = await _paymentService.GetPaymentStatisticsAsync(startDate, endDate);
+                DateTime parsedStart;
+                DateTime parsedEnd;
+
+                // 2. Parse StartDate
+                // Support "yyyy-MM-dd" explicitly for Date-only
+                if (DateTime.TryParseExact(startDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var dStart))
+                {
+                    parsedStart = dStart; // 00:00:00
+                }
+                else if (DateTime.TryParse(startDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal, out dStart))
+                {
+                    parsedStart = dStart;
+                }
+                else
+                {
+                    return ErrorResponse($"Invalid StartDate format: '{startDate}'. Supported: yyyy-MM-dd or ISO 8601.", 400);
+                }
+
+                // 3. Parse EndDate
+                if (DateTime.TryParseExact(endDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var dEnd))
+                {
+                    // Date-only input -> Set to End of Day (23:59:59.9999999)
+                    parsedEnd = dEnd.Date.AddDays(1).AddTicks(-1);
+                }
+                else if (DateTime.TryParse(endDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal, out dEnd))
+                {
+                    parsedEnd = dEnd;
+                }
+                else
+                {
+                    return ErrorResponse($"Invalid EndDate format: '{endDate}'. Supported: yyyy-MM-dd or ISO 8601.", 400);
+                }
+
+                // 4. Validate Range
+                if (parsedStart > parsedEnd)
+                {
+                    return ErrorResponse($"Start date ({parsedStart:yyyy-MM-dd}) cannot be after end date ({parsedEnd:yyyy-MM-dd})", 400);
+                }
+
+                // Ensure UTC if needed (assuming DB is UTC)
+                // If Kind is Unspecified/Local, Convert to UTC or keep as is depending on system convention.
+                // KasseAPI typically uses UTC for CreatedAt.
+                if (parsedStart.Kind == DateTimeKind.Unspecified) parsedStart = DateTime.SpecifyKind(parsedStart, DateTimeKind.Utc);
+                if (parsedEnd.Kind == DateTimeKind.Unspecified) parsedEnd = DateTime.SpecifyKind(parsedEnd, DateTimeKind.Utc);
+
+                var statistics = await _paymentService.GetPaymentStatisticsAsync(parsedStart, parsedEnd);
                 
-                return SuccessResponse(statistics, $"Retrieved payment statistics from {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
+                return SuccessResponse(statistics, $"Retrieved payment statistics from {parsedStart:yyyy-MM-dd HH:mm} to {parsedEnd:yyyy-MM-dd HH:mm}");
             }
             catch (Exception ex)
             {
-                return HandleException(ex, $"Get Payment Statistics from {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
+                return HandleException(ex, $"Get Payment Statistics from {startDate} to {endDate}");
             }
         }
 

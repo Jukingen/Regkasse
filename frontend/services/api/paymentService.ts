@@ -82,25 +82,55 @@ class PaymentService {
     return [];
   }
 
-  // Ödeme işlemi - Backend endpoint'i ile uyumlu
+  // Payment processing - Backend endpoint compatible
   async processPayment(paymentRequest: PaymentRequest): Promise<PaymentResponse> {
-    try {
-      // Backend'deki CreatePayment endpoint'ini kullan
-      const response = await apiClient.post<PaymentResponse>(`${this.baseUrl}`, paymentRequest);
-      return response;
-    } catch (error) {
-      console.error('Payment failed:', error);
+    const response = await apiClient.post<any>(`${this.baseUrl}`, paymentRequest);
+    return this.normalizePaymentResponse(response);
+  }
 
-      // Basit offline kaydetme
-      const offlinePaymentId = `offline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      console.log('Payment saved offline:', offlinePaymentId);
+  // Helper to handle inconsistent backend responses (e.g. nested Value object)
+  private normalizePaymentResponse(response: any): PaymentResponse {
+    // 1. Unwrap "Value" if present (ASP.NET Core ActionResult serialization issue)
+    const raw = response?.Value ? response.Value : response;
 
-      return {
-        success: true,
-        paymentId: offlinePaymentId,
-        message: 'Payment saved offline'
-      };
-    }
+    // 2. Normalize Success
+    // Check top-level success, data.Success, or Value.success
+    const success =
+      raw?.success === true ||
+      raw?.Success === true ||
+      raw?.data?.Success === true ||
+      raw?.data?.success === true;
+
+    // 3. Normalize PaymentId
+    const paymentId =
+      raw?.paymentId ||
+      raw?.PaymentId ||
+      raw?.data?.Payment?.Id ||
+      raw?.data?.paymentId ||
+      raw?.payment?.id ||
+      '';
+
+    // 4. Normalize Message
+    const message =
+      raw?.message ||
+      raw?.Message ||
+      raw?.data?.Message ||
+      (success ? 'Payment successful' : 'Payment failed');
+
+    // 5. Normalize TseSignature
+    const tseSignature =
+      raw?.tseSignature ||
+      raw?.TseSignature ||
+      raw?.payment?.tseSignature ||
+      raw?.data?.Payment?.TseSignature;
+
+    return {
+      success: !!success, // Ensure boolean
+      paymentId,
+      message,
+      tseSignature,
+      error: success ? undefined : message
+    };
   }
 
   // Fiş oluştur - Backend'de bu endpoint yok, TSE signature endpoint'ini kullan
@@ -170,11 +200,10 @@ class PaymentService {
   }
 
   // Ödeme iptal
-  async cancelPayment(sessionId: string, reason?: string): Promise<any> {
+  async cancelPayment(paymentId: string, reason?: string): Promise<any> {
     try {
-      const response = await apiClient.post<any>(`${this.baseUrl}/cancel`, {
-        paymentSessionId: sessionId,
-        cancellationReason: reason || 'Kasiyer tarafından iptal edildi'
+      const response = await apiClient.post<any>(`${this.baseUrl}/${paymentId}/cancel`, {
+        reason: reason || 'Kasiyer tarafından iptal edildi'
       });
       return response;
     } catch (error) {
@@ -183,7 +212,7 @@ class PaymentService {
       // Basit offline response
       return {
         success: true,
-        paymentSessionId: sessionId,
+        paymentId: paymentId,
         message: 'Payment cancelled offline'
       };
     }
@@ -244,7 +273,7 @@ class PaymentService {
     topPaymentMethods: { method: string; count: number; amount: number }[];
   }> {
     try {
-      const response = await apiClient.get(`${this.baseUrl}/statistics?period=${period}`);
+      const response = await apiClient.get<any>(`${this.baseUrl}/statistics?period=${period}`);
       return response.data as {
         totalPayments: number;
         totalAmount: number;

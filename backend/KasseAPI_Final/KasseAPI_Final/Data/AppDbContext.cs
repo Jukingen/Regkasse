@@ -203,19 +203,25 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CustomerName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.PaymentMethod).IsRequired().HasMaxLength(50);
+                
+                // Map PaymentMethodRaw to DB varchar column "PaymentMethod"
+                entity.Property(e => e.PaymentMethodRaw)
+                    .IsRequired()
+                    .HasMaxLength(50)
+                    .HasColumnName("PaymentMethod")
+                    .HasColumnType("character varying");
+                
+                // Ignore the NotMapped enum helper property
+                entity.Ignore(e => e.PaymentMethod);
+                
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.TransactionId).HasMaxLength(100);
                 entity.Property(e => e.TseSignature).HasMaxLength(100);
                 entity.Property(e => e.TaxDetails).HasColumnType("jsonb");
                 entity.Property(e => e.PaymentItems).HasColumnType("jsonb");
-                // TODO: Bu alanlar daha sonra eklenecek
-                // entity.Property(e => e.OriginalPaymentId);
-                // entity.Property(e => e.CancellationReason).HasMaxLength(500);
-                // entity.Property(e => e.IsRefund);
                 
                 entity.HasIndex(e => e.CustomerId);
-                entity.HasIndex(e => e.PaymentMethod);
+                entity.HasIndex(e => e.PaymentMethodRaw); // Index on raw property
                 entity.HasIndex(e => e.CreatedAt);
                 entity.HasIndex(e => e.TseSignature);
             });

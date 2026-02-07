@@ -9,16 +9,42 @@ namespace KasseAPI_Final.Services
     public class TseService : ITseService
     {
         private readonly AppDbContext _context;
+        private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env;
+        private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
 
-        public TseService(AppDbContext context)
+        public TseService(AppDbContext context, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env, Microsoft.Extensions.Configuration.IConfiguration configuration)
         {
             _context = context;
+            _env = env;
+            _configuration = configuration;
         }
+
+        private bool IsMockEnabled => _configuration.GetValue<bool>("Tse:MockEnabled") && !_env.IsProduction();
 
         public async Task<TseStatus> GetTseStatusAsync()
         {
             try
             {
+                // MOCK CHECK
+                if (IsMockEnabled)
+                {
+                    // Check if we have a real device, if not, return mock status
+                    var realDevice = await _context.TseDevices.FirstOrDefaultAsync();
+                    if (realDevice == null)
+                    {
+                        return new TseStatus
+                        {
+                            IsConnected = true,
+                            DeviceId = "MOCK_DEVICE",
+                            SerialNumber = "MOCK_SERIAL_123",
+                            IsOperational = true,
+                            Status = "Connected (MOCK)",
+                            LastConnectionTime = DateTime.UtcNow,
+                            ErrorMessage = ""
+                        };
+                    }
+                }
+
                 // Get the first available TSE device
                 var tseDevice = await _context.TseDevices
                     .OrderBy(t => t.CreatedAt)
@@ -110,6 +136,13 @@ namespace KasseAPI_Final.Services
 
         public async Task<string> CreateInvoiceSignatureAsync(Guid cashRegisterId, string invoiceNumber, decimal totalAmount)
         {
+            // MOCK SIGNATURE
+            if (IsMockEnabled)
+            {
+                 var mockTimestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+                 return $"MOCK_{cashRegisterId}_{invoiceNumber}_{totalAmount:F2}_{mockTimestamp}";
+            }
+
             // Simulate TSE signature creation
             var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
             var signature = $"TSE_{cashRegisterId}_{invoiceNumber}_{totalAmount:F2}_{timestamp}";
@@ -297,6 +330,27 @@ namespace KasseAPI_Final.Services
         {
             try
             {
+                // MOCK CHECK
+                if (IsMockEnabled)
+                {
+                    // Check if we have a real device, if not, return mock status
+                    var realDevice = await _context.TseDevices.FirstOrDefaultAsync();
+                    if (realDevice == null)
+                    {
+                        return new TseStatus
+                        {
+                            IsConnected = true,
+                            IsReady = true,
+                            DeviceId = "MOCK_DEVICE",
+                            SerialNumber = "MOCK_SERIAL_123",
+                            IsOperational = true,
+                            Status = "Connected (MOCK)",
+                            LastConnectionTime = DateTime.UtcNow,
+                            ErrorMessage = ""
+                        };
+                    }
+                }
+
                 // Get the first available TSE device
                 var tseDevice = await _context.TseDevices
                     .OrderBy(t => t.CreatedAt)

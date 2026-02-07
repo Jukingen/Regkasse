@@ -1385,40 +1385,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // DELETE: api/cart/items/{itemId} - Remove item from cart (simple version without cartId)
-        [HttpDelete("items/{itemId}")]
-        public async Task<IActionResult> RemoveItemSimple(Guid itemId)
-        {
-            try
-            {
-                var (cartItem, cart, userId, error) = await GetOwnedCartItemAsync(itemId);
-                
-                if (error != null)
-                {
-                    if (error == "User not authenticated")
-                        return Unauthorized(new { message = error });
-                    if (error == "You do not have access to this cart")
-                        return StatusCode(403, new { message = error });
-                    return NotFound(new { message = error });
-                }
 
-                _context.CartItems.Remove(cartItem!);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Item removed from cart: ItemId={ItemId}, CartId={CartId}, UserId={UserId}",
-                    itemId, cart!.CartId, userId);
-
-                return Ok(new { 
-                    message = "Item removed from cart successfully",
-                    itemId = itemId
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error removing item from cart: ItemId={ItemId}", itemId);
-                return StatusCode(500, new { message = "Failed to remove item" });
-            }
-        }
 
         // Yardımcı metod: Vergi oranını hesapla
         private decimal GetTaxRate(string taxType)

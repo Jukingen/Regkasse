@@ -78,6 +78,7 @@ namespace KasseAPI_Final.DTOs
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
         public PaymentDetails? Payment { get; set; }
+        public Guid? PaymentId { get; set; }
         public string? TseSignature { get; set; }
         public List<string> Errors { get; set; } = new();
     }

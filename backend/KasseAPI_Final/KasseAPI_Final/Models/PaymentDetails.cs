@@ -30,8 +30,27 @@ namespace KasseAPI_Final.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal TaxAmount { get; set; }
         
+        // DB column "PaymentMethod" is varchar storing numeric strings like '0', '1', etc.
         [Required]
-        public PaymentMethod PaymentMethod { get; set; }
+        [MaxLength(50)]
+        [Column("PaymentMethod")]
+        public string PaymentMethodRaw { get; set; } = "0";
+        
+        // Enum helper for type-safe access (not mapped to DB)
+        [NotMapped]
+        public PaymentMethod PaymentMethod
+        {
+            get
+            {
+                if (int.TryParse(PaymentMethodRaw, out int value) && Enum.IsDefined(typeof(PaymentMethod), value))
+                    return (PaymentMethod)value;
+                return PaymentMethod.Cash; // Default fallback
+            }
+            set
+            {
+                PaymentMethodRaw = ((int)value).ToString();
+            }
+        }
         
         // Avusturya yasal gereksinimleri (RKSV & DSGVO)
         [Required]

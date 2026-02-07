@@ -10,9 +10,13 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
+  Switch,
 } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
 import { usePayment } from '../hooks/usePayment';
-import { PaymentRequest, PaymentItem } from '../services/api/paymentService';
+import { paymentService, PaymentRequest, PaymentItem } from '../services/api/paymentService';
+import { cartService } from '../services/api/cartService';
+import { customerService, GUEST_CUSTOMER_ID } from '../services/api/customerService';
 import { validateSteuernummer, validateKassenId, validateAmount } from '../utils/validation';
 
 // Türkçe Açıklama: Ödeme alma modal'ı - Sepet içeriğini ödeme işlemine dönüştürür
@@ -41,9 +45,15 @@ export default function PaymentModal({
   customerId = '00000000-0000-0000-0000-000000000000', // Default Guid formatında
   tableNumber
 }: PaymentModalProps) {
+  const { user } = useAuth();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'voucher' | 'transfer'>('cash');
   const [amountReceived, setAmountReceived] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [guestCustomerId, setGuestCustomerId] = useState<string>(GUEST_CUSTOMER_ID);
+
+  // DEV: TSE Simulation Toggle
+  // Default: AÇIK (Bypass) in Development
+  const [isTseSimulationEnabled, setIsTseSimulationEnabled] = useState<boolean>(__DEV__);
 
   const {
     loading,
@@ -86,10 +96,15 @@ export default function PaymentModal({
 
   const cashPresets = getCashPresets(totalAmount);
 
-  // Ödeme yöntemlerini yükle
+  // Load payment methods and guest customer
   useEffect(() => {
     if (visible) {
       getPaymentMethods();
+
+      // Load guest customer ID
+      customerService.getGuestCustomer()
+        .then(id => setGuestCustomerId(id))
+        .catch(err => console.warn('[PaymentModal] Failed to load guest customer:', err));
     }
   }, [visible, getPaymentMethods]);
 
@@ -101,21 +116,9 @@ export default function PaymentModal({
   // Ödeme işlemi
   const handlePayment = async () => {
     try {
-      // Validasyon
+      // 1. Validasyonlar
       if (!tableNumber) {
         Alert.alert('Hata', 'Masa numarası gerekli');
-        return;
-      }
-
-      if (!customerId) {
-        Alert.alert('Hata', 'Müşteri ID gerekli');
-        return;
-      }
-
-      // Guid formatı validasyonu
-      const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!guidRegex.test(customerId)) {
-        Alert.alert('Hata', 'Geçersiz Müşteri ID formatı (GUID formatında olmalı)');
         return;
       }
 
@@ -133,73 +136,134 @@ export default function PaymentModal({
       }
 
       // Avusturya yasal gereksinimleri validasyonu
-      const steuernummer = 'ATU12345678'; // TODO: Gerçek vergi numarası kullan
-      const kassenId = 'KASSE-001'; // TODO: Gerçek kasa ID'si kullan
+      const steuernummer = 'ATU12345678';
+      const kassenId = 'KASSE-001';
 
       if (!validateSteuernummer(steuernummer)) {
         Alert.alert('Hata', 'Geçersiz Steuernummer formatı (ATU12345678)');
         return;
       }
-
       if (!validateKassenId(kassenId)) {
         Alert.alert('Hata', 'Geçersiz KassenId (3-50 karakter)');
         return;
       }
-
       if (!validateAmount(totalAmount)) {
         Alert.alert('Hata', 'Geçersiz tutar (0.01\'den büyük olmalı)');
         return;
       }
 
-      // Sepet öğelerini PaymentItem formatına dönüştür
+      // 2. Aktif sepet ID'sini al (Source of Truth for Cart ID)
+      let currentCartId: string;
+      try {
+        const cart = await cartService.getCurrentCart(tableNumber);
+
+        // Eğer backend cart boş geliyorsa ama frontend doluysa, frontend items kullanmaya devam et
+        // Ancak cartId'ye ihtiyacımız var complete için.
+        if (!cart || !cart.cartId) {
+          throw new Error('Aktif masa sepeti bulunamadı.');
+        }
+        currentCartId = cart.cartId;
+      } catch (cartErr) {
+        console.error('Cart fetch failed:', cartErr);
+        Alert.alert('Hata', 'Masa sepet bilgisi alınamadı. Lütfen sayfayı yenileyin.');
+        return;
+      }
+
+      // 3. Determine customer ID (use guest if walk-in)
+      const finalCustomerId = customerId && customerId !== '00000000-0000-0000-0000-000000000000'
+        ? customerId
+        : guestCustomerId;
+
+      // 4. Build payment request (PascalCase keys for backend)
       const paymentItems: PaymentItem[] = cartItems.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
         taxType: (item.taxType as 'standard' | 'reduced' | 'special') || 'standard'
       }));
 
-      // Ödeme request'i oluştur - Backend'deki CreatePaymentRequest ile uyumlu
-      // Varsayılan payload oluşturuyoruz
+      // NOTE: TSE Logic
+      // If Simulation Enabled (Bypass) -> tseRequired: false
+      // If Simulation Disabled (Real)  -> tseRequired: true
+      // In PROD, always true
+      const shouldRequireTse = __DEV__ ? !isTseSimulationEnabled : true;
+
       const paymentRequest: PaymentRequest = {
-        customerId: customerId || '00000000-0000-0000-0000-000000000000', // Guid formatında
+        customerId: finalCustomerId, // Always send valid customer ID (guest or registered)
         items: paymentItems,
         payment: {
-          method: selectedPaymentMethod as 'cash' | 'card' | 'voucher', // Tip uyuşmazlığı varsa casting
-          tseRequired: true, // Avusturya yasaları gereği
+          method: selectedPaymentMethod as 'cash' | 'card' | 'voucher',
+          tseRequired: shouldRequireTse,
           amount: selectedPaymentMethod === 'cash' ? parseFloat(amountReceived) : undefined
         },
-        // Yeni eklenen alanlar
         tableNumber: tableNumber || 1,
-        cashierId: 'demo-cashier-001', // TODO: Gerçek kasiyer ID'si kullan
+        cashierId: user?.id || 'UNKNOWN', // Use logged-in user ID
         totalAmount: totalAmount,
-
-        // Avusturya yasal gereksinimleri
         steuernummer: steuernummer,
         kassenId: kassenId,
-
-        notes: notes || `Masa ${tableNumber} - ${new Date().toLocaleString('de-DE')} `
+        notes: notes || `Masa ${tableNumber} - ${new Date().toLocaleString('de-DE')}`
       };
 
-      // Ödeme işlemini gerçekleştir
+      // 5. PAYMENT REQUEST (STRICT: error handling)
+      console.log('[PAYMENT] Request:', JSON.stringify(paymentRequest, null, 2));
       const response = await processPayment(paymentRequest);
 
-      if (response.success) {
-        Alert.alert(
-          'Başarılı',
-          `Ödeme tamamlandı!\nÖdeme ID: ${response.paymentId} `,
-          [
-            {
-              text: 'Tamam',
-              onPress: () => {
-                onSuccess(response.paymentId);
-                handleClose();
-              }
-            }
-          ]
-        );
+      // 6. STRICT SUCCESS CHECK (Do NOT proceed if payment failed)
+      if (!response.success) {
+        console.error('[PAYMENT] Failed:', response);
+        const errorMsg = response.message || response.error || 'Ödeme işlemi başarısız';
+        Alert.alert('Ödeme Başarısız', errorMsg);
+        return; // CRITICAL: Do NOT proceed to complete/reset
       }
+
+      console.log('[PAYMENT] Success, paymentId:', response.paymentId);
+
+      // 7. CART COMPLETE
+      try {
+        await cartService.completeCart(currentCartId, notes || '');
+        console.log('[CART] Completed:', currentCartId);
+      } catch (completeErr) {
+        console.error('[CART] Complete failed:', completeErr);
+
+        // ROLLBACK: Cancel payment
+        try {
+          await paymentService.cancelPayment(
+            response.paymentId,
+            'System Rollback: Cart completion failed'
+          );
+          Alert.alert('İşlem İptal', 'Sipariş tamamlanamadığı için ödeme iptal edildi.');
+        } catch (rollbackErr) {
+          console.error('[CRITICAL] Rollback failed:', rollbackErr);
+          Alert.alert('Kritik Hata',
+            `Ödeme ID: ${response.paymentId}\nSipariş kapatılamadı. Yöneticiye bildirin.`);
+        }
+        return; // CRITICAL: Do NOT proceed to reset
+      }
+
+      // 8. CART RESET
+      try {
+        await cartService.resetCartAfterPayment(currentCartId, 'Payment completed');
+        console.log('[CART] Reset complete');
+      } catch (resetErr) {
+        console.warn('[CART] Reset warning:', resetErr);
+        Alert.alert('Uyarı', 'Ödeme alındı ama yeni sepet oluşturulamadı. Masayı manuel sıfırlayın.');
+      }
+
+      // 9. SUCCESS UI
+      Alert.alert(
+        'Başarılı',
+        `Ödeme tamamlandı!\nÖdeme ID: ${response.paymentId}`,
+        [{
+          text: 'Tamam',
+          onPress: () => {
+            onSuccess(response.paymentId);
+            handleClose();
+          }
+        }]
+      );
+
     } catch (err) {
-      Alert.alert('Hata', err instanceof Error ? err.message : 'Ödeme işlemi başarısız');
+      console.error('Handle Payment Error:', err);
+      Alert.alert('Hata', err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu');
     }
   };
 
@@ -343,6 +407,24 @@ export default function PaymentModal({
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}
+            {/* DEV: TSE Simulation Toggle */}
+            {__DEV__ && (
+              <View style={styles.section}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff3e0', padding: 10, borderRadius: 8 }}>
+                  <View>
+                    <Text style={{ fontWeight: 'bold', color: '#e65100' }}>TSE Simülasyonu</Text>
+                    <Text style={{ fontSize: 12, color: '#f57c00' }}>{isTseSimulationEnabled ? 'AÇIK (Bypass)' : 'KAPALI (Gerçek TSE)'}</Text>
+                  </View>
+                  <Switch
+                    value={isTseSimulationEnabled}
+                    onValueChange={setIsTseSimulationEnabled}
+                    trackColor={{ false: "#767577", true: "#f57c00" }}
+                    thumbColor={isTseSimulationEnabled ? "#ffb74d" : "#f4f3f4"}
+                  />
+                </View>
+              </View>
+            )}
+
           </ScrollView>
 
           {/* Footer */}

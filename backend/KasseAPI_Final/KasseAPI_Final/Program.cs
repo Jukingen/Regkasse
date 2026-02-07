@@ -219,6 +219,9 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<AppDbContext>();
         await SeedData.SeedProductsAsync(context);
         
+        // Seed guest customer for walk-in sales
+        await CustomerSeedData.SeedGuestCustomerAsync(context);
+        
         Console.WriteLine("Database seeding completed successfully");
     }
     catch (Exception ex)
