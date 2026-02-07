@@ -395,6 +395,34 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
+        /// Get receipt data for payment
+        /// </summary>
+        [HttpGet("{id}/receipt")]
+        public async Task<IActionResult> GetReceipt(Guid id)
+        {
+            try
+            {
+                var payment = await _paymentService.GetPaymentAsync(id);
+                if (payment == null)
+                {
+                    return ErrorResponse($"Payment with ID {id} not found", 404);
+                }
+
+                var receiptData = await _paymentService.GetReceiptDataAsync(id);
+                if (receiptData == null)
+                {
+                    return ErrorResponse($"Failed to generate receipt data for payment {id}", 500);
+                }
+
+                return SuccessResponse(receiptData, "Receipt data retrieved successfully");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"Get Receipt for Payment with ID {id}");
+            }
+        }
+
+        /// <summary>
         /// TSE imzası oluştur
         /// </summary>
         [HttpPost("{id}/tse-signature")]

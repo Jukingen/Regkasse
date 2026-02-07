@@ -164,6 +164,18 @@ class PaymentService {
     }
   }
 
+  // Get receipt data for printing
+  async getReceipt(paymentId: string): Promise<any> {
+    try {
+      const response = await apiClient.get<any>(`${this.baseUrl}/${paymentId}/receipt`);
+      // Unwrap response if nested in data/Value
+      return response?.data || response?.Value || response;
+    } catch (error) {
+      console.error('Receipt fetch failed:', error);
+      throw error;
+    }
+  }
+
   // Ödeme geçmişi
   async getPaymentHistory(limit: number = 50, offset: number = 0): Promise<PaymentResponse[]> {
     try {

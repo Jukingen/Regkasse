@@ -248,18 +248,9 @@ export default function PaymentModal({
         Alert.alert('Uyarı', 'Ödeme alındı ama yeni sepet oluşturulamadı. Masayı manuel sıfırlayın.');
       }
 
-      // 9. SUCCESS UI
-      Alert.alert(
-        'Başarılı',
-        `Ödeme tamamlandı!\nÖdeme ID: ${response.paymentId}`,
-        [{
-          text: 'Tamam',
-          onPress: () => {
-            onSuccess(response.paymentId);
-            handleClose();
-          }
-        }]
-      );
+      // 9. SUCCESS: Auto-close modal + notify parent
+      onSuccess(response.paymentId);
+      handleClose();
 
     } catch (err) {
       console.error('Handle Payment Error:', err);

@@ -49,6 +49,11 @@ namespace KasseAPI_Final.Services
         Task<PaymentStatistics> GetPaymentStatisticsAsync(DateTime startDate, DateTime endDate);
         
         /// <summary>
+        /// Get formatted receipt data for payment
+        /// </summary>
+        Task<ReceiptDataDTO?> GetReceiptDataAsync(Guid paymentId);
+        
+        /// <summary>
         /// TSE imzası oluştur
         /// </summary>
         Task<string> GenerateTseSignatureAsync(PaymentDetails payment);

@@ -896,6 +896,78 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        /// <summary>
+        /// Get formatted receipt data for payment
+        /// </summary>
+        public async Task<ReceiptDataDTO?> GetReceiptDataAsync(Guid paymentId)
+        {
+            try
+            {
+                var payment = await _paymentRepository.GetByIdAsync(paymentId);
+                if (payment == null)
+                {
+                    _logger.LogWarning("Payment not found for receipt: {PaymentId}", paymentId);
+                    return null;
+                }
+
+                // Deserialize payment items
+                var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(
+                    payment.PaymentItems.RootElement.GetRawText());
+
+                if (paymentItems == null)
+                {
+                    _logger.LogError("Failed to deserialize payment items for payment {PaymentId}", paymentId);
+                    return null;
+                }
+
+                // Get cashier name
+                var cashier = await _userService.GetUserByIdAsync(payment.CreatedBy);
+                var cashierName = cashier?.Name ?? cashier?.UserName ?? "Unknown";
+
+                // Map payment items to receipt items
+                var receiptItems = paymentItems.Select(item => new ReceiptItemDTO
+                {
+                    Name = item.ProductName,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    Total = item.TotalPrice,
+                    TaxRate = item.TaxRate
+                }).ToList();
+
+                // Calculate subtotal (total - tax)
+                var subtotal = payment.TotalAmount - payment.TaxAmount;
+
+                var receiptData = new ReceiptDataDTO
+                {
+                    ReceiptNumber = payment.ReceiptNumber,
+                    PaymentId = payment.Id,
+                    Timestamp = payment.CreatedAt,
+                    TableNumber = payment.TableNumber,
+                    CashierName = cashierName,
+                    Items = receiptItems,
+                    Subtotal = subtotal,
+                    TaxAmount = payment.TaxAmount,
+                    GrandTotal = payment.TotalAmount,
+                    PaymentMethod = payment.PaymentMethod.ToString(),
+                    TseSignature = payment.TseSignature,
+                    CompanyInfo = new CompanyInfoDTO
+                    {
+                        Name = "Company Name", // TODO: Get from SystemSettings
+                        Address = "Company Address", // TODO: Get from SystemSettings
+                        TaxNumber = payment.Steuernummer ?? "ATU12345678"
+                    }
+                };
+
+                _logger.LogInformation("Receipt data generated for payment {PaymentId}", paymentId);
+                return receiptData;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating receipt data for payment {PaymentId}", paymentId);
+                return null;
+            }
+        }
+
         #region Private Methods
 
         private decimal GetTaxRate(string taxType)

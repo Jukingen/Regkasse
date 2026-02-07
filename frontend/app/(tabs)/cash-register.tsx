@@ -368,6 +368,22 @@ export default function CashRegisterScreen() {
   const handlePaymentSuccess = async (paymentId: string) => {
     try {
       addToast('success', `Payment successful! Payment ID: ${paymentId}`, 5000);
+
+      // Auto-print receipt if enabled
+      // TODO: Get autoPrintReceipts from user settings context
+      const autoPrintEnabled = true; // Placeholder - should come from settings
+
+      if (autoPrintEnabled) {
+        try {
+          const { receiptPrinter } = await import('@/services/receiptPrinter');
+          await receiptPrinter.print(paymentId);
+          addToast('info', 'Receipt printed', 2000);
+        } catch (printError) {
+          console.error('Receipt print failed:', printError);
+          addToast('warning', 'Print failed - receipt available in history', 3000);
+        }
+      }
+
       await clearCart(activeTableId);
       // setSelectedTable(1); // Removed
       switchTable(1);
