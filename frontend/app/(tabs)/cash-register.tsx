@@ -323,21 +323,29 @@ export default function CashRegisterScreen() {
     }
   };
 
-  // Tüm masaları temizleme handler'ı
+  // Tüm masaları temizleme handler'ı (Clear All / Clear Current Table)
   const handleClearAllTables = async () => {
     try {
-      const result = await clearAllTables();
-
-      if (result && result.success) {
-        // setSelectedTable(1); // Removed
-        switchTable(1);
-        addToast('success', 'All tables cleared successfully', 3000);
-      } else {
-        addToast('error', `Failed to clear all tables: ${result?.message || 'Unknown error'}`, 5000);
+      if (!activeTableId) {
+        addToast('error', 'No table selected', 3000);
+        return;
       }
-    } catch (error) {
-      console.error('❌ Error clearing all tables:', error);
-      addToast('error', 'Error clearing all tables', 3000);
+
+      // Capture active table explicitly to avoid race conditions
+      const targetTableId = activeTableId;
+
+      // Call clearCart directly for the active table
+      // Note: We use clearCart from context, which handles the API call and local state update
+      await clearCart(targetTableId);
+
+      // ❌ REMOVED: switchTable(1); - This was forcing the UI to jump to table 1
+      // ✅ Behavior: UI stays on the same table (targetTableId)
+
+      addToast('success', `Table ${targetTableId} cleared successfully`, 3000);
+
+    } catch (error: any) {
+      console.error('❌ Error clearing table:', error);
+      addToast('error', error.message || 'Error clearing table', 3000);
     }
   };
 
