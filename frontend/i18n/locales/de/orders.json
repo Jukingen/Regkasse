@@ -1,0 +1,12 @@
+{
+  "title": "Bestellungen",
+  "new": "Neue Bestellung",
+  "pending": "Ausstehend",
+  "preparing": "Wird zubereitet",
+  "ready": "Fertig",
+  "served": "Serviert",
+  "cancelled": "Storniert",
+  "orderNumber": "Bestellnummer",
+  "orderTime": "Bestellzeit",
+  "estimatedTime": "Geschätzte Zeit"
+}

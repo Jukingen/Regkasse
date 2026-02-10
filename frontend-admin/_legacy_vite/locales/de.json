@@ -1,0 +1,25 @@
+{
+  "tse": {
+    "management_title": "TSE-Verwaltung",
+    "status": "TSE-Status",
+    "connection_status": "Verbindungsstatus",
+    "connected": "Verbunden",
+    "disconnected": "Nicht verbunden",
+    "serial_number": "Seriennummer",
+    "last_signature_counter": "Letzter Signaturzähler",
+    "last_signature_time": "Letzte Signaturzeit",
+    "memory_status": "Speicherstatus",
+    "certificate_status": "Zertifikatsstatus",
+    "daily_report": "Tagesabschluss",
+    "generate_daily_report": "Tagesabschluss erstellen",
+    "generating_report": "Tagesabschluss wird erstellt...",
+    "signature": "Signatur",
+    "signature_counter": "Signaturzähler",
+    "time": "Zeit",
+    "process_type": "Prozessart"
+  },
+  "errors": {
+    "tse_status_failed": "TSE-Status konnte nicht abgerufen werden",
+    "daily_report_failed": "Tagesabschluss konnte nicht erstellt werden"
+  }
+} 

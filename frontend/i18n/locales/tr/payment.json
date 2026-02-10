@@ -1,0 +1,78 @@
+{
+  "title": "Ödeme İşlemi",
+  "customerSelection": "Müşteri Seçimi",
+  "paymentMethod": "Ödeme Yöntemi",
+  "paymentAmount": "Ödeme Tutarı",
+  "tseVerification": "TSE Doğrulama",
+  "confirmation": {
+    "title": "Ödeme Onayı",
+    "customerId": "Müşteri ID:",
+    "paymentMethod": "Ödeme Yöntemi:",
+    "paymentAmount": "Ödeme Tutarı:",
+    "totalAmount": "Toplam Tutar:",
+    "change": "Üstü:"
+  },
+  "receipt": {
+    "title": "Fiş Oluşturuluyor",
+    "description": "Ödeme başarılı! Fiş oluşturuluyor...",
+    "view": "Fişi Görüntüle",
+    "error": "Fiş oluşturulamadı"
+  },
+  "stepTitles": {
+    "customerSelection": "Müşteri Seçimi",
+    "paymentMethod": "Ödeme Yöntemi",
+    "paymentAmount": "Ödeme Tutarı",
+    "tseVerification": "TSE Doğrulama",
+    "confirmation": "Onay",
+    "receipt": "Fiş"
+  },
+  "customer": {
+    "id": "Müşteri ID",
+    "idPlaceholder": "Müşteri ID (8 hane)",
+    "idRequired": "8 haneli ID gerekli",
+    "idValid": "✓ Geçerli",
+    "idInvalid": "Müşteri doğrulanamadı"
+  },
+  "methods": {
+    "cash": "Nakit",
+    "card": "Kredi Kartı",
+    "voucher": "Kupon",
+    "contactless": "Temassız"
+  },
+  "amount": {
+    "total": "Toplam Tutar",
+    "placeholder": "0.00",
+    "hint": "Müşterinin ödediği tutarı girin",
+    "error": "Ödeme tutarı toplam tutardan az olamaz"
+  },
+  "tse": {
+    "required": "TSE imzası gereklidir",
+    "notRequired": "TSE imzası gerekli değil",
+    "signature": "TSE İmzası",
+    "placeholder": "TSE İmzası",
+    "verificationError": "TSE doğrulanamadı"
+  },
+  "buttons": {
+    "continue": "Devam Et",
+    "back": "Geri",
+    "confirm": "Onayla",
+    "cancel": "İptal",
+    "verify": "Doğrula",
+    "confirmPayment": "Ödemeyi Onayla"
+  },
+  "errors": {
+    "paymentFailed": "Ödeme işlemi başarısız",
+    "paymentError": "Ödeme işlemi sırasında hata oluştu",
+    "generalError": "Bir hata oluştu"
+  },
+  "cancellation": {
+    "title": "Ödeme İptali",
+    "message": "Bu ödeme işlemini iptal etmek istediğinizden emin misiniz?",
+    "confirm": "Evet, İptal Et",
+    "deny": "Hayır",
+    "success": "Ödeme başarıyla iptal edildi",
+    "reason": "İptal sebebi",
+    "cancelledBy": "İptal eden",
+    "cancelledAt": "İptal zamanı"
+  }
+}

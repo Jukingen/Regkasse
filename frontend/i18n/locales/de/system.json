@@ -1,0 +1,12 @@
+{
+  "title": "System",
+  "status": "Status",
+  "health": "Gesundheit",
+  "logs": "Protokolle",
+  "backup": "Backup",
+  "restore": "Wiederherstellen",
+  "update": "Aktualisieren",
+  "maintenance": "Wartung",
+  "tseStatus": "TSE-Status",
+  "printerStatus": "Druckerstatus"
+}

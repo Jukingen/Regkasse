@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../admin-panel"
+		},
+		{
+			"path": "../KasseAPI"
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true
+	}
+}

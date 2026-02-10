@@ -1,0 +1,12 @@
+{
+  "title": "Tables",
+  "add": "Add Table",
+  "edit": "Edit Table",
+  "delete": "Delete Table",
+  "number": "Table Number",
+  "status": "Status",
+  "capacity": "Capacity",
+  "occupied": "Occupied",
+  "free": "Free",
+  "reserved": "Reserved"
+}

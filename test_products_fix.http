@@ -1,0 +1,31 @@
+### Test Product API - Fixed Endpoints
+
+# Test 1: Get all products (paginated)
+GET http://localhost:8081/api/products
+Content-Type: application/json
+
+###
+
+# Test 2: Get all products with pagination
+GET http://localhost:8081/api/products?pageNumber=1&pageSize=10
+Content-Type: application/json
+
+###
+
+# Test 3: Get active products (homepage)
+GET http://localhost:8081/api/products/active
+Content-Type: application/json
+
+###
+
+# Test 4: Get categories
+GET http://localhost:8081/api/products/categories
+Content-Type: application/json
+
+###
+
+# Test 5: Search products
+GET http://localhost:8081/api/products/search?name=test
+Content-Type: application/json
+
+###

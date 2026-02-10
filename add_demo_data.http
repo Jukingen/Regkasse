@@ -1,0 +1,161 @@
+### Demo Kategoriler ve Ürünler Ekleme
+### Veritabanı kolon isimlerine göre güncellendi
+
+### 1. Kategoriler Ekle
+POST http://localhost:5000/api/categories
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Getränke",
+  "description": "Alkoholfreie und alkoholische Getränke",
+  "color": "#3498db",
+  "icon": "wine",
+  "sortOrder": 1,
+  "isActive": true
+}
+
+### 2. Speisen Kategorisi
+POST http://localhost:5000/api/categories
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Speisen",
+  "description": "Hauptgerichte und Vorspeisen",
+  "color": "#e74c3c",
+  "icon": "restaurant",
+  "sortOrder": 2,
+  "isActive": true
+}
+
+### 3. Desserts Kategorisi
+POST http://localhost:5000/api/categories
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Desserts",
+  "description": "Süße Nachspeisen und Kuchen",
+  "color": "#f39c12",
+  "icon": "ice-cream",
+  "sortOrder": 3,
+  "isActive": true
+}
+
+### 4. Snacks Kategorisi
+POST http://localhost:5000/api/categories
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Snacks",
+  "description": "Kleine Zwischenmahlzeiten",
+  "color": "#27ae60",
+  "icon": "fast-food",
+  "sortOrder": 4,
+  "isActive": true
+}
+
+### 5. Kaffee & Tee Kategorisi
+POST http://localhost:5000/api/categories
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Kaffee & Tee",
+  "description": "Heiße Getränke",
+  "color": "#8e44ad",
+  "icon": "cafe",
+  "sortOrder": 5,
+  "isActive": true
+}
+
+### 6. Getränke Ürünleri
+POST http://localhost:5000/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Cola 0.33L",
+  "description": "Erfrischendes Cola-Getränk",
+  "price": 2.50,
+  "taxType": "Standard",
+  "category": "Getränke",
+  "stockQuantity": 100,
+  "minStockLevel": 10,
+  "unit": "Stück",
+  "isActive": true
+}
+
+### 7. Bier
+POST http://localhost:5000/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Bier 0.5L",
+  "description": "Helles Lagerbier",
+  "price": 4.80,
+  "taxType": "Standard",
+  "category": "Getränke",
+  "stockQuantity": 50,
+  "minStockLevel": 5,
+  "unit": "Stück",
+  "isActive": true
+}
+
+### 8. Wiener Schnitzel
+POST http://localhost:5000/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Wiener Schnitzel",
+  "description": "Klassisches Wiener Schnitzel mit Pommes",
+  "price": 18.90,
+  "taxType": "Standard",
+  "category": "Speisen",
+  "stockQuantity": 25,
+  "minStockLevel": 3,
+  "unit": "Portion",
+  "isActive": true
+}
+
+### 9. Apfelstrudel
+POST http://localhost:5000/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Apfelstrudel",
+  "description": "Hausgemachter Apfelstrudel mit Vanillesauce",
+  "price": 6.90,
+  "taxType": "Reduced",
+  "category": "Desserts",
+  "stockQuantity": 12,
+  "minStockLevel": 2,
+  "unit": "Stück",
+  "isActive": true
+}
+
+### 10. Espresso
+POST http://localhost:5000/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Espresso",
+  "description": "Starker italienischer Espresso",
+  "price": 3.20,
+  "taxType": "Special",
+  "category": "Kaffee & Tee",
+  "stockQuantity": 60,
+  "minStockLevel": 10,
+  "unit": "Tasse",
+  "isActive": true
+}
+
+### Mevcut Durumu Kontrol Et
+GET http://localhost:5000/api/products/catalog
+Authorization: Bearer {{auth_token}}

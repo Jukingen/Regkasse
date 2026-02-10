@@ -1,0 +1,12 @@
+{
+  "title": "Siparişler",
+  "new": "Yeni Sipariş",
+  "pending": "Beklemede",
+  "preparing": "Hazırlanıyor",
+  "ready": "Hazır",
+  "served": "Servis Edildi",
+  "cancelled": "İptal Edildi",
+  "orderNumber": "Sipariş Numarası",
+  "orderTime": "Sipariş Zamanı",
+  "estimatedTime": "Tahmini Süre"
+}

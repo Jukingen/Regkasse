@@ -1,0 +1,21 @@
+{
+  "title": "Customers",
+  "add": "Add Customer",
+  "edit": "Edit Customer",
+  "delete": "Delete Customer",
+  "name": "Name",
+  "phone": "Phone",
+  "address": "Address",
+  "email": "Email",
+  "loyaltyPoints": "Loyalty Points",
+  "lastVisit": "Last Visit",
+  "selectionTitle": "Customer Selection",
+  "searchPlaceholder": "Search customer...",
+  "all": "All",
+  "regular": "Regular",
+  "vip": "VIP",
+  "premium": "Premium",
+  "noResults": "No customer found",
+  "noSearchResults": "No search results found",
+  "discount": "Discount"
+}

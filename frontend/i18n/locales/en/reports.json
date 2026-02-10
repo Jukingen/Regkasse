@@ -1,0 +1,11 @@
+{
+  "title": "Reports",
+  "daily": "Daily Report",
+  "weekly": "Weekly Report",
+  "monthly": "Monthly Report",
+  "sales": "Sales Report",
+  "inventory": "Inventory Report",
+  "export": "Export",
+  "print": "Print",
+  "dateRange": "Date Range"
+}

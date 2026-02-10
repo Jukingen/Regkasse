@@ -1,0 +1,11 @@
+{
+  "title": "Raporlar",
+  "daily": "Günlük Rapor",
+  "weekly": "Haftalık Rapor",
+  "monthly": "Aylık Rapor",
+  "sales": "Satış Raporu",
+  "inventory": "Stok Raporu",
+  "export": "Dışa Aktar",
+  "print": "Yazdır",
+  "dateRange": "Tarih Aralığı"
+}

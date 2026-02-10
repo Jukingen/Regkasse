@@ -1,0 +1,22 @@
+{
+  "sales": "Verkauf",
+  "products": "Produkte",
+  "cart": "Warenkorb",
+  "customers": "Kunden",
+  "tables": "Tische",
+  "users": "Benutzerverwaltung",
+  "roles": "Rollenverwaltung",
+  "system": "Systemeinstellungen",
+  "demo": "Demo-Benutzer",
+  "hardware": "Hardware-Verwaltung",
+  "inventory": "Lagerverwaltung",
+  "finanzonline": "FinanzOnline",
+  "backup": "Backup",
+  "reports": "Berichte",
+  "audit": "Audit-Protokolle",
+  "staff": "Personalverwaltung",
+  "schedule": "Schichtplan",
+  "menu": "Menü",
+  "accessibleScreens": "Zugängliche Bildschirme",
+  "demoUserInfo": "Demo-Benutzer: Nur Testfunktionen verfügbar"
+}

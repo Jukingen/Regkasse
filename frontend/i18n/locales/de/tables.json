@@ -1,0 +1,12 @@
+{
+  "title": "Tische",
+  "add": "Tisch hinzufügen",
+  "edit": "Tisch bearbeiten",
+  "delete": "Tisch löschen",
+  "number": "Tischnummer",
+  "status": "Status",
+  "capacity": "Kapazität",
+  "occupied": "Besetzt",
+  "free": "Frei",
+  "reserved": "Reserviert"
+}

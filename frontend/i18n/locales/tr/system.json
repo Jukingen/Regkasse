@@ -1,0 +1,12 @@
+{
+  "title": "Sistem",
+  "status": "Durum",
+  "health": "Sağlık",
+  "logs": "Günlükler",
+  "backup": "Yedekleme",
+  "restore": "Geri Yükle",
+  "update": "Güncelle",
+  "maintenance": "Bakım",
+  "tseStatus": "TSE Durumu",
+  "printerStatus": "Yazıcı Durumu"
+}

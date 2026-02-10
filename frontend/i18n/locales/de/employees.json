@@ -1,0 +1,12 @@
+{
+  "title": "Mitarbeiter",
+  "add": "Mitarbeiter hinzufügen",
+  "edit": "Mitarbeiter bearbeiten",
+  "delete": "Mitarbeiter löschen",
+  "name": "Name",
+  "role": "Rolle",
+  "permissions": "Berechtigungen",
+  "shift": "Schicht",
+  "clockIn": "Einstempeln",
+  "clockOut": "Ausstempeln"
+}

@@ -1,0 +1,12 @@
+{
+  "title": "Settings",
+  "language": "Language",
+  "theme": "Theme",
+  "notifications": "Notifications",
+  "darkMode": "Dark Mode",
+  "lightMode": "Light Mode",
+  "systemTheme": "System",
+  "german": "German",
+  "english": "English",
+  "turkish": "Turkish"
+}

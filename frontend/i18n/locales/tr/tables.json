@@ -1,0 +1,12 @@
+{
+  "title": "Masalar",
+  "add": "Masa Ekle",
+  "edit": "Masa Düzenle",
+  "delete": "Masa Sil",
+  "number": "Masa Numarası",
+  "status": "Durum",
+  "capacity": "Kapasite",
+  "occupied": "Dolu",
+  "free": "Boş",
+  "reserved": "Rezerve"
+}

@@ -1,0 +1,78 @@
+{
+  "title": "Payment Process",
+  "customerSelection": "Customer Selection",
+  "paymentMethod": "Payment Method",
+  "paymentAmount": "Payment Amount",
+  "tseVerification": "TSE Verification",
+  "confirmation": {
+    "title": "Payment Confirmation",
+    "customerId": "Customer ID:",
+    "paymentMethod": "Payment Method:",
+    "paymentAmount": "Payment Amount:",
+    "totalAmount": "Total Amount:",
+    "change": "Change:"
+  },
+  "receipt": {
+    "title": "Receipt is being created",
+    "description": "Payment successful! Receipt is being created...",
+    "view": "View Receipt",
+    "error": "Receipt could not be created"
+  },
+  "stepTitles": {
+    "customerSelection": "Customer Selection",
+    "paymentMethod": "Payment Method",
+    "paymentAmount": "Payment Amount",
+    "tseVerification": "TSE Verification",
+    "confirmation": "Confirmation",
+    "receipt": "Receipt"
+  },
+  "customer": {
+    "id": "Customer ID",
+    "idPlaceholder": "Customer ID (8 digits)",
+    "idRequired": "8-digit ID required",
+    "idValid": "✓ Valid",
+    "idInvalid": "Customer could not be validated"
+  },
+  "methods": {
+    "cash": "Cash",
+    "card": "Credit Card",
+    "voucher": "Voucher",
+    "contactless": "Contactless"
+  },
+  "amount": {
+    "total": "Total Amount",
+    "placeholder": "0.00",
+    "hint": "Enter the amount paid by the customer",
+    "error": "Payment amount cannot be less than total amount"
+  },
+  "tse": {
+    "required": "TSE signature required",
+    "notRequired": "TSE signature not required",
+    "signature": "TSE Signature",
+    "placeholder": "TSE Signature",
+    "verificationError": "TSE could not be verified"
+  },
+  "buttons": {
+    "continue": "Continue",
+    "back": "Back",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "verify": "Verify",
+    "confirmPayment": "Confirm Payment"
+  },
+  "errors": {
+    "paymentFailed": "Payment process failed",
+    "paymentError": "Error during payment process",
+    "generalError": "An error occurred"
+  },
+  "cancellation": {
+    "title": "Cancel Payment",
+    "message": "Are you sure you want to cancel this payment process?",
+    "confirm": "Yes, cancel",
+    "deny": "No",
+    "success": "Payment successfully cancelled",
+    "reason": "Cancellation reason",
+    "cancelledBy": "Cancelled by",
+    "cancelledAt": "Cancelled at"
+  }
+}

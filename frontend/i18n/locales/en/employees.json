@@ -1,0 +1,12 @@
+{
+  "title": "Employees",
+  "add": "Add Employee",
+  "edit": "Edit Employee",
+  "delete": "Delete Employee",
+  "name": "Name",
+  "role": "Role",
+  "permissions": "Permissions",
+  "shift": "Shift",
+  "clockIn": "Clock In",
+  "clockOut": "Clock Out"
+}

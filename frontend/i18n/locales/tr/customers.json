@@ -1,0 +1,21 @@
+{
+  "title": "Müşteriler",
+  "add": "Müşteri Ekle",
+  "edit": "Müşteri Düzenle",
+  "delete": "Müşteri Sil",
+  "name": "Ad",
+  "phone": "Telefon",
+  "address": "Adres",
+  "email": "E-posta",
+  "loyaltyPoints": "Sadakat Puanları",
+  "lastVisit": "Son Ziyaret",
+  "selectionTitle": "Müşteri Seçimi",
+  "searchPlaceholder": "Müşteri ara...",
+  "all": "Tümü",
+  "regular": "Düzenli",
+  "vip": "VIP",
+  "premium": "Premium",
+  "noResults": "Müşteri bulunamadı",
+  "noSearchResults": "Arama sonucu bulunamadı",
+  "discount": "İndirim"
+}

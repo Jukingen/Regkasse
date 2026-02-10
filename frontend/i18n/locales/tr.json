@@ -1,0 +1,360 @@
+{
+  "common": {
+    "appName": "KasaAPP",
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "success": "Başarılı",
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "delete": "Sil",
+    "edit": "Düzenle",
+    "search": "Ara...",
+    "back": "Geri",
+    "continue": "Devam Et",
+    "confirm": "Onayla",
+    "close": "Kapat",
+    "yes": "Evet",
+    "no": "Hayır",
+    "step": "Adım",
+    "ok": "Tamam",
+    "retry": "Tekrar Dene",
+    "errorLoadingProducts": "Ürünler yüklenemedi",
+    "loadingMore": "Daha fazla yükleniyor...",
+    "noSearchResults": "Arama sonucu bulunamadı",
+    "noProductsFound": "Ürün bulunamadı",
+    "page": "Sayfa",
+    "products": "ürün"
+  },
+  "loading": {
+    "roleLoading": "Rol yükleniyor..."
+  },
+  "navigation": {
+    "sales": "Satış",
+    "products": "Ürünler",
+    "cart": "Sepet",
+    "customers": "Müşteriler",
+
+    "tables": "Masalar",
+    "users": "Kullanıcı Yönetimi",
+    "roles": "Rol Yönetimi",
+    "system": "Sistem Ayarları",
+    "demo": "Demo Kullanıcılar",
+    "hardware": "Donanım Yönetimi",
+    "inventory": "Stok Yönetimi",
+    "finanzonline": "FinanzOnline",
+    "backup": "Yedekleme",
+    "reports": "Raporlar",
+    "audit": "Denetim Logları",
+    "staff": "Personel Yönetimi",
+    "schedule": "Vardiya Planı",
+    "menu": "Menü",
+    "accessibleScreens": "Erişilebilir Ekranlar",
+    "demoUserInfo": "Demo Kullanıcı: Sadece test işlevleri mevcut"
+  },
+  "categories": {
+    "title": "Kategoriler",
+    "all": "Tümü",
+    "favorites": "⭐ Favoriler",
+    "hauptgerichte": "Ana Yemekler",
+    "vorspeisen": "Başlangıçlar",
+    "suppen": "Çorbalar",
+    "salate": "Salatalar",
+    "desserts": "Tatlılar",
+    "getraenke": "İçecekler",
+    "alkoholischeGetraenke": "Alkollü İçecekler",
+    "kaffeeTee": "Kahve & Çay",
+    "suessigkeiten": "Şekerlemeler",
+    "spezialitaeten": "Özel Ürünler",
+    "snacks": "Atıştırmalıklar",
+    "brotGebaeck": "Ekmek & Hamur İşleri",
+    "Hauptgerichte": "Ana Yemekler",
+    "Getränke": "İçecekler",
+    "Desserts": "Tatlılar",
+    "Alkoholische Getränke": "Alkollü İçecekler",
+    "Snacks": "Atıştırmalıklar",
+    "Suppen": "Çorbalar",
+    "Vorspeisen": "Başlangıçlar",
+    "Salate": "Salatalar",
+    "Kaffee & Tee": "Kahve & Çay",
+    "Süßigkeiten": "Şekerlemeler",
+    "Spezialitäten": "Özel Ürünler",
+    "Brot & Gebäck": "Ekmek & Hamur İşleri"
+  },
+  "categoryDescriptions": {
+    "hauptgerichte": "Ana yemekler ve et yemekleri",
+    "vorspeisen": "Başlangıç yemekleri ve mezeler",
+    "suppen": "Çorbalar ve sıcak içecekler",
+    "salate": "Taze salatalar ve yeşillikler",
+    "desserts": "Tatlılar ve şekerlemeler",
+    "getraenke": "Alkolsüz içecekler",
+    "alkoholischeGetraenke": "Bira, şarap ve diğer alkollü içecekler",
+    "kaffeeTee": "Kahve ve çay çeşitleri",
+    "suessigkeiten": "Çikolata ve şekerlemeler",
+    "spezialitaeten": "Özel ve geleneksel ürünler",
+    "snacks": "Atıştırmalık ve hafif yiyecekler",
+    "brotGebaeck": "Ekmek ve hamur işi ürünleri"
+  },
+  "search": {
+    "placeholder": "Ürün ara...",
+    "recentSearches": "Son Aramalar",
+    "noResults": "Sonuç bulunamadı",
+    "startTyping": "Yazmaya başlayın...",
+    "filters": "Filtreler",
+    "categories": "Kategoriler",
+    "stock": "Stok",
+    "clearFilters": "Filtreleri Temizle",
+    "applyFilters": "Filtreleri Uygula"
+  },
+  "product": {
+    "stock": "Stok"
+  },
+  "tax": {
+    "standard": "Standart",
+    "reduced": "İndirimli",
+    "special": "Özel",
+    "exempt": "Muaf"
+  },
+  "taxType": {
+    "standard": "Standart (20%)",
+    "reduced": "İndirimli (10%)",
+    "special": "Özel (13%)",
+    "exempt": "Muaf (0%)"
+  },
+  "rksv": {
+    "compliant": "RKSV Uyumlu",
+    "nonCompliant": "RKSV Uyumsuz",
+    "productType": "RKSV Ürün Tipi",
+    "fiscalCode": "Vergi Kodu",
+    "exemptionReason": "Muafiyet Nedeni",
+    "taxable": "Vergiye Tabi",
+    "nonTaxable": "Vergiye Tabi Değil"
+  },
+  "auth": {
+    "login": "Giriş Yap",
+    "logout": "Çıkış Yap",
+    "email": "E-posta",
+    "password": "Şifre",
+    "forgotPassword": "Şifremi Unuttum?",
+    "loginError": "Giriş başarısız",
+    "invalidEmail": "Geçersiz e-posta adresi",
+    "invalidPassword": "Geçersiz şifre",
+    "required": "{{field}} zorunludur"
+  },
+  "cashRegister": {
+    "title": "Kasa",
+    "cart": "Sepet",
+    "total": "Toplam",
+    "checkout": "Ödeme",
+    "addToCart": "Sepete Ekle",
+    "removeFromCart": "Sepetten Çıkar",
+    "quantity": "Adet",
+    "price": "Fiyat",
+    "product": "Ürün",
+    "products": "Ürünler",
+    "stock": "Stok",
+    "outOfStock": "Stokta yok",
+    "subtotal": "Ara toplam",
+    "tax": "Vergi",
+    "discount": "İndirim"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "language": "Dil",
+    "theme": "Tema",
+    "notifications": "Bildirimler",
+    "darkMode": "Koyu Mod",
+    "lightMode": "Açık Mod",
+    "systemTheme": "Sistem",
+    "german": "Almanca",
+    "english": "İngilizce",
+    "turkish": "Türkçe"
+  },
+  "payment": {
+    "title": "Ödeme İşlemi",
+    "customerSelection": "Müşteri Seçimi",
+    "paymentMethod": "Ödeme Yöntemi",
+    "paymentAmount": "Ödeme Tutarı",
+    "tseVerification": "TSE Doğrulama",
+    "confirmation": "Onay",
+    "receipt": "Fiş",
+    
+    "stepTitles": {
+      "customerSelection": "Müşteri Seçimi",
+      "paymentMethod": "Ödeme Yöntemi",
+      "paymentAmount": "Ödeme Tutarı",
+      "tseVerification": "TSE Doğrulama",
+      "confirmation": "Onay",
+      "receipt": "Fiş"
+    },
+    
+    "customer": {
+      "id": "Müşteri ID",
+      "idPlaceholder": "Müşteri ID (8 hane)",
+      "idRequired": "8 haneli ID gerekli",
+      "idValid": "✓ Geçerli",
+      "idInvalid": "Müşteri doğrulanamadı"
+    },
+    
+    "methods": {
+      "cash": "Nakit",
+      "card": "Kredi Kartı",
+      "voucher": "Kupon",
+      "contactless": "Temassız"
+    },
+    
+    "amount": {
+      "total": "Toplam Tutar",
+      "placeholder": "0.00",
+      "hint": "Müşterinin ödediği tutarı girin",
+      "error": "Ödeme tutarı toplam tutardan az olamaz"
+    },
+    
+    "tse": {
+      "required": "TSE imzası gereklidir",
+      "notRequired": "TSE imzası gerekli değil",
+      "signature": "TSE İmzası",
+      "placeholder": "TSE İmzası",
+      "verificationError": "TSE doğrulanamadı"
+    },
+    
+    "confirmation": {
+      "title": "Ödeme Onayı",
+      "customerId": "Müşteri ID:",
+      "paymentMethod": "Ödeme Yöntemi:",
+      "paymentAmount": "Ödeme Tutarı:",
+      "totalAmount": "Toplam Tutar:",
+      "change": "Üstü:"
+    },
+    
+    "receipt": {
+      "title": "Fiş Oluşturuluyor",
+      "description": "Ödeme başarılı! Fiş oluşturuluyor...",
+      "view": "Fişi Görüntüle",
+      "error": "Fiş oluşturulamadı"
+    },
+    
+    "buttons": {
+      "continue": "Devam Et",
+      "back": "Geri",
+      "confirm": "Onayla",
+      "cancel": "İptal",
+      "verify": "Doğrula",
+      "confirmPayment": "Ödemeyi Onayla"
+    },
+    
+    "errors": {
+      "paymentFailed": "Ödeme işlemi başarısız",
+      "paymentError": "Ödeme işlemi sırasında hata oluştu",
+      "generalError": "Bir hata oluştu"
+    },
+    
+    "cancellation": {
+      "title": "Ödeme İptali",
+      "message": "Bu ödeme işlemini iptal etmek istediğinizden emin misiniz?",
+      "confirm": "Evet, İptal Et",
+      "deny": "Hayır",
+      "success": "Ödeme başarıyla iptal edildi",
+      "reason": "İptal sebebi",
+      "cancelledBy": "İptal eden",
+      "cancelledAt": "İptal zamanı"
+    }
+  },
+  "notifications": {
+    "saleComplete": "Satış tamamlandı",
+    "lowStock": "Düşük stok uyarısı",
+    "dailyReport": "Gün sonu raporu",
+    "paymentSuccess": "Ödeme başarılı",
+    "paymentFailed": "Ödeme başarısız"
+  },
+  "errors": {
+    "networkError": "Ağ hatası",
+    "serverError": "Sunucu hatası",
+    "sessionExpired": "Oturum süresi doldu",
+    "validationError": "Doğrulama hatası",
+    "permissionDenied": "İzin reddedildi",
+    "unauthorized": "Yetkisiz Erişim",
+    "noAccess": "Bu ekrana erişim yetkiniz bulunmamaktadır"
+  },
+  "tables": {
+    "title": "Masalar",
+    "add": "Masa Ekle",
+    "edit": "Masa Düzenle",
+    "delete": "Masa Sil",
+    "number": "Masa Numarası",
+    "status": "Durum",
+    "capacity": "Kapasite",
+    "occupied": "Dolu",
+    "free": "Boş",
+    "reserved": "Rezerve"
+  },
+  "orders": {
+    "title": "Siparişler",
+    "new": "Yeni Sipariş",
+    "pending": "Beklemede",
+    "preparing": "Hazırlanıyor",
+    "ready": "Hazır",
+    "served": "Servis Edildi",
+    "cancelled": "İptal Edildi",
+    "orderNumber": "Sipariş Numarası",
+    "orderTime": "Sipariş Zamanı",
+    "estimatedTime": "Tahmini Süre"
+  },
+  "reports": {
+    "title": "Raporlar",
+    "daily": "Günlük Rapor",
+    "weekly": "Haftalık Rapor",
+    "monthly": "Aylık Rapor",
+    "sales": "Satış Raporu",
+    "inventory": "Stok Raporu",
+    "export": "Dışa Aktar",
+    "print": "Yazdır",
+    "dateRange": "Tarih Aralığı"
+  },
+  "inventory": {
+    "title": "Stok Yönetimi",
+    "addProduct": "Ürün Ekle",
+    "editProduct": "Ürün Düzenle",
+    "deleteProduct": "Ürün Sil",
+    "category": "Kategori",
+
+    "supplier": "Tedarikçi",
+    "reorderLevel": "Yeniden Sipariş Seviyesi",
+    "currentStock": "Mevcut Stok"
+  },
+  "customers": {
+    "title": "Müşteriler",
+    "add": "Müşteri Ekle",
+    "edit": "Müşteri Düzenle",
+    "delete": "Müşteri Sil",
+    "name": "Ad",
+    "phone": "Telefon",
+    "address": "Adres",
+    "email": "E-posta",
+    "loyaltyPoints": "Sadakat Puanları",
+    "lastVisit": "Son Ziyaret"
+  },
+  "employees": {
+    "title": "Çalışanlar",
+    "add": "Çalışan Ekle",
+    "edit": "Çalışan Düzenle",
+    "delete": "Çalışan Sil",
+    "name": "Ad",
+    "role": "Rol",
+    "permissions": "İzinler",
+    "shift": "Vardiya",
+    "clockIn": "Giriş Yap",
+    "clockOut": "Çıkış Yap"
+  },
+  "system": {
+    "title": "Sistem",
+    "status": "Durum",
+    "health": "Sağlık",
+    "logs": "Günlükler",
+    "backup": "Yedekleme",
+    "restore": "Geri Yükle",
+    "update": "Güncelle",
+    "maintenance": "Bakım",
+    "tseStatus": "TSE Durumu",
+    "printerStatus": "Yazıcı Durumu"
+  }
+}

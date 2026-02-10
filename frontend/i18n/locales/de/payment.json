@@ -1,0 +1,78 @@
+{
+  "title": "Zahlungsvorgang",
+  "customerSelection": "Kundenauswahl",
+  "paymentMethod": "Zahlungsmethode",
+  "paymentAmount": "Zahlungsbetrag",
+  "tseVerification": "TSE-Verifizierung",
+  "confirmation": {
+    "title": "Zahlungsbestätigung",
+    "customerId": "Kunden-ID:",
+    "paymentMethod": "Zahlungsmethode:",
+    "paymentAmount": "Zahlungsbetrag:",
+    "totalAmount": "Gesamtbetrag:",
+    "change": "Wechselgeld:"
+  },
+  "receipt": {
+    "title": "Beleg wird erstellt",
+    "description": "Zahlung erfolgreich! Beleg wird erstellt...",
+    "view": "Beleg anzeigen",
+    "error": "Beleg konnte nicht erstellt werden"
+  },
+  "stepTitles": {
+    "customerSelection": "Kundenauswahl",
+    "paymentMethod": "Zahlungsmethode",
+    "paymentAmount": "Zahlungsbetrag",
+    "tseVerification": "TSE-Verifizierung",
+    "confirmation": "Bestätigung",
+    "receipt": "Beleg"
+  },
+  "customer": {
+    "id": "Kunden-ID",
+    "idPlaceholder": "Kunden-ID (8 Ziffern)",
+    "idRequired": "8-stellige ID erforderlich",
+    "idValid": "✓ Gültig",
+    "idInvalid": "Kunde konnte nicht validiert werden"
+  },
+  "methods": {
+    "cash": "Bargeld",
+    "card": "Kreditkarte",
+    "voucher": "Gutschein",
+    "contactless": "Kontaktlos"
+  },
+  "amount": {
+    "total": "Gesamtbetrag",
+    "placeholder": "0.00",
+    "hint": "Geben Sie den vom Kunden gezahlten Betrag ein",
+    "error": "Zahlungsbetrag darf nicht unter dem Gesamtbetrag liegen"
+  },
+  "tse": {
+    "required": "TSE-Signatur erforderlich",
+    "notRequired": "TSE-Signatur nicht erforderlich",
+    "signature": "TSE-Signatur",
+    "placeholder": "TSE-Signatur",
+    "verificationError": "TSE konnte nicht verifiziert werden"
+  },
+  "buttons": {
+    "continue": "Weiter",
+    "back": "Zurück",
+    "confirm": "Bestätigen",
+    "cancel": "Abbrechen",
+    "verify": "Verifizieren",
+    "confirmPayment": "Zahlung bestätigen"
+  },
+  "errors": {
+    "paymentFailed": "Zahlungsvorgang fehlgeschlagen",
+    "paymentError": "Fehler beim Zahlungsvorgang",
+    "generalError": "Ein Fehler ist aufgetreten"
+  },
+  "cancellation": {
+    "title": "Zahlung stornieren",
+    "message": "Sind Sie sicher, dass Sie diesen Zahlungsvorgang stornieren möchten?",
+    "confirm": "Ja, stornieren",
+    "deny": "Nein",
+    "success": "Zahlung erfolgreich storniert",
+    "reason": "Stornierungsgrund",
+    "cancelledBy": "Storniert von",
+    "cancelledAt": "Storniert am"
+  }
+}

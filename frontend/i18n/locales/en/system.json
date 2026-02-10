@@ -1,0 +1,12 @@
+{
+  "title": "System",
+  "status": "Status",
+  "health": "Health",
+  "logs": "Logs",
+  "backup": "Backup",
+  "restore": "Restore",
+  "update": "Update",
+  "maintenance": "Maintenance",
+  "tseStatus": "TSE Status",
+  "printerStatus": "Printer Status"
+}

@@ -1,0 +1,34 @@
+### Test: Ödeme Sonrası Sepet Sıfırlama ve Yeni Sipariş Durumu Güncelleme
+
+### 1. Test sepeti oluştur
+POST {{baseUrl}}/api/test/cart-reset-simulation
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "tableNumber": 1,
+  "itemsCount": 3
+}
+
+### 2. Sepeti ödeme sonrası sıfırla
+POST {{baseUrl}}/api/cart/{{cartId}}/reset-after-payment
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "notes": "Payment completed - Receipt: REC-2025-001"
+}
+
+### 3. Yeni sepet durumunu kontrol et
+GET {{baseUrl}}/api/cart/{{newCartId}}
+Authorization: Bearer {{authToken}}
+
+### 4. Sepet geçmişini kontrol et
+GET {{baseUrl}}/api/cart/history
+Authorization: Bearer {{authToken}}
+
+### Variables:
+# @baseUrl = https://localhost:7001
+# @authToken = your_jwt_token_here
+# @cartId = test_cart_id_from_step_1
+# @newCartId = new_cart_id_from_step_2

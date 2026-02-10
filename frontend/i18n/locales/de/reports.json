@@ -1,0 +1,11 @@
+{
+  "title": "Berichte",
+  "daily": "Tagesbericht",
+  "weekly": "Wochenbericht",
+  "monthly": "Monatsbericht",
+  "sales": "Verkaufsbericht",
+  "inventory": "Lagerbericht",
+  "export": "Exportieren",
+  "print": "Drucken",
+  "dateRange": "Datumsbereich"
+}

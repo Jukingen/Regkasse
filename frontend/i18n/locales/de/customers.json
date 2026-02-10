@@ -1,0 +1,12 @@
+{
+  "title": "Kunden",
+  "add": "Kunde hinzufügen",
+  "edit": "Kunde bearbeiten",
+  "delete": "Kunde löschen",
+  "name": "Name",
+  "phone": "Telefon",
+  "address": "Adresse",
+  "email": "E-Mail",
+  "loyaltyPoints": "Treuepunkte",
+  "lastVisit": "Letzter Besuch"
+}

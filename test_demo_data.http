@@ -1,0 +1,25 @@
+### Demo Verileri Test Et
+
+### 1. Kategorileri Kontrol Et
+GET http://localhost:5000/api/categories
+Authorization: Bearer {{auth_token}}
+
+### 2. Ürünleri Kontrol Et
+GET http://localhost:5000/api/products
+Authorization: Bearer {{auth_token}}
+
+### 3. Katalog Endpoint'ini Test Et
+GET http://localhost:5000/api/products/catalog
+Authorization: Bearer {{auth_token}}
+
+### 4. Kategoriye Göre Ürünleri Test Et
+GET http://localhost:5000/api/products/category/Getränke
+Authorization: Bearer {{auth_token}}
+
+### 5. Aktif Ürünleri Test Et
+GET http://localhost:5000/api/products/active
+Authorization: Bearer {{auth_token}}
+
+### 6. Debug Bilgisi
+GET http://localhost:5000/api/products/debug
+Authorization: Bearer {{auth_token}}

@@ -1,0 +1,169 @@
+### RKSV Compliance Endpoint Tests
+### Test RKSV compliance validation for products
+
+### 1. Test Valid RKSV Product Creation
+POST {{baseUrl}}/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "RKSV Test Product",
+  "price": 25.99,
+  "taxType": "Standard",
+  "description": "Test product for RKSV compliance",
+  "category": "Test Category",
+  "stockQuantity": 100,
+  "minStockLevel": 10,
+  "unit": "piece",
+  "cost": 15.00,
+  "taxRate": 20.0,
+  "isFiscalCompliant": true,
+  "fiscalCategoryCode": "AT001",
+  "isTaxable": true,
+  "rksvProductType": "Standard"
+}
+
+### 2. Test RKSV Product with Tax Exemption
+POST {{baseUrl}}/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "RKSV Exempt Product",
+  "price": 15.50,
+  "taxType": "Exempt",
+  "description": "Tax exempt product for RKSV compliance",
+  "category": "Exempt Category",
+  "stockQuantity": 50,
+  "minStockLevel": 5,
+  "unit": "piece",
+  "cost": 10.00,
+  "taxRate": 0.0,
+  "isFiscalCompliant": true,
+  "fiscalCategoryCode": "AT002",
+  "isTaxable": false,
+  "taxExemptionReason": "Medical supplies - tax exempt",
+  "rksvProductType": "Exempt"
+}
+
+### 3. Test Invalid RKSV Product (Missing Tax Exemption Reason)
+POST {{baseUrl}}/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "Invalid RKSV Product",
+  "price": 30.00,
+  "taxType": "Exempt",
+  "description": "Invalid product missing tax exemption reason",
+  "category": "Invalid Category",
+  "stockQuantity": 75,
+  "minStockLevel": 8,
+  "unit": "piece",
+  "cost": 20.00,
+  "taxRate": 0.0,
+  "isFiscalCompliant": true,
+  "fiscalCategoryCode": "AT003",
+  "isTaxable": false,
+  "rksvProductType": "Exempt"
+}
+
+### 4. Test Invalid RKSV Product (Non-Compliant)
+POST {{baseUrl}}/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "Non-Compliant Product",
+  "price": 45.00,
+  "taxType": "Standard",
+  "description": "Non-compliant product for RKSV validation",
+  "category": "Non-Compliant Category",
+  "stockQuantity": 25,
+  "minStockLevel": 3,
+  "unit": "piece",
+  "cost": 30.00,
+  "taxRate": 20.0,
+  "isFiscalCompliant": false,
+  "fiscalCategoryCode": "AT004",
+  "isTaxable": true,
+  "rksvProductType": "Standard"
+}
+
+### 5. Test Invalid RKSV Product (Invalid Tax Type)
+POST {{baseUrl}}/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "Invalid Tax Type Product",
+  "price": 35.00,
+  "taxType": "InvalidTaxType",
+  "description": "Product with invalid tax type",
+  "category": "Invalid Tax Category",
+  "stockQuantity": 60,
+  "minStockLevel": 6,
+  "unit": "piece",
+  "cost": 25.00,
+  "taxRate": 25.0,
+  "isFiscalCompliant": true,
+  "fiscalCategoryCode": "AT005",
+  "isTaxable": true,
+  "rksvProductType": "Standard"
+}
+
+### 6. Test Invalid RKSV Product (Invalid RKSV Type)
+POST {{baseUrl}}/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "Invalid RKSV Type Product",
+  "price": 40.00,
+  "taxType": "Standard",
+  "description": "Product with invalid RKSV type",
+  "category": "Invalid RKSV Category",
+  "stockQuantity": 40,
+  "minStockLevel": 4,
+  "unit": "piece",
+  "cost": 28.00,
+  "taxRate": 20.0,
+  "isFiscalCompliant": true,
+  "fiscalCategoryCode": "AT006",
+  "isTaxable": true,
+  "rksvProductType": "InvalidRKSVType"
+}
+
+### 7. Test Invalid RKSV Product (Tax Rate Mismatch)
+POST {{baseUrl}}/api/products/create
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "Tax Rate Mismatch Product",
+  "price": 50.00,
+  "taxType": "Reduced",
+  "description": "Product with tax rate mismatch",
+  "category": "Tax Rate Category",
+  "stockQuantity": 30,
+  "minStockLevel": 3,
+  "unit": "piece",
+  "cost": 35.00,
+  "taxRate": 20.0,
+  "isFiscalCompliant": true,
+  "fiscalCategoryCode": "AT007",
+  "isTaxable": true,
+  "rksvProductType": "Reduced"
+}
+
+### 8. Get All Products (Verify RKSV Fields)
+GET {{baseUrl}}/api/products/all
+Authorization: Bearer {{authToken}}
+
+### 9. Search Products with RKSV Compliance
+GET {{baseUrl}}/api/products/search?name=RKSV&category=Test
+Authorization: Bearer {{authToken}}
+
+### Variables
+@baseUrl = http://localhost:5183
+@authToken = YOUR_AUTH_TOKEN_HERE

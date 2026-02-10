@@ -1,0 +1,360 @@
+{
+  "common": {
+    "appName": "KasseAPP",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search...",
+    "back": "Back",
+    "continue": "Continue",
+    "confirm": "Confirm",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "step": "Step",
+    "ok": "OK",
+    "retry": "Retry",
+    "errorLoadingProducts": "Error loading products",
+    "loadingMore": "Loading more...",
+    "noSearchResults": "No search results found",
+    "noProductsFound": "No products found",
+    "page": "Page",
+    "products": "products"
+  },
+  "loading": {
+    "roleLoading": "Loading role..."
+  },
+  "navigation": {
+    "sales": "Sales",
+    "products": "Products",
+    "cart": "Cart",
+    "customers": "Customers",
+
+    "tables": "Tables",
+    "users": "User Management",
+    "roles": "Role Management",
+    "system": "System Settings",
+    "demo": "Demo Users",
+    "hardware": "Hardware Management",
+    "inventory": "Inventory Management",
+    "finanzonline": "FinanzOnline",
+    "backup": "Backup",
+    "reports": "Reports",
+    "audit": "Audit Logs",
+    "staff": "Staff Management",
+    "schedule": "Schedule",
+    "menu": "Menu",
+    "accessibleScreens": "Accessible Screens",
+    "demoUserInfo": "Demo User: Only test functions available"
+  },
+  "categories": {
+    "title": "Categories",
+    "all": "All",
+    "favorites": "⭐ Favorites",
+    "hauptgerichte": "Main Dishes",
+    "vorspeisen": "Appetizers",
+    "suppen": "Soups",
+    "salate": "Salads",
+    "desserts": "Desserts",
+    "getraenke": "Beverages",
+    "alkoholischeGetraenke": "Alcoholic Beverages",
+    "kaffeeTee": "Coffee & Tea",
+    "suessigkeiten": "Sweets",
+    "spezialitaeten": "Specialties",
+    "snacks": "Snacks",
+    "brotGebaeck": "Bread & Pastries",
+    "Hauptgerichte": "Main Dishes",
+    "Getränke": "Beverages",
+    "Desserts": "Desserts",
+    "Alkoholische Getränke": "Alcoholic Beverages",
+    "Snacks": "Snacks",
+    "Suppen": "Soups",
+    "Vorspeisen": "Appetizers",
+    "Salate": "Salads",
+    "Kaffee & Tee": "Coffee & Tea",
+    "Süßigkeiten": "Sweets",
+    "Spezialitäten": "Specialties",
+    "Brot & Gebäck": "Bread & Pastries"
+  },
+  "categoryDescriptions": {
+    "hauptgerichte": "Main dishes and meat dishes",
+    "vorspeisen": "Appetizers and meze",
+    "suppen": "Soups and hot beverages",
+    "salate": "Fresh salads and greens",
+    "desserts": "Desserts and sweets",
+    "getraenke": "Non-alcoholic beverages",
+    "alkoholischeGetraenke": "Beer, wine and other alcoholic beverages",
+    "kaffeeTee": "Coffee and tea varieties",
+    "suessigkeiten": "Chocolate and sweets",
+    "spezialitaeten": "Special and traditional products",
+    "snacks": "Snacks and light foods",
+    "brotGebaeck": "Bread and pastry products"
+  },
+  "search": {
+    "placeholder": "Search products...",
+    "recentSearches": "Recent Searches",
+    "noResults": "No results found",
+    "startTyping": "Start typing...",
+    "filters": "Filters",
+    "categories": "Categories",
+    "stock": "Stock",
+    "clearFilters": "Clear Filters",
+    "applyFilters": "Apply Filters"
+  },
+  "product": {
+    "stock": "Stock"
+  },
+  "tax": {
+    "standard": "Standard",
+    "reduced": "Reduced",
+    "special": "Special",
+    "exempt": "Exempt"
+  },
+  "taxType": {
+    "standard": "Standard (20%)",
+    "reduced": "Reduced (10%)",
+    "special": "Special (13%)",
+    "exempt": "Exempt (0%)"
+  },
+  "rksv": {
+    "compliant": "RKSV Compliant",
+    "nonCompliant": "RKSV Non-compliant",
+    "productType": "RKSV Product Type",
+    "fiscalCode": "Fiscal Code",
+    "exemptionReason": "Exemption Reason",
+    "taxable": "Taxable",
+    "nonTaxable": "Non-taxable"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "loginError": "Login failed",
+    "invalidEmail": "Invalid email address",
+    "invalidPassword": "Invalid password",
+    "required": "{{field}} is required"
+  },
+  "cashRegister": {
+    "title": "Cash Register",
+    "cart": "Cart",
+    "total": "Total",
+    "checkout": "Checkout",
+    "addToCart": "Add to Cart",
+    "removeFromCart": "Remove from Cart",
+    "quantity": "Quantity",
+    "price": "Price",
+    "product": "Product",
+    "products": "Products",
+    "stock": "Stock",
+    "outOfStock": "Out of Stock",
+    "subtotal": "Subtotal",
+    "tax": "Tax",
+    "discount": "Discount"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "notifications": "Notifications",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "systemTheme": "System",
+    "german": "German",
+    "english": "English",
+    "turkish": "Turkish"
+  },
+  "payment": {
+    "title": "Payment Process",
+    "customerSelection": "Customer Selection",
+    "paymentMethod": "Payment Method",
+    "paymentAmount": "Payment Amount",
+    "tseVerification": "TSE Verification",
+    "confirmation": "Confirmation",
+    "receipt": "Receipt",
+    
+    "stepTitles": {
+      "customerSelection": "Customer Selection",
+      "paymentMethod": "Payment Method",
+      "paymentAmount": "Payment Amount",
+      "tseVerification": "TSE Verification",
+      "confirmation": "Confirmation",
+      "receipt": "Receipt"
+    },
+    
+    "customer": {
+      "id": "Customer ID",
+      "idPlaceholder": "Customer ID (8 digits)",
+      "idRequired": "8-digit ID required",
+      "idValid": "✓ Valid",
+      "idInvalid": "Customer could not be validated"
+    },
+    
+    "methods": {
+      "cash": "Cash",
+      "card": "Credit Card",
+      "voucher": "Voucher",
+      "contactless": "Contactless"
+    },
+    
+    "amount": {
+      "total": "Total Amount",
+      "placeholder": "0.00",
+      "hint": "Enter the amount paid by the customer",
+      "error": "Payment amount cannot be less than total amount"
+    },
+    
+    "tse": {
+      "required": "TSE signature required",
+      "notRequired": "TSE signature not required",
+      "signature": "TSE Signature",
+      "placeholder": "TSE Signature",
+      "verificationError": "TSE could not be verified"
+    },
+    
+    "confirmation": {
+      "title": "Payment Confirmation",
+      "customerId": "Customer ID:",
+      "paymentMethod": "Payment Method:",
+      "paymentAmount": "Payment Amount:",
+      "totalAmount": "Total Amount:",
+      "change": "Change:"
+    },
+    
+    "receipt": {
+      "title": "Receipt is being created",
+      "description": "Payment successful! Receipt is being created...",
+      "view": "View Receipt",
+      "error": "Receipt could not be created"
+    },
+    
+    "buttons": {
+      "continue": "Continue",
+      "back": "Back",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "verify": "Verify",
+      "confirmPayment": "Confirm Payment"
+    },
+    
+    "errors": {
+      "paymentFailed": "Payment process failed",
+      "paymentError": "Error during payment process",
+      "generalError": "An error occurred"
+    },
+    
+    "cancellation": {
+      "title": "Cancel Payment",
+      "message": "Are you sure you want to cancel this payment process?",
+      "confirm": "Yes, cancel",
+      "deny": "No",
+      "success": "Payment successfully cancelled",
+      "reason": "Cancellation reason",
+      "cancelledBy": "Cancelled by",
+      "cancelledAt": "Cancelled at"
+    }
+  },
+  "notifications": {
+    "saleComplete": "Sale completed",
+    "lowStock": "Low stock alert",
+    "dailyReport": "Daily report",
+    "paymentSuccess": "Payment successful",
+    "paymentFailed": "Payment failed"
+  },
+  "errors": {
+    "networkError": "Network error",
+    "serverError": "Server error",
+    "sessionExpired": "Session expired",
+    "validationError": "Validation error",
+    "permissionDenied": "Permission denied",
+    "unauthorized": "Unauthorized Access",
+    "noAccess": "You don't have access to this screen"
+  },
+  "tables": {
+    "title": "Tables",
+    "add": "Add Table",
+    "edit": "Edit Table",
+    "delete": "Delete Table",
+    "number": "Table Number",
+    "status": "Status",
+    "capacity": "Capacity",
+    "occupied": "Occupied",
+    "free": "Free",
+    "reserved": "Reserved"
+  },
+  "orders": {
+    "title": "Orders",
+    "new": "New Order",
+    "pending": "Pending",
+    "preparing": "Preparing",
+    "ready": "Ready",
+    "served": "Served",
+    "cancelled": "Cancelled",
+    "orderNumber": "Order Number",
+    "orderTime": "Order Time",
+    "estimatedTime": "Estimated Time"
+  },
+  "reports": {
+    "title": "Reports",
+    "daily": "Daily Report",
+    "weekly": "Weekly Report",
+    "monthly": "Monthly Report",
+    "sales": "Sales Report",
+    "inventory": "Inventory Report",
+    "export": "Export",
+    "print": "Print",
+    "dateRange": "Date Range"
+  },
+  "inventory": {
+    "title": "Inventory Management",
+    "addProduct": "Add Product",
+    "editProduct": "Edit Product",
+    "deleteProduct": "Delete Product",
+    "category": "Category",
+
+    "supplier": "Supplier",
+    "reorderLevel": "Reorder Level",
+    "currentStock": "Current Stock"
+  },
+  "customers": {
+    "title": "Customers",
+    "add": "Add Customer",
+    "edit": "Edit Customer",
+    "delete": "Delete Customer",
+    "name": "Name",
+    "phone": "Phone",
+    "address": "Address",
+    "email": "Email",
+    "loyaltyPoints": "Loyalty Points",
+    "lastVisit": "Last Visit"
+  },
+  "employees": {
+    "title": "Employees",
+    "add": "Add Employee",
+    "edit": "Edit Employee",
+    "delete": "Delete Employee",
+    "name": "Name",
+    "role": "Role",
+    "permissions": "Permissions",
+    "shift": "Shift",
+    "clockIn": "Clock In",
+    "clockOut": "Clock Out"
+  },
+  "system": {
+    "title": "System",
+    "status": "Status",
+    "health": "Health",
+    "logs": "Logs",
+    "backup": "Backup",
+    "restore": "Restore",
+    "update": "Update",
+    "maintenance": "Maintenance",
+    "tseStatus": "TSE Status",
+    "printerStatus": "Printer Status"
+  }
+}

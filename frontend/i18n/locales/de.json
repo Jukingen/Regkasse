@@ -1,0 +1,360 @@
+{
+  "common": {
+    "appName": "KasseAPP",
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "search": "Suchen...",
+    "back": "Zurück",
+    "continue": "Weiter",
+    "confirm": "Bestätigen",
+    "close": "Schließen",
+    "yes": "Ja",
+    "no": "Nein",
+    "step": "Schritt",
+    "ok": "OK",
+    "retry": "Wiederholen",
+    "errorLoadingProducts": "Fehler beim Laden der Produkte",
+    "loadingMore": "Lade mehr...",
+    "noSearchResults": "Keine Suchergebnisse gefunden",
+    "noProductsFound": "Keine Produkte gefunden",
+    "page": "Seite",
+    "products": "Produkte"
+  },
+  "loading": {
+    "roleLoading": "Rolle wird geladen..."
+  },
+  "navigation": {
+    "sales": "Verkauf",
+    "products": "Produkte",
+    "cart": "Warenkorb",
+    "customers": "Kunden",
+
+    "tables": "Tische",
+    "users": "Benutzerverwaltung",
+    "roles": "Rollenverwaltung",
+    "system": "Systemeinstellungen",
+    "demo": "Demo-Benutzer",
+    "hardware": "Hardware-Verwaltung",
+    "inventory": "Lagerverwaltung",
+    "finanzonline": "FinanzOnline",
+    "backup": "Backup",
+    "reports": "Berichte",
+    "audit": "Audit-Protokolle",
+    "staff": "Personalverwaltung",
+    "schedule": "Schichtplan",
+    "menu": "Menü",
+    "accessibleScreens": "Zugängliche Bildschirme",
+    "demoUserInfo": "Demo-Benutzer: Nur Testfunktionen verfügbar"
+  },
+  "categories": {
+    "title": "Kategorien",
+    "all": "Alle",
+    "favorites": "⭐ Favoriten",
+    "hauptgerichte": "Hauptgerichte",
+    "vorspeisen": "Vorspeisen",
+    "suppen": "Suppen",
+    "salate": "Salate",
+    "desserts": "Desserts",
+    "getraenke": "Getränke",
+    "alkoholischeGetraenke": "Alkoholische Getränke",
+    "kaffeeTee": "Kaffee & Tee",
+    "suessigkeiten": "Süßigkeiten",
+    "spezialitaeten": "Spezialitäten",
+    "snacks": "Snacks",
+    "brotGebaeck": "Brot & Gebäck",
+    "Hauptgerichte": "Hauptgerichte",
+    "Getränke": "Getränke",
+    "Desserts": "Desserts",
+    "Alkoholische Getränke": "Alkoholische Getränke",
+    "Snacks": "Snacks",
+    "Suppen": "Suppen",
+    "Vorspeisen": "Vorspeisen",
+    "Salate": "Salate",
+    "Kaffee & Tee": "Kaffee & Tee",
+    "Süßigkeiten": "Süßigkeiten",
+    "Spezialitäten": "Spezialitäten",
+    "Brot & Gebäck": "Brot & Gebäck"
+  },
+  "categoryDescriptions": {
+    "hauptgerichte": "Hauptgerichte und Fleischgerichte",
+    "vorspeisen": "Vorspeisen und Meze",
+    "suppen": "Suppen und heiße Getränke",
+    "salate": "Frische Salate und Grüns",
+    "desserts": "Süßigkeiten und Desserts",
+    "getraenke": "Alkoholfreie Getränke",
+    "alkoholischeGetraenke": "Bier, Wein und andere alkoholische Getränke",
+    "kaffeeTee": "Kaffee- und Teesorten",
+    "suessigkeiten": "Schokolade und Süßigkeiten",
+    "spezialitaeten": "Spezielle und traditionelle Produkte",
+    "snacks": "Snacks und leichte Speisen",
+    "brotGebaeck": "Brot und Gebäckprodukte"
+  },
+  "search": {
+    "placeholder": "Produkte suchen...",
+    "recentSearches": "Letzte Suchen",
+    "noResults": "Keine Ergebnisse gefunden",
+    "startTyping": "Beginnen Sie mit der Eingabe...",
+    "filters": "Filter",
+    "categories": "Kategorien",
+    "stock": "Lagerbestand",
+    "clearFilters": "Filter löschen",
+    "applyFilters": "Filter anwenden"
+  },
+  "product": {
+    "stock": "Lagerbestand"
+  },
+  "tax": {
+    "standard": "Standard",
+    "reduced": "Ermäßigt",
+    "special": "Spezial",
+    "exempt": "Befreit"
+  },
+  "taxType": {
+    "standard": "Standard (20%)",
+    "reduced": "Ermäßigt (10%)",
+    "special": "Spezial (13%)",
+    "exempt": "Befreit (0%)"
+  },
+  "rksv": {
+    "compliant": "RKSV Konform",
+    "nonCompliant": "RKSV Nicht-konform",
+    "productType": "RKSV Produkttyp",
+    "fiscalCode": "Steuerkode",
+    "exemptionReason": "Befreiungsgrund",
+    "taxable": "Steuerpflichtig",
+    "nonTaxable": "Nicht steuerpflichtig"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "forgotPassword": "Passwort vergessen?",
+    "loginError": "Anmeldung fehlgeschlagen",
+    "invalidEmail": "Ungültige E-Mail-Adresse",
+    "invalidPassword": "Ungültiges Passwort",
+    "required": "{{field}} ist erforderlich"
+  },
+  "cashRegister": {
+    "title": "Kasse",
+    "cart": "Warenkorb",
+    "total": "Gesamt",
+    "checkout": "Bezahlen",
+    "addToCart": "In den Warenkorb",
+    "removeFromCart": "Aus Warenkorb entfernen",
+    "quantity": "Menge",
+    "price": "Preis",
+    "product": "Produkt",
+    "products": "Produkte",
+    "stock": "Lager",
+    "outOfStock": "Nicht verfügbar",
+    "subtotal": "Zwischensumme",
+    "tax": "Steuer",
+    "discount": "Rabatt"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "language": "Sprache",
+    "theme": "Design",
+    "notifications": "Benachrichtigungen",
+    "darkMode": "Dunkelmodus",
+    "lightMode": "Hellmodus",
+    "systemTheme": "System",
+    "german": "Deutsch",
+    "english": "Englisch",
+    "turkish": "Türkçe"
+  },
+  "payment": {
+    "title": "Zahlungsvorgang",
+    "customerSelection": "Kundenauswahl",
+    "paymentMethod": "Zahlungsmethode",
+    "paymentAmount": "Zahlungsbetrag",
+    "tseVerification": "TSE-Verifizierung",
+    "confirmation": "Bestätigung",
+    "receipt": "Beleg",
+    
+    "stepTitles": {
+      "customerSelection": "Kundenauswahl",
+      "paymentMethod": "Zahlungsmethode",
+      "paymentAmount": "Zahlungsbetrag",
+      "tseVerification": "TSE-Verifizierung",
+      "confirmation": "Bestätigung",
+      "receipt": "Beleg"
+    },
+    
+    "customer": {
+      "id": "Kunden-ID",
+      "idPlaceholder": "Kunden-ID (8 Ziffern)",
+      "idRequired": "8-stellige ID erforderlich",
+      "idValid": "✓ Gültig",
+      "idInvalid": "Kunde konnte nicht validiert werden"
+    },
+    
+    "methods": {
+      "cash": "Bargeld",
+      "card": "Kreditkarte",
+      "voucher": "Gutschein",
+      "contactless": "Kontaktlos"
+    },
+    
+    "amount": {
+      "total": "Gesamtbetrag",
+      "placeholder": "0.00",
+      "hint": "Geben Sie den vom Kunden gezahlten Betrag ein",
+      "error": "Zahlungsbetrag darf nicht unter dem Gesamtbetrag liegen"
+    },
+    
+    "tse": {
+      "required": "TSE-Signatur erforderlich",
+      "notRequired": "TSE-Signatur nicht erforderlich",
+      "signature": "TSE-Signatur",
+      "placeholder": "TSE-Signatur",
+      "verificationError": "TSE konnte nicht verifiziert werden"
+    },
+    
+    "confirmation": {
+      "title": "Zahlungsbestätigung",
+      "customerId": "Kunden-ID:",
+      "paymentMethod": "Zahlungsmethode:",
+      "paymentAmount": "Zahlungsbetrag:",
+      "totalAmount": "Gesamtbetrag:",
+      "change": "Wechselgeld:"
+    },
+    
+    "receipt": {
+      "title": "Beleg wird erstellt",
+      "description": "Zahlung erfolgreich! Beleg wird erstellt...",
+      "view": "Beleg anzeigen",
+      "error": "Beleg konnte nicht erstellt werden"
+    },
+    
+    "buttons": {
+      "continue": "Weiter",
+      "back": "Zurück",
+      "confirm": "Bestätigen",
+      "cancel": "Abbrechen",
+      "verify": "Verifizieren",
+      "confirmPayment": "Zahlung bestätigen"
+    },
+    
+    "errors": {
+      "paymentFailed": "Zahlungsvorgang fehlgeschlagen",
+      "paymentError": "Fehler beim Zahlungsvorgang",
+      "generalError": "Ein Fehler ist aufgetreten"
+    },
+    
+    "cancellation": {
+      "title": "Zahlung stornieren",
+      "message": "Sind Sie sicher, dass Sie diesen Zahlungsvorgang stornieren möchten?",
+      "confirm": "Ja, stornieren",
+      "deny": "Nein",
+      "success": "Zahlung erfolgreich storniert",
+      "reason": "Stornierungsgrund",
+      "cancelledBy": "Storniert von",
+      "cancelledAt": "Storniert am"
+    }
+  },
+  "notifications": {
+    "saleComplete": "Verkauf abgeschlossen",
+    "lowStock": "Niedriger Lagerbestand",
+    "dailyReport": "Tagesabschluss",
+    "paymentSuccess": "Zahlung erfolgreich",
+    "paymentFailed": "Zahlung fehlgeschlagen"
+  },
+  "errors": {
+    "networkError": "Netzwerkfehler",
+    "serverError": "Serverfehler",
+    "sessionExpired": "Sitzung abgelaufen",
+    "validationError": "Validierungsfehler",
+    "permissionDenied": "Zugriff verweigert",
+    "unauthorized": "Nicht autorisiert",
+    "noAccess": "Sie haben keinen Zugriff auf diesen Bildschirm"
+  },
+  "tables": {
+    "title": "Tische",
+    "add": "Tisch hinzufügen",
+    "edit": "Tisch bearbeiten",
+    "delete": "Tisch löschen",
+    "number": "Tischnummer",
+    "status": "Status",
+    "capacity": "Kapazität",
+    "occupied": "Besetzt",
+    "free": "Frei",
+    "reserved": "Reserviert"
+  },
+  "orders": {
+    "title": "Bestellungen",
+    "new": "Neue Bestellung",
+    "pending": "Ausstehend",
+    "preparing": "Wird zubereitet",
+    "ready": "Fertig",
+    "served": "Serviert",
+    "cancelled": "Storniert",
+    "orderNumber": "Bestellnummer",
+    "orderTime": "Bestellzeit",
+    "estimatedTime": "Geschätzte Zeit"
+  },
+  "reports": {
+    "title": "Berichte",
+    "daily": "Tagesbericht",
+    "weekly": "Wochenbericht",
+    "monthly": "Monatsbericht",
+    "sales": "Verkaufsbericht",
+    "inventory": "Lagerbericht",
+    "export": "Exportieren",
+    "print": "Drucken",
+    "dateRange": "Datumsbereich"
+  },
+  "inventory": {
+    "title": "Lagerverwaltung",
+    "addProduct": "Produkt hinzufügen",
+    "editProduct": "Produkt bearbeiten",
+    "deleteProduct": "Produkt löschen",
+    "category": "Kategorie",
+
+    "supplier": "Lieferant",
+    "reorderLevel": "Nachbestellungsgrenze",
+    "currentStock": "Aktueller Bestand"
+  },
+  "customers": {
+    "title": "Kunden",
+    "add": "Kunde hinzufügen",
+    "edit": "Kunde bearbeiten",
+    "delete": "Kunde löschen",
+    "name": "Name",
+    "phone": "Telefon",
+    "address": "Adresse",
+    "email": "E-Mail",
+    "loyaltyPoints": "Treuepunkte",
+    "lastVisit": "Letzter Besuch"
+  },
+  "employees": {
+    "title": "Mitarbeiter",
+    "add": "Mitarbeiter hinzufügen",
+    "edit": "Mitarbeiter bearbeiten",
+    "delete": "Mitarbeiter löschen",
+    "name": "Name",
+    "role": "Rolle",
+    "permissions": "Berechtigungen",
+    "shift": "Schicht",
+    "clockIn": "Einstempeln",
+    "clockOut": "Ausstempeln"
+  },
+  "system": {
+    "title": "System",
+    "status": "Status",
+    "health": "Gesundheit",
+    "logs": "Protokolle",
+    "backup": "Backup",
+    "restore": "Wiederherstellen",
+    "update": "Aktualisieren",
+    "maintenance": "Wartung",
+    "tseStatus": "TSE-Status",
+    "printerStatus": "Druckerstatus"
+  }
+}

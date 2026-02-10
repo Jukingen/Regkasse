@@ -1,0 +1,12 @@
+{
+  "title": "Çalışanlar",
+  "add": "Çalışan Ekle",
+  "edit": "Çalışan Düzenle",
+  "delete": "Çalışan Sil",
+  "name": "Ad",
+  "role": "Rol",
+  "permissions": "İzinler",
+  "shift": "Vardiya",
+  "clockIn": "Giriş Yap",
+  "clockOut": "Çıkış Yap"
+}
