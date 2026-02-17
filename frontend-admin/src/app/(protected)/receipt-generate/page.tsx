@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Card, Typography, message } from 'antd';
+import { Card, message } from 'antd';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+
 import GenerateReceiptForm from '@/features/receipt-templates/components/GenerateReceiptForm';
-import { useReceiptTemplateQueries } from '@/features/receipt-templates/hooks/useReceiptTemplateQueries';
+import { useReceiptTemplates } from '@/features/receipt-templates/hooks/useReceiptTemplates';
 import type { GenerateReceiptRequest } from '@/api/generated/model';
 
-const { Title } = Typography;
-
 export default function GenerateReceiptPage() {
-    const { useGenerate } = useReceiptTemplateQueries();
+    const { useGenerate } = useReceiptTemplates();
 
     const { mutateAsync: generateReceipt, isPending } = useGenerate({
         mutation: {
@@ -25,9 +25,15 @@ export default function GenerateReceiptPage() {
     };
 
     return (
-        <Card>
-            <Title level={3}>Generate Receipt</Title>
-            <GenerateReceiptForm onGenerate={handleGenerate} loading={isPending} />
-        </Card>
+        <React.Fragment>
+            <AdminPageHeader
+                title="Generate Receipt"
+                breadcrumbs={[{ title: 'Dashboard', href: '/' }, { title: 'Generate Receipt' }]}
+            />
+
+            <Card>
+                <GenerateReceiptForm onGenerate={handleGenerate} loading={isPending} />
+            </Card>
+        </React.Fragment>
     );
 }

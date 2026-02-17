@@ -1,17 +1,18 @@
 'use client';
 
 import React from 'react';
-import { Card, Typography, message } from 'antd';
+import { message, Card, Button } from 'antd';
 import { useRouter } from 'next/navigation';
-import ReceiptTemplateForm from '@/features/receipt-templates/components/ReceiptTemplateForm';
-import { useReceiptTemplateQueries } from '@/features/receipt-templates/hooks/useReceiptTemplateQueries';
-import type { CreateReceiptTemplateRequest, UpdateReceiptTemplateRequest } from '@/api/generated/model';
+import { ArrowLeftOutlined } from '@ant-design/icons';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 
-const { Title } = Typography;
+import ReceiptTemplateForm from '@/features/receipt-templates/components/ReceiptTemplateForm';
+import { useReceiptTemplates } from '@/features/receipt-templates/hooks/useReceiptTemplates';
+import type { CreateReceiptTemplateRequest, UpdateReceiptTemplateRequest } from '@/api/generated/model';
 
 export default function NewReceiptTemplatePage() {
     const router = useRouter();
-    const { useCreate, invalidateList } = useReceiptTemplateQueries();
+    const { useCreate, invalidateList } = useReceiptTemplates();
 
     const { mutate: createTemplate, isPending } = useCreate({
         mutation: {
@@ -27,17 +28,35 @@ export default function NewReceiptTemplatePage() {
     });
 
     const handleSubmit = (values: CreateReceiptTemplateRequest | UpdateReceiptTemplateRequest) => {
+        // Strict typing: values from form should match CreateReceiptTemplateRequest
         createTemplate({ data: values as CreateReceiptTemplateRequest });
     };
 
     return (
-        <Card>
-            <Title level={3}>Create Receipt Template</Title>
-            <ReceiptTemplateForm
-                onSubmit={handleSubmit}
-                loading={isPending}
-                mode="create"
+        <React.Fragment>
+            <AdminPageHeader
+                title="Create Receipt Template"
+                breadcrumbs={[
+                    { title: 'Receipt Templates', href: '/receipt-templates' },
+                    { title: 'New' }
+                ]}
+                actions={
+                    <Button
+                        icon={<ArrowLeftOutlined />}
+                        onClick={() => router.push('/receipt-templates')}
+                    >
+                        Back
+                    </Button>
+                }
             />
-        </Card>
+
+            <Card>
+                <ReceiptTemplateForm
+                    onSubmit={handleSubmit}
+                    loading={isPending}
+                    mode="create"
+                />
+            </Card>
+        </React.Fragment>
     );
 }

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Modal, Spin, Alert, Typography } from 'antd';
-import { useReceiptTemplateQueries } from '../hooks/useReceiptTemplateQueries';
+import { useReceiptTemplates } from '../hooks/useReceiptTemplates';
 
 const { Paragraph } = Typography;
 
@@ -12,7 +12,7 @@ interface ReceiptPreviewModalProps {
 }
 
 export default function ReceiptPreviewModal({ templateId, onClose }: ReceiptPreviewModalProps) {
-    const { usePreview } = useReceiptTemplateQueries();
+    const { usePreview } = useReceiptTemplates();
     const { data, isLoading, isError, error } = usePreview(templateId!, {
         query: { enabled: !!templateId },
     });

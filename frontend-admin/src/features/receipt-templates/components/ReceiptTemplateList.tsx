@@ -8,19 +8,19 @@ import type { ReceiptTemplate } from '@/api/generated/model';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 
-interface ReceiptTemplatesTableProps {
+interface ReceiptTemplateListProps {
     data: ReceiptTemplate[];
     loading: boolean;
     onDelete: (id: string) => void;
     onPreview: (id: string) => void;
 }
 
-export default function ReceiptTemplatesTable({
+export default function ReceiptTemplateList({
     data,
     loading,
     onDelete,
     onPreview,
-}: ReceiptTemplatesTableProps) {
+}: ReceiptTemplateListProps) {
     const columns: ColumnsType<ReceiptTemplate> = [
         {
             title: 'Name',

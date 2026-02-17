@@ -22,10 +22,11 @@ export default function GenerateReceiptForm({ onGenerate, loading }: GenerateRec
             ? JSON.parse(values.items as string)
             : [];
 
+        // Strict construction of GenerateReceiptRequest
         const request: GenerateReceiptRequest = {
             language: values.language as string,
             templateType: values.templateType as string,
-            companyInfo: values.companyName
+            companyInfo: (values.companyName || values.companyAddress)
                 ? {
                     name: values.companyName as string,
                     address: values.companyAddress as string,
@@ -34,16 +35,16 @@ export default function GenerateReceiptForm({ onGenerate, loading }: GenerateRec
                     taxNumber: values.companyTaxNumber as string,
                 }
                 : undefined,
-            customerInfo: values.customerName
+            customerInfo: (values.customerName || values.customerAddress)
                 ? {
                     name: values.customerName as string,
                     address: values.customerAddress as string,
                     phone: values.customerPhone as string,
                 }
                 : undefined,
-            items,
-            taxAmount: values.taxAmount as number,
-            totalAmount: values.totalAmount as number,
+            items: items, // already typed as ReceiptItem[]
+            taxAmount: Number(values.taxAmount) || 0,
+            totalAmount: Number(values.totalAmount) || 0,
             paymentMethod: values.paymentMethod as string,
         };
 
