@@ -59,6 +59,11 @@ export default function DashboardLayout({
             label: <Link href="/invoices">Invoices</Link>,
         },
         {
+            key: '/receipts',
+            icon: <FileTextOutlined />,
+            label: <Link href="/receipts">Receipts</Link>,
+        },
+        {
             key: '/audit-logs',
             icon: <SafetyCertificateOutlined />,
             label: <Link href="/audit-logs">Audit Logs</Link>,

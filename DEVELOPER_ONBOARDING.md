@@ -156,37 +156,11 @@ frontend/
 └── i18n/                # Dil dosyaları
 ```
 
-### Veritabanı Şeması (PostgreSQL)
-```sql
--- Ana tablolar
-CREATE TABLE receipts (
-    id SERIAL PRIMARY KEY,
-    receipt_number VARCHAR(50) UNIQUE NOT NULL,
-    tse_signature TEXT NOT NULL,
-    receipt_date DATE NOT NULL,
-    receipt_time TIME NOT NULL,
-    cash_register_id VARCHAR(50) NOT NULL,
-    total_amount DECIMAL(18,2) NOT NULL,
-    tax_amount DECIMAL(18,2) NOT NULL,
-    payment_method VARCHAR(20) NOT NULL,
-    qr_code_data TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### Veritabanı Mimarisi ve Hiyerarşisi
 
--- Rol ve yetki tabloları
-CREATE TABLE roles (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL,
-    description TEXT
-);
+Veritabanı detayları (Core, Transactional, Compliance katmanları) ve teknik kısıtlamalar için aşağıdaki dokümanı inceleyin:
 
-CREATE TABLE permissions (
-    id SERIAL PRIMARY KEY,
-    resource VARCHAR(50) NOT NULL,
-    action VARCHAR(50) NOT NULL,
-    description TEXT
-);
-```
+👉 [**Database Overview & Hierarchy**](./ai/02_DATABASE_OVERVIEW.md)
 
 ---
 
