@@ -64,6 +64,16 @@ export default function DashboardLayout({
             label: <Link href="/receipts">Receipts</Link>,
         },
         {
+            key: '/receipt-templates',
+            icon: <FileTextOutlined />,
+            label: <Link href="/receipt-templates">Receipt Templates</Link>,
+        },
+        {
+            key: '/receipt-generate',
+            icon: <FileTextOutlined />,
+            label: <Link href="/receipt-generate">Generate Receipt</Link>,
+        },
+        {
             key: '/audit-logs',
             icon: <SafetyCertificateOutlined />,
             label: <Link href="/audit-logs">Audit Logs</Link>,
