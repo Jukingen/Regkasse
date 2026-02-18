@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef } from 'react';
-import { customInstance } from '@/api/http';
+import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
 import { usePostApiAuthLogout } from '@/api/generated/auth/auth';
 import { UserInfo } from '@/api/generated/model';
 import { message } from 'antd';

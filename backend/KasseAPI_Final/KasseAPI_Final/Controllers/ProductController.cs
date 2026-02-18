@@ -13,7 +13,7 @@ namespace KasseAPI_Final.Controllers
     /// <summary>
     /// Ürün yönetimi için controller - RKSV uyumlu ürün işlemleri
     /// </summary>
-    [Route("api/products")]
+    [Route("api/Product")]
     [ApiController]
     [Authorize]
     public class ProductController : EntityController<Product>
@@ -414,7 +414,7 @@ namespace KasseAPI_Final.Controllers
         /// <summary>
         /// Yeni ürün oluştur
         /// </summary>
-        [HttpPost("create")]
+        [HttpPost]
         public override async Task<IActionResult> Create([FromBody] Product product)
         {
             try
@@ -452,7 +452,7 @@ namespace KasseAPI_Final.Controllers
         /// <summary>
         /// Ürün güncelle
         /// </summary>
-        [HttpPut("update/{id}")]
+        [HttpPut("{id}")]
         public override async Task<IActionResult> Update(Guid id, [FromBody] Product product)
         {
             try

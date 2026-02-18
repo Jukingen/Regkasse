@@ -59,6 +59,21 @@ export default function DashboardLayout({
             label: <Link href="/invoices">Invoices</Link>,
         },
         {
+            key: '/products',
+            icon: <FileTextOutlined />,
+            label: <Link href="/products">Products</Link>,
+        },
+        {
+            key: '/categories',
+            icon: <FileTextOutlined />,
+            label: <Link href="/categories">Categories</Link>,
+        },
+        {
+            key: '/customers',
+            icon: <UserOutlined />,
+            label: <Link href="/customers">Customers</Link>,
+        },
+        {
             key: '/receipts',
             icon: <FileTextOutlined />,
             label: <Link href="/receipts">Receipts</Link>,

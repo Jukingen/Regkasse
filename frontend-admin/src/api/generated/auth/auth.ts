@@ -17,7 +17,7 @@ import type {
   LoginModel,
   RegisterModel
 } from '.././model'
-import { customInstance } from '../../http';
+import { customInstance } from '../../../lib/axios';
 
 
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];

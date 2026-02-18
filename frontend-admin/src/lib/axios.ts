@@ -2,7 +2,8 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { authStorage } from '@/features/auth/services/authStorage';
 
 const isDev = process.env.NODE_ENV === 'development';
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
+// STRICT: Require NEXT_PUBLIC_API_BASE_URL to be set, or fallback to localhost:5183 (matching backend default)
+const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5183';
 
 // Extended window interface for global singleton in Dev
 declare global {
@@ -26,7 +27,7 @@ const createAxiosInstance = () => {
                 config.headers.Authorization = `Bearer ${token}`;
 
                 if (isDev) {
-                    console.log(`🔌 [API] Header Authorization added for: ${config.url}`);
+                    console.debug(`🔌 [API] Attaching token to: ${config.url}`);
                 }
             }
         }
@@ -36,10 +37,6 @@ const createAxiosInstance = () => {
     // Response Interceptor
     instance.interceptors.response.use(
         (response) => {
-            if (isDev) {
-                // Console log disabled to reduce noise, enable if needed
-                // console.log(`✅ [API] Response ${response.status}:`, response.config.url);
-            }
             return response;
         },
         async (error) => {
@@ -48,20 +45,21 @@ const createAxiosInstance = () => {
 
             if (isDev) {
                 if (status === 401) {
-                    // Silence 401 logs on login/init
-                    console.debug('🔐 [API] 401 Unauthorized (Expected for public routes)');
+                    console.debug('🔐 [API] 401 Unauthorized (Expected for public routes or expired token)');
                 } else {
-                    console.error(`❌ [API] Error ${status || 'Network'}:`, {
+                    console.error(`❌ [API] Error ${status}:`, {
                         url: originalRequest?.url,
-                        status: status,
+                        data: error.response?.data,
                     });
                 }
             }
 
-            // Handle 401 - Just reject, let app handle redirect via AuthGate
+            // Handle 401 - You might want to dispatch a specific event here or just let React Query handle it (retry: false)
             if (status === 401 && !originalRequest._retry) {
                 originalRequest._retry = true;
+                // Potential TODO: Refresh token logic here if implemented
             }
+
             return Promise.reject(error);
         }
     );
@@ -69,13 +67,14 @@ const createAxiosInstance = () => {
     return instance;
 };
 
-// Singleton Logic
+// Singleton Logic to prevent multiple instances during HMR
 export const AXIOS_INSTANCE = global._axiosInstance || createAxiosInstance();
 
 if (isDev) {
     global._axiosInstance = AXIOS_INSTANCE;
 }
 
+// Orval custom instance wrapper
 export const customInstance = <T>(config: AxiosRequestConfig, options?: AxiosRequestConfig): Promise<T> => {
     const source = axios.CancelToken.source();
     const promise = AXIOS_INSTANCE({

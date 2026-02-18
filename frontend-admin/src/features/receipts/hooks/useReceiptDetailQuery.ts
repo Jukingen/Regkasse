@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { customInstance } from '@/api/http';
+import { customInstance } from '@/lib/axios';
 import type { ReceiptDetailDto } from '@/features/receipts/types/receipts';
 import { RECEIPT_KEYS } from './useReceiptListQuery';
 

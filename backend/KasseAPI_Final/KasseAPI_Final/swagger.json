@@ -4555,7 +4555,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductListResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductListResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductListResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -9170,7 +9187,7 @@
           "invoiceItems": {
             "nullable": true
           },
-          "taxDetails": { }
+          "taxDetails": {}
         },
         "additionalProperties": false
       },
@@ -11897,6 +11914,55 @@
           }
         },
         "additionalProperties": false
+      },
+      "ProductListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Product"
+                },
+                "nullable": true
+              },
+              "pagination": {
+                "type": "object",
+                "properties": {
+                  "pageNumber": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "pageSize": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "totalCount": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "totalPages": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -11910,7 +11976,7 @@
   },
   "security": [
     {
-      "Bearer": [ ]
+      "Bearer": []
     }
   ]
 }

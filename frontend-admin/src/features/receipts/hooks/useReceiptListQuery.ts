@@ -1,5 +1,5 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { customInstance } from '@/api/http';
+import { customInstance } from '@/lib/axios';
 import type {
     ReceiptListParams,
     ReceiptListResponse,

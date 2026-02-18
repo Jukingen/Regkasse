@@ -13,7 +13,7 @@ export default defineConfig({
             prettier: true,
             override: {
                 mutator: {
-                    path: 'src/api/http.ts',
+                    path: 'src/lib/axios.ts',
                     name: 'customInstance',
                 },
             },
