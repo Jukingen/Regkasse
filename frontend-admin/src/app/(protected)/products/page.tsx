@@ -17,7 +17,21 @@ export default function ProductsPage() {
     // Local State for immediate UI updates
     const [page, setPage] = useState(Number(filters.page) || 1);
     const [pageSize, setPageSize] = useState(Number(filters.pageSize) || 10);
-    const search = filters.search || '';
+    // Remove search from filters, use local state
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchDebounced, setSearchDebounced] = useState('');
+
+    // Debounce search term
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            setSearchDebounced(searchTerm);
+            if (searchTerm) {
+                // Reset to page 1 when searching (though pagination is disabled for search results for now)
+                setPage(1);
+            }
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
 
     // Sync URL changes to local state (for back/forward navigation)
     // Sync URL changes to local state (for back/forward navigation)
@@ -39,36 +53,53 @@ export default function ProductsPage() {
     } = useProducts();
 
     // Queries
-    const isSearching = !!search;
+    const isSearching = !!searchDebounced && searchDebounced.length >= 2;
 
     const listQuery = useList(
         { page, pageSize },
         {
             query: {
                 enabled: !isSearching,
-                placeholderData: keepPreviousData // UX improvement
+                placeholderData: keepPreviousData
             } as any
         }
     );
 
     const searchQuery = useProducts().useSearch(
-        { name: search },
+        { name: searchDebounced },
         { query: { enabled: isSearching } }
     );
 
     const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading;
 
-    // Extract raw data (PascalCase from backend)
-    const rawSearchResults = (searchQuery.data as any) || [];
+    // Extract raw data 
+    // Search endpoint returns { data: Product[] } (Array)
+    // List endpoint returns { data: { items: Product[], ... } }
+    const rawSearchResults =
+        (searchQuery.data as any)?.data?.data ??   // AxiosResponse + wrapper: { success, data: [...] }
+        (searchQuery.data as any)?.data ??         // wrapper: { success, data: [...] }
+        [];
     const rawListItems = listQuery.data?.data?.items || [];
+
+    // Normalize data source
     const rawItems = isSearching ? rawSearchResults : rawListItems;
 
     // Map to UI model (camelCase)
+    // Ensure we handle potential PascalCase fields from backend if not handled by mapper
     const products = Array.isArray(rawItems) ? rawItems.map(mapApiProductToUi) : [];
 
     const pagination = isSearching
-        ? { totalCount: rawSearchResults.length, totalPages: 1 }
-        : (listQuery.data?.data?.pagination || { totalCount: 0, totalPages: 0 });
+        ? false // Disable pagination for search results as endpoint returns all matches (or we need to implement client-side/search-specific pagination)
+        : (listQuery.data?.data?.pagination ? {
+            current: page,
+            pageSize: pageSize,
+            total: listQuery.data.data.pagination.totalCount,
+            showSizeChanger: true,
+            onChange: (p: number, ps: number) => {
+                setPage(p);
+                setPageSize(ps);
+            },
+        } : false);
 
     // Mutations
     const createMutation = useCreate();
@@ -201,9 +232,14 @@ export default function ProductsPage() {
                     <Input.Search
                         placeholder="Search products..."
                         allowClear
-                        onSearch={(value) => setParam('search', value)}
+                        // Remove router dependency: onSearch={(value) => setParam('search', value)}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onSearch={(value) => {
+                            setPage(1);
+                            setParam('search', value);
+                        }}
                         style={{ width: 300 }}
-                        defaultValue={search}
+                        value={searchTerm}
                     />
                 </Space>
                 <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
@@ -216,17 +252,7 @@ export default function ProductsPage() {
                 dataSource={products}
                 rowKey="id"
                 loading={isLoading}
-                pagination={{
-                    current: page,
-                    pageSize: pageSize,
-                    total: pagination.totalCount,
-                    showSizeChanger: true,
-                    onChange: (p, ps) => {
-                        // 1. Update Local State (Trigger Fetch)
-                        setPage(p);
-                        setPageSize(ps);
-                    },
-                }}
+                pagination={pagination}
             />
 
             <ProductForm
