@@ -139,12 +139,7 @@ export default function ProductsPage() {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
-            render: (text: string, record: Product) => (
-                <Space direction="vertical" size={0}>
-                    <span style={{ fontWeight: 600 }}>{text}</span>
-                    <span style={{ fontSize: 12, color: '#888' }}>{record.barcode || '-'}</span>
-                </Space>
-            ),
+            render: (text: string) => <span style={{ fontWeight: 600 }}>{text}</span>,
         },
         {
             title: 'Category',
@@ -156,18 +151,6 @@ export default function ProductsPage() {
             dataIndex: 'price',
             key: 'price',
             render: (price: number) => `€${price?.toFixed(2)}`,
-        },
-        {
-            title: 'Stock',
-            dataIndex: 'stockQuantity',
-            key: 'stockQuantity',
-            render: (stock: number, record: Product) => {
-                const min = record.minStockLevel || 0;
-                const isLow = stock <= min;
-                return (
-                    <Tag color={isLow ? 'red' : 'green'}>{stock} {record.unit || 'pcs'}</Tag>
-                );
-            }
         },
         {
             title: 'Tax',
