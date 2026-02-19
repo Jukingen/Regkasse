@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
 import { Product, TaxType } from '@/api/generated/model';
+import DebounceSelect from '@/components/DebounceSelect';
+import { getApiCategoriesSearch } from '@/api/generated/categories/categories';
+import { useCategories } from '@/features/categories/hooks/useCategories';
 
 interface ProductFormProps {
     visible: boolean;
@@ -24,13 +27,38 @@ export default function ProductForm({
 }: ProductFormProps) {
     const [form] = Form.useForm();
 
+    // Fetch default categories
+    const { useList } = useCategories();
+    const { data: categoryList } = useList();
+
+    // Memoize default options
+    const defaultCategoryOptions = useMemo(() => {
+        return (categoryList || []).map((cat: any) => ({
+            label: cat.Name || cat.name,
+            value: cat.Name || cat.name,
+        }));
+    }, [categoryList]);
+
     useEffect(() => {
         if (visible) {
             if (initialValues) {
+                // Ensure we handle the case where initialValues.category is a string
+                const catName = (initialValues.category as any)?.Name || (initialValues.category as any)?.name || initialValues.category;
+
                 form.setFieldsValue({
                     ...initialValues,
-                    isActive: initialValues.isActive ?? true, // Default active if undefined
-                    taxType: initialValues.taxType || TaxType.NUMBER_20, // Default to 20%
+                    isActive: initialValues.isActive ?? true,
+                    taxType: initialValues.taxType || TaxType.NUMBER_20,
+                    // Ensure hidden fields are populated so they are returned safely if we need them, 
+                    // though we will likely override them with defaults if they are missing/null
+                    unit: initialValues.unit || 'pcs',
+                    stockQuantity: initialValues.stockQuantity ?? 0,
+                    minStockLevel: initialValues.minStockLevel ?? 0,
+                    // If DebounceSelect is in labelInValue mode, we need { label, value }
+                    // But if we pass string, AntD Select might handle it if options are available.
+                    // Safer to pass the object if we can, or just the value if not labelInValue.
+                    // DebounceSelect uses labelInValue={true} in the component definition.
+                    category: catName ? { label: catName, value: catName } : undefined
                 });
             } else {
                 form.resetFields();
@@ -38,10 +66,12 @@ export default function ProductForm({
                     isActive: true,
                     taxType: TaxType.NUMBER_20,
                     taxRate: 20,
-                    stockQuantity: 0,
-                    minStockLevel: 5,
                     price: 0,
-                    cost: 0
+                    cost: 0,
+                    // Hidden defaults
+                    unit: 'pcs',
+                    stockQuantity: 0,
+                    minStockLevel: 0,
                 });
             }
         }
@@ -50,15 +80,28 @@ export default function ProductForm({
     const handleOk = async () => {
         try {
             const values = await form.validateFields();
-            // Ensure numeric values are numbers
+
+            // Extract category value (it might be an object from DebounceSelect or a string if not changed? 
+            // Actually DebounceSelect with labelInValue returns object { label, value }. 
+            // If it was initialValue string, we need to handle that.
+            // Wait, I set initialValue as { label, value } in useEffect. So it should be consistent.
+
+            // Extract category value if it's an object (labelInValue)
+            const categoryValue = values.category?.value || values.category;
+
+            // Prepare payload with hidden defaults + visible values
             const processedValues: Product = {
                 ...values,
                 price: Number(values.price),
                 cost: Number(values.cost),
-                stockQuantity: Number(values.stockQuantity),
-                minStockLevel: Number(values.minStockLevel),
                 taxRate: Number(values.taxRate),
+                // Ensure defaults for hidden fields
+                stockQuantity: Number(values.stockQuantity ?? 0),
+                minStockLevel: Number(values.minStockLevel ?? 0),
+                unit: values.unit || 'pcs',
+                category: categoryValue,
             };
+
             await onSubmit(processedValues);
             form.resetFields();
         } catch (error: any) {
@@ -77,6 +120,9 @@ export default function ProductForm({
                     };
                 });
                 form.setFields(formErrors);
+
+                // If there's an error on a hidden field (shouldn't happen with defaults, but just in case),
+                // we might want to know.
             } else if (error?.response?.data?.title) {
                 message.error(error.response.data.title);
             }
@@ -85,6 +131,21 @@ export default function ProductForm({
 
     const handleTaxTypeChange = (value: number) => {
         form.setFieldsValue({ taxRate: value });
+    };
+
+    // Category Search Fetcher
+    const fetchCategories = async (search: string) => {
+        if (!search) return defaultCategoryOptions;
+        try {
+            const data = await getApiCategoriesSearch({ query: search });
+            return data.map((cat: any) => ({
+                label: cat.Name || cat.name,
+                value: cat.Name || cat.name,
+            }));
+        } catch (error) {
+            console.error('Failed to fetch categories', error);
+            return [];
+        }
     };
 
     return (
@@ -102,6 +163,11 @@ export default function ProductForm({
                 layout="vertical"
                 initialValues={{ isActive: true }}
             >
+                {/* Hidden Fields to hold state */}
+                <Form.Item name="unit" hidden><Input /></Form.Item>
+                <Form.Item name="stockQuantity" hidden><InputNumber /></Form.Item>
+                <Form.Item name="minStockLevel" hidden><InputNumber /></Form.Item>
+
                 <Form.Item
                     name="name"
                     label="Product Name"
@@ -122,7 +188,13 @@ export default function ProductForm({
                         name="category"
                         label="Category"
                     >
-                        <Input placeholder="E.g., Drinks" />
+                        <DebounceSelect
+                            placeholder="Select or Search Category"
+                            fetchOptions={fetchCategories}
+                            defaultOptions={defaultCategoryOptions}
+                            style={{ width: '100%' }}
+                            allowClear
+                        />
                     </Form.Item>
                 </div>
 
@@ -175,31 +247,6 @@ export default function ProductForm({
                         <InputNumber style={{ width: '100%' }} readOnly />
                     </Form.Item>
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <Form.Item
-                        name="stockQuantity"
-                        label="Stock Quantity"
-                        rules={[{ required: true }]}
-                    >
-                        <InputNumber style={{ width: '100%' }} min={0} precision={0} />
-                    </Form.Item>
-
-                    <Form.Item
-                        name="minStockLevel"
-                        label="Min Stock Alert Level"
-                    >
-                        <InputNumber style={{ width: '100%' }} min={0} precision={0} />
-                    </Form.Item>
-                </div>
-
-                <Form.Item
-                    name="unit"
-                    label="Unit"
-                    rules={[{ required: true, message: 'Please enter unit (e.g. pcs, kg)' }]}
-                >
-                    <Input placeholder="pcs, kg, l" />
-                </Form.Item>
 
                 <Form.Item
                     name="description"

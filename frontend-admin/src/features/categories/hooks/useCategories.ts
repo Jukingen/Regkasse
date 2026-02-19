@@ -4,7 +4,8 @@ import {
     usePostApiCategories,
     usePutApiCategoriesId,
     useDeleteApiCategoriesId,
-    useGetApiCategoriesIdProducts
+    useGetApiCategoriesIdProducts,
+    useGetApiCategoriesSearch
 } from '@/api/generated/categories/categories';
 import { CreateCategoryRequest, UpdateCategoryRequest } from '@/api/generated/model';
 
@@ -34,6 +35,16 @@ export function useCategories() {
                     queryKey: categoryKeys.lists(),
                 }
             }),
+        useSearch: (query: string) =>
+            useGetApiCategoriesSearch(
+                { query },
+                {
+                    query: {
+                        queryKey: [...categoryKeys.lists(), 'search', query],
+                        enabled: !!query, // Only fetch if query exists
+                    }
+                }
+            ),
         useProductsByCategory: (id: string) =>
             useGetApiCategoriesIdProducts(id, {
                 query: {
