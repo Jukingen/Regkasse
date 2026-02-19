@@ -6,7 +6,7 @@ import { Button, Table, Space, message, Tag, Input, Popconfirm, Tooltip } from '
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import { useProducts, useProductFilters } from '@/features/products/hooks/useProducts';
 import { Product } from '@/api/generated/model';
-import { mapApiProductToUi } from '@/features/products/utils/productMapper';
+import { mapApiProductToUi, mapUiProductToApi } from '@/features/products/utils/productMapper';
 import ProductForm from '@/features/products/components/ProductForm';
 import { ColumnType } from 'antd/es/table';
 
@@ -20,12 +20,14 @@ export default function ProductsPage() {
     const search = filters.search || '';
 
     // Sync URL changes to local state (for back/forward navigation)
-    React.useEffect(() => {
+    // Sync URL changes to local state (for back/forward navigation)
+    // Commented out to prevent router interaction during pagination
+    /* React.useEffect(() => {
         const urlPage = Number(filters.page) || 1;
         const urlPageSize = Number(filters.pageSize) || 10;
         if (urlPage !== page) setPage(urlPage);
         if (urlPageSize !== pageSize) setPageSize(urlPageSize);
-    }, [filters.page, filters.pageSize]);
+    }, [filters.page, filters.pageSize]); */
 
     // 2. React Query Hooks
     const {
@@ -80,25 +82,34 @@ export default function ProductsPage() {
     // 4. Handlers
     const handleCreate = async (values: Product) => {
         try {
-            await createMutation.mutateAsync({ data: values });
+            const apiData = mapUiProductToApi(values);
+            await createMutation.mutateAsync({ data: apiData });
             message.success('Product created successfully');
             setIsFormVisible(false);
             invalidateList();
         } catch (err) {
             message.error('Failed to create product');
+            // Re-throw so ProductForm can handle validation errors
+            throw err;
         }
     };
 
     const handleUpdate = async (values: Product) => {
         if (!editingProduct?.id) return;
         try {
-            await updateMutation.mutateAsync({ id: editingProduct.id, data: values });
+            const apiData = mapUiProductToApi(values);
+            // Ensure ID is included (though mapper does it, safety check)
+            apiData.id = editingProduct.id;
+
+            await updateMutation.mutateAsync({ id: editingProduct.id, data: apiData });
             message.success('Product updated successfully');
             setIsFormVisible(false);
             setEditingProduct(null);
             invalidateList();
         } catch (err) {
             message.error('Failed to update product');
+            // Re-throw so ProductForm can handle validation errors
+            throw err;
         }
     };
 
@@ -231,10 +242,6 @@ export default function ProductsPage() {
                         // 1. Update Local State (Trigger Fetch)
                         setPage(p);
                         setPageSize(ps);
-
-                        // 2. Update URL (Shallow / Background Sync)
-                        setParam('page', p.toString());
-                        setParam('pageSize', ps.toString());
                     },
                 }}
             />

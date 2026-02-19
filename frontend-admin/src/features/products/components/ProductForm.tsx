@@ -61,8 +61,25 @@ export default function ProductForm({
             };
             await onSubmit(processedValues);
             form.resetFields();
-        } catch (error) {
-            console.error('Validation failed:', error);
+        } catch (error: any) {
+            console.error('Operation failed:', error);
+
+            // Handle Backend Validation Errors
+            if (error?.response?.data?.errors) {
+                // Map Backend Validation Errors to AntD Form
+                const validationErrors = error.response.data.errors;
+                const formErrors = Object.keys(validationErrors).map(key => {
+                    // Convert PascalCase (e.g. "Unit") to camelCase (e.g. "unit")
+                    const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
+                    return {
+                        name: camelKey,
+                        errors: validationErrors[key]
+                    };
+                });
+                form.setFields(formErrors);
+            } else if (error?.response?.data?.title) {
+                message.error(error.response.data.title);
+            }
         }
     };
 
@@ -179,6 +196,7 @@ export default function ProductForm({
                 <Form.Item
                     name="unit"
                     label="Unit"
+                    rules={[{ required: true, message: 'Please enter unit (e.g. pcs, kg)' }]}
                 >
                     <Input placeholder="pcs, kg, l" />
                 </Form.Item>

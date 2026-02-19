@@ -160,6 +160,10 @@ namespace KasseAPI_Final.Data.Repositories
                 entity.UpdatedAt = DateTime.UtcNow;
                 entity.CreatedAt = existingEntity.CreatedAt; // Orijinal oluşturma tarihini koru
 
+                // EF Core tracking hatasını önlemek için mevcut entity'i detach et
+                // "The instance of entity type '...' cannot be tracked..."
+                _context.Entry(existingEntity).State = EntityState.Detached;
+
                 _dbSet.Update(entity);
                 await _context.SaveChangesAsync();
 
