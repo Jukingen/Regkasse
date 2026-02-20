@@ -196,5 +196,6 @@ export * from './updateTSESettingsRequest';
 export * from './updateTableStatusRequest';
 export * from './updateUserRequest';
 export * from './updateUserSettingsRequest';
+export * from './finanzOnlineSubmission';
 export * from './userInfo';
 export * from './userSettings';

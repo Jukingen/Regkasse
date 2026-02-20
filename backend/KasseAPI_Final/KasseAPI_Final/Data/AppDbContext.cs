@@ -44,6 +44,9 @@ namespace KasseAPI_Final.Data
         public DbSet<TableOrder> TableOrders { get; set; }
         public DbSet<TableOrderItem> TableOrderItems { get; set; }
 
+        // FinanzOnline Audit
+        public DbSet<FinanzOnlineSubmission> FinanzOnlineSubmissions { get; set; }
+
         // RKSV Receipt tables
         public DbSet<Receipt> Receipts { get; set; }
         public DbSet<ReceiptItem> ReceiptItems { get; set; }
@@ -52,6 +55,9 @@ namespace KasseAPI_Final.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            // Enable pg_trgm extension for GIN indexes
+            builder.HasPostgresExtension("pg_trgm");
 
             // ApplicationUser configuration
             builder.Entity<ApplicationUser>(entity =>
@@ -155,9 +161,24 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.RemainingAmount).HasColumnType("decimal(18,2)");
                 
                 entity.HasIndex(e => e.InvoiceNumber).IsUnique();
-                entity.HasIndex(e => e.InvoiceDate);
-                entity.HasIndex(e => e.Status);
+                // entity.HasIndex(e => e.InvoiceDate); // Covered by composite index
+                // entity.HasIndex(e => e.Status); // Covered by composite index
                 entity.HasIndex(e => e.TseSignature).IsUnique();
+
+                // Composite Indexes for Pagination
+                entity.HasIndex(e => new { e.IsActive, e.InvoiceDate }); // Default ASC/ASC, checking descending support...
+                // EF Core 7+ supports IsDescending on HasIndex(). 
+                // However, simple HasIndex can be optimized later if syntax is complex. 
+                // Let's use standard indexes first or raw SQL in migration.
+                // Re-reading Plan: "invoices(is_active, invoice_date desc)"
+                // Using .IsDescending(false, true)
+                entity.HasIndex(e => new { e.IsActive, e.InvoiceDate }).IsDescending(false, true);
+                entity.HasIndex(e => new { e.Status, e.InvoiceDate }).IsDescending(false, true);
+
+                // GIN Indexes for ILIKE search
+                entity.HasIndex(e => e.InvoiceNumber).HasMethod("GIN").HasOperators("gin_trgm_ops");
+                entity.HasIndex(e => e.CustomerName).HasMethod("GIN").HasOperators("gin_trgm_ops");
+                entity.HasIndex(e => e.CompanyName).HasMethod("GIN").HasOperators("gin_trgm_ops");
             });
 
             // CashRegister configuration

@@ -147,45 +147,79 @@ namespace KasseAPI_Final.Controllers
         [HttpPost("submit-invoice")]
         public async Task<ActionResult<FinanzOnlineSubmitResponse>> SubmitInvoice([FromBody] FinanzOnlineSubmitRequest request)
         {
+            var submission = new FinanzOnlineSubmission
+            {
+                SubmittedAt = DateTime.UtcNow,
+                RequestPayloadJson = JsonSerializer.Serialize(request)
+            };
+
             try
             {
+                // Find invoice to link if possible (optional, but good for tracking)
+                var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceNumber == request.InvoiceNumber);
+                if (invoice != null) submission.InvoiceId = invoice.Id;
+
                 var tseDevice = await _context.TseDevices
                     .Where(t => t.IsActive && t.FinanzOnlineEnabled && t.IsConnected)
                     .FirstOrDefaultAsync();
 
                 if (tseDevice == null)
                 {
-                    return BadRequest(new { message = "FinanzOnline etkin değil veya TSE cihazı bağlı değil" });
+                    submission.Success = false;
+                    submission.ResponseStatusCode = "400";
+                    submission.ErrorMessage = "FinanzOnline etkin değil veya TSE cihazı bağlı değil";
+                    _context.FinanzOnlineSubmissions.Add(submission);
+                    await _context.SaveChangesAsync();
+
+                    return BadRequest(new { message = submission.ErrorMessage });
                 }
 
                 // Fatura gönderimi simülasyonu
                 bool submitSuccess = await SubmitInvoiceToFinanzOnline(tseDevice, request);
+                
+                submission.Success = submitSuccess;
+                submission.ResponseStatusCode = submitSuccess ? "200" : "400";
                 
                 if (submitSuccess)
                 {
                     tseDevice.LastFinanzOnlineSync = DateTime.UtcNow;
                     tseDevice.PendingInvoices = Math.Max(0, tseDevice.PendingInvoices - 1);
                     
-                    await _context.SaveChangesAsync();
-                    
-                    _logger.LogInformation("Invoice submitted to FinanzOnline: {InvoiceNumber}", request.InvoiceNumber);
-                    
-                    return Ok(new FinanzOnlineSubmitResponse
+                    var response = new FinanzOnlineSubmitResponse
                     {
                         Success = true,
                         Message = "Fatura FinanzOnline'a başarıyla gönderildi",
                         SubmissionId = Guid.NewGuid().ToString(),
                         Timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss")
-                    });
+                    };
+                    
+                    submission.ResponseBodyJson = JsonSerializer.Serialize(response);
+                    _context.FinanzOnlineSubmissions.Add(submission);
+                    await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation("Invoice submitted to FinanzOnline: {InvoiceNumber}", request.InvoiceNumber);
+                    
+                    return Ok(response);
                 }
                 else
                 {
-                    return BadRequest(new { message = "Fatura FinanzOnline'a gönderilemedi" });
+                    submission.ErrorMessage = "Fatura FinanzOnline'a gönderilemedi";
+                    _context.FinanzOnlineSubmissions.Add(submission);
+                    await _context.SaveChangesAsync();
+
+                    return BadRequest(new { message = submission.ErrorMessage });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "FinanzOnline invoice submission failed");
+                
+                submission.Success = false;
+                submission.ResponseStatusCode = "500";
+                submission.ErrorMessage = ex.Message;
+                _context.FinanzOnlineSubmissions.Add(submission);
+                await _context.SaveChangesAsync();
+
                 return StatusCode(500, new { message = "Fatura gönderimi başarısız" });
             }
         }
@@ -249,6 +283,26 @@ namespace KasseAPI_Final.Controllers
             {
                 _logger.LogError(ex, "FinanzOnline connection test failed");
                 return StatusCode(500, new { message = "FinanzOnline bağlantı testi başarısız" });
+            }
+        }
+
+        // GET: api/finanzonline/history/{invoiceId}
+        [HttpGet("history/{invoiceId}")]
+        public async Task<ActionResult<IEnumerable<FinanzOnlineSubmission>>> GetSubmissionHistory(Guid invoiceId)
+        {
+            try
+            {
+                var history = await _context.FinanzOnlineSubmissions
+                    .Where(s => s.InvoiceId == invoiceId)
+                    .OrderByDescending(s => s.SubmittedAt)
+                    .ToListAsync();
+
+                return Ok(history);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving FinanzOnline history for invoice {InvoiceId}", invoiceId);
+                return StatusCode(500, new { message = "Geçmiş alınamadı" });
             }
         }
 

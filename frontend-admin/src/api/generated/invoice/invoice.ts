@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query'
 import type {
   CreateInvoiceRequest,
+  FinanzOnlineSubmission,
   GetApiInvoiceSearchParams,
   Invoice,
   InvoiceStatus,
@@ -30,56 +31,57 @@ import { customInstance } from '../../../lib/axios';
 
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
+export type GetApiInvoiceParams = {
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+  status?: InvoiceStatus;
+  query?: string;
+};
 
 export const getApiInvoice = (
-    
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+  params?: GetApiInvoiceParams,
+  options?: SecondParameter<typeof customInstance>, signal?: AbortSignal
 ) => {
-      
-      
-      return customInstance<Invoice[]>(
-      {url: `/api/Invoice`, method: 'GET', signal
+  return customInstance<Invoice[]>(
+    {
+      url: `/api/Invoice`, method: 'GET', params, signal
     },
-      options);
-    }
-  
+    options);
+}
 
-export const getGetApiInvoiceQueryKey = () => {
-    return [`/api/Invoice`] as const;
-    }
 
-    
-export const getGetApiInvoiceQueryOptions = <TData = Awaited<ReturnType<typeof getApiInvoice>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoice>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiInvoiceQueryKey = (params?: GetApiInvoiceParams) => {
+  return [`/api/Invoice`, ...(params ? [params] : [])] as const;
+}
+
+
+export const getGetApiInvoiceQueryOptions = <TData = Awaited<ReturnType<typeof getApiInvoice>>, TError = unknown>(params?: GetApiInvoiceParams, options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoice>>, TError, TData>>, request?: SecondParameter<typeof customInstance> }
 ) => {
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiInvoiceQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGetApiInvoiceQueryKey(params);
 
-  
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInvoice>>> = ({ signal }) => getApiInvoice(params, requestOptions, signal);
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInvoice>>> = ({ signal }) => getApiInvoice(requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInvoice>>, TError, TData> & { queryKey: QueryKey }
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof getApiInvoice>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetApiInvoiceQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInvoice>>>
 export type GetApiInvoiceQueryError = unknown
 
 export const useGetApiInvoice = <TData = Awaited<ReturnType<typeof getApiInvoice>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoice>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+  params?: GetApiInvoiceParams, options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoice>>, TError, TData>>, request?: SecondParameter<typeof customInstance> }
 
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetApiInvoiceQueryOptions(options)
+  const queryOptions = getGetApiInvoiceQueryOptions(params, options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  query.queryKey = queryOptions.queryKey ;
+  query.queryKey = queryOptions.queryKey;
 
   return query;
 }
@@ -87,105 +89,92 @@ export const useGetApiInvoice = <TData = Awaited<ReturnType<typeof getApiInvoice
 
 
 export const postApiInvoice = (
-    createInvoiceRequest: CreateInvoiceRequest,
- options?: SecondParameter<typeof customInstance>,) => {
-      
-      
-      return customInstance<Invoice>(
-      {url: `/api/Invoice`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
+  createInvoiceRequest: CreateInvoiceRequest,
+  options?: SecondParameter<typeof customInstance>,) => {
+  return customInstance<Invoice>(
+    {
+      url: `/api/Invoice`, method: 'POST',
+      headers: { 'Content-Type': 'application/json', },
       data: createInvoiceRequest
     },
-      options);
-    }
-  
+    options);
+}
+
 
 
 export const getPostApiInvoiceMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiInvoice>>, TError,{data: CreateInvoiceRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiInvoice>>, TError,{data: CreateInvoiceRequest}, TContext> => {
-const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+  TContext = unknown>(options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof postApiInvoice>>, TError, { data: CreateInvoiceRequest }, TContext>, request?: SecondParameter<typeof customInstance> }
+  ): UseMutationOptions<Awaited<ReturnType<typeof postApiInvoice>>, TError, { data: CreateInvoiceRequest }, TContext> => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
 
-      
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiInvoice>>, { data: CreateInvoiceRequest }> = (props) => {
+    const { data } = props ?? {};
 
+    return postApiInvoice(data, requestOptions)
+  }
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiInvoice>>, {data: CreateInvoiceRequest}> = (props) => {
-          const {data} = props ?? {};
+  return { mutationFn, ...mutationOptions }
+}
 
-          return  postApiInvoice(data,requestOptions)
-        }
+export type PostApiInvoiceMutationResult = NonNullable<Awaited<ReturnType<typeof postApiInvoice>>>
+export type PostApiInvoiceMutationBody = CreateInvoiceRequest
+export type PostApiInvoiceMutationError = unknown
 
-        
+export const usePostApiInvoice = <TError = unknown,
+  TContext = unknown>(options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof postApiInvoice>>, TError, { data: CreateInvoiceRequest }, TContext>, request?: SecondParameter<typeof customInstance> }
+  ): UseMutationResult<
+    Awaited<ReturnType<typeof postApiInvoice>>,
+    TError,
+    { data: CreateInvoiceRequest },
+    TContext
+  > => {
 
+  const mutationOptions = getPostApiInvoiceMutationOptions(options);
 
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PostApiInvoiceMutationResult = NonNullable<Awaited<ReturnType<typeof postApiInvoice>>>
-    export type PostApiInvoiceMutationBody = CreateInvoiceRequest
-    export type PostApiInvoiceMutationError = unknown
-
-    export const usePostApiInvoice = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiInvoice>>, TError,{data: CreateInvoiceRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationResult<
-        Awaited<ReturnType<typeof postApiInvoice>>,
-        TError,
-        {data: CreateInvoiceRequest},
-        TContext
-      > => {
-
-      const mutationOptions = getPostApiInvoiceMutationOptions(options);
-
-      return useMutation(mutationOptions);
-    }
-    export const getApiInvoiceId = (
-    id: string,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+  return useMutation(mutationOptions);
+}
+export const getApiInvoiceId = (
+  id: string,
+  options?: SecondParameter<typeof customInstance>, signal?: AbortSignal
 ) => {
-      
-      
-      return customInstance<Invoice>(
-      {url: `/api/Invoice/${id}`, method: 'GET', signal
+  return customInstance<Invoice>(
+    {
+      url: `/api/Invoice/${id}`, method: 'GET', signal
     },
-      options);
-    }
-  
+    options);
+}
+
 
 export const getGetApiInvoiceIdQueryKey = (id: string,) => {
-    return [`/api/Invoice/${id}`] as const;
-    }
+  return [`/api/Invoice/${id}`] as const;
+}
 
-    
-export const getGetApiInvoiceIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiInvoiceId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+export const getGetApiInvoiceIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiInvoiceId>>, TError = unknown>(id: string, options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceId>>, TError, TData>>, request?: SecondParameter<typeof customInstance> }
 ) => {
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiInvoiceIdQueryKey(id);
+  const queryKey = queryOptions?.queryKey ?? getGetApiInvoiceIdQueryKey(id);
 
-  
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInvoiceId>>> = ({ signal }) => getApiInvoiceId(id, requestOptions, signal);
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInvoiceId>>> = ({ signal }) => getApiInvoiceId(id, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceId>>, TError, TData> & { queryKey: QueryKey }
+  return { queryKey, queryFn, enabled: !!(id), ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceId>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetApiInvoiceIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInvoiceId>>>
 export type GetApiInvoiceIdQueryError = unknown
 
 export const useGetApiInvoiceId = <TData = Awaited<ReturnType<typeof getApiInvoiceId>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+  id: string, options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceId>>, TError, TData>>, request?: SecondParameter<typeof customInstance> }
 
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetApiInvoiceIdQueryOptions(id,options)
+  const queryOptions = getGetApiInvoiceIdQueryOptions(id, options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  query.queryKey = queryOptions.queryKey ;
+  query.queryKey = queryOptions.queryKey;
 
   return query;
 }
@@ -193,214 +182,257 @@ export const useGetApiInvoiceId = <TData = Awaited<ReturnType<typeof getApiInvoi
 
 
 export const putApiInvoiceId = (
-    id: string,
-    updateInvoiceRequest: UpdateInvoiceRequest,
- options?: SecondParameter<typeof customInstance>,) => {
-      
-      
-      return customInstance<void>(
-      {url: `/api/Invoice/${id}`, method: 'PUT',
-      headers: {'Content-Type': 'application/json', },
+  id: string,
+  updateInvoiceRequest: UpdateInvoiceRequest,
+  options?: SecondParameter<typeof customInstance>,) => {
+  return customInstance<void>(
+    {
+      url: `/api/Invoice/${id}`, method: 'PUT',
+      headers: { 'Content-Type': 'application/json', },
       data: updateInvoiceRequest
     },
-      options);
-    }
-  
+    options);
+}
+
 
 
 export const getPutApiInvoiceIdMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiInvoiceId>>, TError,{id: string;data: UpdateInvoiceRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof putApiInvoiceId>>, TError,{id: string;data: UpdateInvoiceRequest}, TContext> => {
-const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+  TContext = unknown>(options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof putApiInvoiceId>>, TError, { id: string; data: UpdateInvoiceRequest }, TContext>, request?: SecondParameter<typeof customInstance> }
+  ): UseMutationOptions<Awaited<ReturnType<typeof putApiInvoiceId>>, TError, { id: string; data: UpdateInvoiceRequest }, TContext> => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
 
-      
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiInvoiceId>>, { id: string; data: UpdateInvoiceRequest }> = (props) => {
+    const { id, data } = props ?? {};
 
+    return putApiInvoiceId(id, data, requestOptions)
+  }
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiInvoiceId>>, {id: string;data: UpdateInvoiceRequest}> = (props) => {
-          const {id,data} = props ?? {};
+  return { mutationFn, ...mutationOptions }
+}
 
-          return  putApiInvoiceId(id,data,requestOptions)
-        }
+export type PutApiInvoiceIdMutationResult = NonNullable<Awaited<ReturnType<typeof putApiInvoiceId>>>
+export type PutApiInvoiceIdMutationBody = UpdateInvoiceRequest
+export type PutApiInvoiceIdMutationError = unknown
 
-        
+export const usePutApiInvoiceId = <TError = unknown,
+  TContext = unknown>(options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof putApiInvoiceId>>, TError, { id: string; data: UpdateInvoiceRequest }, TContext>, request?: SecondParameter<typeof customInstance> }
+  ): UseMutationResult<
+    Awaited<ReturnType<typeof putApiInvoiceId>>,
+    TError,
+    { id: string; data: UpdateInvoiceRequest },
+    TContext
+  > => {
 
+  const mutationOptions = getPutApiInvoiceIdMutationOptions(options);
 
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PutApiInvoiceIdMutationResult = NonNullable<Awaited<ReturnType<typeof putApiInvoiceId>>>
-    export type PutApiInvoiceIdMutationBody = UpdateInvoiceRequest
-    export type PutApiInvoiceIdMutationError = unknown
-
-    export const usePutApiInvoiceId = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiInvoiceId>>, TError,{id: string;data: UpdateInvoiceRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationResult<
-        Awaited<ReturnType<typeof putApiInvoiceId>>,
-        TError,
-        {id: string;data: UpdateInvoiceRequest},
-        TContext
-      > => {
-
-      const mutationOptions = getPutApiInvoiceIdMutationOptions(options);
-
-      return useMutation(mutationOptions);
-    }
-    export const deleteApiInvoiceId = (
-    id: string,
- options?: SecondParameter<typeof customInstance>,) => {
-      
-      
-      return customInstance<void>(
-      {url: `/api/Invoice/${id}`, method: 'DELETE'
+  return useMutation(mutationOptions);
+}
+export const deleteApiInvoiceId = (
+  id: string,
+  options?: SecondParameter<typeof customInstance>,) => {
+  return customInstance<void>(
+    {
+      url: `/api/Invoice/${id}`, method: 'DELETE'
     },
-      options);
-    }
-  
+    options);
+}
+
 
 
 export const getDeleteApiInvoiceIdMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiInvoiceId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteApiInvoiceId>>, TError,{id: string}, TContext> => {
-const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+  TContext = unknown>(options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteApiInvoiceId>>, TError, { id: string }, TContext>, request?: SecondParameter<typeof customInstance> }
+  ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiInvoiceId>>, TError, { id: string }, TContext> => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
 
-      
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiInvoiceId>>, { id: string }> = (props) => {
+    const { id } = props ?? {};
 
+    return deleteApiInvoiceId(id, requestOptions)
+  }
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiInvoiceId>>, {id: string}> = (props) => {
-          const {id} = props ?? {};
+  return { mutationFn, ...mutationOptions }
+}
 
-          return  deleteApiInvoiceId(id,requestOptions)
-        }
+export type DeleteApiInvoiceIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiInvoiceId>>>
 
-        
+export type DeleteApiInvoiceIdMutationError = unknown
 
+export const useDeleteApiInvoiceId = <TError = unknown,
+  TContext = unknown>(options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteApiInvoiceId>>, TError, { id: string }, TContext>, request?: SecondParameter<typeof customInstance> }
+  ): UseMutationResult<
+    Awaited<ReturnType<typeof deleteApiInvoiceId>>,
+    TError,
+    { id: string },
+    TContext
+  > => {
 
-  return  { mutationFn, ...mutationOptions }}
+  const mutationOptions = getDeleteApiInvoiceIdMutationOptions(options);
 
-    export type DeleteApiInvoiceIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiInvoiceId>>>
-    
-    export type DeleteApiInvoiceIdMutationError = unknown
+  return useMutation(mutationOptions);
+}
 
-    export const useDeleteApiInvoiceId = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiInvoiceId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationResult<
-        Awaited<ReturnType<typeof deleteApiInvoiceId>>,
-        TError,
-        {id: string},
-        TContext
-      > => {
+// Duplicate helper
+export const postApiInvoiceIdDuplicate = (
+  id: string,
+  options?: SecondParameter<typeof customInstance>,) => {
+  return customInstance<Invoice>(
+    { url: `/api/Invoice/${id}/duplicate`, method: 'POST' },
+    options);
+}
 
-      const mutationOptions = getDeleteApiInvoiceIdMutationOptions(options);
+export const usePostApiInvoiceIdDuplicate = <TError = unknown,
+  TContext = unknown>(options?: { mutation?: UseMutationOptions<Awaited<ReturnType<typeof postApiInvoiceIdDuplicate>>, TError, { id: string }, TContext>, request?: SecondParameter<typeof customInstance> }
+  ): UseMutationResult<
+    Awaited<ReturnType<typeof postApiInvoiceIdDuplicate>>,
+    TError,
+    { id: string },
+    TContext
+  > => {
+  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiInvoiceIdDuplicate>>, { id: string }> = (props) => {
+    const { id } = props ?? {};
+    return postApiInvoiceIdDuplicate(id, requestOptions)
+  }
+  return useMutation({ mutationFn, ...mutationOptions });
+}
 
-      return useMutation(mutationOptions);
-    }
-    export const getApiInvoiceSearch = (
-    params?: GetApiInvoiceSearchParams,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+// PDF helper
+export type GetApiInvoiceIdPdfParams = { copy?: boolean };
+
+export const getApiInvoiceIdPdf = (
+  id: string,
+  params?: GetApiInvoiceIdPdfParams,
+  options?: SecondParameter<typeof customInstance>,) => {
+  return customInstance<Blob>(
+    { url: `/api/Invoice/${id}/pdf`, method: 'GET', params, responseType: 'blob' },
+    options);
+}
+
+// FinanzOnline History helper
+export const getApiFinanzOnlineHistoryInvoiceId = (
+  invoiceId: string,
+  options?: SecondParameter<typeof customInstance>, signal?: AbortSignal
 ) => {
-      
-      
-      return customInstance<Invoice[]>(
-      {url: `/api/Invoice/search`, method: 'GET',
-        params, signal
+  return customInstance<FinanzOnlineSubmission[]>(
+    { url: `/api/FinanzOnline/history/${invoiceId}`, method: 'GET', signal },
+    options);
+}
+
+export const getGetApiFinanzOnlineHistoryInvoiceIdQueryKey = (invoiceId: string,) => {
+  return [`/api/FinanzOnline/history/${invoiceId}`] as const;
+}
+
+export const getGetApiFinanzOnlineHistoryInvoiceIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError = unknown>(invoiceId: string, options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError, TData>>, request?: SecondParameter<typeof customInstance> }
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetApiFinanzOnlineHistoryInvoiceIdQueryKey(invoiceId);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>> = ({ signal }) => getApiFinanzOnlineHistoryInvoiceId(invoiceId, requestOptions, signal);
+  return { queryKey, queryFn, enabled: !!(invoiceId), ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiFinanzOnlineHistoryInvoiceIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>>
+export type GetApiFinanzOnlineHistoryInvoiceIdQueryError = unknown
+
+export const useGetApiFinanzOnlineHistoryInvoiceId = <TData = Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError = unknown>(
+  invoiceId: string, options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError, TData>>, request?: SecondParameter<typeof customInstance> }
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+  const queryOptions = getGetApiFinanzOnlineHistoryInvoiceIdQueryOptions(invoiceId, options)
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  query.queryKey = queryOptions.queryKey;
+  return query;
+}
+
+
+// Search helper (kept for compatibility)
+export const getApiInvoiceSearch = (
+  params?: GetApiInvoiceSearchParams,
+  options?: SecondParameter<typeof customInstance>, signal?: AbortSignal
+) => {
+  return customInstance<Invoice[]>(
+    {
+      url: `/api/Invoice/search`, method: 'GET',
+      params, signal
     },
-      options);
-    }
-  
+    options);
+}
+
 
 export const getGetApiInvoiceSearchQueryKey = (params?: GetApiInvoiceSearchParams,) => {
-    return [`/api/Invoice/search`, ...(params ? [params]: [])] as const;
-    }
+  return [`/api/Invoice/search`, ...(params ? [params] : [])] as const;
+}
 
-    
-export const getGetApiInvoiceSearchQueryOptions = <TData = Awaited<ReturnType<typeof getApiInvoiceSearch>>, TError = unknown>(params?: GetApiInvoiceSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+export const getGetApiInvoiceSearchQueryOptions = <TData = Awaited<ReturnType<typeof getApiInvoiceSearch>>, TError = unknown>(params?: GetApiInvoiceSearchParams, options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance> }
 ) => {
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiInvoiceSearchQueryKey(params);
+  const queryKey = queryOptions?.queryKey ?? getGetApiInvoiceSearchQueryKey(params);
 
-  
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInvoiceSearch>>> = ({ signal }) => getApiInvoiceSearch(params, requestOptions, signal);
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInvoiceSearch>>> = ({ signal }) => getApiInvoiceSearch(params, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceSearch>>, TError, TData> & { queryKey: QueryKey }
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceSearch>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetApiInvoiceSearchQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInvoiceSearch>>>
 export type GetApiInvoiceSearchQueryError = unknown
 
 export const useGetApiInvoiceSearch = <TData = Awaited<ReturnType<typeof getApiInvoiceSearch>>, TError = unknown>(
- params?: GetApiInvoiceSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+  params?: GetApiInvoiceSearchParams, options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance> }
 
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetApiInvoiceSearchQueryOptions(params,options)
+  const queryOptions = getGetApiInvoiceSearchQueryOptions(params, options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  query.queryKey = queryOptions.queryKey ;
+  query.queryKey = queryOptions.queryKey;
 
   return query;
 }
 
-
-
 export const getApiInvoiceStatusStatus = (
-    status: InvoiceStatus,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+  status: InvoiceStatus,
+  options?: SecondParameter<typeof customInstance>, signal?: AbortSignal
 ) => {
-      
-      
-      return customInstance<Invoice[]>(
-      {url: `/api/Invoice/status/${status}`, method: 'GET', signal
+  return customInstance<Invoice[]>(
+    {
+      url: `/api/Invoice/status/${status}`, method: 'GET', signal
     },
-      options);
-    }
-  
+    options);
+}
+
 
 export const getGetApiInvoiceStatusStatusQueryKey = (status: InvoiceStatus,) => {
-    return [`/api/Invoice/status/${status}`] as const;
-    }
+  return [`/api/Invoice/status/${status}`] as const;
+}
 
-    
-export const getGetApiInvoiceStatusStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>, TError = unknown>(status: InvoiceStatus, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+export const getGetApiInvoiceStatusStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>, TError = unknown>(status: InvoiceStatus, options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance> }
 ) => {
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiInvoiceStatusStatusQueryKey(status);
+  const queryKey = queryOptions?.queryKey ?? getGetApiInvoiceStatusStatusQueryKey(status);
 
-  
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>> = ({ signal }) => getApiInvoiceStatusStatus(status, requestOptions, signal);
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>> = ({ signal }) => getApiInvoiceStatusStatus(status, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(status), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>, TError, TData> & { queryKey: QueryKey }
+  return { queryKey, queryFn, enabled: !!(status), ...queryOptions } as UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetApiInvoiceStatusStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>>
 export type GetApiInvoiceStatusStatusQueryError = unknown
 
 export const useGetApiInvoiceStatusStatus = <TData = Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>, TError = unknown>(
- status: InvoiceStatus, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+  status: InvoiceStatus, options?: { query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInvoiceStatusStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance> }
 
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetApiInvoiceStatusStatusQueryOptions(status,options)
+  const queryOptions = getGetApiInvoiceStatusStatusQueryOptions(status, options)
 
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  query.queryKey = queryOptions.queryKey ;
+  query.queryKey = queryOptions.queryKey;
 
   return query;
 }
-
-
-

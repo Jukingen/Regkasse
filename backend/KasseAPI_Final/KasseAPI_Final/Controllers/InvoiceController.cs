@@ -2,8 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using System.Text.Json;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -19,20 +23,210 @@ namespace KasseAPI_Final.Controllers
         {
             _context = context;
             _logger = logger;
+            // License configuration for QuestPDF (Community)
+            QuestPDF.Settings.License = LicenseType.Community;
+        }
+
+        // GET: api/Invoice/list
+        [HttpGet("list")]
+        public async Task<ActionResult<PagedResult<InvoiceListItemDto>>> GetInvoicesList(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            [FromQuery] InvoiceStatus? status = null,
+            [FromQuery] string? query = null,
+            [FromQuery] string sortBy = "invoiceDate",
+            [FromQuery] string sortDir = "desc")
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 50;
+                if (pageSize > 200) pageSize = 200;
+
+                var queryable = _context.Invoices.AsNoTracking().Where(i => i.IsActive);
+
+                if (from.HasValue)
+                    queryable = queryable.Where(i => i.InvoiceDate >= from.Value.ToUniversalTime());
+                if (to.HasValue)
+                    queryable = queryable.Where(i => i.InvoiceDate <= to.Value.ToUniversalTime().AddDays(1));
+                if (status.HasValue)
+                    queryable = queryable.Where(i => i.Status == status.Value);
+
+                if (!string.IsNullOrWhiteSpace(query))
+                {
+                    query = query.Trim().ToLower();
+                    if (query.Length >= 2)
+                    {
+                        queryable = queryable.Where(i =>
+                            EF.Functions.ILike(i.InvoiceNumber, $"%{query}%") ||
+                            (i.CustomerName != null && EF.Functions.ILike(i.CustomerName, $"%{query}%")) ||
+                            (i.CompanyName != null && EF.Functions.ILike(i.CompanyName, $"%{query}%")));
+                    }
+                }
+
+                var totalCount = await queryable.CountAsync();
+
+                bool isAsc = sortDir?.ToLower() == "asc";
+                queryable = sortBy.ToLower() switch
+                {
+                    "invoicenumber" => isAsc ? queryable.OrderBy(i => i.InvoiceNumber) : queryable.OrderByDescending(i => i.InvoiceNumber),
+                    "totalamount" => isAsc ? queryable.OrderBy(i => i.TotalAmount) : queryable.OrderByDescending(i => i.TotalAmount),
+                    "status" => isAsc ? queryable.OrderBy(i => i.Status) : queryable.OrderByDescending(i => i.Status),
+                    _ => isAsc ? queryable.OrderBy(i => i.InvoiceDate) : queryable.OrderByDescending(i => i.InvoiceDate)
+                };
+
+                var items = await queryable
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(i => new InvoiceListItemDto
+                    {
+                        Id = i.Id,
+                        InvoiceNumber = i.InvoiceNumber,
+                        InvoiceDate = i.InvoiceDate,
+                        CustomerName = i.CustomerName,
+                        CompanyName = i.CompanyName,
+                        TotalAmount = i.TotalAmount,
+                        Status = i.Status,
+                        KassenId = i.KassenId,
+                        TseSignature = i.TseSignature
+                    })
+                    .ToListAsync();
+
+                return Ok(new PagedResult<InvoiceListItemDto> 
+                { 
+                    Items = items, 
+                    Page = page, 
+                    PageSize = pageSize, 
+                    TotalCount = totalCount, 
+                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize) 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error listing invoices");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // GET: api/Invoice/export
+        [HttpGet("export")]
+        public async Task<IActionResult> ExportInvoices(
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            [FromQuery] InvoiceStatus? status = null,
+            [FromQuery] string? query = null,
+            [FromQuery] string sortBy = "invoiceDate",
+            [FromQuery] string sortDir = "desc")
+        {
+            try
+            {
+                var queryable = _context.Invoices.AsNoTracking().Where(i => i.IsActive);
+
+                if (from.HasValue) queryable = queryable.Where(i => i.InvoiceDate >= from.Value.ToUniversalTime());
+                if (to.HasValue) queryable = queryable.Where(i => i.InvoiceDate <= to.Value.ToUniversalTime().AddDays(1));
+                if (status.HasValue) queryable = queryable.Where(i => i.Status == status.Value);
+
+                if (!string.IsNullOrWhiteSpace(query))
+                {
+                    query = query.Trim().ToLower();
+                    if (query.Length >= 2)
+                    {
+                        queryable = queryable.Where(i =>
+                            EF.Functions.ILike(i.InvoiceNumber, $"%{query}%") ||
+                            (i.CustomerName != null && EF.Functions.ILike(i.CustomerName, $"%{query}%")) ||
+                            (i.CompanyName != null && EF.Functions.ILike(i.CompanyName, $"%{query}%")));
+                    }
+                }
+
+                bool isAsc = sortDir?.ToLower() == "asc";
+                queryable = sortBy.ToLower() switch
+                {
+                    "invoicenumber" => isAsc ? queryable.OrderBy(i => i.InvoiceNumber) : queryable.OrderByDescending(i => i.InvoiceNumber),
+                    "totalamount" => isAsc ? queryable.OrderBy(i => i.TotalAmount) : queryable.OrderByDescending(i => i.TotalAmount),
+                    "status" => isAsc ? queryable.OrderBy(i => i.Status) : queryable.OrderByDescending(i => i.Status),
+                    _ => isAsc ? queryable.OrderBy(i => i.InvoiceDate) : queryable.OrderByDescending(i => i.InvoiceDate)
+                };
+
+                var stream = new MemoryStream();
+                var writer = new StreamWriter(stream, System.Text.Encoding.UTF8);
+
+                await writer.WriteLineAsync("InvoiceNumber;InvoiceDate;CustomerName;CompanyName;TotalAmount;Status;KassenId;TseSignature");
+
+                foreach (var i in queryable)
+                {
+                     var line = $"{i.InvoiceNumber};{i.InvoiceDate:yyyy-MM-dd HH:mm};{EscapeCsv(i.CustomerName)};{EscapeCsv(i.CompanyName)};{i.TotalAmount:F2};{i.Status};{i.KassenId};{i.TseSignature}";
+                     await writer.WriteLineAsync(line);
+                }
+
+                await writer.FlushAsync();
+                stream.Position = 0;
+
+                return File(stream, "text/csv", $"invoices_{DateTime.Now:yyyyMMdd_HHmm}.csv");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting invoices");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        private string EscapeCsv(string? value)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            if (value.Contains(";") || value.Contains("\"") || value.Contains("\n"))
+            {
+                return $"\"{value.Replace("\"", "\"\"")}\"";
+            }
+            return value;
         }
 
         // GET: api/Invoice
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Invoice>>> GetInvoices()
+        public async Task<ActionResult<IEnumerable<Invoice>>> GetInvoices(
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50,
+            [FromQuery] InvoiceStatus? status = null,
+            [FromQuery] string? query = null)
         {
             try
             {
-                var invoices = await _context.Invoices
-                    .Where(i => i.IsActive)
+                var queryable = _context.Invoices.AsQueryable();
+
+                // 1. Soft delete filter
+                queryable = queryable.Where(i => i.IsActive);
+
+                // 2. Date range filter
+                if (from.HasValue)
+                    queryable = queryable.Where(i => i.InvoiceDate >= from.Value.ToUniversalTime());
+                if (to.HasValue)
+                    queryable = queryable.Where(i => i.InvoiceDate <= to.Value.ToUniversalTime().AddDays(1)); // Include end date
+
+                // 3. Status filter
+                if (status.HasValue)
+                    queryable = queryable.Where(i => i.Status == status.Value);
+
+                // 4. Text search
+                if (!string.IsNullOrWhiteSpace(query))
+                {
+                    query = query.ToLower();
+                    queryable = queryable.Where(i => 
+                        i.InvoiceNumber.ToLower().Contains(query) || 
+                        (i.CustomerName != null && i.CustomerName.ToLower().Contains(query)) || 
+                        (i.CompanyName != null && i.CompanyName.ToLower().Contains(query)));
+                }
+
+                // 6. Sorting & Pagination
+                var invoices = await queryable
                     .OrderByDescending(i => i.InvoiceDate)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
-                _logger.LogInformation("Retrieved {Count} invoices", invoices.Count);
+                _logger.LogInformation("Retrieved {Count} invoices (Page {Page})", invoices.Count, page);
                 return Ok(invoices);
             }
             catch (Exception ex)
@@ -75,55 +269,14 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // Validation
-                if (string.IsNullOrWhiteSpace(request.CompanyName))
-                {
-                    return BadRequest("Firma adı gerekli");
-                }
+                if (string.IsNullOrWhiteSpace(request.CompanyName)) return BadRequest("Firma adı gerekli");
+                if (string.IsNullOrWhiteSpace(request.CompanyTaxNumber)) return BadRequest("Firma vergi numarası gerekli");
+                if (!request.CompanyTaxNumber.StartsWith("ATU") || request.CompanyTaxNumber.Length != 11) return BadRequest("Firma vergi numarası ATU formatında olmalı");
 
-                if (string.IsNullOrWhiteSpace(request.CompanyTaxNumber))
-                {
-                    return BadRequest("Firma vergi numarası gerekli");
-                }
+                var invoiceNumber = string.IsNullOrEmpty(request.InvoiceNumber) ? GenerateInvoiceNumber() : request.InvoiceNumber;
 
-                // ATU format validation
-                if (!request.CompanyTaxNumber.StartsWith("ATU") || request.CompanyTaxNumber.Length != 11)
-                {
-                    return BadRequest("Firma vergi numarası ATU formatında olmalı (ATU12345678)");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.TseSignature))
-                {
-                    return BadRequest("TSE imzası gerekli");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.KassenId))
-                {
-                    return BadRequest("Kasa ID gerekli");
-                }
-
-                // Generate invoice number if not provided
-                var invoiceNumber = string.IsNullOrEmpty(request.InvoiceNumber) 
-                    ? GenerateInvoiceNumber() 
-                    : request.InvoiceNumber;
-
-                // Check invoice number uniqueness
-                var existingInvoice = await _context.Invoices
-                    .FirstOrDefaultAsync(i => i.InvoiceNumber == invoiceNumber && i.IsActive);
-                
-                if (existingInvoice != null)
-                {
-                    return BadRequest("Bu fatura numarası zaten kullanılıyor");
-                }
-
-                // Check TSE signature uniqueness
-                var existingTseSignature = await _context.Invoices
-                    .FirstOrDefaultAsync(i => i.TseSignature == request.TseSignature && i.IsActive);
-                
-                if (existingTseSignature != null)
-                {
-                    return BadRequest("Bu TSE imzası zaten kullanılıyor");
-                }
+                var existingInvoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceNumber == invoiceNumber && i.IsActive);
+                if (existingInvoice != null) return BadRequest("Bu fatura numarası zaten kullanılıyor");
 
                 var invoice = new Invoice
                 {
@@ -161,7 +314,7 @@ namespace KasseAPI_Final.Controllers
                 _context.Invoices.Add(invoice);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Invoice created with ID: {Id}, Number: {Number}", invoice.Id, invoice.InvoiceNumber);
+                _logger.LogInformation("Invoice created with ID: {Id}", invoice.Id);
                 return CreatedAtAction(nameof(GetInvoice), new { id = invoice.Id }, invoice);
             }
             catch (Exception ex)
@@ -178,29 +331,8 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var existingInvoice = await _context.Invoices.FindAsync(id);
-                if (existingInvoice == null || !existingInvoice.IsActive)
-                {
-                    return NotFound("Fatura bulunamadı");
-                }
+                if (existingInvoice == null || !existingInvoice.IsActive) return NotFound("Fatura bulunamadı");
 
-                // Validation
-                if (string.IsNullOrWhiteSpace(request.CompanyName))
-                {
-                    return BadRequest("Firma adı gerekli");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.CompanyTaxNumber))
-                {
-                    return BadRequest("Firma vergi numarası gerekli");
-                }
-
-                // ATU format validation
-                if (!request.CompanyTaxNumber.StartsWith("ATU") || request.CompanyTaxNumber.Length != 11)
-                {
-                    return BadRequest("Firma vergi numarası ATU formatında olmalı (ATU12345678)");
-                }
-
-                // Update properties
                 existingInvoice.InvoiceDate = request.InvoiceDate;
                 existingInvoice.DueDate = request.DueDate;
                 existingInvoice.Status = request.Status;
@@ -225,13 +357,11 @@ namespace KasseAPI_Final.Controllers
                 existingInvoice.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Invoice updated with ID: {Id}", id);
                 return NoContent();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating invoice with ID: {Id}", id);
+                _logger.LogError(ex, "Error updating invoice {Id}", id);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -243,23 +373,227 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var invoice = await _context.Invoices.FindAsync(id);
-                if (invoice == null || !invoice.IsActive)
-                {
-                    return NotFound("Fatura bulunamadı");
-                }
+                if (invoice == null || !invoice.IsActive) return NotFound("Fatura bulunamadı");
 
-                // Soft delete
                 invoice.IsActive = false;
                 invoice.UpdatedAt = DateTime.UtcNow;
-
                 await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Invoice deleted (soft) with ID: {Id}", id);
                 return NoContent();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting invoice with ID: {Id}", id);
+                _logger.LogError(ex, "Error deleting invoice {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // POST: api/Invoice/5/duplicate
+        [HttpPost("{id}/duplicate")]
+        public async Task<ActionResult<Invoice>> DuplicateInvoice(Guid id)
+        {
+            try
+            {
+                var original = await _context.Invoices.FindAsync(id);
+                if (original == null || !original.IsActive) return NotFound("Orijinal fatura bulunamadı");
+
+                var newInvoice = new Invoice
+                {
+                    Id = Guid.NewGuid(),
+                    InvoiceNumber = GenerateInvoiceNumber(),
+                    InvoiceDate = DateTime.Now,
+                    DueDate = DateTime.Now.AddDays(30),
+                    Status = InvoiceStatus.Draft, // Status reset
+                    Subtotal = original.Subtotal,
+                    TaxAmount = original.TaxAmount,
+                    TotalAmount = original.TotalAmount,
+                    PaidAmount = 0,
+                    RemainingAmount = original.TotalAmount,
+                    
+                    // Copy Customer & Company info
+                    CustomerName = original.CustomerName,
+                    CustomerEmail = original.CustomerEmail,
+                    CustomerPhone = original.CustomerPhone,
+                    CustomerAddress = original.CustomerAddress,
+                    CustomerTaxNumber = original.CustomerTaxNumber,
+                    CompanyName = original.CompanyName,
+                    CompanyTaxNumber = original.CompanyTaxNumber,
+                    CompanyAddress = original.CompanyAddress,
+                    CompanyPhone = original.CompanyPhone,
+                    CompanyEmail = original.CompanyEmail,
+
+                    // New TSE Signature (placeholder until finalized)
+                    TseSignature = string.Empty,
+                    KassenId = original.KassenId,
+                    TseTimestamp = DateTime.Now,
+
+                    InvoiceItems = original.InvoiceItems,
+                    TaxDetails = original.TaxDetails,
+                    
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+
+                _context.Invoices.Add(newInvoice);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Invoice duplicated. Original: {OriginalId}, New: {NewId}", id, newInvoice.Id);
+                return CreatedAtAction(nameof(GetInvoice), new { id = newInvoice.Id }, newInvoice);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error duplicating invoice {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // GET: api/Invoice/5/pdf
+        [HttpGet("{id}/pdf")]
+        public async Task<IActionResult> GetInvoicePdf(Guid id, [FromQuery] bool copy = false)
+        {
+            try
+            {
+                var invoice = await _context.Invoices.FindAsync(id);
+                if (invoice == null || !invoice.IsActive) return NotFound("Fatura bulunamadı");
+
+                var document = Document.Create(container =>
+                {
+                    container.Page(page =>
+                    {
+                        page.Size(PageSizes.A4);
+                        page.Margin(2, Unit.Centimetre);
+                        page.PageColor(Colors.White);
+                        page.DefaultTextStyle(x => x.FontSize(10));
+
+                        page.Header().Row(row =>
+                        {
+                            row.RelativeItem().Column(col =>
+                            {
+                                col.Item().Text(invoice.CompanyName).SemiBold().FontSize(16);
+                                col.Item().Text(invoice.CompanyAddress);
+                                col.Item().Text($"VAT/UID: {invoice.CompanyTaxNumber}");
+                            });
+
+                            row.ConstantItem(100).AlignRight().Text(text =>
+                            {
+                                text.Span("INVOICE").FontSize(20).SemiBold();
+                                if (copy)
+                                {
+                                    text.EmptyLine();
+                                    text.Span("COPY / KOPIE").FontSize(14).FontColor(Colors.Red.Medium);
+                                }
+                            });
+                        });
+
+                        page.Content().PaddingVertical(1, Unit.Centimetre).Column(col =>
+                        {
+                            // Info Grid
+                            col.Item().Row(row =>
+                            {
+                                row.RelativeItem().Column(c =>
+                                {
+                                    c.Item().Text("Bill To:").SemiBold();
+                                    c.Item().Text(invoice.CustomerName ?? "Cash Customer");
+                                    if(!string.IsNullOrEmpty(invoice.CustomerAddress)) c.Item().Text(invoice.CustomerAddress);
+                                    if(!string.IsNullOrEmpty(invoice.CustomerTaxNumber)) c.Item().Text(invoice.CustomerTaxNumber);
+                                });
+
+                                row.RelativeItem().AlignRight().Column(c =>
+                                {
+                                    c.Item().Text($"Invoice #: {invoice.InvoiceNumber}");
+                                    c.Item().Text($"Date: {invoice.InvoiceDate:dd.MM.yyyy}");
+                                    c.Item().Text($"Status: {invoice.Status}");
+                                    c.Item().Text($"KassenID: {invoice.KassenId}");
+                                });
+                            });
+
+                            col.Item().PaddingVertical(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+
+                            // Items Table
+                            col.Item().Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(3); // Name
+                                    columns.RelativeColumn();  // Qty
+                                    columns.RelativeColumn();  // Price
+                                    columns.RelativeColumn();  // Tax
+                                    columns.RelativeColumn();  // Total
+                                });
+
+                                table.Header(header =>
+                                {
+                                    header.Cell().Element(CellStyle).Text("Description");
+                                    header.Cell().Element(CellStyle).AlignRight().Text("Qty");
+                                    header.Cell().Element(CellStyle).AlignRight().Text("Price");
+                                    header.Cell().Element(CellStyle).AlignRight().Text("VAT");
+                                    header.Cell().Element(CellStyle).AlignRight().Text("Total");
+
+                                    static IContainer CellStyle(IContainer container) => 
+                                        container.BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5).DefaultTextStyle(x => x.SemiBold());
+                                });
+
+                                // Deserialize Items
+                                if (invoice.InvoiceItems?.RootElement.ValueKind == JsonValueKind.Array)
+                                {
+                                    foreach (var item in invoice.InvoiceItems.RootElement.EnumerateArray())
+                                    {
+                                        var name = item.TryGetProperty("productName", out var n) ? n.GetString() : "Item";
+                                        var qty = item.TryGetProperty("quantity", out var q) ? q.GetInt32() : 0;
+                                        var price = item.TryGetProperty("unitPrice", out var p) ? p.GetDecimal() : 0;
+                                        var total = item.TryGetProperty("totalPrice", out var t) ? t.GetDecimal() : 0;
+                                        var taxStart = item.TryGetProperty("taxRate", out var tr) ? tr.GetDecimal() : 0;
+                                        var taxRate = taxStart > 1 ? taxStart / 100 : taxStart; // Simple heuristic if stored as 20 vs 0.2
+
+                                        table.Cell().Element(BodyCellStyle).Text(name);
+                                        table.Cell().Element(BodyCellStyle).AlignRight().Text(qty.ToString());
+                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{price:F2}");
+                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{taxRate:P0}");
+                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{total:F2}");
+                                    }
+                                }
+
+                                static IContainer BodyCellStyle(IContainer container) => 
+                                    container.PaddingVertical(5);
+                            });
+
+                            col.Item().PaddingVertical(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+
+                            // Totals
+                            col.Item().AlignRight().Column(c =>
+                            {
+                                c.Item().Text($"Subtotal: {invoice.Subtotal:C}");
+                                c.Item().Text($"Tax: {invoice.TaxAmount:C}");
+                                c.Item().Text($"Total: {invoice.TotalAmount:C}").Bold().FontSize(12);
+                            });
+
+                            col.Item().PaddingVertical(10);
+
+                            // RKSV / Footer
+                            if (!string.IsNullOrEmpty(invoice.TseSignature))
+                            {
+                                col.Item().Background(Colors.Grey.Lighten4).Padding(10).Column(c =>
+                                {
+                                    c.Item().Text("RKSV Signature (TSE)").FontSize(8).SemiBold();
+                                    c.Item().Text(invoice.TseSignature).FontFamily("Consolas").FontSize(8);
+                                    c.Item().Text($"Timestamp: {invoice.TseTimestamp:O}").FontSize(8);
+                                });
+                            }
+                        });
+
+                        page.Footer().AlignCenter().Text(x =>
+                        {
+                            x.Span("Page ");
+                            x.CurrentPageNumber();
+                        });
+                    });
+                });
+
+                var pdfBytes = document.GeneratePdf();
+                return File(pdfBytes, "application/pdf", $"Invoice-{invoice.InvoiceNumber}.pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating PDF for invoice {Id}", id);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -268,49 +602,16 @@ namespace KasseAPI_Final.Controllers
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<Invoice>>> SearchInvoices([FromQuery] string query)
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(query))
-                {
-                    return BadRequest("Arama sorgusu gerekli");
-                }
-
-                var invoices = await _context.Invoices
-                    .Where(i => i.IsActive && 
-                               (i.InvoiceNumber.Contains(query) || 
-                                i.CustomerName.Contains(query) || 
-                                i.CompanyName.Contains(query)))
-                    .OrderByDescending(i => i.InvoiceDate)
-                    .Take(20)
-                    .ToListAsync();
-
-                return Ok(invoices);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error searching invoices with query: {Query}", query);
-                return StatusCode(500, "Internal server error");
-            }
+             // Backward compatibility wrapper around GetInvoices
+             return await GetInvoices(query: query, page: 1, pageSize: 20);
         }
 
         // GET: api/Invoice/status/{status}
         [HttpGet("status/{status}")]
         public async Task<ActionResult<IEnumerable<Invoice>>> GetInvoicesByStatus(InvoiceStatus status)
         {
-            try
-            {
-                var invoices = await _context.Invoices
-                    .Where(i => i.IsActive && i.Status == status)
-                    .OrderByDescending(i => i.InvoiceDate)
-                    .ToListAsync();
-
-                return Ok(invoices);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving invoices by status: {Status}", status);
-                return StatusCode(500, "Internal server error");
-            }
+            // Backward compatibility wrapper around GetInvoices
+            return await GetInvoices(status: status, page: 1, pageSize: 50);
         }
 
         private string GenerateInvoiceNumber()
