@@ -104,6 +104,10 @@ namespace KasseAPI_Final.Models
         [Required]
         public JsonDocument TaxDetails { get; set; } = JsonDocument.Parse("{}");
 
+        // Source payment (POS backfill / auto-create idempotency key)
+        // Null for manually-created invoices; set for POS-originated rows.
+        public Guid? SourcePaymentId { get; set; }
+
         // Navigation properties - şimdilik basit tutuyoruz
         // public virtual Customer? Customer { get; set; }
         // public virtual ICollection<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();

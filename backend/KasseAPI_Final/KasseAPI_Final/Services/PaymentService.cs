@@ -242,44 +242,76 @@ namespace KasseAPI_Final.Services
                     await _paymentRepository.UpdateAsync(createdPayment);
                 }
 
-                // FinanzOnline'a gönder (Invoice olarak)
-                if (request.Payment.TseRequired)
+                // Persist a canonical Invoice row so that list / detail / PDF all share the same domain and ID
+                try
                 {
-                    try
-                    {
-                        // PaymentDetails'den Invoice oluştur
-                        var invoice = new Invoice
-                        {
-                            InvoiceNumber = payment.Id.ToString(),
-                            InvoiceDate = payment.CreatedAt,
-                            DueDate = payment.CreatedAt.AddDays(30),
-                            Status = InvoiceStatus.Paid,
-                            Subtotal = payment.TotalAmount - payment.TaxAmount,
-                            TaxAmount = payment.TaxAmount,
-                            TotalAmount = payment.TotalAmount,
-                            PaidAmount = payment.TotalAmount,
-                            RemainingAmount = 0,
-                            CustomerName = payment.CustomerName,
-                            CompanyName = "Company Name", // Gerçek implementasyonda config'den alınmalı
-                            CompanyTaxNumber = "ATU12345678", // Gerçek implementasyonda config'den alınmalı
-                            CompanyAddress = "Company Address", // Gerçek implementasyonda config'den alınmalı
-                            TseSignature = payment.TseSignature ?? string.Empty,
-                            KassenId = "KASSE001", // Gerçek implementasyonda config'den alınmalı
-                            TseTimestamp = payment.CreatedAt,
-                            CashRegisterId = Guid.NewGuid(), // Gerçek implementasyonda config'den alınmalı
-                            PaymentMethod = payment.PaymentMethod,
-                            PaymentReference = payment.TransactionId,
-                            PaymentDate = payment.CreatedAt
-                        };
+                    // Idempotency check: skip if an invoice already exists for this payment
+                    var existingInvoice = await _context.Invoices
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(i => i.SourcePaymentId == createdPayment.Id);
 
-                        await _finanzOnlineService.SubmitInvoiceAsync(invoice);
-                        _logger.LogInformation("Payment sent to FinanzOnline as Invoice: {PaymentId}", payment.Id);
-                    }
-                    catch (Exception ex)
+                    if (existingInvoice == null)
                     {
-                        _logger.LogWarning(ex, "Failed to send payment to FinanzOnline: {PaymentId}", payment.Id);
-                        // FinanzOnline hatası ödeme oluşturmayı engellemez
+                        var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+                        var posInvoice = new Invoice
+                        {
+                            Id = Guid.NewGuid(),
+                            SourcePaymentId = createdPayment.Id,
+                            InvoiceNumber = createdPayment.ReceiptNumber,
+                            InvoiceDate = createdPayment.CreatedAt,
+                            DueDate = createdPayment.CreatedAt,
+                            Status = InvoiceStatus.Paid,
+                            Subtotal = createdPayment.TotalAmount - createdPayment.TaxAmount,
+                            TaxAmount = createdPayment.TaxAmount,
+                            TotalAmount = createdPayment.TotalAmount,
+                            PaidAmount = createdPayment.TotalAmount,
+                            RemainingAmount = 0,
+                            CustomerName = createdPayment.CustomerName,
+                            CustomerTaxNumber = createdPayment.Steuernummer,
+                            CompanyName = _companyProfile.CompanyName,
+                            CompanyTaxNumber = _companyProfile.TaxNumber,
+                            CompanyAddress = companyAddress,
+                            TseSignature = createdPayment.TseSignature ?? string.Empty,
+                            KassenId = createdPayment.KassenId,
+                            TseTimestamp = createdPayment.TseTimestamp,
+                            CashRegisterId = Guid.Empty,
+                            PaymentMethod = createdPayment.PaymentMethod,
+                            PaymentReference = createdPayment.TransactionId,
+                            PaymentDate = createdPayment.CreatedAt,
+                            InvoiceItems = createdPayment.PaymentItems,
+                            TaxDetails = createdPayment.TaxDetails,
+                            CreatedAt = DateTime.UtcNow,
+                            IsActive = true
+                        };
+                        _context.Invoices.Add(posInvoice);
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation("Invoice persisted for payment {PaymentId}: InvoiceId={InvoiceId}, InvoiceNumber={InvoiceNumber}",
+                            createdPayment.Id, posInvoice.Id, posInvoice.InvoiceNumber);
+
+                        // FinanzOnline'a gönder (TSE gerekiyorsa)
+                        if (request.Payment.TseRequired)
+                        {
+                            try
+                            {
+                                await _finanzOnlineService.SubmitInvoiceAsync(posInvoice);
+                                _logger.LogInformation("Invoice sent to FinanzOnline: {InvoiceId}", posInvoice.Id);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to send invoice to FinanzOnline: {InvoiceId}", posInvoice.Id);
+                                // FinanzOnline hatası ödeme oluşturmayı engellemez
+                            }
+                        }
                     }
+                    else
+                    {
+                        _logger.LogDebug("Invoice already exists for payment {PaymentId} — skipping duplicate insert", createdPayment.Id);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Invoice persist hatası ödeme oluşturmayı engellemez — PaymentDetails kaydı zaten var
+                    _logger.LogError(ex, "Failed to persist Invoice for payment {PaymentId}", createdPayment.Id);
                 }
 
                 _logger.LogInformation("Payment created successfully: {PaymentId} for customer {CustomerId}", 

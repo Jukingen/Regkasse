@@ -163,7 +163,9 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.InvoiceNumber).IsUnique();
                 // entity.HasIndex(e => e.InvoiceDate); // Covered by composite index
                 // entity.HasIndex(e => e.Status); // Covered by composite index
-                entity.HasIndex(e => e.TseSignature).IsUnique();
+                entity.HasIndex(e => e.TseSignature)
+                    .IsUnique()
+                    .HasFilter("\"TseSignature\" != ''");
 
                 // Composite Indexes for Pagination
                 entity.HasIndex(e => new { e.IsActive, e.InvoiceDate }); // Default ASC/ASC, checking descending support...
@@ -179,6 +181,11 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.InvoiceNumber).HasMethod("GIN").HasOperators("gin_trgm_ops");
                 entity.HasIndex(e => e.CustomerName).HasMethod("GIN").HasOperators("gin_trgm_ops");
                 entity.HasIndex(e => e.CompanyName).HasMethod("GIN").HasOperators("gin_trgm_ops");
+
+                // Partial unique index: one Invoice per source payment (nulls allowed for manual invoices)
+                entity.HasIndex(e => e.SourcePaymentId)
+                    .IsUnique()
+                    .HasFilter("\"SourcePaymentId\" IS NOT NULL");
             });
 
             // CashRegister configuration

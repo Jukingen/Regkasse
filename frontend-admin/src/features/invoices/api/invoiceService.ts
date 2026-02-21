@@ -48,7 +48,7 @@ function normalizePagedResult(raw: RawPagedResult): PagedResult<InvoiceListItemD
 
 export const getInvoicesList = async (params: InvoiceListParams): Promise<PagedResult<InvoiceListItemDto>> => {
     const raw = await customInstance<RawPagedResult>({
-        url: `/api/Invoice/pos-list`,
+        url: `/api/Invoice/list`,
         method: 'GET',
         params
     });

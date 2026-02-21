@@ -92,7 +92,7 @@ export const InvoiceList: React.FC = () => {
 
     // Data Fetching — POS-backed via invoiceService
     const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
-        queryKey: ['pos-invoices', queryParams],
+        queryKey: ['invoices', queryParams],
         queryFn: () => getInvoicesList(queryParams),
         placeholderData: (previousData: any) => previousData,
         enabled: !dateRangeError,

@@ -4,7 +4,9 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
+using System.Linq;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -18,11 +20,16 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<InvoiceController> _logger;
+        private readonly CompanyProfileOptions _companyProfile;
 
-        public InvoiceController(AppDbContext context, ILogger<InvoiceController> logger)
+        public InvoiceController(
+            AppDbContext context,
+            ILogger<InvoiceController> logger,
+            IOptions<CompanyProfileOptions> companyProfile)
         {
             _context = context;
             _logger = logger;
+            _companyProfile = companyProfile.Value;
             // License configuration for QuestPDF (Community)
             QuestPDF.Settings.License = LicenseType.Community;
         }
@@ -776,6 +783,111 @@ namespace KasseAPI_Final.Controllers
         {
             // Backward compatibility wrapper around GetInvoices
             return await GetInvoices(status: status, page: 1, pageSize: 50);
+        }
+
+        // POST: api/Invoice/backfill-from-payments
+        // One-time (idempotent) backfill: create Invoice rows for PaymentDetails that have no matching Invoice yet.
+        // Safe to call repeatedly — already-backfilled payments are skipped via SourcePaymentId lookup.
+        // Required role: Admin
+        // Responses: 200 OK (success + counts), 401 Unauthorized (no token), 403 Forbidden (non-Admin role)
+        [HttpPost("backfill-from-payments")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> BackfillInvoicesFromPayments()
+        {
+            int inserted = 0, skipped = 0, failed = 0;
+
+            try
+            {
+                var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+
+                // Load only active payments with a ReceiptNumber (real POS transactions)
+                var payments = await _context.PaymentDetails
+                    .AsNoTracking()
+                    .Where(p => p.IsActive && p.ReceiptNumber != null && p.ReceiptNumber != string.Empty)
+                    .OrderBy(p => p.CreatedAt)
+                    .ToListAsync();
+
+                // Load existing SourcePaymentIds in one query for efficient lookup
+                var existingSourceIds = await _context.Invoices
+                    .AsNoTracking()
+                    .Where(i => i.SourcePaymentId != null)
+                    .Select(i => i.SourcePaymentId!.Value)
+                    .ToHashSetAsync();
+
+                foreach (var payment in payments)
+                {
+                    if (existingSourceIds.Contains(payment.Id))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    try
+                    {
+                        var invoice = new Invoice
+                        {
+                            Id = Guid.NewGuid(),
+                            SourcePaymentId = payment.Id,
+                            InvoiceNumber = string.IsNullOrEmpty(payment.ReceiptNumber)
+                                ? $"BF-{payment.Id:N}"
+                                : payment.ReceiptNumber,
+                            InvoiceDate = payment.CreatedAt,
+                            DueDate = payment.CreatedAt,
+                            Status = InvoiceStatus.Paid,
+                            Subtotal = payment.TotalAmount - payment.TaxAmount,
+                            TaxAmount = payment.TaxAmount,
+                            TotalAmount = payment.TotalAmount,
+                            PaidAmount = payment.TotalAmount,
+                            RemainingAmount = 0,
+                            CustomerName = payment.CustomerName,
+                            CustomerTaxNumber = payment.Steuernummer,
+                            CompanyName = _companyProfile.CompanyName,
+                            CompanyTaxNumber = _companyProfile.TaxNumber,
+                            CompanyAddress = companyAddress,
+                            TseSignature = payment.TseSignature ?? string.Empty,
+                            KassenId = payment.KassenId,
+                            TseTimestamp = payment.TseTimestamp,
+                            CashRegisterId = Guid.Empty,
+                            PaymentMethod = payment.PaymentMethod,
+                            PaymentReference = payment.TransactionId,
+                            PaymentDate = payment.CreatedAt,
+                            InvoiceItems = payment.PaymentItems,
+                            TaxDetails = payment.TaxDetails,
+                            CreatedAt = DateTime.UtcNow,
+                            IsActive = true
+                        };
+
+                        _context.Invoices.Add(invoice);
+                        await _context.SaveChangesAsync();
+                        inserted++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Backfill: failed to insert invoice for PaymentId={PaymentId}", payment.Id);
+                        failed++;
+                        // Detach the failed entity so subsequent inserts are not blocked
+                        _context.ChangeTracker.Clear();
+                    }
+                }
+
+                _logger.LogInformation(
+                    "Backfill complete. Inserted={Inserted}, Skipped={Skipped}, Failed={Failed}",
+                    inserted, skipped, failed);
+
+                return Ok(new
+                {
+                    success = true,
+                    inserted,
+                    skipped,
+                    failed,
+                    message = $"Backfill complete: {inserted} inserted, {skipped} already existed, {failed} failed."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Backfill failed after {Inserted} inserts", inserted);
+                return StatusCode(500, new { success = false, inserted, skipped, failed, error = ex.Message });
+            }
         }
 
         private string GenerateInvoiceNumber()

@@ -87,7 +87,7 @@ builder.Services.AddAuthentication(options =>
         OnTokenValidated = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("JWT token validated successfully for user: {UserId}", 
+            logger.LogInformation("JWT token validated successfully for user: {UserId}",
                 context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
             return Task.CompletedTask;
         },
@@ -95,6 +95,18 @@ builder.Services.AddAuthentication(options =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogError("JWT authentication failed: {Exception}", context.Exception);
+            return Task.CompletedTask;
+        },
+        OnForbidden = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            var userId = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var roles = string.Join(", ", context.HttpContext.User.Claims
+                .Where(c => c.Type == ClaimTypes.Role)
+                .Select(c => c.Value));
+            logger.LogWarning(
+                "403 Forbidden: userId={UserId}, roles=[{Roles}], path={Path}",
+                userId, roles, context.HttpContext.Request.Path);
             return Task.CompletedTask;
         }
     };
