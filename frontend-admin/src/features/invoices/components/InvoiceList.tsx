@@ -1,23 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Dropdown, Modal, Descriptions } from 'antd';
+import React, { useState, useMemo } from 'react';
+import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Dropdown, Modal, Descriptions, Alert, Empty } from 'antd';
 import { SearchOutlined, DownloadOutlined, ReloadOutlined, EyeOutlined, PrinterOutlined, CopyOutlined, CloudUploadOutlined, DownOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import type { TablePaginationConfig, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
-import { InvoiceListItemDto, InvoiceListParams, InvoiceStatus } from '../types';
-import { getInvoicesList, exportInvoices } from '../api/invoiceService';
 import { useDebounce } from '@/hooks/useDebounce';
+import { normalizeFromDate, normalizeToDate, validateDateRange } from '../utils/dateUtils';
+
+// Orval-generated hooks and types (detail, duplicate, export — NOT list)
 import {
     useGetApiInvoiceId,
     usePostApiInvoiceIdDuplicate,
-    useGetApiFinanzOnlineHistoryInvoiceId,
-    getGetApiInvoiceQueryKey
+    getGetApiInvoiceIdQueryKey,
+    exportInvoices as orvalExportInvoices,
 } from '@/api/generated/invoice/invoice';
 import { usePostApiFinanzOnlineSubmitInvoice } from '@/api/generated/finanz-online/finanz-online';
-import { Invoice, PaymentMethod } from '@/api/generated/model';
+import type { InvoiceListItemDto } from '@/api/generated/model/invoiceListItemDto';
+import type { Invoice, PaymentMethod, InvoiceStatus } from '@/api/generated/model';
+
+// POS-backed list — uses /api/Invoice/pos-list
+import { getInvoicesList } from '../api/invoiceService';
+import type { InvoiceListParams } from '../types';
 
 const { RangePicker } = DatePicker;
 
@@ -68,23 +74,29 @@ export const InvoiceList: React.FC = () => {
 
     const debouncedSearch = useDebounce(searchText, 500);
 
-    // Query Params
-    const queryParams: InvoiceListParams = {
+    // Date range validation
+    const dateRangeError = useMemo(() => {
+        if (!dateRange) return null;
+        return validateDateRange(dateRange[0], dateRange[1]);
+    }, [dateRange]);
+
+    // Query Params — manual type matching POS-list endpoint
+    const queryParams: InvoiceListParams = useMemo(() => ({
         page: pagination.current,
         pageSize: pagination.pageSize,
-        query: debouncedSearch,
-        status: statusFilter,
-        from: dateRange?.[0]?.toISOString(),
-        to: dateRange?.[1]?.toISOString(),
-        sortBy: sortField as any,
-        sortDir: sortOrder,
-    };
+        query: debouncedSearch || undefined,
+        from: dateRange?.[0] ? normalizeFromDate(dateRange[0]) : undefined,
+        to: dateRange?.[1] ? normalizeToDate(dateRange[1]) : undefined,
+        sortBy: sortField as InvoiceListParams['sortBy'],
+        sortDir: sortOrder as InvoiceListParams['sortDir'],
+    }), [pagination.current, pagination.pageSize, debouncedSearch, dateRange, sortField, sortOrder]);
 
-    // Data Fetching List
-    const { data, isLoading, isFetching, refetch } = useQuery({
-        queryKey: ['invoices-list', queryParams], // Changed key to avoid conflict with old query if any
+    // Data Fetching — POS-backed via invoiceService
+    const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
+        queryKey: ['pos-invoices', queryParams],
         queryFn: () => getInvoicesList(queryParams),
-        placeholderData: (previousData) => previousData,
+        placeholderData: (previousData: any) => previousData,
+        enabled: !dateRangeError,
     });
 
     // Detail Fetching
@@ -94,16 +106,6 @@ export const InvoiceList: React.FC = () => {
             query: {
                 enabled: !!selectedInvoiceId && detailVisible,
             },
-        }
-    );
-
-    // FinanzOnline History Fetching
-    const { data: foHistory } = useGetApiFinanzOnlineHistoryInvoiceId(
-        selectedInvoiceId || '',
-        {
-            query: {
-                enabled: !!selectedInvoiceId && detailVisible,
-            }
         }
     );
 
@@ -136,10 +138,13 @@ export const InvoiceList: React.FC = () => {
     const handleExport = async () => {
         try {
             setExportLoading(true);
-            const blob = await exportInvoices({
-                ...queryParams,
-                page: undefined,
-                pageSize: undefined
+            const blob = await orvalExportInvoices({
+                from: queryParams.from,
+                to: queryParams.to,
+                status: queryParams.status,
+                query: queryParams.query,
+                sortBy: queryParams.sortBy,
+                sortDir: queryParams.sortDir,
             });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -201,7 +206,7 @@ export const InvoiceList: React.FC = () => {
                     refetch();
                     if (selectedInvoiceId) {
                         // re-fetch details if open
-                        queryClient.invalidateQueries({ queryKey: getGetApiInvoiceQueryKey(selectedInvoiceId) } as any);
+                        queryClient.invalidateQueries({ queryKey: getGetApiInvoiceIdQueryKey(selectedInvoiceId) } as any);
                     }
                 } else {
                     message.warning(`Submission failed: ${data.message}`);
@@ -212,12 +217,6 @@ export const InvoiceList: React.FC = () => {
             }
         });
     };
-
-    // Wrapper for list item submission - needs detail fetch first or check if list item has enough data (it doesn't have taxDetails)
-    // So for list items, we only open details or print. Submission should be from detail view to be safe.
-    // BUT user had it in list view. 
-    // I wont implement "Submit from list" for now as it requires full object. 
-    // I will enable it inside the detail modal.
 
     // Columns
     const columns: TableProps<InvoiceListItemDto>['columns'] = [
@@ -249,7 +248,7 @@ export const InvoiceList: React.FC = () => {
             sorter: true,
             align: 'right',
             render: (amount) =>
-                new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR' }).format(amount),
+                new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR' }).format(amount ?? 0),
         },
         {
             title: 'Status',
@@ -276,14 +275,14 @@ export const InvoiceList: React.FC = () => {
                         <Button
                             icon={<EyeOutlined />}
                             size="small"
-                            onClick={() => { setSelectedInvoiceId(record.id); setDetailVisible(true); }}
+                            onClick={() => { setSelectedInvoiceId(record.id ?? null); setDetailVisible(true); }}
                         />
                     </Tooltip>
                     <Dropdown
                         menu={{
                             items: [
-                                { key: 'print', label: 'Print Original', icon: <PrinterOutlined />, onClick: () => handlePrint(record.id, record.invoiceNumber) },
-                                { key: 'copy', label: 'Print Copy', icon: <CopyOutlined />, onClick: () => handlePrint(record.id, record.invoiceNumber, true) },
+                                { key: 'print', label: 'Print Original', icon: <PrinterOutlined />, onClick: () => handlePrint(record.id ?? '', record.invoiceNumber ?? '') },
+                                { key: 'copy', label: 'Print Copy', icon: <CopyOutlined />, onClick: () => handlePrint(record.id ?? '', record.invoiceNumber ?? '', true) },
                             ]
                         }}
                         trigger={['click']}
@@ -296,7 +295,7 @@ export const InvoiceList: React.FC = () => {
                         <Button
                             icon={<CopyOutlined />}
                             size="small"
-                            onClick={() => handleDuplicate(record.id)}
+                            onClick={() => handleDuplicate(record.id ?? '')}
                         />
                     </Tooltip>
                 </Space>
@@ -346,12 +345,32 @@ export const InvoiceList: React.FC = () => {
                             <RangePicker
                                 style={{ width: '100%' }}
                                 onChange={(dates) => setDateRange(dates as any)}
+                                status={dateRangeError ? 'error' : undefined}
                             />
+                            {dateRangeError && (
+                                <div style={{ color: '#ff4d4f', fontSize: 12, marginTop: 4 }}>{dateRangeError}</div>
+                            )}
                         </Col>
                         <Col xs={24} sm={24} md={4} style={{ textAlign: 'right' }}>
                             <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching} />
                         </Col>
                     </Row>
+
+                    {/* Error State */}
+                    {isError && (
+                        <Alert
+                            type="error"
+                            message="Failed to load invoices"
+                            description="An unexpected error occurred while loading invoices. Please try again."
+                            showIcon
+                            closable
+                            action={
+                                <Button size="small" onClick={() => refetch()}>
+                                    Retry
+                                </Button>
+                            }
+                        />
+                    )}
 
                     {/* Table */}
                     <Table
@@ -366,6 +385,17 @@ export const InvoiceList: React.FC = () => {
                         onChange={handleTableChange}
                         size="middle"
                         scroll={{ x: 800 }}
+                        locale={{
+                            emptyText: isLoading ? undefined : (
+                                <Empty
+                                    description={
+                                        dateRange
+                                            ? 'No invoices found for the selected date range. Try adjusting your filters.'
+                                            : 'No invoices found. Try adjusting your filters or create a new invoice.'
+                                    }
+                                />
+                            ),
+                        }}
                     />
                 </Space>
             </Card>
@@ -440,22 +470,6 @@ export const InvoiceList: React.FC = () => {
                                 </pre>
                             </Descriptions.Item>
                         </Descriptions>
-
-                        <div style={{ marginTop: 24 }}>
-                            <h4>FinanzOnline History</h4>
-                            <Table
-                                dataSource={foHistory || []}
-                                rowKey="id"
-                                size="small"
-                                pagination={false}
-                                columns={[
-                                    { title: 'Date', dataIndex: 'submittedAt', render: (val: string) => dayjs(val).format('DD.MM.YYYY HH:mm:ss') },
-                                    { title: 'Status', dataIndex: 'responseStatusCode' },
-                                    { title: 'Success', dataIndex: 'success', render: (val: boolean) => val ? <Tag color="success">Yes</Tag> : <Tag color="error">No</Tag> },
-                                    { title: 'Message', dataIndex: 'errorMessage', render: (val: string) => val || '-' },
-                                ]}
-                            />
-                        </div>
                     </>
                 ) : (
                     <p>No details found.</p>

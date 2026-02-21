@@ -28,6 +28,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/Invoice/list
+        // Date boundary: from is inclusive (>= start-of-day UTC), to is inclusive via exclusive-next-day (< to+1day UTC)
         [HttpGet("list")]
         public async Task<ActionResult<PagedResult<InvoiceListItemDto>>> GetInvoicesList(
             [FromQuery] int page = 1,
@@ -37,7 +38,8 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] InvoiceStatus? status = null,
             [FromQuery] string? query = null,
             [FromQuery] string sortBy = "invoiceDate",
-            [FromQuery] string sortDir = "desc")
+            [FromQuery] string sortDir = "desc",
+            [FromQuery] Guid? cashRegisterId = null)
         {
             try
             {
@@ -50,9 +52,11 @@ namespace KasseAPI_Final.Controllers
                 if (from.HasValue)
                     queryable = queryable.Where(i => i.InvoiceDate >= from.Value.ToUniversalTime());
                 if (to.HasValue)
-                    queryable = queryable.Where(i => i.InvoiceDate <= to.Value.ToUniversalTime().AddDays(1));
+                    queryable = queryable.Where(i => i.InvoiceDate < to.Value.ToUniversalTime().AddDays(1));
                 if (status.HasValue)
                     queryable = queryable.Where(i => i.Status == status.Value);
+                if (cashRegisterId.HasValue)
+                    queryable = queryable.Where(i => i.CashRegisterId == cashRegisterId.Value);
 
                 if (!string.IsNullOrWhiteSpace(query))
                 {
@@ -110,6 +114,101 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        // GET: api/Invoice/pos-list
+        // POS-backed listing — sources data from PaymentDetails (actual POS transactions)
+        // Date boundary: from >= fromUtc, to < nextDayStartUtc
+        [HttpGet("pos-list")]
+        public async Task<ActionResult<PagedResult<InvoiceListItemDto>>> GetPosInvoicesList(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            [FromQuery] string? query = null,
+            [FromQuery] string sortBy = "invoiceDate",
+            [FromQuery] string sortDir = "desc",
+            [FromQuery] string? cashRegisterId = null)
+        {
+            try
+            {
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 50;
+                if (pageSize > 200) pageSize = 200;
+
+                var queryable = _context.PaymentDetails.AsNoTracking().Where(p => p.IsActive);
+
+                // Date filtering on CreatedAt (payment timestamp)
+                if (from.HasValue)
+                {
+                    var fromUtc = from.Value.Kind == DateTimeKind.Utc
+                        ? from.Value.Date
+                        : from.Value.ToUniversalTime().Date;
+                    queryable = queryable.Where(p => p.CreatedAt >= fromUtc);
+                }
+                if (to.HasValue)
+                {
+                    var toUtc = to.Value.Kind == DateTimeKind.Utc
+                        ? to.Value.Date.AddDays(1)
+                        : to.Value.ToUniversalTime().Date.AddDays(1);
+                    queryable = queryable.Where(p => p.CreatedAt < toUtc);
+                }
+
+                if (!string.IsNullOrWhiteSpace(cashRegisterId))
+                    queryable = queryable.Where(p => p.KassenId == cashRegisterId);
+
+                if (!string.IsNullOrWhiteSpace(query))
+                {
+                    var q = query.Trim().ToLower();
+                    if (q.Length >= 2)
+                    {
+                        queryable = queryable.Where(p =>
+                            EF.Functions.ILike(p.ReceiptNumber, $"%{q}%") ||
+                            EF.Functions.ILike(p.CustomerName, $"%{q}%"));
+                    }
+                }
+
+                var totalCount = await queryable.CountAsync();
+
+                bool isAsc = sortDir?.ToLower() == "asc";
+                queryable = sortBy.ToLower() switch
+                {
+                    "invoicenumber" => isAsc ? queryable.OrderBy(p => p.ReceiptNumber) : queryable.OrderByDescending(p => p.ReceiptNumber),
+                    "totalamount"   => isAsc ? queryable.OrderBy(p => p.TotalAmount) : queryable.OrderByDescending(p => p.TotalAmount),
+                    _               => isAsc ? queryable.OrderBy(p => p.CreatedAt) : queryable.OrderByDescending(p => p.CreatedAt)
+                };
+
+                var items = await queryable
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(p => new InvoiceListItemDto
+                    {
+                        Id = p.Id,
+                        InvoiceNumber = p.ReceiptNumber,
+                        InvoiceDate = p.CreatedAt,
+                        CustomerName = p.CustomerName,
+                        CompanyName = string.Empty,
+                        TotalAmount = p.TotalAmount,
+                        Status = InvoiceStatus.Paid, // POS transactions are always completed/paid
+                        KassenId = p.KassenId,
+                        TseSignature = p.TseSignature
+                    })
+                    .ToListAsync();
+
+                return Ok(new PagedResult<InvoiceListItemDto>
+                {
+                    Items = items,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error listing POS invoices");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
         // GET: api/Invoice/export
         [HttpGet("export")]
         public async Task<IActionResult> ExportInvoices(
@@ -118,15 +217,17 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] InvoiceStatus? status = null,
             [FromQuery] string? query = null,
             [FromQuery] string sortBy = "invoiceDate",
-            [FromQuery] string sortDir = "desc")
+            [FromQuery] string sortDir = "desc",
+            [FromQuery] Guid? cashRegisterId = null)
         {
             try
             {
                 var queryable = _context.Invoices.AsNoTracking().Where(i => i.IsActive);
 
                 if (from.HasValue) queryable = queryable.Where(i => i.InvoiceDate >= from.Value.ToUniversalTime());
-                if (to.HasValue) queryable = queryable.Where(i => i.InvoiceDate <= to.Value.ToUniversalTime().AddDays(1));
+                if (to.HasValue) queryable = queryable.Where(i => i.InvoiceDate < to.Value.ToUniversalTime().AddDays(1));
                 if (status.HasValue) queryable = queryable.Where(i => i.Status == status.Value);
+                if (cashRegisterId.HasValue) queryable = queryable.Where(i => i.CashRegisterId == cashRegisterId.Value);
 
                 if (!string.IsNullOrWhiteSpace(query))
                 {
