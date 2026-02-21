@@ -1,5 +1,6 @@
 import { apiClient } from './config';
 import { handleAPIError, ErrorMessages } from '../errorService'; // ✅ YENİ: Standardize error handling
+import { API_PATHS } from './apiPaths'; // ✅ Centralized swagger-accurate paths
 
 // Cache sistemi - API çağrılarının tekrarlanmasını önler
 export const productCache = {
@@ -7,13 +8,13 @@ export const productCache = {
   categories: null as string[] | null,
   lastFetch: null as number | null,
   cacheTimeout: 15 * 60 * 1000, // 15 dakika cache süresi
-  
-  isExpired: function() {
+
+  isExpired: function () {
     if (!this.lastFetch) return true;
     return Date.now() - this.lastFetch > this.cacheTimeout;
   },
-  
-  clear: function() {
+
+  clear: function () {
     this.products = null;
     this.categories = null;
     this.lastFetch = null;
@@ -57,18 +58,18 @@ export interface Product {
   imageUrl?: string;
   createdAt: string;
   updatedAt: string;
-  
+
   // Maliyet bilgileri
   cost: number; // Ürün maliyeti
   taxRate: number; // Vergi oranı
-  
+
   // RKSV Compliance Fields - Avusturya vergi uyumu
   isFiscalCompliant: boolean; // RKSV fiscal compliance flag
   fiscalCategoryCode?: string; // Avusturya vergi kategorisi kodu
   isTaxable: boolean; // Vergiye tabi olup olmadığı
   taxExemptionReason?: string; // Vergi muafiyeti nedeni
   rksvProductType: RksvProductType; // RKSV ürün tipi
-  
+
   // Backend catalog endpoint'inden gelen ek field'lar
   productCategory?: string; // Backend'de ProductCategory olarak map edildi
   categoryId?: string; // Backend'de CategoryId olarak map edildi
@@ -141,7 +142,7 @@ export const getAllProducts = async (
   pageSize: number = 20
 ): Promise<Product[]> => {
   try {
-    const resp = await apiClient.get<any>(`/products/all`);
+    const resp = await apiClient.get<any>(API_PATHS.PRODUCT.ALL);
     const arr = unwrapData<any[]>(resp);
     return arr.map(mapProduct);
   } catch (error) {
@@ -160,7 +161,7 @@ export const getActiveProductsForHomePage = async (): Promise<{
   products: Product[];
 }[]> => {
   try {
-    const resp = await apiClient.get<any>('/products/active');
+    const resp = await apiClient.get<any>(API_PATHS.PRODUCT.ACTIVE);
     const arr = unwrapData<any[]>(resp);
     // Backend grouped format olabilir: { Category, Products }
     return arr.map(g => ({
@@ -184,14 +185,14 @@ export const getAllCategories = async (): Promise<string[]> => {
       console.log('📦 Returning categories from cache');
       return productCache.categories;
     }
-    
+
     console.log('🔄 Fetching categories from API...');
-    const resp = await apiClient.get<any>('/products/categories');
+    const resp = await apiClient.get<any>(API_PATHS.PRODUCT.CATEGORIES);
     const categories = unwrapData<string[]>(resp);
-    
+
     productCache.categories = categories;
     productCache.lastFetch = Date.now();
-    
+
     console.log(`✅ Fetched ${categories.length} categories and updated cache`);
     return categories;
   } catch (error) {
@@ -207,33 +208,33 @@ export const getProductCatalog = async (): Promise<{
 }> => {
   try {
     console.log('🔄 Fetching product catalog...');
-    const resp = await apiClient.get<any>('/products/catalog');
-    
+    const resp = await apiClient.get<any>(API_PATHS.PRODUCT.CATALOG);
+
     // Response format kontrolü - SuccessResponse sarmalaması olabilir
     let data = resp;
     if (resp?.data) {
       data = resp.data; // SuccessResponse format
     }
-    
-    console.log('📦 Catalog response received:', { 
-      hasData: !!data, 
-      hasCategories: !!data?.Categories, 
+
+    console.log('📦 Catalog response received:', {
+      hasData: !!data,
+      hasCategories: !!data?.Categories,
       hasProducts: !!data?.Products,
       categoriesCount: data?.Categories?.length || 0,
       productsCount: data?.Products?.length || 0
     });
-    
+
     const categories = (data?.Categories ?? data?.categories ?? []).map((c: any) => ({
       id: c.Id ?? c.id,
       name: c.Name ?? c.name,
     }));
-    
+
     const productsRaw = data?.Products ?? data?.products ?? [];
     const products = productsRaw.map((p: any) => ({
       ...mapProduct(p),
       categoryId: p.CategoryId ?? p.categoryId,
     }));
-    
+
     console.log(`✅ Catalog loaded: ${categories.length} categories, ${products.length} products`);
     return { categories, products };
   } catch (error) {
@@ -253,7 +254,7 @@ export const getProductsByCategory = async (categoryName: string): Promise<Produ
     if (!categoryName || categoryName.trim() === '') {
       throw new Error('Category name cannot be empty');
     }
-    const resp = await apiClient.get<any>(`/products/category/${categoryName}`);
+    const resp = await apiClient.get<any>(API_PATHS.PRODUCT.CATEGORY(categoryName));
     const arr = unwrapData<any[]>(resp);
     return arr.map(mapProduct);
   } catch (error) {
@@ -280,7 +281,7 @@ export const searchProducts = async (searchParams: {
     if (searchParams.name) params.append('name', searchParams.name);
     if (searchParams.category) params.append('category', searchParams.category);
 
-    const resp = await apiClient.get<any>(`/products/search?${params.toString()}`);
+    const resp = await apiClient.get<any>(`${API_PATHS.PRODUCT.SEARCH}?${params.toString()}`);
     const arr = unwrapData<any[]>(resp);
     return arr.map(mapProduct);
   } catch (error) {
