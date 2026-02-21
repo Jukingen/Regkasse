@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Dropdown, Modal, Descriptions, Alert, Empty } from 'antd';
-import { SearchOutlined, DownloadOutlined, ReloadOutlined, EyeOutlined, PrinterOutlined, CopyOutlined, CloudUploadOutlined, DownOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty } from 'antd';
+import { SearchOutlined, DownloadOutlined, ReloadOutlined, EyeOutlined, PrinterOutlined, CloudUploadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import type { TablePaginationConfig, TableProps } from 'antd/es/table';
@@ -13,7 +13,6 @@ import { normalizeFromDate, normalizeToDate, validateDateRange } from '../utils/
 // Orval-generated hooks and types (detail, duplicate, export — NOT list)
 import {
     useGetApiInvoiceId,
-    usePostApiInvoiceIdDuplicate,
     getGetApiInvoiceIdQueryKey,
     exportInvoices as orvalExportInvoices,
 } from '@/api/generated/invoice/invoice';
@@ -22,7 +21,7 @@ import type { InvoiceListItemDto } from '@/api/generated/model/invoiceListItemDt
 import type { Invoice, PaymentMethod, InvoiceStatus } from '@/api/generated/model';
 
 // POS-backed list — uses /api/Invoice/pos-list
-import { getInvoicesList } from '../api/invoiceService';
+import { getInvoicesList, getInvoicePdf } from '../api/invoiceService';
 import type { InvoiceListParams } from '../types';
 
 const { RangePicker } = DatePicker;
@@ -110,7 +109,6 @@ export const InvoiceList: React.FC = () => {
     );
 
     // Mutations
-    const duplicateMutation = usePostApiInvoiceIdDuplicate();
     const submitFinanzOnlineMutation = usePostApiFinanzOnlineSubmitInvoice();
 
 
@@ -163,25 +161,23 @@ export const InvoiceList: React.FC = () => {
         }
     };
 
-    const handleDuplicate = (id: string) => {
-        duplicateMutation.mutate({ id }, {
-            onSuccess: (data) => {
-                message.success('Invoice duplicated successfully');
-                refetch(); // Refetch list
-                if (data && data.id) {
-                    setSelectedInvoiceId(data.id);
-                    setDetailVisible(true);
-                }
-            },
-            onError: () => {
-                message.error('Failed to duplicate invoice');
-            },
-        });
-    };
-
-    const handlePrint = (id: string, invoiceNumber: string, copy: boolean = false) => {
-        const url = `/api/Invoice/${id}/pdf${copy ? '?copy=true' : ''}`;
-        window.open(url, '_blank');
+    const handlePrint = async (id: string) => {
+        try {
+            const blob = await getInvoicePdf(id);
+            const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+            window.open(blobUrl, '_blank');
+            // Clean up after a delay so the new tab can load
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+        } catch (err: any) {
+            const status = err?.response?.status;
+            if (status === 401) {
+                message.error('Session expired. Please log in again.');
+            } else if (status === 404) {
+                message.error('Invoice not found or has been deleted.');
+            } else {
+                message.error('Failed to generate PDF. Please try again.');
+            }
+        }
     };
 
     const handleSubmitFinanzOnline = (invoice: Invoice) => {
@@ -278,24 +274,11 @@ export const InvoiceList: React.FC = () => {
                             onClick={() => { setSelectedInvoiceId(record.id ?? null); setDetailVisible(true); }}
                         />
                     </Tooltip>
-                    <Dropdown
-                        menu={{
-                            items: [
-                                { key: 'print', label: 'Print Original', icon: <PrinterOutlined />, onClick: () => handlePrint(record.id ?? '', record.invoiceNumber ?? '') },
-                                { key: 'copy', label: 'Print Copy', icon: <CopyOutlined />, onClick: () => handlePrint(record.id ?? '', record.invoiceNumber ?? '', true) },
-                            ]
-                        }}
-                        trigger={['click']}
-                    >
-                        <Button size="small" icon={<PrinterOutlined />}>
-                            <DownOutlined />
-                        </Button>
-                    </Dropdown>
-                    <Tooltip title="Duplicate">
+                    <Tooltip title="Print">
                         <Button
-                            icon={<CopyOutlined />}
+                            icon={<PrinterOutlined />}
                             size="small"
-                            onClick={() => handleDuplicate(record.id ?? '')}
+                            onClick={() => handlePrint(record.id ?? '')}
                         />
                     </Tooltip>
                 </Space>
@@ -407,19 +390,14 @@ export const InvoiceList: React.FC = () => {
                 onCancel={() => setDetailVisible(false)}
                 footer={[
                     <Button key="close" onClick={() => setDetailVisible(false)}>Close</Button>,
-                    <Dropdown
-                        key="print-dropdown"
-                        menu={{
-                            items: [
-                                { key: 'print', label: 'Print Original', icon: <PrinterOutlined />, onClick: () => detailInvoice && handlePrint(detailInvoice.id || '', detailInvoice.invoiceNumber) },
-                                { key: 'copy', label: 'Print Copy', icon: <CopyOutlined />, onClick: () => detailInvoice && handlePrint(detailInvoice.id || '', detailInvoice.invoiceNumber, true) },
-                            ]
-                        }}
+                    <Button
+                        key="print"
+                        type="primary"
+                        icon={<PrinterOutlined />}
+                        onClick={() => detailInvoice && handlePrint(detailInvoice.id || '')}
                     >
-                        <Button type="primary" icon={<PrinterOutlined />}>
-                            Print <DownOutlined />
-                        </Button>
-                    </Dropdown>,
+                        Print
+                    </Button>,
                     // Add Submit Button here if pertinent
                     (detailInvoice && (detailInvoice.status === 1 || detailInvoice.status === 2)) && (
                         <Button
@@ -456,8 +434,8 @@ export const InvoiceList: React.FC = () => {
                                 {detailInvoice.companyTaxNumber}
                             </Descriptions.Item>
 
-                            <Descriptions.Item label="Total Amount">€ {detailInvoice.totalAmount.toFixed(2)}</Descriptions.Item>
-                            <Descriptions.Item label="Tax Amount">€ {detailInvoice.taxAmount.toFixed(2)}</Descriptions.Item>
+                            <Descriptions.Item label="Total Amount">€ {(detailInvoice.totalAmount ?? 0).toFixed(2)}</Descriptions.Item>
+                            <Descriptions.Item label="Tax Amount">€ {(detailInvoice.taxAmount ?? 0).toFixed(2)}</Descriptions.Item>
 
                             <Descriptions.Item label="Payment Method">{getPaymentMethodLabel(detailInvoice.paymentMethod)}</Descriptions.Item>
                             <Descriptions.Item label="TSE Signature" span={2} style={{ wordBreak: 'break-all', fontFamily: 'monospace', fontSize: 10 }}>

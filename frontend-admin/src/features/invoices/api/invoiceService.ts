@@ -63,3 +63,11 @@ export const exportInvoices = (params: Omit<InvoiceListParams, 'page' | 'pageSiz
         responseType: 'blob'
     });
 };
+
+export const getInvoicePdf = (id: string): Promise<Blob> => {
+    return customInstance<Blob>({
+        url: `/api/Invoice/${id}/pdf`,
+        method: 'GET',
+        responseType: 'blob',
+    });
+};

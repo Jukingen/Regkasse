@@ -347,7 +347,37 @@ namespace KasseAPI_Final.Controllers
 
                 if (invoice == null || !invoice.IsActive)
                 {
-                    return NotFound("Fatura bulunamadı");
+                    var posInvoice = await _context.PaymentDetails.FindAsync(id);
+                    if (posInvoice == null || !posInvoice.IsActive)
+                    {
+                        return NotFound("Fatura bulunamadı");
+                    }
+                    
+                    invoice = new Invoice
+                    {
+                        Id = posInvoice.Id,
+                        InvoiceNumber = posInvoice.ReceiptNumber,
+                        InvoiceDate = posInvoice.CreatedAt,
+                        DueDate = posInvoice.CreatedAt,
+                        Status = InvoiceStatus.Paid,
+                        Subtotal = posInvoice.TotalAmount - posInvoice.TaxAmount,
+                        TaxAmount = posInvoice.TaxAmount,
+                        TotalAmount = posInvoice.TotalAmount,
+                        PaidAmount = posInvoice.TotalAmount,
+                        RemainingAmount = 0,
+                        CustomerName = posInvoice.CustomerName,
+                        CustomerTaxNumber = posInvoice.Steuernummer,
+                        CompanyName = string.Empty, // Placeholder mapping for POS logic
+                        CompanyTaxNumber = string.Empty,
+                        CompanyAddress = string.Empty,
+                        TseSignature = posInvoice.TseSignature,
+                        KassenId = posInvoice.KassenId,
+                        TseTimestamp = posInvoice.TseTimestamp,
+                        PaymentMethod = posInvoice.PaymentMethod,
+                        InvoiceItems = posInvoice.PaymentItems,
+                        TaxDetails = posInvoice.TaxDetails,
+                        IsActive = true
+                    };
                 }
 
                 return Ok(invoice);
@@ -554,7 +584,40 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var invoice = await _context.Invoices.FindAsync(id);
-                if (invoice == null || !invoice.IsActive) return NotFound("Fatura bulunamadı");
+                if (invoice == null || !invoice.IsActive)
+                {
+                    var posInvoice = await _context.PaymentDetails.FindAsync(id);
+                    if (posInvoice == null || !posInvoice.IsActive)
+                    {
+                        return NotFound("Fatura bulunamadı");
+                    }
+                    
+                    invoice = new Invoice
+                    {
+                        Id = posInvoice.Id,
+                        InvoiceNumber = posInvoice.ReceiptNumber,
+                        InvoiceDate = posInvoice.CreatedAt,
+                        DueDate = posInvoice.CreatedAt,
+                        Status = InvoiceStatus.Paid,
+                        Subtotal = posInvoice.TotalAmount - posInvoice.TaxAmount,
+                        TaxAmount = posInvoice.TaxAmount,
+                        TotalAmount = posInvoice.TotalAmount,
+                        PaidAmount = posInvoice.TotalAmount,
+                        RemainingAmount = 0,
+                        CustomerName = posInvoice.CustomerName,
+                        CustomerTaxNumber = posInvoice.Steuernummer,
+                        CompanyName = string.Empty, // Placeholder mapping for POS logic
+                        CompanyTaxNumber = string.Empty,
+                        CompanyAddress = string.Empty,
+                        TseSignature = posInvoice.TseSignature,
+                        KassenId = posInvoice.KassenId,
+                        TseTimestamp = posInvoice.TseTimestamp,
+                        PaymentMethod = posInvoice.PaymentMethod,
+                        InvoiceItems = posInvoice.PaymentItems,
+                        TaxDetails = posInvoice.TaxDetails,
+                        IsActive = true
+                    };
+                }
 
                 var document = Document.Create(container =>
                 {
