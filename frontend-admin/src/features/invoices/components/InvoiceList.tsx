@@ -15,8 +15,12 @@ import {
     useGetApiInvoiceId,
     getGetApiInvoiceIdQueryKey,
     exportInvoices as orvalExportInvoices,
+    getApiInvoiceId,
 } from '@/api/generated/invoice/invoice';
-import { usePostApiFinanzOnlineSubmitInvoice } from '@/api/generated/finanz-online/finanz-online';
+import {
+    usePostApiFinanzOnlineSubmitInvoice,
+    postApiFinanzOnlineSubmitInvoice
+} from '@/api/generated/finanz-online/finanz-online';
 import type { Invoice, PaymentMethod, InvoiceStatus } from '@/api/generated/model';
 
 // POS-backed list — uses /api/Invoice/pos-list
@@ -67,6 +71,8 @@ export const InvoiceList: React.FC = () => {
     const [sortField, setSortField] = useState<string>('invoiceDate');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [exportLoading, setExportLoading] = useState(false);
+    const [batchLoading, setBatchLoading] = useState(false);
+    const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
     // Detail Modal State
     const [detailVisible, setDetailVisible] = useState(false);
@@ -167,6 +173,115 @@ export const InvoiceList: React.FC = () => {
         } finally {
             setCreditNoteLoading(false);
         }
+    };
+
+    const handleBatchPrint = async () => {
+        if (!selectedRowKeys.length) return;
+        setBatchLoading(true);
+        let success = 0;
+        let fail = 0;
+
+        for (const key of selectedRowKeys) {
+            try {
+                const blob = await getInvoicePdf(key.toString());
+                const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.setAttribute('download', `Invoice_${key}.pdf`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+                success++;
+            } catch (err) {
+                fail++;
+            }
+        }
+        setBatchLoading(false);
+        message.success(`Batch Print: ${success} successful, ${fail} failed`);
+        setSelectedRowKeys([]);
+    };
+
+    const handleBatchExport = async () => {
+        if (!selectedRowKeys.length) return;
+        setBatchLoading(true);
+        let success = 0;
+        let fail = 0;
+        const lines = ['InvoiceNumber;InvoiceDate;CustomerName;CompanyName;TotalAmount;Status;DocumentType;OriginalInvoiceId;KassenId;TseSignature'];
+
+        for (const key of selectedRowKeys) {
+            try {
+                const i = await getApiInvoiceId(key.toString());
+                const escapeCsv = (v: any) => v ? `"${String(v).replace(/"/g, '""')}"` : '';
+                lines.push(`${i.invoiceNumber};${dayjs(i.invoiceDate).format('YYYY-MM-DD HH:mm')};${escapeCsv(i.customerName)};${escapeCsv(i.companyName)};${i.totalAmount};${i.status};${(i as any).documentType || ''};${(i as any).originalInvoiceId || ''};${i.kassenId || ''};${escapeCsv(i.tseSignature)}`);
+                success++;
+            } catch {
+                fail++;
+            }
+        }
+
+        if (success > 0) {
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Batch_Export_${dayjs().format('YYYYMMDD_HHmm')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        }
+        setBatchLoading(false);
+        message.success(`Batch Export: ${success} exported, ${fail} failed`);
+        setSelectedRowKeys([]);
+    };
+
+    const handleBatchSubmit = () => {
+        if (!selectedRowKeys.length) return;
+        Modal.confirm({
+            title: 'Confirm Batch Submit',
+            content: `Are you sure you want to submit ${selectedRowKeys.length} invoice(s) to FinanzOnline? Ineligible statuses will be skipped.`,
+            onOk: async () => {
+                setBatchLoading(true);
+                let success = 0;
+                let fail = 0;
+                let skipped = 0;
+                for (const key of selectedRowKeys) {
+                    try {
+                        const inv = await getApiInvoiceId(key.toString());
+                        if (inv.status !== 1 && inv.status !== 2) {
+                            skipped++;
+                            continue;
+                        }
+                        if (!inv.tseSignature || !inv.taxDetails) {
+                            fail++;
+                            continue;
+                        }
+
+                        const res = await postApiFinanzOnlineSubmitInvoice({
+                            invoiceNumber: inv.invoiceNumber,
+                            totalAmount: inv.totalAmount,
+                            tseSignature: inv.tseSignature,
+                            taxDetails: typeof inv.taxDetails === 'string' ? inv.taxDetails : JSON.stringify(inv.taxDetails),
+                            invoiceDate: inv.invoiceDate,
+                            kassenId: inv.kassenId,
+                        });
+
+                        if (res.success) {
+                            success++;
+                        } else {
+                            fail++;
+                        }
+                    } catch {
+                        fail++;
+                    }
+                }
+                setBatchLoading(false);
+                message.info(`Batch Submit: ${success} successful, ${fail} failed, ${skipped} skipped.`);
+                setSelectedRowKeys([]);
+                refetch();
+            }
+        });
     };
 
     const handleExport = async () => {
@@ -352,14 +467,40 @@ export const InvoiceList: React.FC = () => {
     return (
         <React.Fragment>
             <Card title="Invoices" extra={
-                <Button
-                    type="primary"
-                    icon={<DownloadOutlined />}
-                    onClick={handleExport}
-                    loading={exportLoading}
-                >
-                    Export CSV
-                </Button>
+                <Space>
+                    <Button
+                        disabled={!selectedRowKeys.length}
+                        icon={<PrinterOutlined />}
+                        onClick={handleBatchPrint}
+                        loading={batchLoading}
+                    >
+                        Batch Print
+                    </Button>
+                    <Button
+                        disabled={!selectedRowKeys.length}
+                        icon={<DownloadOutlined />}
+                        onClick={handleBatchExport}
+                        loading={batchLoading}
+                    >
+                        Batch Export
+                    </Button>
+                    <Button
+                        disabled={!selectedRowKeys.length}
+                        icon={<CloudUploadOutlined />}
+                        onClick={handleBatchSubmit}
+                        loading={batchLoading}
+                    >
+                        Batch Submit
+                    </Button>
+                    <Button
+                        type="primary"
+                        icon={<DownloadOutlined />}
+                        onClick={handleExport}
+                        loading={exportLoading}
+                    >
+                        Export CSV (All)
+                    </Button>
+                </Space>
             }>
                 <Space direction="vertical" style={{ width: '100%' }} size="middle">
                     {/* Filters */}
@@ -416,6 +557,10 @@ export const InvoiceList: React.FC = () => {
 
                     {/* Table */}
                     <Table
+                        rowSelection={{
+                            selectedRowKeys,
+                            onChange: setSelectedRowKeys,
+                        }}
                         columns={columns}
                         dataSource={data?.items || []}
                         rowKey="id"
