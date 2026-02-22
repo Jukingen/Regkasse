@@ -104,7 +104,7 @@ namespace KasseAPI_Final.Services
                 ReceiptNumber = payment.ReceiptNumber ?? $"TEMP-{payment.Id.ToString().Substring(0, 8)}",
                 IssuedAt = payment.CreatedAt,
                 CashierId = payment.CashierId,
-                CashRegisterId = payment.KassenId ?? "KASSE-01",
+                CashRegisterId = Guid.TryParse(payment.KassenId, out var parsedKassenId) ? parsedKassenId : Guid.Empty,
                 SubTotal = payment.TotalAmount - payment.TaxAmount,
                 TaxTotal = payment.TaxAmount,
                 GrandTotal = payment.TotalAmount,
@@ -180,7 +180,7 @@ namespace KasseAPI_Final.Services
                 ReceiptNumber = receipt.ReceiptNumber,
                 Date = receipt.IssuedAt,
                 CashierName = receipt.CashierId ?? "Unknown", // Resolve name if needed
-                KassenID = receipt.CashRegisterId,
+                KassenID = receipt.CashRegisterId.ToString(),
                 TableNumber = receipt.Payment?.TableNumber,
                 
                 Company = company,

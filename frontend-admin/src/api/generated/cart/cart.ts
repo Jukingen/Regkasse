@@ -966,3 +966,102 @@ export const useGetApiCartTableOrdersRecovery = <TData = Awaited<ReturnType<type
 
 
 
+export const postApiCartItemsItemIdIncrement = (
+    itemId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Cart/items/${itemId}/increment`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiCartItemsItemIdIncrementMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartItemsItemIdIncrement>>, TError,{itemId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiCartItemsItemIdIncrement>>, TError,{itemId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCartItemsItemIdIncrement>>, {itemId: string}> = (props) => {
+          const {itemId} = props ?? {};
+
+          return  postApiCartItemsItemIdIncrement(itemId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiCartItemsItemIdIncrementMutationResult = NonNullable<Awaited<ReturnType<typeof postApiCartItemsItemIdIncrement>>>
+    
+    export type PostApiCartItemsItemIdIncrementMutationError = unknown
+
+    export const usePostApiCartItemsItemIdIncrement = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartItemsItemIdIncrement>>, TError,{itemId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiCartItemsItemIdIncrement>>,
+        TError,
+        {itemId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiCartItemsItemIdIncrementMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiCartItemsItemIdDecrement = (
+    itemId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Cart/items/${itemId}/decrement`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiCartItemsItemIdDecrementMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartItemsItemIdDecrement>>, TError,{itemId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiCartItemsItemIdDecrement>>, TError,{itemId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCartItemsItemIdDecrement>>, {itemId: string}> = (props) => {
+          const {itemId} = props ?? {};
+
+          return  postApiCartItemsItemIdDecrement(itemId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiCartItemsItemIdDecrementMutationResult = NonNullable<Awaited<ReturnType<typeof postApiCartItemsItemIdDecrement>>>
+    
+    export type PostApiCartItemsItemIdDecrementMutationError = unknown
+
+    export const usePostApiCartItemsItemIdDecrement = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartItemsItemIdDecrement>>, TError,{itemId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiCartItemsItemIdDecrement>>,
+        TError,
+        {itemId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiCartItemsItemIdDecrementMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    

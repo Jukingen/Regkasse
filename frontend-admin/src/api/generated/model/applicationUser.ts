@@ -21,6 +21,8 @@ export interface ApplicationUser {
   /** @nullable */
   carts?: Cart[] | null;
   /** @nullable */
+  cashRegisterId?: string | null;
+  /** @nullable */
   cashRegisters?: CashRegister[] | null;
   /** @nullable */
   concurrencyStamp?: string | null;

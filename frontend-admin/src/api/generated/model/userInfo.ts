@@ -29,4 +29,18 @@ export interface UserInfo {
   taxNumber?: string | null;
   /** @nullable */
   userName?: string | null;
+
+  // camelCase fallbacks for backend migration
+  CreatedAt?: string;
+  Email?: string | null;
+  EmployeeNumber?: string | null;
+  FirstName?: string | null;
+  Id?: string | null;
+  IsActive?: boolean;
+  LastLoginAt?: string | null;
+  LastName?: string | null;
+  Notes?: string | null;
+  Role?: string | null;
+  TaxNumber?: string | null;
+  UserName?: string | null;
 }

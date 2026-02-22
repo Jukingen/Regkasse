@@ -85,8 +85,7 @@ namespace KasseAPI_Final.Models
         public DateTime TseTimestamp { get; set; }
 
         // Cash Register ID for Tagesabschluss
-        [Required]
-        public Guid CashRegisterId { get; set; }
+        public Guid? CashRegisterId { get; set; }
 
         // Ödeme Bilgileri
         public PaymentMethod? PaymentMethod { get; set; }

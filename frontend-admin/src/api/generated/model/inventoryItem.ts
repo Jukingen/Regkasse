@@ -5,7 +5,6 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { Product } from './product';
 import type { InventoryTransaction } from './inventoryTransaction';
 
 export interface InventoryItem {
@@ -28,7 +27,6 @@ export interface InventoryItem {
    * @nullable
    */
   notes?: string | null;
-  product?: Product;
   productId: string;
   /** @nullable */
   reorderPoint?: number | null;

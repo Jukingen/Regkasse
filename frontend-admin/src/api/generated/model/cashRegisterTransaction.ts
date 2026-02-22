@@ -12,10 +12,6 @@ import type { ApplicationUser } from './applicationUser';
 export interface CashRegisterTransaction {
   amount: number;
   cashRegister?: CashRegister;
-  /**
-   * @minLength 1
-   * @maxLength 50
-   */
   cashRegisterId: string;
   createdAt: string;
   /**

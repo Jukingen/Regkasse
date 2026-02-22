@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace KasseAPI_Final.Models
 {
-    [Table("users")]
+    // Canonical user entity, mapped to default "AspNetUsers" table via IdentityDbContext
     public class ApplicationUser : IdentityUser
     {
         [Required]
@@ -71,6 +71,8 @@ namespace KasseAPI_Final.Models
         public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
         public virtual ICollection<CashRegisterTransaction> Transactions { get; set; } = new List<CashRegisterTransaction>();
         public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
+        [Column("cash_register_id")]
+        public Guid? CashRegisterId { get; set; }
         // public virtual UserSettings? Settings { get; set; }
         // public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     }

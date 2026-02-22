@@ -26,8 +26,8 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var start = startDate ?? DateTime.UtcNow.AddDays(-30);
-                var end = endDate ?? DateTime.UtcNow;
+                var start = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(-30);
+                var end = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : DateTime.UtcNow;
 
                 var invoices = await _context.Invoices
                     .Where(i => i.InvoiceDate >= start && i.InvoiceDate <= end && i.IsActive)
@@ -74,8 +74,8 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var start = startDate ?? DateTime.UtcNow.AddDays(-30);
-                var end = endDate ?? DateTime.UtcNow;
+                var start = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(-30);
+                var end = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : DateTime.UtcNow;
 
                 var orderItems = await _context.OrderItems
                     .Include(oi => oi.Order)
@@ -125,8 +125,8 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var start = startDate ?? DateTime.UtcNow.AddDays(-30);
-                var end = endDate ?? DateTime.UtcNow;
+                var start = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(-30);
+                var end = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : DateTime.UtcNow;
 
                 var invoices = await _context.Invoices
                     .Where(i => i.InvoiceDate >= start && i.InvoiceDate <= end && i.IsActive)
@@ -214,8 +214,8 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var start = startDate ?? DateTime.UtcNow.AddDays(-30);
-                var end = endDate ?? DateTime.UtcNow;
+                var start = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(-30);
+                var end = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : DateTime.UtcNow;
 
                 var payments = await _context.PaymentDetails
                     .Where(p => p.CreatedAt >= start && p.CreatedAt <= end)
@@ -262,8 +262,8 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var start = startDate ?? DateTime.UtcNow.AddDays(-30);
-                var end = endDate ?? DateTime.UtcNow;
+                var start = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(-30);
+                var end = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : DateTime.UtcNow;
 
                 var invoices = await _context.Invoices
                     .Where(i => i.InvoiceDate >= start && i.InvoiceDate <= end && i.IsActive)

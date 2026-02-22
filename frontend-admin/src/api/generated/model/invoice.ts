@@ -5,12 +5,14 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { DocumentType } from './documentType';
 import type { InvoiceInvoiceItems } from './invoiceInvoiceItems';
 import type { PaymentMethod } from './paymentMethod';
 import type { InvoiceStatus } from './invoiceStatus';
 
 export interface Invoice {
-  cashRegisterId: string;
+  /** @nullable */
+  cashRegisterId?: string | null;
   /**
    * @minLength 0
    * @maxLength 200
@@ -74,6 +76,7 @@ export interface Invoice {
    * @nullable
    */
   customerTaxNumber?: string | null;
+  documentType?: DocumentType;
   dueDate: string;
   id?: string;
   invoiceDate: string;
@@ -90,6 +93,8 @@ export interface Invoice {
    * @maxLength 50
    */
   kassenId: string;
+  /** @nullable */
+  originalInvoiceId?: string | null;
   paidAmount: number;
   /** @nullable */
   paymentDate?: string | null;
@@ -101,7 +106,21 @@ export interface Invoice {
    */
   paymentReference?: string | null;
   remainingAmount: number;
+  /** @nullable */
+  sourcePaymentId?: string | null;
   status: InvoiceStatus;
+  /**
+   * @minLength 0
+   * @maxLength 50
+   * @nullable
+   */
+  stornoReasonCode?: string | null;
+  /**
+   * @minLength 0
+   * @maxLength 500
+   * @nullable
+   */
+  stornoReasonText?: string | null;
   subtotal: number;
   taxAmount: number;
   taxDetails: unknown;

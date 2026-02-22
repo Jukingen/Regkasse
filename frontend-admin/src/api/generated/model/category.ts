@@ -5,7 +5,6 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { Product } from './product';
 
 export interface Category {
   /**
@@ -36,8 +35,6 @@ export interface Category {
    * @maxLength 100
    */
   name: string;
-  /** @nullable */
-  products?: Product[] | null;
   sortOrder?: number;
   /** @nullable */
   updatedAt?: string | null;

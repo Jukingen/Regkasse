@@ -92,7 +92,7 @@ namespace KasseAPI_Final.Controllers
 
                 var registerTransaction = new CashRegisterTransaction
                 {
-                    CashRegisterId = register.Id.ToString(),
+                    CashRegisterId = register.Id,
                     TransactionType = TransactionType.Open,
                     Amount = model.StartingBalance,
                     Description = "Başlangıç bakiyesi",
@@ -143,7 +143,7 @@ namespace KasseAPI_Final.Controllers
 
                 var transaction = new CashRegisterTransaction
                 {
-                    CashRegisterId = register.Id.ToString(),
+                    CashRegisterId = register.Id,
                     TransactionType = TransactionType.Open,
                     Amount = model.OpeningBalance,
                     Description = "Kasa açılışı",
@@ -193,7 +193,7 @@ namespace KasseAPI_Final.Controllers
 
                 var transaction = new CashRegisterTransaction
                 {
-                    CashRegisterId = register.Id.ToString(),
+                    CashRegisterId = register.Id,
                     TransactionType = TransactionType.Close,
                     Amount = model.ClosingBalance,
                     Description = "Kasa kapanışı",
@@ -219,7 +219,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var query = _context.CashRegisterTransactions
-                    .Where(t => t.CashRegisterId == id.ToString());
+                    .Where(t => t.CashRegisterId == id);
 
                 if (startDate.HasValue)
                 {

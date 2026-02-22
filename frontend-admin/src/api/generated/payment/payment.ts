@@ -530,6 +530,61 @@ export const useGetApiPaymentStatistics = <TData = Awaited<ReturnType<typeof get
 
 
 
+export const getApiPaymentIdReceipt = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Payment/${id}/receipt`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPaymentIdReceiptQueryKey = (id: string,) => {
+    return [`/api/Payment/${id}/receipt`] as const;
+    }
+
+    
+export const getGetApiPaymentIdReceiptQueryOptions = <TData = Awaited<ReturnType<typeof getApiPaymentIdReceipt>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdReceipt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPaymentIdReceiptQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPaymentIdReceipt>>> = ({ signal }) => getApiPaymentIdReceipt(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdReceipt>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPaymentIdReceiptQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentIdReceipt>>>
+export type GetApiPaymentIdReceiptQueryError = unknown
+
+export const useGetApiPaymentIdReceipt = <TData = Awaited<ReturnType<typeof getApiPaymentIdReceipt>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdReceipt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPaymentIdReceiptQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
 export const postApiPaymentIdTseSignature = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {

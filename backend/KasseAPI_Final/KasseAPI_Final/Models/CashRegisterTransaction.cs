@@ -7,9 +7,8 @@ namespace KasseAPI_Final.Models
     public class CashRegisterTransaction : BaseEntity
     {
         [Required]
-        [MaxLength(50)]
-        public string CashRegisterId { get; set; } = string.Empty;
-
+        public Guid CashRegisterId { get; set; }
+        
         [Required]
         public TransactionType TransactionType { get; set; }
 

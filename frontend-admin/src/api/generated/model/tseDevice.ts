@@ -37,7 +37,7 @@ export interface TseDevice {
    */
   finanzOnlineUsername: string;
   id?: string;
-  isActive: boolean;
+  isActive?: boolean;
   isConnected: boolean;
   kassenId: string;
   lastConnectionTime: string;

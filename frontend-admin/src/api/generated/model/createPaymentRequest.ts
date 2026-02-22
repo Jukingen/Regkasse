@@ -9,9 +9,24 @@ import type { PaymentItemRequest } from './paymentItemRequest';
 import type { PaymentMethodRequest } from './paymentMethodRequest';
 
 export interface CreatePaymentRequest {
+  /** @minLength 1 */
+  cashierId: string;
   customerId: string;
   items: PaymentItemRequest[];
+  /**
+   * @minLength 3
+   * @maxLength 50
+   */
+  kassenId: string;
   /** @nullable */
   notes?: string | null;
   payment: PaymentMethodRequest;
+  /**
+   * @minLength 1
+   * @pattern ^ATU\d{8}$
+   */
+  steuernummer: string;
+  tableNumber: number;
+  /** @minimum 0.01 */
+  totalAmount: number;
 }

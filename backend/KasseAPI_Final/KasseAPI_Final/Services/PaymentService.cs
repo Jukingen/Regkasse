@@ -253,6 +253,27 @@ namespace KasseAPI_Final.Services
                     if (existingInvoice == null)
                     {
                         var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+                        Guid? resolvedCashRegisterId = null;
+                        if (!string.IsNullOrWhiteSpace(createdPayment.KassenId))
+                        {
+                            if (Guid.TryParse(createdPayment.KassenId, out var parsedRegId))
+                            {
+                                var crExists = await _context.CashRegisters.AnyAsync(CR => CR.Id == parsedRegId);
+                                if (crExists) resolvedCashRegisterId = parsedRegId;
+                            }
+
+                            if (resolvedCashRegisterId == null)
+                            {
+                                var register = await _context.CashRegisters.FirstOrDefaultAsync(cr => cr.RegisterNumber == createdPayment.KassenId);
+                                resolvedCashRegisterId = register?.Id;
+                            }
+                        }
+
+                        if (resolvedCashRegisterId == null)
+                        {
+                            _logger.LogWarning("Could not resolve real CashRegisterId for KassenId '{KassenId}' during payment invoice creation. Saving without CashRegisterId, Tagesabschluss may miss this.", createdPayment.KassenId);
+                        }
+
                         var posInvoice = new Invoice
                         {
                             Id = Guid.NewGuid(),
@@ -274,7 +295,7 @@ namespace KasseAPI_Final.Services
                             TseSignature = createdPayment.TseSignature ?? string.Empty,
                             KassenId = createdPayment.KassenId,
                             TseTimestamp = createdPayment.TseTimestamp,
-                            CashRegisterId = Guid.Empty,
+                            CashRegisterId = resolvedCashRegisterId,
                             PaymentMethod = createdPayment.PaymentMethod,
                             PaymentReference = createdPayment.TransactionId,
                             PaymentDate = createdPayment.CreatedAt,

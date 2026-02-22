@@ -31,8 +31,7 @@ namespace KasseAPI_Final.Models
 
         [Required]
         [Column("cash_register_id")]
-        [StringLength(50)]
-        public string CashRegisterId { get; set; } = string.Empty;
+        public Guid CashRegisterId { get; set; }
 
         [Required]
         [Column("sub_total", TypeName = "decimal(10, 2)")]

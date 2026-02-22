@@ -11,7 +11,6 @@ namespace KasseAPI_Final.Models
         public Guid Id { get; set; }
 
         [Required]
-        [MaxLength(50)]
         public Guid CashRegisterId { get; set; }
 
         [Required]

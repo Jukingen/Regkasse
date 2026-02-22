@@ -7,12 +7,16 @@
  */
 
 export interface FinanzOnlineSubmission {
-    id?: string;
-    invoiceId?: string;
-    submittedAt?: string;
-    requestPayloadJson?: string;
-    responseStatusCode?: string;
-    responseBodyJson?: string;
-    success?: boolean;
-    errorMessage?: string | null;
+  /** @nullable */
+  errorMessage?: string | null;
+  id?: string;
+  invoiceId: string;
+  /** @nullable */
+  requestPayloadJson?: string | null;
+  /** @nullable */
+  responseBodyJson?: string | null;
+  /** @nullable */
+  responseStatusCode?: string | null;
+  submittedAt?: string;
+  success?: boolean;
 }

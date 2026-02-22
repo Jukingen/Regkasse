@@ -658,8 +658,14 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.SpecialNotes).HasMaxLength(500);
-                entity.Property(e => e.ProductDescription).HasMaxLength(500);
                 entity.Property(e => e.ProductCategory).HasMaxLength(100);
+                
+                // Add mapping to prevent shadow OrderId1 property
+                entity.HasOne(e => e.Order)
+                      .WithMany(o => o.Items)
+                      .HasForeignKey(e => e.OrderId)
+                      .HasPrincipalKey(o => o.OrderId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // TableOrder configuration - Masa siparişleri için - Basit konfigürasyon

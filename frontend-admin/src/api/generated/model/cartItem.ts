@@ -6,7 +6,6 @@
  * OpenAPI spec version: v1
  */
 import type { Cart } from './cart';
-import type { Product } from './product';
 
 export interface CartItem {
   cart?: Cart;
@@ -28,7 +27,6 @@ export interface CartItem {
    * @nullable
    */
   notes?: string | null;
-  product?: Product;
   productId: string;
   quantity: number;
   unitPrice: number;

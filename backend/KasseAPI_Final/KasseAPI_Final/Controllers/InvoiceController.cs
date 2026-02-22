@@ -905,6 +905,11 @@ namespace KasseAPI_Final.Controllers
                     .Select(i => i.SourcePaymentId!.Value)
                     .ToHashSetAsync();
 
+                // Build a cash register mapping directory to resolve KassenId to Guid efficiently
+                var cashRegisters = await _context.CashRegisters.AsNoTracking().ToListAsync();
+                var crIdMap = cashRegisters.ToDictionary(cr => cr.Id.ToString(), cr => cr.Id);
+                var crNumMap = cashRegisters.ToDictionary(cr => cr.RegisterNumber, cr => cr.Id);
+
                 foreach (var payment in payments)
                 {
                     if (existingSourceIds.Contains(payment.Id))
@@ -915,6 +920,24 @@ namespace KasseAPI_Final.Controllers
 
                     try
                     {
+                        Guid? resolvedCashRegisterId = null;
+                        if (!string.IsNullOrWhiteSpace(payment.KassenId))
+                        {
+                            if (crIdMap.TryGetValue(payment.KassenId, out var mappedId))
+                            {
+                                resolvedCashRegisterId = mappedId;
+                            }
+                            else if (crNumMap.TryGetValue(payment.KassenId, out var mappedIdByNum))
+                            {
+                                resolvedCashRegisterId = mappedIdByNum;
+                            }
+                        }
+
+                        if (resolvedCashRegisterId == null)
+                        {
+                            _logger.LogWarning("Backfill: Could not resolve valid CashRegisterId for KassenId {KassenId} on Payment {PaymentId}", payment.KassenId, payment.Id);
+                        }
+
                         var invoice = new Invoice
                         {
                             Id = Guid.NewGuid(),
@@ -938,7 +961,7 @@ namespace KasseAPI_Final.Controllers
                             TseSignature = payment.TseSignature ?? string.Empty,
                             KassenId = payment.KassenId,
                             TseTimestamp = payment.TseTimestamp,
-                            CashRegisterId = Guid.Empty,
+                            CashRegisterId = resolvedCashRegisterId,
                             PaymentMethod = payment.PaymentMethod,
                             PaymentReference = payment.TransactionId,
                             PaymentDate = payment.CreatedAt,

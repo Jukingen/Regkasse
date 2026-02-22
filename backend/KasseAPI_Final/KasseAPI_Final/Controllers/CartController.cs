@@ -1269,13 +1269,32 @@ namespace KasseAPI_Final.Controllers
             }
             catch (Exception ex)
             {
-                // İngilizce teknik log - RKSV uyumlu
-                _logger.LogError(ex, "🚨 Error retrieving table orders for recovery - UserId: {UserId}", 
-                    User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown");
+                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var errorStr = ex.ToString();
+                
+                // Track missing table relations (e.g. during deployments/migrations)
+                bool isMissingTable = errorStr.Contains("42P01") || (errorStr.Contains("relation") && errorStr.Contains("does not exist"));
+
+                if (isMissingTable)
+                {
+                    _logger.LogWarning(ex, "⚠️ Table orders relation missing during recovery - UserId: {UserId}. Expected during migration window.", userIdStr);
+                    return StatusCode(503, new {
+                        success = false,
+                        message = "Table orders infrastructure is currently being provisioned.",
+                        errorCode = "TABLE_ORDERS_MISSING",
+                        isTransient = true,
+                        retrievedAt = DateTime.UtcNow
+                    });
+                }
+
+                _logger.LogError(ex, "🚨 Database error retrieving table orders for recovery - UserId: {UserId}", userIdStr);
                 
                 return StatusCode(500, new { 
                     success = false, 
-                    message = "Internal server error during table orders recovery" 
+                    message = "Internal database error during table orders recovery.",
+                    errorCode = "DATABASE_ERROR",
+                    isTransient = false,
+                    retrievedAt = DateTime.UtcNow
                 });
             }
         }

@@ -138,8 +138,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers()
 .AddJsonOptions(options =>
 {
-    // JSON serialization ayarları
-    options.JsonSerializerOptions.PropertyNamingPolicy = null; // PascalCase koru
+// JSON serialization ayarları
+    // options.JsonSerializerOptions.PropertyNamingPolicy = null; // PascalCase override removed to use default camelCase
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Case insensitive
     options.JsonSerializerOptions.WriteIndented = true; // Debug için indented
 });
@@ -218,6 +218,19 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
+        var context = services.GetRequiredService<AppDbContext>();
+        
+        // 🚨 Startup Migration Check Gate
+        var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+        if (pendingMigrations.Any())
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogCritical("🚨 Application startup halted: {Count} pending migrations detected. Please run 'dotnet ef database update'. Pending: {Migrations}", 
+                pendingMigrations.Count(), string.Join(", ", pendingMigrations));
+            
+            throw new InvalidOperationException($"Database schema drift detected. Application cannot start with {pendingMigrations.Count()} pending migrations.");
+        }
+
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         
@@ -231,7 +244,7 @@ using (var scope = app.Services.CreateScope())
         await AddDemoData.AddDemoDataAsync();
         
         // Test ürünlerini ekle
-        var context = services.GetRequiredService<AppDbContext>();
+        context = services.GetRequiredService<AppDbContext>();
         await SeedData.SeedProductsAsync(context);
         
         // Seed guest customer for walk-in sales

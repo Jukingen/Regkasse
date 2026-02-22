@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty, Form } from 'antd';
+import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty, Form, Checkbox } from 'antd';
 import { SearchOutlined, DownloadOutlined, ReloadOutlined, EyeOutlined, PrinterOutlined, CloudUploadOutlined, RollbackOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -14,7 +14,6 @@ import { normalizeFromDate, normalizeToDate, validateDateRange } from '../utils/
 import {
     useGetApiInvoiceId,
     getGetApiInvoiceIdQueryKey,
-    exportInvoices as orvalExportInvoices,
     getApiInvoiceId,
 } from '@/api/generated/invoice/invoice';
 import {
@@ -24,7 +23,7 @@ import {
 import type { Invoice, PaymentMethod, InvoiceStatus } from '@/api/generated/model';
 
 // POS-backed list — uses /api/Invoice/pos-list
-import { getInvoicesList, getInvoicePdf, createCreditNote } from '../api/invoiceService';
+import { getInvoicesList, getInvoicePdf, createCreditNote, exportInvoices as orvalExportInvoices } from '../api/invoiceService';
 import type { ExtendedInvoiceListItem } from '../api/invoiceService';
 import type { InvoiceListParams } from '../types';
 
@@ -55,6 +54,14 @@ const getPaymentMethodLabel = (method?: PaymentMethod) => {
 };
 
 
+const isInvalidRegister = (k?: string | null) => {
+    if (!k || k.trim() === '') return true;
+    if (k === '00000000-0000-0000-0000-000000000000') return true;
+    const guidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+    if (!guidRegex.test(k)) return true;
+    return false;
+};
+
 export const InvoiceList: React.FC = () => {
     const queryClient = useQueryClient();
 
@@ -69,6 +76,7 @@ export const InvoiceList: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<InvoiceStatus | undefined>(undefined);
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
     const [cashRegisterIdFilter, setCashRegisterIdFilter] = useState<string | undefined>(undefined);
+    const [invalidRegisterOnly, setInvalidRegisterOnly] = useState(false);
     const [sortField, setSortField] = useState<string>('invoiceDate');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [exportLoading, setExportLoading] = useState(false);
@@ -113,6 +121,14 @@ export const InvoiceList: React.FC = () => {
         placeholderData: (previousData: any) => previousData,
         enabled: !dateRangeError,
     });
+
+    const displayedItems = useMemo(() => {
+        const items = data?.items || [];
+        if (invalidRegisterOnly) {
+            return items.filter(item => isInvalidRegister(item.kassenId));
+        }
+        return items;
+    }, [data?.items, invalidRegisterOnly]);
 
     // Detail Fetching
     const { data: detailInvoice, isLoading: detailLoading } = useGetApiInvoiceId(
@@ -375,12 +391,20 @@ export const InvoiceList: React.FC = () => {
             dataIndex: 'invoiceNumber',
             key: 'invoiceNumber',
             sorter: true,
-            render: (text, record) => (
-                <Space size={4}>
-                    <span style={{ fontWeight: 500 }}>{text}</span>
-                    {record.documentType === 1 && <Tag color="purple" style={{ fontSize: 10 }}>CN</Tag>}
-                </Space>
-            )
+            render: (text, record) => {
+                const invalid = isInvalidRegister(record.kassenId);
+                return (
+                    <Space size={4}>
+                        <span style={{ fontWeight: 500 }}>{text}</span>
+                        {record.documentType === 1 && <Tag color="purple" style={{ fontSize: 10 }}>CN</Tag>}
+                        {invalid && (
+                            <Tooltip title="Invalid or Missing Register Link">
+                                <Tag color="warning" style={{ fontSize: 10 }}>Invalid Link</Tag>
+                            </Tooltip>
+                        )}
+                    </Space>
+                );
+            }
         },
         {
             title: 'Date',
@@ -534,6 +558,14 @@ export const InvoiceList: React.FC = () => {
                                 onChange={(e) => { setCashRegisterIdFilter(e.target.value || undefined); setPagination(p => ({ ...p, current: 1 })); }}
                                 allowClear
                             />
+                            <div style={{ marginTop: 8 }}>
+                                <Checkbox
+                                    checked={invalidRegisterOnly}
+                                    onChange={e => setInvalidRegisterOnly(e.target.checked)}
+                                >
+                                    Invalid Register Link
+                                </Checkbox>
+                            </div>
                         </Col>
                         <Col xs={24} sm={16} md={7}>
                             <RangePicker
@@ -590,7 +622,7 @@ export const InvoiceList: React.FC = () => {
                             onChange: setSelectedRowKeys,
                         }}
                         columns={columns}
-                        dataSource={data?.items || []}
+                        dataSource={displayedItems}
                         rowKey="id"
                         pagination={{
                             ...pagination,

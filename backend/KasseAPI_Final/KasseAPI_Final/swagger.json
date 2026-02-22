@@ -1,4 +1,4 @@
-﻿{
+{
   "openapi": "3.0.4",
   "info": {
     "title": "Kasse API",
@@ -598,6 +598,49 @@
         }
       }
     },
+    "/api/Auth/me": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Auth/refresh": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenModel"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenModel"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Auth/register": {
       "post": {
         "tags": [
@@ -1124,6 +1167,52 @@
       "get": {
         "tags": [
           "Cart"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Cart/items/{itemId}/increment": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Cart/items/{itemId}/decrement": {
+      "post": {
+        "tags": [
+          "Cart"
+        ],
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -2443,6 +2532,55 @@
         }
       }
     },
+    "/api/FinanzOnline/history/{invoiceId}": {
+      "get": {
+        "tags": [
+          "FinanzOnline"
+        ],
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FinanzOnlineSubmission"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FinanzOnlineSubmission"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FinanzOnlineSubmission"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Inventory": {
       "get": {
         "tags": [
@@ -2804,8 +2942,6 @@
         "tags": [
           "Invoice"
         ],
-        "summary": "Get paginated, filtered, sorted invoice list",
-        "operationId": "getInvoiceList",
         "parameters": [
           {
             "name": "page",
@@ -2828,7 +2964,6 @@
           {
             "name": "from",
             "in": "query",
-            "description": "Inclusive start date (start of day, converted to UTC)",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -2837,7 +2972,6 @@
           {
             "name": "to",
             "in": "query",
-            "description": "Inclusive end date (end of day via < to+1day, converted to UTC)",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -2862,13 +2996,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "default": "invoiceDate",
-              "enum": [
-                "invoiceDate",
-                "invoiceNumber",
-                "totalAmount",
-                "status"
-              ]
+              "default": "invoiceDate"
             }
           },
           {
@@ -2876,17 +3004,12 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "default": "desc",
-              "enum": [
-                "asc",
-                "desc"
-              ]
+              "default": "desc"
             }
           },
           {
             "name": "cashRegisterId",
             "in": "query",
-            "description": "Optional filter by cash register ID",
             "schema": {
               "type": "string",
               "format": "uuid"
@@ -2897,15 +3020,117 @@
           "200": {
             "description": "OK",
             "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceListItemDtoPagedResult"
+                }
+              },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PagedResultOfInvoiceListItemDto"
+                  "$ref": "#/components/schemas/InvoiceListItemDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceListItemDtoPagedResult"
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/Invoice/pos-list": {
+      "get": {
+        "tags": [
+          "Invoice"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
           },
-          "500": {
-            "description": "Internal Server Error"
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "invoiceDate"
+            }
+          },
+          {
+            "name": "sortDir",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "desc"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceListItemDtoPagedResult"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceListItemDtoPagedResult"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceListItemDtoPagedResult"
+                }
+              }
+            }
           }
         }
       }
@@ -2915,8 +3140,6 @@
         "tags": [
           "Invoice"
         ],
-        "summary": "Export invoices as CSV",
-        "operationId": "exportInvoices",
         "parameters": [
           {
             "name": "from",
@@ -2975,15 +3198,7 @@
         ],
         "responses": {
           "200": {
-            "description": "CSV file",
-            "content": {
-              "text/csv": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
+            "description": "OK"
           }
         }
       }
@@ -3263,8 +3478,8 @@
         }
       }
     },
-    "/api/Invoice/{id}/pdf": {
-      "get": {
+    "/api/Invoice/{id}/credit-note": {
+      "post": {
         "tags": [
           "Invoice"
         ],
@@ -3279,17 +3494,76 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCreditNoteRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCreditNoteRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCreditNoteRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
-              "application/pdf": {
+              "text/plain": {
                 "schema": {
-                  "type": "string",
-                  "format": "binary"
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/Invoice/{id}/pdf": {
+      "get": {
+        "tags": [
+          "Invoice"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "copy",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -3385,6 +3659,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/Invoice/backfill-from-payments": {
+      "post": {
+        "tags": [
+          "Invoice"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -4700,16 +4986,37 @@
             "name": "startDate",
             "in": "query",
             "schema": {
-              "type": "string",
-              "format": "date-time"
+              "type": "string"
             }
           },
           {
             "name": "endDate",
             "in": "query",
             "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Payment/{id}/receipt": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
               "type": "string",
-              "format": "date-time"
+              "format": "uuid"
             }
           }
         ],
@@ -4743,20 +5050,119 @@
         }
       }
     },
-    "/api/Product/barcode/{barcode}": {
+    "/api/Product": {
       "get": {
         "tags": [
           "Product"
         ],
         "parameters": [
           {
-            "name": "barcode",
-            "in": "path",
-            "required": true,
+            "name": "pageNumber",
+            "in": "query",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
             }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Product"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Product/all": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Product/catalog": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Product/active": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Product/debug/categories-products": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Product/categories": {
+      "get": {
+        "tags": [
+          "Product"
         ],
         "responses": {
           "200": {
@@ -4809,80 +5215,30 @@
         }
       }
     },
-    "/api/Product": {
-      "post": {
-        "tags": [
-          "Product"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Product"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Product"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/Product"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
+    "/api/Product/search": {
       "get": {
         "tags": [
           "Product"
         ],
         "parameters": [
           {
-            "name": "pageNumber",
+            "name": "name",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 1
+              "type": "string"
             }
           },
           {
-            "name": "pageSize",
+            "name": "category",
             "in": "query",
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 20
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductListResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductListResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProductListResponse"
-                }
-              }
-            }
+            "description": "OK"
           }
         }
       }
@@ -4971,42 +5327,7 @@
         }
       }
     },
-    "/api/Product/search": {
-      "get": {
-        "tags": [
-          "Product"
-        ],
-        "parameters": [
-          {
-            "name": "name",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "barcode",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "category",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Product/{id}/stock": {
+    "/api/Product/stock/{id}": {
       "put": {
         "tags": [
           "Product"
@@ -5102,6 +5423,86 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Receipts/{receiptId}": {
+      "get": {
+        "tags": [
+          "Receipts"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Receipts/create-from-payment/{paymentId}": {
+      "post": {
+        "tags": [
+          "Receipts"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDTO"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDTO"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDTO"
+                }
+              }
+            }
           }
         }
       }
@@ -5881,6 +6282,28 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Test/quick-payment": {
+      "post": {
+        "tags": [
+          "Test"
+        ],
+        "parameters": [
+          {
+            "name": "tseRequired",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ],
@@ -7037,6 +7460,11 @@
               "$ref": "#/components/schemas/InventoryTransaction"
             },
             "nullable": true
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -7557,9 +7985,6 @@
           },
           "cart": {
             "$ref": "#/components/schemas/Cart"
-          },
-          "product": {
-            "$ref": "#/components/schemas/Product"
           }
         },
         "additionalProperties": false
@@ -7693,9 +8118,8 @@
             "type": "boolean"
           },
           "cashRegisterId": {
-            "maxLength": 50,
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "transactionType": {
             "$ref": "#/components/schemas/TransactionType"
@@ -7783,13 +8207,6 @@
           "sortOrder": {
             "type": "integer",
             "format": "int32"
-          },
-          "products": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Product"
-            },
-            "nullable": true
           }
         },
         "additionalProperties": false
@@ -8186,6 +8603,26 @@
         },
         "additionalProperties": false
       },
+      "CreateCreditNoteRequest": {
+        "required": [
+          "reasonCode",
+          "reasonText"
+        ],
+        "type": "object",
+        "properties": {
+          "reasonCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "reasonText": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateInventoryItemRequest": {
         "required": [
           "initialStock",
@@ -8360,9 +8797,14 @@
       },
       "CreatePaymentRequest": {
         "required": [
+          "cashierId",
           "customerId",
           "items",
-          "payment"
+          "kassenId",
+          "payment",
+          "steuernummer",
+          "tableNumber",
+          "totalAmount"
         ],
         "type": "object",
         "properties": {
@@ -8378,6 +8820,29 @@
           },
           "payment": {
             "$ref": "#/components/schemas/PaymentMethodRequest"
+          },
+          "tableNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cashierId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "totalAmount": {
+            "minimum": 0.01,
+            "type": "number",
+            "format": "double"
+          },
+          "steuernummer": {
+            "minLength": 1,
+            "pattern": "^ATU\\d{8}$",
+            "type": "string"
+          },
+          "kassenId": {
+            "maxLength": 50,
+            "minLength": 3,
+            "type": "string"
           },
           "notes": {
             "type": "string",
@@ -8786,6 +9251,14 @@
         },
         "additionalProperties": false
       },
+      "DocumentType": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
       "FinanzOnlineConfigRequest": {
         "required": [
           "apiUrl",
@@ -8896,6 +9369,46 @@
           "pendingReports": {
             "type": "integer",
             "format": "int32"
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineSubmission": {
+        "required": [
+          "invoiceId"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "invoiceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requestPayloadJson": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseStatusCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseBodyJson": {
+            "type": "string",
+            "nullable": true
+          },
+          "success": {
+            "type": "boolean"
           },
           "errorMessage": {
             "type": "string",
@@ -9207,9 +9720,6 @@
             "type": "string",
             "nullable": true
           },
-          "product": {
-            "$ref": "#/components/schemas/Product"
-          },
           "transactions": {
             "type": "array",
             "items": {
@@ -9322,7 +9832,6 @@
       },
       "Invoice": {
         "required": [
-          "cashRegisterId",
           "companyAddress",
           "companyName",
           "companyTaxNumber",
@@ -9478,7 +9987,8 @@
           },
           "cashRegisterId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "paymentMethod": {
             "$ref": "#/components/schemas/PaymentMethod"
@@ -9497,22 +10007,34 @@
           "invoiceItems": {
             "nullable": true
           },
-          "taxDetails": {}
+          "taxDetails": { },
+          "sourcePaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "documentType": {
+            "$ref": "#/components/schemas/DocumentType"
+          },
+          "originalInvoiceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "stornoReasonCode": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "stornoReasonText": {
+            "maxLength": 500,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          }
         },
         "additionalProperties": false
-      },
-      "InvoiceStatus": {
-        "enum": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5,
-          6
-        ],
-        "type": "integer",
-        "format": "int32"
       },
       "InvoiceListItemDto": {
         "type": "object",
@@ -9522,7 +10044,8 @@
             "format": "uuid"
           },
           "invoiceNumber": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "invoiceDate": {
             "type": "string",
@@ -9533,7 +10056,8 @@
             "nullable": true
           },
           "companyName": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "totalAmount": {
             "type": "number",
@@ -9543,23 +10067,33 @@
             "$ref": "#/components/schemas/InvoiceStatus"
           },
           "kassenId": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "tseSignature": {
             "type": "string",
+            "nullable": true
+          },
+          "documentType": {
+            "$ref": "#/components/schemas/DocumentType"
+          },
+          "originalInvoiceId": {
+            "type": "string",
+            "format": "uuid",
             "nullable": true
           }
         },
         "additionalProperties": false
       },
-      "PagedResultOfInvoiceListItemDto": {
+      "InvoiceListItemDtoPagedResult": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InvoiceListItemDto"
-            }
+            },
+            "nullable": true
           },
           "page": {
             "type": "integer",
@@ -9579,6 +10113,20 @@
           }
         },
         "additionalProperties": false
+      },
+      "InvoiceStatus": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "type": "integer",
+        "format": "int32"
       },
       "LanguageFormat": {
         "type": "object",
@@ -9967,9 +10515,6 @@
           },
           "order": {
             "$ref": "#/components/schemas/Order"
-          },
-          "product": {
-            "$ref": "#/components/schemas/Product"
           }
         },
         "additionalProperties": false
@@ -10138,10 +10683,14 @@
       },
       "Product": {
         "required": [
+          "category",
           "createdAt",
+          "minStockLevel",
           "name",
           "price",
-          "taxType"
+          "stockQuantity",
+          "taxType",
+          "unit"
         ],
         "type": "object",
         "properties": {
@@ -10172,55 +10721,81 @@
             "type": "boolean"
           },
           "name": {
-            "maxLength": 100,
+            "maxLength": 200,
             "minLength": 1,
             "type": "string"
           },
           "price": {
+            "minimum": 0,
             "type": "number",
             "format": "double"
           },
           "taxType": {
-            "$ref": "#/components/schemas/TaxType"
+            "maxLength": 20,
+            "minLength": 1,
+            "type": "string"
           },
           "description": {
             "type": "string",
             "nullable": true
           },
-          "barcode": {
-            "maxLength": 50,
-            "type": "string",
-            "nullable": true
-          },
           "category": {
-            "maxLength": 50,
-            "type": "string",
-            "nullable": true
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
           },
           "imageUrl": {
             "type": "string",
             "nullable": true
           },
           "stockQuantity": {
+            "maximum": 2147483647,
+            "minimum": 0,
             "type": "integer",
             "format": "int32"
           },
           "minStockLevel": {
+            "maximum": 2147483647,
+            "minimum": 0,
             "type": "integer",
             "format": "int32"
           },
           "unit": {
             "maxLength": 20,
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           },
           "cost": {
+            "minimum": 0,
             "type": "number",
             "format": "double"
           },
           "taxRate": {
+            "maximum": 100,
+            "minimum": 0,
             "type": "number",
             "format": "double"
+          },
+          "isFiscalCompliant": {
+            "type": "boolean"
+          },
+          "fiscalCategoryCode": {
+            "maxLength": 10,
+            "type": "string",
+            "nullable": true
+          },
+          "isTaxable": {
+            "type": "boolean"
+          },
+          "taxExemptionReason": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "rksvProductType": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -10279,6 +10854,115 @@
         },
         "additionalProperties": false
       },
+      "ReceiptCompanyDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "taxNumber": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptDTO": {
+        "type": "object",
+        "properties": {
+          "receiptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cashierName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tableNumber": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "kassenID": {
+            "type": "string",
+            "nullable": true
+          },
+          "company": {
+            "$ref": "#/components/schemas/ReceiptCompanyDTO"
+          },
+          "header": {
+            "$ref": "#/components/schemas/ReceiptHeaderDTO"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptItemDTO"
+            },
+            "nullable": true
+          },
+          "subTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "grandTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptTaxLineDTO"
+            },
+            "nullable": true
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptPaymentDTO"
+            },
+            "nullable": true
+          },
+          "signature": {
+            "$ref": "#/components/schemas/ReceiptSignatureDTO"
+          },
+          "footerText": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptHeaderDTO": {
+        "type": "object",
+        "properties": {
+          "shopName": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ReceiptItem": {
         "type": "object",
         "properties": {
@@ -10295,6 +10979,54 @@
             "format": "double"
           },
           "totalPrice": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptItemDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxRate": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptPaymentDTO": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "tendered": {
+            "type": "number",
+            "format": "double"
+          },
+          "change": {
             "type": "number",
             "format": "double"
           }
@@ -10327,6 +11059,54 @@
           "generatedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptSignatureDTO": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "nullable": true
+          },
+          "value": {
+            "type": "string",
+            "nullable": true
+          },
+          "serialNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "nullable": true
+          },
+          "qrData": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptTaxLineDTO": {
+        "type": "object",
+        "properties": {
+          "rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "netAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "grossAmount": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -10430,6 +11210,16 @@
           },
           "isDefault": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RefreshTokenModel": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -10782,15 +11572,6 @@
         },
         "additionalProperties": false
       },
-      "TaxType": {
-        "enum": [
-          10,
-          13,
-          20
-        ],
-        "type": "integer",
-        "format": "int32"
-      },
       "TopCustomer": {
         "type": "object",
         "properties": {
@@ -10894,7 +11675,6 @@
           "deviceType",
           "finanzOnlineEnabled",
           "finanzOnlineUsername",
-          "isActive",
           "isConnected",
           "kassenId",
           "lastConnectionTime",
@@ -10932,6 +11712,9 @@
             "maxLength": 450,
             "type": "string",
             "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
           },
           "serialNumber": {
             "maxLength": 100,
@@ -10986,9 +11769,6 @@
           "timeoutSeconds": {
             "type": "integer",
             "format": "int32"
-          },
-          "isActive": {
-            "type": "boolean"
           },
           "kassenId": {
             "type": "string",
@@ -12290,55 +13070,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "ProductListResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "data": {
-            "type": "object",
-            "properties": {
-              "items": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Product"
-                },
-                "nullable": true
-              },
-              "pagination": {
-                "type": "object",
-                "properties": {
-                  "pageNumber": {
-                    "type": "integer",
-                    "format": "int32"
-                  },
-                  "pageSize": {
-                    "type": "integer",
-                    "format": "int32"
-                  },
-                  "totalCount": {
-                    "type": "integer",
-                    "format": "int32"
-                  },
-                  "totalPages": {
-                    "type": "integer",
-                    "format": "int32"
-                  }
-                }
-              }
-            }
-          }
-        }
       }
     },
     "securitySchemes": {
@@ -12352,7 +13083,7 @@
   },
   "security": [
     {
-      "Bearer": []
+      "Bearer": [ ]
     }
   ]
 }

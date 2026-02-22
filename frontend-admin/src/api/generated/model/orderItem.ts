@@ -6,7 +6,6 @@
  * OpenAPI spec version: v1
  */
 import type { Order } from './order';
-import type { Product } from './product';
 
 export interface OrderItem {
   createdAt: string;
@@ -24,7 +23,6 @@ export interface OrderItem {
    * @maxLength 50
    */
   orderId: string;
-  product?: Product;
   /**
    * @maxLength 100
    * @nullable

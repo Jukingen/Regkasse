@@ -39,6 +39,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("account_type");
 
+                    b.Property<Guid?>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
@@ -519,12 +523,8 @@ namespace KasseAPI_Final.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("CashRegisterId")
-                        .IsRequired()
+                    b.Property<Guid>("CashRegisterId")
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("CashRegisterId1")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -567,7 +567,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CashRegisterId1");
+                    b.HasIndex("CashRegisterId");
 
                     b.HasIndex("UserId");
 
@@ -1339,7 +1339,7 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("CashRegisterId")
+                    b.Property<Guid?>("CashRegisterId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("CompanyAddress")
@@ -1732,9 +1732,6 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<Guid>("OrderId1")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("ProductCategory")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -1781,7 +1778,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId1");
+                    b.HasIndex("OrderId");
 
                     b.ToTable("order_items");
                 });
@@ -2446,10 +2443,8 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("receipt_id");
 
-                    b.Property<string>("CashRegisterId")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
                         .HasColumnName("cash_register_id");
 
                     b.Property<string>("CashierId")
@@ -3467,7 +3462,7 @@ namespace KasseAPI_Final.Migrations
                 {
                     b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
                         .WithMany("Transactions")
-                        .HasForeignKey("CashRegisterId1")
+                        .HasForeignKey("CashRegisterId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -3560,7 +3555,8 @@ namespace KasseAPI_Final.Migrations
                 {
                     b.HasOne("KasseAPI_Final.Models.Order", "Order")
                         .WithMany("Items")
-                        .HasForeignKey("OrderId1")
+                        .HasForeignKey("OrderId")
+                        .HasPrincipalKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

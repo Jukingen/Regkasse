@@ -34,7 +34,6 @@ namespace KasseAPI_Final.Models
         [MaxLength(500)]
         public string? ResolutionNotes { get; set; }
 
-        [MaxLength(50)]
         public Guid? CashRegisterId { get; set; }
 
         [MaxLength(100)]

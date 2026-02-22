@@ -8,6 +8,5 @@
 
 export type GetApiProductSearchParams = {
 name?: string;
-barcode?: string;
 category?: string;
 };

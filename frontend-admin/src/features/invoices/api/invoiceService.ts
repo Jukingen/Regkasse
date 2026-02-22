@@ -1,10 +1,11 @@
 import { customInstance } from '@/lib/axios';
 import { InvoiceListParams, PagedResult } from '../types';
 import type { InvoiceListItemDto } from '@/api/generated/model/invoiceListItemDto';
+import type { DocumentType } from '@/api/generated/model/documentType';
 
 // Extend Orval type with credit-note fields from backend
 export interface ExtendedInvoiceListItem extends InvoiceListItemDto {
-    documentType?: number;        // 0 = Invoice, 1 = CreditNote
+    documentType?: DocumentType;        // 0 = Invoice, 1 = CreditNote
     originalInvoiceId?: string;
 }
 
@@ -15,6 +16,12 @@ interface RawPagedResult {
     PageSize?: number;
     TotalCount?: number;
     TotalPages?: number;
+    // camelCase fallbacks
+    items?: RawInvoiceItem[];
+    page?: number;
+    pageSize?: number;
+    totalCount?: number;
+    totalPages?: number;
 }
 
 interface RawInvoiceItem {
@@ -26,34 +33,56 @@ interface RawInvoiceItem {
     TotalAmount?: number;
     Status?: number;
     KassenId?: string;
+    CashRegisterId?: string;
     TseSignature?: string;
     DocumentType?: number;
     OriginalInvoiceId?: string;
+
+    // camelCase fallbacks
+    id?: string;
+    invoiceNumber?: string;
+    invoiceDate?: string;
+    customerName?: string;
+    companyName?: string;
+    totalAmount?: number;
+    status?: number;
+    kassenId?: string;
+    cashRegisterId?: string;
+    tseSignature?: string;
+    documentType?: number;
+    originalInvoiceId?: string;
+}
+
+export function normalizeId(id: string | null | undefined): string | undefined {
+    if (!id || id.trim() === '') return undefined;
+    if (id === '00000000-0000-0000-0000-000000000000') return undefined; // Filter out zero GUIDs
+    return id;
 }
 
 function normalizeItem(raw: RawInvoiceItem): ExtendedInvoiceListItem {
     return {
-        id: raw.Id,
-        invoiceNumber: raw.InvoiceNumber,
-        invoiceDate: raw.InvoiceDate,
-        customerName: raw.CustomerName,
-        companyName: raw.CompanyName,
-        totalAmount: raw.TotalAmount,
-        status: raw.Status as any,
-        kassenId: raw.KassenId,
-        tseSignature: raw.TseSignature,
-        documentType: raw.DocumentType,
-        originalInvoiceId: raw.OriginalInvoiceId,
+        id: normalizeId(raw.id ?? raw.Id),
+        invoiceNumber: raw.invoiceNumber ?? raw.InvoiceNumber,
+        invoiceDate: raw.invoiceDate ?? raw.InvoiceDate,
+        customerName: raw.customerName ?? raw.CustomerName,
+        companyName: raw.companyName ?? raw.CompanyName,
+        totalAmount: raw.totalAmount ?? raw.TotalAmount,
+        status: (raw.status ?? raw.Status) as any,
+        kassenId: normalizeId(raw.cashRegisterId ?? raw.CashRegisterId ?? raw.kassenId ?? raw.KassenId),
+        tseSignature: raw.tseSignature ?? raw.TseSignature,
+        documentType: (raw.documentType ?? raw.DocumentType) as DocumentType | undefined,
+        originalInvoiceId: normalizeId(raw.originalInvoiceId ?? raw.OriginalInvoiceId),
     };
 }
 
 function normalizePagedResult(raw: RawPagedResult): PagedResult<ExtendedInvoiceListItem> {
+    const rawItems = raw.items ?? raw.Items ?? [];
     return {
-        items: (raw.Items ?? []).map(normalizeItem),
-        page: raw.Page,
-        pageSize: raw.PageSize,
-        totalCount: raw.TotalCount,
-        totalPages: raw.TotalPages,
+        items: rawItems.map(normalizeItem),
+        page: raw.page ?? raw.Page,
+        pageSize: raw.pageSize ?? raw.PageSize,
+        totalCount: raw.totalCount ?? raw.TotalCount,
+        totalPages: raw.totalPages ?? raw.TotalPages,
     };
 }
 

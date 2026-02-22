@@ -12,15 +12,30 @@ export const AUTH_KEYS = {
     user: ['auth', 'me'] as const,
 };
 
-// Manually define the fetcher for /api/Auth/me since it might not be generated
 const fetchUser = async (): Promise<UserInfo> => {
     if (process.env.NODE_ENV === 'development') {
         console.log('📡 [API] Fetching /api/Auth/me');
     }
-    return customInstance<UserInfo>({
+    const res = await customInstance<UserInfo>({
         url: '/api/Auth/me',
         method: 'GET',
     });
+
+    // Provide generic fallback adapter mapping for auth contracts changing casing over versions
+    return {
+        id: res.id ?? res.Id,
+        userName: res.userName ?? res.UserName,
+        email: res.email ?? res.Email,
+        firstName: res.firstName ?? res.FirstName,
+        lastName: res.lastName ?? res.LastName,
+        role: res.role ?? res.Role,
+        employeeNumber: res.employeeNumber ?? res.EmployeeNumber,
+        taxNumber: res.taxNumber ?? res.TaxNumber,
+        notes: res.notes ?? res.Notes,
+        isActive: res.isActive ?? res.IsActive,
+        createdAt: res.createdAt ?? res.CreatedAt,
+        lastLoginAt: res.lastLoginAt ?? res.LastLoginAt,
+    } as UserInfo;
 };
 
 export enum AuthStatus {

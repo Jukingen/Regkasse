@@ -5,19 +5,14 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { TaxType } from './taxType';
 
 export interface Product {
   /**
-   * @maxLength 50
-   * @nullable
+   * @minLength 1
+   * @maxLength 100
    */
-  barcode?: string | null;
-  /**
-   * @maxLength 50
-   * @nullable
-   */
-  category?: string | null;
+  category: string;
+  /** @minimum 0 */
   cost?: number;
   createdAt: string;
   /**
@@ -27,25 +22,59 @@ export interface Product {
   createdBy?: string | null;
   /** @nullable */
   description?: string | null;
+  /**
+   * @maxLength 10
+   * @nullable
+   */
+  fiscalCategoryCode?: string | null;
   id?: string;
   /** @nullable */
   imageUrl?: string | null;
   isActive?: boolean;
-  minStockLevel?: number;
+  isFiscalCompliant?: boolean;
+  isTaxable?: boolean;
+  /**
+   * @minimum 0
+   * @maximum 2147483647
+   */
+  minStockLevel: number;
   /**
    * @minLength 1
-   * @maxLength 100
+   * @maxLength 200
    */
   name: string;
+  /** @minimum 0 */
   price: number;
-  stockQuantity?: number;
-  taxRate?: number;
-  taxType: TaxType;
   /**
-   * @maxLength 20
+   * @maxLength 50
    * @nullable
    */
-  unit?: string | null;
+  rksvProductType?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 2147483647
+   */
+  stockQuantity: number;
+  /**
+   * @maxLength 100
+   * @nullable
+   */
+  taxExemptionReason?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  taxRate?: number;
+  /**
+   * @minLength 1
+   * @maxLength 20
+   */
+  taxType: string;
+  /**
+   * @minLength 1
+   * @maxLength 20
+   */
+  unit: string;
   /** @nullable */
   updatedAt?: string | null;
   /**

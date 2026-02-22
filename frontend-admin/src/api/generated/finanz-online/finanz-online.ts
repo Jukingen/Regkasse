@@ -23,6 +23,7 @@ import type {
   FinanzOnlineConfigResponse,
   FinanzOnlineErrorResponse,
   FinanzOnlineStatusResponse,
+  FinanzOnlineSubmission,
   FinanzOnlineSubmitRequest,
   FinanzOnlineSubmitResponse,
   FinanzOnlineTestResponse
@@ -349,4 +350,58 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const getApiFinanzOnlineHistoryInvoiceId = (
+    invoiceId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<FinanzOnlineSubmission[]>(
+      {url: `/api/FinanzOnline/history/${invoiceId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiFinanzOnlineHistoryInvoiceIdQueryKey = (invoiceId: string,) => {
+    return [`/api/FinanzOnline/history/${invoiceId}`] as const;
+    }
+
     
+export const getGetApiFinanzOnlineHistoryInvoiceIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError = unknown>(invoiceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiFinanzOnlineHistoryInvoiceIdQueryKey(invoiceId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>> = ({ signal }) => getApiFinanzOnlineHistoryInvoiceId(invoiceId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(invoiceId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiFinanzOnlineHistoryInvoiceIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>>
+export type GetApiFinanzOnlineHistoryInvoiceIdQueryError = unknown
+
+export const useGetApiFinanzOnlineHistoryInvoiceId = <TData = Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError = unknown>(
+ invoiceId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiFinanzOnlineHistoryInvoiceId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiFinanzOnlineHistoryInvoiceIdQueryOptions(invoiceId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+

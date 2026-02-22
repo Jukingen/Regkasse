@@ -5,16 +5,23 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { DocumentType } from './documentType';
 import type { InvoiceStatus } from './invoiceStatus';
 
 export interface InvoiceListItemDto {
-  companyName?: string;
+  /** @nullable */
+  companyName?: string | null;
   /** @nullable */
   customerName?: string | null;
+  documentType?: DocumentType;
   id?: string;
   invoiceDate?: string;
-  invoiceNumber?: string;
-  kassenId?: string;
+  /** @nullable */
+  invoiceNumber?: string | null;
+  /** @nullable */
+  kassenId?: string | null;
+  /** @nullable */
+  originalInvoiceId?: string | null;
   status?: InvoiceStatus;
   totalAmount?: number;
   /** @nullable */
