@@ -291,6 +291,9 @@ export const InvoiceList: React.FC = () => {
         value: Number(key) as InvoiceStatus
     }));
 
+    const selectedRow = data?.items?.find((item) => item.id === selectedInvoiceId);
+    const displayInvoiceNumber = detailInvoice?.invoiceNumber || selectedRow?.invoiceNumber || selectedInvoiceId || 'Unknown';
+
     return (
         <React.Fragment>
             <Card title="Invoices" extra={
@@ -385,7 +388,7 @@ export const InvoiceList: React.FC = () => {
 
             {/* Detail Modal */}
             <Modal
-                title={detailInvoice ? `Invoice: ${detailInvoice.invoiceNumber}` : 'Invoice Details'}
+                title={`Invoice: ${displayInvoiceNumber}`}
                 open={detailVisible}
                 onCancel={() => setDetailVisible(false)}
                 footer={[
@@ -394,7 +397,7 @@ export const InvoiceList: React.FC = () => {
                         key="print"
                         type="primary"
                         icon={<PrinterOutlined />}
-                        onClick={() => detailInvoice && handlePrint(detailInvoice.id || '')}
+                        onClick={() => handlePrint(selectedInvoiceId || '')}
                     >
                         Print
                     </Button>,
@@ -412,45 +415,71 @@ export const InvoiceList: React.FC = () => {
                 width={800}
             >
                 {detailLoading ? (
-                    <p>Loading...</p>
+                    <div style={{ textAlign: 'center', padding: '20px' }}>Loading details...</div>
                 ) : detailInvoice ? (
-                    <>
-                        <Descriptions bordered column={2} size="small">
-                            <Descriptions.Item label="Date">{dayjs(detailInvoice.invoiceDate).format('DD.MM.YYYY HH:mm')}</Descriptions.Item>
-                            <Descriptions.Item label="Status">
-                                <Tag color={InvoiceStatusMap[detailInvoice.status as unknown as number]?.color || 'default'}>
-                                    {InvoiceStatusMap[detailInvoice.status as unknown as number]?.label || detailInvoice.status}
-                                </Tag>
-                            </Descriptions.Item>
+                    <React.Fragment>
+                        {(() => {
+                            const safe = (v: any) => (v === null || v === undefined || v === '') ? "-" : v;
 
-                            <Descriptions.Item label="Customer" span={2}>
-                                {detailInvoice.customerName} <br />
-                                {detailInvoice.customerAddress} <br />
-                                {detailInvoice.customerTaxNumber}
-                            </Descriptions.Item>
+                            let itemsObj: any[] = [];
+                            try {
+                                if (typeof detailInvoice.invoiceItems === 'string') {
+                                    itemsObj = JSON.parse(detailInvoice.invoiceItems);
+                                } else if (Array.isArray(detailInvoice.invoiceItems)) {
+                                    itemsObj = detailInvoice.invoiceItems;
+                                } else if (detailInvoice.invoiceItems) {
+                                    itemsObj = [detailInvoice.invoiceItems];
+                                }
+                            } catch (e) { }
 
-                            <Descriptions.Item label="Company" span={2}>
-                                {detailInvoice.companyName} <br />
-                                {detailInvoice.companyTaxNumber}
-                            </Descriptions.Item>
+                            return (
+                                <Descriptions bordered column={2} size="small">
+                                    <Descriptions.Item label="Date">{safe(dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).isValid() ? dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).format('DD.MM.YYYY HH:mm') : null)}</Descriptions.Item>
+                                    <Descriptions.Item label="Status">
+                                        <Tag color={InvoiceStatusMap[detailInvoice.status as unknown as number]?.color || 'default'}>
+                                            {InvoiceStatusMap[detailInvoice.status as unknown as number]?.label || safe(detailInvoice.status)}
+                                        </Tag>
+                                    </Descriptions.Item>
 
-                            <Descriptions.Item label="Total Amount">€ {(detailInvoice.totalAmount ?? 0).toFixed(2)}</Descriptions.Item>
-                            <Descriptions.Item label="Tax Amount">€ {(detailInvoice.taxAmount ?? 0).toFixed(2)}</Descriptions.Item>
+                                    <Descriptions.Item label="Customer" span={2}>
+                                        {safe(detailInvoice.customerName)} <br />
+                                        {safe(detailInvoice.customerAddress)} <br />
+                                        {safe(detailInvoice.customerTaxNumber)}
+                                    </Descriptions.Item>
 
-                            <Descriptions.Item label="Payment Method">{getPaymentMethodLabel(detailInvoice.paymentMethod)}</Descriptions.Item>
-                            <Descriptions.Item label="TSE Signature" span={2} style={{ wordBreak: 'break-all', fontFamily: 'monospace', fontSize: 10 }}>
-                                {detailInvoice.tseSignature}
-                            </Descriptions.Item>
+                                    <Descriptions.Item label="Company" span={2}>
+                                        {safe(detailInvoice.companyName)} <br />
+                                        {safe(detailInvoice.companyTaxNumber)}
+                                    </Descriptions.Item>
 
-                            <Descriptions.Item label="Items (JSON)" span={2}>
-                                <pre style={{ maxHeight: 200, overflow: 'auto', fontSize: 11 }}>
-                                    {JSON.stringify(detailInvoice.invoiceItems, null, 2)}
-                                </pre>
-                            </Descriptions.Item>
-                        </Descriptions>
-                    </>
+                                    <Descriptions.Item label="Total Amount">€ {safe((detailInvoice.totalAmount ?? 0).toFixed(2))}</Descriptions.Item>
+                                    <Descriptions.Item label="Tax Amount">€ {safe((detailInvoice.taxAmount ?? 0).toFixed(2))}</Descriptions.Item>
+
+                                    <Descriptions.Item label="Payment Method">{safe(getPaymentMethodLabel(detailInvoice.paymentMethod))}</Descriptions.Item>
+                                    <Descriptions.Item label="TSE Signature" span={2} style={{ wordBreak: 'break-all', fontFamily: 'monospace', fontSize: 10 }}>
+                                        {safe(detailInvoice.tseSignature)}
+                                    </Descriptions.Item>
+
+                                    <Descriptions.Item label="Items (JSON)" span={2}>
+                                        <div style={{ marginBottom: 8, fontWeight: 'bold' }}>
+                                            {itemsObj.length > 0 ? `${itemsObj.length} items` : 'No items'}
+                                        </div>
+                                        {itemsObj.length > 0 ? (
+                                            <pre style={{ maxHeight: 200, overflow: 'auto', fontSize: 11, margin: 0 }}>
+                                                {JSON.stringify(itemsObj, null, 2)}
+                                            </pre>
+                                        ) : detailInvoice.invoiceItems ? (
+                                            <pre style={{ maxHeight: 200, overflow: 'auto', fontSize: 11, margin: 0 }}>
+                                                {JSON.stringify(detailInvoice.invoiceItems, null, 2)}
+                                            </pre>
+                                        ) : null}
+                                    </Descriptions.Item>
+                                </Descriptions>
+                            );
+                        })()}
+                    </React.Fragment>
                 ) : (
-                    <p>No details found.</p>
+                    <Empty description="No details found or failed to load." />
                 )}
             </Modal>
         </React.Fragment>

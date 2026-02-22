@@ -374,9 +374,9 @@ namespace KasseAPI_Final.Controllers
                         RemainingAmount = 0,
                         CustomerName = posInvoice.CustomerName,
                         CustomerTaxNumber = posInvoice.Steuernummer,
-                        CompanyName = string.Empty, // Placeholder mapping for POS logic
-                        CompanyTaxNumber = string.Empty,
-                        CompanyAddress = string.Empty,
+                        CompanyName = _companyProfile.CompanyName ?? string.Empty, // Filled from CompanyProfile
+                        CompanyTaxNumber = _companyProfile.TaxNumber ?? string.Empty,
+                        CompanyAddress = $"{_companyProfile.Street} {_companyProfile.ZipCode} {_companyProfile.City}".Trim(),
                         TseSignature = posInvoice.TseSignature,
                         KassenId = posInvoice.KassenId,
                         TseTimestamp = posInvoice.TseTimestamp,
@@ -613,9 +613,9 @@ namespace KasseAPI_Final.Controllers
                         RemainingAmount = 0,
                         CustomerName = posInvoice.CustomerName,
                         CustomerTaxNumber = posInvoice.Steuernummer,
-                        CompanyName = string.Empty, // Placeholder mapping for POS logic
-                        CompanyTaxNumber = string.Empty,
-                        CompanyAddress = string.Empty,
+                        CompanyName = _companyProfile.CompanyName ?? string.Empty, // Filled from CompanyProfile
+                        CompanyTaxNumber = _companyProfile.TaxNumber ?? string.Empty,
+                        CompanyAddress = $"{_companyProfile.Street} {_companyProfile.ZipCode} {_companyProfile.City}".Trim(),
                         TseSignature = posInvoice.TseSignature,
                         KassenId = posInvoice.KassenId,
                         TseTimestamp = posInvoice.TseTimestamp,
