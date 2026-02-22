@@ -84,11 +84,12 @@ export const InvoiceList: React.FC = () => {
         page: pagination.current,
         pageSize: pagination.pageSize,
         query: debouncedSearch || undefined,
+        status: statusFilter,
         from: dateRange?.[0] ? normalizeFromDate(dateRange[0]) : undefined,
         to: dateRange?.[1] ? normalizeToDate(dateRange[1]) : undefined,
         sortBy: sortField as InvoiceListParams['sortBy'],
         sortDir: sortOrder as InvoiceListParams['sortDir'],
-    }), [pagination.current, pagination.pageSize, debouncedSearch, dateRange, sortField, sortOrder]);
+    }), [pagination.current, pagination.pageSize, debouncedSearch, statusFilter, dateRange, sortField, sortOrder]);
 
     // Data Fetching — POS-backed via invoiceService
     const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
@@ -323,7 +324,8 @@ export const InvoiceList: React.FC = () => {
                                 placeholder="Status"
                                 style={{ width: '100%' }}
                                 allowClear
-                                onChange={(val) => setStatusFilter(val)}
+                                value={statusFilter}
+                                onChange={(val) => { setStatusFilter(val); setPagination(p => ({ ...p, current: 1 })); }}
                                 options={statusOptions}
                             />
                         </Col>
