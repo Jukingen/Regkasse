@@ -108,9 +108,15 @@ namespace KasseAPI_Final.Models
         // Null for manually-created invoices; set for POS-originated rows.
         public Guid? SourcePaymentId { get; set; }
 
-        // Navigation properties - şimdilik basit tutuyoruz
-        // public virtual Customer? Customer { get; set; }
-        // public virtual ICollection<InvoiceItem> Items { get; set; } = new List<InvoiceItem>();
+        // Credit note / storno fields
+        public DocumentType DocumentType { get; set; } = DocumentType.Invoice;
+        public Guid? OriginalInvoiceId { get; set; }
+
+        [StringLength(50)]
+        public string? StornoReasonCode { get; set; }
+
+        [StringLength(500)]
+        public string? StornoReasonText { get; set; }
     }
 
     public enum InvoiceStatus
@@ -121,7 +127,8 @@ namespace KasseAPI_Final.Models
         PartiallyPaid,
         Unpaid,
         Overdue,
-        Cancelled
+        Cancelled,
+        CreditNote = 7
     }
 
     public enum PaymentMethod
@@ -132,5 +139,11 @@ namespace KasseAPI_Final.Models
         Check = 3,
         Voucher = 4,
         Mobile = 5
+    }
+
+    public enum DocumentType
+    {
+        Invoice = 0,
+        CreditNote = 1
     }
 }

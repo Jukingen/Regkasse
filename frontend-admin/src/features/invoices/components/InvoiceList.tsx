@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty } from 'antd';
-import { SearchOutlined, DownloadOutlined, ReloadOutlined, EyeOutlined, PrinterOutlined, CloudUploadOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty, Form } from 'antd';
+import { SearchOutlined, DownloadOutlined, ReloadOutlined, EyeOutlined, PrinterOutlined, CloudUploadOutlined, RollbackOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import type { TablePaginationConfig, TableProps } from 'antd/es/table';
@@ -17,11 +17,11 @@ import {
     exportInvoices as orvalExportInvoices,
 } from '@/api/generated/invoice/invoice';
 import { usePostApiFinanzOnlineSubmitInvoice } from '@/api/generated/finanz-online/finanz-online';
-import type { InvoiceListItemDto } from '@/api/generated/model/invoiceListItemDto';
 import type { Invoice, PaymentMethod, InvoiceStatus } from '@/api/generated/model';
 
 // POS-backed list — uses /api/Invoice/pos-list
-import { getInvoicesList, getInvoicePdf } from '../api/invoiceService';
+import { getInvoicesList, getInvoicePdf, createCreditNote } from '../api/invoiceService';
+import type { ExtendedInvoiceListItem } from '../api/invoiceService';
 import type { InvoiceListParams } from '../types';
 
 const { RangePicker } = DatePicker;
@@ -35,6 +35,7 @@ const InvoiceStatusMap: Record<number, { label: string, color: string }> = {
     4: { label: 'Unpaid', color: 'error' },
     5: { label: 'Overdue', color: 'error' },
     6: { label: 'Cancelled', color: 'default' },
+    7: { label: 'Credit Note', color: 'purple' },
 };
 
 const getPaymentMethodLabel = (method?: PaymentMethod) => {
@@ -70,6 +71,12 @@ export const InvoiceList: React.FC = () => {
     // Detail Modal State
     const [detailVisible, setDetailVisible] = useState(false);
     const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+
+    // Credit Note Modal State
+    const [creditNoteVisible, setCreditNoteVisible] = useState(false);
+    const [creditNoteTargetId, setCreditNoteTargetId] = useState<string | null>(null);
+    const [creditNoteLoading, setCreditNoteLoading] = useState(false);
+    const [creditNoteForm] = Form.useForm();
 
     const debouncedSearch = useDebounce(searchText, 500);
 
@@ -114,7 +121,7 @@ export const InvoiceList: React.FC = () => {
 
 
     // Handlers
-    const handleTableChange: TableProps<InvoiceListItemDto>['onChange'] = (
+    const handleTableChange: TableProps<ExtendedInvoiceListItem>['onChange'] = (
         newPagination,
         filters,
         sorter
@@ -123,7 +130,7 @@ export const InvoiceList: React.FC = () => {
         if (Array.isArray(sorter)) {
             // multisort not supported yet
         } else {
-            const s = sorter as SorterResult<InvoiceListItemDto>;
+            const s = sorter as SorterResult<ExtendedInvoiceListItem>;
             if (s.field) {
                 setSortField(s.field as string);
                 setSortOrder(s.order === 'ascend' ? 'asc' : 'desc');
@@ -131,6 +138,34 @@ export const InvoiceList: React.FC = () => {
                 setSortField('invoiceDate');
                 setSortOrder('desc');
             }
+        }
+    };
+
+    const handleCreateCreditNote = async () => {
+        try {
+            const values = await creditNoteForm.validateFields();
+            setCreditNoteLoading(true);
+            await createCreditNote(creditNoteTargetId!, {
+                reasonCode: values.reasonCode,
+                reasonText: values.reasonText,
+            });
+            message.success('Credit note created successfully');
+            setCreditNoteVisible(false);
+            creditNoteForm.resetFields();
+            refetch();
+        } catch (err: any) {
+            const status = err?.response?.status;
+            if (status === 409) {
+                message.warning('A credit note already exists for this invoice.');
+            } else if (status === 400) {
+                message.error(err?.response?.data || 'Invalid request.');
+            } else if (err?.errorFields) {
+                // form validation error — ignore, form shows inline
+            } else {
+                message.error('Failed to create credit note.');
+            }
+        } finally {
+            setCreditNoteLoading(false);
         }
     };
 
@@ -216,13 +251,18 @@ export const InvoiceList: React.FC = () => {
     };
 
     // Columns
-    const columns: TableProps<InvoiceListItemDto>['columns'] = [
+    const columns: TableProps<ExtendedInvoiceListItem>['columns'] = [
         {
             title: 'Invoice #',
             dataIndex: 'invoiceNumber',
             key: 'invoiceNumber',
             sorter: true,
-            render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>
+            render: (text, record) => (
+                <Space size={4}>
+                    <span style={{ fontWeight: 500 }}>{text}</span>
+                    {record.documentType === 1 && <Tag color="purple" style={{ fontSize: 10 }}>CN</Tag>}
+                </Space>
+            )
         },
         {
             title: 'Date',
@@ -265,7 +305,7 @@ export const InvoiceList: React.FC = () => {
         {
             title: 'Actions',
             key: 'actions',
-            width: 120,
+            width: 160,
             render: (_, record) => (
                 <Space size="small">
                     <Tooltip title="View Details">
@@ -282,6 +322,20 @@ export const InvoiceList: React.FC = () => {
                             onClick={() => handlePrint(record.id ?? '')}
                         />
                     </Tooltip>
+                    {/* Credit note only for Paid(2) or Sent(1) invoices that are not already credit notes */}
+                    {(record.status as unknown as number === 2 || record.status as unknown as number === 1) && record.documentType !== 1 && (
+                        <Tooltip title="Create Credit Note">
+                            <Button
+                                icon={<RollbackOutlined />}
+                                size="small"
+                                danger
+                                onClick={() => {
+                                    setCreditNoteTargetId(record.id ?? null);
+                                    setCreditNoteVisible(true);
+                                }}
+                            />
+                        </Tooltip>
+                    )}
                 </Space>
             ),
         },
@@ -483,6 +537,46 @@ export const InvoiceList: React.FC = () => {
                 ) : (
                     <Empty description="No details found or failed to load." />
                 )}
+            </Modal>
+
+            {/* Credit Note Modal */}
+            <Modal
+                title="Create Credit Note (Gutschrift)"
+                open={creditNoteVisible}
+                onCancel={() => { setCreditNoteVisible(false); creditNoteForm.resetFields(); }}
+                onOk={handleCreateCreditNote}
+                confirmLoading={creditNoteLoading}
+                okText="Create Credit Note"
+                okButtonProps={{ danger: true }}
+            >
+                <Alert
+                    type="warning"
+                    message="This will create a reversal invoice with negative amounts."
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                />
+                <Form form={creditNoteForm} layout="vertical">
+                    <Form.Item
+                        name="reasonCode"
+                        label="Reason Code"
+                        rules={[{ required: true, message: 'Please select a reason code' }]}
+                    >
+                        <Select placeholder="Select reason...">
+                            <Select.Option value="RETURN">Return / Retoure</Select.Option>
+                            <Select.Option value="ERROR">Billing Error / Fehler</Select.Option>
+                            <Select.Option value="DISCOUNT">Discount / Rabatt</Select.Option>
+                            <Select.Option value="CANCEL">Full Cancellation / Storno</Select.Option>
+                            <Select.Option value="OTHER">Other / Sonstiges</Select.Option>
+                        </Select>
+                    </Form.Item>
+                    <Form.Item
+                        name="reasonText"
+                        label="Reason Description"
+                        rules={[{ required: true, message: 'Please describe the reason' }]}
+                    >
+                        <Input.TextArea rows={3} placeholder="Describe the reason for the credit note..." />
+                    </Form.Item>
+                </Form>
             </Modal>
         </React.Fragment>
     );

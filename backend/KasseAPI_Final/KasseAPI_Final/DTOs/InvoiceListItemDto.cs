@@ -16,6 +16,8 @@ namespace KasseAPI_Final.DTOs
         // Keeping it out for performance unless specifically asked, but prompt said "tseSignature? (opsiyonel)"
         // so I will include it as nullable.
         public string? TseSignature { get; set; }
+        public DocumentType DocumentType { get; set; }
+        public Guid? OriginalInvoiceId { get; set; }
     }
 
     public class PagedResult<T>

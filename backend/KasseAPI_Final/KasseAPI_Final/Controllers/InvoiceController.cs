@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Linq;
+using System.Security.Claims;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -101,7 +103,9 @@ namespace KasseAPI_Final.Controllers
                         TotalAmount = i.TotalAmount,
                         Status = i.Status,
                         KassenId = i.KassenId,
-                        TseSignature = i.TseSignature
+                        TseSignature = i.TseSignature,
+                        DocumentType = i.DocumentType,
+                        OriginalInvoiceId = i.OriginalInvoiceId
                     })
                     .ToListAsync();
 
@@ -260,11 +264,11 @@ namespace KasseAPI_Final.Controllers
                 var stream = new MemoryStream();
                 var writer = new StreamWriter(stream, System.Text.Encoding.UTF8);
 
-                await writer.WriteLineAsync("InvoiceNumber;InvoiceDate;CustomerName;CompanyName;TotalAmount;Status;KassenId;TseSignature");
+                await writer.WriteLineAsync("InvoiceNumber;InvoiceDate;CustomerName;CompanyName;TotalAmount;Status;DocumentType;OriginalInvoiceId;KassenId;TseSignature");
 
                 foreach (var i in queryable)
                 {
-                     var line = $"{i.InvoiceNumber};{i.InvoiceDate:yyyy-MM-dd HH:mm};{EscapeCsv(i.CustomerName)};{EscapeCsv(i.CompanyName)};{i.TotalAmount:F2};{i.Status};{i.KassenId};{i.TseSignature}";
+                     var line = $"{i.InvoiceNumber};{i.InvoiceDate:yyyy-MM-dd HH:mm};{EscapeCsv(i.CustomerName)};{EscapeCsv(i.CompanyName)};{i.TotalAmount:F2};{i.Status};{i.DocumentType};{i.OriginalInvoiceId};{i.KassenId};{i.TseSignature}";
                      await writer.WriteLineAsync(line);
                 }
 
@@ -580,6 +584,93 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error duplicating invoice {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // POST: api/Invoice/{id}/credit-note
+        // Creates a reversal (Gutschrift/Stornobeleg) linked to the original invoice.
+        [HttpPost("{id}/credit-note")]
+        public async Task<ActionResult<Invoice>> CreateCreditNote(Guid id, [FromBody] CreateCreditNoteRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var original = await _context.Invoices.FindAsync(id);
+                if (original == null || !original.IsActive)
+                    return NotFound("Original invoice not found.");
+
+                // Only allow credit notes for Paid or Sent invoices
+                if (original.Status != InvoiceStatus.Paid && original.Status != InvoiceStatus.Sent)
+                    return BadRequest("Credit notes can only be created for Paid or Sent invoices.");
+
+                // Prevent duplicate storno for the same original
+                var existingCreditNote = await _context.Invoices
+                    .AnyAsync(i => i.OriginalInvoiceId == id && i.DocumentType == DocumentType.CreditNote && i.IsActive);
+                if (existingCreditNote)
+                    return Conflict("A credit note already exists for this invoice.");
+
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                var creditNote = new Invoice
+                {
+                    Id = Guid.NewGuid(),
+                    InvoiceNumber = GenerateInvoiceNumber(),
+                    InvoiceDate = DateTime.UtcNow,
+                    DueDate = DateTime.UtcNow,
+                    Status = InvoiceStatus.CreditNote,
+                    DocumentType = DocumentType.CreditNote,
+                    OriginalInvoiceId = original.Id,
+                    StornoReasonCode = request.ReasonCode,
+                    StornoReasonText = request.ReasonText,
+
+                    // Negate amounts for reversal
+                    Subtotal = -original.Subtotal,
+                    TaxAmount = -original.TaxAmount,
+                    TotalAmount = -original.TotalAmount,
+                    PaidAmount = -original.TotalAmount,
+                    RemainingAmount = 0,
+
+                    // Copy customer & company info
+                    CustomerName = original.CustomerName,
+                    CustomerEmail = original.CustomerEmail,
+                    CustomerPhone = original.CustomerPhone,
+                    CustomerAddress = original.CustomerAddress,
+                    CustomerTaxNumber = original.CustomerTaxNumber,
+                    CompanyName = original.CompanyName,
+                    CompanyTaxNumber = original.CompanyTaxNumber,
+                    CompanyAddress = original.CompanyAddress,
+                    CompanyPhone = original.CompanyPhone,
+                    CompanyEmail = original.CompanyEmail,
+
+                    // TSE placeholder — real signing to be plugged in later
+                    TseSignature = string.Empty,
+                    KassenId = original.KassenId,
+                    TseTimestamp = DateTime.UtcNow,
+                    CashRegisterId = original.CashRegisterId,
+
+                    InvoiceItems = original.InvoiceItems,
+                    TaxDetails = original.TaxDetails,
+
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId,
+                    IsActive = true
+                };
+
+                _context.Invoices.Add(creditNote);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Credit note {CreditNoteId} created for original invoice {OriginalId} by user {UserId}",
+                    creditNote.Id, original.Id, userId);
+
+                return CreatedAtAction(nameof(GetInvoice), new { id = creditNote.Id }, creditNote);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating credit note for invoice {Id}", id);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -948,5 +1039,16 @@ namespace KasseAPI_Final.Controllers
         public string? PaymentReference { get; set; }
         public JsonDocument? InvoiceItems { get; set; }
         public JsonDocument TaxDetails { get; set; } = JsonDocument.Parse("{}");
+    }
+
+    public class CreateCreditNoteRequest
+    {
+        [Required]
+        [StringLength(50)]
+        public string ReasonCode { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(500)]
+        public string ReasonText { get; set; } = string.Empty;
     }
 }
