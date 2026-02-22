@@ -68,6 +68,7 @@ export const InvoiceList: React.FC = () => {
     const [searchText, setSearchText] = useState('');
     const [statusFilter, setStatusFilter] = useState<InvoiceStatus | undefined>(undefined);
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+    const [cashRegisterIdFilter, setCashRegisterIdFilter] = useState<string | undefined>(undefined);
     const [sortField, setSortField] = useState<string>('invoiceDate');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [exportLoading, setExportLoading] = useState(false);
@@ -102,7 +103,8 @@ export const InvoiceList: React.FC = () => {
         to: dateRange?.[1] ? normalizeToDate(dateRange[1]) : undefined,
         sortBy: sortField as InvoiceListParams['sortBy'],
         sortDir: sortOrder as InvoiceListParams['sortDir'],
-    }), [pagination.current, pagination.pageSize, debouncedSearch, statusFilter, dateRange, sortField, sortOrder]);
+        cashRegisterId: cashRegisterIdFilter,
+    }), [pagination.current, pagination.pageSize, debouncedSearch, statusFilter, dateRange, sortField, sortOrder, cashRegisterIdFilter]);
 
     // Data Fetching — POS-backed via invoiceService
     const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
@@ -294,6 +296,7 @@ export const InvoiceList: React.FC = () => {
                 query: queryParams.query,
                 sortBy: queryParams.sortBy,
                 sortDir: queryParams.sortDir,
+                cashRegisterId: queryParams.cashRegisterId,
             });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -514,7 +517,7 @@ export const InvoiceList: React.FC = () => {
                                 allowClear
                             />
                         </Col>
-                        <Col xs={24} sm={8} md={6}>
+                        <Col xs={24} sm={8} md={4}>
                             <Select
                                 placeholder="Status"
                                 style={{ width: '100%' }}
@@ -524,7 +527,15 @@ export const InvoiceList: React.FC = () => {
                                 options={statusOptions}
                             />
                         </Col>
-                        <Col xs={24} sm={8} md={8}>
+                        <Col xs={24} sm={8} md={5}>
+                            <Input
+                                placeholder="KassenID / Register ID"
+                                value={cashRegisterIdFilter}
+                                onChange={(e) => { setCashRegisterIdFilter(e.target.value || undefined); setPagination(p => ({ ...p, current: 1 })); }}
+                                allowClear
+                            />
+                        </Col>
+                        <Col xs={24} sm={16} md={7}>
                             <RangePicker
                                 style={{ width: '100%' }}
                                 onChange={(dates) => setDateRange(dates as any)}
@@ -534,10 +545,27 @@ export const InvoiceList: React.FC = () => {
                                 <div style={{ color: '#ff4d4f', fontSize: 12, marginTop: 4 }}>{dateRangeError}</div>
                             )}
                         </Col>
-                        <Col xs={24} sm={24} md={4} style={{ textAlign: 'right' }}>
+                        <Col xs={24} sm={8} md={2} style={{ textAlign: 'right' }}>
                             <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching} />
                         </Col>
                     </Row>
+
+                    {/* Active Filter Tags */}
+                    {cashRegisterIdFilter && (
+                        <div>
+                            <Tag
+                                closable
+                                onClose={() => {
+                                    setCashRegisterIdFilter(undefined);
+                                    setPagination(p => ({ ...p, current: 1 }));
+                                }}
+                                color="blue"
+                            >
+                                KassenID: {cashRegisterIdFilter}
+                            </Tag>
+                            <Button type="link" size="small" onClick={() => { setCashRegisterIdFilter(undefined); setPagination(p => ({ ...p, current: 1 })); }}>Clear Filter</Button>
+                        </div>
+                    )}
 
                     {/* Error State */}
                     {isError && (
