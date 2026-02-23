@@ -19,7 +19,7 @@ namespace KasseAPI_Final.Data
                 {
                     Name = "Wiener Schnitzel",
                     Price = 18.50m,
-                    TaxType = "Standard",
+                    TaxType = 1,
                     Description = "Traditional Austrian breaded veal cutlet",
                     Category = "Hauptgerichte",
                     StockQuantity = 50,
@@ -27,13 +27,14 @@ namespace KasseAPI_Final.Data
                     Unit = "piece",
                     Cost = 12.00m,
                     TaxRate = 20.0m,
-                    IsActive = true
+                    IsActive = true,
+                    Barcode = "S-SCHNITZEL"
                 },
                 new Product
                 {
                     Name = "Goulash",
                     Price = 16.80m,
-                    TaxType = "Standard",
+                    TaxType = 1,
                     Description = "Hungarian-style beef stew",
                     Category = "Hauptgerichte",
                     StockQuantity = 40,
@@ -41,13 +42,14 @@ namespace KasseAPI_Final.Data
                     Unit = "portion",
                     Cost = 10.50m,
                     TaxRate = 20.0m,
-                    IsActive = true
+                    IsActive = true,
+                    Barcode = "S-GOULASH"
                 },
                 new Product
                 {
                     Name = "Beer - Gösser",
                     Price = 4.50m,
-                    TaxType = "Special",
+                    TaxType = 3,
                     Description = "Austrian lager beer",
                     Category = "Alkoholische Getränke",
                     StockQuantity = 100,
@@ -55,13 +57,14 @@ namespace KasseAPI_Final.Data
                     Unit = "bottle",
                     Cost = 2.80m,
                     TaxRate = 13.0m,
-                    IsActive = true
+                    IsActive = true,
+                    Barcode = "S-BEER"
                 },
                 new Product
                 {
                     Name = "Coffee - Melange",
                     Price = 3.80m,
-                    TaxType = "Reduced",
+                    TaxType = 2,
                     Description = "Vienna coffee with milk",
                     Category = "Kaffee & Tee",
                     StockQuantity = 80,
@@ -69,13 +72,14 @@ namespace KasseAPI_Final.Data
                     Unit = "cup",
                     Cost = 1.20m,
                     TaxRate = 10.0m,
-                    IsActive = true
+                    IsActive = true,
+                    Barcode = "S-COFFEE"
                 },
                 new Product
                 {
                     Name = "Apple Strudel",
                     Price = 6.50m,
-                    TaxType = "Reduced",
+                    TaxType = 2,
                     Description = "Traditional Austrian apple pastry",
                     Category = "Desserts",
                     StockQuantity = 30,
@@ -83,7 +87,8 @@ namespace KasseAPI_Final.Data
                     Unit = "piece",
                     Cost = 3.20m,
                     TaxRate = 10.0m,
-                    IsActive = true
+                    IsActive = true,
+                    Barcode = "S-APPLE"
                 }
             };
 

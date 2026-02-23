@@ -80,7 +80,7 @@ namespace KasseAPI_Final.Controllers
 					Price = 10.00m,
 					StockQuantity = 100,
 					Category = "Test",
-					TaxType = "Standard",
+					TaxType = TaxTypes.Standard,
 					TaxRate = 0.20m,
 					CreatedBy = userId,
 					IsActive = true
@@ -97,7 +97,7 @@ namespace KasseAPI_Final.Controllers
 						{
 							ProductId = product.Id,
 							Quantity = 1,
-							TaxType = "standard"
+							TaxType = TaxTypes.Standard
 						}
 					},
 					Payment = new PaymentMethodRequest

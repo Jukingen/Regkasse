@@ -28,8 +28,7 @@ namespace KasseAPI_Final.Models
         public decimal TotalPrice { get; set; }
         
         [Required]
-        [MaxLength(50)]
-        public string TaxType { get; set; } = "standard";
+        public int TaxType { get; set; } = 1;
         
         [Required]
         [Column(TypeName = "decimal(5,4)")]

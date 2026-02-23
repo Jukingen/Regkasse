@@ -178,7 +178,7 @@ namespace KasseAPI_Final.Services
                     paymentItems.Add(paymentItem);
 
                     // Vergi detayları
-                    var taxKey = itemRequest.TaxType;
+                    var taxKey = itemRequest.TaxType.ToString();
                     if (!taxDetails.ContainsKey(taxKey))
                         taxDetails[taxKey] = 0;
                     taxDetails[taxKey] += paymentItem.TaxAmount;
@@ -815,7 +815,7 @@ namespace KasseAPI_Final.Services
                         {
                             foreach (var item in paymentItems)
                             {
-                                var taxType = item.TaxType;
+                                var taxType = item.TaxType.ToString();
                                 if (!statistics.PaymentsByTaxType.ContainsKey(taxType))
                                     statistics.PaymentsByTaxType[taxType] = 0;
                                 statistics.PaymentsByTaxType[taxType]++;
@@ -1070,18 +1070,12 @@ namespace KasseAPI_Final.Services
 
         #region Private Methods
 
-        private decimal GetTaxRate(string taxType)
+        private decimal GetTaxRate(int taxType)
         {
-            return taxType.ToLower() switch
-            {
-                "standard" => 0.20m, // %20
-                "reduced" => 0.10m,  // %10
-                "special" => 0.13m,  // %13
-                _ => 0.20m
-            };
+            return TaxTypes.GetTaxRate(taxType) / 100.0m; // Convert 20.0 to 0.20
         }
 
-        private decimal CalculateTax(decimal amount, string taxType)
+        private decimal CalculateTax(decimal amount, int taxType)
         {
             var taxRate = GetTaxRate(taxType);
             return amount * taxRate;

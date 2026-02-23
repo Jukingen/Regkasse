@@ -22,8 +22,7 @@ namespace KasseAPI_Final.Models
 
         [Required]
         [Column("tax_type")]
-        [MaxLength(20)]
-        public string TaxType { get; set; } = "Standard"; // RKSV vergi tipi: Standard, Reduced, Special
+        public int TaxType { get; set; } = 1; // 1: Standard, 2: Reduced, etc.
 
         [Column("description")]
         public string? Description { get; set; }
@@ -59,8 +58,13 @@ namespace KasseAPI_Final.Models
         [Range(0, 100, ErrorMessage = "Tax rate must be between 0 and 100")]
         public decimal TaxRate { get; set; }
 
-        // [Column("category_id")]
-        // public int? CategoryId { get; set; } // Geçici olarak kapatıldı - EF shadow property sorununu çözmek için
+        [Required]
+        [Column("barcode")]
+        [MaxLength(50)]
+        public string Barcode { get; set; } = string.Empty;
+
+        [Column("category_id")]
+        public Guid? CategoryId { get; set; }
 
         // RKSV Compliance Fields
         [Column("is_fiscal_compliant")]
@@ -92,14 +96,14 @@ namespace KasseAPI_Final.Models
     /// </summary>
     public static class TaxTypes
     {
-        public const string Standard = "Standard";    // %20
-        public const string Reduced = "Reduced";      // %10 (gıda, kitap, vb.)
-        public const string Special = "Special";      // %13 (konaklama, vb.)
-        public const string Exempt = "Exempt";        // %0 (vergisiz)
+        public const int Standard = 1;    // %20
+        public const int Reduced = 2;      // %10 (gıda, kitap, vb.)
+        public const int Special = 3;      // %13 (konaklama, vb.)
+        public const int Exempt = 4;        // %0 (vergisiz)
         
-        public static readonly string[] All = { Standard, Reduced, Special, Exempt };
+        public static readonly int[] All = { Standard, Reduced, Special, Exempt };
         
-        public static decimal GetTaxRate(string taxType)
+        public static decimal GetTaxRate(int taxType)
         {
             return taxType switch
             {
@@ -111,7 +115,7 @@ namespace KasseAPI_Final.Models
             };
         }
 
-        public static bool IsValidTaxType(string taxType)
+        public static bool IsValidTaxType(int taxType)
         {
             return All.Contains(taxType);
         }

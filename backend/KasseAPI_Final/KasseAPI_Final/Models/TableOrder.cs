@@ -114,8 +114,7 @@ namespace KasseAPI_Final.Models
         public string? Notes { get; set; }
 
         [Required]
-        [MaxLength(20)]
-        public string TaxType { get; set; } = string.Empty; // standard, reduced, special
+        public int TaxType { get; set; } = 1; // 1: standard, 2: reduced, 3: special
 
         [Required]
         [Column(TypeName = "decimal(5,2)")]

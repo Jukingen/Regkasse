@@ -17,14 +17,14 @@ namespace KasseAPI_Final
                 Console.WriteLine("\nDemo veriler başarıyla eklendi!");
                 Console.WriteLine("Şimdi frontend'de ürünleri görebilir ve test edebilirsiniz.");
                 Console.WriteLine("\nBasılan tuş: ");
-                Console.ReadKey();
+                // Console.ReadKey(); // Blocked in automation
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Hata oluştu: {ex.Message}");
                 Console.WriteLine($"Stack Trace: {ex.StackTrace}");
                 Console.WriteLine("\nBasılan tuş: ");
-                Console.ReadKey();
+                // Console.ReadKey(); // Blocked in automation
             }
         }
     }

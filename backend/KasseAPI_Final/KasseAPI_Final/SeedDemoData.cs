@@ -11,7 +11,7 @@ namespace KasseAPI_Final
         public static async Task SeedAsync()
         {
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-            optionsBuilder.UseNpgsql("Host=localhost;Database=kassedb;Username=postgres;Password=Juke");
+            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=asdasdasd#");
             
             using var context = new AppDbContext(optionsBuilder.Options);
             
@@ -71,10 +71,10 @@ namespace KasseAPI_Final
             {
                 products.AddRange(new[]
                 {
-                    new Product { Id = Guid.NewGuid(), Name = "Cola 0.33L", Description = "Erfrischendes Cola-Getränk", Price = 2.50m, TaxType = "Standard", Category = "Getränke", IsActive = true, StockQuantity = 100 },
-                    new Product { Id = Guid.NewGuid(), Name = "Bier 0.5L", Description = "Helles Lagerbier", Price = 4.80m, TaxType = "Standard", Category = "Getränke", IsActive = true, StockQuantity = 50 },
-                    new Product { Id = Guid.NewGuid(), Name = "Wein 0.2L", Description = "Rotwein aus Österreich", Price = 6.50m, TaxType = "Standard", Category = "Getränke", IsActive = true, StockQuantity = 30 },
-                    new Product { Id = Guid.NewGuid(), Name = "Mineralwasser 0.5L", Description = "Natürliches Mineralwasser", Price = 1.80m, TaxType = "Standard", Category = "Getränke", IsActive = true, StockQuantity = 80 }
+                    new Product { Id = Guid.NewGuid(), Name = "Cola 0.33L", Description = "Erfrischendes Cola-Getränk", Price = 2.50m, TaxType = 1, Category = "Getränke", IsActive = true, StockQuantity = 100, Barcode = "COLA-033" },
+                    new Product { Id = Guid.NewGuid(), Name = "Bier 0.5L", Description = "Helles Lagerbier", Price = 4.80m, TaxType = 1, Category = "Getränke", IsActive = true, StockQuantity = 50, Barcode = "BIER-05" },
+                    new Product { Id = Guid.NewGuid(), Name = "Wein 0.2L", Description = "Rotwein aus Österreich", Price = 6.50m, TaxType = 1, Category = "Getränke", IsActive = true, StockQuantity = 30, Barcode = "WEIN-02" },
+                    new Product { Id = Guid.NewGuid(), Name = "Mineralwasser 0.5L", Description = "Natürliches Mineralwasser", Price = 1.80m, TaxType = 1, Category = "Getränke", IsActive = true, StockQuantity = 80, Barcode = "MINERAL-05" }
                 });
             }
             
@@ -83,9 +83,9 @@ namespace KasseAPI_Final
             {
                 products.AddRange(new[]
                 {
-                    new Product { Id = Guid.NewGuid(), Name = "Wiener Schnitzel", Description = "Klassisches Wiener Schnitzel mit Pommes", Price = 18.90m, TaxType = "Standard", Category = "Speisen", IsActive = true, StockQuantity = 25 },
-                    new Product { Id = Guid.NewGuid(), Name = "Gulasch", Description = "Traditionelles Rindergulasch mit Semmelknödel", Price = 16.50m, TaxType = "Standard", Category = "Speisen", IsActive = true, StockQuantity = 20 },
-                    new Product { Id = Guid.NewGuid(), Name = "Salat", Description = "Gemischter Salat mit hausgemachtem Dressing", Price = 8.90m, TaxType = "Standard", Category = "Speisen", IsActive = true, StockQuantity = 15 }
+                    new Product { Id = Guid.NewGuid(), Name = "Wiener Schnitzel", Description = "Klassisches Wiener Schnitzel mit Pommes", Price = 18.90m, TaxType = 1, Category = "Speisen", IsActive = true, StockQuantity = 25, Barcode = "SCHNITZEL" },
+                    new Product { Id = Guid.NewGuid(), Name = "Gulasch", Description = "Traditionelles Rindergulasch mit Semmelknödel", Price = 16.50m, TaxType = 1, Category = "Speisen", IsActive = true, StockQuantity = 20, Barcode = "GULASCH" },
+                    new Product { Id = Guid.NewGuid(), Name = "Salat", Description = "Gemischter Salat mit hausgemachtem Dressing", Price = 8.90m, TaxType = 1, Category = "Speisen", IsActive = true, StockQuantity = 15, Barcode = "SALAT" }
                 });
             }
             
@@ -94,9 +94,9 @@ namespace KasseAPI_Final
             {
                 products.AddRange(new[]
                 {
-                    new Product { Id = Guid.NewGuid(), Name = "Apfelstrudel", Description = "Hausgemachter Apfelstrudel mit Vanillesauce", Price = 6.90m, TaxType = "Reduced", Category = "Desserts", IsActive = true, StockQuantity = 12 },
-                    new Product { Id = Guid.NewGuid(), Name = "Sachertorte", Description = "Original Wiener Sachertorte", Price = 7.50m, TaxType = "Reduced", Category = "Desserts", IsActive = true, StockQuantity = 10 },
-                    new Product { Id = Guid.NewGuid(), Name = "Eisbecher", Description = "3 Kugeln Eis mit Sahne und Schokoladensauce", Price = 5.90m, TaxType = "Reduced", Category = "Desserts", IsActive = true, StockQuantity = 20 }
+                    new Product { Id = Guid.NewGuid(), Name = "Apfelstrudel", Description = "Hausgemachter Apfelstrudel mit Vanillesauce", Price = 6.90m, TaxType = 2, Category = "Desserts", IsActive = true, StockQuantity = 12, Barcode = "APFELSTRUDEL" },
+                    new Product { Id = Guid.NewGuid(), Name = "Sachertorte", Description = "Original Wiener Sachertorte", Price = 7.50m, TaxType = 2, Category = "Desserts", IsActive = true, StockQuantity = 10, Barcode = "SACHERTORTE" },
+                    new Product { Id = Guid.NewGuid(), Name = "Eisbecher", Description = "3 Kugeln Eis mit Sahne and Schokoladensauce", Price = 5.90m, TaxType = 2, Category = "Desserts", IsActive = true, StockQuantity = 20, Barcode = "EISBECHER" }
                 });
             }
             
@@ -105,9 +105,9 @@ namespace KasseAPI_Final
             {
                 products.AddRange(new[]
                 {
-                    new Product { Id = Guid.NewGuid(), Name = "Chips", Description = "Kartoffelchips mit Salz", Price = 3.50m, TaxType = "Reduced", Category = "Snacks", IsActive = true, StockQuantity = 40 },
-                    new Product { Id = Guid.NewGuid(), Name = "Nüsse", Description = "Gemischte Nüsse 100g", Price = 4.20m, TaxType = "Reduced", Category = "Snacks", IsActive = true, StockQuantity = 25 },
-                    new Product { Id = Guid.NewGuid(), Name = "Schokolade", Description = "Milchschokolade 100g", Price = 2.80m, TaxType = "Reduced", Category = "Snacks", IsActive = true, StockQuantity = 35 }
+                    new Product { Id = Guid.NewGuid(), Name = "Chips", Description = "Kartoffelchips mit Salz", Price = 3.50m, TaxType = 2, Category = "Snacks", IsActive = true, StockQuantity = 40, Barcode = "CHIPS" },
+                    new Product { Id = Guid.NewGuid(), Name = "Nüsse", Description = "Gemischte Nüsse 100g", Price = 4.20m, TaxType = 2, Category = "Snacks", IsActive = true, StockQuantity = 25, Barcode = "NUESSE" },
+                    new Product { Id = Guid.NewGuid(), Name = "Schokolade", Description = "Milchschokolade 100g", Price = 2.80m, TaxType = 2, Category = "Snacks", IsActive = true, StockQuantity = 35, Barcode = "SCHOKO" }
                 });
             }
             
@@ -116,9 +116,9 @@ namespace KasseAPI_Final
             {
                 products.AddRange(new[]
                 {
-                    new Product { Id = Guid.NewGuid(), Name = "Espresso", Description = "Starker italienischer Espresso", Price = 3.20m, TaxType = "Special", Category = "Kaffee & Tee", IsActive = true, StockQuantity = 60 },
-                    new Product { Id = Guid.NewGuid(), Name = "Cappuccino", Description = "Cappuccino mit Milchschaum", Price = 4.50m, TaxType = "Special", Category = "Kaffee & Tee", IsActive = true, StockQuantity = 45 },
-                    new Product { Id = Guid.NewGuid(), Name = "Tee", Description = "Kräutertee aus Österreich", Price = 3.80m, TaxType = "Special", Category = "Kaffee & Tee", IsActive = true, StockQuantity = 30 }
+                    new Product { Id = Guid.NewGuid(), Name = "Espresso", Description = "Starker italienischer Espresso", Price = 3.20m, TaxType = 3, Category = "Kaffee & Tee", IsActive = true, StockQuantity = 60, Barcode = "ESPRESSO" },
+                    new Product { Id = Guid.NewGuid(), Name = "Cappuccino", Description = "Cappuccino mit Milchschaum", Price = 4.50m, TaxType = 3, Category = "Kaffee & Tee", IsActive = true, StockQuantity = 45, Barcode = "CAPPUCCINO" },
+                    new Product { Id = Guid.NewGuid(), Name = "Tee", Description = "Kräutertee aus Österreich", Price = 3.80m, TaxType = 3, Category = "Kaffee & Tee", IsActive = true, StockQuantity = 30, Barcode = "TEE" }
                 });
             }
             
@@ -127,9 +127,9 @@ namespace KasseAPI_Final
             
             Console.WriteLine($"{products.Count} ürün eklendi.");
             Console.WriteLine("Vergi grupları:");
-            Console.WriteLine($"- Standard (20%): {products.Count(p => p.TaxType == "Standard")} ürün");
-            Console.WriteLine($"- Reduced (10%): {products.Count(p => p.TaxType == "Reduced")} ürün");
-            Console.WriteLine($"- Special (13%): {products.Count(p => p.TaxType == "Special")} ürün");
+            Console.WriteLine($"- Standard (20%): {products.Count(p => p.TaxType == 1)} ürün");
+            Console.WriteLine($"- Reduced (10%): {products.Count(p => p.TaxType == 2)} ürün");
+            Console.WriteLine($"- Special (13%): {products.Count(p => p.TaxType == 3)} ürün");
         }
     }
 }

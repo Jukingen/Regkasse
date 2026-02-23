@@ -109,7 +109,7 @@ namespace KasseAPI_Final.Controllers
                     }
 
                     // Vergi oranını hesapla
-                    decimal taxRate = GetTaxRate(product.TaxType.ToString());
+                    decimal taxRate = GetTaxRate(product.TaxType);
                     decimal unitPrice = product.Price;
                     decimal itemSubtotal = unitPrice * item.Quantity;
                     decimal itemTax = itemSubtotal * taxRate;
@@ -245,15 +245,9 @@ namespace KasseAPI_Final.Controllers
             return $"ORD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
         }
 
-        private decimal GetTaxRate(string taxType)
+        private decimal GetTaxRate(int taxType)
         {
-            return taxType switch
-            {
-                "Standard" => 0.20m, // 20%
-                "Reduced" => 0.10m,  // 10%
-                "Special" => 0.13m,  // 13%
-                _ => 0.20m
-            };
+            return TaxTypes.GetTaxRate(taxType) / 100.0m;
         }
     }
 

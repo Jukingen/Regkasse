@@ -17,7 +17,7 @@ namespace KasseAPI_Final
                 Console.WriteLine("SQL script çalıştırılıyor...");
                 
                 var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-                optionsBuilder.UseNpgsql("Host=localhost;Database=kassedb;Username=postgres;Password=Juke");
+                optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=Juke1034#");
                 
                 using var context = new AppDbContext(optionsBuilder.Options);
                 
@@ -40,9 +40,9 @@ namespace KasseAPI_Final
                 Console.WriteLine($"- Ürünler: {productCount}");
                 
                 // Vergi gruplarına göre ürün sayıları
-                var standardTaxCount = await context.Products.CountAsync(p => p.TaxType == "Standard");
-                var reducedTaxCount = await context.Products.CountAsync(p => p.TaxType == "Reduced");
-                var specialTaxCount = await context.Products.CountAsync(p => p.TaxType == "Special");
+                var standardTaxCount = await context.Products.CountAsync(p => p.TaxType == 1);
+                var reducedTaxCount = await context.Products.CountAsync(p => p.TaxType == 2);
+                var specialTaxCount = await context.Products.CountAsync(p => p.TaxType == 3);
                 
                 Console.WriteLine($"\nVergi grupları:");
                 Console.WriteLine($"- Standard (20%): {standardTaxCount} ürün");

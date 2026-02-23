@@ -53,7 +53,7 @@ namespace KasseAPI_Final.DTOs
         public int Quantity { get; set; }
         
         [Required]
-        public string TaxType { get; set; } = "standard"; // standard, reduced, special
+        public int TaxType { get; set; } = 1; // 1: standard, 2: reduced, 3: special
     }
     
     /// <summary>

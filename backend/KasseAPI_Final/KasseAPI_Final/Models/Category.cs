@@ -21,7 +21,6 @@ namespace KasseAPI_Final.Models
 
         public int SortOrder { get; set; } = 0;
 
-        // Navigation properties - Geçici olarak kapatıldı EF shadow property sorununu çözmek için
-        // public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        public virtual ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }

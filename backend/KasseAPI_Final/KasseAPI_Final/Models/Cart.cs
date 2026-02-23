@@ -75,7 +75,7 @@ namespace KasseAPI_Final.Models
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
         public string? Notes { get; set; }
-        public string TaxType { get; set; } = string.Empty;
+        public int TaxType { get; set; } = 1;
         public decimal TaxRate { get; set; }
     }
 

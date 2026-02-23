@@ -82,9 +82,9 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Cost).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");
-                entity.Property(e => e.TaxType).HasMaxLength(20);
+                entity.Property(e => e.TaxType).IsRequired(); // Map to integer column
                 entity.Property(e => e.Category).HasMaxLength(100);
-                // entity.Property(e => e.CategoryId).IsRequired(false); // Geçici olarak kapatıldı
+                entity.Property(e => e.CategoryId).HasColumnName("category_id").IsRequired(false);
                 entity.Property(e => e.ImageUrl).HasMaxLength(500);
                 entity.Property(e => e.StockQuantity).IsRequired();
                 entity.Property(e => e.MinStockLevel).IsRequired();
@@ -99,23 +99,24 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.Name);
                 entity.HasIndex(e => e.Category);
                 entity.HasIndex(e => e.TaxType);
-                // entity.HasIndex(e => e.CategoryId); // Geçici olarak kapatıldı
+                entity.HasIndex(e => e.CategoryId);
+                entity.HasIndex(e => e.Barcode).IsUnique();
                 
                 // Navigation property relationship - CategoryId foreign key
-                // entity.HasOne<Category>()
-                //       .WithMany(c => c.Products)
-                //       .HasForeignKey(p => p.CategoryId)
-                //       .OnDelete(DeleteBehavior.SetNull)
-                //       .IsRequired(false); // Geçici olarak kapatıldı
+                entity.HasOne<Category>()
+                      .WithMany(c => c.Products)
+                      .HasForeignKey(p => p.CategoryId)
+                      .OnDelete(DeleteBehavior.SetNull)
+                      .IsRequired(false);
                 
                 // Constraints
                 entity.ToTable("products", t => 
                 {
-                    t.HasCheckConstraint("CK_products_price_positive", "\"Price\" >= 0");
-                    t.HasCheckConstraint("CK_products_stock_quantity_non_negative", "\"StockQuantity\" >= 0");
-                    t.HasCheckConstraint("CK_products_min_stock_level_non_negative", "\"MinStockLevel\" >= 0");
-                    t.HasCheckConstraint("CK_products_cost_non_negative", "\"Cost\" >= 0");
-                    t.HasCheckConstraint("CK_products_tax_rate_range", "\"TaxRate\" >= 0 AND \"TaxRate\" <= 100");
+                    t.HasCheckConstraint("CK_products_price_positive", "price >= 0");
+                    t.HasCheckConstraint("CK_products_stock_quantity_non_negative", "stock_quantity >= 0");
+                    t.HasCheckConstraint("CK_products_min_stock_level_non_negative", "min_stock_level >= 0");
+                    t.HasCheckConstraint("CK_products_cost_non_negative", "cost >= 0");
+                    t.HasCheckConstraint("CK_products_tax_rate_range", "tax_rate >= 0 AND tax_rate <= 100");
                 });
             });
 
@@ -271,7 +272,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Quantity).IsRequired();
                 entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalPrice).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TaxType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.TaxType).IsRequired();
                 entity.Property(e => e.TaxRate).HasColumnType("decimal(5,4)");
                 entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
             });
@@ -672,7 +673,7 @@ namespace KasseAPI_Final.Data
             builder.Entity<TableOrder>(entity =>
             {
                 entity.HasKey(e => e.TableOrderId); // TableOrderId'yi primary key yap
-                entity.Ignore(e => e.Id); // BaseEntity'den gelen Id property'sini ignore et
+                // entity.Ignore(e => e.Id); // BaseEntity'den gelen Id property'sini ignore et
                 entity.Property(e => e.CreatedAt).HasColumnName("CreatedAt"); // BaseEntity'den gelen CreatedAt'i CreatedAt sütununa map et
                 entity.Property(e => e.UpdatedAt).HasColumnName("UpdatedAt"); // BaseEntity'den gelen UpdatedAt'i UpdatedAt sütununa map et
                 entity.Property(e => e.CreatedBy).HasColumnName("CreatedBy"); // BaseEntity'den gelen CreatedBy'i CreatedBy sütununa map et
@@ -712,7 +713,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalPrice).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Notes).HasMaxLength(500);
-                entity.Property(e => e.TaxType).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.TaxType).IsRequired();
                 entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");
                 entity.Property(e => e.Status).IsRequired();
                 

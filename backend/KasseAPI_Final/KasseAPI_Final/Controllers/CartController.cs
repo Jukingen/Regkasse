@@ -142,7 +142,7 @@ namespace KasseAPI_Final.Controllers
                         UnitPrice = ci.UnitPrice,
                         TotalPrice = ci.Quantity * ci.UnitPrice,
                         Notes = ci.Notes,
-                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : "Standard",
+                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : 1,
                         TaxRate = products.TryGetValue(ci.ProductId, out var pr) ? GetTaxRate(pr.TaxType) : 0.20m
                     }).ToList(),
                     TotalItems = cart.Items.Sum(ci => ci.Quantity),
@@ -214,7 +214,7 @@ namespace KasseAPI_Final.Controllers
                         UnitPrice = ci.UnitPrice,
                         TotalPrice = ci.Quantity * ci.UnitPrice,
                         Notes = ci.Notes,
-                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : "Standard",
+                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : 1,
                         TaxRate = products.TryGetValue(ci.ProductId, out var pr) ? GetTaxRate(pr.TaxType) : 0.20m
                     }).ToList(),
                     TotalItems = cart.Items.Sum(ci => ci.Quantity),
@@ -417,7 +417,7 @@ namespace KasseAPI_Final.Controllers
                         UnitPrice = ci.UnitPrice,
                         TotalPrice = ci.Quantity * ci.UnitPrice,
                         Notes = ci.Notes,
-                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : "Standard",
+                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : 1,
                         TaxRate = products.TryGetValue(ci.ProductId, out var pr) ? GetTaxRate(pr.TaxType) : 0.20m
                     }).ToList(),
                     TotalItems = updatedCart.Items.Sum(ci => ci.Quantity),
@@ -1407,15 +1407,9 @@ namespace KasseAPI_Final.Controllers
 
 
         // Yardımcı metod: Vergi oranını hesapla
-        private decimal GetTaxRate(string taxType)
+        private decimal GetTaxRate(int taxType)
         {
-            return taxType switch
-            {
-                "Standard" => 0.20m, // %20
-                "Reduced" => 0.10m,   // %10
-                "Special" => 0.13m,   // %13
-                _ => 0.00m
-            };
+            return TaxTypes.GetTaxRate(taxType) / 100.0m;
         }
     }
 
@@ -1482,7 +1476,7 @@ namespace KasseAPI_Final.Controllers
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
         public string? Notes { get; set; }
-        public string TaxType { get; set; } = string.Empty;
+        public int TaxType { get; set; } = 1;
         public decimal TaxRate { get; set; }
     }
 

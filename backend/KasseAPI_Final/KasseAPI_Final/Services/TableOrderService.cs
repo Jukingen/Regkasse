@@ -99,8 +99,8 @@ namespace KasseAPI_Final.Services
                         UnitPrice = cartItem.UnitPrice,
                         TotalPrice = cartItem.UnitPrice * cartItem.Quantity,
                         Notes = cartItem.Notes,
-                        TaxType = product?.TaxType.ToString() ?? "standard",
-                        TaxRate = GetTaxRate(product?.TaxType ?? "Standard"),
+                        TaxType = product?.TaxType ?? 1,
+                        TaxRate = GetTaxRate(product?.TaxType ?? 1),
                         Status = ItemStatus.Pending,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
@@ -170,8 +170,8 @@ namespace KasseAPI_Final.Services
                         UnitPrice = cartItem.UnitPrice,
                         TotalPrice = cartItem.UnitPrice * cartItem.Quantity,
                         Notes = cartItem.Notes,
-                        TaxType = product?.TaxType.ToString() ?? "standard",
-                        TaxRate = GetTaxRate(product?.TaxType ?? "Standard"),
+                        TaxType = product?.TaxType ?? 1,
+                        TaxRate = GetTaxRate(product?.TaxType ?? 1),
                         Status = ItemStatus.Pending,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
@@ -272,13 +272,13 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// Tax rate hesaplama - RKSV uyumlu
         /// </summary>
-        private decimal GetTaxRate(string taxType)
+        private decimal GetTaxRate(int taxType)
         {
             return taxType switch
             {
-                "Standard" => 20.0m,    // %20 KDV
-                "Reduced" => 10.0m,     // %10 KDV
-                "Special" => 13.0m,     // %13 KDV
+                1 => 20.0m,    // %20 KDV
+                2 => 10.0m,     // %10 KDV
+                3 => 13.0m,     // %13 KDV
                 _ => 20.0m
             };
         }
