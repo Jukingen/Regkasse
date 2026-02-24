@@ -127,7 +127,6 @@ KasseUI-APP/
    - [ ] TSE entegrasyonu
    - [ ] Fiş yazdırma sistemi
    - [ ] Günlük rapor oluşturma
-   - [ ] Stok yönetimi
 
 2. **İyileştirmeler:**
    - [ ] Unit testlerin yazılması
