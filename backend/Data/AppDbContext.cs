@@ -737,7 +737,7 @@ namespace KasseAPI_Final.Data
             builder.Entity<TableOrder>(entity =>
             {
                 entity.HasKey(e => e.TableOrderId); // TableOrderId'yi primary key yap
-                // entity.Ignore(e => e.Id); // BaseEntity'den gelen Id property'sini ignore et
+                entity.Property(e => e.Id).HasColumnName("Id"); // PostgreSQL: migration "Id" oluşturdu, BaseEntity "id" bekliyordu
                 entity.Property(e => e.CreatedAt).HasColumnName("CreatedAt"); // BaseEntity'den gelen CreatedAt'i CreatedAt sütununa map et
                 entity.Property(e => e.UpdatedAt).HasColumnName("UpdatedAt"); // BaseEntity'den gelen UpdatedAt'i UpdatedAt sütununa map et
                 entity.Property(e => e.CreatedBy).HasColumnName("CreatedBy"); // BaseEntity'den gelen CreatedBy'i CreatedBy sütununa map et

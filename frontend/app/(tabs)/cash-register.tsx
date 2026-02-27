@@ -59,7 +59,8 @@ export default function CashRegisterScreen() {
   const {
     recoveryData,
     isRecoveryCompleted,
-    isLoading: recoveryLoading
+    isLoading: recoveryLoading,
+    provisioningMessage: recoveryProvisioningMessage,
   } = useTableOrdersRecoveryOptimized();
 
   // ✅ Cart Context Usage
@@ -420,6 +421,7 @@ export default function CashRegisterScreen() {
       <CashRegisterHeader
         selectedTable={activeTableId}
         recoveryLoading={recoveryLoading}
+        provisioningMessage={recoveryProvisioningMessage}
       />
 
       {/* Root List - ProductList acts as the main scrollable container */}

@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Uzun yol (260+ karakter) ve recursive path hatasını önlemek için kısa output yolu (obj Directory.Build.props'ta) -->
+    <BaseOutputPath>$(MSBuildThisFileDirectory)..\bin\Tests\</BaseOutputPath>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>

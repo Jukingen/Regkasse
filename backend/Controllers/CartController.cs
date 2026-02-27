@@ -1271,13 +1271,16 @@ namespace KasseAPI_Final.Controllers
             {
                 var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
                 var errorStr = ex.ToString();
-                
+                var innerMsg = ex.InnerException?.Message ?? ex.Message;
+
                 // Track missing table relations (e.g. during deployments/migrations)
                 bool isMissingTable = errorStr.Contains("42P01") || (errorStr.Contains("relation") && errorStr.Contains("does not exist"));
 
                 if (isMissingTable)
                 {
-                    _logger.LogWarning(ex, "⚠️ Table orders relation missing during recovery - UserId: {UserId}. Expected during migration window.", userIdStr);
+                    _logger.LogWarning(ex,
+                        "⚠️ TABLE_ORDERS_MISSING: Relation does not exist - UserId: {UserId}, Message: {Message}, Inner: {Inner}. Run: SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename IN ('table_orders','table_order_items','carts','cart_items','customers');",
+                        userIdStr, ex.Message, innerMsg);
                     return StatusCode(503, new {
                         success = false,
                         message = "Table orders infrastructure is currently being provisioned.",

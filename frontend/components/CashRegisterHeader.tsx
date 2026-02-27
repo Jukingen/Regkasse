@@ -6,6 +6,8 @@ import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from
 interface CashRegisterHeaderProps {
   selectedTable: number;
   recoveryLoading: boolean;
+  /** 503/TABLE_ORDERS_MISSING durumunda gösterilecek bilgi mesajı */
+  provisioningMessage?: string | null;
 }
 
 import { useTranslation } from 'react-i18next';
@@ -13,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
   selectedTable,
   recoveryLoading,
+  provisioningMessage,
 }) => {
   const { t } = useTranslation(['checkout', 'common']);
 
@@ -35,6 +38,12 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
       {recoveryLoading && (
         <View style={styles.recoveryBadge}>
           <Text style={styles.recoveryText}>🔄 {t('common:loading', 'Loading orders...')}</Text>
+        </View>
+      )}
+
+      {provisioningMessage && !recoveryLoading && (
+        <View style={[styles.recoveryBadge, styles.provisioningBadge]}>
+          <Text style={styles.provisioningText}>ℹ️ {provisioningMessage}</Text>
         </View>
       )}
     </View>
@@ -96,5 +105,15 @@ const styles = StyleSheet.create({
   recoveryText: {
     ...SoftTypography.caption,
     color: SoftColors.accent,
+  },
+  provisioningBadge: {
+    backgroundColor: 'rgba(255,193,7,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,193,7,0.5)',
+  },
+  provisioningText: {
+    ...SoftTypography.caption,
+    color: SoftColors.textPrimary,
+    fontSize: 12,
   },
 });

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BaseIntermediateOutputPath Microsoft.Common.props'tan önce ayarlanmalı (MSB3539 uyarısını önlemek için) -->
+<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\obj\Tests\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

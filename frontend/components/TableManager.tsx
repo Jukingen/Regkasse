@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
-import { useTableOrdersRecovery } from '../hooks/useTableOrdersRecovery';
+import { useTableOrdersRecoveryOptimized } from '../hooks/useTableOrdersRecoveryOptimized';
 
 interface TableOrder {
   id: string;
@@ -62,6 +62,12 @@ const TableManager: React.FC<TableManagerProps> = ({
   tableOrders = {},
 }) => {
   const { t: _t } = useTranslation();
+  const {
+    isRecoveryCompleted,
+    recoveryData,
+    getOrderForTable,
+    hasActiveOrders,
+  } = useTableOrdersRecoveryOptimized();
   const [tables, setTables] = useState<Table[]>([]);
   const [showCustomerInput, setShowCustomerInput] = useState(false);
   const [editingTable, setEditingTable] = useState<string | null>(null);
@@ -130,7 +136,7 @@ const TableManager: React.FC<TableManagerProps> = ({
           const currentOrder: TableOrder = {
             id: recoveryOrder.cartId,
             tableNumber: table.number,
-            items: recoveryOrder.items.map(item => ({
+            items: recoveryOrder.items.map((item: { productId: string; productName: string; quantity: number; price: number; notes?: string }) => ({
               productId: item.productId,
               productName: item.productName,
               quantity: item.quantity,

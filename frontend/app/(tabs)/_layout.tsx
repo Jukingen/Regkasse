@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart, calculateCartTotals } from '../../contexts/CartContext';
-import { useTableOrdersRecovery } from '../../hooks/useTableOrdersRecovery';
 import PaymentModal from '../../components/PaymentModal';
 
 export default function TabLayout() {
@@ -30,16 +29,6 @@ export default function TabLayout() {
         await clearCart(activeTableId);
     };
 
-    // F5 sonrası masa siparişlerini geri yükleme hook'u
-    const {
-        isLoading: recoveryLoading,
-        error: recoveryError,
-        isRecoveryCompleted,
-        hasActiveOrders,
-        totalActiveTables,
-        isInitialized: recoveryInitialized // Yeni: Initialization status
-    } = useTableOrdersRecovery();
-
     // OPTIMIZATION: Auth status kontrolünü daha az sıklıkta yap
     useEffect(() => {
         if (!user || !isAuthenticated) {
@@ -56,13 +45,6 @@ export default function TabLayout() {
             clearInterval(interval);
         };
     }, []);
-
-    // OPTIMIZATION: Recovery data sadece user değiştiğinde ve henüz initialize edilmemişse yüklensin
-    useEffect(() => {
-        if (user && !recoveryInitialized) {
-            // Recovery data otomatik olarak useTableOrdersRecovery hook'unda yüklenecek
-        }
-    }, [user, recoveryInitialized]);
 
     if (!isAuthReady || isLoading) {
         return (
