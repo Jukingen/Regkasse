@@ -16,5 +16,5 @@
 
 ## Yeni Endpoint Ekleme Kuralları
 - Mevcut controller naming ve route düzenini koru
-- DTO gerekiyorsa KasseAPI_Final.DTOs altında konumlandır
+- DTO gerekiyorsa `backend/DTOs` altında konumlandır (namespace: KasseAPI_Final.DTOs)
 - Authorization gereksinimlerini açıkça ekle

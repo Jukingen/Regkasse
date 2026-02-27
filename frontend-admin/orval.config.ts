@@ -3,7 +3,7 @@ import { defineConfig } from 'orval';
 export default defineConfig({
     kasse: {
         input: {
-            target: '../backend/KasseAPI_Final/KasseAPI_Final/swagger.json',
+            target: '../backend/swagger.json',
         },
         output: {
             mode: 'tags-split',

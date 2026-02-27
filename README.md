@@ -43,7 +43,7 @@ cd Registrierkasse
 
 2. **Backend'i kurun**
 ```bash
-cd backend/Registrierkasse_API
+cd backend
 dotnet restore
 dotnet ef database update
 dotnet run
@@ -136,7 +136,7 @@ Registrierkasse/
 
 ### Backend Geliştirme
 ```bash
-cd backend/Registrierkasse_API
+cd backend
 dotnet watch run
 ```
 
@@ -148,6 +148,7 @@ npm run dev
 
 ### Veritabanı Migration
 ```bash
+cd backend
 dotnet ef migrations add MigrationName
 dotnet ef database update
 ```
@@ -156,6 +157,7 @@ dotnet ef database update
 
 ### API Testleri
 ```bash
+cd backend
 dotnet test
 ```
 
@@ -168,6 +170,7 @@ npm test
 
 ### Backend Deployment
 ```bash
+cd backend
 dotnet publish -c Release
 ```
 

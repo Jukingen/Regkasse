@@ -129,7 +129,7 @@ const products = response?.items || [];
 
 ### 1. Backend'i Başlat
 ```bash
-cd backend/KasseAPI_Final/KasseAPI_Final
+cd backend
 dotnet run
 ```
 

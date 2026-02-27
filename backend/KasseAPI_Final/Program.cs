@@ -1,1 +1,0 @@
-using System; using Npgsql; var c = new NpgsqlConnection("Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=Juke1034#"); c.Open(); using var cmd = new NpgsqlCommand("SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'products' AND column_name ILIKE 'categoryid';", c); Console.WriteLine(cmd.ExecuteScalar());

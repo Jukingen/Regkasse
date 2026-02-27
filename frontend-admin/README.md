@@ -18,11 +18,12 @@ Built with Ant Design, TanStack Query, and Orval.
 2. Environment Setup:
    Copy `.env.example` to `.env.local` and configure:
    ```env
-   NEXT_PUBLIC_API_BASE_URL=https://localhost:7082
+   NEXT_PUBLIC_API_BASE_URL=http://localhost:5183
    ```
+   (Backend API varsayılan port: 5183)
 
 3. Generate API Client:
-   If Backend Swagger changes, update `orval.config.ts` path if needed and run:
+   If Backend Swagger changes, ensure `orval.config.ts` points to `../backend/swagger.json` and run:
    ```bash
    npm run generate:api
    ```

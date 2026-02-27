@@ -4,7 +4,7 @@
 
 ### 1. **Port Mismatch**
 - **Frontend**: `localhost:8081` (Expo dev server)
-- **Backend**: `localhost:5183` (KasseAPI)
+- **Backend**: `localhost:5183` (backend/)
 - **Hata**: API çağrıları `localhost:8081/api/products`'a yapılıyor ❌
 
 ### 2. **API Çağrıları Tekrarlanıyor**

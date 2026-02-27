@@ -3,7 +3,7 @@
 Bu klasör, AI'nin projeyi doğru anlaması ve aynı kod stilinde geliştirme yapması için "tek doğruluk kaynağıdır".
 
 ## Project Summary
-- Repo: Regkasse / KasseAPI_Final
+- Repo: Regkasse (Backend kökü: `backend/`)
 - Backend: ASP.NET Core (Controller-based), IdentityDbContext<ApplicationUser>, EF Core Fluent API
 - DB: PostgreSQL (decimal(18,2) yaygın, jsonb alanlar var)
 - Frontend: React Native + Expo Router (app/(tabs), app/(auth)), POS ana ekranı: cash-register.tsx

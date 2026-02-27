@@ -40,7 +40,7 @@ Yönetim paneli, işletme sahiplerinin ürünlerini, müşterilerini ve raporlar
 ---
 
 ## 🛠️ Yerel Kurulum (Hızlı Başlangıç)
-1. **Backend**: `backend/KasseAPI_Final` dizininde `dotnet run` ile API'yi başlatın (Varsayılan: Port 5183).
+1. **Backend**: `backend` dizininde `dotnet run` ile API'yi başlatın (Varsayılan: Port 5183).
 2. **Frontend-Admin**: `frontend-admin` dizininde `npm run dev` ile admin panelini açın.
 3. **Veritabanı**: PostgreSQL bağlantı dizesini `appsettings.json` üzerinden kontrol edin.
 

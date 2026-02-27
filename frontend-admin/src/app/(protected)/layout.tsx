@@ -12,6 +12,7 @@ import {
     LogoutOutlined,
     SafetyCertificateOutlined,
     CreditCardOutlined,
+    SafetyOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -107,7 +108,22 @@ export default function DashboardLayout({
             key: '/settings',
             icon: <SettingOutlined />,
             label: <Link href="/settings">Settings</Link>,
-        }
+        },
+        ...(user?.role === 'Administrator'
+            ? [
+                  {
+                      key: '/rksv',
+                      icon: <SafetyOutlined />,
+                      label: 'RKSV',
+                      children: [
+                          { key: '/rksv/status', label: <Link href="/rksv/status">General Status</Link> },
+                          { key: '/rksv/cmc-certificate', label: <Link href="/rksv/cmc-certificate">CMC / Certificate</Link> },
+                          { key: '/rksv/verifications', label: <Link href="/rksv/verifications">Last 100 Verifications</Link> },
+                          { key: '/rksv/finanz-online-queue', label: <Link href="/rksv/finanz-online-queue">FinanzOnline Queue</Link> },
+                      ],
+                  },
+              ]
+            : []),
     ];
 
     const userMenu: MenuProps = {
@@ -138,6 +154,7 @@ export default function DashboardLayout({
                 theme="light"
                 mode="inline"
                 selectedKeys={[pathname]}
+                defaultOpenKeys={user?.role === 'Administrator' ? ['/rksv'] : []}
                 items={menuItems}
                 onClick={() => {
                     if (isMobile) setDrawerVisible(false);

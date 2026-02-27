@@ -3,11 +3,11 @@
 Bu dosya, AI'nin projeyi karıştırmaması için hızlı bir navigasyon rehberidir.
 
 ## 📂 Backend (ASP.NET Core)
-- **Root**: `backend/KasseAPI_Final/`
-- **Controllers**: `backend/KasseAPI_Final/Controllers/`
-- **Models/Entities**: `backend/KasseAPI_Final/Models/`
-- **Data/Context**: `backend/KasseAPI_Final/Data/AppDbContext.cs`
-- **Services**: `backend/KasseAPI_Final/Services/`
+- **Root**: `backend/`
+- **Controllers**: `backend/Controllers/`
+- **Models/Entities**: `backend/Models/`
+- **Data/Context**: `backend/Data/AppDbContext.cs`
+- **Services**: `backend/Services/`
 
 ## 📱 Frontend Mobile (React Native + Expo)
 - **Root**: `frontend/`

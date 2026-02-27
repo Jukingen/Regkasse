@@ -131,7 +131,7 @@ interface PaymentResponse {
 
 ### **1. Backend Çalıştırma**
 ```bash
-cd backend/KasseAPI_Final/KasseAPI_Final
+cd backend
 dotnet run
 ```
 

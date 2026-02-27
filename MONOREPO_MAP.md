@@ -79,15 +79,25 @@ Critical requirements:
 Agents must verify commands by reading project files before assuming.
 
 ## Backend
+- Çalışma dizini: `backend/`
 - Build:
-  dotnet build
+  ```bash
+  cd backend && dotnet build
+  ```
 - Test:
-  dotnet test
+  ```bash
+  cd backend && dotnet test
+  ```
 - Run:
-  dotnet run --project <path-to-api>
+  ```bash
+  cd backend && dotnet run
+  ```
+  (API: http://localhost:5183, Swagger: http://localhost:5183/swagger)
 - Migrations (if enabled):
-  dotnet ef migrations list
-  dotnet ef database update
+  ```bash
+  cd backend && dotnet ef migrations list
+  cd backend && dotnet ef database update
+  ```
 
 ## Mobile
 - Install:

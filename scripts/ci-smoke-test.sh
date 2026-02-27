@@ -3,7 +3,7 @@ set -e
 
 echo "🚀 Starting CI Migration & Recovery Smoke Test..."
 
-cd backend/KasseAPI_Final/KasseAPI_Final
+cd backend
 
 # 1. Build backend
 echo "📦 Building backend..."

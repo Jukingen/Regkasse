@@ -5,7 +5,7 @@
 ```
 Registrierkasse/
 ├── backend/                    # ASP.NET Core Backend
-│   └── Registrierkasse_API/
+│   ├── KasseAPI_Final.csproj
 ├── frontend/                   # Kasiyer Frontend (gelecek)
 ├── frontend-admin/             # Yönetim Frontend
 ├── DEVELOPMENT_LOG.md          # Geliştirme günlüğü
@@ -16,7 +16,7 @@ Registrierkasse/
 ## 🏗️ Backend Dizin Yapısı
 
 ```
-backend/Registrierkasse_API/
+backend/
 ├── Controllers/                # API Controllers
 │   ├── AuthController.cs       # Authentication endpoints
 │   ├── ProductsController.cs   # Ürün yönetimi
@@ -51,7 +51,7 @@ backend/Registrierkasse_API/
 ├── Program.cs                  # Startup configuration
 ├── appsettings.json            # Konfigürasyon
 ├── appsettings.Development.json
-└── Registrierkasse_API.csproj  # Proje dosyası
+└── KasseAPI_Final.csproj  # Proje dosyası
 ```
 
 ## 🎨 Frontend-Admin Dizin Yapısı
@@ -194,7 +194,7 @@ export default defineConfig({
 
 ### Backend
 ```bash
-cd backend/Registrierkasse_API
+cd backend
 dotnet restore
 dotnet ef database update
 dotnet run
@@ -210,10 +210,10 @@ npm run dev
 ## 📝 Önemli Dosyalar
 
 ### Backend
-- `Program.cs` - Uygulama başlangıç noktası
-- `AppDbContext.cs` - Veritabanı context
-- `SeedData.cs` - Demo veriler
-- `Controllers/` - API endpointleri
+- `backend/Program.cs` - Uygulama başlangıç noktası
+- `backend/Data/AppDbContext.cs` - Veritabanı context
+- `backend/Data/SeedData.cs` - Demo veriler
+- `backend/Controllers/` - API endpointleri
 
 ### Frontend
 - `src/App.tsx` - Ana uygulama bileşeni
@@ -225,7 +225,7 @@ npm run dev
 
 ### Backend Tests
 ```
-backend/Registrierkasse_API.Tests/
+backend/KasseAPI_Final.Tests/
 ├── Controllers/
 ├── Services/
 └── Data/

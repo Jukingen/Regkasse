@@ -142,9 +142,9 @@ backend/**/*.suo
 backend/**/*.userprefs
 backend/**/*.dbmdl
 backend/**/*.jfm 
-backend/KasseAPI_Final/KasseAPI_FINAL_API_FIXES.md
-backend/KasseAPI_Final/KasseAPI_Final/DATABASE_INDEXES_README.md
-backend/KasseAPI_Final/KasseAPI_Final/CreateTableOrderTables.sql
+backend/KasseAPI_FINAL_API_FIXES.md
+backend/DATABASE_INDEXES_README.md
+backend/CreateTableOrderTables.sql
 
 # Next.js
 .next/

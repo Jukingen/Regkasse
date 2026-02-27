@@ -8,6 +8,7 @@ import { useReceiptDetailQuery } from '@/features/receipts/hooks/useReceiptDetai
 import ReceiptDetailCard from '@/features/receipts/components/ReceiptDetailCard';
 import ReceiptItemsTable from '@/features/receipts/components/ReceiptItemsTable';
 import ReceiptTaxSummary from '@/features/receipts/components/ReceiptTaxSummary';
+import SignatureStatusPanel from '@/features/receipts/components/SignatureStatusPanel';
 
 const { Title } = Typography;
 
@@ -68,6 +69,8 @@ export default function ReceiptDetailPage() {
             </Button>
 
             <ReceiptDetailCard receipt={receipt} />
+
+            <SignatureStatusPanel paymentId={receipt.paymentId} />
 
             <Card>
                 <Title level={5} style={{ marginBottom: 12 }}>Line Items</Title>

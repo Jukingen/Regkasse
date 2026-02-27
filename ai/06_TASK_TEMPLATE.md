@@ -1,7 +1,7 @@
 # Task Template (AI'ye her görevde yapıştır)
 
 ## Context
-Bu repo Regkasse / KasseAPI_Final.
+Bu repo Regkasse (backend kökü: `backend/`).
 Kurallar: ai/*.md dokümanları. Pattern’i bozma.
 
 ## Goal

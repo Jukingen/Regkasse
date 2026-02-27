@@ -134,7 +134,7 @@ public async Task<FinanzOnlineResponse> SubmitTransaction(Receipt receipt)
 
 ### Backend Mimari (.NET Core)
 ```
-Registrierkasse_API/
+backend/
 ├── Controllers/          # API endpoint'leri
 ├── Services/            # İş mantığı servisleri
 ├── Models/              # Veri modelleri
@@ -247,13 +247,13 @@ git clone https://github.com/your-org/registrierkasse.git
 cd registrierkasse
 
 # 2. Backend kurulumu
-cd backend/Registrierkasse_API
+cd backend
 dotnet restore
 dotnet ef database update
 dotnet run
 
 # 3. Frontend kurulumu
-cd ../../frontend
+cd ../frontend
 npm install
 npx expo start
 ```
@@ -267,7 +267,7 @@ FINANZONLINE_API_KEY=your-finanzonline-api-key
 TSE_DEVICE_ID=your-tse-device-id
 
 # Frontend (.env)
-API_BASE_URL=http://localhost:5000/api
+API_BASE_URL=http://localhost:5183/api
 EXPO_PUBLIC_APP_NAME=Registrierkasse
 ```
 
@@ -401,7 +401,7 @@ dotnet ef database update --connection "Host=prod-db;Database=registrierkasse;Us
 - **Feature Requests**: github.com/your-org/registrierkasse/discussions
 
 ### Geliştirici Araçları
-- **Swagger UI**: http://localhost:5000/swagger
+- **Swagger UI**: http://localhost:5183/swagger
 - **Database Admin**: pgAdmin veya DBeaver
 - **API Testing**: Postman collection mevcut
 

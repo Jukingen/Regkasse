@@ -28,10 +28,11 @@
 - Rounding politikasını değiştirme; sadece mevcut davranışı koru.
 
 ## Dosya yerleşimi (mevcut örnekleri takip et)
-- Controllers: KasseAPI_Final.Controllers
-- Services: KasseAPI_Final.Services
-- DTOs: KasseAPI_Final.DTOs (varsa)
-- Data: KasseAPI_Final.Data (AppDbContext)
+- Path: `backend/` (Controllers, Services, DTOs, Data)
+- Controllers: backend/Controllers (namespace: KasseAPI_Final.Controllers)
+- Services: backend/Services (namespace: KasseAPI_Final.Services)
+- DTOs: backend/DTOs (namespace: KasseAPI_Final.DTOs)
+- Data: backend/Data (AppDbContext, namespace: KasseAPI_Final.Data)
 
 ## Yeni endpoint ekleme checklist
 1) Controller method + route
