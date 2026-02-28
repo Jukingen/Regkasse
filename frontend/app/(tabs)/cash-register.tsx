@@ -1,7 +1,7 @@
 // Türkçe Açıklama: Ana cash register ekranı - yeni backend API yapısını kullanır
 // RKSV uyumlu ürün yönetimi ve modern API entegrasyonu
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, View, Text } from 'react-native';
 
 // Modüler component'ları import et
@@ -89,6 +89,19 @@ export default function CashRegisterScreen() {
 
   // ✅ Aktif table'ın cart'ını al (Derived State)
   const cart = getCartForTable(activeTableId);
+
+  // Masa badge counter için cartsByTable'dan Map türet (anlık güncelleme için tek kaynak)
+  // Boş masalar dahil tüm entry'ler eklenir; Clear All sonrası badge 0 olur
+  const tableCartsMap = useMemo(() => {
+    const map = new Map<number, { items: any[]; totalItems: number }>();
+    for (const [tableNumStr, cartData] of Object.entries(cartsByTable)) {
+      const tableNum = Number(tableNumStr);
+      const items = cartData?.items ?? [];
+      const totalItems = items.reduce((s: number, i: any) => s + (i.qty ?? 0), 0);
+      map.set(tableNum, { items, totalItems });
+    }
+    return map;
+  }, [cartsByTable]);
 
   // Ref'ler
   const isFirstLoad = useRef(true);
@@ -436,7 +449,7 @@ export default function CashRegisterScreen() {
             <TableSelector
               selectedTable={activeTableId}
               onTableSelect={handleTableSelect}
-              tableCarts={new Map()}
+              tableCarts={tableCartsMap}
               recoveryData={recoveryData}
               tableSelectionLoading={tableSelectionLoading}
               onClearAllTables={handleClearAllTables}

@@ -31,12 +31,14 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
 
   const getTableItemCount = (tableNumber: number): number => {
     const tableCart = tableCarts.get(tableNumber);
-    const hasItems = tableCart && tableCart.items && tableCart.items.length > 0;
+    // Cart varsa (boş dahil) cart kaynağı kullan; yoksa recovery (initial load için)
+    if (tableCart !== undefined) {
+      return tableCart.totalItems ?? 0;
+    }
     const recoveryOrder = recoveryData?.tableOrders?.find(
       (order: any) => order.tableNumber === tableNumber
     );
-    const recoveryItemCount = recoveryOrder?.itemCount || 0;
-    return hasItems ? (tableCart?.totalItems || tableCart?.items?.length || 0) : recoveryItemCount;
+    return recoveryOrder?.itemCount ?? 0;
   };
 
   return (
