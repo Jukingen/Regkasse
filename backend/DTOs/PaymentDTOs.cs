@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+using KasseAPI_Final.Converters;
 using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.DTOs
@@ -52,8 +54,13 @@ namespace KasseAPI_Final.DTOs
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be greater than 0")]
         public int Quantity { get; set; }
         
+        /// <summary>
+        /// Vergi tipi. Tercih: string ("standard", "reduced", "special", "zerorate").
+        /// ZeroRate: 0% VAT (Österreich 2026). "exempt" deprecated → zerorate. int (1-4) deprecated.
+        /// </summary>
         [Required]
-        public int TaxType { get; set; } = 1; // 1: standard, 2: reduced, 3: special
+        [JsonConverter(typeof(TaxTypeJsonConverter))]
+        public TaxType TaxType { get; set; } = TaxType.Standard;
     }
     
     /// <summary>

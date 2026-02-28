@@ -92,16 +92,17 @@ namespace KasseAPI_Final.Models
     }
 
     /// <summary>
-    /// RKSV uyumlu vergi tipleri - Avusturya standartları
+    /// RKSV uyumlu vergi tipleri - Avusturya standartları.
+    /// ZeroRate: 0% VAT (Österreich 2026 Reform). Exempt deprecated, use ZeroRate.
     /// </summary>
     public static class TaxTypes
     {
         public const int Standard = 1;    // %20
-        public const int Reduced = 2;      // %10 (gıda, kitap, vb.)
-        public const int Special = 3;      // %13 (konaklama, vb.)
-        public const int Exempt = 4;        // %0 (vergisiz)
+        public const int Reduced = 2;     // %10 (gıda, kitap, vb.)
+        public const int Special = 3;     // %13 (konaklama, vb.)
+        public const int ZeroRate = 4;    // %0 (Österreich 2026 - 0% MwSt., nicht Exempt)
         
-        public static readonly int[] All = { Standard, Reduced, Special, Exempt };
+        public static readonly int[] All = { Standard, Reduced, Special, ZeroRate };
         
         public static decimal GetTaxRate(int taxType)
         {
@@ -110,7 +111,7 @@ namespace KasseAPI_Final.Models
                 Standard => 20.0m,
                 Reduced => 10.0m,
                 Special => 13.0m,
-                Exempt => 0.0m,
+                ZeroRate => 0.0m,
                 _ => 20.0m
             };
         }

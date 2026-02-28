@@ -127,6 +127,14 @@ interface PaymentResponse {
 }
 ```
 
+### **taxType API Contract (POST /api/Payment)**
+- **Tercih edilen format**: string enum (`"standard"`, `"reduced"`, `"special"`, `"zerorate"`)
+- **ZeroRate** (4): 0% VAT – Österreich 2026 Reform (technisch 0% MwSt.)
+- **ZeroRate alternatifleri**: `"zerorate"`, `"zero"`, `"0percent"`
+- **Deprecated**: `"exempt"` → zerorate'e map edilir; int (1–4) kabul edilir
+- **Response**: taxType her zaman string olarak döner
+- **DB**: int olarak saklanır (değişmez)
+
 ## 🚀 **KURULUM VE TEST**
 
 ### **1. Backend Çalıştırma**

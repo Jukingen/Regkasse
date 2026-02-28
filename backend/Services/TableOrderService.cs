@@ -276,9 +276,10 @@ namespace KasseAPI_Final.Services
         {
             return taxType switch
             {
-                1 => 20.0m,    // %20 KDV
-                2 => 10.0m,     // %10 KDV
-                3 => 13.0m,     // %13 KDV
+                1 => 20.0m,   // %20 KDV
+                2 => 10.0m,   // %10 KDV
+                3 => 13.0m,   // %13 KDV
+                4 => 0.0m,    // %0 ZeroRate (Österreich 2026)
                 _ => 20.0m
             };
         }

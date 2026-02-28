@@ -77,9 +77,13 @@ namespace KasseAPI_Final.Controllers
 				var product = new Product
 				{
 					Name = "Test Produkt",
+					Description = "Quick payment test product",
 					Price = 10.00m,
 					StockQuantity = 100,
+					MinStockLevel = 0,
+					Unit = "Stück",
 					Category = "Test",
+					Barcode = $"BC{Guid.NewGuid():N}"[..18],
 					TaxType = TaxTypes.Standard,
 					TaxRate = 0.20m,
 					CreatedBy = userId,
@@ -97,7 +101,7 @@ namespace KasseAPI_Final.Controllers
 						{
 							ProductId = product.Id,
 							Quantity = 1,
-							TaxType = TaxTypes.Standard
+							TaxType = TaxType.Standard
 						}
 					},
 					Payment = new PaymentMethodRequest

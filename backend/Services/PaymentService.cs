@@ -163,6 +163,7 @@ namespace KasseAPI_Final.Services
                     var itemAmount = product.Price * itemRequest.Quantity;
                     totalAmount += itemAmount;
 
+                    var taxTypeInt = (int)itemRequest.TaxType;
                     var paymentItem = new PaymentItem
                     {
                         ProductId = product.Id,
@@ -170,15 +171,15 @@ namespace KasseAPI_Final.Services
                         Quantity = itemRequest.Quantity,
                         UnitPrice = product.Price,
                         TotalPrice = itemAmount,
-                        TaxType = itemRequest.TaxType,
-                        TaxRate = GetTaxRate(itemRequest.TaxType),
-                        TaxAmount = CalculateTax(itemAmount, itemRequest.TaxType)
+                        TaxType = taxTypeInt,
+                        TaxRate = GetTaxRate(taxTypeInt),
+                        TaxAmount = CalculateTax(itemAmount, taxTypeInt)
                     };
 
                     paymentItems.Add(paymentItem);
 
                     // Vergi detayları
-                    var taxKey = itemRequest.TaxType.ToString();
+                    var taxKey = itemRequest.TaxType.ToString().ToLowerInvariant();
                     if (!taxDetails.ContainsKey(taxKey))
                         taxDetails[taxKey] = 0;
                     taxDetails[taxKey] += paymentItem.TaxAmount;

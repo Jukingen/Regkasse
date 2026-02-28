@@ -155,7 +155,7 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Registrierkasse API - RKSV uyumlu kasa sistemi"
     });
     
-    // RKSV signature-debug ve verify-signature örnekleri
+    c.SchemaFilter<KasseAPI_Final.Swagger.TaxTypeSchemaFilter>();
     c.OperationFilter<SignatureDebugSwaggerExamples>();
     
     // JWT authentication için Swagger konfigürasyonu
