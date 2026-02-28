@@ -7,6 +7,7 @@ using KasseAPI_Final.Services;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Controllers.Base;
@@ -110,13 +111,21 @@ namespace KasseAPI_Final.Controllers
                 
                 if (result.Success)
                 {
+                    // Payment'tan TseSignature (JWS) çıkar - sadece admin/debug endpoint'te verilir
+                    var paymentSafe = SanitizePaymentForResponse(result.Payment);
                     var responseData = new
                     {
                         success = true,
                         paymentId = result.PaymentId,
                         message = result.Message,
-                        payment = result.Payment,
-                        tseSignature = result.Payment?.TseSignature
+                        payment = paymentSafe,
+                        tse = new
+                        {
+                            provider = result.TseProvider,
+                            isDemoFiscal = result.IsDemoFiscal,
+                            qrPayload = result.QrPayload,
+                            receiptNumber = result.Payment?.ReceiptNumber
+                        }
                     };
                     return CreatedAtAction(nameof(GetPayment), new { id = result.Payment!.Id }, 
                         responseData);
@@ -486,12 +495,25 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var steps = _signaturePipeline.VerifyDiagnostic(tseSignature);
-                return SuccessResponse(steps, "Signature diagnostic completed");
+                // Admin: JWS (compactJws) debug endpoint'te döner
+                return SuccessResponse(new { steps, compactJws = tseSignature }, "Signature diagnostic completed");
             }
             catch (Exception ex)
             {
                 return HandleException(ex, $"Get Signature Debug for Payment {id}");
             }
+        }
+
+        /// <summary>
+        /// Payment objesinden TseSignature (JWS) çıkarır - default response güvenliği.
+        /// </summary>
+        private static object? SanitizePaymentForResponse(Models.PaymentDetails? payment)
+        {
+            if (payment == null) return null;
+            var json = JsonSerializer.Serialize(payment, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            var node = JsonNode.Parse(json);
+            if (node is JsonObject obj) obj.Remove("tseSignature");
+            return node;
         }
 
         /// <summary>

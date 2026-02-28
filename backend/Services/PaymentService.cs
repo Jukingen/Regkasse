@@ -28,8 +28,9 @@ namespace KasseAPI_Final.Services
         private readonly ITseService _tseService;
         private readonly IFinanzOnlineService _finanzOnlineService;
         private readonly ILogger<PaymentService> _logger;
-        private readonly IUserService _userService; // Kullanıcı rol kontrolü için
+        private readonly IUserService _userService;
         private readonly CompanyProfileOptions _companyProfile;
+        private readonly TseOptions _tseOptions;
 
         public PaymentService(
             AppDbContext context,
@@ -40,6 +41,7 @@ namespace KasseAPI_Final.Services
             IFinanzOnlineService finanzOnlineService,
             IUserService userService,
             Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile,
+            Microsoft.Extensions.Options.IOptions<TseOptions> tseOptions,
             ILogger<PaymentService> logger)
         {
             _context = context;
@@ -50,6 +52,7 @@ namespace KasseAPI_Final.Services
             _finanzOnlineService = finanzOnlineService;
             _userService = userService;
             _companyProfile = companyProfile.Value;
+            _tseOptions = tseOptions.Value;
             _logger = logger;
         }
 
@@ -99,8 +102,9 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                // TSE cihaz kontrolü (eğer TSE gerekliyse)
-                if (request.Payment.TseRequired)
+                // TSE modu: Off = tseRequired yok sayılır, Demo = cihaz atlanır, Device = cihaz zorunlu
+                var effectiveTseRequired = request.Payment.TseRequired && !_tseOptions.IsOff;
+                if (effectiveTseRequired && !_tseOptions.UseSoftTseWhenNoDevice)
                 {
                     var tseStatus = await _tseService.GetDeviceStatusAsync();
                     if (!tseStatus.IsConnected)
@@ -113,7 +117,6 @@ namespace KasseAPI_Final.Services
                             Errors = { "TSE device must be connected for this payment type" }
                         };
                     }
-                    
                     if (!tseStatus.IsReady)
                     {
                         _logger.LogError("TSE device not ready. Status: {Status}", tseStatus.Status);
@@ -228,7 +231,7 @@ namespace KasseAPI_Final.Services
                 };
 
                 // TSE imzası oluştur (eğer gerekliyse) - RKSV Checklist 1-5 uyumlu COMPACT JWS
-                if (request.Payment.TseRequired)
+                if (effectiveTseRequired)
                 {
                     try
                     {
@@ -310,7 +313,7 @@ namespace KasseAPI_Final.Services
                             createdPayment.Id, posInvoice.Id, posInvoice.InvoiceNumber);
 
                         // FinanzOnline'a gönder (TSE gerekiyorsa)
-                        if (request.Payment.TseRequired)
+                        if (effectiveTseRequired)
                         {
                             try
                             {
@@ -338,12 +341,19 @@ namespace KasseAPI_Final.Services
                 _logger.LogInformation("Payment created successfully: {PaymentId} for customer {CustomerId}", 
                     createdPayment.Id, customer.Id);
 
+                // QR payload: RKSV belegdaten veya NON_FISCAL_DEMO
+                var (qrPayload, isDemoFiscal, tseProvider) = await BuildQrPayloadAndFlagsAsync(createdPayment, effectiveTseRequired);
+
                 return new PaymentResult
                 {
                     Success = true,
                     Message = "Payment created successfully",
                     Payment = createdPayment,
-                    PaymentId = createdPayment.Id
+                    PaymentId = createdPayment.Id,
+                    TseSignature = createdPayment.TseSignature,
+                    QrPayload = qrPayload,
+                    IsDemoFiscal = isDemoFiscal,
+                    TseProvider = tseProvider
                 };
             }
             catch (Exception ex)
@@ -356,6 +366,36 @@ namespace KasseAPI_Final.Services
                     Errors = { ex.Message }
                 };
             }
+        }
+
+        /// <summary>
+        /// QR payload (RKSV belegdaten veya NON_FISCAL_DEMO) ve demo/fiscal flag'leri üretir.
+        /// tseRequired=false: Açık NON_FISCAL marker ile UI yanlışlıkla fiskal sanmasın.
+        /// </summary>
+        private async Task<(string QrPayload, bool IsDemoFiscal, string TseProvider)> BuildQrPayloadAndFlagsAsync(PaymentDetails payment, bool tseRequired)
+        {
+            var isDemoFiscal = !tseRequired || _tseOptions.UseSoftTseWhenNoDevice;
+            var tseProvider = tseRequired ? (_tseOptions.UseSoftTseWhenNoDevice ? "Demo" : "Device") : "None";
+            var kassenId = payment.KassenId ?? "";
+            var receiptNumber = payment.ReceiptNumber ?? "";
+            var createdAt = payment.CreatedAt;
+            var totalAmount = payment.TotalAmount;
+            var signatureValue = payment.TseSignature ?? "";
+
+            string qrPayload;
+            if (!string.IsNullOrEmpty(signatureValue))
+            {
+                var certInfo = await _tseService.GetTseCertificateInfoAsync(kassenId);
+                var certSerial = certInfo.CertificateNumber ?? "DEMO-CERT";
+                qrPayload = $"_R1-AT1_{kassenId}_{receiptNumber}_{createdAt:yyyy-MM-ddTHH:mm:ss}_{totalAmount:F2}_0.00_{certSerial}_{signatureValue}";
+            }
+            else
+            {
+                // tseRequired=false: Açık NON_FISCAL marker (sadece flag değil) - UI fiskal sanmasın
+                qrPayload = $"NON_FISCAL_DEMO_{receiptNumber}_{createdAt:yyyy-MM-ddTHH:mm:ss}_{totalAmount:F2}";
+            }
+
+            return (qrPayload, isDemoFiscal, tseProvider);
         }
 
         /// <summary>
@@ -860,7 +900,9 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // TSE cihaz durumu kontrolü
+                // TseMode=Device iken cihaz kontrolü; Demo modda atlanır
+                if (!_tseOptions.UseSoftTseWhenNoDevice)
+                {
                 var tseStatus = await _tseService.GetDeviceStatusAsync();
                 if (!tseStatus.IsConnected)
                 {
@@ -873,6 +915,7 @@ namespace KasseAPI_Final.Services
                 {
                     _logger.LogWarning("TSE device not ready. Status: {Status}", tseStatus.Status);
                     throw new InvalidOperationException($"TSE device is not ready. Status: {tseStatus.Status}");
+                }
                 }
 
                 Guid cashRegisterId = Guid.Empty;

@@ -87,6 +87,12 @@ namespace KasseAPI_Final.DTOs
         public PaymentDetails? Payment { get; set; }
         public Guid? PaymentId { get; set; }
         public string? TseSignature { get; set; }
+        /// <summary>RKSV belegdaten veya NON_FISCAL_DEMO formatında QR payload.</summary>
+        public string? QrPayload { get; set; }
+        /// <summary>true: tseRequired=false veya demo/soft TSE ile imzalandı.</summary>
+        public bool IsDemoFiscal { get; set; }
+        /// <summary>TSE provider: "Hardware", "Software", "Demo".</summary>
+        public string? TseProvider { get; set; }
         public List<string> Errors { get; set; } = new();
     }
     

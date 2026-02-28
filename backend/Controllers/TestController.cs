@@ -132,8 +132,14 @@ namespace KasseAPI_Final.Controllers
 					{
 						result.Payment!.Id,
 						result.Payment.TotalAmount,
-						result.Payment.TseSignature,
 						result.Payment.ReceiptNumber
+					},
+					tse = new
+					{
+						provider = result.TseProvider,
+						isDemoFiscal = result.IsDemoFiscal,
+						qrPayload = result.QrPayload,
+						receiptNumber = result.Payment.ReceiptNumber
 					}
 				}, "Quick payment created successfully");
 			}
