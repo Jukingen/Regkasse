@@ -399,6 +399,19 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
+        /// Ödeme için QR payload üretir. Aynı mantık BuildQrPayloadAndFlagsAsync ile.
+        /// </summary>
+        public async Task<(string? QrPayload, DateTime? UpdatedAt)?> GetQrPayloadForPaymentAsync(Guid paymentId)
+        {
+            var payment = await GetPaymentAsync(paymentId);
+            if (payment == null) return null;
+            var effectiveTseRequired = !string.IsNullOrEmpty(payment.TseSignature);
+            var (qrPayload, _, _) = await BuildQrPayloadAndFlagsAsync(payment, effectiveTseRequired);
+            var updatedAt = payment.UpdatedAt ?? payment.CreatedAt;
+            return (qrPayload, updatedAt);
+        }
+
+        /// <summary>
         /// Ödeme detaylarını getir
         /// </summary>
         public async Task<PaymentDetails?> GetPaymentAsync(Guid paymentId)

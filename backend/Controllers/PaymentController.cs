@@ -26,10 +26,13 @@ namespace KasseAPI_Final.Controllers
         private readonly IPaymentService _paymentService;
         private readonly SignaturePipeline _signaturePipeline;
 
-        public PaymentController(IPaymentService paymentService, SignaturePipeline signaturePipeline, ILogger<PaymentController> logger) 
+        private readonly IQrImageService _qrImageService;
+
+        public PaymentController(IPaymentService paymentService, IQrImageService qrImageService, SignaturePipeline signaturePipeline, ILogger<PaymentController> logger) 
             : base(logger)
         {
             _paymentService = paymentService;
+            _qrImageService = qrImageService;
             _signaturePipeline = signaturePipeline;
         }
 
@@ -404,6 +407,49 @@ namespace KasseAPI_Final.Controllers
             {
                 return HandleException(ex, $"Get Payment Statistics from {startDate} to {endDate}");
             }
+        }
+
+        /// <summary>
+        /// TSE QR kod görseli (PNG). Print/receipt için. Auth gerekli.
+        /// </summary>
+        /// <param name="id">Payment ID</param>
+        /// <returns>256x256 PNG image</returns>
+        /// <response code="200">PNG binary</response>
+        /// <response code="404">Payment not found or no QR payload</response>
+        [HttpGet("{id}/qr.png")]
+        [Produces("image/png")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetQrPng(Guid id)
+        {
+            var png = await _qrImageService.GetQrPngAsync(id);
+            if (png == null || png.Length == 0)
+                return ErrorResponse("Payment not found or QR payload unavailable", 404);
+
+            Response.Headers.CacheControl = "private, max-age=300";
+            return File(png, "image/png", $"qr-{id:N}.png");
+        }
+
+        /// <summary>
+        /// TSE QR kod görseli (SVG). Vektörel, baskı için uygun. Auth gerekli.
+        /// </summary>
+        /// <param name="id">Payment ID</param>
+        /// <returns>SVG vector graphic</returns>
+        /// <response code="200">SVG content</response>
+        /// <response code="404">Payment not found or no QR payload</response>
+        [HttpGet("{id}/qr.svg")]
+        [Produces("image/svg+xml")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetQrSvg(Guid id)
+        {
+            var svg = await _qrImageService.GetQrSvgAsync(id);
+            if (string.IsNullOrEmpty(svg))
+                return ErrorResponse("Payment not found or QR payload unavailable", 404);
+
+            Response.Headers.CacheControl = "private, max-age=300";
+            var bytes = System.Text.Encoding.UTF8.GetBytes(svg);
+            return File(bytes, "image/svg+xml", $"qr-{id:N}.svg");
         }
 
         /// <summary>

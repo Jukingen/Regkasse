@@ -50,7 +50,8 @@
     "notRequired": "TSE imzası gerekli değil",
     "signature": "TSE İmzası",
     "placeholder": "TSE İmzası",
-    "verificationError": "TSE doğrulanamadı"
+    "verificationError": "TSE doğrulanamadı",
+    "demoFiscalWarning": "DEMO / FISKAL DEĞİL"
   },
   "buttons": {
     "continue": "Devam Et",

@@ -1,4 +1,6 @@
-import { apiClient } from './config';
+import { Buffer } from 'buffer';
+import { storage } from '../../utils/storage';
+import { apiClient, API_BASE_URL } from './config';
 
 export interface PaymentMethod {
   id: string;
@@ -35,12 +37,22 @@ export interface PaymentRequest {
   notes?: string;
 }
 
+/** Backend'den gelen TSE/QR bilgisi - payment.tse */
+export interface PaymentTseInfo {
+  qrPayload?: string;
+  isDemoFiscal?: boolean;
+  provider?: string;
+  receiptNumber?: string;
+}
+
 export interface PaymentResponse {
   success: boolean;
   paymentId: string;
   error?: string;
   message?: string;
   tseSignature?: string;
+  /** TSE imza/QR bilgisi - POST /Payment response'unda */
+  tse?: PaymentTseInfo;
 }
 
 export interface Receipt {
@@ -124,11 +136,23 @@ class PaymentService {
       raw?.payment?.tseSignature ||
       raw?.data?.Payment?.TseSignature;
 
+    // 6. Normalize TSE info (qrPayload, isDemoFiscal, provider)
+    const rawTse = raw?.tse || raw?.Tse || raw?.data?.tse;
+    const tse: PaymentTseInfo | undefined = rawTse
+      ? {
+          qrPayload: rawTse.qrPayload ?? rawTse.QrPayload,
+          isDemoFiscal: rawTse.isDemoFiscal ?? rawTse.IsDemoFiscal,
+          provider: rawTse.provider ?? rawTse.Provider,
+          receiptNumber: rawTse.receiptNumber ?? rawTse.ReceiptNumber
+        }
+      : undefined;
+
     return {
       success: !!success, // Ensure boolean
       paymentId,
       message,
       tseSignature,
+      tse,
       error: success ? undefined : message
     };
   }
@@ -161,6 +185,31 @@ class PaymentService {
     } catch (error) {
       console.error('Receipt creation failed:', error);
       throw error;
+    }
+  }
+
+  /**
+   * RKSV fiş için QR PNG'yi base64 data URL olarak getirir.
+   * Backend GET /api/Payment/{id}/qr.png endpoint'ini kullanır.
+   * CORS/offline sorunlarını önlemek için print template'e data URL gömülür.
+   */
+  async getQrPngAsBase64(paymentId: string): Promise<string | null> {
+    try {
+      const token = await storage.getItem('token');
+      const url = `${API_BASE_URL}/Payment/${paymentId}/qr.png`;
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        console.warn('[PaymentService] QR fetch failed:', res.status, res.statusText);
+        return null;
+      }
+      const arrayBuffer = await res.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      return `data:image/png;base64,${base64}`;
+    } catch (e) {
+      console.warn('[PaymentService] QR fetch error:', e);
+      return null;
     }
   }
 

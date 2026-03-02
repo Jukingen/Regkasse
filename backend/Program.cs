@@ -137,6 +137,9 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Memory cache for QR image
+builder.Services.AddMemoryCache();
+
 // API servisleri
 builder.Services.AddControllers()
 .AddJsonOptions(options =>
@@ -198,6 +201,7 @@ builder.Services.AddScoped<IReceiptService, ReceiptService>();
 // builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 // builder.Services.AddScoped<ITestService, TestService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
 
 // Register repositories

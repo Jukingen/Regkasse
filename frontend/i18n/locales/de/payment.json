@@ -50,7 +50,8 @@
     "notRequired": "TSE-Signatur nicht erforderlich",
     "signature": "TSE-Signatur",
     "placeholder": "TSE-Signatur",
-    "verificationError": "TSE konnte nicht verifiziert werden"
+    "verificationError": "TSE konnte nicht verifiziert werden",
+    "demoFiscalWarning": "DEMO / NICHT FISKAL"
   },
   "buttons": {
     "continue": "Weiter",

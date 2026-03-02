@@ -29,13 +29,18 @@ public class SignatureDebugSwaggerExamples : IOperationFilter
             && context.ApiDescription.HttpMethod == "GET")
         {
             operation.Responses ??= new OpenApiResponses();
-            operation.Responses["200"] ??= new OpenApiResponse { Description = "Diagnostic steps" };
-            if (operation.Responses.TryGetValue("200", out var response))
+            if (!operation.Responses.TryGetValue("200", out var response))
             {
-                response.Content ??= new Dictionary<string, OpenApiMediaType>();
-                if (response.Content.TryGetValue("application/json", out var mediaType))
-                {
-                    mediaType.Example = new OpenApiObject
+                response = new OpenApiResponse { Description = "Diagnostic steps" };
+                operation.Responses.Add("200", response);
+            }
+            response.Content ??= new Dictionary<string, OpenApiMediaType>();
+            if (!response.Content.TryGetValue("application/json", out var mediaType))
+            {
+                mediaType = new OpenApiMediaType();
+                response.Content.Add("application/json", mediaType);
+            }
+            mediaType.Example = new OpenApiObject
                     {
                         ["success"] = new OpenApiBoolean(true),
                         ["message"] = new OpenApiString("Signature diagnostic completed"),
@@ -78,42 +83,49 @@ public class SignatureDebugSwaggerExamples : IOperationFilter
                             }
                         }
                     };
-                }
-            }
         }
 
-        // POST api/Payment: Örnek response (tse, qrPayload dahil)
+        // POST api/Payment: Örnek response (tse, qrPayload dahil). Defansif: indexer yerine TryGetValue + Add.
         if (context.ApiDescription.RelativePath?.Contains("Payment") == true
             && context.ApiDescription.HttpMethod == "POST"
             && !context.ApiDescription.RelativePath.Contains("signature"))
         {
             operation.Responses ??= new OpenApiResponses();
-            operation.Responses["201"] ??= new OpenApiResponse { Description = "Payment created" };
-            if (operation.Responses.TryGetValue("201", out var resp))
+            OpenApiResponse? targetResp = null;
+            if (operation.Responses.TryGetValue("201", out targetResp)) { /* 201 varsa onu kullan */ }
+            else if (operation.Responses.TryGetValue("200", out targetResp)) { /* 200 varsa onu kullan */ }
+            else
             {
-                resp.Content ??= new Dictionary<string, OpenApiMediaType>();
-                resp.Content["application/json"] ??= new OpenApiMediaType();
-                resp.Content["application/json"].Example = new OpenApiObject
-                {
-                    ["success"] = new OpenApiBoolean(true),
-                    ["paymentId"] = new OpenApiString("c53521eb-0053-435a-b04e-54602578f62a"),
-                    ["message"] = new OpenApiString("Payment created successfully"),
-                    ["payment"] = new OpenApiObject
-                    {
-                        ["id"] = new OpenApiString("c53521eb-0053-435a-b04e-54602578f62a"),
-                        ["totalAmount"] = new OpenApiString("10.00"),
-                        ["receiptNumber"] = new OpenApiString("AT-KASSE-001-20260228-011cfa48"),
-                        ["tseSignature"] = new OpenApiString("eyJhbGci...")
-                    },
-                    ["tse"] = new OpenApiObject
-                    {
-                        ["tseSignature"] = new OpenApiString("eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9..."),
-                        ["qrPayload"] = new OpenApiString("_R1-AT1_KASSE-001_AT-KASSE-001-20260228-011cfa48_2026-02-28T17:52:48_10.00_0.00_SW-TEST-abc12345_eyJhbGci..."),
-                        ["isDemoFiscal"] = new OpenApiBoolean(true),
-                        ["provider"] = new OpenApiString("Demo")
-                    }
-                };
+                targetResp = new OpenApiResponse { Description = "Payment created" };
+                operation.Responses.Add("200", targetResp);
             }
+
+            targetResp.Content ??= new Dictionary<string, OpenApiMediaType>();
+            if (!targetResp.Content.TryGetValue("application/json", out var mediaType))
+            {
+                mediaType = new OpenApiMediaType();
+                targetResp.Content.Add("application/json", mediaType);
+            }
+            mediaType.Example = new OpenApiObject
+            {
+                ["success"] = new OpenApiBoolean(true),
+                ["paymentId"] = new OpenApiString("c53521eb-0053-435a-b04e-54602578f62a"),
+                ["message"] = new OpenApiString("Payment created successfully"),
+                ["payment"] = new OpenApiObject
+                {
+                    ["id"] = new OpenApiString("c53521eb-0053-435a-b04e-54602578f62a"),
+                    ["totalAmount"] = new OpenApiString("10.00"),
+                    ["receiptNumber"] = new OpenApiString("AT-KASSE-001-20260228-011cfa48"),
+                    ["tseSignature"] = new OpenApiString("eyJhbGci...")
+                },
+                ["tse"] = new OpenApiObject
+                {
+                    ["tseSignature"] = new OpenApiString("eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9..."),
+                    ["qrPayload"] = new OpenApiString("_R1-AT1_KASSE-001_AT-KASSE-001-20260228-011cfa48_2026-02-28T17:52:48_10.00_0.00_SW-TEST-abc12345_eyJhbGci..."),
+                    ["isDemoFiscal"] = new OpenApiBoolean(true),
+                    ["provider"] = new OpenApiString("Demo")
+                }
+            };
         }
     }
 }

@@ -19,6 +19,8 @@ import { cartService } from '../services/api/cartService';
 import { customerService, GUEST_CUSTOMER_ID } from '../services/api/customerService';
 import { validateSteuernummer, validateKassenId, validateAmount } from '../utils/validation';
 import { receiptPrinter } from '../services/receiptPrinter';
+import { PaymentSuccessQr } from './PaymentSuccessQr';
+import type { PaymentTseInfo } from '../services/api/paymentService';
 
 // Türkçe Açıklama: Ödeme alma modal'ı - Sepet içeriğini ödeme işlemine dönüştürür
 interface PaymentModalProps {
@@ -55,8 +57,9 @@ export default function PaymentModal({
   type PurchaseState = 'input' | 'processing' | 'printing' | 'completed' | 'print_error';
   const [purchaseState, setPurchaseState] = useState<PurchaseState>('input');
 
-  // Store paymentId for retry printing
+  // Store paymentId and TSE/QR bilgisi for success ekranı ve retry
   const [completedPaymentId, setCompletedPaymentId] = useState<string | null>(null);
+  const [completedPaymentTse, setCompletedPaymentTse] = useState<PaymentTseInfo | null>(null);
 
   // DEV: TSE Simulation Toggle
   // Default: AÇIK (Bypass) in Development
@@ -226,6 +229,7 @@ export default function PaymentModal({
 
       console.log('[PAYMENT] Success, paymentId:', response.paymentId);
       setCompletedPaymentId(response.paymentId);
+      setCompletedPaymentTse(response.tse ?? null);
 
       // 7. CART COMPLETE
       try {
@@ -248,10 +252,12 @@ export default function PaymentModal({
         console.warn('[CART] Reset warning:', resetErr);
       }
 
-      // 9. START PRINTING
+      // 9. START PRINTING (QR backend /api/Payment/{id}/qr.png'den base64 embed)
       setPurchaseState('printing');
       try {
-        await receiptPrinter.print(response.paymentId);
+        await receiptPrinter.print(response.paymentId, {
+          isDemoFiscal: response.tse?.isDemoFiscal ?? false,
+        });
         setPurchaseState('completed');
         // Auto close after meaningful delay
         setTimeout(() => {
@@ -281,7 +287,9 @@ export default function PaymentModal({
     if (!completedPaymentId) return;
     setPurchaseState('printing');
     try {
-      await receiptPrinter.print(completedPaymentId);
+      await receiptPrinter.print(completedPaymentId, {
+        isDemoFiscal: completedPaymentTse?.isDemoFiscal ?? false,
+      });
       setPurchaseState('completed');
       setTimeout(() => {
         handleSuccessAndClose(completedPaymentId);
@@ -307,6 +315,7 @@ export default function PaymentModal({
     setNotes('');
     setPurchaseState('input');
     setCompletedPaymentId(null);
+    setCompletedPaymentTse(null);
     onClose();
   };
 
@@ -497,6 +506,7 @@ export default function PaymentModal({
                 <View style={{ alignItems: 'center', padding: 10 }}>
                   <Ionicons name="checkmark-circle" size={50} color="#4CAF50" />
                   <Text style={{ marginTop: 10, fontSize: 18, fontWeight: 'bold' }}>İşlem Tamamlandı!</Text>
+                  <PaymentSuccessQr tse={completedPaymentTse} size={160} />
                 </View>
               )}
 
@@ -505,7 +515,8 @@ export default function PaymentModal({
                   <Text style={{ textAlign: 'center', color: '#c62828', marginBottom: 10, fontWeight: 'bold' }}>
                     Fiş Yazdırılamadı!
                   </Text>
-                  <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'center' }}>
+                  <PaymentSuccessQr tse={completedPaymentTse} size={140} />
+                  <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 12 }}>
                     <TouchableOpacity onPress={handleSkipPrint} style={[styles.cancelButton, { backgroundColor: '#ffebee', borderColor: 'transparent', flex: 1 }]}>
                       <Text style={{ color: '#c62828', textAlign: 'center' }}>Atla</Text>
                     </TouchableOpacity>

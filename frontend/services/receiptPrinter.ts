@@ -4,28 +4,44 @@ import { paymentService } from './api/paymentService';
 import printerService from './PrinterService';
 import { ReceiptDTO } from '../types/ReceiptDTO';
 
+/** RKSV fiş print seçenekleri */
+export interface ReceiptPrintOptions {
+  /** Demo/fiscal modda "DEMO" etiketi göster */
+  isDemoFiscal?: boolean;
+}
+
+/** paymentId → base64 QR cache (aynı fiş için tekrar fetch önlenir) */
+const qrCache = new Map<string, string>();
+
 class ReceiptPrinter {
   /**
-   * Print receipt for payment
+   * Print receipt for payment. RKSV QR backend endpoint'ten base64 olarak gömülür.
    */
-  async print(paymentId: string): Promise<void> {
+  async print(paymentId: string, options?: ReceiptPrintOptions): Promise<void> {
     try {
-      // Fetch receipt data from backend
-      // Assuming backend returns ReceiptDTO structure
       const receiptData = await paymentService.getReceipt(paymentId) as ReceiptDTO;
 
       if (!receiptData) {
         throw new Error('Failed to fetch receipt data');
       }
 
-      // Format receipt HTML
-      const html = this.formatReceipt(this.normalizeReceiptDTO(receiptData));
+      // QR'ı backend'den al, cache'le (aynı paymentId için tekrar fetch etme)
+      let qrBase64 = qrCache.get(paymentId);
+      if (!qrBase64) {
+        qrBase64 = await paymentService.getQrPngAsBase64(paymentId) ?? null;
+        if (qrBase64) qrCache.set(paymentId, qrBase64);
+      }
 
-      // Platform-specific printing
+      const normalizedData = this.normalizeReceiptDTO(receiptData);
+      const html = this.formatReceipt(normalizedData, {
+        qrBase64: qrBase64 ?? undefined,
+        isDemoFiscal: options?.isDemoFiscal ?? false,
+      });
+
       if (Platform.OS === 'web') {
         await this.printWeb(html);
       } else {
-        await this.printNative(this.normalizeReceiptDTO(receiptData), html);
+        await this.printNative(normalizedData, html);
       }
     } catch (error) {
       console.error('Receipt print failed:', error);
@@ -142,14 +158,17 @@ class ReceiptPrinter {
   }
 
   /**
-   * Format receipt data into HTML template
+   * Format receipt data into HTML template.
+   * RKSV QR: backend /api/Payment/{id}/qr.png'den base64 olarak gömülür.
    */
-  private formatReceipt(data: ReceiptDTO): string {
+  private formatReceipt(data: ReceiptDTO, params?: { qrBase64?: string; isDemoFiscal?: boolean }): string {
     const items = data.items || [];
     const company = data.company || { name: 'Unknown', address: '', taxNumber: '' };
     const taxRates = data.taxRates || [];
     const payments = data.payments || [];
     const signature = data.signature;
+    const qrBase64 = params?.qrBase64;
+    const isDemoFiscal = params?.isDemoFiscal ?? false;
 
     const itemsHtml = items.map(item => `
         <tr>
@@ -183,12 +202,15 @@ class ReceiptPrinter {
         ` : ''}
     `).join('');
 
-    // QR Code logic: Using a clear, offline-capable QR generator script injected
-    // OR using a public API for simplicity in this patch.
-    // Ideally, for RKSV, we need a robust solution.
-    // Using an external API for now to ensure it works without complex JS injection in the restricted Expo Print environment.
-    // If offline is critical, we would need to inject a pure JS QRCode library.
-    const qrCodeUrl = signature ? `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(signature.qrData)}` : '';
+    // RKSV QR: Backend /api/Payment/{id}/qr.png'den base64 embed. CORS/offline güvenli.
+    const qrBlock = qrBase64
+      ? `
+        <div class="qr-block">
+          ${isDemoFiscal ? '<div class="qr-demo-label">DEMO / NICHT FISKAL</div>' : ''}
+          <img src="${qrBase64}" class="qr-image" width="180" height="180" alt="RKSV QR Code" />
+        </div>
+      `
+      : '<div class="qr-fallback">QR konnte nicht geladen werden</div>';
 
     return `
       <!DOCTYPE html>
@@ -272,6 +294,29 @@ class ReceiptPrinter {
              text-align: center;
              margin: 10px 0;
           }
+          .qr-block {
+             text-align: center;
+             margin: 12px 0;
+             margin-top: 15px;
+          }
+          .qr-image {
+             display: block;
+             margin: 8px auto;
+             max-width: 180px;
+             height: auto;
+          }
+          .qr-demo-label {
+             font-weight: bold;
+             color: #c62828;
+             font-size: 11px;
+             margin-bottom: 6px;
+          }
+          .qr-fallback {
+             font-size: 10px;
+             color: #666;
+             text-align: center;
+             margin: 8px 0;
+          }
           @media print {
             body { margin: 0; padding: 0; }
           }
@@ -319,16 +364,12 @@ class ReceiptPrinter {
           </div>
         </div>
 
-        ${signature ? `
-          <div class="signature-block">
-            <div style="font-weight: bold; margin-bottom: 5px;">Sicherheitseinrichtung</div>
-            <div class="qr-code">
-                <img src="${qrCodeUrl}" width="150" height="150" alt="RKSV QR Code" />
-            </div>
-            <div>${signature.value}</div>
-            <div style="margin-top: 2px;">${signature.serialNumber} | ${signature.timestamp}</div>
-          </div>
-        ` : ''}
+        <div class="signature-block">
+          <div style="font-weight: bold; margin-bottom: 5px;">Sicherheitseinrichtung</div>
+          ${qrBlock}
+          ${signature?.value ? `<div style="margin-top: 6px; font-size: 9px; word-break: break-all;">${signature.value}</div>` : ''}
+          ${signature?.serialNumber && signature?.timestamp ? `<div style="margin-top: 2px; font-size: 9px;">${signature.serialNumber} | ${signature.timestamp}</div>` : ''}
+        </div>
 
         <div class="footer">
           <div>${data.footerText || 'Vielen Dank für Ihren Einkauf!'}</div>
@@ -405,6 +446,11 @@ class ReceiptPrinter {
       throw error;
     }
   }
+}
+
+/** Backend /api/Payment/{id}/qr.png'den QR PNG'yi base64 data URL olarak getirir. Print template embed için. */
+export async function fetchQrAsBase64(paymentId: string): Promise<string | null> {
+  return paymentService.getQrPngAsBase64(paymentId);
 }
 
 export const receiptPrinter = new ReceiptPrinter();

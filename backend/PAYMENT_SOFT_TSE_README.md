@@ -62,6 +62,8 @@ Demo modda TSE cihazı olmadan RKSV akışını taklit eden "Soft TSE" ile imza 
 | `Services/PaymentService.cs` | TseMode mantığı, effectiveTseRequired, NON_FISCAL_DEMO QR |
 | `Controllers/PaymentController.cs` | Safe response: tse (provider, isDemoFiscal, qrPayload, receiptNumber), tseSignature yok; signature-debug: compactJws |
 | `Controllers/TestController.cs` | Aynı safe tse response |
+| `Services/QrImageService.cs` | QR PNG/SVG üretimi, memory cache |
+| `Controllers/PaymentController.cs` | GET {id}/qr.png, GET {id}/qr.svg |
 
 ---
 
@@ -154,6 +156,24 @@ curl -X GET "http://localhost:5183/api/Payment/{paymentId}/signature-debug" \
 ```
 
 Beklenen: `data: { steps: [...], compactJws: "eyJ..." }`
+
+### 5. QR Image Endpoints (PNG / SVG) – Print odaklı
+
+Payment ID üzerinden hazır QR görsel al. Auth gerekli. Content-Type ve Cache-Control header'ları set.
+
+**PNG (256px, print):**
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:5183/api/Payment/{paymentId}/qr.png" -o qr.png
+```
+
+**SVG (vektörel, baskı için uygun):**
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:5183/api/Payment/{paymentId}/qr.svg" -o qr.svg
+```
+
+Beklenen: 200 OK, `Content-Type: image/png` veya `image/svg+xml`, `Cache-Control: private, max-age=300`. Payment yoksa 404.
 
 ---
 

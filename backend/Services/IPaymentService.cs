@@ -62,5 +62,10 @@ namespace KasseAPI_Final.Services
         /// FinanzOnline entegrasyonu
         /// </summary>
         Task<bool> SendToFinanzOnlineAsync(PaymentDetails payment);
+
+        /// <summary>
+        /// Ödeme için QR payload (RKSV/NON_FISCAL) üretir. DB'de saklanmaz, her çağrıda hesaplanır.
+        /// </summary>
+        Task<(string? QrPayload, DateTime? UpdatedAt)?> GetQrPayloadForPaymentAsync(Guid paymentId);
     }
 }
