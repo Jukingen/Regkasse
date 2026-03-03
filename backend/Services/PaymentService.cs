@@ -1064,7 +1064,7 @@ namespace KasseAPI_Final.Services
                 // Calculate subtotal (total - tax)
                 var subtotal = payment.TotalAmount - payment.TaxAmount;
 
-                // Calculate Tax Rates Breakdown
+                // Calculate Tax Rates Breakdown; sort low to high (10% → 20%) for receipt
                 var taxRates = paymentItems
                     .GroupBy(i => i.TaxRate)
                     .Select(g => new ReceiptTaxLineDTO
@@ -1074,6 +1074,7 @@ namespace KasseAPI_Final.Services
                         NetAmount = g.Sum(x => x.TotalPrice - x.TaxAmount),
                         GrossAmount = g.Sum(x => x.TotalPrice)
                     })
+                    .OrderBy(t => t.Rate)
                     .ToList();
 
                 var receiptDTO = new ReceiptDTO

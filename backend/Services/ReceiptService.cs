@@ -137,7 +137,7 @@ namespace KasseAPI_Final.Services
                     TaxAmount = g.Sum(x => x.TaxAmount),
                     NetAmount = g.Sum(x => x.TotalPrice - x.TaxAmount)
                 })
-                .OrderByDescending(t => t.TaxRate)
+                .OrderBy(t => t.TaxRate)
                 .ToList();
 
             newReceipt.TaxLines = taxGroups;

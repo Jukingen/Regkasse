@@ -3,6 +3,7 @@ import * as Print from 'expo-print';
 import { paymentService } from './api/paymentService';
 import printerService from './PrinterService';
 import { ReceiptDTO } from '../types/ReceiptDTO';
+import { formatReceiptHtml } from './receiptFormatter';
 
 /** RKSV fiş print seçenekleri */
 export interface ReceiptPrintOptions {
@@ -26,16 +27,18 @@ class ReceiptPrinter {
       }
 
       // QR'ı backend'den al, cache'le (aynı paymentId için tekrar fetch etme)
-      let qrBase64 = qrCache.get(paymentId);
+      let qrBase64: string | undefined = qrCache.get(paymentId);
       if (!qrBase64) {
-        qrBase64 = await paymentService.getQrPngAsBase64(paymentId) ?? null;
+        const fetched = await paymentService.getQrPngAsBase64(paymentId);
+        qrBase64 = fetched ?? undefined;
         if (qrBase64) qrCache.set(paymentId, qrBase64);
       }
 
       const normalizedData = this.normalizeReceiptDTO(receiptData);
-      const html = this.formatReceipt(normalizedData, {
+      const html = formatReceiptHtml(normalizedData, {
         qrBase64: qrBase64 ?? undefined,
         isDemoFiscal: options?.isDemoFiscal ?? false,
+        verificationUrl: normalizedData.verificationUrl,
       });
 
       if (Platform.OS === 'web') {
@@ -108,7 +111,8 @@ class ReceiptPrinter {
         serialNumber: data.Signature.SerialNumber || data.signature?.serialNumber || '',
         timestamp: data.Signature.Timestamp || data.signature?.timestamp || '',
         qrData: data.Signature.QrData || data.signature?.qrData || ''
-      } : data.signature
+      } : data.signature,
+      verificationUrl: data.VerificationUrl ?? data.verificationUrl
     };
   }
 
@@ -150,241 +154,6 @@ class ReceiptPrinter {
   /**
    * Helper to safely format currency
    */
-  private safeCurrency(value: number | undefined | null): string {
-    if (value === undefined || value === null || isNaN(value)) {
-      return '0.00';
-    }
-    return value.toFixed(2).replace('.', ',');
-  }
-
-  /**
-   * Format receipt data into HTML template.
-   * RKSV QR: backend /api/Payment/{id}/qr.png'den base64 olarak gömülür.
-   */
-  private formatReceipt(data: ReceiptDTO, params?: { qrBase64?: string; isDemoFiscal?: boolean }): string {
-    const items = data.items || [];
-    const company = data.company || { name: 'Unknown', address: '', taxNumber: '' };
-    const taxRates = data.taxRates || [];
-    const payments = data.payments || [];
-    const signature = data.signature;
-    const qrBase64 = params?.qrBase64;
-    const isDemoFiscal = params?.isDemoFiscal ?? false;
-
-    const itemsHtml = items.map(item => `
-        <tr>
-          <td>${item.name || 'Unknown Item'}</td>
-          <td style="text-align: center;">${item.quantity || 0}</td>
-          <td style="text-align: right;">${this.safeCurrency(item.unitPrice)}</td>
-          <td style="text-align: right;">${this.safeCurrency(item.totalPrice)} ${this.getTaxCode(item.taxRate)}</td>
-        </tr>
-      `).join('');
-
-    const taxRowsHtml = taxRates.map(rate => `
-        <div class="total-row">
-           <span>${rate.rate}% (${this.getTaxCode(rate.rate)}) Netto: ${this.safeCurrency(rate.netAmount)} Steuer: ${this.safeCurrency(rate.taxAmount)} Brutto: ${this.safeCurrency(rate.grossAmount)}</span>
-        </div>
-    `).join('');
-
-    const paymentsHtml = payments.map(p => `
-        <div class="total-row">
-            <span>${p.method}:</span>
-            <span>${this.safeCurrency(p.amount)}</span>
-        </div>
-        ${p.method === 'cash' ? `
-          <div class="total-row">
-             <span>Gegeben:</span>
-             <span>${this.safeCurrency(p.tendered)}</span>
-          </div>
-          <div class="total-row">
-             <span>Rückgeld:</span>
-             <span>${this.safeCurrency(p.change)}</span>
-          </div>
-        ` : ''}
-    `).join('');
-
-    // RKSV QR: Backend /api/Payment/{id}/qr.png'den base64 embed. CORS/offline güvenli.
-    const qrBlock = qrBase64
-      ? `
-        <div class="qr-block">
-          ${isDemoFiscal ? '<div class="qr-demo-label">DEMO / NICHT FISKAL</div>' : ''}
-          <img src="${qrBase64}" class="qr-image" width="180" height="180" alt="RKSV QR Code" />
-        </div>
-      `
-      : '<div class="qr-fallback">QR konnte nicht geladen werden</div>';
-
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Receipt ${data.receiptNumber || 'N/A'}</title>
-        <style>
-          body {
-            font-family: 'Courier New', monospace;
-            max-width: 300px;
-            margin: 20px auto;
-            padding: 10px;
-            color: #000;
-          }
-          h1 {
-            text-align: center;
-            font-size: 16px;
-            margin: 5px 0;
-            font-weight: bold;
-          }
-          .company-info {
-            text-align: center;
-            font-size: 12px;
-            margin-bottom: 10px;
-          }
-          .meta-info {
-             font-size: 12px;
-             margin-bottom: 10px;
-             border-bottom: 1px dashed #000;
-             padding-bottom: 5px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-            margin-bottom: 10px;
-          }
-          th {
-            text-align: left;
-            border-bottom: 1px solid #000;
-            padding: 2px 0;
-          }
-          td {
-            padding: 2px 0;
-            vertical-align: top;
-          }
-          .totals {
-            border-top: 1px dashed #000;
-            margin-top: 5px;
-            padding-top: 5px;
-            font-size: 12px;
-          }
-          .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 2px 0;
-          }
-          .grand-total {
-            font-weight: bold;
-            font-size: 16px;
-            border-top: 1px double #000;
-            border-bottom: 1px double #000;
-            padding: 5px 0;
-            margin: 5px 0;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 10px;
-            border-top: 1px dashed #000;
-            padding-top: 10px;
-          }
-          .signature-block {
-             margin-top: 10px;
-             font-size: 10px;
-             word-break: break-all;
-             text-align: center;
-          }
-          .qr-code {
-             text-align: center;
-             margin: 10px 0;
-          }
-          .qr-block {
-             text-align: center;
-             margin: 12px 0;
-             margin-top: 15px;
-          }
-          .qr-image {
-             display: block;
-             margin: 8px auto;
-             max-width: 180px;
-             height: auto;
-          }
-          .qr-demo-label {
-             font-weight: bold;
-             color: #c62828;
-             font-size: 11px;
-             margin-bottom: 6px;
-          }
-          .qr-fallback {
-             font-size: 10px;
-             color: #666;
-             text-align: center;
-             margin: 8px 0;
-          }
-          @media print {
-            body { margin: 0; padding: 0; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="company-info">
-          <h1>${company.name || 'Store Name'}</h1>
-          <div>${company.address || ''}</div>
-          <div>UID: ${company.taxNumber || ''}</div>
-        </div>
-        
-        <div class="meta-info">
-          <div>Beleg: ${data.receiptNumber}</div>
-          <div>Datum: ${new Date(data.date).toLocaleString('de-AT')}</div>
-          <div>Kasse: ${data.kassenID} | Kassierer: ${data.cashierName}</div>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Art.</th>
-              <th style="text-align: center;">Menge</th>
-              <th style="text-align: right;">Einh.</th>
-              <th style="text-align: right;">Eur</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
-
-        <div class="totals">
-           <div class="total-row grand-total">
-            <span>SUMME:</span>
-            <span>€ ${this.safeCurrency(data.grandTotal)}</span>
-          </div>
-          
-          <div style="margin-top: 10px; font-size: 10px;">
-             ${taxRowsHtml}
-          </div>
-
-          <div style="margin-top: 10px;">
-            ${paymentsHtml}
-          </div>
-        </div>
-
-        <div class="signature-block">
-          <div style="font-weight: bold; margin-bottom: 5px;">Sicherheitseinrichtung</div>
-          ${qrBlock}
-          ${signature?.value ? `<div style="margin-top: 6px; font-size: 9px; word-break: break-all;">${signature.value}</div>` : ''}
-          ${signature?.serialNumber && signature?.timestamp ? `<div style="margin-top: 2px; font-size: 9px;">${signature.serialNumber} | ${signature.timestamp}</div>` : ''}
-        </div>
-
-        <div class="footer">
-          <div>${data.footerText || 'Vielen Dank für Ihren Einkauf!'}</div>
-        </div>
-      </body>
-      </html>
-    `;
-  }
-
-  private getTaxCode(rate: number): string {
-    if (rate >= 20) return 'A';
-    if (rate >= 10) return 'B';
-    return 'C';
-  }
-
   /**
    * Print on web using iframe
    */

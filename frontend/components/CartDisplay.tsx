@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftShadows } from '../constants/SoftTheme';
-import { calculateCartTotals } from '../contexts/CartContext';
+import { getCartDisplayTotals } from '../contexts/CartContext';
 import { CartItemRow } from './CartItemRow';
 import { formatPrice } from '../utils/formatPrice';
 
@@ -38,11 +38,7 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   onItemRemove,
   onClearCart,
 }) => {
-  // ✅ Derive totals from items (always fresh, never stale)
-  const totals = useMemo(() => {
-    const items = cart?.items ?? [];
-    return calculateCartTotals(items);
-  }, [cart?.items, cart?.updatedAt]);
+  const totals = useMemo(() => getCartDisplayTotals(cart), [cart]);
 
   const itemCount = totals.itemCount;
 

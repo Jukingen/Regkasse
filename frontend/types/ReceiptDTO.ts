@@ -38,6 +38,9 @@ export interface ReceiptDTO {
         timestamp: string; // Signature time
         qrData: string; // Complete payload for QR
     };
+
+    /** RKSV doğrulama URL'si (varsa fişte metin olarak basılır) */
+    verificationUrl?: string;
 }
 
 export interface ReceiptItemDTO {

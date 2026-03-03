@@ -28,9 +28,12 @@ export interface Cart {
   expiresAt: string;
   items: CartItem[];
   totalItems: number;
-  subtotal: number;
-  totalTax: number;
-  grandTotal: number;
+  /** Brüt ara toplam (KDV dahil) */
+  subtotalGross: number;
+  /** Dahil KDV toplamı */
+  includedTaxTotal: number;
+  /** Brüt genel toplam */
+  grandTotalGross: number;
 }
 
 export interface CreateCartRequest {
@@ -153,9 +156,9 @@ export class CartService {
           taxRate: item.TaxRate || item.taxRate || 0.20
         })),
         totalItems: response.TotalItems || response.totalItems || 0,
-        subtotal: response.Subtotal || response.subtotal || 0,
-        totalTax: response.TotalTax || response.totalTax || 0,
-        grandTotal: response.GrandTotal || response.grandTotal || 0
+        subtotalGross: response.SubtotalGross ?? response.subtotalGross ?? 0,
+        includedTaxTotal: response.IncludedTaxTotal ?? response.includedTaxTotal ?? 0,
+        grandTotalGross: response.GrandTotalGross ?? response.grandTotalGross ?? 0
       };
       
       console.log('📦 Mapped Cart:', {
@@ -163,17 +166,9 @@ export class CartService {
         tableNumber: mappedCart.tableNumber,
         status: mappedCart.status,
         itemsCount: mappedCart.items?.length ?? 0,
-        items: mappedCart.items?.map(item => ({
-          id: item.id,
-          productId: item.productId,
-          productName: item.productName,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          totalPrice: item.totalPrice
-        })) ?? [],
-        subtotal: mappedCart.subtotal,
-        totalTax: mappedCart.totalTax,
-        grandTotal: mappedCart.grandTotal
+        subtotalGross: mappedCart.subtotalGross,
+        includedTaxTotal: mappedCart.includedTaxTotal,
+        grandTotalGross: mappedCart.grandTotalGross
       });
       
       // Masa bazlı sepet ID'sini sakla
@@ -267,9 +262,9 @@ export class CartService {
           taxRate: item.TaxRate || item.taxRate || 0.20
         })),
         totalItems: response.cart.TotalItems || response.cart.totalItems || 0,
-        subtotal: response.cart.Subtotal || response.cart.subtotal || 0,
-        totalTax: response.cart.TotalTax || response.cart.totalTax || 0,
-        grandTotal: response.cart.GrandTotal || response.cart.grandTotal || 0
+        subtotalGross: response.cart.SubtotalGross ?? response.cart.subtotalGross ?? 0,
+        includedTaxTotal: response.cart.IncludedTaxTotal ?? response.cart.includedTaxTotal ?? 0,
+        grandTotalGross: response.cart.GrandTotalGross ?? response.cart.grandTotalGross ?? 0
       };
       
       // Masa bazlı sepet ID'sini güncelle

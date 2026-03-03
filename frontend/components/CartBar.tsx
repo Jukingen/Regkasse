@@ -186,9 +186,9 @@ const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty,
       </ScrollView>
       <View style={styles.summaryRow}>
         <Text style={styles.totalText}>{t('cart.items', 'Ürünler')}: {safeCart.totalItems ?? 0}</Text>
-        <Text style={styles.totalText}>{t('cart.subtotal', 'Ara Toplam')}: {Number(safeCart.subtotal ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>{t('cart.vat', 'KDV')}: {Number(safeCart.totalTax ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>{t('cart.grandTotal', 'Genel Toplam')}: {Number(safeCart.grandTotal ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.subtotal', 'Ara Toplam')}: {Number(safeCart.subtotalGross ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.vat', 'KDV')}: {Number(safeCart.includedTaxTotal ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart.grandTotal', 'Genel Toplam')}: {Number(safeCart.grandTotalGross ?? 0).toFixed(2)} €</Text>
         <TouchableOpacity style={styles.clearBtn} onPress={onClear} accessibilityLabel="Sepeti Temizle">
           <Ionicons name="trash" size={18} color="#fff" style={{ marginRight: 4 }} />
           <Text style={styles.clearBtnText}>{t('cart.clear', 'Sepeti Temizle')}</Text>

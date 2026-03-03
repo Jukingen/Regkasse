@@ -87,8 +87,17 @@ namespace KasseAPI_Final.Services
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
-                // Items'ları dönüştür
-                var tableOrderItems = cart.Items.Select(cartItem => {
+                // Items - CartMoneyHelper ile gross model (tek motor)
+                var lineAmounts = cart.Items.Select(ci =>
+                {
+                    var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
+                    var taxType = product?.TaxType ?? 1;
+                    return CartMoneyHelper.ComputeLine(ci.UnitPrice, ci.Quantity, taxType);
+                }).ToList();
+                var totals = CartMoneyHelper.ComputeCartTotals(lineAmounts);
+
+                var tableOrderItems = cart.Items.Zip(lineAmounts, (cartItem, line) =>
+                {
                     var product = products.TryGetValue(cartItem.ProductId, out var p) ? p : null;
                     return new TableOrderItem
                     {
@@ -96,21 +105,20 @@ namespace KasseAPI_Final.Services
                         ProductId = cartItem.ProductId,
                         ProductName = product?.Name ?? "Unknown Product",
                         Quantity = cartItem.Quantity,
-                        UnitPrice = cartItem.UnitPrice,
-                        TotalPrice = cartItem.UnitPrice * cartItem.Quantity,
+                        UnitPrice = line.UnitPriceGross,
+                        TotalPrice = line.LineGross,
                         Notes = cartItem.Notes,
-                        TaxType = product?.TaxType ?? 1,
-                        TaxRate = GetTaxRate(product?.TaxType ?? 1),
+                        TaxType = line.TaxType,
+                        TaxRate = TaxTypes.GetTaxRate(line.TaxType), // percent (20) for DB
                         Status = ItemStatus.Pending,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
                 }).ToList();
 
-                // Toplamları hesapla
-                tableOrder.Subtotal = tableOrderItems.Sum(item => item.TotalPrice);
-                tableOrder.TaxAmount = tableOrderItems.Sum(item => item.TotalPrice * item.TaxRate / 100);
-                tableOrder.TotalAmount = tableOrder.Subtotal + tableOrder.TaxAmount;
+                tableOrder.Subtotal = totals.SubtotalGross;
+                tableOrder.TaxAmount = totals.IncludedTaxTotal;
+                tableOrder.TotalAmount = totals.GrandTotalGross;
 
                 tableOrder.Items = tableOrderItems;
                 tableOrder.CreatedAt = DateTime.UtcNow;
@@ -159,7 +167,16 @@ namespace KasseAPI_Final.Services
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
-                var newItems = cart.Items.Select(cartItem => {
+                var lineAmounts = cart.Items.Select(ci =>
+                {
+                    var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
+                    var taxType = product?.TaxType ?? 1;
+                    return CartMoneyHelper.ComputeLine(ci.UnitPrice, ci.Quantity, taxType);
+                }).ToList();
+                var totals = CartMoneyHelper.ComputeCartTotals(lineAmounts);
+
+                var newItems = cart.Items.Zip(lineAmounts, (cartItem, line) =>
+                {
                     var product = products.TryGetValue(cartItem.ProductId, out var p) ? p : null;
                     return new TableOrderItem
                     {
@@ -167,21 +184,20 @@ namespace KasseAPI_Final.Services
                         ProductId = cartItem.ProductId,
                         ProductName = product?.Name ?? "Unknown Product",
                         Quantity = cartItem.Quantity,
-                        UnitPrice = cartItem.UnitPrice,
-                        TotalPrice = cartItem.UnitPrice * cartItem.Quantity,
+                        UnitPrice = line.UnitPriceGross,
+                        TotalPrice = line.LineGross,
                         Notes = cartItem.Notes,
-                        TaxType = product?.TaxType ?? 1,
-                        TaxRate = GetTaxRate(product?.TaxType ?? 1),
+                        TaxType = line.TaxType,
+                        TaxRate = TaxTypes.GetTaxRate(line.TaxType),
                         Status = ItemStatus.Pending,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
                 }).ToList();
 
-                // Toplamları yeniden hesapla
-                existingTableOrder.Subtotal = newItems.Sum(item => item.TotalPrice);
-                existingTableOrder.TaxAmount = newItems.Sum(item => item.TotalPrice * item.TaxRate / 100);
-                existingTableOrder.TotalAmount = existingTableOrder.Subtotal + existingTableOrder.TaxAmount;
+                existingTableOrder.Subtotal = totals.SubtotalGross;
+                existingTableOrder.TaxAmount = totals.IncludedTaxTotal;
+                existingTableOrder.TotalAmount = totals.GrandTotalGross;
                 existingTableOrder.LastModifiedTime = DateTime.UtcNow;
                 existingTableOrder.UpdatedAt = DateTime.UtcNow;
                 existingTableOrder.StatusHistory = JsonSerializer.Serialize(statusHistory);
@@ -267,21 +283,6 @@ namespace KasseAPI_Final.Services
             {
                 return new List<TableOrderStatusChange>();
             }
-        }
-
-        /// <summary>
-        /// Tax rate hesaplama - RKSV uyumlu
-        /// </summary>
-        private decimal GetTaxRate(int taxType)
-        {
-            return taxType switch
-            {
-                1 => 20.0m,   // %20 KDV
-                2 => 10.0m,   // %10 KDV
-                3 => 13.0m,   // %13 KDV
-                4 => 0.0m,    // %0 ZeroRate (Österreich 2026)
-                _ => 20.0m
-            };
         }
 
         /// <summary>

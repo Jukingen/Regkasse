@@ -5,7 +5,7 @@ import { View, ActivityIndicator, Text, Pressable, StyleSheet } from 'react-nati
 import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '../../contexts/AuthContext';
-import { useCart, calculateCartTotals } from '../../contexts/CartContext';
+import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
 import PaymentModal from '../../components/PaymentModal';
 
 export default function TabLayout() {
@@ -22,7 +22,7 @@ export default function TabLayout() {
     } = useCart();
 
     const activeCart = getCartForTable(activeTableId);
-    const totals = calculateCartTotals(activeCart.items);
+    const totals = getCartDisplayTotals(activeCart);
     const cartCount = totals.itemCount;
 
     const handlePaymentSuccess = async (paymentId: string) => {
@@ -121,9 +121,10 @@ export default function TabLayout() {
                     productName: item.productName || 'Unknown Product',
                     quantity: item.qty,
                     unitPrice: item.unitPrice || item.price || 0,
-                    totalPrice: item.totalPrice || ((item.price || 0) * item.qty),
+                    totalPrice: item.totalPrice ?? ((item.price ?? 0) * (item.qty ?? 0)),
                     taxType: undefined
                 }))}
+                grandTotalGross={totals.grandTotalGross}
                 customerId="00000000-0000-0000-0000-000000000000"
                 tableNumber={activeTableId}
             />

@@ -64,12 +64,11 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
   // Hızlı miktar değiştirme
   const quickQuantityOptions = ['1', '2', '3', '5', '10'];
 
-  // Backend'den gelen cart prop'u eklendi
-  // Hesaplamalar backend'den alınacak
-  const subtotal = cart?.subtotal ?? 0;
-  const taxAmount = cart?.taxAmount ?? 0;
+  // Backend'den gelen cart prop'u - gross model (FE hesaplama yapmaz)
+  const subtotal = cart?.subtotalGross ?? 0;
+  const taxAmount = cart?.includedTaxTotal ?? 0;
   const discountAmount = cart?.discountAmount ?? 0;
-  const totalAmount = cart?.totalAmount ?? 0;
+  const totalAmount = cart?.grandTotalGross ?? 0;
 
   // getTaxDetails fonksiyonu backend'den gelen cart objesindeki taxAmount ve varsa tax breakdown ile güncellendi
   const getTaxDetails = () => {

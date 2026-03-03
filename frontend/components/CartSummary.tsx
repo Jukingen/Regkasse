@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftShadows } from '../constants/SoftTheme';
 import { formatPrice } from '../utils/formatPrice';
-import { calculateCartTotals } from '../contexts/CartContext';
+import { getCartDisplayTotals } from '../contexts/CartContext';
 
 interface CartSummaryProps {
   cart: any;
@@ -22,11 +22,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   preventDoubleClick = false,
   onPayment,
 }) => {
-  // Calculate totals from items
-  const totals = useMemo(() => {
-    const items = cart?.items ?? [];
-    return calculateCartTotals(items);
-  }, [cart?.items, cart?.updatedAt]);
+  const totals = useMemo(() => getCartDisplayTotals(cart), [cart]);
 
   // Hide if no items
   if (loading || error || !cart || !cart.items || cart.items.length === 0) {
@@ -45,15 +41,15 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
             Zwischensumme ({totals.itemCount} Artikel)
           </Text>
           <Text style={styles.value}>
-            {formatPrice(totals.subtotal)}
+            {formatPrice(totals.subtotalGross)}
           </Text>
         </View>
 
-        {/* Tax */}
+        {/* Tax (embedded in gross - backend'den, FE hesaplamaz) */}
         <View style={styles.row}>
-          <Text style={styles.label}>MwSt. (20%)</Text>
+          <Text style={styles.label}>MwSt.</Text>
           <Text style={styles.value}>
-            {formatPrice(totals.tax)}
+            {formatPrice(totals.includedTaxTotal)}
           </Text>
         </View>
 
@@ -64,7 +60,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
         <View style={[styles.row, styles.totalRow]}>
           <Text style={styles.totalLabel}>GESAMT</Text>
           <Text style={styles.totalValue}>
-            {formatPrice(totals.grandTotal)}
+            {formatPrice(totals.grandTotalGross)}
           </Text>
         </View>
       </View>
@@ -88,7 +84,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
           ) : (
             <View style={styles.payContent}>
               <Text style={styles.payText}>
-                Bezahlen {formatPrice(totals.grandTotal)}
+                Bezahlen {formatPrice(totals.grandTotalGross)}
               </Text>
             </View>
           )}

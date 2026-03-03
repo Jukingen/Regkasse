@@ -8,41 +8,42 @@ import { apiClient } from '../services/api/config';
 
 export interface CartItem {
     productId: string;
-    productName: string; // ✅ Renamed from name, made required
+    productName: string;
     price?: number;
     qty: number;
     unitPrice?: number;
     totalPrice?: number;
     notes?: string;
-    itemId?: string; // Backend ID
+    itemId?: string;
+    taxRate?: number;
+    taxType?: number | string;
 }
 
 export interface Cart {
     items: CartItem[];
     updatedAt?: number;
     cartId?: string;
+    /** Backend toplamları - FE HİÇBİR vergi/total hesaplaması yapmaz */
+    subtotalGross?: number;
+    subtotalNet?: number;
+    includedTaxTotal?: number;
+    grandTotalGross?: number;
+    taxSummary?: Array<{ taxType: number; taxRatePct: number; netAmount: number; taxAmount: number; grossAmount: number }>;
 }
 
-// ============================================
-// HELPER: Calculate Cart Totals from Items
-// ============================================
-export const calculateCartTotals = (items: CartItem[]) => {
-    const subtotal = items.reduce((sum, item) => {
-        const unitPrice = item.unitPrice || item.price || 0;
-        const itemTotal = unitPrice * item.qty;
-        return sum + itemTotal;
-    }, 0);
-
-    const tax = subtotal * 0.20; // 20% tax rate
-    const grandTotal = subtotal + tax;
-
+/** Backend alanlarını seçip UI için formatlar - HESAPLAMA YOK */
+export function getCartDisplayTotals(cart: Cart | null | undefined): {
+    subtotalGross: number; includedTaxTotal: number; grandTotalGross: number; itemCount: number; taxSummary?: Cart['taxSummary'];
+} {
+    const itemCount = (cart?.items ?? []).reduce((sum, i) => sum + (i.qty ?? 0), 0);
     return {
-        subtotal,
-        tax,
-        grandTotal,
-        itemCount: items.reduce((sum, item) => sum + item.qty, 0),
+        subtotalGross: cart?.subtotalGross ?? 0,
+        includedTaxTotal: cart?.includedTaxTotal ?? 0,
+        grandTotalGross: cart?.grandTotalGross ?? 0,
+        itemCount,
+        taxSummary: cart?.taxSummary
     };
-};
+}
 
 export interface CartsByTable {
     [tableNumber: number]: Cart;
@@ -143,14 +144,14 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const lastFetchedTableIdRef = React.useRef<number | null>(null);
 
     // ✅ Helper: Fetch fresh cart data from backend for a specific table
-    const fetchTableCart = useCallback(async (tableNumber: number) => {
+    const fetchTableCart = useCallback(async (tableNumber: number, forceRefresh = false) => {
         // Prevent duplicate fetch for same table (Brute-force Guard)
-        // NOTE: We allow re-fetching if explicitly requested via switchTable (resetting ref might be needed if we want forced refresh)
-        if (lastFetchedTableIdRef.current === tableNumber) {
+        if (!forceRefresh && lastFetchedTableIdRef.current === tableNumber) {
             console.log(`🛡️ [CartContext] Skipping fetch for Table ${tableNumber} (Already fetched/In-progress)`);
             return;
         }
 
+        if (forceRefresh) lastFetchedTableIdRef.current = null;
         lastFetchedTableIdRef.current = tableNumber;
         setLoading(true);
         console.log(`🔄 [CartContext] Fetching fresh data for Table ${tableNumber}...`);
@@ -169,13 +170,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
                     return {
                         productId: item.ProductId || item.productId,
-                        productName: pName || 'Unknown Product', // ✅ Fallback
+                        productName: pName || 'Unknown Product',
                         price: item.UnitPrice || item.unitPrice || 0,
                         qty: item.Quantity || item.quantity || 0,
                         unitPrice: item.UnitPrice || item.unitPrice || 0,
                         totalPrice: item.TotalPrice || item.totalPrice || 0,
                         notes: item.Notes || item.notes,
-                        itemId: item.Id || item.id
+                        itemId: item.Id || item.id,
+                        taxRate: item.TaxRate ?? item.taxRate,
+                        taxType: item.TaxType ?? item.taxType
                     };
                 });
 
@@ -184,7 +187,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     [tableNumber]: {
                         items: localItems,
                         updatedAt: Date.now(),
-                        cartId: response.CartId || response.cartId
+                        cartId: response.CartId || response.cartId,
+                        subtotalGross: response.SubtotalGross ?? response.subtotalGross,
+                        subtotalNet: response.SubtotalNet ?? response.subtotalNet,
+                        includedTaxTotal: response.IncludedTaxTotal ?? response.includedTaxTotal,
+                        grandTotalGross: response.GrandTotalGross ?? response.grandTotalGross,
+                        taxSummary: response.TaxSummary ?? response.taxSummary
                     }
                 }));
                 console.log(`✅ [CartContext] Table ${tableNumber} updated with ${localItems.length} items`);
@@ -300,7 +308,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     unitPrice: item.UnitPrice || item.unitPrice || 0,
                     totalPrice: item.TotalPrice || item.totalPrice || 0,
                     notes: item.Notes || item.notes,
-                    itemId: item.Id || item.id
+                    itemId: item.Id || item.id,
+                    taxRate: item.TaxRate ?? item.taxRate,
+                    taxType: item.TaxType ?? item.taxType
                 }));
 
                 setCartsByTable(prev => ({
@@ -308,7 +318,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     [activeTableId]: {
                         items: localItems,
                         updatedAt: Date.now(),
-                        cartId: backendCart.CartId || backendCart.cartId
+                        cartId: backendCart.CartId || backendCart.cartId,
+                        subtotalGross: backendCart.SubtotalGross ?? backendCart.subtotalGross,
+                        subtotalNet: backendCart.SubtotalNet ?? backendCart.subtotalNet,
+                        includedTaxTotal: backendCart.IncludedTaxTotal ?? backendCart.includedTaxTotal,
+                        grandTotalGross: backendCart.GrandTotalGross ?? backendCart.grandTotalGross,
+                        taxSummary: backendCart.TaxSummary ?? backendCart.taxSummary
                     }
                 }));
             }
@@ -429,6 +444,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             });
 
             console.log('✅ [updateItemQuantity] Quantity updated successfully');
+            await fetchTableCart(activeTableId, true);
         } catch (e: any) {
             console.error('❌ [updateItemQuantity] Failed to update quantity', e);
             setError(e.message || 'Failed to update quantity');
@@ -441,7 +457,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } finally {
             setLoading(false);
         }
-    }, [activeTableId, cartsByTable, remove, setLoading, setError]);
+    }, [activeTableId, cartsByTable, remove, setLoading, setError, fetchTableCart]);
 
     const increment = useCallback(async (productId: string) => {
         const currentCart = cartsByTable[activeTableId];
@@ -489,6 +505,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 Notes: item.notes || ""
             });
             console.log('✅ [increment] Quantity updated successfully');
+            // Totals'ı güncellemek için backend'den taze veri çek (FE KDV hesaplamaz)
+            await fetchTableCart(activeTableId, true);
         } catch (e: any) {
             console.error('❌ [increment] Failed to update quantity', e);
             setError('Failed to update item quantity');
@@ -501,7 +519,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } finally {
             setLoading(false);
         }
-    }, [activeTableId, cartsByTable, setLoading, setError]);
+    }, [activeTableId, cartsByTable, setLoading, setError, fetchTableCart]);
 
     const decrement = useCallback(async (productId: string) => {
         const currentCart = cartsByTable[activeTableId];
@@ -556,6 +574,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 Notes: item.notes || ""
             });
             console.log('✅ [decrement] Quantity updated successfully');
+            await fetchTableCart(activeTableId, true);
         } catch (e: any) {
             console.error('❌ [decrement] Failed to update quantity', e);
             setError('Failed to update item quantity');
@@ -568,7 +587,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } finally {
             setLoading(false);
         }
-    }, [activeTableId, cartsByTable, remove, setLoading, setError]);
+    }, [activeTableId, cartsByTable, remove, setLoading, setError, fetchTableCart]);
 
     const clearCart = useCallback(async (tableNumber?: number) => {
         const target = tableNumber ?? activeTableId;

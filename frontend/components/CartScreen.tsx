@@ -441,11 +441,11 @@ const CartScreen: React.FC = () => {
   const safeHandleApplyCoupon = withNetworkError(handleApplyCoupon, t('cart.applyCoupon', 'Kupon uygula'));
   const safeHandleRemoveCoupon = withNetworkError(handleRemoveCoupon, t('cart.removeCoupon', 'Kupon kaldır'));
 
-  // Sepet toplamı ve alt bilgi değerleri
-  const subtotal = cart?.total ?? 0;
-  const vat = cart?.vat ?? 0;
+  // Sepet toplamı ve alt bilgi değerleri - backend'den gelen gross model
+  const subtotal = cart?.subtotalGross ?? 0;
+  const vat = cart?.includedTaxTotal ?? 0;
   const serviceFee = Math.round(subtotal * 0.1 * 100) / 100; // %10 servis bedeli örnek
-  const totalAmount = cart?.grandTotal ?? 0;
+  const totalAmount = cart?.grandTotalGross ?? 0;
   const discount = cart?.discount ?? 0;
 
   // Modern kart tasarımı ile ürün kutusu

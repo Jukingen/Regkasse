@@ -36,6 +36,8 @@ interface PaymentModalProps {
     totalPrice: number;
     taxType?: string;
   }>;
+  /** Backend'den gelen brüt toplam - FE hesaplama yapmaz */
+  grandTotalGross?: number;
   customerId?: string;
   tableNumber?: number;
 }
@@ -45,6 +47,7 @@ export default function PaymentModal({
   onClose,
   onSuccess,
   cartItems,
+  grandTotalGross,
   customerId = '00000000-0000-0000-0000-000000000000', // Default Guid formatında
   tableNumber
 }: PaymentModalProps) {
@@ -75,17 +78,15 @@ export default function PaymentModal({
     clearError
   } = usePayment();
 
-  // Hesaplamalar: Single Source of Truth olarak quantity * unitPrice kullan
+  // Backend line toplamları kullan - FE hesaplama yapmaz (totalPrice = lineGross)
   const calculatedCartItems = useMemo(() => {
     return cartItems.map(item => ({
       ...item,
-      lineTotal: item.quantity * item.unitPrice
+      lineTotal: item.totalPrice ?? (item.quantity * item.unitPrice)
     }));
   }, [cartItems]);
 
-  const totalAmount = useMemo(() => {
-    return calculatedCartItems.reduce((sum, item) => sum + item.lineTotal, 0);
-  }, [calculatedCartItems]);
+  const totalAmount = grandTotalGross ?? calculatedCartItems.reduce((sum, item) => sum + item.lineTotal, 0);
 
   const changeAmount = parseFloat(amountReceived) - totalAmount;
 

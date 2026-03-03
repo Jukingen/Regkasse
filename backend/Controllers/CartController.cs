@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using System.Security.Claims;
 
 namespace KasseAPI_Final.Controllers
@@ -87,11 +88,10 @@ namespace KasseAPI_Final.Controllers
                         Status = newCart.Status,
                         CreatedAt = newCart.CreatedAt,
                         ExpiresAt = newCart.ExpiresAt,
-                        Items = new List<CartItemResponse>(), // Boş sepet
+                        Items = new List<CartItemResponse>(),
                         TotalItems = 0,
-                        Subtotal = 0,
-                        TotalTax = 0,
-                        GrandTotal = 0
+                        SubtotalGross = 0, SubtotalNet = 0, IncludedTaxTotal = 0, GrandTotalGross = 0,
+                        TaxSummary = new List<CartTaxSummaryLine>()
                     };
                     
                     return Ok(emptyCartResponse);
@@ -122,41 +122,7 @@ namespace KasseAPI_Final.Controllers
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
-                var cartResponse = new CartResponse
-                {
-                    CartId = cart.CartId,
-                    TableNumber = cart.TableNumber,
-                    WaiterName = cart.WaiterName,
-                    CustomerId = cart.CustomerId,
-                    Notes = cart.Notes,
-                    Status = cart.Status,
-                    CreatedAt = cart.CreatedAt,
-                    ExpiresAt = cart.ExpiresAt,
-                    Items = cart.Items.Select(ci => new CartItemResponse
-                    {
-                        Id = ci.Id,
-                        ProductId = ci.ProductId,
-                        ProductName = products.TryGetValue(ci.ProductId, out var product) ? product.Name : "Unknown Product",
-                        ProductImage = products.TryGetValue(ci.ProductId, out var p) ? p.ImageUrl : null,
-                        Quantity = ci.Quantity,
-                        UnitPrice = ci.UnitPrice,
-                        TotalPrice = ci.Quantity * ci.UnitPrice,
-                        Notes = ci.Notes,
-                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : 1,
-                        TaxRate = products.TryGetValue(ci.ProductId, out var pr) ? GetTaxRate(pr.TaxType) : 0.20m
-                    }).ToList(),
-                    TotalItems = cart.Items.Sum(ci => ci.Quantity),
-                    Subtotal = cart.Items.Sum(ci => ci.Quantity * ci.UnitPrice),
-                    TotalTax = cart.Items.Sum(ci => {
-                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
-                        return ci.Quantity * ci.UnitPrice * (product != null ? GetTaxRate(product.TaxType) : 0.20m);
-                    }),
-                    GrandTotal = cart.Items.Sum(ci => {
-                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
-                        return ci.Quantity * ci.UnitPrice * (1 + (product != null ? GetTaxRate(product.TaxType) : 0.20m));
-                    })
-                };
-
+                var cartResponse = BuildCartResponse(cart, products);
                 return Ok(cartResponse);
             }
             catch (Exception ex)
@@ -194,41 +160,7 @@ namespace KasseAPI_Final.Controllers
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
-                var cartResponse = new CartResponse
-                {
-                    CartId = cart.CartId,
-                    TableNumber = cart.TableNumber,
-                    WaiterName = cart.WaiterName,
-                    CustomerId = cart.CustomerId,
-                    Notes = cart.Notes,
-                    Status = cart.Status,
-                    CreatedAt = cart.CreatedAt,
-                    ExpiresAt = cart.ExpiresAt,
-                    Items = cart.Items.Select(ci => new CartItemResponse
-                    {
-                        Id = ci.Id,
-                        ProductId = ci.ProductId,
-                        ProductName = products.TryGetValue(ci.ProductId, out var product) ? product.Name : "Unknown Product",
-                        ProductImage = products.TryGetValue(ci.ProductId, out var p) ? p.ImageUrl : null,
-                        Quantity = ci.Quantity,
-                        UnitPrice = ci.UnitPrice,
-                        TotalPrice = ci.Quantity * ci.UnitPrice,
-                        Notes = ci.Notes,
-                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : 1,
-                        TaxRate = products.TryGetValue(ci.ProductId, out var pr) ? GetTaxRate(pr.TaxType) : 0.20m
-                    }).ToList(),
-                    TotalItems = cart.Items.Sum(ci => ci.Quantity),
-                    Subtotal = cart.Items.Sum(ci => ci.Quantity * ci.UnitPrice),
-                    TotalTax = cart.Items.Sum(ci => {
-                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
-                        return ci.Quantity * ci.UnitPrice * (product != null ? GetTaxRate(product.TaxType) : 0.20m);
-                    }),
-                    GrandTotal = cart.Items.Sum(ci => {
-                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
-                        return ci.Quantity * ci.UnitPrice * (1 + (product != null ? GetTaxRate(product.TaxType) : 0.20m));
-                    })
-                };
-
+                var cartResponse = BuildCartResponse(cart, products);
                 return Ok(cartResponse);
             }
             catch (Exception ex)
@@ -397,40 +329,7 @@ namespace KasseAPI_Final.Controllers
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
-                var cartResponse = new CartResponse
-                {
-                    CartId = updatedCart.CartId,
-                    TableNumber = updatedCart.TableNumber,
-                    WaiterName = updatedCart.WaiterName,
-                    CustomerId = updatedCart.CustomerId,
-                    Notes = updatedCart.Notes,
-                    Status = updatedCart.Status,
-                    CreatedAt = updatedCart.CreatedAt,
-                    ExpiresAt = updatedCart.ExpiresAt,
-                    Items = updatedCart.Items.Select(ci => new CartItemResponse
-                    {
-                        Id = ci.Id,
-                        ProductId = ci.ProductId,
-                        ProductName = products.TryGetValue(ci.ProductId, out var product) ? product.Name : "Unknown Product",
-                        ProductImage = products.TryGetValue(ci.ProductId, out var p) ? p.ImageUrl : null,
-                        Quantity = ci.Quantity,
-                        UnitPrice = ci.UnitPrice,
-                        TotalPrice = ci.Quantity * ci.UnitPrice,
-                        Notes = ci.Notes,
-                        TaxType = products.TryGetValue(ci.ProductId, out var prod) ? prod.TaxType : 1,
-                        TaxRate = products.TryGetValue(ci.ProductId, out var pr) ? GetTaxRate(pr.TaxType) : 0.20m
-                    }).ToList(),
-                    TotalItems = updatedCart.Items.Sum(ci => ci.Quantity),
-                    Subtotal = updatedCart.Items.Sum(ci => ci.Quantity * ci.UnitPrice),
-                    TotalTax = updatedCart.Items.Sum(ci => {
-                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
-                        return ci.Quantity * ci.UnitPrice * (product != null ? GetTaxRate(product.TaxType) : 0.20m);
-                    }),
-                    GrandTotal = updatedCart.Items.Sum(ci => {
-                        var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
-                        return ci.Quantity * ci.UnitPrice * (1 + (product != null ? GetTaxRate(product.TaxType) : 0.20m));
-                    })
-                };
+                var cartResponse = BuildCartResponse(updatedCart, products);
 
                 _logger.LogInformation("Item added to cart: Product {ProductId}, Quantity {Quantity}, Cart {CartId}, UserId: {UserId}", 
                     request.ProductId, request.Quantity, cart.CartId, userId);
@@ -1198,50 +1097,116 @@ namespace KasseAPI_Final.Controllers
                     .OrderBy(c => c.TableNumber)
                     .ToListAsync();
 
-                // TableOrder'ları öncelikle kullan
-                var tableOrderResponses = userActiveTableOrders.Select(tableOrder => new TableOrderRecoveryResponse
+                // TableOrder - CartMoneyHelper ile tek motor (UnitPrice=GROSS varsayımı)
+                var tableOrderResponses = userActiveTableOrders.Select(tableOrder =>
                 {
-                    TableNumber = tableOrder.TableNumber,
-                    CartId = tableOrder.TableOrderId, // TableOrderId'yi CartId olarak kullan
-                    CustomerName = tableOrder.CustomerName ?? tableOrder.WaiterName,
-                    ItemCount = tableOrder.Items?.Count ?? 0,
-                    TotalAmount = tableOrder.TotalAmount,
-                    Status = tableOrder.Status.ToString(),
-                    CreatedAt = tableOrder.OrderStartTime,
-                    LastUpdated = tableOrder.LastModifiedTime ?? tableOrder.OrderStartTime,
-                    Items = tableOrder.Items?.Select(item => new TableOrderItemInfo
+                    var toItems = tableOrder.Items ?? new List<TableOrderItem>();
+                    var lineAmounts = toItems.Select(i => CartMoneyHelper.ComputeLine(i.UnitPrice, i.Quantity, i.TaxType)).ToList();
+                    var totals = CartMoneyHelper.ComputeCartTotals(lineAmounts);
+                    var taxSummary = totals.TaxSummary.Select(t => new CartTaxSummaryLine
                     {
-                        ProductId = item.ProductId,
-                        ProductName = item.ProductName,
-                        Quantity = item.Quantity,
-                        Price = item.UnitPrice,
-                        Total = item.TotalPrice,
-                        Notes = item.Notes
-                    }).ToList() ?? new List<TableOrderItemInfo>()
-                }).ToList();
-
-                // Cart'lardan gelen siparişleri ekle (TableOrder yoksa)
-                var cartBasedOrders = userActiveCarts
-                    .Where(cart => !userActiveTableOrders.Any(to => to.TableNumber == cart.TableNumber))
-                    .Select(cart => new TableOrderRecoveryResponse
+                        TaxType = t.TaxType,
+                        TaxRatePct = t.TaxRatePct,
+                        NetAmount = t.NetAmount,
+                        TaxAmount = t.TaxAmount,
+                        GrossAmount = t.GrossAmount
+                    }).ToList();
+                    return new TableOrderRecoveryResponse
                     {
-                        TableNumber = cart.TableNumber,
-                        CartId = cart.CartId,
-                        CustomerName = cart.Customer?.Name ?? cart.WaiterName,
-                        ItemCount = cart.Items?.Count ?? 0,
-                        TotalAmount = cart.Items?.Sum(i => i.UnitPrice * i.Quantity) ?? 0,
-                        Status = cart.Status.ToString(),
-                        CreatedAt = cart.CreatedAt,
-                        LastUpdated = cart.UpdatedAt ?? cart.CreatedAt,
-                        Items = cart.Items?.Select(item => new TableOrderItemInfo
+                        TableNumber = tableOrder.TableNumber,
+                        CartId = tableOrder.TableOrderId,
+                        CustomerName = tableOrder.CustomerName ?? tableOrder.WaiterName,
+                        ItemCount = toItems.Count,
+                        TotalAmount = totals.GrandTotalGross,
+                        Status = tableOrder.Status.ToString(),
+                        CreatedAt = tableOrder.OrderStartTime,
+                        LastUpdated = tableOrder.LastModifiedTime ?? tableOrder.OrderStartTime,
+                        SubtotalGross = totals.SubtotalGross,
+                        SubtotalNet = totals.SubtotalNet,
+                        IncludedTaxTotal = totals.IncludedTaxTotal,
+                        GrandTotalGross = totals.GrandTotalGross,
+                        TaxSummary = taxSummary,
+                        TotalItems = toItems.Sum(i => i.Quantity),
+                        Items = toItems.Zip(lineAmounts, (item, line) => new TableOrderItemInfo
                         {
                             ProductId = item.ProductId,
-                            ProductName = "Product", // Temporarily hardcoded due to CategoryId1 conflict
+                            ProductName = item.ProductName,
                             Quantity = item.Quantity,
-                            Price = item.UnitPrice,
-                            Total = item.UnitPrice * item.Quantity,
+                            Price = line.UnitPriceGross,
+                            Total = line.LineGross,
+                            UnitPrice = line.UnitPriceGross,
+                            TotalPrice = line.LineGross,
+                            TaxRate = line.TaxRate,
+                            TaxType = line.TaxType,
                             Notes = item.Notes
-                        }).ToList() ?? new List<TableOrderItemInfo>()
+                        }).ToList()
+                    };
+                }).ToList();
+
+                // Cart'lardan gelen siparişleri ekle (TableOrder yoksa) - Product bilgisi için Products yükle
+                var cartProductIds = userActiveCarts
+                    .SelectMany(c => c.Items ?? new List<CartItem>())
+                    .Select(i => i.ProductId)
+                    .Distinct()
+                    .ToList();
+                var cartProducts = await _context.Products
+                    .Where(p => cartProductIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id, p => p);
+
+                var cartBasedOrders = userActiveCarts
+                    .Where(cart => !userActiveTableOrders.Any(to => to.TableNumber == cart.TableNumber))
+                    .Select(cart =>
+                    {
+                        var items = cart.Items ?? new List<CartItem>();
+                        var lineAmounts = items.Select(i =>
+                        {
+                            var product = cartProducts.TryGetValue(i.ProductId, out var p) ? p : null;
+                            var taxType = product?.TaxType ?? 1;
+                            return CartMoneyHelper.ComputeLine(i.UnitPrice, i.Quantity, taxType);
+                        }).ToList();
+                        var totals = CartMoneyHelper.ComputeCartTotals(lineAmounts);
+                        var taxSummary = totals.TaxSummary.Select(t => new CartTaxSummaryLine
+                        {
+                            TaxType = t.TaxType,
+                            TaxRatePct = t.TaxRatePct,
+                            NetAmount = t.NetAmount,
+                            TaxAmount = t.TaxAmount,
+                            GrossAmount = t.GrossAmount
+                        }).ToList();
+                        return new TableOrderRecoveryResponse
+                        {
+                            TableNumber = cart.TableNumber,
+                            CartId = cart.CartId,
+                            CustomerName = cart.Customer?.Name ?? cart.WaiterName,
+                            ItemCount = items.Count,
+                            TotalAmount = totals.GrandTotalGross,
+                            Status = cart.Status.ToString(),
+                            CreatedAt = cart.CreatedAt,
+                            LastUpdated = cart.UpdatedAt ?? cart.CreatedAt,
+                            SubtotalGross = totals.SubtotalGross,
+                            SubtotalNet = totals.SubtotalNet,
+                            IncludedTaxTotal = totals.IncludedTaxTotal,
+                            GrandTotalGross = totals.GrandTotalGross,
+                            TaxSummary = taxSummary,
+                            TotalItems = items.Sum(i => i.Quantity),
+                            Items = items.Zip(lineAmounts, (item, line) =>
+                            {
+                                var product = cartProducts.TryGetValue(item.ProductId, out var p) ? p : null;
+                                return new TableOrderItemInfo
+                                {
+                                    ProductId = item.ProductId,
+                                    ProductName = product?.Name ?? "Product",
+                                    Quantity = item.Quantity,
+                                    Price = line.UnitPriceGross,
+                                    Total = line.LineGross,
+                                    UnitPrice = line.UnitPriceGross,
+                                    TotalPrice = line.LineGross,
+                                    TaxRate = line.TaxRate,
+                                    TaxType = line.TaxType,
+                                    Notes = item.Notes
+                                };
+                            }).ToList()
+                        };
                     });
 
                 // Tüm siparişleri birleştir
@@ -1409,10 +1374,67 @@ namespace KasseAPI_Final.Controllers
 
 
 
-        // Yardımcı metod: Vergi oranını hesapla
-        private decimal GetTaxRate(int taxType)
+        /// <summary>Cart + products'tan standart response oluşturur (gross model, taxSummary dahil)</summary>
+        private CartResponse BuildCartResponse(Cart cart, IReadOnlyDictionary<Guid, Product> products)
         {
-            return TaxTypes.GetTaxRate(taxType) / 100.0m;
+            var items = (cart.Items ?? Enumerable.Empty<CartItem>()).Select(ci =>
+            {
+                var prod = products.TryGetValue(ci.ProductId, out var p) ? p : null;
+                var taxType = prod?.TaxType ?? 1;
+                var line = CartMoneyHelper.ComputeLine(ci.UnitPrice, ci.Quantity, taxType);
+                return new CartItemResponse
+                {
+                    Id = ci.Id,
+                    ProductId = ci.ProductId,
+                    ProductName = prod?.Name ?? "Unknown Product",
+                    ProductImage = prod?.ImageUrl,
+                    Quantity = ci.Quantity,
+                    UnitPrice = line.UnitPriceGross,
+                    TotalPrice = line.LineGross,
+                    LineNet = line.LineNet,
+                    LineTax = line.LineTax,
+                    Notes = ci.Notes,
+                    TaxType = line.TaxType,
+                    TaxRate = line.TaxRate
+                };
+            }).ToList();
+
+            var lineAmounts = (cart.Items ?? Enumerable.Empty<CartItem>()).Select(ci =>
+            {
+                var prod = products.TryGetValue(ci.ProductId, out var p) ? p : null;
+                var taxType = prod?.TaxType ?? 1;
+                return CartMoneyHelper.ComputeLine(ci.UnitPrice, ci.Quantity, taxType);
+            }).ToList();
+
+            var totals = CartMoneyHelper.ComputeCartTotals(lineAmounts);
+
+            var taxSummary = totals.TaxSummary.Select(t => new CartTaxSummaryLine
+            {
+                TaxType = t.TaxType,
+                TaxRatePct = t.TaxRatePct,
+                NetAmount = t.NetAmount,
+                TaxAmount = t.TaxAmount,
+                GrossAmount = t.GrossAmount
+            }).ToList();
+
+            return new CartResponse
+            {
+                CartId = cart.CartId,
+                TableNumber = cart.TableNumber,
+                WaiterName = cart.WaiterName,
+                CustomerId = cart.CustomerId,
+                Notes = cart.Notes,
+                Status = cart.Status,
+                CreatedAt = cart.CreatedAt,
+                ExpiresAt = cart.ExpiresAt,
+                Items = items,
+                TotalItems = cart.Items.Sum(ci => ci.Quantity),
+                SubtotalGross = totals.SubtotalGross,
+                SubtotalNet = totals.SubtotalNet,
+                IncludedTaxTotal = totals.IncludedTaxTotal,
+                GrandTotalGross = totals.GrandTotalGross,
+                TaxSummary = taxSummary
+            };
         }
     }
 
@@ -1452,6 +1474,7 @@ namespace KasseAPI_Final.Controllers
         public string? Notes { get; set; }
     }
 
+    /// <summary>API sözleşmesi: Tüm fiyatlar GROSS (inkl. MwSt.)</summary>
     public class CartResponse
     {
         public string CartId { get; set; } = string.Empty;
@@ -1464,11 +1487,28 @@ namespace KasseAPI_Final.Controllers
         public DateTime ExpiresAt { get; set; }
         public List<CartItemResponse> Items { get; set; } = new List<CartItemResponse>();
         public int TotalItems { get; set; }
-        public decimal Subtotal { get; set; }
-        public decimal TotalTax { get; set; }
-        public decimal GrandTotal { get; set; }
+        /// <summary>Bruttosumme (gross) - Ödeme öncesi toplam</summary>
+        public decimal SubtotalGross { get; set; }
+        /// <summary>Netto toplam (vergi öncesi)</summary>
+        public decimal SubtotalNet { get; set; }
+        /// <summary>Gömülü vergi toplamı (subtotalGross - subtotalNet)</summary>
+        public decimal IncludedTaxTotal { get; set; }
+        /// <summary>Ödenecek toplam (gross)</summary>
+        public decimal GrandTotalGross { get; set; }
+        /// <summary>Vergi grubu bazında özet</summary>
+        public List<CartTaxSummaryLine> TaxSummary { get; set; } = new List<CartTaxSummaryLine>();
     }
 
+    public class CartTaxSummaryLine
+    {
+        public int TaxType { get; set; }
+        public decimal TaxRatePct { get; set; }
+        public decimal NetAmount { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal GrossAmount { get; set; }
+    }
+
+    /// <summary>UnitPrice/TotalPrice = GROSS (inkl. MwSt.)</summary>
     public class CartItemResponse
     {
         public Guid Id { get; set; }
@@ -1478,6 +1518,8 @@ namespace KasseAPI_Final.Controllers
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
+        public decimal LineNet { get; set; }
+        public decimal LineTax { get; set; }
         public string? Notes { get; set; }
         public int TaxType { get; set; } = 1;
         public decimal TaxRate { get; set; }
@@ -1536,6 +1578,12 @@ namespace KasseAPI_Final.Controllers
         public DateTime CreatedAt { get; set; }
         public DateTime LastUpdated { get; set; }
         public List<TableOrderItemInfo> Items { get; set; } = new List<TableOrderItemInfo>();
+        public decimal SubtotalGross { get; set; }
+        public decimal SubtotalNet { get; set; }
+        public decimal IncludedTaxTotal { get; set; }
+        public decimal GrandTotalGross { get; set; }
+        public List<CartTaxSummaryLine> TaxSummary { get; set; } = new List<CartTaxSummaryLine>();
+        public int TotalItems { get; set; }
     }
 
     public class TableOrderItemInfo
@@ -1546,5 +1594,10 @@ namespace KasseAPI_Final.Controllers
         public decimal Price { get; set; }
         public decimal Total { get; set; }
         public string? Notes { get; set; }
+        /// <summary>add-item ile tutarlı - unitPrice (gross), totalPrice (gross), taxRate, taxType</summary>
+        public decimal UnitPrice { get; set; }
+        public decimal TotalPrice { get; set; }
+        public decimal TaxRate { get; set; }
+        public int TaxType { get; set; } = 1;
     }
 }
