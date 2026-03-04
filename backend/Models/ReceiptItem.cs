@@ -36,6 +36,10 @@ namespace KasseAPI_Final.Models
         [Column("tax_rate", TypeName = "decimal(5, 2)")]
         public decimal TaxRate { get; set; }
 
+        /// <summary>Varsa: bu satır bir modifier (Extra Zutaten); parent ana ürün satırının ItemId'si.</summary>
+        [Column("parent_item_id")]
+        public Guid? ParentItemId { get; set; }
+
         // Navigation Property
         [ForeignKey("ReceiptId")]
         public virtual Receipt? Receipt { get; set; }

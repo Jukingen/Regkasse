@@ -6,6 +6,13 @@ import { apiClient } from '../services/api/config';
 // TYPE DEFINITIONS
 // ============================================
 
+/** Sepet satırında seçilen tek bir modifier (Extra Zutaten). */
+export interface CartItemModifier {
+    id: string;
+    name: string;
+    price: number;
+}
+
 export interface CartItem {
     productId: string;
     productName: string;
@@ -17,6 +24,8 @@ export interface CartItem {
     itemId?: string;
     taxRate?: number;
     taxType?: number | string;
+    /** Extra Zutaten – sadece bu satır için seçilen modifier'lar. */
+    modifiers?: CartItemModifier[];
 }
 
 export interface Cart {
@@ -61,14 +70,16 @@ interface CartContextType {
     setActiveTable: (tableNumber: number) => void;
     setIsPaymentModalVisible: (visible: boolean) => void;
     switchTable: (tableNumber: number) => Promise<void>; // ✅ Added
-    addItem: (productId: string, quantity?: number) => Promise<void>;
+    addItem: (productId: string, quantity?: number, options?: { modifiers?: CartItemModifier[]; productName?: string; unitPrice?: number }) => Promise<void>;
     increment: (productId: string) => Promise<void>;
     decrement: (productId: string) => Promise<void>;
     remove: (productId: string) => Promise<void>;
+    removeByItemId: (itemId: string) => Promise<void>;
     clearCart: (tableNumber?: number) => Promise<void>;
     checkout: (tableNumber?: number) => Promise<void>;
     getCartForTable: (tableNumber: number) => Cart;
-    updateItemQuantity: (productId: string, quantity: number) => Promise<void>; // ✅ Added for CashRegister
+    updateItemQuantity: (productId: string, quantity: number) => Promise<void>;
+    updateItemQuantityByItemId: (itemId: string, quantity: number) => Promise<void>;
     fetchTableCart: (tableNumber: number) => Promise<void>; // ✅ Added
 
     // Helpers
@@ -244,23 +255,44 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await fetchTableCart(tableNumber);
     }, [activeTableId, fetchTableCart]);
 
+    /** Aynı ürün + aynı modifier set = aynı satır (karşılaştırma anahtarı). */
+    const getModifierKey = useCallback((modifiers: CartItemModifier[] | undefined) => {
+        if (!modifiers?.length) return '';
+        return [...modifiers].map(m => m.id).sort().join(',');
+    }, []);
+
     // Actions
-    const addItem = useCallback(async (productId: string, quantity: number = 1) => {
+    const addItem = useCallback(async (
+        productId: string,
+        quantity: number = 1,
+        options?: { modifiers?: CartItemModifier[]; productName?: string; unitPrice?: number }
+    ) => {
         const currentCart = cartsByTable[activeTableId] || { items: [] };
+        const modifiers = options?.modifiers ?? [];
+        const modKey = getModifierKey(modifiers);
+        const productName = options?.productName ?? 'Loading...';
+        const unitPrice = options?.unitPrice ?? 0;
+        const modifierTotal = modifiers.reduce((s, m) => s + m.price, 0);
+        const lineUnitPrice = unitPrice + modifierTotal;
+        const lineTotalPrice = lineUnitPrice * quantity;
 
-        console.log(`➕ [CartContext] Adding item to table ${activeTableId}:`, { productId, quantity });
+        console.log(`➕ [CartContext] Adding item to table ${activeTableId}:`, { productId, quantity, modifiersCount: modifiers.length });
 
-        // PHASE 1: Optimistic Update
-        const existingItemIndex = currentCart.items.findIndex(item => item.productId === productId);
+        // Aynı productId + aynı modifier set = mevcut satıra miktar ekle
+        const existingItemIndex = currentCart.items.findIndex(
+            item => item.productId === productId && getModifierKey(item.modifiers) === modKey
+        );
         let optimisticCart: Cart;
 
         if (existingItemIndex !== -1) {
+            const item = currentCart.items[existingItemIndex];
+            const newQty = item.qty + quantity;
+            const modSum = (item.modifiers ?? []).reduce((s, m) => s + m.price, 0);
+            const newTotal = ((item.unitPrice ?? 0) + modSum) * newQty;
             optimisticCart = {
                 ...currentCart,
-                items: currentCart.items.map((item, index) =>
-                    index === existingItemIndex
-                        ? { ...item, qty: item.qty + quantity }
-                        : item
+                items: currentCart.items.map((it, index) =>
+                    index === existingItemIndex ? { ...it, qty: newQty, totalPrice: newTotal } : it
                 ),
                 updatedAt: Date.now()
             };
@@ -271,11 +303,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     ...currentCart.items,
                     {
                         productId,
-                        productName: 'Loading...',
-                        price: 0,
+                        productName,
+                        price: lineUnitPrice,
                         qty: quantity,
-                        unitPrice: 0,
-                        totalPrice: 0
+                        unitPrice: unitPrice,
+                        totalPrice: lineTotalPrice,
+                        modifiers: modifiers.length ? modifiers : undefined,
+                        itemId: undefined
                     }
                 ],
                 updatedAt: Date.now()
@@ -288,30 +322,50 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }));
         setError(null);
 
-        // PHASE 2: Backend Call
+        // PHASE 2: Backend Call (modifierIds backend desteklerse kullanılır)
         try {
-            const response = await apiClient.post<AddItemResponse>('/cart/add-item', {
+            const body: Record<string, unknown> = {
                 productId,
                 quantity,
                 tableNumber: activeTableId
-            });
+            };
+            if (modifiers.length) body.modifierIds = modifiers.map(m => m.id);
+
+            const response = await apiClient.post<AddItemResponse>('/cart/add-item', body);
 
             if (response.cart) {
                 const backendCart = response.cart;
                 const backendItems = backendCart.Items || backendCart.items || [];
 
-                const localItems: CartItem[] = backendItems.map((item: any) => ({
-                    productId: item.ProductId || item.productId,
-                    productName: item.ProductName || item.productName || 'Unknown Product',
-                    price: item.UnitPrice || item.unitPrice || 0,
-                    qty: item.Quantity || item.quantity || 0,
-                    unitPrice: item.UnitPrice || item.unitPrice || 0,
-                    totalPrice: item.TotalPrice || item.totalPrice || 0,
-                    notes: item.Notes || item.notes,
-                    itemId: item.Id || item.id,
-                    taxRate: item.TaxRate ?? item.taxRate,
-                    taxType: item.TaxType ?? item.taxType
-                }));
+                const existingItems = currentCart.items;
+                const localItems: CartItem[] = backendItems.map((item: any) => {
+                    const backendItemId = item.Id ?? item.id;
+                    const mods = item.Modifiers ?? item.modifiers;
+                    let modifierList: CartItemModifier[] | undefined;
+                    if (Array.isArray(mods) && mods.length) {
+                        modifierList = mods.map((m: any) => ({
+                            id: m.Id ?? m.id,
+                            name: m.Name ?? m.name,
+                            price: Number(m.Price ?? m.price ?? 0)
+                        }));
+                    } else {
+                        const existing = existingItems.find((e: CartItem) => e.itemId === backendItemId || (e.productId === (item.ProductId || item.productId) && !e.itemId));
+                        if (existing?.modifiers?.length) modifierList = existing.modifiers;
+                    }
+                    return {
+                        productId: item.ProductId || item.productId,
+                        productName: item.ProductName || item.productName || 'Unknown Product',
+                        price: item.UnitPrice || item.unitPrice || 0,
+                        qty: item.Quantity || item.quantity || 0,
+                        unitPrice: item.UnitPrice ?? item.unitPrice ?? 0,
+                        totalPrice: item.TotalPrice || item.totalPrice || 0,
+                        notes: item.Notes || item.notes,
+                        itemId: item.Id || item.id,
+                        taxRate: item.TaxRate ?? item.taxRate,
+                        taxType: item.TaxType ?? item.taxType,
+                        modifiers: modifierList
+                    };
+                });
 
                 setCartsByTable(prev => ({
                     ...prev,
@@ -332,14 +386,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error('❌ [CartContext] Failed:', msg);
             setError(msg);
 
-            // Rollback
             setCartsByTable(prev => ({
                 ...prev,
                 [activeTableId]: currentCart
             }));
             throw new Error(msg);
         }
-    }, [activeTableId, cartsByTable]);
+    }, [activeTableId, cartsByTable, getModifierKey]);
 
     const remove = useCallback(async (productId: string) => {
         const currentCart = cartsByTable[activeTableId];
@@ -458,6 +511,99 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setLoading(false);
         }
     }, [activeTableId, cartsByTable, remove, setLoading, setError, fetchTableCart]);
+
+    const removeByItemId = useCallback(async (itemId: string) => {
+        const currentCart = cartsByTable[activeTableId];
+        if (!currentCart) return;
+        const lineKey = (i: CartItem) => i.itemId ?? `${i.productId}-${getModifierKey(i.modifiers)}`;
+        const item = currentCart.items.find(i => lineKey(i) === itemId);
+        if (!item) {
+            setError('Item not found');
+            return;
+        }
+        if (!item.itemId) {
+            setLoading(true);
+            try {
+                const updatedItems = currentCart.items.filter(i => lineKey(i) !== itemId);
+                setCartsByTable(prev => ({
+                    ...prev,
+                    [activeTableId]: { ...currentCart, items: updatedItems, updatedAt: Date.now() }
+                }));
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
+        setLoading(true);
+        try {
+            const updatedItems = currentCart.items.filter(i => lineKey(i) !== itemId);
+            setCartsByTable(prev => ({
+                ...prev,
+                [activeTableId]: { ...currentCart, items: updatedItems, updatedAt: Date.now() }
+            }));
+            await apiClient.delete(`/Cart/items/${item.itemId}`);
+            await fetchTableCart(activeTableId, true);
+        } catch (err: any) {
+            setError(err?.message || 'Failed to remove item');
+            setCartsByTable(prev => ({ ...prev, [activeTableId]: currentCart }));
+        } finally {
+            setLoading(false);
+        }
+    }, [activeTableId, cartsByTable, getModifierKey, setLoading, setError, fetchTableCart]);
+
+    const updateItemQuantityByItemId = useCallback(async (itemId: string, quantity: number) => {
+        const currentCart = cartsByTable[activeTableId];
+        if (!currentCart) return;
+        if (quantity <= 0) {
+            await removeByItemId(itemId);
+            return;
+        }
+        const lineKey = (i: CartItem) => i.itemId ?? `${i.productId}-${getModifierKey(i.modifiers)}`;
+        const item = currentCart.items.find(i => lineKey(i) === itemId);
+        if (!item) {
+            setError('Item not found');
+            return;
+        }
+        if (!item.itemId) {
+            setLoading(true);
+            try {
+                const modSum = (item.modifiers ?? []).reduce((s, m) => s + m.price, 0);
+                const newTotal = ((item.unitPrice ?? 0) + modSum) * quantity;
+                const updatedItems = currentCart.items.map(i =>
+                    lineKey(i) === itemId ? { ...i, qty: quantity, totalPrice: newTotal } : i
+                );
+                setCartsByTable(prev => ({
+                    ...prev,
+                    [activeTableId]: { ...currentCart, items: updatedItems, updatedAt: Date.now() }
+                }));
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
+        setLoading(true);
+        try {
+            const modSum = (item.modifiers ?? []).reduce((s, m) => s + m.price, 0);
+            const newTotal = ((item.unitPrice ?? 0) + modSum) * quantity;
+            const updatedItems = currentCart.items.map(i =>
+                (i.itemId || i.productId) === itemId ? { ...i, qty: quantity, totalPrice: newTotal } : i
+            );
+            setCartsByTable(prev => ({
+                ...prev,
+                [activeTableId]: { ...currentCart, items: updatedItems, updatedAt: Date.now() }
+            }));
+            await apiClient.put(`/Cart/items/${item.itemId}`, {
+                Quantity: quantity,
+                Notes: item.notes || ''
+            });
+            await fetchTableCart(activeTableId, true);
+        } catch (e: any) {
+            setError(e?.message || 'Failed to update quantity');
+            setCartsByTable(prev => ({ ...prev, [activeTableId]: currentCart }));
+        } finally {
+            setLoading(false);
+        }
+    }, [activeTableId, cartsByTable, removeByItemId, setLoading, setError, fetchTableCart]);
 
     const increment = useCallback(async (productId: string) => {
         const currentCart = cartsByTable[activeTableId];
@@ -632,10 +778,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             increment,
             decrement,
             remove,
+            removeByItemId,
             clearCart,
             checkout,
             getCartForTable,
-            updateItemQuantity: updateItemQuantity,
+            updateItemQuantity,
+            updateItemQuantityByItemId,
             fetchTableCart, // Kept exposed but switchTable is preferred
             setLoading,
             setError

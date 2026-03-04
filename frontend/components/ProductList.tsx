@@ -34,7 +34,10 @@ export const ProductList: React.FC<ProductListProps> = ({
   stockStatusFilter,
   searchQuery,
   onProductSelect,
-  showStockInfo = true,
+  // Stock info intentionally hidden from cashier UI.
+  // Stock management is handled in admin panel.
+  // Kept in code for potential future POS usage.
+  showStockInfo = false,
   showTaxInfo = true,
   ListHeaderComponent,
   ListFooterComponent
@@ -146,8 +149,8 @@ export const ProductList: React.FC<ProductListProps> = ({
           </Text>
         </View>
 
-        {/* Stock indicator */}
-        {showStockInfo && (
+        {/* Stock indicator - hidden from cashier UI; stock managed in admin panel */}
+        {/* {showStockInfo && (
           <View style={styles.stockRow}>
             <View style={[
               styles.stockDot,
@@ -155,7 +158,7 @@ export const ProductList: React.FC<ProductListProps> = ({
             ]} />
             <Text style={styles.stockText}>{item.stockQuantity || 0}</Text>
           </View>
-        )}
+        )} */}
       </View>
     </Pressable>
   );
@@ -188,7 +191,8 @@ export const ProductList: React.FC<ProductListProps> = ({
           <View style={styles.priceBadgeSm}>
             <Text style={styles.priceTextSm}>€{item.price?.toFixed(2)}</Text>
           </View>
-          {showStockInfo && (
+          {/* Stock indicator - hidden from cashier UI; stock managed in admin panel */}
+          {/* {showStockInfo && (
             <View style={styles.stockRow}>
               <View style={[
                 styles.stockDot,
@@ -196,7 +200,7 @@ export const ProductList: React.FC<ProductListProps> = ({
               ]} />
               <Text style={styles.stockText}>{item.stockQuantity || 0}</Text>
             </View>
-          )}
+          )} */}
         </View>
       </View>
     </Pressable>

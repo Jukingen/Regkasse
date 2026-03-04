@@ -89,6 +89,8 @@ namespace KasseAPI_Final.Models
         // public virtual Category CategoryNavigation { get; set; } = null!;
         // public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         // public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
+        /// <summary>Bu ürüne atanmış modifier grupları (Extra Zutaten).</summary>
+        public virtual ICollection<ProductModifierGroupAssignment> ModifierGroupAssignments { get; set; } = new List<ProductModifierGroupAssignment>();
     }
 
     /// <summary>

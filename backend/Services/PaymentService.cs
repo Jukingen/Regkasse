@@ -181,6 +181,35 @@ namespace KasseAPI_Final.Services
                         LineNet = line.LineNet
                     };
 
+                    // Extra Zutaten: modifier'ları yükle, fiyat/vergi hesapla, receipt ve TSE için snapshot ekle
+                    if (itemRequest.ModifierIds != null && itemRequest.ModifierIds.Count > 0)
+                    {
+                        var modifiers = await _context.ProductModifiers
+                            .Where(m => itemRequest.ModifierIds.Contains(m.Id))
+                            .ToListAsync();
+                        foreach (var mod in modifiers)
+                        {
+                            var modLine = CartMoneyHelper.ComputeLine(mod.Price, itemRequest.Quantity, mod.TaxType);
+                            totalAmount += modLine.LineGross;
+                            totalTaxAmount += modLine.LineTax;
+                            paymentItem.Modifiers.Add(new PaymentItemModifierSnapshot
+                            {
+                                ModifierId = mod.Id,
+                                Name = mod.Name,
+                                UnitPrice = modLine.UnitPriceGross,
+                                TotalPrice = modLine.LineGross,
+                                TaxType = mod.TaxType,
+                                TaxRate = modLine.TaxRate,
+                                TaxAmount = modLine.LineTax,
+                                LineNet = modLine.LineNet
+                            });
+                            var modTaxKey = ((TaxType)mod.TaxType).ToString().ToLowerInvariant();
+                            if (!taxDetails.ContainsKey(modTaxKey))
+                                taxDetails[modTaxKey] = 0;
+                            taxDetails[modTaxKey] += modLine.LineTax;
+                        }
+                    }
+
                     paymentItems.Add(paymentItem);
 
                     var taxKey = itemRequest.TaxType.ToString().ToLowerInvariant();

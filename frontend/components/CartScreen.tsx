@@ -26,25 +26,27 @@ import EmailInvoice from './EmailInvoice';
 import WaiterShortcuts from './WaiterShortcuts';
 import { useTranslation } from 'react-i18next';
 
-// Sepet item'ını CartScreen için uygun tipe dönüştürür
+// Sepet item'ını CartScreen için uygun tipe dönüştürür.
+// stockQuantity: Backend cart response'da şu an yok; ileride eklense bile kullanılır. Yoksa güvenli fallback.
 function mapCartItem(item: any) {
+  const stockFromApi = item.stockQuantity ?? item.StockQuantity;
   return {
     id: item.id,
     product: {
       id: item.productId,
-      name: item.name,
-      price: item.price,
-      stockQuantity: 9999, // Stok backend'den gelmiyorsa dummy
+      name: item.name ?? item.productName,
+      price: item.price ?? item.unitPrice,
+      stockQuantity: typeof stockFromApi === 'number' ? stockFromApi : 9999,
       taxType: item.taxType,
     },
     quantity: item.quantity,
-    unitPrice: item.price,
+    unitPrice: item.price ?? item.unitPrice,
     taxRate: 0,
     discountAmount: 0,
     taxAmount: 0,
-    totalAmount: item.price * item.quantity,
+    totalAmount: (item.price ?? item.unitPrice) * item.quantity,
     isModified: false,
-    notes: item.notes, // Yeni eklenen alan
+    notes: item.notes,
   };
 }
 

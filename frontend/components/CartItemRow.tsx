@@ -3,6 +3,12 @@ import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator } from '
 import { SoftColors, SoftSpacing, SoftRadius, SoftShadows } from '../constants/SoftTheme';
 import { formatPrice, formatPercent } from '../utils/formatPrice';
 
+export interface CartItemModifier {
+    id: string;
+    name: string;
+    price: number;
+}
+
 export interface CartItem {
     id?: string;
     itemId?: string;
@@ -16,6 +22,8 @@ export interface CartItem {
     taxRate?: number;
     notes?: string;
     productImage?: string;
+    /** Extra Zutaten für diese Zeile */
+    modifiers?: CartItemModifier[];
 }
 
 interface CartItemRowProps {
@@ -34,9 +42,20 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
         <View style={styles.container}>
             {/* Row 1: Product Name + Total Price */}
             <View style={styles.mainRow}>
-                <Text style={styles.productName} numberOfLines={2}>
-                    {item.productName || 'Unbekanntes Produkt'}
-                </Text>
+                <View style={styles.nameBlock}>
+                    <Text style={styles.productName} numberOfLines={2}>
+                        {item.productName || 'Unbekanntes Produkt'}
+                    </Text>
+                    {item.modifiers && item.modifiers.length > 0 && (
+                        <View style={styles.modifiersBlock}>
+                            {item.modifiers.map((m) => (
+                                <Text key={m.id} style={styles.modifierLine} numberOfLines={1}>
+                                    + {m.name} {formatPrice(m.price * quantity)}
+                                </Text>
+                            ))}
+                        </View>
+                    )}
+                </View>
                 <Text style={styles.totalPrice}>
                     {formatPrice(item.totalPrice)}
                 </Text>
@@ -126,12 +145,21 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginBottom: 4,
     },
-    productName: {
+    nameBlock: {
         flex: 1,
+        marginRight: 12,
+    },
+    productName: {
         fontSize: 14,
         fontWeight: '600',
         color: '#1F2937',
-        marginRight: 12,
+    },
+    modifiersBlock: {
+        marginTop: 2,
+    },
+    modifierLine: {
+        fontSize: 12,
+        color: SoftColors.textSecondary,
     },
     totalPrice: {
         fontSize: 14,

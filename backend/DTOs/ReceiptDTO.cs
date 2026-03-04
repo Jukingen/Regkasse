@@ -53,11 +53,16 @@ namespace KasseAPI_Final.DTOs
 
     public class ReceiptItemDTO
     {
+        public Guid? ItemId { get; set; }
         public string Name { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; } // Gross price per unit
         public decimal TotalPrice { get; set; } // Gross total (qty * unitPrice)
         public decimal TaxRate { get; set; } // 10, 20, etc.
+        /// <summary>Varsa: modifier satırı; ana ürün satırının ItemId'si (görselde girinti için).</summary>
+        public Guid? ParentItemId { get; set; }
+        /// <summary>true ise Extra Zutaten satırı (fişte "+ Name €Price" gösterilir).</summary>
+        public bool IsModifierLine { get; set; }
     }
 
     public class ReceiptTaxLineDTO

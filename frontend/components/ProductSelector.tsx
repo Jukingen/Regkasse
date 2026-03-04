@@ -229,9 +229,10 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
                   <Text style={styles.productPrice}>
                     €{item.price.toFixed(2)}
                   </Text>
-                  <Text style={styles.productStock}>
+                  {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
+                  {/* <Text style={styles.productStock}>
                     Stok: {item.stockQuantity} {item.unit}
-                  </Text>
+                  </Text> */}
                   <View style={[
                     styles.taxBadge,
                     { backgroundColor: getTaxTypeColor(item.taxType) }

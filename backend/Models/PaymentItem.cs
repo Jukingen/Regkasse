@@ -40,8 +40,21 @@ namespace KasseAPI_Final.Models
         /// <summary>Satır net tutarı (CartMoneyHelper.LineNet); rounding tutarlılığı için saklanır.</summary>
         [Column(TypeName = "decimal(18,2)")]
         public decimal LineNet { get; set; }
-        
-        // Navigation property
-        // Product navigation property removed to prevent shadow property conflicts
+
+        /// <summary>Extra Zutaten – bu satıra seçilen modifier'lar (fiş/receipt ve vergi için).</summary>
+        public List<PaymentItemModifierSnapshot> Modifiers { get; set; } = new();
+    }
+
+    /// <summary>Fiş/receipt ve vergi toplamı için modifier satırı snapshot (PaymentItems JSON içinde).</summary>
+    public class PaymentItemModifierSnapshot
+    {
+        public Guid ModifierId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal UnitPrice { get; set; }
+        public decimal TotalPrice { get; set; }
+        public int TaxType { get; set; }
+        public decimal TaxRate { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal LineNet { get; set; }
     }
 }

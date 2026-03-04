@@ -119,9 +119,10 @@ const QuickProductSearch: React.FC<QuickProductSearchProps> = ({
       </View>
       <View style={styles.productPrice}>
         <Text style={styles.priceText}>€{item.price.toFixed(2)}</Text>
-                 <Text style={styles.stockText}>
+        {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
+        {/* <Text style={styles.stockText}>
            {item.stockQuantity > 0 ? `${item.stockQuantity} in stock` : 'Out of stock'}
-         </Text>
+         </Text> */}
       </View>
       <Ionicons name="chevron-forward" size={20} color={Colors.light.textSecondary} />
     </TouchableOpacity>

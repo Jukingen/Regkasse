@@ -1,17 +1,21 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
 import { Product, TaxType } from '@/api/generated/model';
 import DebounceSelect from '@/components/DebounceSelect';
 import { getApiCategoriesSearch } from '@/api/generated/categories/categories';
 import { useCategories } from '@/features/categories/hooks/useCategories';
+import { getModifierGroups, getProductModifierGroups, type ModifierGroupDto } from '@/lib/api/modifierGroups';
+import ExtraZutatenSection from './ExtraZutatenSection';
+
+export type ProductFormSubmitValues = Product & { modifierGroupIds?: string[] };
 
 interface ProductFormProps {
     visible: boolean;
     initialValues?: Product | null;
     onCancel: () => void;
-    onSubmit: (values: Product) => Promise<void>;
+    onSubmit: (values: ProductFormSubmitValues) => Promise<void>;
     loading?: boolean;
 }
 
@@ -26,6 +30,36 @@ export default function ProductForm({
     loading,
 }: ProductFormProps) {
     const [form] = Form.useForm();
+    const [modifierGroups, setModifierGroups] = useState<ModifierGroupDto[]>([]);
+    const [selectedModifierGroupIds, setSelectedModifierGroupIds] = useState<string[]>([]);
+    const [modifierGroupsLoading, setModifierGroupsLoading] = useState(false);
+
+    // Extra Zutaten: Tüm grupları ve (edit modda) ürüne atanmış grupları yükle
+    useEffect(() => {
+        if (!visible) return;
+        let cancelled = false;
+        setModifierGroupsLoading(true);
+        (async () => {
+            try {
+                const [allGroups, assignedGroups] = await Promise.all([
+                    getModifierGroups(),
+                    initialValues?.id ? getProductModifierGroups(initialValues.id) : Promise.resolve([]),
+                ]);
+                if (cancelled) return;
+                setModifierGroups(allGroups);
+                setSelectedModifierGroupIds(assignedGroups.map((g) => g.id));
+            } catch (e) {
+                if (!cancelled) {
+                    message.error('Extra Zutaten konnten nicht geladen werden.');
+                    setModifierGroups([]);
+                    setSelectedModifierGroupIds([]);
+                }
+            } finally {
+                if (!cancelled) setModifierGroupsLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [visible, initialValues?.id]);
 
     // Fetch default categories
     const { useList } = useCategories();
@@ -89,17 +123,17 @@ export default function ProductForm({
             // Extract category value if it's an object (labelInValue)
             const categoryValue = values.category?.value || values.category;
 
-            // Prepare payload with hidden defaults + visible values
-            const processedValues: Product = {
+            // Prepare payload with hidden defaults + visible values + Extra Zutaten
+            const processedValues: ProductFormSubmitValues = {
                 ...values,
                 price: Number(values.price),
                 cost: Number(values.cost),
                 taxRate: Number(values.taxRate),
-                // Ensure defaults for hidden fields
                 stockQuantity: Number(values.stockQuantity ?? 0),
                 minStockLevel: Number(values.minStockLevel ?? 0),
                 unit: values.unit || 'pcs',
                 category: categoryValue,
+                modifierGroupIds: selectedModifierGroupIds,
             };
 
             await onSubmit(processedValues);
@@ -261,6 +295,15 @@ export default function ProductForm({
                     valuePropName="checked"
                 >
                     <Switch />
+                </Form.Item>
+
+                <Form.Item label="Extra Zutaten" style={{ marginBottom: 0 }}>
+                    <ExtraZutatenSection
+                        groups={modifierGroups}
+                        selectedGroupIds={selectedModifierGroupIds}
+                        onChange={setSelectedModifierGroupIds}
+                        loading={modifierGroupsLoading}
+                    />
                 </Form.Item>
             </Form>
         </Modal>

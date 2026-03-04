@@ -7,7 +7,8 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant
 import { useProducts, useProductFilters } from '@/features/products/hooks/useProducts';
 import { Product } from '@/api/generated/model';
 import { mapApiProductToUi, mapUiProductToApi } from '@/features/products/utils/productMapper';
-import ProductForm from '@/features/products/components/ProductForm';
+import ProductForm, { type ProductFormSubmitValues } from '@/features/products/components/ProductForm';
+import { setProductModifierGroups } from '@/lib/api/modifierGroups';
 import { ColumnType } from 'antd/es/table';
 
 export default function ProductsPage() {
@@ -111,35 +112,39 @@ export default function ProductsPage() {
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
     // 4. Handlers
-    const handleCreate = async (values: Product) => {
+    const handleCreate = async (values: ProductFormSubmitValues) => {
         try {
             const apiData = mapUiProductToApi(values);
-            await createMutation.mutateAsync({ data: apiData });
+            const result = await createMutation.mutateAsync({ data: apiData }) as { data?: { id?: string } };
+            const createdId = result?.data?.id;
+            if (createdId && values.modifierGroupIds?.length) {
+                await setProductModifierGroups(createdId, values.modifierGroupIds);
+            }
             message.success('Product created successfully');
             setIsFormVisible(false);
             invalidateList();
         } catch (err) {
             message.error('Failed to create product');
-            // Re-throw so ProductForm can handle validation errors
             throw err;
         }
     };
 
-    const handleUpdate = async (values: Product) => {
+    const handleUpdate = async (values: ProductFormSubmitValues) => {
         if (!editingProduct?.id) return;
         try {
             const apiData = mapUiProductToApi(values);
-            // Ensure ID is included (though mapper does it, safety check)
             apiData.id = editingProduct.id;
 
             await updateMutation.mutateAsync({ id: editingProduct.id, data: apiData });
+            if (values.modifierGroupIds !== undefined) {
+                await setProductModifierGroups(editingProduct.id, values.modifierGroupIds);
+            }
             message.success('Product updated successfully');
             setIsFormVisible(false);
             setEditingProduct(null);
             invalidateList();
         } catch (err) {
             message.error('Failed to update product');
-            // Re-throw so ProductForm can handle validation errors
             throw err;
         }
     };

@@ -35,6 +35,8 @@ interface PaymentModalProps {
     unitPrice: number;
     totalPrice: number;
     taxType?: string;
+    /** Extra Zutaten – ödeme/fiş için backend'e gönderilir */
+    modifiers?: Array<{ modifierId: string }>;
   }>;
   /** Backend'den gelen brüt toplam - FE hesaplama yapmaz */
   grandTotalGross?: number;
@@ -189,7 +191,8 @@ export default function PaymentModal({
       const paymentItems: PaymentItem[] = cartItems.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
-        taxType: (item.taxType as 'standard' | 'reduced' | 'special') || 'standard'
+        taxType: (item.taxType as 'standard' | 'reduced' | 'special') || 'standard',
+        modifierIds: item.modifiers?.map(m => m.modifierId) ?? []
       }));
 
       // NOTE: TSE Logic

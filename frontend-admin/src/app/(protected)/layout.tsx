@@ -65,6 +65,11 @@ export default function DashboardLayout({
             label: <Link href="/products">Products</Link>,
         },
         {
+            key: '/modifier-groups',
+            icon: <FileTextOutlined />,
+            label: <Link href="/modifier-groups">Extra Zutaten</Link>,
+        },
+        {
             key: '/categories',
             icon: <FileTextOutlined />,
             label: <Link href="/categories">Categories</Link>,

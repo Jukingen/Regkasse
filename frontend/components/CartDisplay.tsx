@@ -7,16 +7,17 @@ import { CartItemRow } from './CartItemRow';
 import { formatPrice } from '../utils/formatPrice';
 
 interface CartItem {
-  itemId: string;
+  itemId?: string;
   productId: string;
   productName: string;
-  quantity: number;
+  quantity?: number;
   qty?: number;
   unitPrice: number;
   totalPrice: number;
   taxType?: string;
   taxRate?: number;
   notes?: string;
+  modifiers?: { id: string; name: string; price: number }[];
 }
 
 interface CartDisplayProps {
@@ -98,7 +99,8 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
         nestedScrollEnabled={true}
       >
         {cart.items.map((item: CartItem) => {
-          const safeId = item.itemId || item.productId;
+          const modifierKey = (item.modifiers ?? []).map((m: { id: string }) => m.id).sort().join(',');
+          const safeId = item.itemId || `${item.productId}-${modifierKey || 'base'}`;
           return (
             <CartItemRow
               key={safeId}

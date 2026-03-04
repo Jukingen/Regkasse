@@ -44,11 +44,15 @@ export interface ReceiptDTO {
 }
 
 export interface ReceiptItemDTO {
+    itemId?: string;
     name: string;
     quantity: number;
     unitPrice: number; // Brutto price per unit
     totalPrice: number; // Brutto line total
     taxRate: number; // e.g., 20, 10, 0
+    /** Ana ürün satırına bağlı modifier satırı (Extra Zutaten); fişte girintili "+ Name €Price" */
+    parentItemId?: string | null;
+    isModifierLine?: boolean;
 }
 
 export interface ReceiptTaxRateDTO {

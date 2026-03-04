@@ -52,6 +52,11 @@ namespace KasseAPI_Final.Data
         public DbSet<ReceiptItem> ReceiptItems { get; set; }
         public DbSet<ReceiptTaxLine> ReceiptTaxLines { get; set; }
 
+        // Extra Zutaten (Product Modifiers)
+        public DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
+        public DbSet<ProductModifier> ProductModifiers { get; set; }
+        public DbSet<ProductModifierGroupAssignment> ProductModifierGroupAssignments { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -240,6 +245,49 @@ namespace KasseAPI_Final.Data
                 
                 entity.HasIndex(e => e.Name).IsUnique();
                 entity.HasIndex(e => e.SortOrder);
+            });
+
+            // ProductModifierGroup configuration (Extra Zutaten)
+            builder.Entity<ProductModifierGroup>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.MinSelections);
+                entity.Property(e => e.MaxSelections);
+                entity.Property(e => e.IsRequired);
+                entity.Property(e => e.SortOrder);
+                entity.ToTable("product_modifier_groups");
+            });
+
+            // ProductModifier configuration
+            builder.Entity<ProductModifier>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ModifierGroupId).IsRequired();
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxType).IsRequired();
+                entity.Property(e => e.SortOrder);
+                entity.HasOne(e => e.ModifierGroup)
+                    .WithMany(g => g.Modifiers)
+                    .HasForeignKey(e => e.ModifierGroupId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.ToTable("product_modifiers");
+            });
+
+            // ProductModifierGroupAssignment (Product M:N ModifierGroup)
+            builder.Entity<ProductModifierGroupAssignment>(entity =>
+            {
+                entity.HasKey(e => new { e.ProductId, e.ModifierGroupId });
+                entity.HasOne(e => e.Product)
+                    .WithMany(p => p.ModifierGroupAssignments)
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.ModifierGroup)
+                    .WithMany(g => g.ProductAssignments)
+                    .HasForeignKey(e => e.ModifierGroupId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.ToTable("product_modifier_group_assignments");
             });
 
             // PaymentDetails configuration

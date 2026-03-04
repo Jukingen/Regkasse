@@ -457,9 +457,10 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
               <Text style={styles.detailText}>
                 {t('cart.tax')}: {t(`tax.${item.product.taxType}`)} ({Math.round(getTaxRate(item.product.taxType) * 100)}%)
               </Text>
-              <Text style={styles.detailText}>
+              {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
+              {/* <Text style={styles.detailText}>
                 {t('cart.stock')}: {item.product.stockQuantity}
-              </Text>
+              </Text> */}
             </View>
 
             {/* Kaldır Butonu */}

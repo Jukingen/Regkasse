@@ -56,11 +56,13 @@ namespace KasseAPI_Final.DTOs
         
         /// <summary>
         /// Vergi tipi. Tercih: string ("standard", "reduced", "special", "zerorate").
-        /// ZeroRate: 0% VAT (Österreich 2026). "exempt" deprecated → zerorate. int (1-4) deprecated.
         /// </summary>
         [Required]
         [JsonConverter(typeof(TaxTypeJsonConverter))]
         public TaxType TaxType { get; set; } = TaxType.Standard;
+
+        /// <summary>Extra Zutaten – bu satır için seçilen modifier ID'leri. Backend fiyat/vergi hesaplar.</summary>
+        public List<Guid> ModifierIds { get; set; } = new();
     }
     
     /// <summary>

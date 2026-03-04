@@ -9,11 +9,13 @@ export interface PaymentMethod {
   icon: string;
 }
 
-// Backend'deki PaymentItemRequest ile uyumlu
+// Backend'deki PaymentItemRequest ile uyumlu (modifierIds = Extra Zutaten)
 export interface PaymentItem {
-  productId: string; // Guid string formatında (00000000-0000-0000-0000-000000000000)
+  productId: string;
   quantity: number;
   taxType: 'standard' | 'reduced' | 'special';
+  /** Extra Zutaten – seçilen modifier ID'leri; backend fiyat/vergi hesaplar, fişte satır olarak görünür */
+  modifierIds?: string[];
 }
 
 // Backend'deki CreatePaymentRequest ile uyumlu

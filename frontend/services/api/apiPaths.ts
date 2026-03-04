@@ -23,6 +23,8 @@ export const API_PATHS = {
         SEARCH: '/Product/search',
         /** GET/PUT - Single product by ID */
         BY_ID: (id: string) => `/Product/${id}`,
+        /** GET - Product modifier groups (Extra Zutaten) */
+        MODIFIER_GROUPS: (id: string) => `/Product/${id}/modifier-groups`,
         /** PUT - Update product stock */
         STOCK: (id: string) => `/Product/stock/${id}`,
         /** GET - Debug: categories and products info */

@@ -122,7 +122,8 @@ export default function TabLayout() {
                     quantity: item.qty,
                     unitPrice: item.unitPrice || item.price || 0,
                     totalPrice: item.totalPrice ?? ((item.price ?? 0) * (item.qty ?? 0)),
-                    taxType: undefined
+                    taxType: undefined,
+                    modifiers: item.modifiers?.map(m => ({ modifierId: m.modifierId }))
                 }))}
                 grandTotalGross={totals.grandTotalGross}
                 customerId="00000000-0000-0000-0000-000000000000"

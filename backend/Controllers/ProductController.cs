@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.Authorization;
 using KasseAPI_Final.Controllers.Base;
@@ -408,6 +409,118 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 return HandleException(ex, "SearchProducts");
+            }
+        }
+
+        /// <summary>
+        /// Ürüne atanmış modifier gruplarını getir (Extra Zutaten). Admin / POS.
+        /// </summary>
+        [HttpGet("{id:guid}/modifier-groups")]
+        public async Task<IActionResult> GetProductModifierGroups(Guid id)
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                    return ErrorResponse("Product not found.", 404);
+
+                var assignmentGroupIds = await _context.ProductModifierGroupAssignments
+                    .Where(a => a.ProductId == id)
+                    .OrderBy(a => a.SortOrder)
+                    .Select(a => a.ModifierGroupId)
+                    .ToListAsync();
+
+                if (assignmentGroupIds.Count == 0)
+                    return SuccessResponse(new List<ModifierGroupDto>(), "No modifier groups assigned.");
+
+                var groups = await _context.ProductModifierGroups
+                    .Where(g => g.IsActive && assignmentGroupIds.Contains(g.Id))
+                    .Include(g => g.Modifiers.Where(m => m.IsActive))
+                    .OrderBy(g => g.SortOrder)
+                    .ThenBy(g => g.Name)
+                    .ToListAsync();
+
+                var ordered = assignmentGroupIds
+                    .Select(gid => groups.FirstOrDefault(g => g.Id == gid))
+                    .Where(g => g != null)
+                    .Cast<ProductModifierGroup>()
+                    .ToList();
+
+                var dtos = ordered.Select(g => new ModifierGroupDto
+                {
+                    Id = g.Id,
+                    Name = g.Name,
+                    MinSelections = g.MinSelections,
+                    MaxSelections = g.MaxSelections,
+                    IsRequired = g.IsRequired,
+                    SortOrder = g.SortOrder,
+                    IsActive = g.IsActive,
+                    Modifiers = g.Modifiers
+                        .OrderBy(m => m.SortOrder)
+                        .ThenBy(m => m.Name)
+                        .Select(m => new ModifierDto
+                        {
+                            Id = m.Id,
+                            Name = m.Name,
+                            Price = m.Price,
+                            TaxType = m.TaxType,
+                            SortOrder = m.SortOrder
+                        }).ToList()
+                }).ToList();
+
+                return SuccessResponse(dtos, "Product modifier groups retrieved.");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "Product.GetProductModifierGroups");
+            }
+        }
+
+        /// <summary>
+        /// Ürüne modifier gruplarını ata. Mevcut atamalar replace edilir.
+        /// </summary>
+        [HttpPost("{id:guid}/modifier-groups")]
+        public async Task<IActionResult> SetProductModifierGroups(Guid id, [FromBody] SetProductModifierGroupsRequest request)
+        {
+            try
+            {
+                var product = await _context.Products.FindAsync(id);
+                if (product == null)
+                    return ErrorResponse("Product not found.", 404);
+
+                var existing = await _context.ProductModifierGroupAssignments
+                    .Where(a => a.ProductId == id)
+                    .ToListAsync();
+                _context.ProductModifierGroupAssignments.RemoveRange(existing);
+
+                if (request.ModifierGroupIds != null && request.ModifierGroupIds.Count > 0)
+                {
+                    var groupIds = request.ModifierGroupIds.Distinct().ToList();
+                    var existingGroups = await _context.ProductModifierGroups
+                        .Where(g => g.IsActive && groupIds.Contains(g.Id))
+                        .Select(g => g.Id)
+                        .ToListAsync();
+
+                    int sortOrder = 0;
+                    foreach (var gid in groupIds)
+                    {
+                        if (!existingGroups.Contains(gid)) continue;
+                        _context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
+                        {
+                            ProductId = id,
+                            ModifierGroupId = gid,
+                            SortOrder = sortOrder++
+                        });
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Product {ProductId} modifier groups updated.", id);
+                return SuccessResponse(new { productId = id, count = request.ModifierGroupIds?.Count ?? 0 }, "Modifier groups updated.");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "Product.SetProductModifierGroups");
             }
         }
 

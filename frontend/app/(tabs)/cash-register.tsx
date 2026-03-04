@@ -12,6 +12,7 @@ import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
 import CategoryFilter from '../../components/CategoryFilter';
 import PaymentModal from '../../components/PaymentModal';
+import { ModifierSelectionModal, type SelectedModifier } from '../../components/ModifierSelectionModal';
 import { ToastContainer } from '../../components/ToastNotification';
 
 // Hook'ları import et
@@ -74,18 +75,22 @@ export default function CashRegisterScreen() {
     increment,
     decrement,
     remove,
+    removeByItemId,
     clearCart,
     getCartForTable,
-    updateItemQuantity: contextUpdateItemQuantity, // Rename to avoid conflict if any
+    updateItemQuantity: contextUpdateItemQuantity,
+    updateItemQuantityByItemId, // Rename to avoid conflict if any
     isPaymentModalVisible,
     setIsPaymentModalVisible
   } = useCart();
 
   // Local state'ler
-  // REMOVED: selectedTable state (activeTableId is source of truth)
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [customerId, setCustomerId] = useState<string>('00000000-0000-0000-0000-000000000000');
+  // Extra Zutaten: Ürün seçilince modal açılır, modifier seçilip "Hinzufügen" ile sepete eklenir
+  const [modifierModalVisible, setModifierModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // ✅ Aktif table'ın cart'ını al (Derived State)
   const cart = getCartForTable(activeTableId);
@@ -190,30 +195,29 @@ export default function CashRegisterScreen() {
     setFilteredProducts(searchResults);
   };
 
-  // Ürün seçimi handler'ı (yeni yapı)
-  const handleProductSelect = async (product: Product) => {
+  // Ürün seçimi: Önce Extra-Zutaten modal'ı aç; "Hinzufügen" ile sepete ekle (modifier seçmeden de eklenebilir)
+  const handleProductSelect = (product: Product) => {
+    if (!activeTableId) {
+      addToast('error', 'Bitte zuerst Tisch wählen', 3000);
+      return;
+    }
+    setSelectedProduct(product);
+    setModifierModalVisible(true);
+  };
+
+  const handleModifierModalAdd = async (selectedModifiers: SelectedModifier[]) => {
+    if (!selectedProduct || !activeTableId) return;
     try {
-      if (!activeTableId) {
-        addToast('error', 'Please select a table first', 3000);
-        return;
-      }
-
-      const addResult = await addToCart({
-        productId: product.id,
-        productName: product.name,
-        quantity: 1,
-        unitPrice: product.price,
-        notes: undefined
-      }, activeTableId);
-
-      if (addResult.success) {
-        // No need to setCart, Context updates automatically
-        addToast('success', `${product.name} added to table ${activeTableId}`, 2000);
-      }
-
+      await addItem(selectedProduct.id, 1, {
+        modifiers: selectedModifiers,
+        productName: selectedProduct.name,
+        unitPrice: selectedProduct.price ?? 0,
+      });
+      addToast('success', `${selectedProduct.name} zu Tisch ${activeTableId} hinzugefügt`, 2000);
+      setModifierModalVisible(false);
+      setSelectedProduct(null);
     } catch (error: any) {
-      console.error('❌ Ürün ekleme hatası:', error);
-      addToast('error', `Failed to add ${product.name}: ${error?.message || 'Unknown error'}`, 5000);
+      addToast('error', `${selectedProduct.name}: ${error?.message || 'Fehler'}`, 5000);
     }
   };
 
@@ -255,68 +259,27 @@ export default function CashRegisterScreen() {
   const handleQuantityUpdate = async (itemId: string, action: 'increment' | 'decrement') => {
     if (!activeTableId) return;
 
-    // 🔥 Read FRESH item to avoid stale closure
     const currentCart = getCartForTable(activeTableId);
-    const item = currentCart?.items?.find((i: any) => {
-      const id = i.itemId || i.id || i.productId;
-      return id === itemId;
-    });
+    const item = currentCart?.items?.find((i: any) => (i.itemId || i.id || i.productId) === itemId);
+    if (!item) return;
 
-    if (!item) {
-      console.error('❌ Item not found:', itemId);
-      return;
-    }
-
-
-    const currentQty = (item as any).quantity || item.qty || 0;
-    const currentNotes = item.notes || '';
-
-
-    // Calculate new quantity based on action
+    const currentQty = (item as any).quantity ?? item.qty ?? 0;
     const newQty = action === 'increment' ? currentQty + 1 : currentQty - 1;
 
-    console.log('🔄 Quantity Update (via Context):', {
-      itemId,
-      productId: item.productId,
-      action,
-      currentQty,
-      newQty
-    });
-
     try {
-      // Use Context method which handles Optimistic Update + API Call
-      // We need productId for the context method
-      if (!item.productId) {
-        console.error('❌ Product ID missing for item:', item);
-        return;
-      }
-
-      await contextUpdateItemQuantity(item.productId, newQty);
-
-      // No need to manually call switchTable, context updates local state immediately
-      // and then syncs with backend.
-
+      await updateItemQuantityByItemId(itemId, newQty);
     } catch (err: any) {
-      console.error('❌ Quantity update error:', err);
       addToast('error', 'Update failed', 2000);
-      // Context handles rollback internaly
     }
   };
 
 
-  // Ürün kaldırma handler'ı
   const handleItemRemove = async (itemId: string) => {
-    if (!activeTableId) {
-      addToast('error', 'No table selected. Please select a table first.', 3000);
-      return;
-    }
-
+    if (!activeTableId) return;
     try {
-      await apiClient.delete(`/cart/items/${itemId}`);
+      await removeByItemId(itemId);
       addToast('info', 'Item removed from cart', 2000);
-      await switchTable(activeTableId);
     } catch (err: any) {
-      console.error('❌ Remove item error:', err);
       addToast('error', err?.message || 'Failed to remove item', 3000);
     }
   };
@@ -438,10 +401,11 @@ export default function CashRegisterScreen() {
       />
 
       {/* Root List - ProductList acts as the main scrollable container */}
+      {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
       <ProductList
         categoryFilter={selectedCategory === 'all' ? undefined : selectedCategory}
         onProductSelect={handleProductSelect}
-        showStockInfo={true}
+        showStockInfo={false}
         showTaxInfo={true}
         ListHeaderComponent={
           <>
@@ -489,9 +453,20 @@ export default function CashRegisterScreen() {
               onPayment={handlePayment}
             />
           </>
-        }
+        } 
       />
 
+      {/* Extra Zutaten: Ürün tıklandığında modal, "Hinzufügen" ile sepete ekleme */}
+      {selectedProduct && (
+        <ModifierSelectionModal
+          visible={modifierModalVisible}
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          productPrice={selectedProduct.price ?? 0}
+          onClose={() => { setModifierModalVisible(false); setSelectedProduct(null); }}
+          onAdd={handleModifierModalAdd}
+        />
+      )}
     </SafeAreaView>
   );
 }

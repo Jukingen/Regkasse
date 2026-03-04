@@ -114,9 +114,10 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
         <Text style={styles.productDescription}>{item.description}</Text>
         <View style={styles.productMeta}>
           <Text style={styles.productCategory}>{item.category}</Text>
-          <Text style={styles.productStock}>
+          {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
+          {/* <Text style={styles.productStock}>
             {t('product.stock')}: {item.stock}
-          </Text>
+          </Text> */}
         </View>
       </View>
       <View style={styles.productPrice}>
@@ -243,8 +244,8 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
                 </View>
               </View>
 
-              {/* Stok Filtresi */}
-              <View style={styles.filterSection}>
+              {/* Stok Filtresi - hidden from cashier UI; stock managed in admin panel. Kept for potential future POS usage. */}
+              {/* <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>{t('search.stock')}</Text>
                 <TouchableOpacity
                   style={[
@@ -263,7 +264,7 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
                     {t('search.inStockOnly')}
                   </Text>
                 </TouchableOpacity>
-              </View>
+              </View> */}
 
               {/* Vergi Tipi Filtresi */}
               <View style={styles.filterSection}>

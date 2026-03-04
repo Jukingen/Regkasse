@@ -116,33 +116,56 @@ namespace KasseAPI_Final.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            // 6. Items
-            newReceipt.Items = items.Select(i => new ReceiptItem
+            // 6. Items: ana ürün satırı + her modifier için alt satır (ParentItemId ile; RKSV satış kalemi olarak sayılır)
+            var receiptItems = new List<ReceiptItem>();
+            var taxLineInputs = new List<(int TaxType, decimal TaxRate, decimal LineNet, decimal LineTax, decimal LineGross)>();
+            foreach (var i in items)
             {
-                ItemId = Guid.NewGuid(),
-                ProductName = i.ProductName,
-                Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice,
-                TotalPrice = i.TotalPrice,
-                TaxRate = i.TaxRate * 100 // 0.20 -> 20.00
-            }).ToList();
-
-            // 7. Tax Lines: group by (TaxType, TaxRate); NetAmount from LineNet (fallback: TotalPrice - TaxAmount)
-            var taxGroups = items.GroupBy(i => new { i.TaxType, i.TaxRate })
-                .Select(g =>
+                var productItemId = Guid.NewGuid();
+                receiptItems.Add(new ReceiptItem
                 {
-                    var grossAmount = g.Sum(x => x.TotalPrice);
-                    var taxAmount = g.Sum(x => x.TaxAmount);
-                    var netAmount = g.Sum(x => Math.Abs((x.LineNet + x.TaxAmount) - x.TotalPrice) <= 0.01m ? x.LineNet : (x.TotalPrice - x.TaxAmount));
-                    return new ReceiptTaxLine
+                    ItemId = productItemId,
+                    ReceiptId = newReceipt.ReceiptId,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    TotalPrice = i.TotalPrice,
+                    TaxRate = i.TaxRate * 100, // 0.20 -> 20.00
+                    ParentItemId = null
+                });
+                taxLineInputs.Add((i.TaxType, i.TaxRate, i.LineNet, i.TaxAmount, i.TotalPrice));
+                if (i.Modifiers != null)
+                {
+                    foreach (var m in i.Modifiers)
                     {
-                        LineId = Guid.NewGuid(),
-                        TaxType = g.Key.TaxType,
-                        TaxRate = g.Key.TaxRate * 100,
-                        GrossAmount = grossAmount,
-                        TaxAmount = taxAmount,
-                        NetAmount = netAmount
-                    };
+                        receiptItems.Add(new ReceiptItem
+                        {
+                            ItemId = Guid.NewGuid(),
+                            ReceiptId = newReceipt.ReceiptId,
+                            ProductName = m.Name,
+                            Quantity = i.Quantity,
+                            UnitPrice = m.UnitPrice,
+                            TotalPrice = m.TotalPrice,
+                            TaxRate = m.TaxRate * 100,
+                            ParentItemId = productItemId
+                        });
+                        taxLineInputs.Add((m.TaxType, m.TaxRate, m.LineNet, m.TaxAmount, m.TotalPrice));
+                    }
+                }
+            }
+            newReceipt.Items = receiptItems;
+
+            // 7. Tax Lines: tüm satırlardan (ürün + modifier) vergi grubu; RKSV uyumu
+            var taxGroups = taxLineInputs
+                .GroupBy(x => new { x.TaxType, x.TaxRate })
+                .Select(g => new ReceiptTaxLine
+                {
+                    LineId = Guid.NewGuid(),
+                    TaxType = g.Key.TaxType,
+                    TaxRate = g.Key.TaxRate * 100,
+                    NetAmount = g.Sum(x => x.LineNet),
+                    TaxAmount = g.Sum(x => x.LineTax),
+                    GrossAmount = g.Sum(x => x.LineGross)
                 })
                 .OrderBy(t => t.TaxRate)
                 .ThenBy(t => t.TaxType)
@@ -219,11 +242,14 @@ namespace KasseAPI_Final.Services
                 
                 Items = receipt.Items.Select(i => new ReceiptItemDTO
                 {
+                    ItemId = i.ItemId,
                     Name = i.ProductName,
                     Quantity = i.Quantity,
                     UnitPrice = i.UnitPrice,
                     TotalPrice = i.TotalPrice,
-                    TaxRate = i.TaxRate
+                    TaxRate = i.TaxRate,
+                    ParentItemId = i.ParentItemId,
+                    IsModifierLine = i.ParentItemId != null
                 }).ToList(),
                 
                 SubTotal = receipt.SubTotal,

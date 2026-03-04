@@ -58,11 +58,13 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ receipt }) => 
                 </View>
 
                 {items.map((item, index) => (
-                    <View key={index} style={styles.itemRow}>
-                        <Text style={[styles.itemText, styles.flex2]}>{item.name}</Text>
-                        <Text style={[styles.itemText, styles.flexRight]}>{item.quantity}</Text>
-                        <Text style={[styles.itemText, styles.flexRight]}>{formatCurrency(item.unitPrice)}</Text>
-                        <Text style={[styles.itemText, styles.flexRight]}>{formatCurrency(item.totalPrice)} {item.taxRate >= 20 ? 'A' : (item.taxRate >= 10 ? 'B' : 'C')}</Text>
+                    <View key={item.itemId ?? index} style={[styles.itemRow, item.isModifierLine && styles.modifierRow]}>
+                        <Text style={[styles.itemText, styles.flex2, item.isModifierLine && styles.modifierText]}>
+                            {item.isModifierLine ? `+ ${item.name}` : item.name}
+                        </Text>
+                        <Text style={[styles.itemText, styles.flexRight, item.isModifierLine && styles.modifierText]}>{item.quantity}</Text>
+                        <Text style={[styles.itemText, styles.flexRight, item.isModifierLine && styles.modifierText]}>{formatCurrency(item.unitPrice)}</Text>
+                        <Text style={[styles.itemText, styles.flexRight, item.isModifierLine && styles.modifierText]}>{formatCurrency(item.totalPrice)} {item.taxRate >= 20 ? 'A' : (item.taxRate >= 10 ? 'B' : 'C')}</Text>
                     </View>
                 ))}
             </View>
@@ -185,6 +187,16 @@ const styles = StyleSheet.create({
     itemRow: {
         flexDirection: 'row',
         marginBottom: 5,
+    },
+    modifierRow: {
+        marginLeft: 12,
+        paddingLeft: 4,
+        borderLeftWidth: 2,
+        borderLeftColor: '#ddd',
+    },
+    modifierText: {
+        fontSize: 11,
+        color: '#444',
     },
     itemText: {
         fontSize: 12,
