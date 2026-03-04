@@ -23,11 +23,13 @@ namespace KasseAPI_Final.DTOs
         public List<ReceiptItemDTO> Items { get; set; } = new();
 
         // --- Totals ---
-        public decimal SubTotal { get; set; } // Net Total before tax
-        public decimal TaxAmount { get; set; } // Total VAT
-        public decimal GrandTotal { get; set; } // Gross Total (Payable)
+        public decimal SubTotal { get; set; } // Net Total before tax (= TotalNet)
+        public decimal TaxAmount { get; set; } // Total VAT (= TotalVat)
+        public decimal GrandTotal { get; set; } // Gross Total (Payable = TotalGross)
+        /// <summary>Fiş toplamları (net, vergi, brüt); SubTotal/TaxAmount/GrandTotal ile aynı kaynak.</summary>
+        public ReceiptTotalsDTO? Totals { get; set; }
 
-        // --- Breakdown ---
+        // --- VAT Breakdown ---
         public List<ReceiptTaxLineDTO> TaxRates { get; set; } = new();
 
         // --- Payments ---
@@ -56,19 +58,42 @@ namespace KasseAPI_Final.DTOs
         public Guid? ItemId { get; set; }
         public string Name { get; set; } = string.Empty;
         public int Quantity { get; set; }
-        public decimal UnitPrice { get; set; } // Gross price per unit
-        public decimal TotalPrice { get; set; } // Gross total (qty * unitPrice)
-        public decimal TaxRate { get; set; } // 10, 20, etc.
-        /// <summary>Varsa: modifier satırı; ana ürün satırının ItemId'si (görselde girinti için).</summary>
+        /// <summary>Birim fiyat (brüt, inkl. MwSt).</summary>
+        public decimal UnitPrice { get; set; }
+        /// <summary>Satır toplam brüt (lineTotalGross).</summary>
+        public decimal TotalPrice { get; set; }
+        /// <summary>Satır net tutarı.</summary>
+        public decimal LineTotalNet { get; set; }
+        /// <summary>Satır brüt tutarı (TotalPrice ile aynı).</summary>
+        public decimal LineTotalGross { get; set; }
+        /// <summary>Vergi oranı yüzde (10, 20).</summary>
+        public decimal TaxRate { get; set; }
+        /// <summary>Vergi oranı kesir (0.10, 0.20).</summary>
+        public decimal VatRate { get; set; }
+        /// <summary>Satır vergi tutarı.</summary>
+        public decimal VatAmount { get; set; }
+        /// <summary>Kategori adı (opsiyonel).</summary>
+        public string? CategoryName { get; set; }
         public Guid? ParentItemId { get; set; }
-        /// <summary>true ise Extra Zutaten satırı (fişte "+ Name €Price" gösterilir).</summary>
         public bool IsModifierLine { get; set; }
     }
 
+    /// <summary>Fiş toplamları: net, vergi, brüt.</summary>
+    public class ReceiptTotalsDTO
+    {
+        public decimal TotalNet { get; set; }
+        public decimal TotalVat { get; set; }
+        public decimal TotalGross { get; set; }
+    }
+
+    /// <summary>VAT dökümü satırı (vergi oranına göre gruplanmış).</summary>
     public class ReceiptTaxLineDTO
     {
-        public int TaxType { get; set; } // 1=Standard, 2=Reduced, 3=Special
-        public decimal Rate { get; set; } // 20.0
+        public int TaxType { get; set; }
+        /// <summary>Vergi oranı yüzde (10, 20).</summary>
+        public decimal Rate { get; set; }
+        /// <summary>Vergi oranı kesir (0.10, 0.20).</summary>
+        public decimal VatRate { get; set; }
         public decimal NetAmount { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal GrossAmount { get; set; }

@@ -94,6 +94,7 @@ namespace KasseAPI_Final.Controllers
                     Color = request.Color,
                     Icon = request.Icon,
                     SortOrder = request.SortOrder,
+                    VatRate = request.VatRate,
                     IsActive = true
                 };
 
@@ -142,6 +143,7 @@ namespace KasseAPI_Final.Controllers
                 category.Color = request.Color;
                 category.Icon = request.Icon;
                 category.SortOrder = request.SortOrder;
+                category.VatRate = request.VatRate;
                 category.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
@@ -267,6 +269,10 @@ namespace KasseAPI_Final.Controllers
         public string? Icon { get; set; }
 
         public int SortOrder { get; set; } = 0;
+
+        /// <summary>VAT oranı yüzde (örn. 10, 20).</summary>
+        [Range(0, 100)]
+        public decimal VatRate { get; set; } = 20m;
     }
 
     public class UpdateCategoryRequest
@@ -285,5 +291,8 @@ namespace KasseAPI_Final.Controllers
         public string? Icon { get; set; }
 
         public int SortOrder { get; set; } = 0;
+
+        [Range(0, 100)]
+        public decimal VatRate { get; set; } = 20m;
     }
 }

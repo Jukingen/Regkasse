@@ -19,6 +19,8 @@ const { width: screenWidth } = Dimensions.get('window');
 const isTablet = screenWidth > 768;
 
 interface ProductListProps {
+  /** null = "Alle", string = category id from backend */
+  categoryFilterId?: string | null;
   categoryFilter?: string;
   stockStatusFilter?: 'in-stock' | 'out-of-stock' | 'low-stock';
   searchQuery?: string;
@@ -30,13 +32,11 @@ interface ProductListProps {
 }
 
 export const ProductList: React.FC<ProductListProps> = ({
+  categoryFilterId,
   categoryFilter,
   stockStatusFilter,
   searchQuery,
   onProductSelect,
-  // Stock info intentionally hidden from cashier UI.
-  // Stock management is handled in admin panel.
-  // Kept in code for potential future POS usage.
   showStockInfo = false,
   showTaxInfo = true,
   ListHeaderComponent,
@@ -46,11 +46,11 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   const {
     products: cachedProducts,
-    categories: cachedCategories,
     loading: cacheLoading,
     error: cacheError,
     refreshData,
-    searchProducts
+    searchProducts,
+    getProductsByCategory
   } = useProductsUnified();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -59,15 +59,17 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   const getGridColumns = () => isTablet ? 3 : 2;
 
-  const loadProducts = useCallback(async (refresh: boolean = false) => {
+  const loadProducts = useCallback(async () => {
     try {
       let productsData: Product[];
 
       if (searchQuery) {
-        productsData = searchProducts(searchQuery).filter(p => {
-          const productCategory = p.productCategory || p.category;
-          return categoryFilter ? productCategory === categoryFilter : true;
-        });
+        productsData = searchProducts(searchQuery);
+        if (categoryFilterId != null && categoryFilterId !== '') {
+          productsData = productsData.filter(p => (p as Product & { categoryId?: string }).categoryId === categoryFilterId);
+        }
+      } else if (categoryFilterId != null && categoryFilterId !== '') {
+        productsData = getProductsByCategory(categoryFilterId);
       } else if (categoryFilter) {
         productsData = cachedProducts.filter(p => {
           const productCategory = p.productCategory || p.category;
@@ -83,22 +85,22 @@ export const ProductList: React.FC<ProductListProps> = ({
           }
         });
       } else {
-        productsData = cachedProducts;
+        productsData = getProductsByCategory(null);
       }
 
       setProducts(productsData);
     } catch (err) {
       console.error('Error loading products:', err);
     }
-  }, [categoryFilter, stockStatusFilter, searchQuery, cachedProducts, searchProducts]);
+  }, [categoryFilterId, categoryFilter, stockStatusFilter, searchQuery, cachedProducts, searchProducts, getProductsByCategory]);
 
   useEffect(() => {
-    if (cachedProducts.length > 0) loadProducts(false);
+    if (cachedProducts.length > 0) loadProducts();
   }, [cachedProducts.length, loadProducts]);
 
   useEffect(() => {
-    if (cachedProducts.length > 0) loadProducts(false);
-  }, [categoryFilter, cachedProducts.length, loadProducts]);
+    if (cachedProducts.length > 0) loadProducts();
+  }, [categoryFilterId, categoryFilter, cachedProducts.length, loadProducts]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

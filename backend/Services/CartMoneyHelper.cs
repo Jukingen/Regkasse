@@ -18,6 +18,20 @@ namespace KasseAPI_Final.Services
         public static decimal GetTaxRateFromType(int taxType) =>
             TaxTypes.GetTaxRate(taxType) / 100.0m;
 
+        /// <summary>Yüzde oranı fraction'a çevirir (10 → 0.10). Tek rounding noktası: Round().</summary>
+        public static decimal VatPercentToFraction(decimal vatRatePercent) =>
+            Math.Round(vatRatePercent / 100m, 4);
+
+        /// <summary>VAT yüzdesinden RKSV TaxType türetir (20→1, 10→2, 13→3, 0→4).</summary>
+        public static int VatPercentToTaxType(decimal vatRatePercent)
+        {
+            var pct = Math.Round(vatRatePercent, 2);
+            if (pct <= 0) return TaxTypes.ZeroRate;
+            if (pct <= 10) return TaxTypes.Reduced;
+            if (pct <= 13) return TaxTypes.Special;
+            return TaxTypes.Standard;
+        }
+
         public static decimal Round(decimal value) =>
             Math.Round(value, Decimals, Rounding);
 
@@ -42,6 +56,20 @@ namespace KasseAPI_Final.Services
             var lineGross = Round(unitGross * quantity);
             var lineNet = rate <= 0 ? lineGross : Round(lineGross / (1 + rate));
             var lineTax = Round(lineGross - lineNet);
+            return new LineAmounts(unitGross, lineGross, lineNet, lineTax, rate, taxType);
+        }
+
+        /// <summary>
+        /// Satır hesaplama – vergi oranı kategoriden (yüzde: 10, 20).
+        /// Receipt/fatura tarafında VAT oranı category.VatRate ile kullanılır.
+        /// </summary>
+        public static LineAmounts ComputeLine(decimal unitGross, int quantity, decimal vatRatePercent)
+        {
+            var rate = VatPercentToFraction(vatRatePercent);
+            var lineGross = Round(unitGross * quantity);
+            var lineNet = rate <= 0 ? lineGross : Round(lineGross / (1 + rate));
+            var lineTax = Round(lineGross - lineNet);
+            var taxType = VatPercentToTaxType(vatRatePercent);
             return new LineAmounts(unitGross, lineGross, lineNet, lineTax, rate, taxType);
         }
 
@@ -94,6 +122,26 @@ namespace KasseAPI_Final.Services
             decimal GrandTotalGross,
             List<TaxSummaryLine> TaxSummary
         );
+
+        /// <summary>Fiş toplamları: net, vergi, brüt. Deterministik (satır toplamlarından).</summary>
+        public record ReceiptTotals(decimal TotalNet, decimal TotalVat, decimal TotalGross);
+
+        /// <summary>VAT dökümü satırı: oran %, net, vergi, brüt.</summary>
+        public record VatBreakdownLine(decimal VatRatePercent, decimal NetAmount, decimal VatAmount, decimal GrossAmount);
+
+        /// <summary>Satır listesinden fiş toplamları ve VAT dökümü. Rounding tek noktada (satırda) yapıldığı için toplamlar tutarlı.</summary>
+        public static (ReceiptTotals Totals, List<VatBreakdownLine> Breakdown) BuildReceiptTotalsAndBreakdown(IEnumerable<LineAmounts> lineAmounts)
+        {
+            var lines = lineAmounts.ToList();
+            var totalNet = lines.Sum(l => l.LineNet);
+            var totalVat = lines.Sum(l => l.LineTax);
+            var totalGross = lines.Sum(l => l.LineGross);
+            var summary = BuildTaxSummaryFromLines(lines);
+            var breakdown = summary
+                .Select(t => new VatBreakdownLine(t.TaxRatePct, t.NetAmount, t.TaxAmount, t.GrossAmount))
+                .ToList();
+            return (new ReceiptTotals(totalNet, totalVat, totalGross), breakdown);
+        }
 
         public static CartTotals ComputeCartTotals(IEnumerable<LineAmounts> lineAmounts)
         {

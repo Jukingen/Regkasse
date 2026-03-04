@@ -64,7 +64,10 @@ namespace KasseAPI_Final.Models
         public string Barcode { get; set; } = string.Empty;
 
         [Column("category_id")]
-        public Guid? CategoryId { get; set; }
+        public Guid CategoryId { get; set; }
+
+        /// <summary>Kategori adı (gösterim için; Category navigation'dan senkron tutulur).</summary>
+        public virtual Category? CategoryNavigation { get; set; }
 
         // RKSV Compliance Fields
         [Column("is_fiscal_compliant")]
@@ -86,7 +89,6 @@ namespace KasseAPI_Final.Models
         public string RksvProductType { get; set; } = "Standard"; // Standard, Reduced, Special, Exempt
 
         // Navigation properties
-        // public virtual Category CategoryNavigation { get; set; } = null!;
         // public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         // public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();
         /// <summary>Bu ürüne atanmış modifier grupları (Extra Zutaten).</summary>

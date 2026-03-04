@@ -53,8 +53,6 @@ export default function CashRegisterScreen() {
     clearCurrentCart
   } = useCashRegister();
 
-  // Filtrelenmiş ürünler için state - unified hook'tan gelen fonksiyonları kullan
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
 
   // Table orders recovery hook'u
   const {
@@ -84,9 +82,9 @@ export default function CashRegisterScreen() {
     setIsPaymentModalVisible
   } = useCart();
 
-  // Local state'ler
+  // Local state'ler – selectedCategoryId: null = "Alle" (sadece UI)
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [customerId, setCustomerId] = useState<string>('00000000-0000-0000-0000-000000000000');
   // Extra Zutaten: Ürün seçilince modal açılır, modifier seçilip "Hinzufügen" ile sepete eklenir
   const [modifierModalVisible, setModifierModalVisible] = useState(false);
@@ -165,34 +163,9 @@ export default function CashRegisterScreen() {
 
   // ---------------------------------------------------------------------------
 
-  // Ürün filtreleme fonksiyonu - unified hook'tan gelen fonksiyonu kullan
-  const filterProducts = (category: string) => {
-    const filtered = getProductsByCategory(category);
-    setFilteredProducts(filtered);
-  };
-
-  // Kategorileri yükleme fonksiyonu - artık unified hook'tan otomatik geliyor
-  const loadCategories = () => {
-    // Categories artık unified hook'tan otomatik geliyor - hiçbir şey yapmaya gerek yok
-    console.log(`📂 Categories loaded: ${categories.length} items`);
-  };
-
-  // Yeni ürün yükleme fonksiyonu - unified hook'tan gelen fonksiyonları kullan
-  const loadProductsNew = (category?: string) => {
-    try {
-      const productsData = getProductsByCategory(category || 'all');
-      setFilteredProducts(productsData);
-      console.log(`📦 Products loaded: ${productsData.length} items for category: ${category || 'all'}`);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Ürünler yüklenemedi';
-      console.error('❌ Yeni ürün yükleme hatası:', error);
-      addToast('error', errorMessage, 3000);
-    }
-  };
-
-  // Ürün arama fonksiyonu
-  const handleProductSearch = (searchResults: Product[]) => {
-    setFilteredProducts(searchResults);
+  // Kategori değişimi – ProductList categoryFilterId ile kendi filtrelemesini yapar
+  const handleCategoryChange = (categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
   };
 
   // Ürün seçimi: Önce Extra-Zutaten modal'ı aç; "Hinzufügen" ile sepete ekle (modifier seçmeden de eklenebilir)
@@ -343,24 +316,12 @@ export default function CashRegisterScreen() {
   };
 
 
-  // Kategori değişimi handler'ı (yeni yapı)
-  const handleCategoryChange = async (category: typeof selectedCategory) => {
-    setSelectedCategory(category);
-
-    // Kategori değiştiğinde ürünleri yeniden yükle
-    if (category !== selectedCategory) {
-      await loadProductsNew(category);
-    }
-  };
-
-  // useEffect'ler
+  // useEffect: veri hazır olduğunda log (opsiyonel)
   useEffect(() => {
-    // Unified hook'tan gelen veriler hazır olduğunda kategorileri ve ürünleri yükle
     if (products.length > 0 && categories.length > 0) {
-      loadCategories();
-      loadProductsNew();
+      console.log(`📂 Categories: ${categories.length}, Products: ${products.length}`);
     }
-  }, [products, categories]);
+  }, [products.length, categories.length]);
 
   // Debug: Unified hook state durumunu kontrol et
   useEffect(() => {
@@ -403,7 +364,7 @@ export default function CashRegisterScreen() {
       {/* Root List - ProductList acts as the main scrollable container */}
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
       <ProductList
-        categoryFilter={selectedCategory === 'all' ? undefined : selectedCategory}
+        categoryFilterId={selectedCategoryId}
         onProductSelect={handleProductSelect}
         showStockInfo={false}
         showTaxInfo={true}
@@ -423,9 +384,9 @@ export default function CashRegisterScreen() {
             <View style={styles.categorySection}>
               <Text style={styles.sectionTitle}>Categories</Text>
               <CategoryFilter
-                selectedCategory={selectedCategory}
-                onCategoryChange={handleCategoryChange}
                 categories={categories}
+                selectedCategoryId={selectedCategoryId}
+                onCategoryChange={handleCategoryChange}
               />
             </View>
           </>

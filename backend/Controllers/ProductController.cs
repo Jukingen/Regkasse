@@ -32,16 +32,21 @@ namespace KasseAPI_Final.Controllers
         }
 
             /// <summary>
-    /// Tüm aktif ürünleri getir (sayfalama ile)
+    /// Tüm aktif ürünleri getir (sayfalama ile). Opsiyonel: categoryId ile filtre.
     /// </summary>
     [HttpGet]
-    public override async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetAll(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] Guid? categoryId = null)
         {
             try
             {
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
                 
                 var query = _context.Products.Where(p => p.IsActive);
+                if (categoryId.HasValue)
+                    query = query.Where(p => p.CategoryId == categoryId.Value);
                 var totalCount = await query.CountAsync();
                 
                 var products = await query
@@ -106,39 +111,22 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var activeProducts = await _context.Products
+                    .Include(p => p.CategoryNavigation)
                     .Where(p => p.IsActive)
                     .OrderBy(p => p.Category)
                     .ThenBy(p => p.Name)
                     .ToListAsync();
 
-                // Kategori isimlerinden deterministik GUID üret (case-insensitive)
-                Guid GenerateCategoryId(string categoryName)
-                {
-                    if (string.IsNullOrWhiteSpace(categoryName))
-                    {
-                        categoryName = "Uncategorized";
-                    }
-                    var normalized = categoryName.Trim().ToLowerInvariant();
-                    // Stabil olması için Name-based GUID (V5 benzeri) - .NET'te hazır yok, basit hash ile seedle
-                    var bytes = Encoding.UTF8.GetBytes(normalized);
-                    var hash = SHA1.HashData(bytes);
-                    var guidBytes = new byte[16];
-                    Array.Copy(hash, guidBytes, 16);
-                    return new Guid(guidBytes);
-                }
-
+                // Aktif ürünlerde kullanılan kategoriler (Category tablosundan; VatRate dahil)
                 var categories = activeProducts
-                    .Select(p => p.Category)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(c => c)
-                    .Select(name => new
-                    {
-                        Id = GenerateCategoryId(name),
-                        Name = name
-                    })
+                    .Where(p => p.CategoryNavigation != null)
+                    .Select(p => p.CategoryNavigation!)
+                    .DistinctBy(c => c.Id)
+                    .OrderBy(c => c.SortOrder)
+                    .ThenBy(c => c.Name)
+                    .Select(c => new { c.Id, c.Name, c.VatRate })
                     .ToList();
 
-                // Ürünleri categoryId ile eşleştir - duplicate property isimlerini önle
                 var products = activeProducts.Select(p => new
                 {
                     p.Id,
@@ -149,8 +137,8 @@ namespace KasseAPI_Final.Controllers
                     p.StockQuantity,
                     p.MinStockLevel,
                     p.Unit,
-                    ProductCategory = p.Category, // Duplicate property ismini önle
-                    CategoryId = GenerateCategoryId(p.Category ?? "Uncategorized"),
+                    ProductCategory = p.Category,
+                    CategoryId = p.CategoryId,
                     p.TaxType,
                     p.TaxRate,
                     p.IsActive,
@@ -544,6 +532,12 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse(validationResult.ErrorMessage, 400);
                 }
 
+                // CategoryId'den kategori adını senkronize et
+                var category = await _context.Categories.FindAsync(product.CategoryId);
+                if (category == null || !category.IsActive)
+                    return ErrorResponse("Category not found or inactive", 400);
+                product.Category = category.Name;
+
                 // Audit alanları
                 product.CreatedAt = DateTime.UtcNow;
                 product.UpdatedAt = DateTime.UtcNow;
@@ -591,6 +585,15 @@ namespace KasseAPI_Final.Controllers
                 if (existingProduct == null)
                 {
                     return ErrorResponse("Product not found", 404);
+                }
+
+                // categoryId güncellenmişse kategori adını Product.Category ile senkronize et
+                if (product.CategoryId != Guid.Empty)
+                {
+                    var category = await _context.Categories.FindAsync(product.CategoryId);
+                    if (category == null || !category.IsActive)
+                        return ErrorResponse("Category not found or inactive", 400);
+                    product.Category = category.Name;
                 }
 
                 // Audit alanları
@@ -680,10 +683,10 @@ namespace KasseAPI_Final.Controllers
                 return ValidationResult.Error("Minimum stock level cannot be negative");
             }
 
-            // Kategori kontrolü
-            if (string.IsNullOrWhiteSpace(product.Category))
+            // Kategori kontrolü (CategoryId zorunlu)
+            if (product.CategoryId == Guid.Empty)
             {
-                return ValidationResult.Error("Category is required");
+                return ValidationResult.Error("CategoryId is required");
             }
 
             // Vergi tipi kontrolü

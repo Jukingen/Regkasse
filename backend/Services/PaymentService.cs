@@ -137,7 +137,9 @@ namespace KasseAPI_Final.Services
 
                 foreach (var itemRequest in request.Items)
                 {
-                    var product = await _productRepository.GetByIdAsync(itemRequest.ProductId);
+                    var product = await _context.Products
+                        .Include(p => p.CategoryNavigation)
+                        .FirstOrDefaultAsync(p => p.Id == itemRequest.ProductId);
                     if (product == null)
                     {
                         return new PaymentResult
@@ -145,6 +147,16 @@ namespace KasseAPI_Final.Services
                             Success = false,
                             Message = "Product not found",
                             Errors = { $"Product with ID {itemRequest.ProductId} not found" }
+                        };
+                    }
+
+                    if (product.CategoryNavigation == null)
+                    {
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Product category missing",
+                            Errors = { $"Product {product.Name} has no category" }
                         };
                     }
 
@@ -163,8 +175,8 @@ namespace KasseAPI_Final.Services
                     product.UpdatedAt = DateTime.UtcNow;
                     await _productRepository.UpdateAsync(product);
 
-                    var taxTypeInt = (int)itemRequest.TaxType;
-                    var line = CartMoneyHelper.ComputeLine(product.Price, itemRequest.Quantity, taxTypeInt);
+                    // VAT oranı kategoriden (yüzde: 10, 20); tek rounding noktası CartMoneyHelper
+                    var line = CartMoneyHelper.ComputeLine(product.Price, itemRequest.Quantity, product.CategoryNavigation.VatRate);
                     totalAmount += line.LineGross;
                     totalTaxAmount += line.LineTax;
 
@@ -175,7 +187,7 @@ namespace KasseAPI_Final.Services
                         Quantity = itemRequest.Quantity,
                         UnitPrice = line.UnitPriceGross,
                         TotalPrice = line.LineGross,
-                        TaxType = taxTypeInt,
+                        TaxType = line.TaxType,
                         TaxRate = line.TaxRate,
                         TaxAmount = line.LineTax,
                         LineNet = line.LineNet
@@ -212,7 +224,7 @@ namespace KasseAPI_Final.Services
 
                     paymentItems.Add(paymentItem);
 
-                    var taxKey = itemRequest.TaxType.ToString().ToLowerInvariant();
+                    var taxKey = line.TaxType.ToString().ToLowerInvariant();
                     if (!taxDetails.ContainsKey(taxKey))
                         taxDetails[taxKey] = 0;
                     taxDetails[taxKey] += line.LineTax;
@@ -1081,17 +1093,22 @@ namespace KasseAPI_Final.Services
                 var cashier = await _userService.GetUserByIdAsync(payment.CreatedBy);
                 var cashierName = cashier?.Name ?? cashier?.UserName ?? "Unknown";
 
-                // Map payment items to receipt items
+                // Map payment items to receipt items (line net/vat from CartMoneyHelper at payment time)
                 var receiptItems = paymentItems.Select(item => new ReceiptItemDTO
                 {
                     Name = item.ProductName,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice,
                     TotalPrice = item.TotalPrice,
-                    TaxRate = item.TaxRate * 100 // Convert 0.20 to 20.0
+                    LineTotalNet = item.LineNet,
+                    LineTotalGross = item.TotalPrice,
+                    TaxRate = item.TaxRate * 100,
+                    VatRate = item.TaxRate,
+                    VatAmount = item.TaxAmount,
+                    CategoryName = null
                 }).ToList();
 
-                var subtotal = payment.TotalAmount - payment.TaxAmount;
+                var subtotal = paymentItems.Sum(i => i.LineNet);
 
                 // Receipt totals = payment totals (payment built with CartMoneyHelper; no recalculation)
                 if (Math.Abs(payment.TaxAmount - paymentItems.Sum(i => i.TaxAmount)) > 0.01m)
@@ -1111,6 +1128,7 @@ namespace KasseAPI_Final.Services
                         {
                             TaxType = g.Key.TaxType,
                             Rate = g.Key.TaxRate * 100,
+                            VatRate = g.Key.TaxRate,
                             TaxAmount = taxAmount,
                             NetAmount = netAmount,
                             GrossAmount = grossAmount
@@ -1134,7 +1152,7 @@ namespace KasseAPI_Final.Services
 
                 var receiptDTO = new ReceiptDTO
                 {
-                    ReceiptId = payment.Id, // Use PaymentId as ephemeral ReceiptId
+                    ReceiptId = payment.Id,
                     ReceiptNumber = payment.ReceiptNumber ?? "DRAFT",
                     Date = payment.CreatedAt,
                     CashierName = cashierName,
@@ -1157,8 +1175,14 @@ namespace KasseAPI_Final.Services
                     Items = receiptItems,
                     
                     SubTotal = subtotal,
-                    TaxAmount = payment.TaxAmount, // Fixed prop name
+                    TaxAmount = payment.TaxAmount,
                     GrandTotal = payment.TotalAmount,
+                    Totals = new ReceiptTotalsDTO
+                    {
+                        TotalNet = subtotal,
+                        TotalVat = payment.TaxAmount,
+                        TotalGross = payment.TotalAmount
+                    },
                     
                     TaxRates = taxRates,
                     

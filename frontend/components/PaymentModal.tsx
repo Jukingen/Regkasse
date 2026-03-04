@@ -20,7 +20,77 @@ import { customerService, GUEST_CUSTOMER_ID } from '../services/api/customerServ
 import { validateSteuernummer, validateKassenId, validateAmount } from '../utils/validation';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
+import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
+import type { ReceiptDTO } from '../types/ReceiptDTO';
+
+/** ReceiptDTO veya payment response'taki receipt → ReceiptSummary formatı. */
+function toSummaryReceipt(receipt: ReceiptDTO | null): ReceiptSummaryReceipt | null {
+  if (!receipt?.items?.length) return null;
+  const items = receipt.items.map((i) => ({
+    name: i.name,
+    quantity: i.quantity,
+    lineTotalGross: i.lineTotalGross ?? i.totalPrice ?? 0,
+    isModifier: i.isModifierLine ?? false,
+  }));
+  const totals = {
+    totalNet: receipt.totals?.totalNet ?? receipt.subtotal ?? 0,
+    totalVat: receipt.totals?.totalVat ?? receipt.taxAmount ?? 0,
+    totalGross: receipt.totals?.totalGross ?? receipt.grandTotal ?? 0,
+  };
+  const vatBreakdown = (receipt.taxRates ?? []).map((t) => ({
+    rate: t.rate,
+    net: t.netAmount,
+    vat: t.taxAmount,
+    gross: t.grossAmount,
+  }));
+  return { items, totals, vatBreakdown };
+}
+
+// Backend cevabını ReceiptDTO'ya normalize et (PascalCase/camelCase uyumu)
+function normalizeReceiptDto(r: any): ReceiptDTO {
+  const items = (r.items ?? r.Items ?? []).map((i: any) => ({
+    itemId: i.itemId ?? i.ItemId,
+    name: i.name ?? i.Name,
+    quantity: i.quantity ?? i.Quantity ?? 0,
+    unitPrice: i.unitPrice ?? i.UnitPrice ?? 0,
+    totalPrice: i.totalPrice ?? i.TotalPrice ?? 0,
+    lineTotalNet: i.lineTotalNet ?? i.LineTotalNet,
+    lineTotalGross: i.lineTotalGross ?? i.LineTotalGross,
+    taxRate: i.taxRate ?? i.TaxRate ?? 0,
+    vatRate: i.vatRate ?? i.VatRate,
+    vatAmount: i.vatAmount ?? i.VatAmount,
+    categoryName: i.categoryName ?? i.CategoryName,
+    parentItemId: i.parentItemId ?? i.ParentItemId,
+    isModifierLine: i.isModifierLine ?? i.IsModifierLine ?? false,
+  }));
+  const taxRates = (r.taxRates ?? r.TaxRates ?? []).map((t: any) => ({
+    taxType: t.taxType ?? t.TaxType,
+    rate: t.rate ?? t.Rate ?? 0,
+    vatRate: t.vatRate ?? t.VatRate,
+    netAmount: t.netAmount ?? t.NetAmount ?? 0,
+    taxAmount: t.taxAmount ?? t.TaxAmount ?? 0,
+    grossAmount: t.grossAmount ?? t.GrossAmount ?? 0,
+  }));
+  return {
+    receiptId: r.receiptId ?? r.ReceiptId ?? '',
+    receiptNumber: r.receiptNumber ?? r.ReceiptNumber ?? '',
+    date: r.date ?? r.Date ?? new Date().toISOString(),
+    cashierName: r.cashierName ?? r.CashierName ?? '',
+    tableNumber: r.tableNumber ?? r.TableNumber,
+    company: r.company ?? r.Company ?? { name: '', address: '', taxNumber: '' },
+    kassenID: r.kassenID ?? r.KassenID ?? '',
+    items,
+    taxRates,
+    subtotal: r.subtotal ?? r.SubTotal ?? 0,
+    taxAmount: r.taxAmount ?? r.TaxAmount ?? 0,
+    grandTotal: r.grandTotal ?? r.GrandTotal ?? 0,
+    totals: r.totals ?? r.Totals,
+    payments: r.payments ?? r.Payments ?? [],
+    footerText: r.footerText ?? r.FooterText,
+    signature: r.signature ?? r.Signature ?? { algorithm: '', value: '', serialNumber: '', timestamp: '', qrData: '' },
+  };
+}
 
 // Türkçe Açıklama: Ödeme alma modal'ı - Sepet içeriğini ödeme işlemine dönüştürür
 interface PaymentModalProps {
@@ -65,6 +135,8 @@ export default function PaymentModal({
   // Store paymentId and TSE/QR bilgisi for success ekranı ve retry
   const [completedPaymentId, setCompletedPaymentId] = useState<string | null>(null);
   const [completedPaymentTse, setCompletedPaymentTse] = useState<PaymentTseInfo | null>(null);
+  /** Ödeme sonrası fiş verisi – GET /Payment/{id}/receipt */
+  const [receiptData, setReceiptData] = useState<ReceiptDTO | null>(null);
 
   // DEV: TSE Simulation Toggle
   // Default: AÇIK (Bypass) in Development
@@ -120,6 +192,25 @@ export default function PaymentModal({
         .catch(err => console.warn('[PaymentModal] Failed to load guest customer:', err));
     }
   }, [visible, getPaymentMethods]);
+
+  // Ödeme başarılı olunca fiş verisini çek (ReceiptSummary için)
+  useEffect(() => {
+    if (!completedPaymentId) {
+      setReceiptData(null);
+      return;
+    }
+    paymentService.getReceipt(completedPaymentId)
+      .then((raw: any) => {
+        const r = raw?.data ?? raw?.Value ?? raw;
+        if (r && Array.isArray(r.items)) {
+          setReceiptData(normalizeReceiptDto(r));
+        }
+      })
+      .catch(err => {
+        console.warn('[PaymentModal] Receipt fetch failed:', err);
+        setReceiptData(null);
+      });
+  }, [completedPaymentId]);
 
   // Handler for preset buttons
   const handlePresetPress = (amount: number) => {
@@ -320,6 +411,7 @@ export default function PaymentModal({
     setPurchaseState('input');
     setCompletedPaymentId(null);
     setCompletedPaymentTse(null);
+    setReceiptData(null);
     onClose();
   };
 
@@ -507,9 +599,18 @@ export default function PaymentModal({
               )}
 
               {purchaseState === 'completed' && (
-                <View style={{ alignItems: 'center', padding: 10 }}>
+                <View style={{ alignItems: 'center', padding: 10, width: '100%' }}>
                   <Ionicons name="checkmark-circle" size={50} color="#4CAF50" />
                   <Text style={{ marginTop: 10, fontSize: 18, fontWeight: 'bold' }}>İşlem Tamamlandı!</Text>
+                  {(() => {
+                    // Receipt: GET /Payment/{id}/receipt. TODO: use payment response.receipt/totals/vatBreakdown when backend returns them.
+                    const summaryReceipt = toSummaryReceipt(receiptData ?? null);
+                    return summaryReceipt ? (
+                      <View style={{ width: '100%', marginTop: 12, maxHeight: 320 }}>
+                        <ReceiptSummary receipt={summaryReceipt} mode="cashier" />
+                      </View>
+                    ) : null;
+                  })()}
                   <PaymentSuccessQr tse={completedPaymentTse} size={160} />
                 </View>
               )}
@@ -519,6 +620,14 @@ export default function PaymentModal({
                   <Text style={{ textAlign: 'center', color: '#c62828', marginBottom: 10, fontWeight: 'bold' }}>
                     Fiş Yazdırılamadı!
                   </Text>
+                  {(() => {
+                    const summaryReceipt = toSummaryReceipt(receiptData ?? null);
+                    return summaryReceipt ? (
+                      <View style={{ width: '100%', marginBottom: 12, maxHeight: 280 }}>
+                        <ReceiptSummary receipt={summaryReceipt} mode="cashier" />
+                      </View>
+                    ) : null;
+                  })()}
                   <PaymentSuccessQr tse={completedPaymentTse} size={140} />
                   <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 12 }}>
                     <TouchableOpacity onPress={handleSkipPrint} style={[styles.cancelButton, { backgroundColor: '#ffebee', borderColor: 'transparent', flex: 1 }]}>

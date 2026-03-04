@@ -21,6 +21,11 @@ namespace KasseAPI_Final.Models
 
         public int SortOrder { get; set; } = 0;
 
+        /// <summary>VAT oranı yüzde olarak (örn. 10, 20). Hesaplamada fraction = VatRate/100 kullanılır.</summary>
+        [Column("vat_rate", TypeName = "decimal(5,2)")]
+        [Range(0, 100, ErrorMessage = "VAT rate must be between 0 and 100")]
+        public decimal VatRate { get; set; } = 20m;
+
         public virtual ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }

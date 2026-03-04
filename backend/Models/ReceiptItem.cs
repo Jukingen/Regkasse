@@ -32,6 +32,16 @@ namespace KasseAPI_Final.Models
         [Column("total_price", TypeName = "decimal(10, 2)")]
         public decimal TotalPrice { get; set; }
 
+        /// <summary>Satır net tutarı (deterministik fiş toplamı için).</summary>
+        [Required]
+        [Column("line_net", TypeName = "decimal(10, 2)")]
+        public decimal LineNet { get; set; }
+
+        /// <summary>Satır vergi tutarı (deterministik fiş toplamı için).</summary>
+        [Required]
+        [Column("vat_amount", TypeName = "decimal(10, 2)")]
+        public decimal VatAmount { get; set; }
+
         [Required]
         [Column("tax_rate", TypeName = "decimal(5, 2)")]
         public decimal TaxRate { get; set; }
@@ -39,6 +49,11 @@ namespace KasseAPI_Final.Models
         /// <summary>Varsa: bu satır bir modifier (Extra Zutaten); parent ana ürün satırının ItemId'si.</summary>
         [Column("parent_item_id")]
         public Guid? ParentItemId { get; set; }
+
+        /// <summary>Kategori adı (gösterim için, opsiyonel).</summary>
+        [Column("category_name")]
+        [StringLength(100)]
+        public string? CategoryName { get; set; }
 
         // Navigation Property
         [ForeignKey("ReceiptId")]

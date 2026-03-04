@@ -89,7 +89,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");
                 entity.Property(e => e.TaxType).IsRequired(); // Map to integer column
                 entity.Property(e => e.Category).HasMaxLength(100);
-                entity.Property(e => e.CategoryId).HasColumnName("category_id").IsRequired(false);
+                entity.Property(e => e.CategoryId).HasColumnName("category_id").IsRequired();
                 entity.Property(e => e.ImageUrl).HasMaxLength(500);
                 entity.Property(e => e.StockQuantity).IsRequired();
                 entity.Property(e => e.MinStockLevel).IsRequired();
@@ -107,12 +107,12 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.CategoryId);
                 entity.HasIndex(e => e.Barcode).IsUnique();
                 
-                // Navigation property relationship - CategoryId foreign key
-                entity.HasOne<Category>()
+                // Navigation property relationship - CategoryId foreign key (required)
+                entity.HasOne(p => p.CategoryNavigation)
                       .WithMany(c => c.Products)
                       .HasForeignKey(p => p.CategoryId)
-                      .OnDelete(DeleteBehavior.SetNull)
-                      .IsRequired(false);
+                      .OnDelete(DeleteBehavior.Restrict)
+                      .IsRequired();
                 
                 // Constraints
                 entity.ToTable("products", t => 
@@ -242,6 +242,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Color).HasMaxLength(20);
                 entity.Property(e => e.Icon).HasMaxLength(50);
                 entity.Property(e => e.SortOrder);
+                entity.Property(e => e.VatRate).HasColumnType("decimal(5,2)").IsRequired();
                 
                 entity.HasIndex(e => e.Name).IsUnique();
                 entity.HasIndex(e => e.SortOrder);

@@ -11,6 +11,7 @@ export interface ApiProduct {
     MinStockLevel?: number;
     Unit?: string | null;
     Category?: string | null;
+    CategoryId?: string | null;
     TaxType: any; // Using any to avoid strict enum mismatch during mapping
     TaxRate?: number;
     IsActive?: boolean;
@@ -54,6 +55,7 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
         minStockLevel: apiProduct.MinStockLevel ?? apiProduct.minStockLevel ?? 0,
         unit: apiProduct.Unit || apiProduct.unit,
         category: apiProduct.Category || apiProduct.category,
+        categoryId: apiProduct.CategoryId || apiProduct.categoryId,
         taxType: apiProduct.TaxType || apiProduct.taxType, // Keep raw if needed, or map
         taxRate: apiProduct.TaxRate ?? apiProduct.taxRate ?? mapTaxTypeToRate(apiProduct.TaxType || apiProduct.taxType),
         isActive: apiProduct.IsActive ?? apiProduct.isActive ?? true,
@@ -66,17 +68,17 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
     };
 };
 
-export const mapUiProductToApi = (uiProduct: Product): any => {
+export const mapUiProductToApi = (uiProduct: Product & { categoryId?: string }): any => {
     return {
         // Backend expects PascalCase (based on controller but we'll use property names matching DTO)
-        // However, standard JSON serializer in .NET usually accepts camelCase if configured. 
-        // We will send standard object matching the Interface but with corrected TaxType
+        // However, standard JSON serializer in .NET usually accepts camelCase if configured.
         ...uiProduct,
         id: uiProduct.id,
         name: uiProduct.name,
         price: uiProduct.price,
         description: uiProduct.description,
         category: uiProduct.category,
+        categoryId: uiProduct.categoryId,
         stockQuantity: uiProduct.stockQuantity,
         minStockLevel: uiProduct.minStockLevel,
         unit: uiProduct.unit,

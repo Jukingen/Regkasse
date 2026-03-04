@@ -4,9 +4,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Product, getAllProducts, getAllCategories, clearProductCache, getProductCatalog } from '../services/api/productService';
 
+export interface CatalogCategory {
+  id: string;
+  name: string;
+}
+
 interface UseProductsUnifiedState {
   products: Product[];
-  categories: string[];
+  categories: CatalogCategory[];
   loading: boolean;
   error: string | null;
   initialized: boolean;
@@ -86,30 +91,24 @@ class ProductCache {
       try {
         const catalog = await getProductCatalog();
         const products = catalog.products;
-        const categories = catalog.categories.map(c => c.name);
-        
+        const categories: CatalogCategory[] = (catalog.categories ?? []).map(c => ({
+          id: c.id ?? '',
+          name: c.name ?? ''
+        }));
+
         console.log(`📦 Catalog data received:`, {
           productsCount: products.length,
           categoriesCount: categories.length,
-          sampleProduct: products[0] ? { 
-            id: products[0].id, 
-            name: products[0].name, 
-            category: products[0].category,
-            productCategory: products[0].productCategory,
+          sampleProduct: products[0] ? {
+            id: products[0].id,
+            name: products[0].name,
             categoryId: products[0].categoryId
           } : null,
-          sampleCategory: categories[0],
-          allProducts: products.map(p => ({
-            id: p.id,
-            name: p.name,
-            category: p.category,
-            productCategory: p.productCategory
-          }))
         });
 
         this.updateState({
           products: Array.isArray(products) ? products : [],
-          categories: Array.isArray(categories) ? categories : [],
+          categories,
           loading: false,
           initialized: true,
           error: null
@@ -125,13 +124,16 @@ class ProductCache {
           getAllCategories()
         ]);
 
-        // Response format kontrolü - getAllProducts artık Product[] döndürüyor
         const products = Array.isArray(productsResponse) ? productsResponse : [];
-        const categories = Array.isArray(categoriesResponse) ? categoriesResponse : [];
+        const categoryNames = Array.isArray(categoriesResponse) ? categoriesResponse : [] as string[];
+        const categories: CatalogCategory[] = categoryNames.map((name, i) => ({
+          id: `fallback-${i}-${name}`,
+          name: name ?? ''
+        }));
 
         this.updateState({
           products: Array.isArray(products) ? products : [],
-          categories: Array.isArray(categories) ? categories : [],
+          categories,
           loading: false,
           initialized: true,
           error: null
@@ -174,16 +176,14 @@ class ProductCache {
     await this.loadData();
   }
 
-  // Belirli bir kategorideki ürünleri filtrele
-  getProductsByCategory(category: string): Product[] {
-    if (category === 'all' || !category) {
+  /** Kategoriye göre ürünleri filtrele. null = "Alle" (tümü). */
+  getProductsByCategory(categoryId: string | null): Product[] {
+    if (categoryId == null || categoryId === '') {
       return this.state.products;
     }
-    
-    return this.state.products.filter(product => {
-      // Backend'den gelen category field'larını kullan
-      const productCategory = product.productCategory || product.category;
-      return productCategory?.toLowerCase() === category.toLowerCase();
+    return this.state.products.filter(p => {
+      const id = (p as Product & { categoryId?: string }).categoryId;
+      return id != null && id === categoryId;
     });
   }
 
@@ -236,8 +236,8 @@ export const useProductsUnified = () => {
 
   // Fonksiyonları memoize et
   const refreshData = useCallback(() => cache.refreshData(), [cache]);
-  const getProductsByCategory = useCallback((category: string) => 
-    cache.getProductsByCategory(category), [cache]);
+  const getProductsByCategory = useCallback((categoryId: string | null) =>
+    cache.getProductsByCategory(categoryId), [cache]);
   const searchProducts = useCallback((query: string) => 
     cache.searchProducts(query), [cache]);
 

@@ -1,23 +1,21 @@
-// Soft minimal category filter with warm brown tones
+// Soft minimal category filter – backend'den gelen kategoriler; "Alle" sadece UI.
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
-
-export type ProductCategory = string;
+import type { CatalogCategory } from '../hooks/useProductsUnified';
 
 type CategoryFilterProps = {
-  selectedCategory: string;
-  onCategoryChange: (category: string) => void;
-  categories: string[];
+  categories: CatalogCategory[];
+  selectedCategoryId: string | null;
+  onCategoryChange: (categoryId: string | null) => void;
 };
 
-// Soft theme category icons (using muted accent color)
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  all: 'grid-outline',
   Getränke: 'wine-outline',
   Speisen: 'restaurant-outline',
+  Nachspeisen: 'ice-cream-outline',
   Desserts: 'ice-cream-outline',
   Snacks: 'fast-food-outline',
   'Kaffee & Tee': 'cafe-outline',
@@ -31,17 +29,15 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   'Brot & Gebäck': 'pizza-outline',
 };
 
+const getIcon = (name: string): keyof typeof Ionicons.glyphMap =>
+  CATEGORY_ICONS[name] || 'folder-outline';
+
 const CategoryFilter: React.FC<CategoryFilterProps> = ({
-  selectedCategory,
+  categories,
+  selectedCategoryId,
   onCategoryChange,
-  categories
 }) => {
   const { t } = useTranslation();
-  const allCategories = ['all', ...categories];
-
-  const getIcon = (category: string): keyof typeof Ionicons.glyphMap => {
-    return CATEGORY_ICONS[category] || 'folder-outline';
-  };
 
   return (
     <ScrollView
@@ -49,27 +45,44 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
     >
-      {allCategories.map((category) => {
-        const isSelected = selectedCategory === category;
-        const label = category === 'all' ? t('categories.all') : category;
-
+      {/* "Alle" sadece UI konsepti – backend'de kategori yok */}
+      <Pressable
+        key="__all__"
+        style={({ pressed }) => [
+          styles.chip,
+          selectedCategoryId === null && styles.chipSelected,
+          pressed && styles.chipPressed,
+        ]}
+        onPress={() => onCategoryChange(null)}
+      >
+        <Ionicons
+          name="grid-outline"
+          size={16}
+          color={selectedCategoryId === null ? SoftColors.textInverse : SoftColors.textSecondary}
+        />
+        <Text style={[styles.chipText, selectedCategoryId === null && styles.chipTextSelected]}>
+          {t('categories.all')}
+        </Text>
+      </Pressable>
+      {categories.map((cat) => {
+        const isSelected = selectedCategoryId === cat.id;
         return (
           <Pressable
-            key={category}
+            key={cat.id}
             style={({ pressed }) => [
               styles.chip,
               isSelected && styles.chipSelected,
               pressed && styles.chipPressed,
             ]}
-            onPress={() => onCategoryChange(category)}
+            onPress={() => onCategoryChange(cat.id)}
           >
             <Ionicons
-              name={getIcon(category)}
+              name={getIcon(cat.name)}
               size={16}
               color={isSelected ? SoftColors.textInverse : SoftColors.textSecondary}
             />
             <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-              {label}
+              {cat.name}
             </Text>
           </Pressable>
         );

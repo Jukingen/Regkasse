@@ -21,9 +21,15 @@ export interface ReceiptDTO {
     taxRates: ReceiptTaxRateDTO[];
 
     // --- Totals ---
-    subtotal: number; // Net total
+    subtotal: number; // Net total (= totalNet)
     taxAmount: number; // Total VAT
     grandTotal: number; // Brutto total
+    /** Backend'den gelen fiş toplamları (net/vat/gross) */
+    totals?: {
+        totalNet: number;
+        totalVat: number;
+        totalGross: number;
+    };
 
     // --- Payments ---
     payments: ReceiptPaymentDTO[];
@@ -48,19 +54,29 @@ export interface ReceiptItemDTO {
     name: string;
     quantity: number;
     unitPrice: number; // Brutto price per unit
-    totalPrice: number; // Brutto line total
-    taxRate: number; // e.g., 20, 10, 0
-    /** Ana ürün satırına bağlı modifier satırı (Extra Zutaten); fişte girintili "+ Name €Price" */
+    totalPrice: number; // Brutto line total (= lineTotalGross)
+    /** Satır net tutarı (backend'den) */
+    lineTotalNet?: number;
+    /** Satır brüt tutarı (totalPrice ile aynı) */
+    lineTotalGross?: number;
+    taxRate: number; // yüzde: 20, 10, 0
+    /** Vergi oranı kesir (0.20, 0.10) – backend'den */
+    vatRate?: number;
+    /** Satır vergi tutarı */
+    vatAmount?: number;
+    categoryName?: string | null;
     parentItemId?: string | null;
     isModifierLine?: boolean;
 }
 
 export interface ReceiptTaxRateDTO {
-    taxType?: number; // 1=Standard, 2=Reduced, 3=Special (doğruluk için)
-    rate: number; // 20, 10, 0
-    netAmount: number; // Net turnover for this rate
-    taxAmount: number; // Tax amount for this rate
-    grossAmount: number; // Gross turnover for this rate
+    taxType?: number;
+    rate: number; // yüzde: 20, 10, 0
+    /** Vergi oranı kesir (0.20, 0.10) – backend'den */
+    vatRate?: number;
+    netAmount: number;
+    taxAmount: number;
+    grossAmount: number;
 }
 
 export interface ReceiptPaymentDTO {

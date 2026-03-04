@@ -2,17 +2,18 @@
 
 import React, { useEffect } from 'react';
 import { Form, Input, InputNumber, Modal, Switch } from 'antd';
-import { CreateCategoryRequest, UpdateCategoryRequest, Category } from '@/api/generated/model';
+import type { Category } from '@/api/generated/model';
+import type { CreateCategoryFormValues, UpdateCategoryFormValues } from '../types';
+
+export type CategoryFormSubmitValues = CreateCategoryFormValues | UpdateCategoryFormValues;
 
 interface CategoryFormProps {
     visible: boolean;
-    initialValues?: Category | null;
+    initialValues?: Category | (Category & { vatRate?: number }) | null;
     onCancel: () => void;
-    onSubmit: (values: CreateCategoryRequest | UpdateCategoryRequest) => Promise<void>;
+    onSubmit: (values: CategoryFormSubmitValues) => Promise<void>;
     loading?: boolean;
 }
-
-const { TextArea } = Input;
 
 export default function CategoryForm({
     visible,
@@ -21,21 +22,25 @@ export default function CategoryForm({
     onSubmit,
     loading,
 }: CategoryFormProps) {
-    const [form] = Form.useForm();
+    const [form] = Form.useForm<CategoryFormSubmitValues>();
 
     useEffect(() => {
         if (visible) {
-            if (initialValues) {
+            const withVat = initialValues as (Category & { vatRate?: number }) | undefined;
+            if (withVat) {
                 form.setFieldsValue({
-                    ...initialValues,
-                    isActive: initialValues.isActive ?? true,
+                    name: withVat.name,
+                    vatRate: (withVat as { vatRate?: number }).vatRate ?? 20,
+                    sortOrder: withVat.sortOrder ?? 0,
+                    isActive: withVat.isActive ?? true,
                 });
             } else {
                 form.resetFields();
                 form.setFieldsValue({
-                    isActive: true,
+                    name: '',
+                    vatRate: 20,
                     sortOrder: 0,
-                    color: '#ffffff',
+                    isActive: true,
                 });
             }
         }
@@ -44,7 +49,12 @@ export default function CategoryForm({
     const handleOk = async () => {
         try {
             const values = await form.validateFields();
-            await onSubmit(values);
+            await onSubmit({
+                name: values.name!,
+                vatRate: values.vatRate ?? 20,
+                sortOrder: values.sortOrder ?? 0,
+                isActive: values.isActive ?? true,
+            });
             form.resetFields();
         } catch (error) {
             console.error('Validation failed:', error);
@@ -63,61 +73,45 @@ export default function CategoryForm({
             <Form
                 form={form}
                 layout="vertical"
-                initialValues={{ isActive: true }}
+                initialValues={{ vatRate: 20, sortOrder: 0, isActive: true }}
             >
                 <Form.Item
                     name="name"
                     label="Category Name"
                     rules={[{ required: true, message: 'Please enter category name' }]}
                 >
-                    <Input placeholder="E.g., Drinks" />
+                    <Input placeholder="E.g. Speisen, Getränke" />
                 </Form.Item>
 
                 <Form.Item
-                    name="description"
-                    label="Description"
+                    name="vatRate"
+                    label="VAT Rate (%)"
+                    rules={[
+                        { required: true, message: 'Please enter VAT rate' },
+                        { type: 'number', min: 0, max: 100, message: 'VAT rate must be 0–100' },
+                    ]}
                 >
-                    <TextArea rows={2} />
+                    <InputNumber
+                        style={{ width: '100%' }}
+                        min={0}
+                        max={100}
+                        precision={2}
+                        addonAfter="%"
+                        placeholder="10 or 20"
+                    />
                 </Form.Item>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <Form.Item
-                        name="sortOrder"
-                        label="Sort Order"
-                    >
-                        <InputNumber style={{ width: '100%' }} min={0} precision={0} />
-                    </Form.Item>
-
-                    <Form.Item
-                        name="color"
-                        label="Color (Hex)"
-                        rules={[
-                            { pattern: /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, message: 'Please enter a valid hex color' }
-                        ]}
-                    >
-                        <Input placeholder="#ffffff" />
-                    </Form.Item>
-                </div>
+                <Form.Item name="sortOrder" label="Sort Order">
+                    <InputNumber style={{ width: '100%' }} min={0} precision={0} />
+                </Form.Item>
 
                 <Form.Item
-                    name="icon"
-                    label="Icon (Optional)"
+                    name="isActive"
+                    label="Active"
+                    valuePropName="checked"
                 >
-                    <Input placeholder="Icon Name or URL" />
+                    <Switch />
                 </Form.Item>
-
-                {/* Categories usually don't have isActive property in CreateCategoryRequest, but Category model has it.
-                   The generated CreateCategoryRequest doesn't include isActive. Let's verify.
-                   Yes, CreateCategoryRequest: color, description, icon, name, sortOrder.
-                   Category: isActive.
-                   So we might not be able to set isActive on creation via POST, only PUT perhaps?
-                   Actually UpdateCategoryRequest also lacks isActive.
-                   Let's check the swagger again. Step 389/390 confirm no isActive in Request DTOs.
-                   So I will remove isActive form item if it's not editable via API.
-                   Wait, I'll keep it renderable but maybe disabled if it's readonly?
-                   Or checking if the backend automatically handles it.
-                   I will remove it for now to be safe.
-                */}
             </Form>
         </Modal>
     );

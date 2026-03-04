@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260304153832_AddCategoryVatAndRequiredCategoryId")]
+    partial class AddCategoryVatAndRequiredCategoryId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -620,10 +623,6 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)")
                         .HasColumnName("updated_by");
-
-                    b.Property<decimal>("VatRate")
-                        .HasColumnType("decimal(5,2)")
-                        .HasColumnName("vat_rate");
 
                     b.HasKey("Id");
 
@@ -2348,7 +2347,7 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("category");
 
-                    b.Property<Guid>("CategoryId")
+                    b.Property<Guid?>("CategoryId")
                         .HasColumnType("uuid")
                         .HasColumnName("category_id");
 
@@ -2710,15 +2709,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("item_id");
 
-                    b.Property<string>("CategoryName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("category_name");
-
-                    b.Property<decimal>("LineNet")
-                        .HasColumnType("decimal(10, 2)")
-                        .HasColumnName("line_net");
-
                     b.Property<Guid?>("ParentItemId")
                         .HasColumnType("uuid")
                         .HasColumnName("parent_item_id");
@@ -2748,10 +2738,6 @@ namespace KasseAPI_Final.Migrations
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(10, 2)")
                         .HasColumnName("unit_price");
-
-                    b.Property<decimal>("VatAmount")
-                        .HasColumnType("decimal(10, 2)")
-                        .HasColumnName("vat_amount");
 
                     b.HasKey("ItemId");
 
@@ -3866,13 +3852,10 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.Product", b =>
                 {
-                    b.HasOne("KasseAPI_Final.Models.Category", "CategoryNavigation")
+                    b.HasOne("KasseAPI_Final.Models.Category", null)
                         .WithMany("Products")
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CategoryNavigation");
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ProductModifier", b =>

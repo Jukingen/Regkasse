@@ -116,7 +116,7 @@ namespace KasseAPI_Final.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            // 6. Items: ana ürün satırı + her modifier için alt satır (ParentItemId ile; RKSV satış kalemi olarak sayılır)
+            // 6. Items: ana ürün satırı + her modifier için alt satır (ParentItemId ile); LineNet/VatAmount deterministik toplam için
             var receiptItems = new List<ReceiptItem>();
             var taxLineInputs = new List<(int TaxType, decimal TaxRate, decimal LineNet, decimal LineTax, decimal LineGross)>();
             foreach (var i in items)
@@ -130,8 +130,11 @@ namespace KasseAPI_Final.Services
                     Quantity = i.Quantity,
                     UnitPrice = i.UnitPrice,
                     TotalPrice = i.TotalPrice,
+                    LineNet = i.LineNet,
+                    VatAmount = i.TaxAmount,
                     TaxRate = i.TaxRate * 100, // 0.20 -> 20.00
-                    ParentItemId = null
+                    ParentItemId = null,
+                    CategoryName = null
                 });
                 taxLineInputs.Add((i.TaxType, i.TaxRate, i.LineNet, i.TaxAmount, i.TotalPrice));
                 if (i.Modifiers != null)
@@ -146,8 +149,11 @@ namespace KasseAPI_Final.Services
                             Quantity = i.Quantity,
                             UnitPrice = m.UnitPrice,
                             TotalPrice = m.TotalPrice,
+                            LineNet = m.LineNet,
+                            VatAmount = m.TaxAmount,
                             TaxRate = m.TaxRate * 100,
-                            ParentItemId = productItemId
+                            ParentItemId = productItemId,
+                            CategoryName = null
                         });
                         taxLineInputs.Add((m.TaxType, m.TaxRate, m.LineNet, m.TaxAmount, m.TotalPrice));
                     }
@@ -155,7 +161,12 @@ namespace KasseAPI_Final.Services
             }
             newReceipt.Items = receiptItems;
 
-            // 7. Tax Lines: tüm satırlardan (ürün + modifier) vergi grubu; RKSV uyumu
+            // 7. Totals: satırlardan topla (deterministik; aynı input => aynı output)
+            newReceipt.SubTotal = receiptItems.Sum(x => x.LineNet);
+            newReceipt.TaxTotal = receiptItems.Sum(x => x.VatAmount);
+            newReceipt.GrandTotal = receiptItems.Sum(x => x.TotalPrice);
+
+            // 8. Tax Lines: tüm satırlardan (ürün + modifier) vergi grubu; RKSV uyumu
             var taxGroups = taxLineInputs
                 .GroupBy(x => new { x.TaxType, x.TaxRate })
                 .Select(g => new ReceiptTaxLine
@@ -173,7 +184,7 @@ namespace KasseAPI_Final.Services
 
             newReceipt.TaxLines = taxGroups;
 
-            // 8. Save
+            // 9. Save
             _context.Receipts.Add(newReceipt);
             await _context.SaveChangesAsync();
 
@@ -233,7 +244,7 @@ namespace KasseAPI_Final.Services
                 ReceiptId = receipt.ReceiptId,
                 ReceiptNumber = receipt.ReceiptNumber,
                 Date = receipt.IssuedAt,
-                CashierName = receipt.CashierId ?? "Unknown", // Resolve name if needed
+                CashierName = receipt.CashierId ?? "Unknown",
                 KassenID = receipt.CashRegisterId.ToString(),
                 TableNumber = receipt.Payment?.TableNumber,
                 
@@ -247,7 +258,12 @@ namespace KasseAPI_Final.Services
                     Quantity = i.Quantity,
                     UnitPrice = i.UnitPrice,
                     TotalPrice = i.TotalPrice,
+                    LineTotalNet = i.LineNet,
+                    LineTotalGross = i.TotalPrice,
                     TaxRate = i.TaxRate,
+                    VatRate = i.TaxRate / 100m,
+                    VatAmount = i.VatAmount,
+                    CategoryName = i.CategoryName,
                     ParentItemId = i.ParentItemId,
                     IsModifierLine = i.ParentItemId != null
                 }).ToList(),
@@ -255,11 +271,18 @@ namespace KasseAPI_Final.Services
                 SubTotal = receipt.SubTotal,
                 TaxAmount = receipt.TaxTotal,
                 GrandTotal = receipt.GrandTotal,
+                Totals = new ReceiptTotalsDTO
+                {
+                    TotalNet = receipt.SubTotal,
+                    TotalVat = receipt.TaxTotal,
+                    TotalGross = receipt.GrandTotal
+                },
                 
                 TaxRates = receipt.TaxLines.Select(t => new ReceiptTaxLineDTO
                 {
                     TaxType = t.TaxType,
                     Rate = t.TaxRate,
+                    VatRate = t.TaxRate / 100m,
                     GrossAmount = t.GrossAmount,
                     TaxAmount = t.TaxAmount,
                     NetAmount = t.NetAmount

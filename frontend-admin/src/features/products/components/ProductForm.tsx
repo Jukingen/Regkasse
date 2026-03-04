@@ -3,13 +3,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
 import { Product, TaxType } from '@/api/generated/model';
-import DebounceSelect from '@/components/DebounceSelect';
-import { getApiCategoriesSearch } from '@/api/generated/categories/categories';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import { getModifierGroups, getProductModifierGroups, type ModifierGroupDto } from '@/lib/api/modifierGroups';
 import ExtraZutatenSection from './ExtraZutatenSection';
 
-export type ProductFormSubmitValues = Product & { modifierGroupIds?: string[] };
+export type ProductFormSubmitValues = Product & { modifierGroupIds?: string[]; categoryId?: string };
 
 interface ProductFormProps {
     visible: boolean;
@@ -61,38 +59,34 @@ export default function ProductForm({
         return () => { cancelled = true; };
     }, [visible, initialValues?.id]);
 
-    // Fetch default categories
+    // GET /categories (active) – Orval useGetApiCategories
     const { useList } = useCategories();
     const { data: categoryList } = useList();
 
-    // Memoize default options
-    const defaultCategoryOptions = useMemo(() => {
-        return (categoryList || []).map((cat: any) => ({
-            label: cat.Name || cat.name,
-            value: cat.Name || cat.name,
-        }));
+    const categoryOptions = useMemo(() => {
+        const list = categoryList ?? [];
+        return list.map((cat: { id?: string; name?: string }) => ({
+            label: cat.name ?? (cat as any).Name ?? '',
+            value: cat.id ?? (cat as any).Id ?? '',
+        })).filter((o: { value: string }) => o.value);
     }, [categoryList]);
 
     useEffect(() => {
         if (visible) {
             if (initialValues) {
-                // Ensure we handle the case where initialValues.category is a string
-                const catName = (initialValues.category as any)?.Name || (initialValues.category as any)?.name || initialValues.category;
+                const product = initialValues as Product & { categoryId?: string };
+                const categoryId = product.categoryId ?? (categoryOptions.find(
+                    (o: { label: string }) => o.label === (product.category ?? '')
+                ) as { value: string } | undefined)?.value;
 
                 form.setFieldsValue({
                     ...initialValues,
                     isActive: initialValues.isActive ?? true,
                     taxType: initialValues.taxType || TaxType.NUMBER_20,
-                    // Ensure hidden fields are populated so they are returned safely if we need them, 
-                    // though we will likely override them with defaults if they are missing/null
                     unit: initialValues.unit || 'pcs',
                     stockQuantity: initialValues.stockQuantity ?? 0,
                     minStockLevel: initialValues.minStockLevel ?? 0,
-                    // If DebounceSelect is in labelInValue mode, we need { label, value }
-                    // But if we pass string, AntD Select might handle it if options are available.
-                    // Safer to pass the object if we can, or just the value if not labelInValue.
-                    // DebounceSelect uses labelInValue={true} in the component definition.
-                    category: catName ? { label: catName, value: catName } : undefined
+                    categoryId: categoryId || undefined,
                 });
             } else {
                 form.resetFields();
@@ -102,28 +96,21 @@ export default function ProductForm({
                     taxRate: 20,
                     price: 0,
                     cost: 0,
-                    // Hidden defaults
                     unit: 'pcs',
                     stockQuantity: 0,
                     minStockLevel: 0,
                 });
             }
         }
-    }, [visible, initialValues, form]);
+    }, [visible, initialValues, form, categoryOptions]);
 
     const handleOk = async () => {
         try {
             const values = await form.validateFields();
 
-            // Extract category value (it might be an object from DebounceSelect or a string if not changed? 
-            // Actually DebounceSelect with labelInValue returns object { label, value }. 
-            // If it was initialValue string, we need to handle that.
-            // Wait, I set initialValue as { label, value } in useEffect. So it should be consistent.
+            // categoryId from dropdown (GET /categories active list)
+            const categoryId = values.categoryId as string | undefined;
 
-            // Extract category value if it's an object (labelInValue)
-            const categoryValue = values.category?.value || values.category;
-
-            // Prepare payload with hidden defaults + visible values + Extra Zutaten
             const processedValues: ProductFormSubmitValues = {
                 ...values,
                 price: Number(values.price),
@@ -132,7 +119,7 @@ export default function ProductForm({
                 stockQuantity: Number(values.stockQuantity ?? 0),
                 minStockLevel: Number(values.minStockLevel ?? 0),
                 unit: values.unit || 'pcs',
-                category: categoryValue,
+                categoryId,
                 modifierGroupIds: selectedModifierGroupIds,
             };
 
@@ -165,21 +152,6 @@ export default function ProductForm({
 
     const handleTaxTypeChange = (value: number) => {
         form.setFieldsValue({ taxRate: value });
-    };
-
-    // Category Search Fetcher
-    const fetchCategories = async (search: string) => {
-        if (!search) return defaultCategoryOptions;
-        try {
-            const data = await getApiCategoriesSearch({ query: search });
-            return data.map((cat: any) => ({
-                label: cat.Name || cat.name,
-                value: cat.Name || cat.name,
-            }));
-        } catch (error) {
-            console.error('Failed to fetch categories', error);
-            return [];
-        }
     };
 
     return (
@@ -219,15 +191,17 @@ export default function ProductForm({
                     </Form.Item>
 
                     <Form.Item
-                        name="category"
+                        name="categoryId"
                         label="Category"
+                        rules={[{ required: true, message: 'Please select a category' }]}
                     >
-                        <DebounceSelect
-                            placeholder="Select or Search Category"
-                            fetchOptions={fetchCategories}
-                            defaultOptions={defaultCategoryOptions}
-                            style={{ width: '100%' }}
-                            allowClear
+                        <Select
+                            placeholder="Select category"
+                            options={categoryOptions}
+                            loading={!categoryList}
+                            allowClear={false}
+                            showSearch
+                            optionFilterProp="label"
                         />
                     </Form.Item>
                 </div>
