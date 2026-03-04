@@ -4,9 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     /// <summary>
-    /// Ödeme kalemi
+    /// Ödeme kalemi. Stored only in payment_details.PaymentItems (JSON); not a mapped table.
     /// </summary>
-    [Table("payment_items")]
     public class PaymentItem : BaseEntity
     {
         [Required]
@@ -37,6 +36,10 @@ namespace KasseAPI_Final.Models
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal TaxAmount { get; set; }
+
+        /// <summary>Satır net tutarı (CartMoneyHelper.LineNet); rounding tutarlılığı için saklanır.</summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal LineNet { get; set; }
         
         // Navigation property
         // Product navigation property removed to prevent shadow property conflicts

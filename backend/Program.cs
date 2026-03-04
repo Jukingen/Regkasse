@@ -211,7 +211,6 @@ builder.Services.AddScoped<IGenericRepository<Product>, GenericRepository<Produc
 builder.Services.AddScoped<IGenericRepository<Category>, GenericRepository<Category>>();
 builder.Services.AddScoped<IGenericRepository<Invoice>, GenericRepository<Invoice>>();
 builder.Services.AddScoped<IGenericRepository<PaymentDetails>, GenericRepository<PaymentDetails>>();
-builder.Services.AddScoped<IGenericRepository<PaymentItem>, GenericRepository<PaymentItem>>();
 
 // 🚀 Akıllı Sepet Yaşam Döngüsü Service'i
 builder.Services.AddHostedService<CartLifecycleService>();

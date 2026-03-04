@@ -127,17 +127,25 @@ namespace KasseAPI_Final.Services
                 TaxRate = i.TaxRate * 100 // 0.20 -> 20.00
             }).ToList();
 
-            // 7. Tax Lines
-            var taxGroups = items.GroupBy(i => i.TaxRate)
-                .Select(g => new ReceiptTaxLine
+            // 7. Tax Lines: group by (TaxType, TaxRate); NetAmount from LineNet (fallback: TotalPrice - TaxAmount)
+            var taxGroups = items.GroupBy(i => new { i.TaxType, i.TaxRate })
+                .Select(g =>
                 {
-                    LineId = Guid.NewGuid(),
-                    TaxRate = g.Key * 100,
-                    GrossAmount = g.Sum(x => x.TotalPrice),
-                    TaxAmount = g.Sum(x => x.TaxAmount),
-                    NetAmount = g.Sum(x => x.TotalPrice - x.TaxAmount)
+                    var grossAmount = g.Sum(x => x.TotalPrice);
+                    var taxAmount = g.Sum(x => x.TaxAmount);
+                    var netAmount = g.Sum(x => Math.Abs((x.LineNet + x.TaxAmount) - x.TotalPrice) <= 0.01m ? x.LineNet : (x.TotalPrice - x.TaxAmount));
+                    return new ReceiptTaxLine
+                    {
+                        LineId = Guid.NewGuid(),
+                        TaxType = g.Key.TaxType,
+                        TaxRate = g.Key.TaxRate * 100,
+                        GrossAmount = grossAmount,
+                        TaxAmount = taxAmount,
+                        NetAmount = netAmount
+                    };
                 })
                 .OrderBy(t => t.TaxRate)
+                .ThenBy(t => t.TaxType)
                 .ToList();
 
             newReceipt.TaxLines = taxGroups;
@@ -224,6 +232,7 @@ namespace KasseAPI_Final.Services
                 
                 TaxRates = receipt.TaxLines.Select(t => new ReceiptTaxLineDTO
                 {
+                    TaxType = t.TaxType,
                     Rate = t.TaxRate,
                     GrossAmount = t.GrossAmount,
                     TaxAmount = t.TaxAmount,

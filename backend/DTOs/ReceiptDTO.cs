@@ -62,6 +62,7 @@ namespace KasseAPI_Final.DTOs
 
     public class ReceiptTaxLineDTO
     {
+        public int TaxType { get; set; } // 1=Standard, 2=Reduced, 3=Special
         public decimal Rate { get; set; } // 20.0
         public decimal NetAmount { get; set; }
         public decimal TaxAmount { get; set; }

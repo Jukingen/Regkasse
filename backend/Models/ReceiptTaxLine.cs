@@ -16,6 +16,10 @@ namespace KasseAPI_Final.Models
         public Guid ReceiptId { get; set; }
 
         [Required]
+        [Column("tax_type")]
+        public int TaxType { get; set; } = 1;
+
+        [Required]
         [Column("tax_rate", TypeName = "decimal(5, 2)")]
         public decimal TaxRate { get; set; }
 

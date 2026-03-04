@@ -90,10 +90,11 @@ class ReceiptPrinter {
       grandTotal: data.GrandTotal || data.grandTotal || 0,
 
       taxRates: (data.TaxRates || data.taxRates || []).map((t: any) => ({
-        rate: t.Rate || t.rate || 0,
-        netAmount: t.NetAmount || t.netAmount || 0,
-        taxAmount: t.TaxAmount || t.taxAmount || 0,
-        grossAmount: t.GrossAmount || t.grossAmount || 0
+        taxType: t.TaxType ?? t.taxType,
+        rate: t.Rate ?? t.rate ?? 0,
+        netAmount: t.NetAmount ?? t.netAmount ?? 0,
+        taxAmount: t.TaxAmount ?? t.taxAmount ?? 0,
+        grossAmount: t.GrossAmount ?? t.grossAmount ?? 0
       })),
 
       payments: (data.Payments || data.payments || []).map((p: any) => ({

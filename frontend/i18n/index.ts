@@ -103,28 +103,34 @@ export const changeLanguage = async (language: string) => {
   await i18n.changeLanguage(language);
 };
 
-const initI18n = async () => {
-  const savedLanguage = await getSavedLanguage();
-  const languageToUse = savedLanguage || Localization.getLocales()[0]?.languageCode || 'en';
+const FALLBACK_LNG = 'de';
 
-  i18n
-    .use(initReactI18next)
-    .init({
-      resources,
-      lng: languageToUse,
-      fallbackLng: 'en',
-      supportedLngs: ['en', 'de', 'tr'],
-      defaultNS,
-      interpolation: {
-        escapeValue: false,
-      },
-      react: {
-        useSuspense: false,
-      },
-      compatibilityJSON: 'v3',
-    });
+const initI18n = async (): Promise<void> => {
+  let languageToUse: string;
+  try {
+    const saved = await getSavedLanguage();
+    const deviceCode = Localization.getLocales()[0]?.languageCode;
+    languageToUse = saved ?? deviceCode ?? FALLBACK_LNG;
+    if (!['en', 'de', 'tr'].includes(languageToUse)) {
+      languageToUse = FALLBACK_LNG;
+    }
+  } catch {
+    languageToUse = FALLBACK_LNG;
+  }
+
+  i18n.use(initReactI18next).init({
+    resources,
+    lng: languageToUse,
+    fallbackLng: FALLBACK_LNG,
+    supportedLngs: ['en', 'de', 'tr'],
+    defaultNS,
+    interpolation: { escapeValue: false },
+    react: { useSuspense: false },
+    compatibilityJSON: 'v3',
+  });
 };
 
-initI18n();
+/** Uygulama kökünde (örn. _layout) await edilirse dil yüklenene kadar beklenir. */
+export const i18nReady = initI18n();
 
 export default i18n;

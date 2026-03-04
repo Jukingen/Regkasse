@@ -23,7 +23,6 @@ namespace KasseAPI_Final.Data
         public DbSet<CashRegisterTransaction> CashRegisterTransactions { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<PaymentDetails> PaymentDetails { get; set; }
-        public DbSet<PaymentItem> PaymentItems { get; set; }
         public DbSet<InventoryItem> Inventory { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
         public DbSet<SystemSettings> SystemSettings { get; set; }
@@ -283,19 +282,8 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TseSignature);
             });
 
-            // PaymentItem configuration
-            builder.Entity<PaymentItem>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.ProductId).IsRequired();
-                entity.Property(e => e.ProductName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Quantity).IsRequired();
-                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TotalPrice).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TaxType).IsRequired();
-                entity.Property(e => e.TaxRate).HasColumnType("decimal(5,4)");
-                entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
-            });
+            // PaymentItem: not mapped; single source of truth is payment_details.PaymentItems (JSON).
+            builder.Ignore<PaymentItem>();
 
             // InventoryItem configuration
             builder.Entity<InventoryItem>(entity =>

@@ -118,4 +118,14 @@ public class CartMoneyHelperTests
         Assert.Equal(1.67m, lineTax);
         Assert.Equal(10.00m, lineGross);
     }
+
+    /// <summary>45,18 brutto, 20% → Fişte MwSt 7,53; Netto 37,65 (sepet ile aynı)</summary>
+    [Fact]
+    public void ComputeLine_45_18_Gross_20Percent_ReceiptVat_7_53()
+    {
+        var line = CartMoneyHelper.ComputeLine(45.18m, 1, 1);
+        Assert.Equal(45.18m, line.LineGross);
+        Assert.Equal(37.65m, line.LineNet);
+        Assert.Equal(7.53m, line.LineTax);
+    }
 }

@@ -94,4 +94,21 @@ describe('receiptPrinter', () => {
     expect(html).toContain('DEMO');
     expect(html).toContain('NICHT FISKAL');
   });
+
+  it('45.18 gross, 20% → MwSt 7.53 in receipt (cart/receipt consistency)', () => {
+    const data: ReceiptDTO = baseReceipt({
+      items: [{ name: 'Artikel', quantity: 1, unitPrice: 45.18, totalPrice: 45.18, taxRate: 20 }],
+      taxRates: [{ rate: 20, netAmount: 37.65, taxAmount: 7.53, grossAmount: 45.18 }],
+      subtotal: 37.65,
+      taxAmount: 7.53,
+      grandTotal: 45.18,
+      payments: [{ method: 'cash', amount: 45.18, tendered: 50, change: 4.82 }],
+    });
+    const html = formatReceiptHtml(data);
+    expect(html).toContain('7,53');
+    expect(html).toContain('37,65');
+    expect(html).toContain('45,18');
+    expect(html).toContain('SUMME / Gesamtbetrag');
+    expect(html).toContain('EUR 45,18');
+  });
 });

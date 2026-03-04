@@ -129,9 +129,10 @@ namespace KasseAPI_Final.Services
                     }
                 }
 
-                // Ürün kontrolü ve stok güncelleme
+                // Ürün kontrolü ve stok güncelleme. Tek hesap motoru: CartMoneyHelper (gross model).
                 var paymentItems = new List<PaymentItem>();
                 decimal totalAmount = 0;
+                decimal totalTaxAmount = 0;
                 var taxDetails = new Dictionary<string, decimal>();
 
                 foreach (var itemRequest in request.Items)
@@ -162,30 +163,30 @@ namespace KasseAPI_Final.Services
                     product.UpdatedAt = DateTime.UtcNow;
                     await _productRepository.UpdateAsync(product);
 
-                    // Ödeme kalemi oluştur
-                    var itemAmount = product.Price * itemRequest.Quantity;
-                    totalAmount += itemAmount;
-
                     var taxTypeInt = (int)itemRequest.TaxType;
+                    var line = CartMoneyHelper.ComputeLine(product.Price, itemRequest.Quantity, taxTypeInt);
+                    totalAmount += line.LineGross;
+                    totalTaxAmount += line.LineTax;
+
                     var paymentItem = new PaymentItem
                     {
                         ProductId = product.Id,
                         ProductName = product.Name,
                         Quantity = itemRequest.Quantity,
-                        UnitPrice = product.Price,
-                        TotalPrice = itemAmount,
+                        UnitPrice = line.UnitPriceGross,
+                        TotalPrice = line.LineGross,
                         TaxType = taxTypeInt,
-                        TaxRate = GetTaxRate(taxTypeInt),
-                        TaxAmount = CalculateTax(itemAmount, taxTypeInt)
+                        TaxRate = line.TaxRate,
+                        TaxAmount = line.LineTax,
+                        LineNet = line.LineNet
                     };
 
                     paymentItems.Add(paymentItem);
 
-                    // Vergi detayları
                     var taxKey = itemRequest.TaxType.ToString().ToLowerInvariant();
                     if (!taxDetails.ContainsKey(taxKey))
                         taxDetails[taxKey] = 0;
-                    taxDetails[taxKey] += paymentItem.TaxAmount;
+                    taxDetails[taxKey] += line.LineTax;
                 }
 
                 // CashRegisterId çözümle (TSE imzası için)
@@ -207,14 +208,14 @@ namespace KasseAPI_Final.Services
                 var seq = Guid.NewGuid().ToString("N")[..8];
                 var preReceiptNumber = $"AT-{request.KassenId}-{DateTime.UtcNow:yyyyMMdd}-{seq}";
 
-                // Ödeme detayları oluştur
+                // Ödeme detayları oluştur (totals = CartMoneyHelper toplamları; fiş ile sepet tutarlı)
                 var payment = new PaymentDetails
                 {
                     CustomerId = customer.Id,
                     CustomerName = customer.Name,
                     PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(paymentItems)),
                     TotalAmount = totalAmount,
-                    TaxAmount = taxDetails.Values.Sum(),
+                    TaxAmount = totalTaxAmount,
                     TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(taxDetails)),
                     PaymentMethodRaw = GetPaymentMethodEnum(request.Payment.Method),
                     Notes = request.Notes,
@@ -1061,21 +1062,46 @@ namespace KasseAPI_Final.Services
                     TaxRate = item.TaxRate * 100 // Convert 0.20 to 20.0
                 }).ToList();
 
-                // Calculate subtotal (total - tax)
                 var subtotal = payment.TotalAmount - payment.TaxAmount;
 
-                // Calculate Tax Rates Breakdown; sort low to high (10% → 20%) for receipt
+                // Receipt totals = payment totals (payment built with CartMoneyHelper; no recalculation)
+                if (Math.Abs(payment.TaxAmount - paymentItems.Sum(i => i.TaxAmount)) > 0.01m)
+                    _logger.LogWarning("Receipt VAT mismatch: payment.TaxAmount={PaymentTax}, sum(items.TaxAmount)={SumTax}", payment.TaxAmount, paymentItems.Sum(i => i.TaxAmount));
+                if (Math.Abs(payment.TotalAmount - paymentItems.Sum(i => i.TotalPrice)) > 0.01m)
+                    _logger.LogWarning("Receipt gross mismatch: payment.TotalAmount={Total}, sum(items.TotalPrice)={SumGross}", payment.TotalAmount, paymentItems.Sum(i => i.TotalPrice));
+
+                // Tax breakdown: group by (TaxType, TaxRate); NetAmount from LineNet (fallback for legacy: TotalPrice - TaxAmount)
                 var taxRates = paymentItems
-                    .GroupBy(i => i.TaxRate)
-                    .Select(g => new ReceiptTaxLineDTO
+                    .GroupBy(i => new { i.TaxType, i.TaxRate })
+                    .Select(g =>
                     {
-                        Rate = g.Key * 100,
-                        TaxAmount = g.Sum(x => x.TaxAmount),
-                        NetAmount = g.Sum(x => x.TotalPrice - x.TaxAmount),
-                        GrossAmount = g.Sum(x => x.TotalPrice)
+                        var taxAmount = g.Sum(x => x.TaxAmount);
+                        var grossAmount = g.Sum(x => x.TotalPrice);
+                        var netAmount = g.Sum(x => Math.Abs((x.LineNet + x.TaxAmount) - x.TotalPrice) <= 0.01m ? x.LineNet : (x.TotalPrice - x.TaxAmount));
+                        var dto = new ReceiptTaxLineDTO
+                        {
+                            TaxType = g.Key.TaxType,
+                            Rate = g.Key.TaxRate * 100,
+                            TaxAmount = taxAmount,
+                            NetAmount = netAmount,
+                            GrossAmount = grossAmount
+                        };
+                        var groupCheck = Math.Abs((dto.NetAmount + dto.TaxAmount) - dto.GrossAmount);
+                        if (groupCheck > 0.01m)
+                            _logger.LogWarning("Receipt tax group invariant: (Net+Tax)-Gross={Diff} for TaxType={TaxType} Rate={Rate}", groupCheck, g.Key.TaxType, g.Key.TaxRate);
+                        return dto;
                     })
                     .OrderBy(t => t.Rate)
+                    .ThenBy(t => t.TaxType)
                     .ToList();
+
+                var headerNet = taxRates.Sum(t => t.NetAmount);
+                var headerTax = taxRates.Sum(t => t.TaxAmount);
+                var headerGross = taxRates.Sum(t => t.GrossAmount);
+                if (Math.Abs((headerNet + headerTax) - headerGross) > 0.01m)
+                    _logger.LogWarning("Receipt header invariant: (SubTotal+TaxAmount)-GrandTotal={Diff}", (headerNet + headerTax) - headerGross);
+                if (Math.Abs(headerGross - payment.TotalAmount) > 0.01m || Math.Abs(headerTax - payment.TaxAmount) > 0.01m)
+                    _logger.LogWarning("Receipt totals vs payment: receipt gross={RGross} tax={RTax}, payment total={PTotal} tax={PTax}", headerGross, headerTax, payment.TotalAmount, payment.TaxAmount);
 
                 var receiptDTO = new ReceiptDTO
                 {
@@ -1146,12 +1172,6 @@ namespace KasseAPI_Final.Services
         private decimal GetTaxRate(int taxType)
         {
             return TaxTypes.GetTaxRate(taxType) / 100.0m; // Convert 20.0 to 0.20
-        }
-
-        private decimal CalculateTax(decimal amount, int taxType)
-        {
-            var taxRate = GetTaxRate(taxType);
-            return amount * taxRate;
         }
 
         /// <summary>

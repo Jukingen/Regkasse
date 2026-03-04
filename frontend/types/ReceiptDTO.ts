@@ -52,6 +52,7 @@ export interface ReceiptItemDTO {
 }
 
 export interface ReceiptTaxRateDTO {
+    taxType?: number; // 1=Standard, 2=Reduced, 3=Special (doğruluk için)
     rate: number; // 20, 10, 0
     netAmount: number; // Net turnover for this rate
     taxAmount: number; // Tax amount for this rate
