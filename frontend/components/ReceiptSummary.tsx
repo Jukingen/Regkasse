@@ -67,7 +67,6 @@ function buildGroups(items: ReceiptSummaryItem[]): LineGroup[] {
 export function ReceiptSummary({ receipt, mode }: ReceiptSummaryProps) {
   const [breakdownVisible, setBreakdownVisible] = useState(false);
   const isCashier = mode === 'cashier';
-  const showBreakdown = isCashier || breakdownVisible;
 
   const groups = useMemo(() => buildGroups(receipt.items), [receipt.items]);
 
@@ -99,37 +98,35 @@ export function ReceiptSummary({ receipt, mode }: ReceiptSummaryProps) {
         scrollEnabled={groups.length > 6}
         ListFooterComponent={
           <>
-            {receipt.vatBreakdown && receipt.vatBreakdown.length > 0 && (
+            {/* Cashier: full MwSt. Übersicht. Customer: only totalGross; vatBreakdown behind "Details" toggle. */}
+            {isCashier && receipt.vatBreakdown && receipt.vatBreakdown.length > 0 && (
               <View style={styles.breakdownSection}>
-                {isCashier ? (
-                  <>
-                    <Text style={styles.breakdownTitle}>MwSt. Übersicht</Text>
-                    {receipt.vatBreakdown.map((row, i) => (
-                      <View key={i} style={styles.breakdownRow}>
-                        <Text style={styles.breakdownCell}>{row.rate}%</Text>
-                        <Text style={styles.breakdownCellRight}>{formatMoney(row.net)}</Text>
-                        <Text style={styles.breakdownCellRight}>{formatMoney(row.vat)}</Text>
-                        <Text style={styles.breakdownCellRight}>{formatMoney(row.gross)}</Text>
-                      </View>
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    <TouchableOpacity
-                      style={styles.breakdownToggle}
-                      onPress={() => setBreakdownVisible((v) => !v)}
-                    >
-                      <Text style={styles.breakdownTitle}>MwSt. Übersicht</Text>
-                      <Text style={styles.toggleHint}>{breakdownVisible ? '▼' : '▶'}</Text>
-                    </TouchableOpacity>
-                    {showBreakdown && receipt.vatBreakdown.map((row, i) => (
-                      <View key={i} style={styles.breakdownRow}>
-                        <Text style={styles.breakdownCell}>{row.rate}%</Text>
-                        <Text style={styles.breakdownCellRight}>{formatMoney(row.gross)}</Text>
-                      </View>
-                    ))}
-                  </>
-                )}
+                <Text style={styles.breakdownTitle}>MwSt. Übersicht</Text>
+                {receipt.vatBreakdown.map((row, i) => (
+                  <View key={i} style={styles.breakdownRow}>
+                    <Text style={styles.breakdownCell}>{row.rate}%</Text>
+                    <Text style={styles.breakdownCellRight}>{formatMoney(row.net)}</Text>
+                    <Text style={styles.breakdownCellRight}>{formatMoney(row.vat)}</Text>
+                    <Text style={styles.breakdownCellRight}>{formatMoney(row.gross)}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            {!isCashier && receipt.vatBreakdown && receipt.vatBreakdown.length > 0 && (
+              <View style={styles.breakdownSection}>
+                <TouchableOpacity
+                  style={styles.breakdownToggle}
+                  onPress={() => setBreakdownVisible((v) => !v)}
+                >
+                  <Text style={styles.breakdownTitle}>Details</Text>
+                  <Text style={styles.toggleHint}>{breakdownVisible ? '▼' : '▶'}</Text>
+                </TouchableOpacity>
+                {breakdownVisible && receipt.vatBreakdown.map((row, i) => (
+                  <View key={i} style={styles.breakdownRow}>
+                    <Text style={styles.breakdownCell}>{row.rate}%</Text>
+                    <Text style={styles.breakdownCellRight}>{formatMoney(row.gross)}</Text>
+                  </View>
+                ))}
               </View>
             )}
             <View style={styles.totalsSection}>
