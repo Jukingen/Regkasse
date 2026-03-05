@@ -31,11 +31,20 @@ namespace KasseAPI_Final.Controllers
             _productRepository = productRepository;
         }
 
-            /// <summary>
-    /// Tüm aktif ürünleri getir (sayfalama ile). Opsiyonel: categoryId ile filtre.
-    /// </summary>
-    [HttpGet]
-    public async Task<IActionResult> GetAll(
+        /// <summary>
+        /// Tüm aktif ürünleri getir (sayfalama ile). GET api/Product — base route tek action olmalı (Swagger çakışmasını önler).
+        /// </summary>
+        [HttpGet]
+        public override async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
+        {
+            return await GetAllPaginated(pageNumber, pageSize, categoryId: null);
+        }
+
+        /// <summary>
+        /// Tüm aktif ürünleri getir (sayfalama ile, opsiyonel categoryId filtresi). GET api/Product/list
+        /// </summary>
+        [HttpGet("list")]
+        public async Task<IActionResult> GetAllPaginated(
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20,
             [FromQuery] Guid? categoryId = null)
@@ -43,19 +52,19 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
-                
+
                 var query = _context.Products.Where(p => p.IsActive);
                 if (categoryId.HasValue)
                     query = query.Where(p => p.CategoryId == categoryId.Value);
                 var totalCount = await query.CountAsync();
-                
+
                 var products = await query
                     .OrderBy(p => p.Category)
                     .ThenBy(p => p.Name)
                     .Skip((validPageNumber - 1) * validPageSize)
                     .Take(validPageSize)
                     .ToListAsync();
-                
+
                 var response = new
                 {
                     items = products,
@@ -68,14 +77,12 @@ namespace KasseAPI_Final.Controllers
                     }
                 };
 
-                // İngilizce teknik log
                 _logger.LogInformation($"Retrieved {products.Count} active products from page {validPageNumber}");
-                
                 return SuccessResponse(response, $"Retrieved {products.Count} active products");
             }
             catch (Exception ex)
             {
-                return HandleException(ex, "GetAll");
+                return HandleException(ex, "GetAllPaginated");
             }
         }
 
@@ -89,7 +96,7 @@ namespace KasseAPI_Final.Controllers
             {
                 var products = await _context.Products
                     .Where(p => p.IsActive)
-                    .OrderBy(p => p.Category)
+                    .OrderBy(p => p.Category)  // kategori adı (string); CategoryId = FK
                     .ThenBy(p => p.Name)
                     .ToListAsync();
 
@@ -113,7 +120,7 @@ namespace KasseAPI_Final.Controllers
                 var activeProducts = await _context.Products
                     .Include(p => p.CategoryNavigation)
                     .Where(p => p.IsActive)
-                    .OrderBy(p => p.Category)
+                    .OrderBy(p => p.Category)  // kategori adı (string)
                     .ThenBy(p => p.Name)
                     .ToListAsync();
 

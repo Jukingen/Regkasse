@@ -89,7 +89,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");
                 entity.Property(e => e.TaxType).IsRequired(); // Map to integer column
                 entity.Property(e => e.Category).HasMaxLength(100);
-                entity.Property(e => e.CategoryId).HasColumnName("category_id").IsRequired();
+                entity.Property(e => e.CategoryId).HasColumnName("category_id").HasColumnType("uuid").IsRequired();
                 entity.Property(e => e.ImageUrl).HasMaxLength(500);
                 entity.Property(e => e.StockQuantity).IsRequired();
                 entity.Property(e => e.MinStockLevel).IsRequired();
@@ -237,6 +237,7 @@ namespace KasseAPI_Final.Data
             builder.Entity<Category>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Id).HasColumnType("uuid").HasColumnName("id");
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Description).HasMaxLength(500);
                 entity.Property(e => e.Color).HasMaxLength(20);

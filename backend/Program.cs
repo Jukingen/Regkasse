@@ -32,7 +32,15 @@ Console.WriteLine("🌐 Force binding to ALL IPs (0.0.0.0:5183) and localhost (1
 
 // Entity Framework ve PostgreSQL bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    // Dev: InvalidCastException (Guid vs text) teşhisi için kolon/veri loglama
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
+});
 
 // Identity servisleri
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
