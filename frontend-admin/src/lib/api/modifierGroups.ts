@@ -1,9 +1,10 @@
 /**
- * Extra Zutaten (Modifier Groups) API – manuel client.
- * Backend: GET/POST /api/modifier-groups, POST /api/Product/{id}/modifier-groups
+ * Extra Zutaten (Modifier Groups) API – Admin: ürün modifier’ları api/admin/products üzerinden.
+ * Modifier-groups listesi hâlâ /api/modifier-groups (ortak endpoint).
  */
 
 import { AXIOS_INSTANCE } from '@/lib/axios';
+import { getAdminProductModifierGroups, setAdminProductModifierGroups as setAdminProductModifierGroupsApi } from '@/api/admin/products';
 
 export interface ModifierDto {
   id: string;
@@ -37,23 +38,18 @@ export async function getModifierGroups(): Promise<ModifierGroupDto[]> {
   return Array.isArray(data) ? data : [];
 }
 
-/** Ürüne atanmış modifier gruplarını getir. */
+/** Ürüne atanmış modifier gruplarını getir (admin API). */
 export async function getProductModifierGroups(productId: string): Promise<ModifierGroupDto[]> {
-  const res = await AXIOS_INSTANCE.get<ApiResponse<ModifierGroupDto[]>>(
-    `/api/Product/${productId}/modifier-groups`
-  );
-  const data = res.data?.data ?? res.data;
+  const data = await getAdminProductModifierGroups(productId);
   return Array.isArray(data) ? data : [];
 }
 
-/** Ürüne modifier gruplarını ata (mevcut atamalar replace edilir). */
+/** Ürüne modifier gruplarını ata (admin API). */
 export async function setProductModifierGroups(
   productId: string,
   modifierGroupIds: string[]
 ): Promise<void> {
-  await AXIOS_INSTANCE.post(`/api/Product/${productId}/modifier-groups`, {
-    modifierGroupIds,
-  });
+  await setAdminProductModifierGroupsApi(productId, modifierGroupIds);
 }
 
 /** Yeni modifier group oluştur. */

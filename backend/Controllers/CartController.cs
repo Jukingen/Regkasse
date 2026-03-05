@@ -8,9 +8,14 @@ using System.Security.Claims;
 
 namespace KasseAPI_Final.Controllers
 {
+    /// <summary>
+    /// Sepet işlemleri (POS). Legacy: api/Cart/* deprecated; use api/pos/cart/*.
+    /// TODO: api/Cart route kaldırılamıyor — POS cartService /cart/current vb. ile hâlâ kullanıyor. POS api/pos/cart'a geçince kaldır.
+    /// </summary>
     [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/pos/cart")]
     public class CartController : ControllerBase
     {
         private readonly AppDbContext _context;

@@ -169,6 +169,7 @@ builder.Services.AddSwaggerGen(c =>
     
     c.SchemaFilter<KasseAPI_Final.Swagger.TaxTypeSchemaFilter>();
     c.OperationFilter<SignatureDebugSwaggerExamples>();
+    c.OperationFilter<KasseAPI_Final.Swagger.PosAdminTagsAndDeprecationFilter>();
     
     // JWT authentication için Swagger konfigürasyonu
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme

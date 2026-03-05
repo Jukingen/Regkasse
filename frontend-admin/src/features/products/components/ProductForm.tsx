@@ -59,7 +59,7 @@ export default function ProductForm({
         return () => { cancelled = true; };
     }, [visible, initialValues?.id]);
 
-    // GET /categories (active) – Orval useGetApiCategories
+    // Kategori listesi: /api/admin/categories (useCategories → src/api/admin/categories)
     const { useList } = useCategories();
     const { data: categoryList } = useList();
 
@@ -108,7 +108,7 @@ export default function ProductForm({
         try {
             const values = await form.validateFields();
 
-            // categoryId from dropdown (GET /categories active list)
+            // categoryId from dropdown (/api/admin/categories list)
             const categoryId = values.categoryId as string | undefined;
 
             const processedValues: ProductFormSubmitValues = {

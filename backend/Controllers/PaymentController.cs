@@ -16,9 +16,12 @@ using KasseAPI_Final.Tse;
 namespace KasseAPI_Final.Controllers
 {
     /// <summary>
-    /// Ödeme işlemleri için controller - Service layer kullanarak
+    /// Ödeme işlemleri için controller - Service layer kullanarak.
+    /// Legacy: api/Payment/* deprecated; use api/pos/payment/*.
+    /// TODO: api/Payment route kaldırılamıyor — POS paymentService ve FE-Admin signature-debug hâlâ kullanıyor. Client'lar api/pos/payment'a geçince kaldır.
     /// </summary>
     [Route("api/[controller]")]
+    [Route("api/pos/payment")]
     [ApiController]
     [Authorize]
     public class PaymentController : BaseController

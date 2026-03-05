@@ -7,9 +7,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
 {
+    /// <summary>
+    /// Kategori yönetimi. Tek route: api/admin/categories (legacy api/Categories kaldırıldı).
+    /// </summary>
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/admin/categories")]
     public class CategoriesController : ControllerBase
     {
         private readonly AppDbContext _context;

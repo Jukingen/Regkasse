@@ -12,9 +12,12 @@ using System.Text;
 namespace KasseAPI_Final.Controllers
 {
     /// <summary>
-    /// Ürün yönetimi için controller - RKSV uyumlu ürün işlemleri
+    /// Ürün yönetimi için controller - RKSV uyumlu ürün işlemleri.
+    /// Legacy: api/Product/* deprecated; use api/pos/* for POS. Admin: use api/admin/products.
+    /// TODO: api/Product route kaldırılamıyor — FE-Admin (admin/products.ts mutations) ve POS (apiPaths) hâlâ kullanıyor. Tüm client'lar api/pos veya api/admin/products'a geçince kaldır.
     /// </summary>
     [Route("api/Product")]
+    [Route("api/pos")]
     [ApiController]
     [Authorize]
     public class ProductController : EntityController<Product>

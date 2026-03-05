@@ -1,26 +1,27 @@
+/**
+ * Ürün listesi, CRUD, stok: tüm çağrılar /api/admin/products (generated product hook'ları kullanılmıyor).
+ */
 import { useQueryClient } from '@tanstack/react-query';
 import {
-    useGetApiProduct,
-    useGetApiProductSearch,
-    useGetApiProductId,
-    usePostApiProduct,
-    usePutApiProductId,
-    useDeleteApiProductId,
-    usePutApiProductIdStock
-} from '@/api/generated/product/product';
+    useAdminProductsList,
+    useAdminProductsSearch,
+    useAdminProductById,
+    useCreateAdminProduct,
+    useUpdateAdminProduct,
+    useDeleteAdminProduct,
+    useUpdateAdminProductStock,
+    adminProductsQueryKeys,
+} from '@/api/admin/products';
 import { useURLFilters } from '@/hooks/useURLFilters';
-import { Product } from '@/api/generated/model';
 
-// 1. Key Factory
 export const productKeys = {
-    all: ['products'] as const,
-    lists: () => [...productKeys.all, 'list'] as const,
-    list: (filters: string) => [...productKeys.lists(), { filters }] as const,
-    details: () => [...productKeys.all, 'detail'] as const,
-    detail: (id: string) => [...productKeys.details(), id] as const,
+    all: adminProductsQueryKeys.all,
+    lists: adminProductsQueryKeys.lists,
+    list: (filters: string) => [...adminProductsQueryKeys.lists(), { filters }] as const,
+    details: adminProductsQueryKeys.details,
+    detail: (id: string) => adminProductsQueryKeys.detail(id),
 };
 
-// 2. Filter Hook
 export function useProductFilters() {
     return useURLFilters<{
         page: number;
@@ -30,44 +31,42 @@ export function useProductFilters() {
     }>();
 }
 
-// 3. Main Hook
 export function useProducts() {
     const queryClient = useQueryClient();
 
     const invalidateList = () => {
         queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-        // Invalidate orval keys
-        queryClient.invalidateQueries({ queryKey: ['/api/Product'] });
+        queryClient.invalidateQueries({ queryKey: adminProductsQueryKeys.lists() });
     };
 
     return {
-        // Queries
         useList: (
             params?: { page?: number; pageSize?: number },
             options?: { query?: { enabled?: boolean } }
         ) =>
-            useGetApiProduct(
+            useAdminProductsList(
                 {
                     pageNumber: params?.page,
-                    pageSize: params?.pageSize
+                    pageSize: params?.pageSize,
                 },
                 {
-                    query: {
-                        queryKey: productKeys.list(JSON.stringify(params)),
-                        ...options?.query
-                    }
+                    queryKey: productKeys.list(JSON.stringify(params)),
+                    ...options?.query,
                 }
             ),
-        useSearch: useGetApiProductSearch,
-        useDetail: useGetApiProductId,
+        useSearch: (params: { name?: string }, options?: { query?: { enabled?: boolean } }) =>
+            useAdminProductsSearch(
+                { name: params?.name, category: params?.category },
+                { enabled: options?.query?.enabled ?? !!params?.name }
+            ),
+        useDetail: (id: string, options?: { query?: { enabled?: boolean } }) =>
+            useAdminProductById(id, options?.query),
 
-        // Mutations
-        useCreate: usePostApiProduct,
-        useUpdate: usePutApiProductId,
-        useDelete: useDeleteApiProductId,
-        useUpdateStock: usePutApiProductIdStock,
+        useCreate: useCreateAdminProduct,
+        useUpdate: useUpdateAdminProduct,
+        useDelete: useDeleteAdminProduct,
+        useUpdateStock: useUpdateAdminProductStock,
 
-        // Utils
         invalidateList,
         keys: productKeys,
     };

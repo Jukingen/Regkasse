@@ -19,7 +19,7 @@ The solution ensures that Backend `400 Bad Request` validation errors (PascalCas
 **Scenario**: User tries to save a product with an empty "Unit" field.
 1.  Frontend Validation (AntD rules) blocks submission immediately if rules are present.
 2.  If Frontend rules were bypassed or matching logic on server fails:
-    -   Requests `PUT /api/Product/GUID`.
+    -   Requests `PUT /api/admin/products/GUID`.
     -   Payload includes `{ unit: "" }`.
 3.  Backend responds:
     ```json

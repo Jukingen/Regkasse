@@ -73,14 +73,9 @@ export default function ProductsPage() {
 
     const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading;
 
-    // Extract raw data 
-    // Search endpoint returns { data: Product[] } (Array)
-    // List endpoint returns { data: { items: Product[], ... } }
-    const rawSearchResults =
-        (searchQuery.data as any)?.data?.data ??   // AxiosResponse + wrapper: { success, data: [...] }
-        (searchQuery.data as any)?.data ??         // wrapper: { success, data: [...] }
-        [];
-    const rawListItems = listQuery.data?.data?.items || [];
+    // Admin API: list returns { items, pagination }; search returns Product[].
+    const rawSearchResults = Array.isArray(searchQuery.data) ? searchQuery.data : [];
+    const rawListItems = listQuery.data?.items ?? [];
 
     // Normalize data source
     const rawItems = isSearching ? rawSearchResults : rawListItems;
@@ -90,17 +85,19 @@ export default function ProductsPage() {
     const products = Array.isArray(rawItems) ? rawItems.map(mapApiProductToUi) : [];
 
     const pagination = isSearching
-        ? false // Disable pagination for search results as endpoint returns all matches (or we need to implement client-side/search-specific pagination)
-        : (listQuery.data?.data?.pagination ? {
-            current: page,
-            pageSize: pageSize,
-            total: listQuery.data.data.pagination.totalCount,
-            showSizeChanger: true,
-            onChange: (p: number, ps: number) => {
-                setPage(p);
-                setPageSize(ps);
-            },
-        } : false);
+        ? false
+        : (listQuery.data?.pagination
+            ? {
+                current: page,
+                pageSize: pageSize,
+                total: listQuery.data.pagination.totalCount,
+                showSizeChanger: true,
+                onChange: (p: number, ps: number) => {
+                    setPage(p);
+                    setPageSize(ps);
+                },
+            }
+            : false);
 
     // Mutations
     const createMutation = useCreate();
@@ -115,8 +112,8 @@ export default function ProductsPage() {
     const handleCreate = async (values: ProductFormSubmitValues) => {
         try {
             const apiData = mapUiProductToApi(values);
-            const result = await createMutation.mutateAsync({ data: apiData }) as { data?: { id?: string } };
-            const createdId = result?.data?.id;
+            const result = await createMutation.mutateAsync({ data: apiData }) as { id?: string };
+            const createdId = result?.id;
             if (createdId && values.modifierGroupIds?.length) {
                 await setProductModifierGroups(createdId, values.modifierGroupIds);
             }
