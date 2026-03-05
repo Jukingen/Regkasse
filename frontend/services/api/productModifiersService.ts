@@ -1,5 +1,5 @@
 /**
- * POS: Ürün modifier grupları (Extra Zutaten). Kasiyer ürün seçince modal'da gösterilir.
+ * POS: Ürün modifier grupları (Extra Zutaten). Cache ile gereksiz fetch önlenir.
  */
 import { apiClient } from './config';
 import { API_PATHS } from './apiPaths';
@@ -28,11 +28,28 @@ interface ApiResponse<T> {
   data?: T;
 }
 
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 dakika
+const modifierGroupsCache = new Map<string, { data: ModifierGroupDto[]; ts: number }>();
+
+function getCached(productId: string): ModifierGroupDto[] | null {
+  const entry = modifierGroupsCache.get(productId);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL_MS) {
+    modifierGroupsCache.delete(productId);
+    return null;
+  }
+  return entry.data;
+}
+
 export async function getProductModifierGroups(productId: string): Promise<ModifierGroupDto[]> {
+  const cached = getCached(productId);
+  if (cached) return cached;
+
   const res = await apiClient.get<ApiResponse<ModifierGroupDto[]> | ModifierGroupDto[]>(
     API_PATHS.PRODUCT.MODIFIER_GROUPS(productId)
   );
   const body = (res as any)?.data ?? res;
   const list = Array.isArray(body) ? body : (body?.data ?? []);
+  modifierGroupsCache.set(productId, { data: list, ts: Date.now() });
   return list;
 }

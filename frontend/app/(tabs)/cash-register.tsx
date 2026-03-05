@@ -1,34 +1,88 @@
-// Türkçe Açıklama: Ana cash register ekranı - yeni backend API yapısını kullanır
-// RKSV uyumlu ürün yönetimi ve modern API entegrasyonu
+// =============================================================================
+// POS Ana Ekran (Cash Register) – maximum cashier speed, minimal taps
+// =============================================================================
+// One-tap add: tap product row → add 1x to cart. No "Hinzufügen" button.
+// Zutaten/Modifiers: expandable under product list row ("Extras ▼"), no modal.
+//
+// State shape:
+// - cart (CartContext): items[] each { itemId, productId, productName, qty,
+//   unitPrice, totalPrice, modifiers?: { id, name, price }[] }. Stable itemId
+//   per line; same product with different modifiers = separate lines.
+// - pendingModifiersByProduct (local): Selected extras for next add; key = productId.
+//   Tap row → add with current pending, then clear pending for that product.
+// - lastCartItemIdByProductId (derived): Map productId → cartItemId of the
+//   latest cart line for that product. Used so modifier selection can target
+//   the most recently added line (when backend supports update-item-modifiers).
+// =============================================================================
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View, Text } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { SafeAreaView, StyleSheet, View, Text } from 'react-native';
 
-// Modüler component'ları import et
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
 import { TableSelector } from '../../components/TableSelector';
-import { ProductList } from '../../components/ProductList'; // Yeni ProductList komponenti
+import { ProductList } from '../../components/ProductList';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
 import CategoryFilter from '../../components/CategoryFilter';
-import PaymentModal from '../../components/PaymentModal';
-import { ModifierSelectionModal, type SelectedModifier } from '../../components/ModifierSelectionModal';
+import type { SelectedModifier } from '../../components/ModifierSelectionBottomSheet';
 import { ToastContainer } from '../../components/ToastNotification';
 
-// Hook'ları import et
 import { useCashRegister } from '../../hooks/useCashRegister';
 import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecoveryOptimized';
-import { useProductsUnified } from '../../hooks/useProductsUnified'; // Unified product hook
-
-// ✅ Cart Context (Zustand removed)
+import { useProductsUnified } from '../../hooks/useProductsUnified';
 import { useCart } from '../../contexts/CartContext';
 
-// Yeni ürün API servislerini import et
 import { Product } from '../../services/api/productService';
-import { apiClient } from '../../services/api/config';
+import { SoftColors, SoftSpacing, SoftTypography } from '../../constants/SoftTheme';
 
-// Soft minimal theme
-import { SoftColors, SoftSpacing, SoftRadius, SoftTypography } from '../../constants/SoftTheme';
+// -----------------------------------------------------------------------------
+// Hook: Sepet ekleme + modifier pending state (tek tık akışı, minimal re-render)
+// -----------------------------------------------------------------------------
+function usePOSOrderFlow(
+  addItem: (productId: string, qty?: number, options?: { modifiers?: SelectedModifier[]; productName?: string; unitPrice?: number }) => Promise<void>,
+  activeTableId: number,
+  addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void
+) {
+  const [pendingModifiersByProduct, setPendingModifiersByProduct] = useState<Record<string, SelectedModifier[]>>({});
+
+  const handleAddProduct = useCallback(
+    async (product: Product, modifiers: SelectedModifier[]) => {
+      if (!activeTableId) {
+        addToast('error', 'Bitte zuerst Tisch wählen', 3000);
+        return;
+      }
+      try {
+        await addItem(product.id, 1, {
+          modifiers,
+          productName: product.name,
+          unitPrice: product.price ?? 0,
+        });
+        addToast('success', `${product.name} zu Tisch ${activeTableId} hinzugefügt`, 2000);
+        setPendingModifiersByProduct((prev) => {
+          const next = { ...prev };
+          delete next[product.id];
+          return next;
+        });
+      } catch (error: any) {
+        addToast('error', `${product.name}: ${error?.message || 'Fehler'}`, 5000);
+      }
+    },
+    [addItem, activeTableId, addToast]
+  );
+
+  const handleToggleModifier = useCallback((productId: string, modifier: SelectedModifier) => {
+    setPendingModifiersByProduct((prev) => {
+      const list = prev[productId] ?? [];
+      const has = list.some((m) => m.id === modifier.id);
+      const nextList = has ? list.filter((m) => m.id !== modifier.id) : [...list, modifier];
+      const next = { ...prev, [productId]: nextList };
+      if (nextList.length === 0) delete next[productId];
+      return next;
+    });
+  }, []);
+
+  return { pendingModifiersByProduct, handleAddProduct, handleToggleModifier };
+}
 
 export default function CashRegisterScreen() {
   // Unified product hook - tüm ürün işlemlerini tek noktada yönet
@@ -82,16 +136,29 @@ export default function CashRegisterScreen() {
     setIsPaymentModalVisible
   } = useCart();
 
-  // Local state'ler – selectedCategoryId: null = "Alle" (sadece UI)
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [customerId, setCustomerId] = useState<string>('00000000-0000-0000-0000-000000000000');
-  // Extra Zutaten: Ürün seçilince modal açılır, modifier seçilip "Hinzufügen" ile sepete eklenir
-  const [modifierModalVisible, setModifierModalVisible] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  // ✅ Aktif table'ın cart'ını al (Derived State)
+  const { pendingModifiersByProduct, handleAddProduct, handleToggleModifier } = usePOSOrderFlow(
+    addItem,
+    activeTableId,
+    addToast
+  );
+
   const cart = getCartForTable(activeTableId);
+
+  // Latest cart line per product (for modifier targeting when API supports it)
+  const lastCartItemIdByProductId = useMemo(() => {
+    const map: Record<string, string> = {};
+    const items = cart?.items ?? [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const pid = item.productId;
+      const id = item.itemId ?? (item as any).id;
+      if (pid && id) map[pid] = String(id);
+    }
+    return map;
+  }, [cart?.items]);
 
   // Masa badge counter için cartsByTable'dan Map türet (anlık güncelleme için tek kaynak)
   // Boş masalar dahil tüm entry'ler eklenir; Clear All sonrası badge 0 olur
@@ -105,9 +172,6 @@ export default function CashRegisterScreen() {
     }
     return map;
   }, [cartsByTable]);
-
-  // Ref'ler
-  const isFirstLoad = useRef(true);
 
   // ---------------------------------------------------------------------------
   // ADAPTERS for Context (Mapping old hook API to Context API)
@@ -163,39 +227,11 @@ export default function CashRegisterScreen() {
 
   // ---------------------------------------------------------------------------
 
-  // Kategori değişimi – ProductList categoryFilterId ile kendi filtrelemesini yapar
-  const handleCategoryChange = (categoryId: string | null) => {
+  const handleCategoryChange = useCallback((categoryId: string | null) => {
     setSelectedCategoryId(categoryId);
-  };
+  }, []);
 
-  // Ürün seçimi: Önce Extra-Zutaten modal'ı aç; "Hinzufügen" ile sepete ekle (modifier seçmeden de eklenebilir)
-  const handleProductSelect = (product: Product) => {
-    if (!activeTableId) {
-      addToast('error', 'Bitte zuerst Tisch wählen', 3000);
-      return;
-    }
-    setSelectedProduct(product);
-    setModifierModalVisible(true);
-  };
-
-  const handleModifierModalAdd = async (selectedModifiers: SelectedModifier[]) => {
-    if (!selectedProduct || !activeTableId) return;
-    try {
-      await addItem(selectedProduct.id, 1, {
-        modifiers: selectedModifiers,
-        productName: selectedProduct.name,
-        unitPrice: selectedProduct.price ?? 0,
-      });
-      addToast('success', `${selectedProduct.name} zu Tisch ${activeTableId} hinzugefügt`, 2000);
-      setModifierModalVisible(false);
-      setSelectedProduct(null);
-    } catch (error: any) {
-      addToast('error', `${selectedProduct.name}: ${error?.message || 'Fehler'}`, 5000);
-    }
-  };
-
-  // Masa seçimi handler'ı
-  const handleTableSelect = async (tableNumber: number) => {
+  const handleTableSelect = useCallback(async (tableNumber: number) => {
     try {
       if (!tableNumber || tableNumber < 1 || tableNumber > 10) {
         addToast('error', 'Invalid table number', 3000);
@@ -226,10 +262,9 @@ export default function CashRegisterScreen() {
       addToast('error', 'Failed to switch table', 3000);
       setTableSelectionLoading(null);
     }
-  };
+  }, [activeTableId, switchTable, addToast]);
 
-  // Sepet miktar güncelleme handler'ı - Direct API Implementation with fresh state
-  const handleQuantityUpdate = async (itemId: string, action: 'increment' | 'decrement') => {
+  const handleQuantityUpdate = useCallback(async (itemId: string, action: 'increment' | 'decrement') => {
     if (!activeTableId) return;
 
     const currentCart = getCartForTable(activeTableId);
@@ -244,10 +279,9 @@ export default function CashRegisterScreen() {
     } catch (err: any) {
       addToast('error', 'Update failed', 2000);
     }
-  };
+  }, [activeTableId, getCartForTable, updateItemQuantityByItemId, addToast]);
 
-
-  const handleItemRemove = async (itemId: string) => {
+  const handleItemRemove = useCallback(async (itemId: string) => {
     if (!activeTableId) return;
     try {
       await removeByItemId(itemId);
@@ -255,10 +289,9 @@ export default function CashRegisterScreen() {
     } catch (err: any) {
       addToast('error', err?.message || 'Failed to remove item', 3000);
     }
-  };
+  }, [activeTableId, removeByItemId, addToast]);
 
-  // Sepet temizleme handler'ı
-  const handleClearCart = async () => {
+  const handleClearCart = useCallback(async () => {
     if (!activeTableId) {
       addToast('error', 'No table selected. Please select a table first.', 3000);
       return;
@@ -272,10 +305,9 @@ export default function CashRegisterScreen() {
       console.error(`❌ Error clearing table ${activeTableId}:`, error);
       addToast('error', `Failed to clear table ${activeTableId}`, 3000);
     }
-  };
+  }, [activeTableId, clearCart, addToast]);
 
-  // Tüm masaları temizleme handler'ı (Clear All / Clear Current Table)
-  const handleClearAllTables = async () => {
+  const handleClearAllTables = useCallback(async () => {
     try {
       if (!activeTableId) {
         addToast('error', 'No table selected', 3000);
@@ -298,10 +330,9 @@ export default function CashRegisterScreen() {
       console.error('❌ Error clearing table:', error);
       addToast('error', error.message || 'Error clearing table', 3000);
     }
-  };
+  }, [activeTableId, clearCart, addToast]);
 
-  // Ödeme handler'ı
-  const handlePayment = () => {
+  const handlePayment = useCallback(() => {
     if (!cart?.items?.length) {
       addToast('warning', 'Cart is empty. Please add items first.', 3000);
       return;
@@ -311,43 +342,8 @@ export default function CashRegisterScreen() {
       addToast('error', 'No table selected. Please select a table first.', 3000);
       return;
     }
-
     setIsPaymentModalVisible(true);
-  };
-
-
-  // useEffect: veri hazır olduğunda log (opsiyonel)
-  useEffect(() => {
-    if (products.length > 0 && categories.length > 0) {
-      console.log(`📂 Categories: ${categories.length}, Products: ${products.length}`);
-    }
-  }, [products.length, categories.length]);
-
-  // Debug: Unified hook state durumunu kontrol et
-  useEffect(() => {
-    console.log('🔍 CashRegister: Unified hook state changed', {
-      productsCount: products.length,
-      categoriesCount: categories.length,
-      loading: productsLoading,
-      error: productsError
-    });
-  }, [products.length, categories.length, productsLoading, productsError]);
-
-  // REMOVED: Load cart on selection change (Sync active table) -> Now handled by switchTable
-
-  useEffect(() => {
-    // Recovery logic could update Context here if needed.
-    // Already handled by CartContext via generic logic usually,
-    // But if recoveryData provides a cart structure, we might need to populate Context?
-    // For now assume recoveryData syncs with backend and CartContext reads from backend/storage.
-    if (isRecoveryCompleted && recoveryData && activeTableId) {
-      // We are trusting CartContext to have the data.
-      // If recoveryData has data that Context doesn't, we might need to sync.
-      // But recovery implies "Backend has checks", and Context reads from Backend.
-      // So they should eventually consistency.
-    }
-  }, [isRecoveryCompleted, recoveryData, activeTableId]);
-
+  }, [cart?.items?.length, activeTableId, setIsPaymentModalVisible, addToast]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -365,7 +361,9 @@ export default function CashRegisterScreen() {
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
       <ProductList
         categoryFilterId={selectedCategoryId}
-        onProductSelect={handleProductSelect}
+        pendingModifiersByProduct={pendingModifiersByProduct}
+        onAddProduct={handleAddProduct}
+        onToggleModifier={handleToggleModifier}
         showStockInfo={false}
         showTaxInfo={true}
         ListHeaderComponent={
@@ -417,20 +415,19 @@ export default function CashRegisterScreen() {
         } 
       />
 
-      {/* Extra Zutaten: Ürün tıklandığında modal, "Hinzufügen" ile sepete ekleme */}
-      {selectedProduct && (
-        <ModifierSelectionModal
-          visible={modifierModalVisible}
-          productId={selectedProduct.id}
-          productName={selectedProduct.name}
-          productPrice={selectedProduct.price ?? 0}
-          onClose={() => { setModifierModalVisible(false); setSelectedProduct(null); }}
-          onAdd={handleModifierModalAdd}
-        />
-      )}
     </SafeAreaView>
   );
 }
+
+// -----------------------------------------------------------------------------
+// REFACTOR SUMMARY
+// -----------------------------------------------------------------------------
+// New / updated: usePOSOrderFlow (in-file hook), lastCartItemIdByProductId (derived).
+// Components used: ProductList, ProductRow, ProductGridCard, ModifierOptionChips
+//   (expandable Extras ▼ under product row), CartDisplay, CartSummary.
+// State: cart (context), pendingModifiersByProduct (local), lastCartItemIdByProductId (derived).
+// UX before: Tap product → Zutaten modal → Hinzufügen. After: Tap row → add instantly;
+//   Extras inline expandable under row; no modal; no Add button.
 
 const styles = StyleSheet.create({
   container: {

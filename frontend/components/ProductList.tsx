@@ -1,4 +1,5 @@
-// Soft minimal product list with grid/list view modes
+// Soft minimal product list with grid/list view modes.
+// POS: Tek tıkla sepete ekleme; Extras tıklanabilir chip ile seçilir (onAddProduct + onToggleModifier).
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -14,9 +15,14 @@ import { useTranslation } from 'react-i18next';
 import { Product } from '../services/api/productService';
 import { useProductsUnified } from '../hooks/useProductsUnified';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
+import { ProductRow, type ModifierChipItem } from './ProductRow';
+import { ProductGridCard } from './ProductGridCard';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isTablet = screenWidth > 768;
+
+/** Ürün satırına tıklanınca (eski modal akışı – artık kullanılmıyor, onAddProduct tercih edilir) */
+export type OnProductSelect = (product: Product) => void;
 
 interface ProductListProps {
   /** null = "Alle", string = category id from backend */
@@ -24,7 +30,13 @@ interface ProductListProps {
   categoryFilter?: string;
   stockStatusFilter?: 'in-stock' | 'out-of-stock' | 'low-stock';
   searchQuery?: string;
-  onProductSelect?: (product: Product) => void;
+  onProductSelect?: OnProductSelect;
+  /** POS: Ürün bazında bekleyen modifier seçimi; key = productId */
+  pendingModifiersByProduct?: Record<string, ModifierChipItem[]>;
+  /** POS: Tek tıkla sepete ekle (ürün + seçili modifier'lar) */
+  onAddProduct?: (product: Product, modifiers: ModifierChipItem[]) => void;
+  /** POS: Modifier chip toggle – bir sonraki sepete eklemede kullanılacak seçimi günceller */
+  onToggleModifier?: (productId: string, modifier: ModifierChipItem) => void;
   showStockInfo?: boolean;
   showTaxInfo?: boolean;
   ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
@@ -37,12 +49,16 @@ export const ProductList: React.FC<ProductListProps> = ({
   stockStatusFilter,
   searchQuery,
   onProductSelect,
+  pendingModifiersByProduct = {},
+  onAddProduct,
+  onToggleModifier,
   showStockInfo = false,
   showTaxInfo = true,
   ListHeaderComponent,
   ListFooterComponent
 }) => {
   const { t } = useTranslation();
+  const useInlineExtras = Boolean(onAddProduct && onToggleModifier);
 
   const {
     products: cachedProducts,
@@ -119,94 +135,91 @@ export const ProductList: React.FC<ProductListProps> = ({
     return SoftColors.success;
   };
 
-  // Grid product card (soft minimal)
-  const renderGridProduct = ({ item }: { item: Product }) => (
-    <Pressable
-      style={({ pressed }) => [
-        styles.gridCard,
-        pressed && styles.cardPressed,
-      ]}
-      onPress={() => handleProductSelect(item)}
-    >
-      {/* Image placeholder with emoji */}
-      <View style={styles.gridImageWrapper}>
-        <Text style={styles.gridImageEmoji}>
-          {getCategoryEmoji(item.productCategory || item.category)}
-        </Text>
-      </View>
-
-      {/* Content */}
-      <View style={styles.gridContent}>
-        <Text style={styles.gridCategory}>
-          {item.productCategory || item.category}
-        </Text>
-        <Text style={styles.gridName} numberOfLines={2}>
-          {item.name}
-        </Text>
-
-        {/* Price badge */}
-        <View style={styles.priceBadge}>
-          <Text style={styles.priceText}>
-            €{item.price?.toFixed(2) || '0.00'}
+  // Grid product card: inline Extras + Add veya eski tek tıkla seçim
+  const renderGridProduct = ({ item }: { item: Product }) => {
+    if (useInlineExtras && onAddProduct && onToggleModifier) {
+      return (
+        <ProductGridCard
+          product={item}
+          pendingModifiers={pendingModifiersByProduct[item.id] ?? []}
+          onAdd={onAddProduct}
+          onToggleModifier={onToggleModifier}
+          getCategoryEmoji={getCategoryEmoji}
+        />
+      );
+    }
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          styles.gridCard,
+          pressed && styles.cardPressed,
+        ]}
+        onPress={() => handleProductSelect(item)}
+      >
+        <View style={styles.gridImageWrapper}>
+          <Text style={styles.gridImageEmoji}>
+            {getCategoryEmoji(item.productCategory || item.category)}
           </Text>
         </View>
-
-        {/* Stock indicator - hidden from cashier UI; stock managed in admin panel */}
-        {/* {showStockInfo && (
-          <View style={styles.stockRow}>
-            <View style={[
-              styles.stockDot,
-              { backgroundColor: getStockStatusColor(item.stockQuantity || 0, item.minStockLevel || 0) }
-            ]} />
-            <Text style={styles.stockText}>{item.stockQuantity || 0}</Text>
-          </View>
-        )} */}
-      </View>
-    </Pressable>
-  );
-
-  // List product card (soft minimal)
-  const renderListProduct = ({ item }: { item: Product }) => (
-    <Pressable
-      style={({ pressed }) => [
-        styles.listCard,
-        pressed && styles.cardPressed,
-      ]}
-      onPress={() => handleProductSelect(item)}
-    >
-      {/* Thumbnail */}
-      <View style={styles.listThumbnail}>
-        <Text style={styles.listEmoji}>
-          {getCategoryEmoji(item.productCategory || item.category)}
-        </Text>
-      </View>
-
-      {/* Info */}
-      <View style={styles.listInfo}>
-        <Text style={styles.listName} numberOfLines={1}>{item.name}</Text>
-        {item.description && (
-          <Text style={styles.listDescription} numberOfLines={1}>
-            {item.description}
+        <View style={styles.gridContent}>
+          <Text style={styles.gridCategory}>
+            {item.productCategory || item.category}
           </Text>
-        )}
-        <View style={styles.listMeta}>
-          <View style={styles.priceBadgeSm}>
-            <Text style={styles.priceTextSm}>€{item.price?.toFixed(2)}</Text>
+          <Text style={styles.gridName} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <View style={styles.priceBadge}>
+            <Text style={styles.priceText}>
+              €{item.price?.toFixed(2) || '0.00'}
+            </Text>
           </View>
-          {/* Stock indicator - hidden from cashier UI; stock managed in admin panel */}
-          {/* {showStockInfo && (
-            <View style={styles.stockRow}>
-              <View style={[
-                styles.stockDot,
-                { backgroundColor: getStockStatusColor(item.stockQuantity || 0, item.minStockLevel || 0) }
-              ]} />
-              <Text style={styles.stockText}>{item.stockQuantity || 0}</Text>
+        </View>
+      </Pressable>
+    );
+  };
+
+  // List product card: inline Extras (Zutaten) + Add butonu veya eski tek tıkla seçim
+  const renderListProduct = ({ item }: { item: Product }) => {
+    if (useInlineExtras && onAddProduct && onToggleModifier) {
+      return (
+        <ProductRow
+          product={item}
+          pendingModifiers={pendingModifiersByProduct[item.id] ?? []}
+          onAdd={onAddProduct}
+          onToggleModifier={onToggleModifier}
+          getCategoryEmoji={getCategoryEmoji}
+        />
+      );
+    }
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          styles.listCard,
+          pressed && styles.cardPressed,
+        ]}
+        onPress={() => handleProductSelect(item)}
+      >
+        <View style={styles.listThumbnail}>
+          <Text style={styles.listEmoji}>
+            {getCategoryEmoji(item.productCategory || item.category)}
+          </Text>
+        </View>
+        <View style={styles.listInfo}>
+          <Text style={styles.listName} numberOfLines={1}>{item.name}</Text>
+          {item.description && (
+            <Text style={styles.listDescription} numberOfLines={1}>
+              {item.description}
+            </Text>
+          )}
+          <View style={styles.listMeta}>
+            <View style={styles.priceBadgeSm}>
+              <Text style={styles.priceTextSm}>€{item.price?.toFixed(2)}</Text>
             </View>
-          )} */}
+          </View>
         </View>
-      </View>
-    </Pressable>
-  );
+      </Pressable>
+    );
+  };
 
   // View mode toggle (soft pills)
   const renderViewModeToggle = () => (
