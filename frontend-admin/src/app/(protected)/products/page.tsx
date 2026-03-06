@@ -131,12 +131,15 @@ export default function ProductsPage() {
         try {
             const apiData = mapUiProductToApi(values);
             apiData.id = editingProduct.id;
-
-            await updateMutation.mutateAsync({ id: editingProduct.id, data: apiData });
+            const result = await updateMutation.mutateAsync({ id: editingProduct.id, data: apiData as Product });
             if (values.modifierGroupIds !== undefined) {
                 await setProductModifierGroups(editingProduct.id, values.modifierGroupIds);
             }
-            message.success('Product updated successfully');
+            if (result?.fromPayload) {
+                message.success('Saved. List will refresh.');
+            } else {
+                message.success('Product updated successfully');
+            }
             setIsFormVisible(false);
             setEditingProduct(null);
             invalidateList();

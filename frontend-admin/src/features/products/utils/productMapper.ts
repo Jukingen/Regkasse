@@ -1,5 +1,36 @@
 import { Product } from '@/api/generated/model';
 
+/** Backend TaxType enum: 1=Standard(20%), 2=Reduced(10%), 3=Special(13%), 4=ZeroRate(0%). */
+export const TAX_TYPE_ENUM = {
+    Standard: 1,
+    Reduced: 2,
+    Special: 3,
+    ZeroRate: 4,
+} as const;
+
+/** Tek kaynak: enum id -> yüzde oranı (backend TaxTypes.GetTaxRate ile uyumlu). */
+export function taxTypeToRate(taxType: number): number {
+    switch (taxType) {
+        case 1: return 20;
+        case 2: return 10;
+        case 3: return 13;
+        case 4: return 0;
+        default: return 20;
+    }
+}
+
+/** Form/table’da gösterim: enum id -> etiket. */
+export function taxTypeToLabel(taxType: number): string {
+    const rate = taxTypeToRate(taxType);
+    switch (taxType) {
+        case 1: return `${rate}% (Standard)`;
+        case 2: return `${rate}% (Reduced)`;
+        case 3: return `${rate}% (Special)`;
+        case 4: return `${rate}% (Zero)`;
+        default: return '20% (Standard)';
+    }
+}
+
 // Define the shape of the raw API response item (PascalCase)
 export interface ApiProduct {
     Id: string;
@@ -12,38 +43,19 @@ export interface ApiProduct {
     Unit?: string | null;
     Category?: string | null;
     CategoryId?: string | null;
-    TaxType: any; // Using any to avoid strict enum mismatch during mapping
+    TaxType: number; // Backend: int enum 1,2,3,4
     TaxRate?: number;
     IsActive?: boolean;
     Barcode?: string | null;
     Cost?: number;
-    [key: string]: any; // Allow extra fields
+    [key: string]: any;
 }
 
-// Helper to map backend string TaxType to frontend number (TaxRate)
-const mapTaxTypeToRate = (type: string): number => {
-    switch (type) {
-        case 'Reduced': return 10;
-        case 'Special': return 13;
-        case 'Standard': return 20;
-        case 'Exempt': return 0;
-        default: return 20;
-    }
-};
-
-// Helper to map frontend number (TaxRate) to backend string TaxType
-const mapRateToTaxType = (rate: number): string => {
-    switch (rate) {
-        case 10: return 'Reduced';
-        case 13: return 'Special';
-        case 20: return 'Standard';
-        case 0: return 'Exempt';
-        default: return 'Standard';
-    }
-};
-
+/** API’den gelen TaxType (int) ve TaxRate’i UI Product’a map eder. taxType sayı olarak korunur. */
 export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
     if (!apiProduct) return {} as Product;
+    const taxType = Number(apiProduct.TaxType ?? apiProduct.taxType ?? 1);
+    const taxRate = apiProduct.TaxRate ?? apiProduct.taxRate ?? taxTypeToRate(taxType);
 
     return {
         id: apiProduct.Id || apiProduct.id,
@@ -56,8 +68,8 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
         unit: apiProduct.Unit || apiProduct.unit,
         category: apiProduct.Category || apiProduct.category,
         categoryId: apiProduct.CategoryId || apiProduct.categoryId,
-        taxType: apiProduct.TaxType || apiProduct.taxType, // Keep raw if needed, or map
-        taxRate: apiProduct.TaxRate ?? apiProduct.taxRate ?? mapTaxTypeToRate(apiProduct.TaxType || apiProduct.taxType),
+        taxType: taxType as unknown as string, // Generated Product tipi string; backend int bekliyor, payload’da number gönderiyoruz
+        taxRate,
         isActive: apiProduct.IsActive ?? apiProduct.isActive ?? true,
         barcode: apiProduct.Barcode || apiProduct.barcode,
         cost: apiProduct.Cost ?? apiProduct.cost ?? 0,
@@ -68,29 +80,29 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
     };
 };
 
-export const mapUiProductToApi = (uiProduct: Product & { categoryId?: string }): any => {
+/** Backend’e gönderilecek payload: taxType integer (1,2,3), taxRate enum ile uyumlu yüzde. Backend Product.Category [Required] olduğu için hem categoryId hem category (ad) gönderilir. */
+export const mapUiProductToApi = (uiProduct: Product & { categoryId?: string; category?: string; taxType?: number }): Record<string, unknown> => {
+    const taxType = Number(uiProduct.taxType ?? (uiProduct as any).taxType ?? 1);
+    const taxRate = taxTypeToRate(taxType);
+    const category = typeof uiProduct.category === 'string' && uiProduct.category.trim() ? uiProduct.category.trim() : '';
+
     return {
-        // Backend expects PascalCase (based on controller but we'll use property names matching DTO)
-        // However, standard JSON serializer in .NET usually accepts camelCase if configured.
-        ...uiProduct,
         id: uiProduct.id,
         name: uiProduct.name,
-        price: uiProduct.price,
-        description: uiProduct.description,
-        category: uiProduct.category,
+        price: Number(uiProduct.price),
+        description: uiProduct.description ?? null,
+        category,
         categoryId: uiProduct.categoryId,
-        stockQuantity: uiProduct.stockQuantity,
-        minStockLevel: uiProduct.minStockLevel,
-        unit: uiProduct.unit,
-        cost: uiProduct.cost,
-        isActive: uiProduct.isActive,
-        barcode: uiProduct.barcode,
-        // CRITICAL FIX: Map numeric rate/type back to String Enum
-        taxType: mapRateToTaxType(Number(uiProduct.taxRate || uiProduct.taxType || 20)),
-        taxRate: Number(uiProduct.taxRate || 20),
-        // Ensure RKSV fields are populated if missing
+        stockQuantity: Number(uiProduct.stockQuantity ?? 0),
+        minStockLevel: Number(uiProduct.minStockLevel ?? 0),
+        unit: uiProduct.unit || 'pcs',
+        cost: Number(uiProduct.cost ?? 0),
+        isActive: uiProduct.isActive ?? true,
+        barcode: uiProduct.barcode ?? '',
+        taxType, // Backend int enum bekliyor (1, 2, 3)
+        taxRate,
         isFiscalCompliant: true,
         isTaxable: true,
-        rksvProductType: "Standard"
+        rksvProductType: 'Standard',
     };
 };

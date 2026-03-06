@@ -25,6 +25,7 @@ namespace KasseAPI_Final.Models
 
         // Navigation properties
         public virtual Cart Cart { get; set; } = null!;
-        // Product navigation property removed to prevent shadow property conflicts
+        /// <summary>Seçili modifier'lar (fiyat DB'den; RKSV güvenli).</summary>
+        public virtual ICollection<CartItemModifier> Modifiers { get; set; } = new List<CartItemModifier>();
     }
 }

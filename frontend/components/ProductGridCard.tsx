@@ -1,10 +1,10 @@
 /**
  * POS grid ürün kartı: tek tıkla sepete ekleme. Extras tıklanabilir chip; modal yok.
+ * Memoized: re-renders only when product.id or selected modifiers change.
  */
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Product } from '../services/api/productService';
-import { useProductModifierGroups } from '../hooks/useProductModifierGroups';
 import { ModifierOptionChips, type ModifierOptionItem } from './ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
 
@@ -12,6 +12,15 @@ export interface ModifierChipItem {
   id: string;
   name: string;
   price: number;
+}
+
+function modifiersKey(mods: ModifierChipItem[]): string {
+  if (!mods.length) return '';
+  return mods
+    .slice()
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((m) => `${m.id}:${m.price}`)
+    .join(',');
 }
 
 interface ProductGridCardProps {
@@ -22,17 +31,22 @@ interface ProductGridCardProps {
   getCategoryEmoji?: (category?: string) => string;
 }
 
-export function ProductGridCard({
+function ProductGridCardInner({
   product,
   pendingModifiers,
   onAdd,
   onToggleModifier,
   getCategoryEmoji = () => '📦',
 }: ProductGridCardProps) {
-  const { groups, loading, hasModifiers } = useProductModifierGroups(product.id);
-  const allModifiers: ModifierOptionItem[] = groups.flatMap((g) =>
-    (g.modifiers ?? []).map((m) => ({ id: m.id, name: m.name, price: Number(m.price) }))
+  const groups = product.modifierGroups ?? [];
+  const allModifiers: ModifierOptionItem[] = useMemo(
+    () =>
+      groups.flatMap((g) =>
+        (g.modifiers ?? []).map((m) => ({ id: m.id, name: m.name, price: Number(m.price) }))
+      ),
+    [product.modifierGroups]
   );
+  const hasModifiers = allModifiers.length > 0;
 
   return (
     <Pressable
@@ -53,7 +67,7 @@ export function ProductGridCard({
             modifiers={allModifiers}
             selectedModifiers={pendingModifiers}
             onToggle={(m) => onToggleModifier(product.id, m)}
-            loading={loading}
+            loading={false}
           />
         )}
       </View>
@@ -89,4 +103,10 @@ const styles = StyleSheet.create({
   },
   priceText: { ...SoftTypography.price, color: SoftColors.accentDark },
   cardPressed: { opacity: 0.92 },
+});
+
+export const ProductGridCard = memo(ProductGridCardInner, (prev, next) => {
+  if (prev.product.id !== next.product.id) return false;
+  if (modifiersKey(prev.pendingModifiers) !== modifiersKey(next.pendingModifiers)) return false;
+  return true;
 });

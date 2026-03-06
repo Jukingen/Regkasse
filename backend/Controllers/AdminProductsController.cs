@@ -59,9 +59,10 @@ namespace KasseAPI_Final.Controllers
                     .Take(validPageSize)
                     .ToListAsync();
 
+                var items = products.Select(AdminProductDto.FromProduct).ToList();
                 var response = new
                 {
-                    items = products,
+                    items,
                     pagination = new
                     {
                         pageNumber = validPageNumber,
@@ -72,7 +73,7 @@ namespace KasseAPI_Final.Controllers
                 };
 
                 _logger.LogInformation("Admin products list: page {Page}, total {Total}", validPageNumber, totalCount);
-                return SuccessResponse(response, $"Retrieved {products.Count} products");
+                return SuccessResponse(response, $"Retrieved {items.Count} products");
             }
             catch (Exception ex)
             {
@@ -92,7 +93,7 @@ namespace KasseAPI_Final.Controllers
                 if (product == null)
                     return ErrorResponse("Product not found", 404);
 
-                return SuccessResponse(product, "Product retrieved");
+                return SuccessResponse(AdminProductDto.FromProduct(product), "Product retrieved");
             }
             catch (Exception ex)
             {
@@ -115,8 +116,9 @@ namespace KasseAPI_Final.Controllers
                     query = query.Where(p => p.Category != null && p.Category.ToLower().Contains(category.Trim().ToLower()));
 
                 var products = await query.OrderBy(p => p.Name).ToListAsync();
-                _logger.LogInformation("Admin products search: found {Count} products", products.Count);
-                return SuccessResponse(products, $"Found {products.Count} products");
+                var items = products.Select(AdminProductDto.FromProduct).ToList();
+                _logger.LogInformation("Admin products search: found {Count} products", items.Count);
+                return SuccessResponse(items, $"Found {items.Count} products");
             }
             catch (Exception ex)
             {
@@ -152,7 +154,7 @@ namespace KasseAPI_Final.Controllers
 
                 var createdProduct = await _productRepository.AddAsync(product);
                 _logger.LogInformation("Admin product created: {Name} (ID: {Id})", product.Name, createdProduct.Id);
-                return SuccessResponse(createdProduct, "Product created successfully");
+                return SuccessResponse(AdminProductDto.FromProduct(createdProduct), "Product created successfully");
             }
             catch (Exception ex)
             {
@@ -197,7 +199,7 @@ namespace KasseAPI_Final.Controllers
 
                 var updatedProduct = await _productRepository.UpdateAsync(product);
                 _logger.LogInformation("Admin product updated: {Name} (ID: {Id})", product.Name, id);
-                return SuccessResponse(updatedProduct, "Product updated successfully");
+                return SuccessResponse(AdminProductDto.FromProduct(updatedProduct), "Product updated successfully");
             }
             catch (Exception ex)
             {
@@ -230,7 +232,7 @@ namespace KasseAPI_Final.Controllers
                     await _productRepository.UpdateAsync(product);
                     await transaction.CommitAsync();
                     _logger.LogInformation("Admin product stock updated: {Name} (ID: {Id}) Old: {Old}, New: {New}", product.Name, id, oldStock, request.Quantity);
-                    return SuccessResponse(product, "Product stock updated successfully");
+                    return SuccessResponse(AdminProductDto.FromProduct(product), "Product stock updated successfully");
                 }
                 catch
                 {

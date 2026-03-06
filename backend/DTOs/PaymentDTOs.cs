@@ -43,6 +43,26 @@ namespace KasseAPI_Final.DTOs
     }
     
     /// <summary>
+    /// Satır bazlı extra/modifier – ödeme request'inde modifierId; quantity/priceDelta opsiyonel (backend DB fiyat kullanır).
+    /// </summary>
+    public class PaymentItemModifierRequest
+    {
+        [Required]
+        public Guid ModifierId { get; set; }
+
+        /// <summary>Miktar (varsayılan 1).</summary>
+        [Range(1, int.MaxValue)]
+        public int Quantity { get; set; } = 1;
+
+        /// <summary>Opsiyonel: FE gönderirse DB fiyatı ile karşılaştırılır; uyuşmazsa 400. Hesaplama her zaman DB fiyatı ile yapılır. 2 dp.</summary>
+        [Range(0, double.MaxValue, ErrorMessage = "PriceDelta must be >= 0 when provided")]
+        public decimal? PriceDelta { get; set; }
+
+        /// <summary>Opsiyonel modifier grup ID (katalog ilişkisi doğrulaması için).</summary>
+        public Guid? GroupId { get; set; }
+    }
+
+    /// <summary>
     /// Ödeme kalemi request'i
     /// </summary>
     public class PaymentItemRequest
@@ -61,8 +81,11 @@ namespace KasseAPI_Final.DTOs
         [JsonConverter(typeof(TaxTypeJsonConverter))]
         public TaxType TaxType { get; set; } = TaxType.Standard;
 
-        /// <summary>Extra Zutaten – bu satır için seçilen modifier ID'leri. Backend fiyat/vergi hesaplar.</summary>
+        /// <summary>Extra Zutaten – bu satır için seçilen modifier ID'leri. Modifiers dolu değilse kullanılır.</summary>
         public List<Guid> ModifierIds { get; set; } = new();
+
+        /// <summary>Satır bazlı extras: modifierId, name, priceDelta (2 dp). Doluysa ModifierIds yerine bunlar kullanılır.</summary>
+        public List<PaymentItemModifierRequest>? Modifiers { get; set; }
     }
     
     /// <summary>

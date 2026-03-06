@@ -116,14 +116,14 @@ export default function TabLayout() {
                 onClose={() => setIsPaymentModalVisible(false)}
                 onSuccess={handlePaymentSuccess}
                 cartItems={(activeCart?.items || []).map(item => ({
-                    id: item.itemId || item.productId,
+                    id: item.itemId ?? item.clientId ?? item.productId,
                     productId: item.productId,
                     productName: item.productName || 'Unknown Product',
                     quantity: item.qty,
                     unitPrice: item.unitPrice || item.price || 0,
-                    totalPrice: item.totalPrice ?? ((item.price ?? 0) * (item.qty ?? 0)),
+                    totalPrice: item.totalPrice ?? ((item.unitPrice ?? item.price ?? 0) + (item.modifiers ?? []).reduce((s, m) => s + m.price, 0)) * (item.qty ?? 0),
                     taxType: undefined,
-                    modifiers: item.modifiers?.map(m => ({ modifierId: m.modifierId }))
+                    modifiers: item.modifiers?.map(m => ({ modifierId: m.id, name: m.name, priceDelta: m.price }))
                 }))}
                 grandTotalGross={totals.grandTotalGross}
                 customerId="00000000-0000-0000-0000-000000000000"

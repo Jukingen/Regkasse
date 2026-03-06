@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using System.Security.Claims;
@@ -20,11 +21,13 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<CartController> _logger;
+        private readonly IProductModifierValidationService _modifierValidation;
 
-        public CartController(AppDbContext context, ILogger<CartController> logger)
+        public CartController(AppDbContext context, ILogger<CartController> logger, IProductModifierValidationService modifierValidation)
         {
             _context = context;
             _logger = logger;
+            _modifierValidation = modifierValidation;
         }
 
         // GET: api/cart/current - Belirli masadaki aktif sepeti getir
@@ -43,6 +46,7 @@ namespace KasseAPI_Final.Controllers
                 // 🔒 GÜVENLİK: SADECE KULLANICININ KENDİ SEPETİNİ GÖRMESİ
                 var cart = await _context.Carts
                     .Include(c => c.Items)
+                    .ThenInclude(i => i.Modifiers)
                     .Include(c => c.Customer)
                     .Where(c => c.TableNumber == tableNumber && 
                                c.Status == CartStatus.Active &&
@@ -278,44 +282,78 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "Product not found" });
                 }
 
-                _logger.LogInformation("Processing cart item: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}, UserId={UserId}", 
-                    cart.CartId, request.ProductId, request.Quantity, userId);
+                var requestedModifierIds = (request.SelectedModifiers ?? new List<SelectedModifierInputDto>())
+                    .Select(s => s.Id).Distinct().ToList();
+                List<ModifierPriceDto> validatedModifiers = new();
+                if (requestedModifierIds.Count > 0)
+                {
+                    validatedModifiers = (await _modifierValidation.GetAllowedModifiersWithPricesForProductAsync(request.ProductId, requestedModifierIds)).ToList();
+                    var validatedIds = validatedModifiers.Select(m => m.Id).ToHashSet();
+                    var invalidIds = requestedModifierIds.Where(id => !validatedIds.Contains(id)).ToList();
+                    if (invalidIds.Count > 0)
+                    {
+                        _logger.LogWarning("Invalid product-modifier combination: ProductId={ProductId}, InvalidModifierIds={Ids}", request.ProductId, string.Join(",", invalidIds));
+                        return BadRequest(new { message = "One or more selected modifiers are not allowed for this product.", invalidModifierIds = invalidIds });
+                    }
+                }
 
-                // Sepette bu ürün zaten var mı kontrol et
-                var existingItem = await _context.CartItems
-                    .FirstOrDefaultAsync(ci => ci.CartId == cart.CartId && ci.ProductId == request.ProductId);
+                var effectiveUnitPrice = product.Price + validatedModifiers.Sum(m => m.Price);
+                effectiveUnitPrice = Math.Round(effectiveUnitPrice, 2, MidpointRounding.AwayFromZero);
+
+                _logger.LogInformation("Processing cart item: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}, ModifiersCount={ModCount}, EffectiveUnitPrice={Price}, UserId={UserId}",
+                    cart.CartId, request.ProductId, request.Quantity, validatedModifiers.Count, effectiveUnitPrice, userId);
+
+                var itemsWithSameProduct = await _context.CartItems
+                    .Where(ci => ci.CartId == cart.CartId && ci.ProductId == request.ProductId)
+                    .Include(ci => ci.Modifiers)
+                    .ToListAsync();
+
+                var requestedSet = requestedModifierIds.OrderBy(x => x).ToList();
+                var existingItem = itemsWithSameProduct.FirstOrDefault(ci =>
+                {
+                    var itemModIds = ci.Modifiers.Select(m => m.ModifierId).OrderBy(x => x).ToList();
+                    return itemModIds.SequenceEqual(requestedSet);
+                });
 
                 if (existingItem != null)
                 {
-                    // Miktarı güncelle
                     existingItem.Quantity += request.Quantity;
                     existingItem.Notes = request.Notes ?? existingItem.Notes;
-                    _logger.LogInformation("Updated existing cart item: ItemId={ItemId}, NewQuantity={NewQuantity}, UserId={UserId}", 
+                    _logger.LogInformation("Updated existing cart item: ItemId={ItemId}, NewQuantity={NewQuantity}, UserId={UserId}",
                         existingItem.Id, existingItem.Quantity, userId);
                 }
                 else
                 {
-                    // Yeni ürün ekle
                     var cartItem = new CartItem
                     {
                         CartId = cart.CartId,
                         ProductId = request.ProductId,
                         Quantity = request.Quantity,
-                        UnitPrice = product.Price,
+                        UnitPrice = effectiveUnitPrice,
                         Notes = request.Notes
                     };
                     _context.CartItems.Add(cartItem);
-                    _logger.LogInformation("Added new cart item: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}, UserId={UserId}", 
+                    foreach (var mod in validatedModifiers)
+                    {
+                        _context.CartItemModifiers.Add(new CartItemModifier
+                        {
+                            CartItemId = cartItem.Id,
+                            ModifierId = mod.Id,
+                            Name = mod.Name,
+                            Price = mod.Price,
+                            ModifierGroupId = null
+                        });
+                    }
+                    _logger.LogInformation("Added new cart item with modifiers: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}, UserId={UserId}",
                         cart.CartId, request.ProductId, request.Quantity, userId);
                 }
 
-                // Tüm değişiklikleri tek seferde kaydet
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("All changes saved to database for cart: {CartId}, UserId: {UserId}", cart.CartId, userId);
 
-                // Güncellenmiş sepeti getir
                 var updatedCart = await _context.Carts
                     .Include(c => c.Items)
+                    .ThenInclude(i => i.Modifiers)
                     .FirstOrDefaultAsync(c => c.CartId == cart.CartId);
 
                 // Debug: CartItem'ları kontrol et
@@ -1082,7 +1120,7 @@ namespace KasseAPI_Final.Controllers
                 // Önce TableOrder'lardan kontrol et, yoksa Cart'tan al
                 var userActiveTableOrders = await _context.TableOrders
                     .Include(to => to.Items)
-                    // .ThenInclude(toi => toi.Product) // Temporarily disabled due to CategoryId1 conflict
+                    .ThenInclude(toi => toi.Modifiers)
                     .Include(to => to.Customer)
                     .Include(to => to.User) // User navigation property'yi ekle
                     .Where(to => to.UserId == userId &&
@@ -1095,7 +1133,7 @@ namespace KasseAPI_Final.Controllers
                 // Eğer TableOrder yoksa Cart'tan al (backward compatibility)
                 var userActiveCarts = await _context.Carts
                     .Include(c => c.Items)
-                    // .ThenInclude(ci => ci.Product) // Temporarily disabled due to CategoryId1 conflict
+                    .ThenInclude(ci => ci.Modifiers)
                     .Include(c => c.Customer)
                     .Include(c => c.User) // User navigation property'yi ekle
                     .Where(c => c.UserId == userId && c.Status == CartStatus.Active)
@@ -1143,7 +1181,9 @@ namespace KasseAPI_Final.Controllers
                             TotalPrice = line.LineGross,
                             TaxRate = line.TaxRate,
                             TaxType = line.TaxType,
-                            Notes = item.Notes
+                            Notes = item.Notes,
+                            SelectedModifiers = (item.Modifiers ?? Enumerable.Empty<TableOrderItemModifier>())
+                                .Select(m => new SelectedModifierDto { Id = m.ModifierId, Name = m.Name, Price = m.Price }).ToList()
                         }).ToList()
                     };
                 }).ToList();
@@ -1208,7 +1248,9 @@ namespace KasseAPI_Final.Controllers
                                     TotalPrice = line.LineGross,
                                     TaxRate = line.TaxRate,
                                     TaxType = line.TaxType,
-                                    Notes = item.Notes
+                                    Notes = item.Notes,
+                                    SelectedModifiers = (item.Modifiers ?? Enumerable.Empty<CartItemModifier>())
+                                        .Select(m => new SelectedModifierDto { Id = m.ModifierId, Name = m.Name, Price = m.Price }).ToList()
                                 };
                             }).ToList()
                         };
@@ -1379,7 +1421,7 @@ namespace KasseAPI_Final.Controllers
 
 
 
-        /// <summary>Cart + products'tan standart response oluşturur (gross model, taxSummary dahil)</summary>
+        /// <summary>Cart + products'tan standart response oluşturur (gross model, taxSummary dahil). UnitPrice zaten modifier dahil.</summary>
         private CartResponse BuildCartResponse(Cart cart, IReadOnlyDictionary<Guid, Product> products)
         {
             var items = (cart.Items ?? Enumerable.Empty<CartItem>()).Select(ci =>
@@ -1387,6 +1429,9 @@ namespace KasseAPI_Final.Controllers
                 var prod = products.TryGetValue(ci.ProductId, out var p) ? p : null;
                 var taxType = prod?.TaxType ?? 1;
                 var line = CartMoneyHelper.ComputeLine(ci.UnitPrice, ci.Quantity, taxType);
+                var selectedModifiers = (ci.Modifiers ?? Enumerable.Empty<CartItemModifier>())
+                    .Select(m => new SelectedModifierDto { Id = m.ModifierId, Name = m.Name, Price = m.Price })
+                    .ToList();
                 return new CartItemResponse
                 {
                     Id = ci.Id,
@@ -1400,7 +1445,8 @@ namespace KasseAPI_Final.Controllers
                     LineTax = line.LineTax,
                     Notes = ci.Notes,
                     TaxType = line.TaxType,
-                    TaxRate = line.TaxRate
+                    TaxRate = line.TaxRate,
+                    SelectedModifiers = selectedModifiers
                 };
             }).ToList();
 
@@ -1459,6 +1505,8 @@ namespace KasseAPI_Final.Controllers
         public int? TableNumber { get; set; }
         public string? WaiterName { get; set; }
         public string? Notes { get; set; }
+        /// <summary>Seçili modifier'lar (id zorunlu; fiyat DB'den türetilir).</summary>
+        public List<SelectedModifierInputDto>? SelectedModifiers { get; set; }
     }
 
     public class AddCartItemRequest
@@ -1513,7 +1561,7 @@ namespace KasseAPI_Final.Controllers
         public decimal GrossAmount { get; set; }
     }
 
-    /// <summary>UnitPrice/TotalPrice = GROSS (inkl. MwSt.)</summary>
+    /// <summary>UnitPrice/TotalPrice = GROSS (inkl. MwSt.). selectedModifiers: satır seçili modifier'lar (JSON camelCase).</summary>
     public class CartItemResponse
     {
         public Guid Id { get; set; }
@@ -1528,6 +1576,7 @@ namespace KasseAPI_Final.Controllers
         public string? Notes { get; set; }
         public int TaxType { get; set; } = 1;
         public decimal TaxRate { get; set; }
+        public List<SelectedModifierDto> SelectedModifiers { get; set; } = new();
     }
 
     public class CartHistoryResponse
@@ -1604,5 +1653,6 @@ namespace KasseAPI_Final.Controllers
         public decimal TotalPrice { get; set; }
         public decimal TaxRate { get; set; }
         public int TaxType { get; set; } = 1;
+        public List<SelectedModifierDto> SelectedModifiers { get; set; } = new();
     }
 }

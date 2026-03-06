@@ -31,6 +31,7 @@ namespace KasseAPI_Final.Services
         private readonly IUserService _userService;
         private readonly CompanyProfileOptions _companyProfile;
         private readonly TseOptions _tseOptions;
+        private readonly IProductModifierValidationService _modifierValidation;
 
         public PaymentService(
             AppDbContext context,
@@ -40,6 +41,7 @@ namespace KasseAPI_Final.Services
             ITseService tseService,
             IFinanzOnlineService finanzOnlineService,
             IUserService userService,
+            IProductModifierValidationService modifierValidation,
             Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile,
             Microsoft.Extensions.Options.IOptions<TseOptions> tseOptions,
             ILogger<PaymentService> logger)
@@ -51,6 +53,7 @@ namespace KasseAPI_Final.Services
             _tseService = tseService;
             _finanzOnlineService = finanzOnlineService;
             _userService = userService;
+            _modifierValidation = modifierValidation;
             _companyProfile = companyProfile.Value;
             _tseOptions = tseOptions.Value;
             _logger = logger;
@@ -175,8 +178,9 @@ namespace KasseAPI_Final.Services
                     product.UpdatedAt = DateTime.UtcNow;
                     await _productRepository.UpdateAsync(product);
 
-                    // VAT oranı kategoriden (yüzde: 10, 20); tek rounding noktası CartMoneyHelper
-                    var line = CartMoneyHelper.ComputeLine(product.Price, itemRequest.Quantity, product.CategoryNavigation.VatRate);
+                    // VAT oranı kategoriden (yüzde: 10, 20); tek rounding noktası CartMoneyHelper. decimal only.
+                    var vatRatePercent = product.CategoryNavigation.VatRate;
+                    var line = CartMoneyHelper.ComputeLine(product.Price, itemRequest.Quantity, vatRatePercent);
                     totalAmount += line.LineGross;
                     totalTaxAmount += line.LineTax;
 
@@ -193,15 +197,57 @@ namespace KasseAPI_Final.Services
                         LineNet = line.LineNet
                     };
 
-                    // Extra Zutaten: modifier'ları yükle, fiyat/vergi hesapla, receipt ve TSE için snapshot ekle
-                    if (itemRequest.ModifierIds != null && itemRequest.ModifierIds.Count > 0)
+                    // Extra Zutaten: RKSV/fiscal – sadece ürüne atanmış modifier'lara izin ver; fiyat her zaman DB'den (FE priceDelta güvenilmez)
+                    var requestedModifierIds = (itemRequest.Modifiers != null && itemRequest.Modifiers.Count > 0)
+                        ? itemRequest.Modifiers.Select(m => m.ModifierId).Distinct().ToList()
+                        : (itemRequest.ModifierIds ?? new List<Guid>()).Distinct().ToList();
+
+                    if (requestedModifierIds.Count > 0)
                     {
-                        var modifiers = await _context.ProductModifiers
-                            .Where(m => itemRequest.ModifierIds.Contains(m.Id))
-                            .ToListAsync();
-                        foreach (var mod in modifiers)
+                        var allowedIds = await _modifierValidation.GetAllowedModifierIdsForProductAsync(product.Id);
+                        var allowedSet = allowedIds.ToHashSet();
+                        var disallowed = requestedModifierIds.Where(id => !allowedSet.Contains(id)).ToList();
+                        if (disallowed.Count > 0)
                         {
-                            var modLine = CartMoneyHelper.ComputeLine(mod.Price, itemRequest.Quantity, mod.TaxType);
+                            var first = disallowed[0];
+                            _logger.LogWarning("Modifier not allowed for product: ProductId={ProductId}, ModifierId={ModifierId}", product.Id, first);
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Modifier is not allowed for this product",
+                                Errors = { $"ProductId {product.Id}: ModifierId {first} is not assigned to this product." }
+                            };
+                        }
+
+                        var dbModifiers = await _modifierValidation.GetAllowedModifiersWithPricesForProductAsync(product.Id, requestedModifierIds);
+                        var dbModifierById = dbModifiers.ToDictionary(m => m.Id);
+
+                        // FE priceDelta gönderilmişse DB fiyatı ile karşılaştır; uyuşmazsa 400 (fiscal/security)
+                        if (itemRequest.Modifiers != null)
+                        {
+                            foreach (var m in itemRequest.Modifiers)
+                            {
+                                if (m.PriceDelta.HasValue && dbModifierById.TryGetValue(m.ModifierId, out var dbMod))
+                                {
+                                    var fePrice = Math.Round(m.PriceDelta.Value, 2);
+                                    if (Math.Abs(fePrice - dbMod.Price) > 0.005m)
+                                    {
+                                        _logger.LogWarning("Modifier price mismatch: ProductId={ProductId}, ModifierId={ModifierId}, FE={FePrice}, DB={DbPrice}", product.Id, m.ModifierId, fePrice, dbMod.Price);
+                                        return new PaymentResult
+                                        {
+                                            Success = false,
+                                            Message = "Modifier price does not match catalog",
+                                            Errors = { $"ProductId {product.Id}, ModifierId {m.ModifierId}: sent price does not match catalog. Use catalog price." }
+                                        };
+                                    }
+                                }
+                            }
+                        }
+
+                        // Modifier satırlarını DB fiyatı ve ürün vergi oranı ile hesapla (decimal, 2 dp; vergi ürünle uyumlu)
+                        foreach (var mod in dbModifiers)
+                        {
+                            var modLine = CartMoneyHelper.ComputeLine(mod.Price, itemRequest.Quantity, vatRatePercent);
                             totalAmount += modLine.LineGross;
                             totalTaxAmount += modLine.LineTax;
                             paymentItem.Modifiers.Add(new PaymentItemModifierSnapshot
@@ -210,16 +256,19 @@ namespace KasseAPI_Final.Services
                                 Name = mod.Name,
                                 UnitPrice = modLine.UnitPriceGross,
                                 TotalPrice = modLine.LineGross,
-                                TaxType = mod.TaxType,
+                                TaxType = modLine.TaxType,
                                 TaxRate = modLine.TaxRate,
                                 TaxAmount = modLine.LineTax,
                                 LineNet = modLine.LineNet
                             });
-                            var modTaxKey = ((TaxType)mod.TaxType).ToString().ToLowerInvariant();
+                            var modTaxKey = ((TaxType)modLine.TaxType).ToString().ToLowerInvariant();
                             if (!taxDetails.ContainsKey(modTaxKey))
                                 taxDetails[modTaxKey] = 0;
                             taxDetails[modTaxKey] += modLine.LineTax;
                         }
+                        paymentItem.TotalPrice = line.LineGross + paymentItem.Modifiers.Sum(x => x.TotalPrice);
+                        paymentItem.TaxAmount = line.LineTax + paymentItem.Modifiers.Sum(x => x.TaxAmount);
+                        paymentItem.LineNet = line.LineNet + paymentItem.Modifiers.Sum(x => x.LineNet);
                     }
 
                     paymentItems.Add(paymentItem);
@@ -1093,20 +1142,50 @@ namespace KasseAPI_Final.Services
                 var cashier = await _userService.GetUserByIdAsync(payment.CreatedBy);
                 var cashierName = cashier?.Name ?? cashier?.UserName ?? "Unknown";
 
-                // Map payment items to receipt items (line net/vat from CartMoneyHelper at payment time)
-                var receiptItems = paymentItems.Select(item => new ReceiptItemDTO
+                // Map payment items to receipt items: ana satır + her modifier için alt satır ("+ Ketchup 0.30")
+                var receiptItems = new List<ReceiptItemDTO>();
+                foreach (var item in paymentItems)
                 {
-                    Name = item.ProductName,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    TotalPrice = item.TotalPrice,
-                    LineTotalNet = item.LineNet,
-                    LineTotalGross = item.TotalPrice,
-                    TaxRate = item.TaxRate * 100,
-                    VatRate = item.TaxRate,
-                    VatAmount = item.TaxAmount,
-                    CategoryName = null
-                }).ToList();
+                    var mainItemId = Guid.NewGuid();
+                    receiptItems.Add(new ReceiptItemDTO
+                    {
+                        ItemId = mainItemId,
+                        Name = item.ProductName,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice,
+                        TotalPrice = item.TotalPrice,
+                        LineTotalNet = item.LineNet - (item.Modifiers?.Sum(m => m.LineNet) ?? 0),
+                        LineTotalGross = item.TotalPrice - (item.Modifiers?.Sum(m => m.TotalPrice) ?? 0),
+                        TaxRate = item.TaxRate * 100,
+                        VatRate = item.TaxRate,
+                        VatAmount = item.TaxAmount - (item.Modifiers?.Sum(m => m.TaxAmount) ?? 0),
+                        CategoryName = null,
+                        ParentItemId = null,
+                        IsModifierLine = false
+                    });
+                    if (item.Modifiers != null)
+                    {
+                        foreach (var m in item.Modifiers)
+                        {
+                            receiptItems.Add(new ReceiptItemDTO
+                            {
+                                ItemId = Guid.NewGuid(),
+                                Name = "+ " + m.Name,
+                                Quantity = item.Quantity,
+                                UnitPrice = m.UnitPrice,
+                                TotalPrice = m.TotalPrice,
+                                LineTotalNet = m.LineNet,
+                                LineTotalGross = m.TotalPrice,
+                                TaxRate = m.TaxRate * 100,
+                                VatRate = m.TaxRate,
+                                VatAmount = m.TaxAmount,
+                                CategoryName = null,
+                                ParentItemId = mainItemId,
+                                IsModifierLine = true
+                            });
+                        }
+                    }
+                }
 
                 var subtotal = paymentItems.Sum(i => i.LineNet);
 

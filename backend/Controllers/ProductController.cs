@@ -113,7 +113,8 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Katalog: Kategorileri sabit ID'lerle ve ürünleri categoryId ile birlikte döndürür
+        /// Katalog: Kategoriler + ürünler (ürün başına modifierGroups dahil). Flat DTO, EF entity dönülmez; JSON camelCase.
+        /// Modifier grupları toplu yüklenir (N+1 yok).
         /// </summary>
         [HttpGet("catalog")]
         public async Task<IActionResult> GetCatalog()
@@ -121,58 +122,125 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var activeProducts = await _context.Products
+                    .AsNoTracking()
                     .Include(p => p.CategoryNavigation)
                     .Where(p => p.IsActive)
-                    .OrderBy(p => p.Category)  // kategori adı (string)
+                    .OrderBy(p => p.Category)
                     .ThenBy(p => p.Name)
                     .ToListAsync();
 
-                // Aktif ürünlerde kullanılan kategoriler (Category tablosundan; VatRate dahil)
-                var categories = activeProducts
+                var productIds = activeProducts.Select(p => p.Id).ToList();
+
+                // Toplu: ürün bazlı atama sırası (productId -> ordered modifierGroupIds)
+                var assignments = await _context.ProductModifierGroupAssignments
+                    .AsNoTracking()
+                    .Where(a => productIds.Contains(a.ProductId))
+                    .OrderBy(a => a.SortOrder)
+                    .Select(a => new { a.ProductId, a.ModifierGroupId })
+                    .ToListAsync();
+
+                var productToGroupIds = assignments
+                    .GroupBy(a => a.ProductId)
+                    .ToDictionary(g => g.Key, g => g.Select(x => x.ModifierGroupId).ToList());
+
+                var allGroupIds = productToGroupIds.Values.SelectMany(x => x).Distinct().ToList();
+                List<ModifierGroupDto> emptyGroups = new();
+
+                var categoryList = activeProducts
                     .Where(p => p.CategoryNavigation != null)
                     .Select(p => p.CategoryNavigation!)
                     .DistinctBy(c => c.Id)
                     .OrderBy(c => c.SortOrder)
                     .ThenBy(c => c.Name)
-                    .Select(c => new { c.Id, c.Name, c.VatRate })
+                    .Select(c => new CatalogCategoryDto { Id = c.Id, Name = c.Name, VatRate = c.VatRate })
                     .ToList();
 
-                var products = activeProducts.Select(p => new
+                if (allGroupIds.Count == 0)
                 {
-                    p.Id,
-                    p.Name,
-                    p.Description,
-                    p.Price,
-                    p.ImageUrl,
-                    p.StockQuantity,
-                    p.MinStockLevel,
-                    p.Unit,
-                    ProductCategory = p.Category,
-                    CategoryId = p.CategoryId,
-                    p.TaxType,
-                    p.TaxRate,
-                    p.IsActive,
-                    p.IsFiscalCompliant,
-                    p.FiscalCategoryCode,
-                    p.IsTaxable,
-                    p.TaxExemptionReason,
-                    p.RksvProductType,
-                    p.Cost
-                }).ToList();
+                    var products = activeProducts.Select(p => MapToCatalogProductDto(p, emptyGroups)).ToList();
+                    var response = new CatalogResponseDto { Categories = categoryList, Products = products };
+                    _logger.LogInformation("Catalog built: {CC} categories, {PC} products (no modifier groups)", categoryList.Count, products.Count);
+                    return SuccessResponse(response, $"Retrieved catalog with {categoryList.Count} categories and {products.Count} products");
+                }
 
-                var response = new
-                {
-                    Categories = categories,
-                    Products = products
-                };
+                var groups = await _context.ProductModifierGroups
+                    .AsNoTracking()
+                    .Where(g => g.IsActive && allGroupIds.Contains(g.Id))
+                    .Include(g => g.Modifiers.Where(m => m.IsActive))
+                    .OrderBy(g => g.SortOrder)
+                    .ThenBy(g => g.Name)
+                    .ToListAsync();
 
-                _logger.LogInformation($"Catalog built: {categories.Count} categories, {products.Count} products");
-                return SuccessResponse(response, $"Retrieved catalog with {categories.Count} categories and {products.Count} products");
+                var groupDict = groups.ToDictionary(g => g.Id);
+                var productToModifierGroups = productIds.ToDictionary(
+                    pid => pid,
+                    pid =>
+                    {
+                        if (!productToGroupIds.TryGetValue(pid, out var gids)) return emptyGroups;
+                        return gids
+                            .Select(gid => groupDict.TryGetValue(gid, out var grp) ? grp : null)
+                            .Where(g => g != null)
+                            .Cast<ProductModifierGroup>()
+                            .Select(g => MapToModifierGroupDto(g))
+                            .ToList();
+                    });
+
+                var productDtos = activeProducts.Select(p => MapToCatalogProductDto(p, productToModifierGroups[p.Id])).ToList();
+                var catalogResponse = new CatalogResponseDto { Categories = categoryList, Products = productDtos };
+
+                _logger.LogInformation("Catalog built: {CC} categories, {PC} products with modifier groups", categoryList.Count, productDtos.Count);
+                return SuccessResponse(catalogResponse, $"Retrieved catalog with {categoryList.Count} categories and {productDtos.Count} products");
             }
             catch (Exception ex)
             {
                 return HandleException(ex, "GetCatalog");
             }
+        }
+
+        private static CatalogProductDto MapToCatalogProductDto(Product p, List<ModifierGroupDto> modifierGroups)
+        {
+            return new CatalogProductDto
+            {
+                Id = p.Id,
+                Name = p.Name ?? string.Empty,
+                Description = p.Description,
+                Price = p.Price,
+                ImageUrl = p.ImageUrl,
+                StockQuantity = p.StockQuantity,
+                MinStockLevel = p.MinStockLevel,
+                Unit = p.Unit,
+                ProductCategory = p.Category,
+                CategoryId = p.CategoryId,
+                TaxType = p.TaxType,
+                TaxRate = p.TaxRate,
+                IsActive = p.IsActive,
+                IsFiscalCompliant = p.IsFiscalCompliant,
+                FiscalCategoryCode = p.FiscalCategoryCode,
+                IsTaxable = p.IsTaxable,
+                TaxExemptionReason = p.TaxExemptionReason,
+                RksvProductType = p.RksvProductType,
+                Cost = p.Cost,
+                ModifierGroups = modifierGroups
+            };
+        }
+
+        private static ModifierGroupDto MapToModifierGroupDto(ProductModifierGroup g)
+        {
+            return new ModifierGroupDto
+            {
+                Id = g.Id,
+                Name = g.Name,
+                MinSelections = g.MinSelections,
+                MaxSelections = g.MaxSelections,
+                IsRequired = g.IsRequired,
+                SortOrder = g.SortOrder,
+                IsActive = g.IsActive,
+                Modifiers = g.Modifiers
+                    .OrderBy(m => m.SortOrder)
+                    .ThenBy(m => m.Name)
+                    .Select(m => new ModifierDto { Id = m.Id, Name = m.Name, Price = m.Price, TaxType = m.TaxType, SortOrder = m.SortOrder })
+                    .ToList()
+            };
         }
 
         /// <summary>

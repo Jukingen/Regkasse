@@ -53,6 +53,9 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                                     + {m.name} {formatPrice(m.price * quantity)}
                                 </Text>
                             ))}
+                            <Text style={styles.extrasTotal}>
+                                +{formatPrice(item.modifiers.reduce((s, m) => s + m.price * quantity, 0))}
+                            </Text>
                         </View>
                     )}
                 </View>
@@ -160,6 +163,12 @@ const styles = StyleSheet.create({
     modifierLine: {
         fontSize: 12,
         color: SoftColors.textSecondary,
+    },
+    extrasTotal: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: SoftColors.accentDark,
+        marginTop: 2,
     },
     totalPrice: {
         fontSize: 14,

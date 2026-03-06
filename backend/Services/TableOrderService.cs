@@ -29,9 +29,10 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Cart'ı bul
+                // Cart'ı bul (seçili modifier'lar recovery için yüklenir)
                 var cart = await _context.Carts
                     .Include(c => c.Items)
+                    .ThenInclude(i => i.Modifiers)
                     .Include(c => c.Customer)
                     .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId);
 
@@ -128,6 +129,26 @@ namespace KasseAPI_Final.Services
                 _context.TableOrders.Add(tableOrder);
                 await _context.SaveChangesAsync();
 
+                // Cart satırlarındaki seçili modifier'ları TableOrderItemModifier olarak kopyala (recovery için)
+                var cartItemsList = cart.Items.ToList();
+                for (var i = 0; i < cartItemsList.Count; i++)
+                {
+                    var cartItem = cartItemsList[i];
+                    var toItem = tableOrderItems[i];
+                    foreach (var mod in cartItem.Modifiers ?? Enumerable.Empty<CartItemModifier>())
+                    {
+                        _context.TableOrderItemModifiers.Add(new TableOrderItemModifier
+                        {
+                            TableOrderItemId = toItem.Id,
+                            ModifierId = mod.ModifierId,
+                            Name = mod.Name,
+                            Price = mod.Price,
+                            ModifierGroupId = mod.ModifierGroupId
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
+
                 _logger.LogInformation("✅ Cart converted to TableOrder successfully - TableOrderId: {TableOrderId}, CartId: {CartId}, TableNumber: {TableNumber}, ItemCount: {ItemCount}, TotalAmount: {TotalAmount}", 
                     tableOrder.TableOrderId, cartId, tableOrder.TableNumber, tableOrderItems.Count, tableOrder.TotalAmount);
 
@@ -194,6 +215,28 @@ namespace KasseAPI_Final.Services
                         UpdatedAt = DateTime.UtcNow
                     };
                 }).ToList();
+
+                existingTableOrder.Items = newItems;
+                await _context.SaveChangesAsync();
+
+                var cartItemsListForUpdate = cart.Items.ToList();
+                for (var i = 0; i < cartItemsListForUpdate.Count; i++)
+                {
+                    var cartItem = cartItemsListForUpdate[i];
+                    var toItem = newItems[i];
+                    foreach (var mod in cartItem.Modifiers ?? Enumerable.Empty<CartItemModifier>())
+                    {
+                        _context.TableOrderItemModifiers.Add(new TableOrderItemModifier
+                        {
+                            TableOrderItemId = toItem.Id,
+                            ModifierId = mod.ModifierId,
+                            Name = mod.Name,
+                            Price = mod.Price,
+                            ModifierGroupId = mod.ModifierGroupId
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
 
                 existingTableOrder.Subtotal = totals.SubtotalGross;
                 existingTableOrder.TaxAmount = totals.IncludedTaxTotal;

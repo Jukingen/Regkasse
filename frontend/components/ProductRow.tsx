@@ -1,10 +1,10 @@
 /**
  * POS ürün satırı: tek tıkla sepete ekleme (one-tap add). Extras tıklanabilir chip ile seçilir; modal yok.
+ * Memoized: re-renders only when product.id or selected modifiers (ids+prices) change.
  */
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Product } from '../services/api/productService';
-import { useProductModifierGroups } from '../hooks/useProductModifierGroups';
 import { ModifierOptionChips, type ModifierOptionItem } from './ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
 
@@ -18,22 +18,36 @@ interface ProductRowProps {
   product: Product;
   pendingModifiers: ModifierChipItem[];
   onAdd: (product: Product, modifiers: ModifierChipItem[]) => void;
-  /** Chip ile modifier seçimini toggle eder (bir sonraki sepete eklemede kullanılır) */
+  /** Chip ile modifier seçimini toggle eder (aktif sepetteki satıra veya bir sonraki eklemede) */
   onToggleModifier: (productId: string, modifier: ModifierOptionItem) => void;
   getCategoryEmoji?: (category?: string) => string;
 }
 
-export function ProductRow({
+function modifiersKey(mods: ModifierChipItem[]): string {
+  if (!mods.length) return '';
+  return mods
+    .slice()
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((m) => `${m.id}:${m.price}`)
+    .join(',');
+}
+
+function ProductRowInner({
   product,
   pendingModifiers,
   onAdd,
   onToggleModifier,
   getCategoryEmoji = () => '📦',
 }: ProductRowProps) {
-  const { groups, loading, hasModifiers } = useProductModifierGroups(product.id);
-  const allModifiers: ModifierOptionItem[] = groups.flatMap((g) =>
-    (g.modifiers ?? []).map((m) => ({ id: m.id, name: m.name, price: Number(m.price) }))
+  const groups = product.modifierGroups ?? [];
+  const allModifiers: ModifierOptionItem[] = useMemo(
+    () =>
+      groups.flatMap((g) =>
+        (g.modifiers ?? []).map((m) => ({ id: m.id, name: m.name, price: Number(m.price) }))
+      ),
+    [product.modifierGroups]
   );
+  const hasModifiers = allModifiers.length > 0;
 
   const handleRowPress = () => {
     onAdd(product, pendingModifiers);
@@ -65,7 +79,7 @@ export function ProductRow({
               modifiers={allModifiers}
               selectedModifiers={pendingModifiers}
               onToggle={(m) => onToggleModifier(product.id, m)}
-              loading={loading}
+              loading={false}
             />
           )}
         </View>
@@ -129,4 +143,10 @@ const styles = StyleSheet.create({
   cardPressed: {
     opacity: 0.92,
   },
+});
+
+export const ProductRow = memo(ProductRowInner, (prev, next) => {
+  if (prev.product.id !== next.product.id) return false;
+  if (modifiersKey(prev.pendingModifiers) !== modifiersKey(next.pendingModifiers)) return false;
+  return true;
 });

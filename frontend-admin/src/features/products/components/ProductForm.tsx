@@ -2,10 +2,18 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
-import { Product, TaxType } from '@/api/generated/model';
+import { Product } from '@/api/generated/model';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import { getModifierGroups, getProductModifierGroups, type ModifierGroupDto } from '@/lib/api/modifierGroups';
+import { TAX_TYPE_ENUM } from '@/features/products/utils/productMapper';
 import ExtraZutatenSection from './ExtraZutatenSection';
+
+/** Dropdown seçenekleri: backend enum id (1,2,3) ve kullanıcı dostu etiket. */
+const TAX_TYPE_OPTIONS = [
+    { value: TAX_TYPE_ENUM.Standard, label: '20% (Standard)' },
+    { value: TAX_TYPE_ENUM.Reduced, label: '10% (Reduced)' },
+    { value: TAX_TYPE_ENUM.Special, label: '13% (Special)' },
+] as const;
 
 export type ProductFormSubmitValues = Product & { modifierGroupIds?: string[]; categoryId?: string };
 
@@ -17,7 +25,6 @@ interface ProductFormProps {
     loading?: boolean;
 }
 
-const { Option } = Select;
 const { TextArea } = Input;
 
 export default function ProductForm({
@@ -79,10 +86,11 @@ export default function ProductForm({
                     (o: { label: string }) => o.label === (product.category ?? '')
                 ) as { value: string } | undefined)?.value;
 
+                const taxType = Number((initialValues as any).taxType ?? TAX_TYPE_ENUM.Standard);
                 form.setFieldsValue({
                     ...initialValues,
                     isActive: initialValues.isActive ?? true,
-                    taxType: initialValues.taxType || TaxType.NUMBER_20,
+                    taxType: [TAX_TYPE_ENUM.Standard, TAX_TYPE_ENUM.Reduced, TAX_TYPE_ENUM.Special].includes(taxType) ? taxType : TAX_TYPE_ENUM.Standard,
                     unit: initialValues.unit || 'pcs',
                     stockQuantity: initialValues.stockQuantity ?? 0,
                     minStockLevel: initialValues.minStockLevel ?? 0,
@@ -92,8 +100,7 @@ export default function ProductForm({
                 form.resetFields();
                 form.setFieldsValue({
                     isActive: true,
-                    taxType: TaxType.NUMBER_20,
-                    taxRate: 20,
+                    taxType: TAX_TYPE_ENUM.Standard,
                     price: 0,
                     cost: 0,
                     unit: 'pcs',
@@ -108,18 +115,27 @@ export default function ProductForm({
         try {
             const values = await form.validateFields();
 
-            // categoryId from dropdown (/api/admin/categories list)
+            // Kategori: dropdown value = categoryId (GUID); backend ayrıca [Required] Category (ad) bekliyor
             const categoryId = values.categoryId as string | undefined;
+            if (!categoryId?.trim()) {
+                message.error('Please select a category');
+                return;
+            }
+            const categoryName =
+                categoryOptions.find((o: { value: string }) => o.value === categoryId)?.label ??
+                (initialValues as any)?.category ??
+                '';
 
             const processedValues: ProductFormSubmitValues = {
                 ...values,
                 price: Number(values.price),
                 cost: Number(values.cost),
-                taxRate: Number(values.taxRate),
+                taxType: Number(values.taxType) as any,
                 stockQuantity: Number(values.stockQuantity ?? 0),
                 minStockLevel: Number(values.minStockLevel ?? 0),
                 unit: values.unit || 'pcs',
                 categoryId,
+                category: categoryName,
                 modifierGroupIds: selectedModifierGroupIds,
             };
 
@@ -148,10 +164,6 @@ export default function ProductForm({
                 message.error(error.response.data.title);
             }
         }
-    };
-
-    const handleTaxTypeChange = (value: number) => {
-        form.setFieldsValue({ taxRate: value });
     };
 
     return (
@@ -233,28 +245,16 @@ export default function ProductForm({
                     </Form.Item>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    <Form.Item
-                        name="taxType"
-                        label="Tax Type"
-                        rules={[{ required: true, message: 'Select tax type' }]}
-                    >
-                        <Select onChange={handleTaxTypeChange}>
-                            <Option value={TaxType.NUMBER_10}>10% (Reduced)</Option>
-                            <Option value={TaxType.NUMBER_13}>13% (Special)</Option>
-                            <Option value={TaxType.NUMBER_20}>20% (Standard)</Option>
-                        </Select>
-                    </Form.Item>
-
-                    {/* Hidden or ReadOnly Tax Rate linked to Tax Type */}
-                    <Form.Item
-                        name="taxRate"
-                        label="Tax Rate (%)"
-                        rules={[{ required: true }]}
-                    >
-                        <InputNumber style={{ width: '100%' }} readOnly />
-                    </Form.Item>
-                </div>
+                <Form.Item
+                    name="taxType"
+                    label="Tax Type"
+                    rules={[{ required: true, message: 'Select tax type' }]}
+                >
+                    <Select
+                        options={TAX_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+                        placeholder="Select tax type"
+                    />
+                </Form.Item>
 
                 <Form.Item
                     name="description"

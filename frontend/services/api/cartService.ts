@@ -43,12 +43,22 @@ export interface CreateCartRequest {
   notes?: string;
 }
 
+/** Backend contract: id required; name/price/groupId optional (price derived server-side). */
+export interface SelectedModifierInput {
+  id: string;
+  name?: string;
+  price?: number;
+  groupId?: string;
+}
+
 export interface AddItemToCartRequest {
   productId: string;
   quantity: number;
   tableNumber?: number;
   waiterName?: string;
   notes?: string;
+  /** Backend contract: selectedModifiers[] with at least id. Do not send modifierIds. */
+  selectedModifiers?: SelectedModifierInput[];
 }
 
 export interface UpdateCartItemRequest {

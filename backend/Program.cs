@@ -209,6 +209,7 @@ builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi 
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
 // builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 // builder.Services.AddScoped<ITestService, TestService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
+builder.Services.AddScoped<IProductModifierValidationService, ProductModifierValidationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi

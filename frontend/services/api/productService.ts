@@ -1,6 +1,7 @@
 import { apiClient } from './config';
 import { handleAPIError, ErrorMessages } from '../errorService'; // ✅ YENİ: Standardize error handling
 import { API_PATHS } from './apiPaths'; // ✅ Centralized swagger-accurate paths
+import type { ModifierGroupDto } from './productModifiersService';
 
 // Cache sistemi - API çağrılarının tekrarlanmasını önler
 export const productCache = {
@@ -73,6 +74,8 @@ export interface Product {
   // Backend catalog endpoint'inden gelen ek field'lar
   productCategory?: string; // Backend'de ProductCategory olarak map edildi
   categoryId?: string; // Backend'de CategoryId olarak map edildi
+  /** Katalog cevabında gelir; ürün başına modifier fetch kaldırıldı */
+  modifierGroups?: ModifierGroupDto[];
 }
 
 export interface ProductCategory {
@@ -126,6 +129,25 @@ const mapProduct = (p: any): Product => ({
   // Backend catalog endpoint'inden gelen field'lar
   productCategory: p.ProductCategory ?? p.productCategory,
   categoryId: p.CategoryId ?? p.categoryId,
+});
+
+const mapModifierGroup = (g: any): ModifierGroupDto => ({
+  id: g.Id ?? g.id,
+  name: g.Name ?? g.name,
+  minSelections: g.MinSelections ?? g.minSelections ?? 0,
+  maxSelections: g.MaxSelections ?? g.maxSelections ?? undefined,
+  isRequired: g.IsRequired ?? g.isRequired ?? false,
+  sortOrder: g.SortOrder ?? g.sortOrder ?? 0,
+  isActive: g.IsActive ?? g.isActive ?? true,
+  modifiers: Array.isArray(g.Modifiers ?? g.modifiers)
+    ? (g.Modifiers ?? g.modifiers).map((m: any) => ({
+        id: m.Id ?? m.id,
+        name: m.Name ?? m.name,
+        price: Number(m.Price ?? m.price ?? 0),
+        taxType: m.TaxType ?? m.taxType ?? 1,
+        sortOrder: m.SortOrder ?? m.sortOrder ?? 0,
+      }))
+    : [],
 });
 
 const unwrapData = <T>(resp: any): T => {
@@ -233,6 +255,9 @@ export const getProductCatalog = async (): Promise<{
     const products = productsRaw.map((p: any) => ({
       ...mapProduct(p),
       categoryId: p.CategoryId ?? p.categoryId,
+      modifierGroups: Array.isArray(p.ModifierGroups ?? p.modifierGroups)
+        ? (p.ModifierGroups ?? p.modifierGroups).map(mapModifierGroup)
+        : [],
     }));
 
     console.log(`✅ Catalog loaded: ${categories.length} categories, ${products.length} products`);

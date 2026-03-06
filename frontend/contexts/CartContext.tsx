@@ -1,30 +1,38 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../services/api/config';
+import type { AddItemToCartRequest } from '../services/api/cartService';
 
 // ============================================
 // TYPE DEFINITIONS
 // ============================================
 
-/** Sepet satırında seçilen tek bir modifier (Extra Zutaten). */
+/** Sepet satırında seçilen tek bir modifier (Extra Zutaten). price = priceDelta per unit. */
 export interface CartItemModifier {
     id: string;
     name: string;
     price: number;
 }
 
+/** Payment payload için: modifierId, name, priceDelta (groupId opsiyonel). */
+export type ModifierSelection = { modifierId: string; name: string; priceDelta: number; groupId?: string };
+
 export interface CartItem {
+    /** Satır kimliği: itemId (backend) veya clientId (iyimser ekleme). */
+    itemId?: string;
+    /** İyimser eklemede satır anahtarı; backend itemId gelene kadar kullanılır */
+    clientId?: string;
     productId: string;
     productName: string;
     price?: number;
     qty: number;
     unitPrice?: number;
+    /** Satır toplamı = (unitPrice + extrasPerUnitTotal) * qty. */
     totalPrice?: number;
     notes?: string;
-    itemId?: string;
     taxRate?: number;
     taxType?: number | string;
-    /** Extra Zutaten – sadece bu satır için seçilen modifier'lar. */
+    /** Extra Zutaten – sadece bu satır için seçilen modifier'lar (extrasPerUnitTotal = sum(price)). */
     modifiers?: CartItemModifier[];
 }
 
@@ -80,7 +88,9 @@ interface CartContextType {
     getCartForTable: (tableNumber: number) => Cart;
     updateItemQuantity: (productId: string, quantity: number) => Promise<void>;
     updateItemQuantityByItemId: (itemId: string, quantity: number) => Promise<void>;
-    fetchTableCart: (tableNumber: number) => Promise<void>; // ✅ Added
+    fetchTableCart: (tableNumber: number) => Promise<void>;
+    /** Sepetteki bir satıra extra ekle/çıkar (sadece local state; API yok). cartItemId = itemId ?? clientId */
+    toggleExtraOnCartItem: (cartItemId: string, modifier: CartItemModifier) => void;
 
     // Helpers
     setLoading: (loading: boolean) => void;
@@ -172,41 +182,64 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             if (response && (response.items || response.Items)) {
                 const backendItems = response.items || response.Items || [];
-                const localItems: CartItem[] = backendItems.map((item: any) => {
-                    // Check logic for ProductName
-                    const pName = item.ProductName || item.productName;
-                    if (!pName) {
-                        console.error("[Cart] ❌ Missing ProductName for item:", item);
-                    }
 
+                setCartsByTable(prev => {
+                    const currentItems = prev[tableNumber]?.items ?? [];
+                    const localItems: CartItem[] = backendItems.map((item: any) => {
+                        const pName = item.ProductName || item.productName;
+                        if (!pName) {
+                            console.error("[Cart] ❌ Missing ProductName for item:", item);
+                        }
+                        const backendItemId = item.Id ?? item.id;
+                        const existing = currentItems.find((e: CartItem) => (e.itemId ?? e.clientId) === backendItemId);
+                        const backendMods = item.SelectedModifiers ?? item.selectedModifiers ?? item.Modifiers ?? item.modifiers;
+                        let modifierList: CartItemModifier[] | undefined;
+                        if (Array.isArray(backendMods) && backendMods.length) {
+                            modifierList = backendMods.map((m: any) => ({
+                                id: m.Id ?? m.id,
+                                name: m.Name ?? m.name,
+                                price: Number(m.Price ?? m.price ?? 0)
+                            }));
+                        } else if (existing?.modifiers?.length) {
+                            modifierList = existing.modifiers;
+                        }
+                        const basePrice = item.UnitPrice ?? item.unitPrice ?? 0;
+                        const qty = item.Quantity ?? item.quantity ?? 0;
+                        const extrasPerUnit = (modifierList ?? []).reduce((s, m) => s + m.price, 0);
+                        const totalPrice = (basePrice + extrasPerUnit) * qty;
+
+                        return {
+                            productId: item.ProductId || item.productId,
+                            productName: pName || 'Unknown Product',
+                            price: basePrice + extrasPerUnit,
+                            qty,
+                            unitPrice: basePrice,
+                            totalPrice,
+                            notes: item.Notes ?? item.notes,
+                            itemId: backendItemId,
+                            clientId: existing?.clientId,
+                            taxRate: item.TaxRate ?? item.taxRate,
+                            taxType: item.TaxType ?? item.taxType,
+                            modifiers: modifierList
+                        };
+                    });
+
+                    const grandTotalGross = localItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
                     return {
-                        productId: item.ProductId || item.productId,
-                        productName: pName || 'Unknown Product',
-                        price: item.UnitPrice || item.unitPrice || 0,
-                        qty: item.Quantity || item.quantity || 0,
-                        unitPrice: item.UnitPrice || item.unitPrice || 0,
-                        totalPrice: item.TotalPrice || item.totalPrice || 0,
-                        notes: item.Notes || item.notes,
-                        itemId: item.Id || item.id,
-                        taxRate: item.TaxRate ?? item.taxRate,
-                        taxType: item.TaxType ?? item.taxType
+                        ...prev,
+                        [tableNumber]: {
+                            items: localItems,
+                            updatedAt: Date.now(),
+                            cartId: response.CartId || response.cartId,
+                            subtotalGross: response.SubtotalGross ?? response.subtotalGross ?? grandTotalGross,
+                            subtotalNet: response.SubtotalNet ?? response.subtotalNet,
+                            includedTaxTotal: response.IncludedTaxTotal ?? response.includedTaxTotal,
+                            grandTotalGross: response.GrandTotalGross ?? response.grandTotalGross ?? grandTotalGross,
+                            taxSummary: response.TaxSummary ?? response.taxSummary
+                        }
                     };
                 });
-
-                setCartsByTable(prev => ({
-                    ...prev,
-                    [tableNumber]: {
-                        items: localItems,
-                        updatedAt: Date.now(),
-                        cartId: response.CartId || response.cartId,
-                        subtotalGross: response.SubtotalGross ?? response.subtotalGross,
-                        subtotalNet: response.SubtotalNet ?? response.subtotalNet,
-                        includedTaxTotal: response.IncludedTaxTotal ?? response.includedTaxTotal,
-                        grandTotalGross: response.GrandTotalGross ?? response.grandTotalGross,
-                        taxSummary: response.TaxSummary ?? response.taxSummary
-                    }
-                }));
-                console.log(`✅ [CartContext] Table ${tableNumber} updated with ${localItems.length} items`);
+                console.log(`✅ [CartContext] Table ${tableNumber} updated with ${backendItems.length} items`);
             } else {
                 // If response is null or no items, implies empty cart or new table
                 setCartsByTable(prev => ({
@@ -297,6 +330,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 updatedAt: Date.now()
             };
         } else {
+            const clientId = `ci-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
             optimisticCart = {
                 ...currentCart,
                 items: [
@@ -308,8 +342,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         qty: quantity,
                         unitPrice: unitPrice,
                         totalPrice: lineTotalPrice,
-                        modifiers: modifiers.length ? modifiers : undefined,
-                        itemId: undefined
+                        modifiers: modifiers.length ? [...modifiers] : undefined,
+                        itemId: undefined,
+                        clientId
                     }
                 ],
                 updatedAt: Date.now()
@@ -322,14 +357,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }));
         setError(null);
 
-        // PHASE 2: Backend Call (modifierIds backend desteklerse kullanılır)
+        // PHASE 2: Backend Call – backend contract: selectedModifiers (not modifierIds)
         try {
-            const body: Record<string, unknown> = {
+            const body: AddItemToCartRequest = {
                 productId,
                 quantity,
                 tableNumber: activeTableId
             };
-            if (modifiers.length) body.modifierIds = modifiers.map(m => m.id);
+            if (modifiers.length) {
+                body.selectedModifiers = modifiers.map(m => ({ id: m.id }));
+            }
 
             const response = await apiClient.post<AddItemResponse>('/cart/add-item', body);
 
@@ -338,9 +375,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 const backendItems = backendCart.Items || backendCart.items || [];
 
                 const existingItems = currentCart.items;
-                const localItems: CartItem[] = backendItems.map((item: any) => {
+                const localItems: CartItem[] = backendItems.map((item: any, index: number) => {
                     const backendItemId = item.Id ?? item.id;
-                    const mods = item.Modifiers ?? item.modifiers;
+                    const mods = item.SelectedModifiers ?? item.selectedModifiers ?? item.Modifiers ?? item.modifiers;
                     let modifierList: CartItemModifier[] | undefined;
                     if (Array.isArray(mods) && mods.length) {
                         modifierList = mods.map((m: any) => ({
@@ -352,6 +389,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         const existing = existingItems.find((e: CartItem) => e.itemId === backendItemId || (e.productId === (item.ProductId || item.productId) && !e.itemId));
                         if (existing?.modifiers?.length) modifierList = existing.modifiers;
                     }
+                    const existingByIndex = existingItems[index];
                     return {
                         productId: item.ProductId || item.productId,
                         productName: item.ProductName || item.productName || 'Unknown Product',
@@ -361,6 +399,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         totalPrice: item.TotalPrice || item.totalPrice || 0,
                         notes: item.Notes || item.notes,
                         itemId: item.Id || item.id,
+                        clientId: existingByIndex?.clientId,
                         taxRate: item.TaxRate ?? item.taxRate,
                         taxType: item.TaxType ?? item.taxType,
                         modifiers: modifierList
@@ -605,6 +644,49 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, [activeTableId, cartsByTable, removeByItemId, setLoading, setError, fetchTableCart]);
 
+    /** Sepetteki bir satıra extra ekle/çıkar; sadece local state güncellenir, API yok. */
+    const toggleExtraOnCartItem = useCallback((cartItemId: string, modifier: CartItemModifier) => {
+        const currentCart = cartsByTable[activeTableId];
+        if (!currentCart?.items?.length) return;
+
+        const lineKey = (i: CartItem) => i.itemId ?? i.clientId;
+        const index = currentCart.items.findIndex((i) => lineKey(i) === cartItemId);
+        if (index === -1) return;
+
+        const item = currentCart.items[index];
+        const mods = item.modifiers ?? [];
+        const has = mods.some((m) => m.id === modifier.id);
+        const nextMods = has ? mods.filter((m) => m.id !== modifier.id) : [...mods, { id: modifier.id, name: modifier.name, price: modifier.price }];
+        const basePrice = item.unitPrice ?? item.price ?? 0;
+        const extrasPerUnit = nextMods.reduce((s, m) => s + m.price, 0);
+        const qty = item.qty ?? 0;
+        const newTotalPrice = (basePrice + extrasPerUnit) * qty;
+
+        const updatedItems = currentCart.items.map((it, i) =>
+            i === index
+                ? {
+                      ...it,
+                      modifiers: nextMods.length ? nextMods : undefined,
+                      totalPrice: newTotalPrice,
+                      price: basePrice + extrasPerUnit
+                  }
+                : it
+        );
+
+        const grandTotalGross = updatedItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+
+        setCartsByTable((prev) => ({
+            ...prev,
+            [activeTableId]: {
+                ...currentCart,
+                items: updatedItems,
+                subtotalGross: grandTotalGross,
+                grandTotalGross,
+                updatedAt: Date.now()
+            }
+        }));
+    }, [activeTableId, cartsByTable]);
+
     const increment = useCallback(async (productId: string) => {
         const currentCart = cartsByTable[activeTableId];
         if (!currentCart) {
@@ -627,11 +709,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Optimistic update - recalculate totalPrice for UI
             const updatedItems = currentCart.items.map(i => {
                 if (i.productId === productId) {
-                    const unitPrice = i.unitPrice || i.price || 0;
+                    const basePrice = i.unitPrice ?? i.price ?? 0;
+                    const extrasPerUnit = (i.modifiers ?? []).reduce((s, m) => s + m.price, 0);
                     return {
                         ...i,
                         qty: newQuantity,
-                        totalPrice: unitPrice * newQuantity, // ✅ Recalculate for UI
+                        totalPrice: (basePrice + extrasPerUnit) * newQuantity,
                     };
                 }
                 return i;
@@ -641,7 +724,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 [activeTableId]: {
                     ...currentCart,
                     items: updatedItems,
-                    updatedAt: Date.now() // ✅ Force re-render
+                    updatedAt: Date.now()
                 }
             }));
 
@@ -696,11 +779,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Optimistic update - recalculate totalPrice for UI
             const updatedItems = currentCart.items.map(i => {
                 if (i.productId === productId) {
-                    const unitPrice = i.unitPrice || i.price || 0;
+                    const basePrice = i.unitPrice ?? i.price ?? 0;
+                    const extrasPerUnit = (i.modifiers ?? []).reduce((s, m) => s + m.price, 0);
                     return {
                         ...i,
                         qty: newQuantity,
-                        totalPrice: unitPrice * newQuantity, // ✅ Recalculate for UI
+                        totalPrice: (basePrice + extrasPerUnit) * newQuantity,
                     };
                 }
                 return i;
@@ -710,7 +794,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 [activeTableId]: {
                     ...currentCart,
                     items: updatedItems,
-                    updatedAt: Date.now() // ✅ Force re-render
+                    updatedAt: Date.now()
                 }
             }));
 
@@ -784,7 +868,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             getCartForTable,
             updateItemQuantity,
             updateItemQuantityByItemId,
-            fetchTableCart, // Kept exposed but switchTable is preferred
+            fetchTableCart,
+            toggleExtraOnCartItem,
             setLoading,
             setError
         }}>

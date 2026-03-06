@@ -17,6 +17,7 @@ namespace KasseAPI_Final.Data
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
+        public DbSet<CartItemModifier> CartItemModifiers { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<CashRegister> CashRegisters { get; set; }
@@ -43,6 +44,7 @@ namespace KasseAPI_Final.Data
         // Masa siparişleri için yeni tablolar
         public DbSet<TableOrder> TableOrders { get; set; }
         public DbSet<TableOrderItem> TableOrderItems { get; set; }
+        public DbSet<TableOrderItemModifier> TableOrderItemModifiers { get; set; }
 
         // FinanzOnline Audit
         public DbSet<FinanzOnlineSubmission> FinanzOnlineSubmissions { get; set; }
@@ -728,6 +730,20 @@ namespace KasseAPI_Final.Data
                 //     .OnDelete(DeleteBehavior.Restrict);
             });
 
+            builder.Entity<CartItemModifier>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CartItemId).IsRequired();
+                entity.Property(e => e.ModifierId).IsRequired();
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+                entity.HasOne(e => e.CartItem)
+                    .WithMany(ci => ci.Modifiers)
+                    .HasForeignKey(e => e.CartItemId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.ToTable("cart_item_modifiers");
+            });
+
             // Order configuration
             builder.Entity<Order>(entity =>
             {
@@ -825,6 +841,20 @@ namespace KasseAPI_Final.Data
                       .HasForeignKey(e => e.TableOrderId)
                       .HasPrincipalKey(o => o.TableOrderId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TableOrderItemModifier>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TableOrderItemId).IsRequired();
+                entity.Property(e => e.ModifierId).IsRequired();
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+                entity.HasOne(e => e.TableOrderItem)
+                    .WithMany(ti => ti.Modifiers)
+                    .HasForeignKey(e => e.TableOrderItemId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.ToTable("table_order_item_modifiers");
             });
 
             // Receipt configuration

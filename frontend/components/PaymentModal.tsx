@@ -105,8 +105,8 @@ interface PaymentModalProps {
     unitPrice: number;
     totalPrice: number;
     taxType?: string;
-    /** Extra Zutaten – ödeme/fiş için backend'e gönderilir */
-    modifiers?: Array<{ modifierId: string }>;
+    /** Extra Zutaten – ödeme/fiş için backend'e gönderilir (modifierId zorunlu; name/priceDelta opsiyonel) */
+    modifiers?: Array<{ modifierId: string; name?: string; priceDelta?: number }>;
   }>;
   /** Backend'den gelen brüt toplam - FE hesaplama yapmaz */
   grandTotalGross?: number;

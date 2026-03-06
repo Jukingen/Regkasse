@@ -30,6 +30,8 @@ interface ModifierSelectionBottomSheetProps {
   productId: string;
   productName: string;
   productPrice: number;
+  /** Katalogdan gelirse fetch atlanır. */
+  modifierGroups?: ModifierGroupDto[] | null;
   /** Başlangıçta seçili modifier'lar (pending state'ten) */
   initialSelected?: SelectedModifier[];
   onClose: () => void;
@@ -42,6 +44,7 @@ export function ModifierSelectionBottomSheet({
   productId,
   productName,
   productPrice,
+  modifierGroups: modifierGroupsProp,
   initialSelected = [],
   onClose,
   onApply,
@@ -50,7 +53,7 @@ export function ModifierSelectionBottomSheet({
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Açıldığında pending seçimi yükle; initialSelected sadece açılışta kullanılır (re-render'da sıfırlamamak için deps'te yok)
+  // Katalogdan gelen gruplar varsa fetch yok; yoksa tek seferlik getProductModifierGroups (modal açıldığında)
   useEffect(() => {
     if (!visible || !productId) {
       setGroups([]);
@@ -58,6 +61,11 @@ export function ModifierSelectionBottomSheet({
       return;
     }
     setSelectedIds(new Set(initialSelected.map((m) => m.id)));
+    if (Array.isArray(modifierGroupsProp) && modifierGroupsProp.length > 0) {
+      setGroups(modifierGroupsProp);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     getProductModifierGroups(productId)
@@ -73,7 +81,7 @@ export function ModifierSelectionBottomSheet({
     return () => {
       cancelled = true;
     };
-  }, [visible, productId]);
+  }, [visible, productId, modifierGroupsProp]);
 
   const toggleModifier = (m: ModifierDto) => {
     setSelectedIds((prev) => {

@@ -6,7 +6,7 @@ import { useApiManager } from './useApiManager';
 import { useAuth } from '../contexts/AuthContext';
 import { apiClient } from '../services/api/config';
 
-// Table order recovery interfaces
+// Table order recovery interfaces (backend table-orders-recovery items include selectedModifiers)
 export interface TableOrderRecoveryItem {
   productId: string;
   productName: string;
@@ -14,6 +14,7 @@ export interface TableOrderRecoveryItem {
   price: number;
   total: number;
   notes?: string;
+  selectedModifiers?: Array<{ id: string; name: string; price: number }>;
 }
 
 export interface TableOrderRecovery {

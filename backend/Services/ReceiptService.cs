@@ -122,6 +122,9 @@ namespace KasseAPI_Final.Services
             foreach (var i in items)
             {
                 var productItemId = Guid.NewGuid();
+                var modifierNet = i.Modifiers?.Sum(m => m.LineNet) ?? 0;
+                var modifierTax = i.Modifiers?.Sum(m => m.TaxAmount) ?? 0;
+                var modifierGross = i.Modifiers?.Sum(m => m.TotalPrice) ?? 0;
                 receiptItems.Add(new ReceiptItem
                 {
                     ItemId = productItemId,
@@ -129,14 +132,14 @@ namespace KasseAPI_Final.Services
                     ProductName = i.ProductName,
                     Quantity = i.Quantity,
                     UnitPrice = i.UnitPrice,
-                    TotalPrice = i.TotalPrice,
-                    LineNet = i.LineNet,
-                    VatAmount = i.TaxAmount,
+                    TotalPrice = i.TotalPrice - modifierGross,
+                    LineNet = i.LineNet - modifierNet,
+                    VatAmount = i.TaxAmount - modifierTax,
                     TaxRate = i.TaxRate * 100, // 0.20 -> 20.00
                     ParentItemId = null,
                     CategoryName = null
                 });
-                taxLineInputs.Add((i.TaxType, i.TaxRate, i.LineNet, i.TaxAmount, i.TotalPrice));
+                taxLineInputs.Add((i.TaxType, i.TaxRate, i.LineNet - modifierNet, i.TaxAmount - modifierTax, i.TotalPrice - modifierGross));
                 if (i.Modifiers != null)
                 {
                     foreach (var m in i.Modifiers)
@@ -145,7 +148,7 @@ namespace KasseAPI_Final.Services
                         {
                             ItemId = Guid.NewGuid(),
                             ReceiptId = newReceipt.ReceiptId,
-                            ProductName = m.Name,
+                            ProductName = "+ " + m.Name,
                             Quantity = i.Quantity,
                             UnitPrice = m.UnitPrice,
                             TotalPrice = m.TotalPrice,

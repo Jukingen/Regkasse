@@ -1,18 +1,15 @@
 // =============================================================================
 // POS Ana Ekran (Cash Register) – maximum cashier speed, minimal taps
 // =============================================================================
-// One-tap add: tap product row → add 1x to cart. No "Hinzufügen" button.
-// Zutaten/Modifiers: expandable under product list row ("Extras ▼"), no modal.
+// UX rule: Tap product row => instantly add 1 item to cart (always).
+// If product has modifiers, show inline "Extras" under that row. Extras apply to
+// the most recently added cart line of that product: lastCartItemIdByProductId[productId].
+// Tapping an extra chip updates that cart item's selected modifiers (no API call).
+// Adding the same product again makes that new line the active one for modifier edits.
 //
-// State shape:
-// - cart (CartContext): items[] each { itemId, productId, productName, qty,
-//   unitPrice, totalPrice, modifiers?: { id, name, price }[] }. Stable itemId
-//   per line; same product with different modifiers = separate lines.
-// - pendingModifiersByProduct (local): Selected extras for next add; key = productId.
-//   Tap row → add with current pending, then clear pending for that product.
-// - lastCartItemIdByProductId (derived): Map productId → cartItemId of the
-//   latest cart line for that product. Used so modifier selection can target
-//   the most recently added line (when backend supports update-item-modifiers).
+// State: cart.items[] with modifiers; lastCartItemIdByProductId derived from cart;
+// pendingModifiersByProduct only when no cart line exists for that product.
+// Modifiers included in final payment payload.
 // =============================================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -41,7 +38,9 @@ import { SoftColors, SoftSpacing, SoftTypography } from '../../constants/SoftThe
 function usePOSOrderFlow(
   addItem: (productId: string, qty?: number, options?: { modifiers?: SelectedModifier[]; productName?: string; unitPrice?: number }) => Promise<void>,
   activeTableId: number,
-  addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void
+  addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void,
+  lastCartItemIdByProductId: Record<string, string>,
+  toggleExtraOnCartItem: (cartItemId: string, modifier: { id: string; name: string; price: number }) => void
 ) {
   const [pendingModifiersByProduct, setPendingModifiersByProduct] = useState<Record<string, SelectedModifier[]>>({});
 
@@ -70,16 +69,24 @@ function usePOSOrderFlow(
     [addItem, activeTableId, addToast]
   );
 
-  const handleToggleModifier = useCallback((productId: string, modifier: SelectedModifier) => {
-    setPendingModifiersByProduct((prev) => {
-      const list = prev[productId] ?? [];
-      const has = list.some((m) => m.id === modifier.id);
-      const nextList = has ? list.filter((m) => m.id !== modifier.id) : [...list, modifier];
-      const next = { ...prev, [productId]: nextList };
-      if (nextList.length === 0) delete next[productId];
-      return next;
-    });
-  }, []);
+  const handleToggleModifier = useCallback(
+    (productId: string, modifier: SelectedModifier) => {
+      const cartItemId = lastCartItemIdByProductId[productId];
+      if (cartItemId) {
+        toggleExtraOnCartItem(cartItemId, modifier);
+      } else {
+        setPendingModifiersByProduct((prev) => {
+          const list = prev[productId] ?? [];
+          const has = list.some((m) => m.id === modifier.id);
+          const nextList = has ? list.filter((m) => m.id !== modifier.id) : [...list, modifier];
+          const next = { ...prev, [productId]: nextList };
+          if (nextList.length === 0) delete next[productId];
+          return next;
+        });
+      }
+    },
+    [lastCartItemIdByProductId, toggleExtraOnCartItem]
+  );
 
   return { pendingModifiersByProduct, handleAddProduct, handleToggleModifier };
 }
@@ -122,7 +129,7 @@ export default function CashRegisterScreen() {
     cartsByTable,
     loading: cartLoading,
     error: cartError,
-    switchTable, // ✅ Use switchTable
+    switchTable,
     addItem,
     increment,
     decrement,
@@ -131,7 +138,8 @@ export default function CashRegisterScreen() {
     clearCart,
     getCartForTable,
     updateItemQuantity: contextUpdateItemQuantity,
-    updateItemQuantityByItemId, // Rename to avoid conflict if any
+    updateItemQuantityByItemId,
+    toggleExtraOnCartItem,
     isPaymentModalVisible,
     setIsPaymentModalVisible
   } = useCart();
@@ -139,26 +147,56 @@ export default function CashRegisterScreen() {
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
-  const { pendingModifiersByProduct, handleAddProduct, handleToggleModifier } = usePOSOrderFlow(
-    addItem,
-    activeTableId,
-    addToast
-  );
-
   const cart = getCartForTable(activeTableId);
 
-  // Latest cart line per product (for modifier targeting when API supports it)
+  /** productId → cartItemId of the last-added cart line for that product (active for modifier toggles). */
   const lastCartItemIdByProductId = useMemo(() => {
     const map: Record<string, string> = {};
     const items = cart?.items ?? [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const pid = item.productId;
-      const id = item.itemId ?? (item as any).id;
+      const id = item.itemId ?? (item as any).clientId;
       if (pid && id) map[pid] = String(id);
     }
     return map;
   }, [cart?.items]);
+
+  // Ürün bazında son satırdaki seçili extras (chip'lerin seçili state'i için)
+  const lastCartItemModifiersByProductId = useMemo(() => {
+    const map: Record<string, Array<{ id: string; name: string; price: number }>> = {};
+    const items = cart?.items ?? [];
+    for (let i = items.length - 1; i >= 0; i--) {
+      const item = items[i];
+      if (!item.productId) continue;
+      if (!(item.productId in map)) map[item.productId] = item.modifiers ?? [];
+    }
+    return map;
+  }, [cart?.items]);
+
+  const { pendingModifiersByProduct, handleAddProduct, handleToggleModifier } = usePOSOrderFlow(
+    addItem,
+    activeTableId,
+    addToast,
+    lastCartItemIdByProductId,
+    toggleExtraOnCartItem
+  );
+
+  // Chip'lerde gösterilecek seçim: önce sepetteki son satır, yoksa pending
+  const selectedModifiersForProduct = useMemo(() => {
+    const out: Record<string, SelectedModifier[]> = {};
+    const pids = new Set([
+      ...Object.keys(lastCartItemModifiersByProductId),
+      ...Object.keys(pendingModifiersByProduct)
+    ]);
+    pids.forEach((pid) => {
+      out[pid] =
+        lastCartItemModifiersByProductId[pid]?.length
+          ? lastCartItemModifiersByProductId[pid]
+          : pendingModifiersByProduct[pid] ?? [];
+    });
+    return out;
+  }, [lastCartItemModifiersByProductId, pendingModifiersByProduct]);
 
   // Masa badge counter için cartsByTable'dan Map türet (anlık güncelleme için tek kaynak)
   // Boş masalar dahil tüm entry'ler eklenir; Clear All sonrası badge 0 olur
@@ -361,7 +399,7 @@ export default function CashRegisterScreen() {
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
       <ProductList
         categoryFilterId={selectedCategoryId}
-        pendingModifiersByProduct={pendingModifiersByProduct}
+        pendingModifiersByProduct={selectedModifiersForProduct}
         onAddProduct={handleAddProduct}
         onToggleModifier={handleToggleModifier}
         showStockInfo={false}

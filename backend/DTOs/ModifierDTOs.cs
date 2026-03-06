@@ -63,4 +63,25 @@ namespace KasseAPI_Final.DTOs
     {
         public List<Guid> ModifierGroupIds { get; set; } = new();
     }
+
+    /// <summary>
+    /// Satır bazında seçili modifier (cart item / table-order item). JSON: camelCase.
+    /// </summary>
+    public class SelectedModifierDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+    }
+
+    /// <summary>
+    /// add-item request body: FE gönderir; fiyat DB'den türetilir (güvenlik).
+    /// </summary>
+    public class SelectedModifierInputDto
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public decimal? Price { get; set; }
+        public Guid? GroupId { get; set; }
+    }
 }
