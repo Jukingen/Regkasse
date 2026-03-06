@@ -241,6 +241,9 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
+         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+    
         var context = services.GetRequiredService<AppDbContext>();
         
         // 🚨 Startup Migration Check Gate

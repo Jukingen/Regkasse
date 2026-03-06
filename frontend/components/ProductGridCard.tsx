@@ -12,6 +12,7 @@ export interface ModifierChipItem {
   id: string;
   name: string;
   price: number;
+  quantity?: number;
 }
 
 function modifiersKey(mods: ModifierChipItem[]): string {
@@ -19,7 +20,7 @@ function modifiersKey(mods: ModifierChipItem[]): string {
   return mods
     .slice()
     .sort((a, b) => a.id.localeCompare(b.id))
-    .map((m) => `${m.id}:${m.price}`)
+    .map((m) => `${m.id}:${m.quantity ?? 1}`)
     .join(',');
 }
 
@@ -27,7 +28,7 @@ interface ProductGridCardProps {
   product: Product;
   pendingModifiers: ModifierChipItem[];
   onAdd: (product: Product, modifiers: ModifierChipItem[]) => void;
-  onToggleModifier: (productId: string, modifier: ModifierOptionItem) => void;
+  onAddModifier: (product: Product, modifier: ModifierOptionItem) => void;
   getCategoryEmoji?: (category?: string) => string;
 }
 
@@ -35,7 +36,7 @@ function ProductGridCardInner({
   product,
   pendingModifiers,
   onAdd,
-  onToggleModifier,
+  onAddModifier,
   getCategoryEmoji = () => '📦',
 }: ProductGridCardProps) {
   const groups = product.modifierGroups ?? [];
@@ -65,8 +66,9 @@ function ProductGridCardInner({
         {hasModifiers && (
           <ModifierOptionChips
             modifiers={allModifiers}
-            selectedModifiers={pendingModifiers}
-            onToggle={(m) => onToggleModifier(product.id, m)}
+            selectedModifiers={pendingModifiers.map((m) => ({ ...m, quantity: m.quantity ?? 1 }))}
+            onAdd={(m) => onAddModifier(product, m)}
+            hideQuantityStepper
             loading={false}
           />
         )}

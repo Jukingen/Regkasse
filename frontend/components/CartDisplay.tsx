@@ -8,6 +8,7 @@ import { formatPrice } from '../utils/formatPrice';
 
 interface CartItem {
   itemId?: string;
+  clientId?: string;
   productId: string;
   productName: string;
   quantity?: number;
@@ -17,7 +18,7 @@ interface CartItem {
   taxType?: string;
   taxRate?: number;
   notes?: string;
-  modifiers?: { id: string; name: string; price: number }[];
+  modifiers?: { id: string; name: string; price: number; quantity?: number }[];
 }
 
 interface CartDisplayProps {
@@ -28,6 +29,9 @@ interface CartDisplayProps {
   onQuantityUpdate: (itemId: string, action: 'increment' | 'decrement') => void;
   onItemRemove: (itemId: string) => void;
   onClearCart: () => void;
+  onRemoveModifier?: (itemId: string, modifier: { id: string; name: string; price: number; quantity?: number }) => void;
+  onIncrementModifier?: (itemId: string, modifierId: string) => void;
+  onDecrementModifier?: (itemId: string, modifierId: string) => void;
 }
 
 export const CartDisplay: React.FC<CartDisplayProps> = ({
@@ -38,6 +42,9 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   onQuantityUpdate,
   onItemRemove,
   onClearCart,
+  onRemoveModifier,
+  onIncrementModifier,
+  onDecrementModifier,
 }) => {
   const totals = useMemo(() => getCartDisplayTotals(cart), [cart]);
 
@@ -55,17 +62,7 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
     );
   }
 
-  // Error state
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
-        </View>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
+  // Do not render raw API/context errors in cart area (use toast/silent recovery elsewhere)
 
   // Empty state
   if (!cart || !cart.items || cart.items.length === 0) {
@@ -100,13 +97,16 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
       >
         {cart.items.map((item: CartItem) => {
           const modifierKey = (item.modifiers ?? []).map((m: { id: string }) => m.id).sort().join(',');
-          const safeId = item.itemId || `${item.productId}-${modifierKey || 'base'}`;
+          const safeId = item.itemId ?? item.clientId ?? `${item.productId}-${modifierKey || 'base'}`;
           return (
             <CartItemRow
               key={safeId}
               item={item}
               onIncrease={async () => onQuantityUpdate(safeId, 'increment')}
               onDecrease={async () => onQuantityUpdate(safeId, 'decrement')}
+              onRemoveModifier={onRemoveModifier ? (m) => onRemoveModifier(safeId, m) : undefined}
+              onIncrementModifier={onIncrementModifier ? (modId) => onIncrementModifier(safeId, modId) : undefined}
+              onDecrementModifier={onDecrementModifier ? (modId) => onDecrementModifier(safeId, modId) : undefined}
             />
           );
         })}

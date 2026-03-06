@@ -33,10 +33,10 @@ interface ProductListProps {
   onProductSelect?: OnProductSelect;
   /** POS: Ürün bazında bekleyen modifier seçimi; key = productId */
   pendingModifiersByProduct?: Record<string, ModifierChipItem[]>;
-  /** POS: Tek tıkla sepete ekle (ürün + seçili modifier'lar) */
+  /** POS: Tek tıkla sepete ekle (ürün + seçili modifier'lar, quantity ile) */
   onAddProduct?: (product: Product, modifiers: ModifierChipItem[]) => void;
-  /** POS: Modifier chip toggle – bir sonraki sepete eklemede kullanılacak seçimi günceller */
-  onToggleModifier?: (productId: string, modifier: ModifierChipItem) => void;
+  /** POS: Modifier tıklandığında: ürün sepette yoksa önce ürün+modifier eklenir; sepette varsa aktif satıra modifier eklenir. */
+  onAddModifier?: (product: Product, modifier: ModifierChipItem) => void;
   showStockInfo?: boolean;
   showTaxInfo?: boolean;
   ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
@@ -51,14 +51,14 @@ export const ProductList: React.FC<ProductListProps> = ({
   onProductSelect,
   pendingModifiersByProduct = {},
   onAddProduct,
-  onToggleModifier,
+  onAddModifier,
   showStockInfo = false,
   showTaxInfo = true,
   ListHeaderComponent,
   ListFooterComponent
 }) => {
   const { t } = useTranslation();
-  const useInlineExtras = Boolean(onAddProduct && onToggleModifier);
+  const useInlineExtras = Boolean(onAddProduct && onAddModifier);
 
   const {
     products: cachedProducts,
@@ -137,13 +137,13 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   // Grid product card: inline Extras + Add veya eski tek tıkla seçim
   const renderGridProduct = ({ item }: { item: Product }) => {
-    if (useInlineExtras && onAddProduct && onToggleModifier) {
+    if (useInlineExtras && onAddProduct && onAddModifier) {
       return (
         <ProductGridCard
           product={item}
           pendingModifiers={pendingModifiersByProduct[item.id] ?? []}
           onAdd={onAddProduct}
-          onToggleModifier={onToggleModifier}
+          onAddModifier={onAddModifier}
           getCategoryEmoji={getCategoryEmoji}
         />
       );
@@ -180,13 +180,13 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   // List product card: inline Extras (Zutaten) + Add butonu veya eski tek tıkla seçim
   const renderListProduct = ({ item }: { item: Product }) => {
-    if (useInlineExtras && onAddProduct && onToggleModifier) {
+    if (useInlineExtras && onAddProduct && onAddModifier) {
       return (
         <ProductRow
           product={item}
           pendingModifiers={pendingModifiersByProduct[item.id] ?? []}
           onAdd={onAddProduct}
-          onToggleModifier={onToggleModifier}
+          onAddModifier={onAddModifier}
           getCategoryEmoji={getCategoryEmoji}
         />
       );

@@ -88,16 +88,23 @@ namespace KasseAPI_Final.Services
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
-                // Items - CartMoneyHelper ile gross model (tek motor)
-                var lineAmounts = cart.Items.Select(ci =>
+                // Line total = base*qty + sum(mod.Price*mod.Quantity)
+                var allLineAmounts = new List<CartMoneyHelper.LineAmounts>();
+                var itemLineTotals = cart.Items.Select(ci =>
                 {
                     var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
                     var taxType = product?.TaxType ?? 1;
-                    return CartMoneyHelper.ComputeLine(ci.UnitPrice, ci.Quantity, taxType);
+                    var productLine = CartMoneyHelper.ComputeLine(ci.UnitPrice, ci.Quantity, taxType);
+                    var modifierLines = (ci.Modifiers ?? Enumerable.Empty<CartItemModifier>())
+                        .Select(m => CartMoneyHelper.ComputeLine(m.Price, m.Quantity, taxType))
+                        .ToList();
+                    allLineAmounts.Add(productLine);
+                    allLineAmounts.AddRange(modifierLines);
+                    return productLine.LineGross + modifierLines.Sum(l => l.LineGross);
                 }).ToList();
-                var totals = CartMoneyHelper.ComputeCartTotals(lineAmounts);
+                var totals = CartMoneyHelper.ComputeCartTotals(allLineAmounts);
 
-                var tableOrderItems = cart.Items.Zip(lineAmounts, (cartItem, line) =>
+                var tableOrderItems = cart.Items.Zip(itemLineTotals, (cartItem, lineGross) =>
                 {
                     var product = products.TryGetValue(cartItem.ProductId, out var p) ? p : null;
                     return new TableOrderItem
@@ -106,11 +113,11 @@ namespace KasseAPI_Final.Services
                         ProductId = cartItem.ProductId,
                         ProductName = product?.Name ?? "Unknown Product",
                         Quantity = cartItem.Quantity,
-                        UnitPrice = line.UnitPriceGross,
-                        TotalPrice = line.LineGross,
+                        UnitPrice = cartItem.UnitPrice,
+                        TotalPrice = CartMoneyHelper.Round(lineGross),
                         Notes = cartItem.Notes,
-                        TaxType = line.TaxType,
-                        TaxRate = TaxTypes.GetTaxRate(line.TaxType), // percent (20) for DB
+                        TaxType = product?.TaxType ?? 1,
+                        TaxRate = TaxTypes.GetTaxRate(product?.TaxType ?? 1),
                         Status = ItemStatus.Pending,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
@@ -188,15 +195,22 @@ namespace KasseAPI_Final.Services
                     .Where(p => productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
-                var lineAmounts = cart.Items.Select(ci =>
+                var allLineAmounts = new List<CartMoneyHelper.LineAmounts>();
+                var itemLineTotals = cart.Items.Select(ci =>
                 {
                     var product = products.TryGetValue(ci.ProductId, out var p) ? p : null;
                     var taxType = product?.TaxType ?? 1;
-                    return CartMoneyHelper.ComputeLine(ci.UnitPrice, ci.Quantity, taxType);
+                    var productLine = CartMoneyHelper.ComputeLine(ci.UnitPrice, ci.Quantity, taxType);
+                    var modifierLines = (ci.Modifiers ?? Enumerable.Empty<CartItemModifier>())
+                        .Select(m => CartMoneyHelper.ComputeLine(m.Price, m.Quantity, taxType))
+                        .ToList();
+                    allLineAmounts.Add(productLine);
+                    allLineAmounts.AddRange(modifierLines);
+                    return productLine.LineGross + modifierLines.Sum(l => l.LineGross);
                 }).ToList();
-                var totals = CartMoneyHelper.ComputeCartTotals(lineAmounts);
+                var totals = CartMoneyHelper.ComputeCartTotals(allLineAmounts);
 
-                var newItems = cart.Items.Zip(lineAmounts, (cartItem, line) =>
+                var newItems = cart.Items.Zip(itemLineTotals, (cartItem, lineGross) =>
                 {
                     var product = products.TryGetValue(cartItem.ProductId, out var p) ? p : null;
                     return new TableOrderItem
@@ -205,11 +219,11 @@ namespace KasseAPI_Final.Services
                         ProductId = cartItem.ProductId,
                         ProductName = product?.Name ?? "Unknown Product",
                         Quantity = cartItem.Quantity,
-                        UnitPrice = line.UnitPriceGross,
-                        TotalPrice = line.LineGross,
+                        UnitPrice = cartItem.UnitPrice,
+                        TotalPrice = CartMoneyHelper.Round(lineGross),
                         Notes = cartItem.Notes,
-                        TaxType = line.TaxType,
-                        TaxRate = TaxTypes.GetTaxRate(line.TaxType),
+                        TaxType = product?.TaxType ?? 1,
+                        TaxRate = TaxTypes.GetTaxRate(product?.TaxType ?? 1),
                         Status = ItemStatus.Pending,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
@@ -232,7 +246,8 @@ namespace KasseAPI_Final.Services
                             ModifierId = mod.ModifierId,
                             Name = mod.Name,
                             Price = mod.Price,
-                            ModifierGroupId = mod.ModifierGroupId
+                            ModifierGroupId = mod.ModifierGroupId,
+                            Quantity = mod.Quantity
                         });
                     }
                 }

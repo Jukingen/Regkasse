@@ -7,6 +7,7 @@ export interface CartItemModifier {
     id: string;
     name: string;
     price: number;
+    quantity?: number;
 }
 
 export interface CartItem {
@@ -30,9 +31,12 @@ interface CartItemRowProps {
     item: CartItem;
     onIncrease?: () => Promise<void>;
     onDecrease?: () => Promise<void>;
+    onIncrementModifier?: (modifierId: string) => void;
+    onDecrementModifier?: (modifierId: string) => void;
+    onRemoveModifier?: (modifier: CartItemModifier) => void;
 }
 
-export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDecrease }) => {
+export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDecrease, onIncrementModifier, onDecrementModifier, onRemoveModifier }) => {
     const [updating, setUpdating] = React.useState(false);
     const quantity = item.quantity || item.qty || 0;
     const taxRate = item.taxRate || 0.20;
@@ -48,13 +52,54 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                     </Text>
                     {item.modifiers && item.modifiers.length > 0 && (
                         <View style={styles.modifiersBlock}>
-                            {item.modifiers.map((m) => (
-                                <Text key={m.id} style={styles.modifierLine} numberOfLines={1}>
-                                    + {m.name} {formatPrice(m.price * quantity)}
-                                </Text>
-                            ))}
+                            {item.modifiers.map((m) => {
+                                const modQty = m.quantity ?? 1;
+                                const canChange = Boolean(onIncrementModifier && onDecrementModifier);
+                                return (
+                                    <View key={m.id} style={styles.modifierRow}>
+                                        <Text style={styles.modifierLine} numberOfLines={1}>
+                                            + {m.name} {formatPrice(m.price * modQty)}
+                                            {modQty > 1 ? ` (×${modQty})` : ''}
+                                        </Text>
+                                        {canChange && (
+                                            <View style={styles.modifierQtyGroup}>
+                                                <Pressable
+                                                    onPress={() => (modQty <= 1 ? onRemoveModifier?.(m) : onDecrementModifier?.(m.id))}
+                                                    style={[styles.modifierQtyBtn, modQty <= 1 && styles.modifierQtyBtnRemove]}
+                                                    hitSlop={6}
+                                                    accessibilityLabel={modQty <= 1 ? `${m.name} entfernen` : `${m.name} verringern`}
+                                                    accessibilityRole="button"
+                                                >
+                                                    <Text style={styles.modifierQtyBtnText}>−</Text>
+                                                </Pressable>
+                                                <Text style={styles.modifierQtyValue}>{modQty}</Text>
+                                                <Pressable
+                                                    onPress={() => onIncrementModifier?.(m.id)}
+                                                    style={styles.modifierQtyBtn}
+                                                    hitSlop={6}
+                                                    accessibilityLabel={`${m.name} erhöhen`}
+                                                    accessibilityRole="button"
+                                                >
+                                                    <Text style={styles.modifierQtyBtnText}>+</Text>
+                                                </Pressable>
+                                            </View>
+                                        )}
+                                        {!canChange && onRemoveModifier && (
+                                            <Pressable
+                                                onPress={() => onRemoveModifier(m)}
+                                                style={({ pressed }) => [styles.removeModifierBtn, pressed && styles.removeModifierBtnPressed]}
+                                                hitSlop={6}
+                                                accessibilityLabel={`${m.name} entfernen`}
+                                                accessibilityRole="button"
+                                            >
+                                                <Text style={styles.removeModifierBtnText}>×</Text>
+                                            </Pressable>
+                                        )}
+                                    </View>
+                                );
+                            })}
                             <Text style={styles.extrasTotal}>
-                                +{formatPrice(item.modifiers.reduce((s, m) => s + m.price * quantity, 0))}
+                                +{formatPrice(item.modifiers.reduce((s, m) => s + m.price * (m.quantity ?? 1), 0))}
                             </Text>
                         </View>
                     )}
@@ -160,9 +205,66 @@ const styles = StyleSheet.create({
     modifiersBlock: {
         marginTop: 2,
     },
+    modifierRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 2,
+    },
     modifierLine: {
         fontSize: 12,
         color: SoftColors.textSecondary,
+        flex: 1,
+    },
+    removeModifierBtn: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: SoftColors.bgSecondary,
+        borderWidth: 1,
+        borderColor: SoftColors.borderLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    removeModifierBtnPressed: {
+        backgroundColor: SoftColors.errorBg,
+        borderColor: SoftColors.error,
+    },
+    removeModifierBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: SoftColors.textSecondary,
+        lineHeight: 16,
+    },
+    modifierQtyGroup: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    modifierQtyBtn: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: SoftColors.bgSecondary,
+        borderWidth: 1,
+        borderColor: SoftColors.borderLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modifierQtyBtnRemove: {
+        borderColor: SoftColors.error,
+    },
+    modifierQtyValue: {
+        fontSize: 12,
+        fontWeight: '600',
+        minWidth: 18,
+        textAlign: 'center',
+        color: SoftColors.textPrimary,
+    },
+    modifierQtyBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: SoftColors.textPrimary,
     },
     extrasTotal: {
         fontSize: 11,

@@ -7,15 +7,17 @@ import type { AddItemToCartRequest } from '../services/api/cartService';
 // TYPE DEFINITIONS
 // ============================================
 
-/** Sepet satırında seçilen tek bir modifier (Extra Zutaten). price = priceDelta per unit. */
+/** Sepet satırında seçilen modifier; quantity bağımsız (ürün miktarıyla çarpılmaz). price = priceDelta per unit of modifier. */
 export interface CartItemModifier {
     id: string;
     name: string;
     price: number;
+    quantity: number;
+    groupId?: string;
 }
 
-/** Payment payload için: modifierId, name, priceDelta (groupId opsiyonel). */
-export type ModifierSelection = { modifierId: string; name: string; priceDelta: number; groupId?: string };
+/** Payment payload için: modifierId, name, priceDelta, quantity (groupId opsiyonel). */
+export type ModifierSelection = { modifierId: string; name: string; priceDelta: number; quantity?: number; groupId?: string };
 
 export interface CartItem {
     /** Satır kimliği: itemId (backend) veya clientId (iyimser ekleme). */
@@ -26,14 +28,22 @@ export interface CartItem {
     productName: string;
     price?: number;
     qty: number;
+    /** Ürün baz birim fiyatı (modifier'sız). */
     unitPrice?: number;
-    /** Satır toplamı = (unitPrice + extrasPerUnitTotal) * qty. */
+    /** Satır toplamı = (unitPrice * qty) + sum(modifier.price * modifier.quantity). */
     totalPrice?: number;
     notes?: string;
     taxRate?: number;
     taxType?: number | string;
-    /** Extra Zutaten – sadece bu satır için seçilen modifier'lar (extrasPerUnitTotal = sum(price)). */
+    /** Extra Zutaten – her biri kendi quantity ile; toplam = sum(price * quantity). */
     modifiers?: CartItemModifier[];
+}
+
+/** Satır toplamı: (ürün birim fiyat * ürün miktarı) + (her modifier: price * quantity). */
+export function getCartLineTotal(item: CartItem): number {
+    const base = (item.unitPrice ?? item.price ?? 0) * (item.qty ?? 0);
+    const modTotal = (item.modifiers ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
+    return base + modTotal;
 }
 
 export interface Cart {
@@ -89,8 +99,11 @@ interface CartContextType {
     updateItemQuantity: (productId: string, quantity: number) => Promise<void>;
     updateItemQuantityByItemId: (itemId: string, quantity: number) => Promise<void>;
     fetchTableCart: (tableNumber: number) => Promise<void>;
-    /** Sepetteki bir satıra extra ekle/çıkar (sadece local state; API yok). cartItemId = itemId ?? clientId */
-    toggleExtraOnCartItem: (cartItemId: string, modifier: CartItemModifier) => void;
+    /** Modifier miktarı bağımsız: ekle (qty 1 veya mevcutsa +1), artır, azalt, kaldır. cartItemId = itemId ?? clientId */
+    addModifier: (cartItemId: string, modifier: Omit<CartItemModifier, 'quantity'> & { quantity?: number }) => Promise<void>;
+    incrementModifier: (cartItemId: string, modifierId: string) => Promise<void>;
+    decrementModifier: (cartItemId: string, modifierId: string) => Promise<void>;
+    removeModifier: (cartItemId: string, modifierId: string) => Promise<void>;
 
     // Helpers
     setLoading: (loading: boolean) => void;
@@ -195,23 +208,27 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         const backendMods = item.SelectedModifiers ?? item.selectedModifiers ?? item.Modifiers ?? item.modifiers;
                         let modifierList: CartItemModifier[] | undefined;
                         if (Array.isArray(backendMods) && backendMods.length) {
-                            modifierList = backendMods.map((m: any) => ({
-                                id: m.Id ?? m.id,
-                                name: m.Name ?? m.name,
-                                price: Number(m.Price ?? m.price ?? 0)
-                            }));
+                            const byId = new Map<string, CartItemModifier>();
+                            for (const m of backendMods) {
+                                const id = m.Id ?? m.id;
+                                const qty = Number(m.Quantity ?? m.quantity ?? 1);
+                                const existing = byId.get(id);
+                                if (existing) existing.quantity += qty;
+                                else byId.set(id, { id, name: m.Name ?? m.name, price: Number(m.Price ?? m.price ?? 0), quantity: qty, groupId: m.GroupId ?? m.groupId });
+                            }
+                            modifierList = Array.from(byId.values());
                         } else if (existing?.modifiers?.length) {
                             modifierList = existing.modifiers;
                         }
                         const basePrice = item.UnitPrice ?? item.unitPrice ?? 0;
                         const qty = item.Quantity ?? item.quantity ?? 0;
-                        const extrasPerUnit = (modifierList ?? []).reduce((s, m) => s + m.price, 0);
-                        const totalPrice = (basePrice + extrasPerUnit) * qty;
+                        const modTotal = (modifierList ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
+                        const totalPrice = basePrice * qty + modTotal;
 
                         return {
                             productId: item.ProductId || item.productId,
                             productName: pName || 'Unknown Product',
-                            price: basePrice + extrasPerUnit,
+                            price: basePrice,
                             qty,
                             unitPrice: basePrice,
                             totalPrice,
@@ -288,10 +305,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await fetchTableCart(tableNumber);
     }, [activeTableId, fetchTableCart]);
 
-    /** Aynı ürün + aynı modifier set = aynı satır (karşılaştırma anahtarı). */
+    /** Aynı ürün + aynı modifier set (id:qty) = aynı satır; merge'de sadece ürün miktarı artar. */
     const getModifierKey = useCallback((modifiers: CartItemModifier[] | undefined) => {
         if (!modifiers?.length) return '';
-        return [...modifiers].map(m => m.id).sort().join(',');
+        return [...modifiers]
+            .sort((a, b) => a.id.localeCompare(b.id))
+            .map(m => `${m.id}:${m.quantity ?? 1}`)
+            .join(',');
     }, []);
 
     // Actions
@@ -301,17 +321,23 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         options?: { modifiers?: CartItemModifier[]; productName?: string; unitPrice?: number }
     ) => {
         const currentCart = cartsByTable[activeTableId] || { items: [] };
-        const modifiers = options?.modifiers ?? [];
+        const rawMods = options?.modifiers ?? [];
+        const modifiers: CartItemModifier[] = rawMods.map(m => ({
+            id: m.id,
+            name: m.name,
+            price: m.price,
+            quantity: m.quantity ?? 1,
+            groupId: m.groupId
+        }));
         const modKey = getModifierKey(modifiers);
         const productName = options?.productName ?? 'Loading...';
-        const unitPrice = options?.unitPrice ?? 0;
-        const modifierTotal = modifiers.reduce((s, m) => s + m.price, 0);
-        const lineUnitPrice = unitPrice + modifierTotal;
-        const lineTotalPrice = lineUnitPrice * quantity;
+        const baseUnitPrice = options?.unitPrice ?? 0;
+        const modifierTotal = modifiers.reduce((s, m) => s + m.price * m.quantity, 0);
+        const lineTotalPrice = baseUnitPrice * quantity + modifierTotal;
 
         console.log(`➕ [CartContext] Adding item to table ${activeTableId}:`, { productId, quantity, modifiersCount: modifiers.length });
 
-        // Aynı productId + aynı modifier set = mevcut satıra miktar ekle
+        // Aynı productId + aynı modifier set (id:qty) = mevcut satıra sadece ürün miktarı ekle; modifier miktarları değişmez
         const existingItemIndex = currentCart.items.findIndex(
             item => item.productId === productId && getModifierKey(item.modifiers) === modKey
         );
@@ -320,8 +346,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (existingItemIndex !== -1) {
             const item = currentCart.items[existingItemIndex];
             const newQty = item.qty + quantity;
-            const modSum = (item.modifiers ?? []).reduce((s, m) => s + m.price, 0);
-            const newTotal = ((item.unitPrice ?? 0) + modSum) * newQty;
+            const modTotal = (item.modifiers ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
+            const newTotal = (item.unitPrice ?? item.price ?? 0) * newQty + modTotal;
             optimisticCart = {
                 ...currentCart,
                 items: currentCart.items.map((it, index) =>
@@ -338,11 +364,11 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     {
                         productId,
                         productName,
-                        price: lineUnitPrice,
+                        price: baseUnitPrice,
                         qty: quantity,
-                        unitPrice: unitPrice,
+                        unitPrice: baseUnitPrice,
                         totalPrice: lineTotalPrice,
-                        modifiers: modifiers.length ? [...modifiers] : undefined,
+                        modifiers: modifiers.length ? modifiers : undefined,
                         itemId: undefined,
                         clientId
                     }
@@ -365,7 +391,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 tableNumber: activeTableId
             };
             if (modifiers.length) {
-                body.selectedModifiers = modifiers.map(m => ({ id: m.id }));
+                body.selectedModifiers = modifiers.map(m => ({ id: m.id, quantity: m.quantity ?? 1 }));
             }
 
             const response = await apiClient.post<AddItemResponse>('/cart/add-item', body);
@@ -380,25 +406,32 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     const mods = item.SelectedModifiers ?? item.selectedModifiers ?? item.Modifiers ?? item.modifiers;
                     let modifierList: CartItemModifier[] | undefined;
                     if (Array.isArray(mods) && mods.length) {
-                        modifierList = mods.map((m: any) => ({
-                            id: m.Id ?? m.id,
-                            name: m.Name ?? m.name,
-                            price: Number(m.Price ?? m.price ?? 0)
-                        }));
+                        const byId = new Map<string, CartItemModifier>();
+                        for (const m of mods) {
+                            const id = m.Id ?? m.id;
+                            const existing = byId.get(id);
+                            const qty = Number(m.Quantity ?? m.quantity ?? 1);
+                            if (existing) existing.quantity += qty;
+                            else byId.set(id, { id, name: m.Name ?? m.name, price: Number(m.Price ?? m.price ?? 0), quantity: qty, groupId: m.GroupId ?? m.groupId });
+                        }
+                        modifierList = Array.from(byId.values());
                     } else {
                         const existing = existingItems.find((e: CartItem) => e.itemId === backendItemId || (e.productId === (item.ProductId || item.productId) && !e.itemId));
                         if (existing?.modifiers?.length) modifierList = existing.modifiers;
                     }
                     const existingByIndex = existingItems[index];
+                    const qty = item.Quantity ?? item.quantity ?? 0;
+                    const baseUnit = item.UnitPrice ?? item.unitPrice ?? 0;
+                    const modTotal = (modifierList ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
                     return {
                         productId: item.ProductId || item.productId,
                         productName: item.ProductName || item.productName || 'Unknown Product',
-                        price: item.UnitPrice || item.unitPrice || 0,
-                        qty: item.Quantity || item.quantity || 0,
-                        unitPrice: item.UnitPrice ?? item.unitPrice ?? 0,
-                        totalPrice: item.TotalPrice || item.totalPrice || 0,
-                        notes: item.Notes || item.notes,
-                        itemId: item.Id || item.id,
+                        price: baseUnit,
+                        qty,
+                        unitPrice: baseUnit,
+                        totalPrice: modifierList?.length ? baseUnit * qty + modTotal : (item.TotalPrice ?? item.totalPrice ?? baseUnit * qty),
+                        notes: item.Notes ?? item.notes,
+                        itemId: item.Id ?? item.id,
                         clientId: existingByIndex?.clientId,
                         taxRate: item.TaxRate ?? item.taxRate,
                         taxType: item.TaxType ?? item.taxType,
@@ -554,7 +587,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const removeByItemId = useCallback(async (itemId: string) => {
         const currentCart = cartsByTable[activeTableId];
         if (!currentCart) return;
-        const lineKey = (i: CartItem) => i.itemId ?? `${i.productId}-${getModifierKey(i.modifiers)}`;
+        const lineKey = (i: CartItem) => i.itemId ?? i.clientId ?? `${i.productId}-${getModifierKey(i.modifiers)}`;
         const item = currentCart.items.find(i => lineKey(i) === itemId);
         if (!item) {
             setError('Item not found');
@@ -583,8 +616,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             await apiClient.delete(`/Cart/items/${item.itemId}`);
             await fetchTableCart(activeTableId, true);
         } catch (err: any) {
-            setError(err?.message || 'Failed to remove item');
+            const status = err?.response?.status;
+            if (status === 404) {
+                setError(null);
+                await fetchTableCart(activeTableId, true);
+                return;
+            }
+            const msg = err?.response?.data?.message || err?.message || 'Failed to remove item';
+            setError(msg);
             setCartsByTable(prev => ({ ...prev, [activeTableId]: currentCart }));
+            throw new Error(msg);
         } finally {
             setLoading(false);
         }
@@ -597,17 +638,18 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             await removeByItemId(itemId);
             return;
         }
-        const lineKey = (i: CartItem) => i.itemId ?? `${i.productId}-${getModifierKey(i.modifiers)}`;
+        const lineKey = (i: CartItem) => i.itemId ?? i.clientId ?? `${i.productId}-${getModifierKey(i.modifiers)}`;
         const item = currentCart.items.find(i => lineKey(i) === itemId);
         if (!item) {
             setError('Item not found');
             return;
         }
+        const basePrice = item.unitPrice ?? item.price ?? 0;
+        const modTotal = (item.modifiers ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
+        const newTotal = basePrice * quantity + modTotal;
         if (!item.itemId) {
             setLoading(true);
             try {
-                const modSum = (item.modifiers ?? []).reduce((s, m) => s + m.price, 0);
-                const newTotal = ((item.unitPrice ?? 0) + modSum) * quantity;
                 const updatedItems = currentCart.items.map(i =>
                     lineKey(i) === itemId ? { ...i, qty: quantity, totalPrice: newTotal } : i
                 );
@@ -622,10 +664,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         setLoading(true);
         try {
-            const modSum = (item.modifiers ?? []).reduce((s, m) => s + m.price, 0);
-            const newTotal = ((item.unitPrice ?? 0) + modSum) * quantity;
             const updatedItems = currentCart.items.map(i =>
-                (i.itemId || i.productId) === itemId ? { ...i, qty: quantity, totalPrice: newTotal } : i
+                lineKey(i) === itemId ? { ...i, qty: quantity, totalPrice: newTotal } : i
             );
             setCartsByTable(prev => ({
                 ...prev,
@@ -644,48 +684,142 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, [activeTableId, cartsByTable, removeByItemId, setLoading, setError, fetchTableCart]);
 
-    /** Sepetteki bir satıra extra ekle/çıkar; sadece local state güncellenir, API yok. */
-    const toggleExtraOnCartItem = useCallback((cartItemId: string, modifier: CartItemModifier) => {
-        const currentCart = cartsByTable[activeTableId];
-        if (!currentCart?.items?.length) return;
+    const lineKey = (i: CartItem) => i.itemId ?? i.clientId;
+    const recalcLineTotal = (it: CartItem) =>
+        (it.unitPrice ?? it.price ?? 0) * (it.qty ?? 0) +
+        (it.modifiers ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
 
-        const lineKey = (i: CartItem) => i.itemId ?? i.clientId;
-        const index = currentCart.items.findIndex((i) => lineKey(i) === cartItemId);
-        if (index === -1) return;
-
-        const item = currentCart.items[index];
-        const mods = item.modifiers ?? [];
-        const has = mods.some((m) => m.id === modifier.id);
-        const nextMods = has ? mods.filter((m) => m.id !== modifier.id) : [...mods, { id: modifier.id, name: modifier.name, price: modifier.price }];
-        const basePrice = item.unitPrice ?? item.price ?? 0;
-        const extrasPerUnit = nextMods.reduce((s, m) => s + m.price, 0);
-        const qty = item.qty ?? 0;
-        const newTotalPrice = (basePrice + extrasPerUnit) * qty;
-
-        const updatedItems = currentCart.items.map((it, i) =>
-            i === index
-                ? {
-                      ...it,
-                      modifiers: nextMods.length ? nextMods : undefined,
-                      totalPrice: newTotalPrice,
-                      price: basePrice + extrasPerUnit
-                  }
-                : it
-        );
-
-        const grandTotalGross = updatedItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
-
-        setCartsByTable((prev) => ({
-            ...prev,
-            [activeTableId]: {
-                ...currentCart,
-                items: updatedItems,
-                subtotalGross: grandTotalGross,
-                grandTotalGross,
-                updatedAt: Date.now()
+    const persistModifiers = useCallback(
+        async (item: CartItem, nextMods: CartItemModifier[]) => {
+            if (!item.itemId) return;
+            try {
+                // FE sends Quantity per modifier; backend may only persist id until API supports modifier quantity.
+                await apiClient.put(`/Cart/items/${item.itemId}`, {
+                    Quantity: item.qty ?? 0,
+                    Notes: item.notes ?? '',
+                    SelectedModifiers: nextMods.map((m) => ({ Id: m.id, Quantity: m.quantity ?? 1 }))
+                });
+            } catch (e: any) {
+                setError(e?.message || 'Failed to update modifiers');
+                throw e;
             }
-        }));
-    }, [activeTableId, cartsByTable]);
+        },
+        [setError]
+    );
+
+    const addModifier = useCallback(
+        async (cartItemId: string, modifier: Omit<CartItemModifier, 'quantity'> & { quantity?: number }) => {
+            const currentCart = cartsByTable[activeTableId];
+            if (!currentCart?.items?.length) return;
+            const index = currentCart.items.findIndex((i) => lineKey(i) === cartItemId);
+            if (index === -1) return;
+            const item = currentCart.items[index];
+            const mods = item.modifiers ?? [];
+            const qty = modifier.quantity ?? 1;
+            const existing = mods.find((m) => m.id === modifier.id);
+            const nextMods: CartItemModifier[] = existing
+                ? mods.map((m) => (m.id === modifier.id ? { ...m, quantity: m.quantity + qty } : m))
+                : [...mods, { id: modifier.id, name: modifier.name, price: modifier.price, quantity: qty, groupId: modifier.groupId }];
+            const totalPrice = recalcLineTotal({ ...item, modifiers: nextMods });
+            const updatedItems = currentCart.items.map((it, i) =>
+                i === index ? { ...it, modifiers: nextMods, totalPrice } : it
+            );
+            const grandTotalGross = updatedItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+            setCartsByTable((prev) => ({
+                ...prev,
+                [activeTableId]: { ...currentCart, items: updatedItems, subtotalGross: grandTotalGross, grandTotalGross, updatedAt: Date.now() }
+            }));
+            try {
+                await persistModifiers(item, nextMods);
+            } catch {
+                setCartsByTable((prev) => ({ ...prev, [activeTableId]: currentCart }));
+            }
+        },
+        [activeTableId, cartsByTable, persistModifiers]
+    );
+
+    const incrementModifier = useCallback(
+        async (cartItemId: string, modifierId: string) => {
+            const currentCart = cartsByTable[activeTableId];
+            if (!currentCart?.items?.length) return;
+            const index = currentCart.items.findIndex((i) => lineKey(i) === cartItemId);
+            if (index === -1) return;
+            const item = currentCart.items[index];
+            const mods = item.modifiers ?? [];
+            const nextMods = mods.map((m) => (m.id === modifierId ? { ...m, quantity: (m.quantity ?? 1) + 1 } : m));
+            const totalPrice = recalcLineTotal({ ...item, modifiers: nextMods });
+            const updatedItems = currentCart.items.map((it, i) =>
+                i === index ? { ...it, modifiers: nextMods, totalPrice } : it
+            );
+            const grandTotalGross = updatedItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+            setCartsByTable((prev) => ({
+                ...prev,
+                [activeTableId]: { ...currentCart, items: updatedItems, subtotalGross: grandTotalGross, grandTotalGross, updatedAt: Date.now() }
+            }));
+            try {
+                await persistModifiers(item, nextMods);
+            } catch {
+                setCartsByTable((prev) => ({ ...prev, [activeTableId]: currentCart }));
+            }
+        },
+        [activeTableId, cartsByTable, persistModifiers]
+    );
+
+    const decrementModifier = useCallback(
+        async (cartItemId: string, modifierId: string) => {
+            const currentCart = cartsByTable[activeTableId];
+            if (!currentCart?.items?.length) return;
+            const index = currentCart.items.findIndex((i) => lineKey(i) === cartItemId);
+            if (index === -1) return;
+            const item = currentCart.items[index];
+            const mods = item.modifiers ?? [];
+            const existing = mods.find((m) => m.id === modifierId);
+            const nextQty = (existing?.quantity ?? 1) - 1;
+            const nextMods =
+                nextQty <= 0 ? mods.filter((m) => m.id !== modifierId) : mods.map((m) => (m.id === modifierId ? { ...m, quantity: nextQty } : m));
+            const totalPrice = recalcLineTotal({ ...item, modifiers: nextMods });
+            const updatedItems = currentCart.items.map((it, i) =>
+                i === index ? { ...it, modifiers: nextMods.length ? nextMods : undefined, totalPrice } : it
+            );
+            const grandTotalGross = updatedItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+            setCartsByTable((prev) => ({
+                ...prev,
+                [activeTableId]: { ...currentCart, items: updatedItems, subtotalGross: grandTotalGross, grandTotalGross, updatedAt: Date.now() }
+            }));
+            try {
+                await persistModifiers(item, nextMods);
+            } catch {
+                setCartsByTable((prev) => ({ ...prev, [activeTableId]: currentCart }));
+            }
+        },
+        [activeTableId, cartsByTable, persistModifiers]
+    );
+
+    const removeModifier = useCallback(
+        async (cartItemId: string, modifierId: string) => {
+            const currentCart = cartsByTable[activeTableId];
+            if (!currentCart?.items?.length) return;
+            const index = currentCart.items.findIndex((i) => lineKey(i) === cartItemId);
+            if (index === -1) return;
+            const item = currentCart.items[index];
+            const nextMods = (item.modifiers ?? []).filter((m) => m.id !== modifierId);
+            const totalPrice = recalcLineTotal({ ...item, modifiers: nextMods });
+            const updatedItems = currentCart.items.map((it, i) =>
+                i === index ? { ...it, modifiers: nextMods.length ? nextMods : undefined, totalPrice } : it
+            );
+            const grandTotalGross = updatedItems.reduce((s, i) => s + (i.totalPrice ?? 0), 0);
+            setCartsByTable((prev) => ({
+                ...prev,
+                [activeTableId]: { ...currentCart, items: updatedItems, subtotalGross: grandTotalGross, grandTotalGross, updatedAt: Date.now() }
+            }));
+            try {
+                await persistModifiers(item, nextMods);
+            } catch {
+                setCartsByTable((prev) => ({ ...prev, [activeTableId]: currentCart }));
+            }
+        },
+        [activeTableId, cartsByTable, persistModifiers]
+    );
 
     const increment = useCallback(async (productId: string) => {
         const currentCart = cartsByTable[activeTableId];
@@ -706,15 +840,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setLoading(true);
         try {
-            // Optimistic update - recalculate totalPrice for UI
+            // Optimistic update – only product qty changes; modifier quantities unchanged. totalPrice = base * qty + sum(mod.price * mod.quantity)
             const updatedItems = currentCart.items.map(i => {
                 if (i.productId === productId) {
                     const basePrice = i.unitPrice ?? i.price ?? 0;
-                    const extrasPerUnit = (i.modifiers ?? []).reduce((s, m) => s + m.price, 0);
+                    const modTotal = (i.modifiers ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
                     return {
                         ...i,
                         qty: newQuantity,
-                        totalPrice: (basePrice + extrasPerUnit) * newQuantity,
+                        totalPrice: basePrice * newQuantity + modTotal,
                     };
                 }
                 return i;
@@ -728,7 +862,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             }));
 
-            // PUT /cart/items/{itemId} with {quantity}
             await apiClient.put(`/Cart/items/${item.itemId}`, {
                 Quantity: newQuantity,
                 Notes: item.notes || ""
@@ -776,15 +909,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setLoading(true);
         try {
-            // Optimistic update - recalculate totalPrice for UI
+            // Optimistic update – only product qty; modifier quantities unchanged
             const updatedItems = currentCart.items.map(i => {
                 if (i.productId === productId) {
                     const basePrice = i.unitPrice ?? i.price ?? 0;
-                    const extrasPerUnit = (i.modifiers ?? []).reduce((s, m) => s + m.price, 0);
+                    const modTotal = (i.modifiers ?? []).reduce((s, m) => s + m.price * (m.quantity ?? 1), 0);
                     return {
                         ...i,
                         qty: newQuantity,
-                        totalPrice: (basePrice + extrasPerUnit) * newQuantity,
+                        totalPrice: basePrice * newQuantity + modTotal,
                     };
                 }
                 return i;
@@ -798,7 +931,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             }));
 
-            // PUT /cart/items/{itemId} with {quantity}
             await apiClient.put(`/Cart/items/${item.itemId}`, {
                 Quantity: newQuantity,
                 Notes: item.notes || ""
@@ -869,7 +1001,10 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             updateItemQuantity,
             updateItemQuantityByItemId,
             fetchTableCart,
-            toggleExtraOnCartItem,
+            addModifier,
+            incrementModifier,
+            decrementModifier,
+            removeModifier,
             setLoading,
             setError
         }}>

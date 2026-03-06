@@ -33,6 +33,10 @@ namespace KasseAPI_Final.Models
         [Column("modifier_group_id")]
         public Guid? ModifierGroupId { get; set; }
 
+        [Required]
+        [Column("quantity")]
+        public int Quantity { get; set; } = 1;
+
         [ForeignKey("CartItemId")]
         public virtual CartItem CartItem { get; set; } = null!;
     }

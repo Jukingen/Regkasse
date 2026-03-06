@@ -1,39 +1,43 @@
 /**
- * POS: Tıklanabilir modifier seçenekleri (Extras). Chip’e tıklanınca seçim toggle edilir; modal yok.
+ * POS: Inline Extras (modifier) – seçili olanlar satırda [-] qty [+], seçili olmayanlar + ile eklenir. Miktar ürün miktarından bağımsız.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography } from '../constants/SoftTheme';
+
 export interface ModifierOptionItem {
   id: string;
   name: string;
   price: number;
+  quantity?: number;
 }
 
 interface ModifierOptionChipsProps {
-  /** Tüm seçenekler (gruplardan düzleştirilmiş) */
   modifiers: ModifierOptionItem[];
-  /** Şu an seçili olanlar */
+  /** Seçili modifier'lar (quantity ile) – aktif sepetteki son satıra ait */
   selectedModifiers: ModifierOptionItem[];
-  /** Chip tıklanınca: modifier seçiliyse çıkar, değilse ekle */
-  onToggle: (modifier: ModifierOptionItem) => void;
+  onAdd: (modifier: ModifierOptionItem) => void;
+  onIncrement?: (modifierId: string) => void;
+  onDecrement?: (modifierId: string) => void;
+  onRemove?: (modifierId: string) => void;
   loading?: boolean;
-  maxSummaryChips?: number;
+  /** true = product list: no [-] qty [+], only selectable chips; false = cart: full stepper */
+  hideQuantityStepper?: boolean;
 }
 
 const LABEL_EXTRAS = 'Extras';
-const MAX_SUMMARY = 3;
 
 export function ModifierOptionChips({
   modifiers,
   selectedModifiers,
-  onToggle,
+  onAdd,
+  onIncrement,
+  onDecrement,
+  onRemove,
   loading = false,
-  maxSummaryChips = MAX_SUMMARY,
+  hideQuantityStepper = false,
 }: ModifierOptionChipsProps) {
-  const [expanded, setExpanded] = useState(false);
-  const selectedIds = new Set(selectedModifiers.map((m) => m.id));
-  const totalExtra = selectedModifiers.reduce((s, m) => s + m.price, 0);
+  const selectedById = new Map(selectedModifiers.map((m) => [m.id, m]));
 
   if (loading) {
     return (
@@ -46,51 +50,67 @@ export function ModifierOptionChips({
 
   if (!modifiers.length) return null;
 
-  const summaryVisible = selectedModifiers.slice(0, maxSummaryChips);
-  const remaining = selectedModifiers.length - maxSummaryChips;
-
   return (
     <View style={styles.container}>
-      <Pressable style={styles.header} onPress={() => setExpanded((e) => !e)} hitSlop={8}>
-        <Text style={styles.label}>{LABEL_EXTRAS} {expanded ? '▲' : '▼'}</Text>
-        {totalExtra > 0 && (
-          <Text style={styles.extraTotal}>+€{totalExtra.toFixed(2)}</Text>
-        )}
-      </Pressable>
-
-      {!expanded && selectedModifiers.length > 0 && (
-        <View style={styles.summaryRow}>
-          {summaryVisible.map((m) => (
-            <View key={m.id} style={styles.summaryChip}>
-              <Text style={styles.summaryChipText} numberOfLines={1}>+ {m.name}</Text>
-            </View>
-          ))}
-          {remaining > 0 && (
-            <View style={styles.moreChip}>
-              <Text style={styles.moreChipText}>+{remaining} more</Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      {expanded && (
-        <View style={styles.chipRow}>
-          {modifiers.map((m) => {
-            const selected = selectedIds.has(m.id);
+      <Text style={styles.label}>{LABEL_EXTRAS}</Text>
+      <View style={styles.rows}>
+        {modifiers.map((m) => {
+          const selected = selectedById.get(m.id);
+          const qty = selected?.quantity ?? 0;
+          if (qty > 0 && !hideQuantityStepper) {
+            return (
+              <View key={m.id} style={styles.modifierRow}>
+                <Text style={styles.modifierRowLabel} numberOfLines={1}>
+                  {m.name} €{Number(m.price).toFixed(2)}
+                </Text>
+                <View style={styles.qtyGroup}>
+                  <Pressable
+                    style={[styles.qtyBtn, qty <= 1 && styles.qtyBtnRemove]}
+                    onPress={() => (qty <= 1 ? onRemove?.(m.id) : onDecrement?.(m.id))}
+                    accessibilityLabel={qty <= 1 ? `${m.name} entfernen` : `${m.name} verringern`}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.qtyBtnText}>−</Text>
+                  </Pressable>
+                  <Text style={styles.qtyValue}>{qty}</Text>
+                  <Pressable
+                    style={styles.qtyBtn}
+                    onPress={() => onIncrement?.(m.id)}
+                    accessibilityLabel={`${m.name} erhöhen`}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.qtyBtnText}>+</Text>
+                  </Pressable>
+                </View>
+              </View>
+            );
+          }
+          if (qty > 0 && hideQuantityStepper) {
             return (
               <Pressable
                 key={m.id}
-                style={[styles.chip, selected && styles.chipSelected]}
-                onPress={() => onToggle(m)}
+                style={styles.selectedChip}
+                onPress={() => onAdd(m)}
+                accessibilityLabel={`${m.name} erneut hinzufügen`}
+                accessibilityRole="button"
               >
-                <Text style={[styles.chipText, selected && styles.chipTextSelected]} numberOfLines={1}>
-                  + {m.name} {m.price > 0 ? `€${Number(m.price).toFixed(2)}` : ''}
-                </Text>
+                <Text style={styles.selectedChipText}>{m.name} ✓</Text>
               </Pressable>
             );
-          })}
-        </View>
-      )}
+          }
+          return (
+            <Pressable
+              key={m.id}
+              style={styles.addChip}
+              onPress={() => onAdd(m)}
+              accessibilityLabel={`${m.name} hinzufügen`}
+              accessibilityRole="button"
+            >
+              <Text style={styles.addChipText}>+ {m.name} {m.price > 0 ? `€${Number(m.price).toFixed(2)}` : ''}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -102,82 +122,92 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: SoftColors.borderLight,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: SoftSpacing.xs,
-  },
   label: {
     ...SoftTypography.caption,
     color: SoftColors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  extraTotal: {
-    ...SoftTypography.caption,
-    color: SoftColors.accentDark,
-    fontWeight: '600',
+    marginBottom: SoftSpacing.xs,
   },
   loader: {
     marginTop: SoftSpacing.xs,
   },
-  summaryRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  rows: {
     gap: SoftSpacing.xs,
+  },
+  modifierRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
-  },
-  summaryChip: {
-    backgroundColor: SoftColors.accentLight + '80',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
     paddingHorizontal: SoftSpacing.sm,
-    paddingVertical: 2,
+    backgroundColor: SoftColors.bgSecondary,
     borderRadius: SoftRadius.sm,
-    maxWidth: 100,
+    borderWidth: 1,
+    borderColor: SoftColors.borderLight,
   },
-  summaryChipText: {
+  modifierRowLabel: {
     ...SoftTypography.caption,
     color: SoftColors.textPrimary,
     fontSize: 11,
+    flex: 1,
   },
-  moreChip: {
-    backgroundColor: SoftColors.bgSecondary,
-    paddingHorizontal: SoftSpacing.sm,
-    paddingVertical: 2,
-    borderRadius: SoftRadius.sm,
-  },
-  moreChipText: {
-    ...SoftTypography.caption,
-    color: SoftColors.textMuted,
-    fontSize: 11,
-  },
-  chipRow: {
+  qtyGroup: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SoftSpacing.xs,
     alignItems: 'center',
+    gap: 4,
   },
-  chip: {
+  qtyBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: SoftColors.bgCard,
+    borderWidth: 1,
+    borderColor: SoftColors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qtyBtnRemove: {
+    borderColor: SoftColors.error,
+  },
+  qtyBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: SoftColors.textPrimary,
+  },
+  qtyValue: {
+    ...SoftTypography.caption,
+    minWidth: 20,
+    textAlign: 'center',
+    fontWeight: '600',
+    color: SoftColors.textPrimary,
+  },
+  addChip: {
+    alignSelf: 'flex-start',
     backgroundColor: SoftColors.bgSecondary,
     paddingHorizontal: SoftSpacing.sm,
     paddingVertical: 4,
     borderRadius: SoftRadius.sm,
     borderWidth: 1,
     borderColor: SoftColors.borderLight,
-    maxWidth: 140,
   },
-  chipSelected: {
-    backgroundColor: SoftColors.accentLight + '99',
-    borderColor: SoftColors.accent,
-  },
-  chipText: {
+  addChipText: {
     ...SoftTypography.caption,
     color: SoftColors.textPrimary,
     fontSize: 11,
   },
-  chipTextSelected: {
+  selectedChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: SoftColors.accentLight,
+    paddingHorizontal: SoftSpacing.sm,
+    paddingVertical: 4,
+    borderRadius: SoftRadius.sm,
+    borderWidth: 1,
+    borderColor: SoftColors.accent,
+  },
+  selectedChipText: {
+    ...SoftTypography.caption,
     color: SoftColors.accentDark,
-    fontWeight: '600',
+    fontSize: 11,
   },
 });

@@ -2,10 +2,9 @@
 // POS Ana Ekran (Cash Register) – maximum cashier speed, minimal taps
 // =============================================================================
 // UX rule: Tap product row => instantly add 1 item to cart (always).
-// If product has modifiers, show inline "Extras" under that row. Extras apply to
-// the most recently added cart line of that product: lastCartItemIdByProductId[productId].
-// Tapping an extra chip updates that cart item's selected modifiers (no API call).
-// Adding the same product again makes that new line the active one for modifier edits.
+// If product has modifiers, show inline Extras under that row. Extras apply to
+// the most recently added cart line: lastCartItemIdByProductId[productId].
+// Tapping a chip toggles that line's modifiers (optimistic update + API). Same product again = new active line.
 //
 // State: cart.items[] with modifiers; lastCartItemIdByProductId derived from cart;
 // pendingModifiersByProduct only when no cart line exists for that product.
@@ -21,7 +20,8 @@ import { ProductList } from '../../components/ProductList';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
 import CategoryFilter from '../../components/CategoryFilter';
-import type { SelectedModifier } from '../../components/ModifierSelectionBottomSheet';
+/** POS modifier selection (quantity independent from product qty). Cart is source of truth. */
+type SelectedModifier = { id: string; name: string; price: number; quantity?: number };
 import { ToastContainer } from '../../components/ToastNotification';
 
 import { useCashRegister } from '../../hooks/useCashRegister';
@@ -30,6 +30,7 @@ import { useProductsUnified } from '../../hooks/useProductsUnified';
 import { useCart } from '../../contexts/CartContext';
 
 import { Product } from '../../services/api/productService';
+import type { ModifierOptionItem } from '../../components/ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftTypography } from '../../constants/SoftTheme';
 
 // -----------------------------------------------------------------------------
@@ -40,7 +41,7 @@ function usePOSOrderFlow(
   activeTableId: number,
   addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void,
   lastCartItemIdByProductId: Record<string, string>,
-  toggleExtraOnCartItem: (cartItemId: string, modifier: { id: string; name: string; price: number }) => void
+  addModifier: (cartItemId: string, modifier: { id: string; name: string; price: number; quantity?: number }) => Promise<void>
 ) {
   const [pendingModifiersByProduct, setPendingModifiersByProduct] = useState<Record<string, SelectedModifier[]>>({});
 
@@ -51,8 +52,9 @@ function usePOSOrderFlow(
         return;
       }
       try {
+        const withQty = modifiers.map((m) => ({ ...m, quantity: m.quantity ?? 1 }));
         await addItem(product.id, 1, {
-          modifiers,
+          modifiers: withQty,
           productName: product.name,
           unitPrice: product.price ?? 0,
         });
@@ -69,26 +71,46 @@ function usePOSOrderFlow(
     [addItem, activeTableId, addToast]
   );
 
-  const handleToggleModifier = useCallback(
-    (productId: string, modifier: SelectedModifier) => {
-      const cartItemId = lastCartItemIdByProductId[productId];
+  /** Rule A: Product not in cart → add product + modifier. Rule B: Product in cart → add modifier to active line. */
+  const handleAddModifier = useCallback(
+    async (product: Product, modifier: ModifierOptionItem) => {
+      if (!activeTableId) {
+        addToast('error', 'Bitte zuerst Tisch wählen', 3000);
+        return;
+      }
+      const cartItemId = lastCartItemIdByProductId[product.id];
       if (cartItemId) {
-        toggleExtraOnCartItem(cartItemId, modifier);
-      } else {
+        try {
+          await addModifier(cartItemId, { id: modifier.id, name: modifier.name, price: modifier.price, quantity: 1 });
+        } catch (e: any) {
+          addToast('error', e?.message || 'Extras konnten nicht hinzugefügt werden.', 3000);
+        }
+        return;
+      }
+      try {
+        await addItem(product.id, 1, {
+          modifiers: [{ id: modifier.id, name: modifier.name, price: modifier.price, quantity: 1 }],
+          productName: product.name,
+          unitPrice: product.price ?? 0,
+        });
+        addToast('success', `${product.name} + ${modifier.name} hinzugefügt`, 2000);
         setPendingModifiersByProduct((prev) => {
-          const list = prev[productId] ?? [];
-          const has = list.some((m) => m.id === modifier.id);
-          const nextList = has ? list.filter((m) => m.id !== modifier.id) : [...list, modifier];
-          const next = { ...prev, [productId]: nextList };
-          if (nextList.length === 0) delete next[productId];
+          const next = { ...prev };
+          delete next[product.id];
           return next;
         });
+      } catch (error: any) {
+        addToast('error', `${product.name}: ${error?.message || 'Fehler'}`, 5000);
       }
     },
-    [lastCartItemIdByProductId, toggleExtraOnCartItem]
+    [activeTableId, lastCartItemIdByProductId, addModifier, addItem, addToast]
   );
 
-  return { pendingModifiersByProduct, handleAddProduct, handleToggleModifier };
+  return {
+    pendingModifiersByProduct,
+    handleAddProduct,
+    handleAddModifier,
+  };
 }
 
 export default function CashRegisterScreen() {
@@ -139,7 +161,10 @@ export default function CashRegisterScreen() {
     getCartForTable,
     updateItemQuantity: contextUpdateItemQuantity,
     updateItemQuantityByItemId,
-    toggleExtraOnCartItem,
+    addModifier,
+    incrementModifier,
+    decrementModifier,
+    removeModifier,
     isPaymentModalVisible,
     setIsPaymentModalVisible
   } = useCart();
@@ -174,12 +199,16 @@ export default function CashRegisterScreen() {
     return map;
   }, [cart?.items]);
 
-  const { pendingModifiersByProduct, handleAddProduct, handleToggleModifier } = usePOSOrderFlow(
+  const {
+    pendingModifiersByProduct,
+    handleAddProduct,
+    handleAddModifier,
+  } = usePOSOrderFlow(
     addItem,
     activeTableId,
     addToast,
     lastCartItemIdByProductId,
-    toggleExtraOnCartItem
+    addModifier
   );
 
   // Chip'lerde gösterilecek seçim: önce sepetteki son satır, yoksa pending
@@ -323,9 +352,9 @@ export default function CashRegisterScreen() {
     if (!activeTableId) return;
     try {
       await removeByItemId(itemId);
-      addToast('info', 'Item removed from cart', 2000);
-    } catch (err: any) {
-      addToast('error', err?.message || 'Failed to remove item', 3000);
+      addToast('success', 'Artikel entfernt', 2000);
+    } catch {
+      addToast('error', 'Artikel konnte nicht entfernt werden.', 3000);
     }
   }, [activeTableId, removeByItemId, addToast]);
 
@@ -401,7 +430,7 @@ export default function CashRegisterScreen() {
         categoryFilterId={selectedCategoryId}
         pendingModifiersByProduct={selectedModifiersForProduct}
         onAddProduct={handleAddProduct}
-        onToggleModifier={handleToggleModifier}
+        onAddModifier={handleAddModifier}
         showStockInfo={false}
         showTaxInfo={true}
         ListHeaderComponent={
@@ -438,6 +467,9 @@ export default function CashRegisterScreen() {
               onQuantityUpdate={handleQuantityUpdate}
               onItemRemove={handleItemRemove}
               onClearCart={handleClearCart}
+              onRemoveModifier={(itemId, m) => removeModifier(itemId, m.id)}
+              onIncrementModifier={incrementModifier}
+              onDecrementModifier={decrementModifier}
             />
 
             {/* Cart Summary & Payment Button */}
@@ -462,10 +494,10 @@ export default function CashRegisterScreen() {
 // -----------------------------------------------------------------------------
 // New / updated: usePOSOrderFlow (in-file hook), lastCartItemIdByProductId (derived).
 // Components used: ProductList, ProductRow, ProductGridCard, ModifierOptionChips
-//   (expandable Extras ▼ under product row), CartDisplay, CartSummary.
+//   (inline Extras under product row), CartDisplay, CartSummary.
 // State: cart (context), pendingModifiersByProduct (local), lastCartItemIdByProductId (derived).
 // UX before: Tap product → Zutaten modal → Hinzufügen. After: Tap row → add instantly;
-//   Extras inline expandable under row; no modal; no Add button.
+//   Extras inline under row; no modal; no Add button.
 
 const styles = StyleSheet.create({
   container: {

@@ -43,9 +43,10 @@ export interface CreateCartRequest {
   notes?: string;
 }
 
-/** Backend contract: id required; name/price/groupId optional (price derived server-side). */
+/** Backend contract: id required; quantity optional (FE sends it; backend may not persist yet – see integration note). */
 export interface SelectedModifierInput {
   id: string;
+  quantity?: number;
   name?: string;
   price?: number;
   groupId?: string;
@@ -64,6 +65,8 @@ export interface AddItemToCartRequest {
 export interface UpdateCartItemRequest {
   quantity: number;
   notes?: string;
+  /** Backend: updates line modifiers when provided. FE sends { id, quantity }; backend may only accept id until Quantity is supported. */
+  selectedModifiers?: { id: string; quantity?: number }[];
 }
 
 export interface CartHistoryItem {

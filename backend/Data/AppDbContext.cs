@@ -737,6 +737,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ModifierId).IsRequired();
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Quantity).IsRequired();
                 entity.HasOne(e => e.CartItem)
                     .WithMany(ci => ci.Modifiers)
                     .HasForeignKey(e => e.CartItemId)
@@ -850,6 +851,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ModifierId).IsRequired();
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Quantity).IsRequired();
                 entity.HasOne(e => e.TableOrderItem)
                     .WithMany(ti => ti.Modifiers)
                     .HasForeignKey(e => e.TableOrderItemId)

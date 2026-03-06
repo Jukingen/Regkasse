@@ -72,16 +72,18 @@ namespace KasseAPI_Final.DTOs
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
+        public int Quantity { get; set; } = 1;
+        public Guid? GroupId { get; set; }
     }
 
     /// <summary>
-    /// add-item request body: FE gönderir; fiyat DB'den türetilir (güvenlik).
+    /// add-item / update-item request: FE gönderir; name/price DB'den türetilir (güvenlik).
+    /// Quantity &lt; 1 ise 1 kabul edilir (backward compat). Aynı id iki kez gelirse miktarlar toplanır.
     /// </summary>
     public class SelectedModifierInputDto
     {
         public Guid Id { get; set; }
-        public string? Name { get; set; }
-        public decimal? Price { get; set; }
-        public Guid? GroupId { get; set; }
+        /// <summary>Miktar; yoksa veya &lt; 1 ise 1 kullanılır.</summary>
+        public int Quantity { get; set; } = 1;
     }
 }
