@@ -88,6 +88,10 @@ namespace KasseAPI_Final.Models
         [MaxLength(50)]
         public string RksvProductType { get; set; } = "Standard"; // Standard, Reduced, Special, Exempt
 
+        /// <summary>Faz 1: Sellable add-on (Zusatzprodukt); sepette/ödeme/fişte ayrı line item; fiyat burada; stok düşülmez.</summary>
+        [Column("is_sellable_addon")]
+        public bool IsSellableAddOn { get; set; }
+
         // Navigation properties
         // public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         // public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();

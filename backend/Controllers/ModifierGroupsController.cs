@@ -25,7 +25,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Tüm modifier gruplarını listele (modifier'lar ile birlikte).
+        /// Tüm modifier gruplarını listele (modifier'lar + Faz 1 Products ile birlikte). Legacy: Modifiers; yeni: Products (fiyat Product'tan).
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -37,30 +37,11 @@ namespace KasseAPI_Final.Controllers
                     .OrderBy(g => g.SortOrder)
                     .ThenBy(g => g.Name)
                     .Include(g => g.Modifiers.Where(m => m.IsActive))
+                    .Include(g => g.AddOnGroupProducts)
+                    .ThenInclude(a => a.Product)
                     .ToListAsync();
 
-                var dtos = groups.Select(g => new ModifierGroupDto
-                {
-                    Id = g.Id,
-                    Name = g.Name,
-                    MinSelections = g.MinSelections,
-                    MaxSelections = g.MaxSelections,
-                    IsRequired = g.IsRequired,
-                    SortOrder = g.SortOrder,
-                    IsActive = g.IsActive,
-                    Modifiers = g.Modifiers
-                        .OrderBy(m => m.SortOrder)
-                        .ThenBy(m => m.Name)
-                        .Select(m => new ModifierDto
-                        {
-                            Id = m.Id,
-                            Name = m.Name,
-                            Price = m.Price,
-                            TaxType = m.TaxType,
-                            SortOrder = m.SortOrder
-                        }).ToList()
-                }).ToList();
-
+                var dtos = groups.Select(g => MapToModifierGroupDto(g)).ToList();
                 return SuccessResponse(dtos, "Modifier groups retrieved.");
             }
             catch (Exception ex)
@@ -70,7 +51,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Tekil modifier group getir.
+        /// Tekil modifier group getir. Legacy: Modifiers; Faz 1: Products (AddOnGroupProduct + Product; fiyat Product'tan).
         /// </summary>
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
@@ -79,32 +60,14 @@ namespace KasseAPI_Final.Controllers
             {
                 var group = await _context.ProductModifierGroups
                     .Include(g => g.Modifiers.Where(m => m.IsActive))
+                    .Include(g => g.AddOnGroupProducts)
+                    .ThenInclude(a => a.Product)
                     .FirstOrDefaultAsync(g => g.Id == id);
 
                 if (group == null)
                     return ErrorResponse("Modifier group not found.", 404);
 
-                var dto = new ModifierGroupDto
-                {
-                    Id = group.Id,
-                    Name = group.Name,
-                    MinSelections = group.MinSelections,
-                    MaxSelections = group.MaxSelections,
-                    IsRequired = group.IsRequired,
-                    SortOrder = group.SortOrder,
-                    IsActive = group.IsActive,
-                    Modifiers = group.Modifiers
-                        .OrderBy(m => m.SortOrder)
-                        .Select(m => new ModifierDto
-                        {
-                            Id = m.Id,
-                            Name = m.Name,
-                            Price = m.Price,
-                            TaxType = m.TaxType,
-                            SortOrder = m.SortOrder
-                        }).ToList()
-                };
-
+                var dto = MapToModifierGroupDto(group);
                 return SuccessResponse(dto, "Modifier group retrieved.");
             }
             catch (Exception ex)
@@ -241,6 +204,158 @@ namespace KasseAPI_Final.Controllers
             {
                 return HandleException(ex, "ModifierGroups.AddModifier");
             }
+        }
+
+        /// <summary>
+        /// Faz 1: Gruba product ekle (mevcut product veya yeni Zusatzprodukt). Fiyat her zaman Product tablosundan; grup satırı fiyat taşımaz.
+        /// </summary>
+        [HttpPost("{id:guid}/products")]
+        public async Task<IActionResult> AddProductToGroup(Guid id, [FromBody] AddProductToGroupRequest request)
+        {
+            try
+            {
+                if (request == null)
+                    return ErrorResponse("Request body is required.", 400);
+
+                bool hasProductId = request.ProductId.HasValue && request.ProductId.Value != Guid.Empty;
+                bool hasCreateNew = request.CreateNewAddOnProduct != null;
+
+                if (hasProductId && hasCreateNew)
+                    return ErrorResponse("Provide either productId or createNewAddOnProduct, not both.", 400);
+                if (!hasProductId && !hasCreateNew)
+                    return ErrorResponse("Provide either productId or createNewAddOnProduct.", 400);
+
+                var group = await _context.ProductModifierGroups.FindAsync(id);
+                if (group == null)
+                    return ErrorResponse("Modifier group not found.", 404);
+
+                Guid productId;
+                string productName;
+                decimal price;
+                int taxType;
+                int sortOrder;
+
+                if (hasProductId)
+                {
+                    var product = await _context.Products.FindAsync(request.ProductId!.Value);
+                    if (product == null)
+                        return ErrorResponse("Product not found.", 404);
+                    if (!product.IsActive)
+                        return ErrorResponse("Product is inactive and cannot be added to the group.", 400);
+
+                    var exists = await _context.AddOnGroupProducts
+                        .AnyAsync(a => a.ModifierGroupId == id && a.ProductId == product.Id);
+                    if (exists)
+                        return ErrorResponse("Product is already in this group.", 409);
+
+                    productId = product.Id;
+                    productName = product.Name;
+                    price = product.Price;
+                    taxType = product.TaxType;
+                    sortOrder = await _context.AddOnGroupProducts
+                        .Where(a => a.ModifierGroupId == id)
+                        .CountAsync();
+                }
+                else
+                {
+                    var create = request.CreateNewAddOnProduct!;
+                    if (!create.CategoryId.HasValue || create.CategoryId.Value == Guid.Empty)
+                        return ErrorResponse("CategoryId is required when creating a new add-on product.", 400);
+
+                    var category = await _context.Categories.FindAsync(create.CategoryId.Value);
+                    if (category == null)
+                        return ErrorResponse("Category not found.", 404);
+
+                    var newProduct = new Product
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = create.Name,
+                        Price = Math.Round(create.Price, 2),
+                        TaxType = create.TaxType,
+                        Category = category.Name,
+                        CategoryId = category.Id,
+                        StockQuantity = 0,
+                        MinStockLevel = 0,
+                        Unit = "Stk",
+                        Barcode = "ADDON-" + Guid.NewGuid().ToString("N")[..12],
+                        IsActive = true,
+                        IsSellableAddOn = true,
+                        TaxRate = TaxTypes.GetTaxRate(create.TaxType),
+                        RksvProductType = RksvProductTypes.Standard,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _context.Products.Add(newProduct);
+                    productId = newProduct.Id;
+                    productName = newProduct.Name;
+                    price = newProduct.Price;
+                    taxType = newProduct.TaxType;
+                    sortOrder = create.SortOrder;
+                }
+
+                var link = new AddOnGroupProduct
+                {
+                    ModifierGroupId = id,
+                    ProductId = productId,
+                    SortOrder = sortOrder
+                };
+                _context.AddOnGroupProducts.Add(link);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Product {ProductId} added to modifier group {GroupId}.", productId, id);
+                var dto = new AddOnGroupProductItemDto
+                {
+                    ProductId = productId,
+                    ProductName = productName,
+                    Price = price,
+                    TaxType = taxType,
+                    SortOrder = sortOrder
+                };
+                return StatusCode(201, new { success = true, message = "Product added to group.", data = dto, timestamp = DateTime.UtcNow });
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "ModifierGroups.AddProductToGroup");
+            }
+        }
+
+        /// <summary>Legacy Modifiers + Faz 1 Products (AddOnGroupProduct → Product). Fiyat Product'tan.</summary>
+        private static ModifierGroupDto MapToModifierGroupDto(ProductModifierGroup g)
+        {
+            var products = (g.AddOnGroupProducts ?? new List<AddOnGroupProduct>())
+                .OrderBy(a => a.SortOrder)
+                .Where(a => a.Product != null && a.Product.IsActive)
+                .Select(a => new AddOnGroupProductItemDto
+                {
+                    ProductId = a.ProductId,
+                    ProductName = a.Product!.Name,
+                    Price = a.Product.Price,
+                    TaxType = a.Product.TaxType,
+                    SortOrder = a.SortOrder
+                }).ToList();
+
+            return new ModifierGroupDto
+            {
+                Id = g.Id,
+                Name = g.Name,
+                MinSelections = g.MinSelections,
+                MaxSelections = g.MaxSelections,
+                IsRequired = g.IsRequired,
+                SortOrder = g.SortOrder,
+                IsActive = g.IsActive,
+                Modifiers = (g.Modifiers ?? new List<ProductModifier>())
+                    .OrderBy(m => m.SortOrder)
+                    .ThenBy(m => m.Name)
+                    .Select(m => new ModifierDto
+                    {
+                        Id = m.Id,
+                        Name = m.Name,
+                        Price = m.Price,
+                        TaxType = m.TaxType,
+                        SortOrder = m.SortOrder
+                    }).ToList(),
+                Products = products
+            };
         }
     }
 }

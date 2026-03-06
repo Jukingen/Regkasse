@@ -148,6 +148,15 @@ const mapModifierGroup = (g: any): ModifierGroupDto => ({
         sortOrder: m.SortOrder ?? m.sortOrder ?? 0,
       }))
     : [],
+  products: Array.isArray(g.Products ?? g.products)
+    ? (g.Products ?? g.products).map((p: any) => ({
+        productId: p.ProductId ?? p.productId,
+        productName: p.ProductName ?? p.productName ?? '',
+        price: Number(p.Price ?? p.price ?? 0),
+        taxType: p.TaxType ?? p.taxType ?? 1,
+        sortOrder: p.SortOrder ?? p.sortOrder ?? 0,
+      }))
+    : [],
 });
 
 const unwrapData = <T>(resp: any): T => {

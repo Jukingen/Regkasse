@@ -67,7 +67,7 @@ export default function DashboardLayout({
         {
             key: '/modifier-groups',
             icon: <FileTextOutlined />,
-            label: <Link href="/modifier-groups">Extra Zutaten</Link>,
+            label: <Link href="/modifier-groups">Add-on-Gruppen</Link>,
         },
         {
             key: '/categories',

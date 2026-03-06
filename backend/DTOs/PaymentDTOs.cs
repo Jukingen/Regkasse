@@ -81,10 +81,10 @@ namespace KasseAPI_Final.DTOs
         [JsonConverter(typeof(TaxTypeJsonConverter))]
         public TaxType TaxType { get; set; } = TaxType.Standard;
 
-        /// <summary>Extra Zutaten – bu satır için seçilen modifier ID'leri. Modifiers dolu değilse kullanılır.</summary>
+        /// <summary>Compat/deprecated. Yeni akış: sellable add-on ayrı PaymentItem satırı (productId). Legacy: bu satıra bağlı modifier ID'leri.</summary>
         public List<Guid> ModifierIds { get; set; } = new();
 
-        /// <summary>Satır bazlı extras: modifierId, name, priceDelta (2 dp). Doluysa ModifierIds yerine bunlar kullanılır.</summary>
+        /// <summary>Compat/deprecated. Yeni akış: add-on ayrı satır. Legacy: satır bazlı modifier detayı (modifierId, quantity, priceDelta).</summary>
         public List<PaymentItemModifierRequest>? Modifiers { get; set; }
     }
     

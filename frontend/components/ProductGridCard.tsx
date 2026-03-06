@@ -1,5 +1,5 @@
 /**
- * POS grid ürün kartı: tek tıkla sepete ekleme. Extras tıklanabilir chip; modal yok.
+ * POS grid ürün kartı: tek tıkla sepete ekleme. Extras: Faz 1 products (ayrı satır) + Legacy modifiers.
  * Memoized: re-renders only when product.id or selected modifiers change.
  */
 import React, { memo, useMemo } from 'react';
@@ -7,6 +7,8 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Product } from '../services/api/productService';
 import { ModifierOptionChips, type ModifierOptionItem } from './ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
+import type { AddOnGroupProductItemDto } from '../services/api/productModifiersService';
+import type { OnAddAddOn } from './ProductRow';
 
 export interface ModifierChipItem {
   id: string;
@@ -29,6 +31,8 @@ interface ProductGridCardProps {
   pendingModifiers: ModifierChipItem[];
   onAdd: (product: Product, modifiers: ModifierChipItem[]) => void;
   onAddModifier: (product: Product, modifier: ModifierOptionItem) => void;
+  /** Faz 1: Sellable add-on seçildiğinde ayrı satır ekle. */
+  onAddAddOn?: OnAddAddOn;
   getCategoryEmoji?: (category?: string) => string;
 }
 
@@ -37,9 +41,14 @@ function ProductGridCardInner({
   pendingModifiers,
   onAdd,
   onAddModifier,
+  onAddAddOn,
   getCategoryEmoji = () => '📦',
 }: ProductGridCardProps) {
   const groups = product.modifierGroups ?? [];
+  const allAddOnProducts: AddOnGroupProductItemDto[] = useMemo(
+    () => groups.flatMap((g) => g.products ?? []),
+    [product.modifierGroups]
+  );
   const allModifiers: ModifierOptionItem[] = useMemo(
     () =>
       groups.flatMap((g) =>
@@ -47,6 +56,7 @@ function ProductGridCardInner({
       ),
     [product.modifierGroups]
   );
+  const hasAddOnProducts = allAddOnProducts.length > 0;
   const hasModifiers = allModifiers.length > 0;
 
   return (
@@ -63,6 +73,15 @@ function ProductGridCardInner({
         <View style={styles.priceBadge}>
           <Text style={styles.priceText}>€{product.price?.toFixed(2) || '0.00'}</Text>
         </View>
+        {hasAddOnProducts && onAddAddOn && (
+          <ModifierOptionChips
+            modifiers={allAddOnProducts.map((p) => ({ id: p.productId, name: p.productName, price: p.price }))}
+            selectedModifiers={[]}
+            onAdd={(m) => onAddAddOn({ productId: m.id, productName: m.name, price: m.price })}
+            hideQuantityStepper
+            loading={false}
+          />
+        )}
         {hasModifiers && (
           <ModifierOptionChips
             modifiers={allModifiers}
@@ -110,5 +129,6 @@ const styles = StyleSheet.create({
 export const ProductGridCard = memo(ProductGridCardInner, (prev, next) => {
   if (prev.product.id !== next.product.id) return false;
   if (modifiersKey(prev.pendingModifiers) !== modifiersKey(next.pendingModifiers)) return false;
+  if (prev.onAddAddOn !== next.onAddAddOn) return false;
   return true;
 });

@@ -12,6 +12,15 @@ export interface ModifierDto {
   sortOrder: number;
 }
 
+/** Faz 1: Grup içi önerilen ürün (sellable add-on). Fiyat/vergi Product’tan; sepette ayrı satır. */
+export interface AddOnGroupProductItemDto {
+  productId: string;
+  productName: string;
+  price: number;
+  taxType: number;
+  sortOrder: number;
+}
+
 export interface ModifierGroupDto {
   id: string;
   name: string;
@@ -20,7 +29,10 @@ export interface ModifierGroupDto {
   isRequired: boolean;
   sortOrder: number;
   isActive: boolean;
+  /** Legacy: modifier listesi (satıra bağlı). */
   modifiers: ModifierDto[];
+  /** Faz 1: Önerilen add-on ürünler – tıklanınca sepette ayrı satır (addItem(productId, 1)). */
+  products?: AddOnGroupProductItemDto[];
 }
 
 interface ApiResponse<T> {

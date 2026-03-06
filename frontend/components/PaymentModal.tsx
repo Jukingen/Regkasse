@@ -278,12 +278,12 @@ export default function PaymentModal({
         ? customerId
         : guestCustomerId;
 
-      // 4. Build payment request (PascalCase keys for backend)
+      // 4. Build payment request: flat items (her satır = bir PaymentItem). Add-on satırları modifiersız; legacy satırlar modifierIds.
       const paymentItems: PaymentItem[] = cartItems.map(item => ({
         productId: item.productId,
-        quantity: item.quantity,
+        quantity: (item as any).qty ?? item.quantity,
         taxType: (item.taxType as 'standard' | 'reduced' | 'special') || 'standard',
-        modifierIds: item.modifiers?.map(m => m.modifierId) ?? []
+        modifierIds: (item.modifiers ?? []).map((m: any) => m.id ?? m.modifierId).filter(Boolean)
       }));
 
       // NOTE: TSE Logic

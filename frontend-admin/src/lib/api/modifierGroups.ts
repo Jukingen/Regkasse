@@ -14,6 +14,15 @@ export interface ModifierDto {
   sortOrder: number;
 }
 
+/** Faz 1: Grup içi Produkt-Referenz (Fiyat/vergi Product'tan). */
+export interface AddOnGroupProductItemDto {
+  productId: string;
+  productName: string;
+  price: number;
+  taxType: number;
+  sortOrder: number;
+}
+
 export interface ModifierGroupDto {
   id: string;
   name: string;
@@ -22,7 +31,10 @@ export interface ModifierGroupDto {
   isRequired: boolean;
   sortOrder: number;
   isActive: boolean;
+  /** Legacy (Fallback). */
   modifiers: ModifierDto[];
+  /** Faz 1: Önerilen Produkte – Preis/MwSt. nur aus Produktdaten. */
+  products?: AddOnGroupProductItemDto[];
 }
 
 interface ApiResponse<T> {
@@ -65,7 +77,7 @@ export async function createModifierGroup(body: {
   return data as { id: string };
 }
 
-/** Gruba yeni modifier ekle. */
+/** Gruba yeni modifier ekle (Legacy). */
 export async function addModifierToGroup(
   groupId: string,
   body: { name: string; price?: number; taxType?: number; sortOrder?: number }
@@ -76,4 +88,21 @@ export async function addModifierToGroup(
   );
   const data = res.data?.data ?? res.data;
   return data as ModifierDto;
+}
+
+/** Faz 1: Gruba Produkt hinzufügen – bestehendes Produkt (productId) oder neues Add-on (createNewAddOnProduct). */
+export type AddProductToGroupBody =
+  | { productId: string; createNewAddOnProduct?: never }
+  | { productId?: never; createNewAddOnProduct: { name: string; price: number; taxType: number; categoryId?: string; sortOrder: number } };
+
+export async function addProductToGroup(
+  groupId: string,
+  body: AddProductToGroupBody
+): Promise<AddOnGroupProductItemDto> {
+  const res = await AXIOS_INSTANCE.post<ApiResponse<AddOnGroupProductItemDto>>(
+    `/api/modifier-groups/${groupId}/products`,
+    body
+  );
+  const data = res.data?.data ?? res.data;
+  return data as AddOnGroupProductItemDto;
 }

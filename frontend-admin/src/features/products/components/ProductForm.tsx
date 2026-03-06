@@ -55,7 +55,7 @@ export default function ProductForm({
                 setSelectedModifierGroupIds(assignedGroups.map((g) => g.id));
             } catch (e) {
                 if (!cancelled) {
-                    message.error('Extra Zutaten konnten nicht geladen werden.');
+                    message.error('Add-on-Gruppen konnten nicht geladen werden.');
                     setModifierGroups([]);
                     setSelectedModifierGroupIds([]);
                 }
@@ -271,7 +271,7 @@ export default function ProductForm({
                     <Switch />
                 </Form.Item>
 
-                <Form.Item label="Extra Zutaten" style={{ marginBottom: 0 }}>
+                <Form.Item label="Vorgeschlagene Add-on-Gruppen" style={{ marginBottom: 0 }}>
                     <ExtraZutatenSection
                         groups={modifierGroups}
                         selectedGroupIds={selectedModifierGroupIds}

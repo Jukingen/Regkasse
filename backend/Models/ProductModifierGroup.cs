@@ -28,5 +28,8 @@ namespace KasseAPI_Final.Models
 
         public virtual ICollection<ProductModifier> Modifiers { get; set; } = new List<ProductModifier>();
         public virtual ICollection<ProductModifierGroupAssignment> ProductAssignments { get; set; } = new List<ProductModifierGroupAssignment>();
+
+        /// <summary>Faz 1: Bu grupta önerilen product referansları (sellable add-on). Fiyat Product'ta.</summary>
+        public virtual ICollection<AddOnGroupProduct> AddOnGroupProducts { get; set; } = new List<AddOnGroupProduct>();
     }
 }

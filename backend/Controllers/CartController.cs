@@ -1595,7 +1595,7 @@ namespace KasseAPI_Final.Controllers
         public int? TableNumber { get; set; }
         public string? WaiterName { get; set; }
         public string? Notes { get; set; }
-        /// <summary>Seçili modifier'lar (id zorunlu; fiyat DB'den türetilir).</summary>
+        /// <summary>Compat/legacy. Yeni akış: add-on için ayrı add-item(productId). Legacy: bu satıra bağlı modifier id+quantity (fiyat DB'den).</summary>
         public List<SelectedModifierInputDto>? SelectedModifiers { get; set; }
     }
 
@@ -1610,7 +1610,7 @@ namespace KasseAPI_Final.Controllers
     {
         public int Quantity { get; set; }
         public string? Notes { get; set; }
-        /// <summary>Seçili modifier'lar (id zorunlu); verilirse satır modifier'ları güncellenir ve UnitPrice yeniden hesaplanır.</summary>
+        /// <summary>Compat/legacy. Yeni akış: add-on ayrı satır. Legacy: bu satırın modifier listesi (id zorunlu); verilirse güncellenir.</summary>
         public List<SelectedModifierInputDto>? SelectedModifiers { get; set; }
     }
 
@@ -1653,7 +1653,7 @@ namespace KasseAPI_Final.Controllers
         public decimal GrossAmount { get; set; }
     }
 
-    /// <summary>UnitPrice/TotalPrice = GROSS (inkl. MwSt.). selectedModifiers: satır seçili modifier'lar (JSON camelCase).</summary>
+    /// <summary>UnitPrice/TotalPrice = GROSS (inkl. MwSt.). selectedModifiers: legacy (satır seçili modifier'lar); yeni akışta add-on ayrı item. JSON: camelCase.</summary>
     public class CartItemResponse
     {
         public Guid Id { get; set; }
@@ -1668,6 +1668,7 @@ namespace KasseAPI_Final.Controllers
         public string? Notes { get; set; }
         public int TaxType { get; set; } = 1;
         public decimal TaxRate { get; set; }
+        /// <summary>Legacy. Yeni akışta sellable add-on ayrı CartItemResponse satırı olarak döner.</summary>
         public List<SelectedModifierDto> SelectedModifiers { get; set; } = new();
     }
 

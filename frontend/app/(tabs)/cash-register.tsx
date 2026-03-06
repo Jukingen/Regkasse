@@ -71,7 +71,7 @@ function usePOSOrderFlow(
     [addItem, activeTableId, addToast]
   );
 
-  /** Rule A: Product not in cart → add product + modifier. Rule B: Product in cart → add modifier to active line. */
+  /** Rule A: Product not in cart → add product + modifier. Rule B: Product in cart → add modifier to active line. (Legacy) */
   const handleAddModifier = useCallback(
     async (product: Product, modifier: ModifierOptionItem) => {
       if (!activeTableId) {
@@ -106,10 +106,31 @@ function usePOSOrderFlow(
     [activeTableId, lastCartItemIdByProductId, addModifier, addItem, addToast]
   );
 
+  /** Faz 1: Sellable add-on tıklandığında sepette ayrı satır; modifier state’e gitmez. */
+  const handleAddAddOn = useCallback(
+    async (addOn: { productId: string; productName: string; price: number }) => {
+      if (!activeTableId) {
+        addToast('error', 'Bitte zuerst Tisch wählen', 3000);
+        return;
+      }
+      try {
+        await addItem(addOn.productId, 1, {
+          productName: addOn.productName,
+          unitPrice: addOn.price,
+        });
+        addToast('success', `${addOn.productName} hinzugefügt`, 2000);
+      } catch (e: any) {
+        addToast('error', e?.message ?? 'Add-on konnte nicht hinzugefügt werden.', 3000);
+      }
+    },
+    [activeTableId, addItem, addToast]
+  );
+
   return {
     pendingModifiersByProduct,
     handleAddProduct,
     handleAddModifier,
+    handleAddAddOn,
   };
 }
 
@@ -203,6 +224,7 @@ export default function CashRegisterScreen() {
     pendingModifiersByProduct,
     handleAddProduct,
     handleAddModifier,
+    handleAddAddOn,
   } = usePOSOrderFlow(
     addItem,
     activeTableId,
@@ -431,6 +453,7 @@ export default function CashRegisterScreen() {
         pendingModifiersByProduct={selectedModifiersForProduct}
         onAddProduct={handleAddProduct}
         onAddModifier={handleAddModifier}
+        onAddAddOn={handleAddAddOn}
         showStockInfo={false}
         showTaxInfo={true}
         ListHeaderComponent={

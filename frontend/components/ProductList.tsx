@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { Product } from '../services/api/productService';
 import { useProductsUnified } from '../hooks/useProductsUnified';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
-import { ProductRow, type ModifierChipItem } from './ProductRow';
+import { ProductRow, type ModifierChipItem, type OnAddAddOn } from './ProductRow';
 import { ProductGridCard } from './ProductGridCard';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -37,6 +37,8 @@ interface ProductListProps {
   onAddProduct?: (product: Product, modifiers: ModifierChipItem[]) => void;
   /** POS: Modifier tıklandığında: ürün sepette yoksa önce ürün+modifier eklenir; sepette varsa aktif satıra modifier eklenir. */
   onAddModifier?: (product: Product, modifier: ModifierChipItem) => void;
+  /** Faz 1: Sellable add-on tıklandığında sepette ayrı satır (addItem(productId, 1)); modifier state’e gitmez. */
+  onAddAddOn?: OnAddAddOn;
   showStockInfo?: boolean;
   showTaxInfo?: boolean;
   ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
@@ -52,6 +54,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   pendingModifiersByProduct = {},
   onAddProduct,
   onAddModifier,
+  onAddAddOn,
   showStockInfo = false,
   showTaxInfo = true,
   ListHeaderComponent,
@@ -144,6 +147,7 @@ export const ProductList: React.FC<ProductListProps> = ({
           pendingModifiers={pendingModifiersByProduct[item.id] ?? []}
           onAdd={onAddProduct}
           onAddModifier={onAddModifier}
+          onAddAddOn={onAddAddOn}
           getCategoryEmoji={getCategoryEmoji}
         />
       );
@@ -187,6 +191,7 @@ export const ProductList: React.FC<ProductListProps> = ({
           pendingModifiers={pendingModifiersByProduct[item.id] ?? []}
           onAdd={onAddProduct}
           onAddModifier={onAddModifier}
+          onAddAddOn={onAddAddOn}
           getCategoryEmoji={getCategoryEmoji}
         />
       );

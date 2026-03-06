@@ -1,5 +1,5 @@
 /**
- * POS ürün satırı: tek tıkla sepete ekleme (one-tap add). Extras tıklanabilir chip ile seçilir; modal yok.
+ * POS ürün satırı: tek tıkla sepete ekleme (one-tap add). Extras: Faz 1 products (ayrı satır) + Legacy modifiers (satıra bağlı).
  * Memoized: re-renders only when product.id or selected modifiers (ids+prices) change.
  */
 import React, { memo, useMemo } from 'react';
@@ -7,6 +7,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Product } from '../services/api/productService';
 import { ModifierOptionChips, type ModifierOptionItem } from './ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
+import type { AddOnGroupProductItemDto } from '../services/api/productModifiersService';
 
 export interface ModifierChipItem {
   id: string;
@@ -15,11 +16,16 @@ export interface ModifierChipItem {
   quantity?: number;
 }
 
+/** Faz 1: Add-on tıklandığında sepette ayrı satır (addItem(productId, 1)). */
+export type OnAddAddOn = (addOn: { productId: string; productName: string; price: number }) => void;
+
 interface ProductRowProps {
   product: Product;
   pendingModifiers: ModifierChipItem[];
   onAdd: (product: Product, modifiers: ModifierChipItem[]) => void;
   onAddModifier: (product: Product, modifier: ModifierOptionItem) => void;
+  /** Faz 1: Sellable add-on seçildiğinde ayrı satır ekle (modifier state’e gitmez). */
+  onAddAddOn?: OnAddAddOn;
   getCategoryEmoji?: (category?: string) => string;
 }
 
@@ -37,9 +43,14 @@ function ProductRowInner({
   pendingModifiers,
   onAdd,
   onAddModifier,
+  onAddAddOn,
   getCategoryEmoji = () => '📦',
 }: ProductRowProps) {
   const groups = product.modifierGroups ?? [];
+  const allAddOnProducts: AddOnGroupProductItemDto[] = useMemo(
+    () => groups.flatMap((g) => g.products ?? []),
+    [product.modifierGroups]
+  );
   const allModifiers: ModifierOptionItem[] = useMemo(
     () =>
       groups.flatMap((g) =>
@@ -47,7 +58,9 @@ function ProductRowInner({
       ),
     [product.modifierGroups]
   );
+  const hasAddOnProducts = allAddOnProducts.length > 0;
   const hasModifiers = allModifiers.length > 0;
+  const hasExtras = hasAddOnProducts || hasModifiers;
 
   const handleRowPress = () => {
     onAdd(product, pendingModifiers);
@@ -74,6 +87,15 @@ function ProductRowInner({
             </View>
           </View>
 
+          {hasAddOnProducts && onAddAddOn && (
+            <ModifierOptionChips
+              modifiers={allAddOnProducts.map((p) => ({ id: p.productId, name: p.productName, price: p.price }))}
+              selectedModifiers={[]}
+              onAdd={(m) => onAddAddOn({ productId: m.id, productName: m.name, price: m.price })}
+              hideQuantityStepper
+              loading={false}
+            />
+          )}
           {hasModifiers && (
             <ModifierOptionChips
               modifiers={allModifiers}
@@ -149,5 +171,6 @@ const styles = StyleSheet.create({
 export const ProductRow = memo(ProductRowInner, (prev, next) => {
   if (prev.product.id !== next.product.id) return false;
   if (modifiersKey(prev.pendingModifiers) !== modifiersKey(next.pendingModifiers)) return false;
+  if (prev.onAddAddOn !== next.onAddAddOn) return false;
   return true;
 });

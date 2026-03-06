@@ -58,6 +58,8 @@ namespace KasseAPI_Final.Data
         public DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
         public DbSet<ProductModifier> ProductModifiers { get; set; }
         public DbSet<ProductModifierGroupAssignment> ProductModifierGroupAssignments { get; set; }
+        /// <summary>Faz 1: Grup içi product referansları (suggested add-on); fiyat Product'ta.</summary>
+        public DbSet<AddOnGroupProduct> AddOnGroupProducts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -101,6 +103,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CreatedBy).HasMaxLength(100);
                 entity.Property(e => e.UpdatedBy).HasMaxLength(100);
                 entity.Property(e => e.IsActive).IsRequired();
+                entity.Property(e => e.IsSellableAddOn).HasColumnName("is_sellable_addon").HasDefaultValue(false);
                 
                 // Indexes
                 entity.HasIndex(e => e.Name);
@@ -292,6 +295,25 @@ namespace KasseAPI_Final.Data
                     .HasForeignKey(e => e.ModifierGroupId)
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.ToTable("product_modifier_group_assignments");
+            });
+
+            // AddOnGroupProduct (Faz 1: group -> product ref; price on Product)
+            builder.Entity<AddOnGroupProduct>(entity =>
+            {
+                entity.HasKey(e => new { e.ModifierGroupId, e.ProductId });
+                entity.Property(e => e.ModifierGroupId).HasColumnName("modifier_group_id").HasColumnType("uuid").IsRequired();
+                entity.Property(e => e.ProductId).HasColumnName("product_id").HasColumnType("uuid").IsRequired();
+                entity.Property(e => e.SortOrder).HasColumnName("sort_order").IsRequired();
+                entity.HasOne(e => e.ModifierGroup)
+                    .WithMany(g => g.AddOnGroupProducts)
+                    .HasForeignKey(e => e.ModifierGroupId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.ToTable("addon_group_products");
+                entity.HasIndex(e => e.ProductId);
             });
 
             // PaymentDetails configuration
