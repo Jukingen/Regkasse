@@ -170,9 +170,8 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Gruba yeni modifier ekle.
-        /// Phase 2: Legacy modifier creation is frozen. Use POST .../products (add-on products) instead.
-        /// Read support for existing modifiers remains. TODO Phase 2: Remove this endpoint after migration.
+        /// Gruba yeni modifier ekle. Legacy: creation frozen (Phase 2).
+        /// Returns 410 Gone. Use POST .../products (add-on products) instead. Kept for route stability; remove in Phase 3 when no clients call it.
         /// </summary>
         [HttpPost("{groupId:guid}/modifiers")]
         [Obsolete("Legacy modifier creation is disabled. Use add-on products (POST .../products) instead.")]

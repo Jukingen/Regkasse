@@ -52,9 +52,9 @@ export default function ExtraZutatenSection({
       ),
       children: (
         <div style={{ paddingLeft: 24 }}>
-          <div style={{ marginBottom: 8, fontSize: 12, color: '#333' }}>Produkte (Preis/MwSt. aus Produktdaten)</div>
+          <div style={{ marginBottom: 8, fontSize: 12, color: '#333' }}>Add-on-Produkte in dieser Gruppe</div>
           {products.length === 0 ? (
-            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>Keine Produkte in dieser Gruppe.</Text>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>Keine Add-on-Produkte in dieser Gruppe.</Text>
           ) : (
             <ul style={{ margin: 0, paddingLeft: 20, marginBottom: 12 }}>
               {products.map((p) => (
@@ -64,7 +64,7 @@ export default function ExtraZutatenSection({
               ))}
             </ul>
           )}
-          <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>Modifier (Legacy)</div>
+          <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>Modifier (Legacy, nur Leseansicht)</div>
           {modifiers.length === 0 ? (
             <Text type="secondary" style={{ display: 'block' }}>Keine Modifier.</Text>
           ) : (
@@ -92,7 +92,7 @@ export default function ExtraZutatenSection({
   if (groups.length === 0) {
     return (
       <div style={{ padding: '12px 0' }}>
-        <Text type="secondary">Keine Add-on-Gruppen angelegt. Legen Sie zuerst unter „Add-on-Gruppen“ Gruppen an.</Text>
+        <Text type="secondary">Keine Add-on-Gruppen. Legen Sie unter „Add-on-Gruppen“ Gruppen an und fügen Sie Add-on-Produkte hinzu. Anschließend wählen Sie hier, welche Gruppen für dieses Produkt angezeigt werden.</Text>
       </div>
     );
   }

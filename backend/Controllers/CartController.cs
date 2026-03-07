@@ -323,6 +323,7 @@ namespace KasseAPI_Final.Controllers
                     .GroupBy(s => s.Id)
                     .Select(g => new { Id = g.Key, Quantity = Math.Max(1, g.Sum(x => x.Quantity < 1 ? 1 : x.Quantity)) })
                     .ToList();
+                // Phase 2 observability: when this log stops appearing, no add-item requests include SelectedModifiers anymore.
                 if (normalizedMods.Count > 0)
                     _logger.LogInformation("Phase2.LegacyModifier.AddItemRequestSelectedModifiers CartId={CartId} ProductId={ProductId} ModifierCount={ModifierCount} (ignored for write - Phase 3)", cart.CartId, request.ProductId, normalizedMods.Count);
 
@@ -491,6 +492,7 @@ namespace KasseAPI_Final.Controllers
                 if (request.SelectedModifiers != null)
                 {
                     var legacyUpdateMods = request.SelectedModifiers.Where(s => s.Id != Guid.Empty).ToList();
+                    // Phase 2 observability: when this log stops appearing, no update-item requests include SelectedModifiers anymore.
                     if (legacyUpdateMods.Count > 0)
                         _logger.LogInformation("Phase2.LegacyModifier.UpdateItemRequestSelectedModifiers CartItemId={CartItemId} ModifierCount={ModifierCount} (ignored for write - Phase 3)", cartItem.Id, legacyUpdateMods.Count);
                 }

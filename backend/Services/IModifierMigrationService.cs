@@ -8,7 +8,7 @@ namespace KasseAPI_Final.Services
     public interface IModifierMigrationService
     {
         /// <summary>
-        /// Tüm aktif legacy modifier'ları inceler; zaten Product.LegacyModifierId ile eşleşmiş olanları atlar,
+        /// Tüm aktif legacy modifier'ları inceler; aynı grupta aynı Name+Price ile add-on product varsa atlar (idempotent),
         /// diğerlerini yeni Product + AddOnGroupProduct olarak oluşturur.
         /// </summary>
         /// <param name="defaultCategoryId">Yeni ürünlerin atanacağı kategori (zorunlu).</param>

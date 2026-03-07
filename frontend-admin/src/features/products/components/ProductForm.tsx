@@ -271,7 +271,11 @@ export default function ProductForm({
                     <Switch />
                 </Form.Item>
 
-                <Form.Item label="Vorgeschlagene Add-on-Gruppen" style={{ marginBottom: 0 }}>
+                <Form.Item
+                    label="Add-on-Gruppen für dieses Produkt"
+                    extra="Welche Gruppen sind für dieses Produkt wählbar? Add-on-Produkte pro Gruppe verwalten Sie unter „Add-on-Gruppen“."
+                    style={{ marginBottom: 0 }}
+                >
                     <ExtraZutatenSection
                         groups={modifierGroups}
                         selectedGroupIds={selectedModifierGroupIds}

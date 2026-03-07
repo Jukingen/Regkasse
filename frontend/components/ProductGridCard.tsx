@@ -49,11 +49,14 @@ function ProductGridCardInner({
     () => groups.flatMap((g) => g.products ?? []),
     [product.modifierGroups]
   );
+  /** Primary: group.products. Fallback: group.modifiers only for groups with no products (legacy). */
   const allModifiers: ModifierOptionItem[] = useMemo(
     () =>
-      groups.flatMap((g) =>
-        (g.modifiers ?? []).map((m) => ({ id: m.id, name: m.name, price: Number(m.price) }))
-      ),
+      groups.flatMap((g) => {
+        const prods = g.products ?? [];
+        if (prods.length > 0) return [];
+        return (g.modifiers ?? []).map((m) => ({ id: m.id, name: m.name, price: Number(m.price) }));
+      }),
     [product.modifierGroups]
   );
   const hasAddOnProducts = allAddOnProducts.length > 0;

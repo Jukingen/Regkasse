@@ -200,13 +200,14 @@ namespace KasseAPI_Final.Services
                     };
 
                     // Phase 3 prep: No new legacy modifier writes. ModifierIds/Modifiers in request are ignored; add-ons must be separate payment items (productId). Read compat: historical PaymentItem.Modifiers unchanged.
-                    var requestedModifierIds = new List<Guid>();
+                    var requestedModifierIds = new List<Guid>(); // Intentionally never populated: Phase 3 ignores modifier payload for write.
                     var hadLegacyPayload = !product.IsSellableAddOn && (
                         (itemRequest.Modifiers != null && itemRequest.Modifiers.Count > 0) ||
                         (itemRequest.ModifierIds != null && itemRequest.ModifierIds.Count > 0));
                     if (hadLegacyPayload)
                         _logger.LogInformation("Phase2.LegacyModifier.PaymentRequestModifierPayloadIgnored ProductId={ProductId} (Phase 3 - no write)", product.Id);
 
+                    // Block below is intentionally unreachable (requestedModifierIds always empty). Kept for readability; do not re-enable modifier writes without Phase 3 rollback decision.
                     if (requestedModifierIds.Count > 0)
                     {
                         var allowedIds = await _modifierValidation.GetAllowedModifierIdsForProductAsync(product.Id);

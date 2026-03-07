@@ -10,9 +10,8 @@ namespace KasseAPI_Final.Services
     /// Safety model:
     /// - Explicit, operator-controlled: run via API (POST /api/admin/migrate-legacy-modifiers) or CLI (dotnet run -- migrate-legacy-modifiers).
     /// - Does NOT delete original modifier records; production behavior is NOT switched automatically.
-    /// - Idempotent: already-migrated modifiers (Product.LegacyModifierId set) are skipped; no duplicate product creation on repeated runs.
+    /// - Idempotent: already-migrated = add-on product in same group with same Name+Price; skipped on repeated runs.
     /// - Dry-run: no DB writes; report only. Safe to run in staging first.
-    /// TODO Phase 2: Remove legacy modifiers after full migration and cart/receipt simplification.
     /// </summary>
     public class ModifierMigrationService : IModifierMigrationService
     {
@@ -50,25 +49,24 @@ namespace KasseAPI_Final.Services
                 .ThenBy(m => m.SortOrder)
                 .ToListAsync(cancellationToken);
 
-            var alreadyMigratedProductIds = await _context.Products
-                .Where(p => p.LegacyModifierId != null)
-                .Select(p => p.LegacyModifierId!.Value)
-                .ToHashSetAsync(cancellationToken);
-
             result.TotalProcessed = modifiers.Count;
 
             foreach (var mod in modifiers)
             {
-                if (alreadyMigratedProductIds.Contains(mod.Id))
+                // Idempotency: already migrated = add-on product in same group with same Name+Price (no legacy_modifier_id column).
+                var existingProduct = await _context.AddOnGroupProducts
+                    .Where(a => a.ModifierGroupId == mod.ModifierGroupId)
+                    .Where(a => a.Product != null && a.Product.IsSellableAddOn && a.Product.Name == mod.Name && a.Product.Price == Math.Round(mod.Price, 2))
+                    .Select(a => a.Product)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (existingProduct != null)
                 {
-                    var existingProduct = await _context.Products
-                        .FirstOrDefaultAsync(p => p.LegacyModifierId == mod.Id, cancellationToken);
                     result.SkippedCount++;
                     result.Skipped.Add(new ModifierMigrationItemDto
                     {
                         ModifierId = mod.Id,
                         ModifierName = mod.Name,
-                        ProductId = existingProduct?.Id,
+                        ProductId = existingProduct.Id,
                         GroupId = mod.ModifierGroupId
                     });
                     _logger.LogInformation("Modifier migration skip (already migrated): {ModifierId} {Name}", mod.Id, mod.Name);
@@ -121,7 +119,6 @@ namespace KasseAPI_Final.Services
                         IsSellableAddOn = true,
                         TaxRate = TaxTypes.GetTaxRate(mod.TaxType),
                         RksvProductType = RksvProductTypes.Standard,
-                        LegacyModifierId = mod.Id,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
@@ -137,7 +134,6 @@ namespace KasseAPI_Final.Services
                     _context.AddOnGroupProducts.Add(link);
 
                     await _context.SaveChangesAsync(cancellationToken);
-                    alreadyMigratedProductIds.Add(mod.Id);
 
                     result.MigratedCount++;
                     result.Migrated.Add(new ModifierMigrationItemDto

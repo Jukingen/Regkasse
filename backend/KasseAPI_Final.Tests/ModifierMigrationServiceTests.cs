@@ -53,13 +53,13 @@ public class ModifierMigrationServiceTests
         Assert.Equal(modifierId, result.Migrated[0].ModifierId);
         Assert.NotNull(result.Migrated[0].ProductId);
 
-        var product = await context.Products.FirstOrDefaultAsync(p => p.LegacyModifierId == modifierId);
+        var product = await context.Products.FindAsync(result.Migrated[0].ProductId);
         Assert.NotNull(product);
         Assert.True(product.IsSellableAddOn);
         Assert.Equal("Ketchup", product.Name);
         Assert.Equal(0.30m, product.Price);
 
-        var link = await context.AddOnGroupProducts.FirstOrDefaultAsync(a => a.ProductId == product.Id && a.ModifierGroupId == groupId);
+        var link = await context.AddOnGroupProducts.FirstOrDefaultAsync(a => a.ProductId == product!.Id && a.ModifierGroupId == groupId);
         Assert.NotNull(link);
     }
 
@@ -96,7 +96,11 @@ public class ModifierMigrationServiceTests
         Assert.Single(second.Skipped);
         Assert.Equal(modifierId, second.Skipped[0].ModifierId);
 
-        var productCount = await context.Products.CountAsync(p => p.LegacyModifierId == modifierId);
+        // Idempotency: one add-on product in group with same name+price (no legacy_modifier_id).
+        var productCount = await context.AddOnGroupProducts
+            .Where(a => a.ModifierGroupId == groupId)
+            .Where(a => a.Product.Name == "Ketchup" && a.Product.Price == 0.30m)
+            .CountAsync();
         Assert.Equal(1, productCount);
     }
 
@@ -129,7 +133,7 @@ public class ModifierMigrationServiceTests
         Assert.Equal(1, result.MigratedCount);
         Assert.Equal(0, result.SkippedCount);
 
-        var product = await context.Products.FirstOrDefaultAsync(p => p.LegacyModifierId == modifierId);
+        var product = await context.Products.FirstOrDefaultAsync(p => p.IsSellableAddOn && p.Name == "Ketchup");
         Assert.Null(product);
         Assert.Empty(context.AddOnGroupProducts);
     }
@@ -233,7 +237,11 @@ public class ModifierMigrationServiceTests
         Assert.Equal(2, result.TotalProcessed);
         Assert.Equal(2, result.MigratedCount);
         Assert.Equal(0, result.ErrorCount);
-        var products = await context.Products.Where(p => p.LegacyModifierId != null).ToListAsync();
+        var products = await context.AddOnGroupProducts
+            .Where(a => a.ModifierGroupId == groupId)
+            .Select(a => a.Product)
+            .Distinct()
+            .ToListAsync();
         Assert.Equal(2, products.Count);
         Assert.Equal(2, products.Select(p => p.Name).Count(n => n == "Ketchup"));
         Assert.Contains(products, p => p.Price == 0.30m);

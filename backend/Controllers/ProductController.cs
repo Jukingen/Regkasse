@@ -167,6 +167,8 @@ namespace KasseAPI_Final.Controllers
                     .AsNoTracking()
                     .Where(g => g.IsActive && allGroupIds.Contains(g.Id))
                     .Include(g => g.Modifiers.Where(m => m.IsActive))
+                    .Include(g => g.AddOnGroupProducts)
+                    .ThenInclude(a => a.Product)
                     .OrderBy(g => g.SortOrder)
                     .ThenBy(g => g.Name)
                     .ToListAsync();
@@ -226,6 +228,18 @@ namespace KasseAPI_Final.Controllers
 
         private static ModifierGroupDto MapToModifierGroupDto(ProductModifierGroup g)
         {
+            var products = (g.AddOnGroupProducts ?? new List<AddOnGroupProduct>())
+                .OrderBy(a => a.SortOrder)
+                .Where(a => a.Product != null && a.Product.IsActive)
+                .Select(a => new AddOnGroupProductItemDto
+                {
+                    ProductId = a.ProductId,
+                    ProductName = a.Product!.Name,
+                    Price = a.Product.Price,
+                    TaxType = a.Product.TaxType,
+                    SortOrder = a.SortOrder
+                }).ToList();
+
             return new ModifierGroupDto
             {
                 Id = g.Id,
@@ -235,7 +249,8 @@ namespace KasseAPI_Final.Controllers
                 IsRequired = g.IsRequired,
                 SortOrder = g.SortOrder,
                 IsActive = g.IsActive,
-                Modifiers = g.Modifiers
+                Products = products,
+                Modifiers = (g.Modifiers ?? new List<ProductModifier>())
                     .OrderBy(m => m.SortOrder)
                     .ThenBy(m => m.Name)
                     .Select(m => new ModifierDto { Id = m.Id, Name = m.Name, Price = m.Price, TaxType = m.TaxType, SortOrder = m.SortOrder })
@@ -502,6 +517,8 @@ namespace KasseAPI_Final.Controllers
                 var groups = await _context.ProductModifierGroups
                     .Where(g => g.IsActive && assignmentGroupIds.Contains(g.Id))
                     .Include(g => g.Modifiers.Where(m => m.IsActive))
+                    .Include(g => g.AddOnGroupProducts)
+                    .ThenInclude(a => a.Product)
                     .OrderBy(g => g.SortOrder)
                     .ThenBy(g => g.Name)
                     .ToListAsync();
@@ -512,27 +529,7 @@ namespace KasseAPI_Final.Controllers
                     .Cast<ProductModifierGroup>()
                     .ToList();
 
-                var dtos = ordered.Select(g => new ModifierGroupDto
-                {
-                    Id = g.Id,
-                    Name = g.Name,
-                    MinSelections = g.MinSelections,
-                    MaxSelections = g.MaxSelections,
-                    IsRequired = g.IsRequired,
-                    SortOrder = g.SortOrder,
-                    IsActive = g.IsActive,
-                    Modifiers = g.Modifiers
-                        .OrderBy(m => m.SortOrder)
-                        .ThenBy(m => m.Name)
-                        .Select(m => new ModifierDto
-                        {
-                            Id = m.Id,
-                            Name = m.Name,
-                            Price = m.Price,
-                            TaxType = m.TaxType,
-                            SortOrder = m.SortOrder
-                        }).ToList()
-                }).ToList();
+                var dtos = ordered.Select(g => MapToModifierGroupDto(g)).ToList();
 
                 return SuccessResponse(dtos, "Product modifier groups retrieved.");
             }

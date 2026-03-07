@@ -104,7 +104,6 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.UpdatedBy).HasMaxLength(100);
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.IsSellableAddOn).HasColumnName("is_sellable_addon").HasDefaultValue(false);
-                entity.Property(e => e.LegacyModifierId).HasColumnName("legacy_modifier_id").HasColumnType("uuid").IsRequired(false);
                 
                 // Indexes
                 entity.HasIndex(e => e.Name);
@@ -112,7 +111,6 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TaxType);
                 entity.HasIndex(e => e.CategoryId);
                 entity.HasIndex(e => e.Barcode).IsUnique();
-                entity.HasIndex(e => e.LegacyModifierId).IsUnique().HasFilter("\"legacy_modifier_id\" IS NOT NULL");
                 
                 // Navigation property relationship - CategoryId foreign key (required)
                 entity.HasOne(p => p.CategoryNavigation)
@@ -120,13 +118,6 @@ namespace KasseAPI_Final.Data
                       .HasForeignKey(p => p.CategoryId)
                       .OnDelete(DeleteBehavior.Restrict)
                       .IsRequired();
-                
-                // Phase 2: Optional FK for idempotent legacy modifier migration (product created from modifier)
-                entity.HasOne<ProductModifier>()
-                      .WithMany()
-                      .HasForeignKey(p => p.LegacyModifierId)
-                      .OnDelete(DeleteBehavior.Restrict)
-                      .IsRequired(false);
                 
                 // Constraints
                 entity.ToTable("products", t => 
