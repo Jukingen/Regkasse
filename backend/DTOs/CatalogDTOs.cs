@@ -34,7 +34,7 @@ namespace KasseAPI_Final.DTOs
         public string? TaxExemptionReason { get; set; }
         public string RksvProductType { get; set; } = "Standard";
         public decimal? Cost { get; set; }
-        /// <summary>Ürüne atanmış modifier grupları (Extra Zutaten).</summary>
+        /// <summary>Ürüne atanmış modifier grupları (Extra Zutaten). POS: modifierGroups[].products = primary add-on source; modifiers = legacy fallback.</summary>
         public List<ModifierGroupDto> ModifierGroups { get; set; } = new();
     }
 

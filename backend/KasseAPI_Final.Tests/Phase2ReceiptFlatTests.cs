@@ -96,6 +96,58 @@ public class Phase2ReceiptFlatTests
         Assert.Contains(receipt.Items, i => i.Name == "Extra Käse");
     }
 
+    /// <summary>Add-on products contribute to price totals and tax totals like normal products.</summary>
+    [Fact]
+    public async Task CreatePayment_WithBaseProductAndAddOn_PriceAndTaxTotalsCorrect()
+    {
+        await using var context = CreateContext();
+        var categoryId = Guid.NewGuid();
+        var product1Id = Guid.NewGuid();
+        var product2Id = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+
+        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        context.Products.Add(new Product { Id = product1Id, Name = "Burger", Price = 9.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 10, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true });
+        context.Products.Add(new Product { Id = product2Id, Name = "Ketchup", Price = 0.50m, CategoryId = categoryId, Category = "Extras", StockQuantity = 0, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true, IsSellableAddOn = true });
+        context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
+        await context.SaveChangesAsync();
+
+        var paymentService = CreatePaymentService(context);
+        var request = new CreatePaymentRequest
+        {
+            CustomerId = customerId,
+            TableNumber = 1,
+            CashierId = "c1",
+            TotalAmount = 10.90m, // 9.90 + 0.50*2 = 10.90 (gross, VAT included)
+            Steuernummer = "ATU12345678",
+            KassenId = "KASSE-01",
+            Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
+            Items = new List<PaymentItemRequest>
+            {
+                new() { ProductId = product1Id, Quantity = 1, TaxType = TaxType.Reduced },
+                new() { ProductId = product2Id, Quantity = 2, TaxType = TaxType.Reduced }
+            }
+        };
+
+        var createResult = await paymentService.CreatePaymentAsync(request, "u1");
+        Assert.True(createResult.Success);
+        Assert.NotNull(createResult.PaymentId);
+
+        var receipt = await paymentService.GetReceiptDataAsync(createResult.PaymentId!.Value);
+        Assert.NotNull(receipt);
+        Assert.NotNull(receipt.Items);
+
+        var burgerLine = receipt.Items.FirstOrDefault(i => i.Name == "Burger");
+        var ketchupLine = receipt.Items.FirstOrDefault(i => i.Name == "Ketchup");
+        Assert.NotNull(burgerLine);
+        Assert.NotNull(ketchupLine);
+        Assert.Equal(1, burgerLine.Quantity);
+        Assert.Equal(2, ketchupLine.Quantity);
+        Assert.True(burgerLine.TotalPrice >= 9.80m && burgerLine.TotalPrice <= 10.00m);
+        Assert.True(ketchupLine.TotalPrice >= 0.98m && ketchupLine.TotalPrice <= 1.12m);
+        Assert.True(receipt.GrandTotal >= 10.80m && receipt.GrandTotal <= 12.00m);
+    }
+
     [Fact]
     public async Task GetReceiptData_FromPaymentCreatedWithModifierIds_Phase3Ignores_ReturnsProductOnlyLine()
     {

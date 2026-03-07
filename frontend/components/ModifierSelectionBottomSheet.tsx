@@ -1,5 +1,5 @@
 /**
- * POS: Extras (Zutaten) seçim UI'ı – sadece "Edit" ile açılır, bilgi için modal yok.
+ * POS: Modern add-on selection (Square/Toast style). Source: group.products only. Structure: Product name/price then modifier groups then Add to cart. Radio when min=1 max=1; checkbox when max>1. seçim UI'ı – sadece "Edit" ile açılır, bilgi için modal yok.
  * Bottom sheet stilinde; "Fertig" ile seçimi uygular, sepete ekleme satırda yapılır.
  */
 import React, { useEffect, useState } from 'react';
@@ -15,9 +15,16 @@ import {
 import {
   getProductModifierGroups,
   type ModifierGroupDto,
-  type ModifierDto,
+  type AddOnGroupProductItemDto,
 } from '../services/api/productModifiersService';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography } from '../constants/SoftTheme';
+
+/** Single choice = radio (min=1, max=1); multi = checkbox. */
+function isSingleChoiceGroup(g: ModifierGroupDto): boolean {
+  const min = g.minSelections ?? 0;
+  const max = g.maxSelections;
+  return min === 1 && max === 1;
+}
 
 export interface SelectedModifier {
   id: string;
@@ -30,13 +37,15 @@ interface ModifierSelectionBottomSheetProps {
   productId: string;
   productName: string;
   productPrice: number;
-  /** Katalogdan gelirse fetch atlanır. */
+  /** Catalog-first: pass product.modifierGroups to avoid extra API call. */
   modifierGroups?: ModifierGroupDto[] | null;
   /** Başlangıçta seçili modifier'lar (pending state'ten) */
   initialSelected?: SelectedModifier[];
   onClose: () => void;
-  /** Seçimi uygula – parent pending state'i günceller */
-  onApply: (selected: SelectedModifier[]) => void;
+  /** Legacy: modifier seçimi uygula (satıra bağlı). */
+  onApply?: (selected: SelectedModifier[]) => void;
+  /** Primary: add-on product seçimi – her biri sepette ayrı satır (flat cart). */
+  onApplyAddOns?: (addOns: { productId: string; productName: string; price: number }[]) => void;
 }
 
 export function ModifierSelectionBottomSheet({
@@ -48,19 +57,23 @@ export function ModifierSelectionBottomSheet({
   initialSelected = [],
   onClose,
   onApply,
+  onApplyAddOns,
 }: ModifierSelectionBottomSheetProps) {
   const [groups, setGroups] = useState<ModifierGroupDto[]>([]);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Katalogdan gelen gruplar varsa fetch yok; yoksa tek seferlik getProductModifierGroups (modal açıldığında)
   useEffect(() => {
     if (!visible || !productId) {
       setGroups([]);
+      setFetchError(false);
       setSelectedIds(new Set());
       return;
     }
     setSelectedIds(new Set(initialSelected.map((m) => m.id)));
+    setFetchError(false);
     if (Array.isArray(modifierGroupsProp) && modifierGroupsProp.length > 0) {
       setGroups(modifierGroupsProp);
       setLoading(false);
@@ -70,10 +83,16 @@ export function ModifierSelectionBottomSheet({
     setLoading(true);
     getProductModifierGroups(productId)
       .then((data) => {
-        if (!cancelled) setGroups(data);
+        if (!cancelled) {
+          setGroups(data);
+          setFetchError(false);
+        }
       })
       .catch(() => {
-        if (!cancelled) setGroups([]);
+        if (!cancelled) {
+          setGroups([]);
+          setFetchError(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -83,32 +102,49 @@ export function ModifierSelectionBottomSheet({
     };
   }, [visible, productId, modifierGroupsProp]);
 
-  const toggleModifier = (m: ModifierDto) => {
+  const toggleProduct = (group: ModifierGroupDto, p: AddOnGroupProductItemDto) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(m.id)) next.delete(m.id);
-      else next.add(m.id);
+      const id = p.productId;
+      const productIdsInGroup = (group.products ?? []).map((x) => x.productId);
+      if (isSingleChoiceGroup(group)) {
+        productIdsInGroup.forEach((pid) => next.delete(pid));
+        if (!next.has(id)) next.add(id);
+        return next;
+      }
+      if (next.has(id)) {
+        next.delete(id);
+        return next;
+      }
+      const max = group.maxSelections ?? Infinity;
+      const countInGroup = productIdsInGroup.filter((pid) => next.has(pid)).length;
+      if (countInGroup >= max) return prev;
+      next.add(id);
       return next;
     });
   };
 
-  const getSelectedModifiers = (): SelectedModifier[] => {
-    const out: SelectedModifier[] = [];
+  const getSelectedAddOns = (): { productId: string; productName: string; price: number }[] => {
+    const out: { productId: string; productName: string; price: number }[] = [];
     for (const g of groups) {
-      for (const m of g.modifiers) {
-        if (selectedIds.has(m.id)) out.push({ id: m.id, name: m.name, price: Number(m.price) });
+      for (const p of g.products ?? []) {
+        if (selectedIds.has(p.productId)) out.push({ productId: p.productId, productName: p.productName, price: Number(p.price) });
       }
     }
     return out;
   };
 
+  /** Phase C: only add-on products; legacy modifier selection removed. */
   const handleApply = () => {
-    onApply(getSelectedModifiers());
+    const addOns = getSelectedAddOns();
+    if (addOns.length > 0 && onApplyAddOns) onApplyAddOns(addOns);
+    if (onApply) onApply([]);
     onClose();
   };
 
-  const modifierTotal = getSelectedModifiers().reduce((s, m) => s + m.price, 0);
-  const lineTotal = productPrice + modifierTotal;
+  const addOnTotal = getSelectedAddOns().reduce((s, a) => s + a.price, 0);
+  const extrasTotal = addOnTotal;
+  const lineTotal = productPrice + extrasTotal;
 
   return (
     <Modal
@@ -130,46 +166,59 @@ export function ModifierSelectionBottomSheet({
               <ActivityIndicator size="small" color={SoftColors.accent} />
               <Text style={styles.loadingText}>Extras werden geladen…</Text>
             </View>
-          ) : groups.length === 0 ? (
+          ) : fetchError ? (
             <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>Keine Extras für dieses Produkt.</Text>
-              <Text style={styles.emptySub}>Fertig tippen zum Schließen.</Text>
+              <Text style={styles.emptyText}>Fehler beim Laden der Extras.</Text>
+              <Text style={styles.emptySub}>Bitte erneut versuchen oder schließen.</Text>
             </View>
-          ) : (
-            <ScrollView
-              style={styles.scroll}
-              contentContainerStyle={styles.scrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {groups.map((group) => (
-                <View key={group.id} style={styles.group}>
-                  <Text style={styles.groupName}>{group.name}</Text>
-                  {group.modifiers.map((m) => {
-                    const checked = selectedIds.has(m.id);
-                    return (
-                      <Pressable
-                        key={m.id}
-                        style={[styles.modifierRow, checked && styles.modifierRowChecked]}
-                        onPress={() => toggleModifier(m)}
-                      >
-                        <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                          {checked && <Text style={styles.checkmark}>✓</Text>}
-                        </View>
-                        <Text style={styles.modifierName} numberOfLines={1}>{m.name}</Text>
-                        <Text style={styles.modifierPrice}>€{Number(m.price).toFixed(2)}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ))}
-            </ScrollView>
-          )}
+          ) : (() => {
+            const groupsWithProducts = groups.filter((g) => (g.products ?? []).length > 0);
+            return groupsWithProducts.length === 0 ? (
+              <View style={styles.emptyWrap}>
+                <Text style={styles.emptyText}>Keine Extras für dieses Produkt.</Text>
+                <Text style={styles.emptySub}>Fertig tippen zum Schließen.</Text>
+              </View>
+            ) : (
+              <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {groupsWithProducts.map((group) => {
+                  const singleChoice = isSingleChoiceGroup(group);
+                  const minReq = group.minSelections ?? 0;
+                  const requiredLabel = group.isRequired ? ` (${minReq} erforderlich)` : '';
+                  return (
+                    <View key={group.id} style={styles.group}>
+                      <Text style={styles.groupName}>{group.name}{requiredLabel}</Text>
+                      {(group.products ?? []).map((p) => {
+                        const checked = selectedIds.has(p.productId);
+                        return (
+                          <Pressable
+                            key={p.productId}
+                            style={[styles.modifierRow, checked && styles.modifierRowChecked]}
+                            onPress={() => toggleProduct(group, p)}
+                          >
+                            <View style={[singleChoice ? styles.radio : styles.checkbox, checked && (singleChoice ? styles.radioChecked : styles.checkboxChecked)]}>
+                              {checked && <Text style={styles.checkmark}>✓</Text>}
+                            </View>
+                            <Text style={styles.modifierName} numberOfLines={1}>{p.productName}</Text>
+                            <Text style={styles.modifierPrice}>€{Number(p.price).toFixed(2)}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            );
+          })()}
 
           <View style={styles.footer}>
             {selectedIds.size > 0 && (
               <Text style={styles.totalLine}>
-                + Extras: €{modifierTotal.toFixed(2)} → Gesamt: €{lineTotal.toFixed(2)}
+                + Extras: €{extrasTotal.toFixed(2)} → Gesamt: €{lineTotal.toFixed(2)}
               </Text>
             )}
             <View style={styles.buttons}>
@@ -276,6 +325,20 @@ const styles = StyleSheet.create({
   },
   modifierRowChecked: {
     backgroundColor: SoftColors.accentLight + '40',
+  },
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: SoftColors.border,
+    marginRight: SoftSpacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioChecked: {
+    backgroundColor: SoftColors.accent,
+    borderColor: SoftColors.accent,
   },
   checkbox: {
     width: 24,

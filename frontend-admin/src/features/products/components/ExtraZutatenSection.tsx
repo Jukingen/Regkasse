@@ -1,12 +1,13 @@
 'use client';
 
 /**
- * Product Form: „Vorgeschlagene Add-on-Gruppen“ – products-basiert read-only, Modifiers Legacy.
- * Grupları checkbox ile listeler; açıldığında Produkte (Preis/MwSt. aus Product) read-only, optional Modifier (Legacy).
+ * Product Form: Add-on-Gruppen für dieses Produkt auswählen.
+ * Product → ModifierGroup: welche Gruppen für dieses Produkt wählbar sind.
+ * Add-on-Produkte pro Gruppe werden unter „Add-on-Gruppen“ verwaltet (nicht hier).
  */
 
 import React from 'react';
-import { Checkbox, Collapse, Spin, Typography } from 'antd';
+import { Alert, Checkbox, Collapse, Spin, Typography } from 'antd';
 import type { ModifierGroupDto, AddOnGroupProductItemDto } from '@/lib/api/modifierGroups';
 
 const { Text } = Typography;
@@ -22,6 +23,11 @@ export interface ExtraZutatenSectionProps {
   loading?: boolean;
 }
 
+/** API yanıtında id veya Id gelebilir; her iki durumda da string döndür. */
+function getGroupId(g: ModifierGroupDto): string {
+  return String((g as { id?: string; Id?: string }).id ?? (g as { id?: string; Id?: string }).Id ?? '');
+}
+
 export default function ExtraZutatenSection({
   groups,
   selectedGroupIds,
@@ -29,6 +35,7 @@ export default function ExtraZutatenSection({
   loading,
 }: ExtraZutatenSectionProps) {
   const toggleGroup = (groupId: string, checked: boolean) => {
+    if (!groupId) return;
     if (checked) {
       onChange([...selectedGroupIds, groupId]);
     } else {
@@ -36,18 +43,28 @@ export default function ExtraZutatenSection({
     }
   };
 
+  const emptySelectedGroups = groups.filter(
+    (g) => selectedGroupIds.includes(getGroupId(g)) && ((g.products ?? []).length === 0)
+  );
+
   const items = groups.map((group) => {
+    const gid = getGroupId(group);
     const products: AddOnGroupProductItemDto[] = group.products ?? [];
     const modifiers = group.modifiers ?? [];
+    const productCount = products.length;
+    const countLabel = productCount === 0 ? 'leer' : `${productCount} Produkt${productCount !== 1 ? 'e' : ''}`;
     return {
-      key: group.id,
+      key: gid,
       label: (
         <Checkbox
-          checked={selectedGroupIds.includes(group.id)}
-          onChange={(e) => toggleGroup(group.id, e.target.checked)}
+          checked={selectedGroupIds.includes(gid)}
+          onChange={(e) => toggleGroup(gid, e.target.checked)}
           onClick={(e) => e.stopPropagation()}
         >
           <Text strong>{group.name}</Text>
+          <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+            ({countLabel})
+          </Text>
         </Checkbox>
       ),
       children: (
@@ -99,9 +116,26 @@ export default function ExtraZutatenSection({
 
   return (
     <div style={{ marginTop: 8 }}>
+      {emptySelectedGroups.length > 0 && (
+        <Alert
+          type="warning"
+          showIcon
+          message="Leere Gruppen ausgewählt"
+          description={
+            <>
+              {emptySelectedGroups.map((g) => (
+                <div key={getGroupId(g)} style={{ marginBottom: 4 }}>
+                  Die Gruppe „{g.name}" enthält keine Add-on-Produkte. Im POS erscheinen keine Extras für diese Gruppe. Fügen Sie unter „Add-on-Gruppen" Produkte hinzu.
+                </div>
+              ))}
+            </>
+          }
+          style={{ marginBottom: 12 }}
+        />
+      )}
       <Collapse
         items={items}
-        defaultActiveKey={selectedGroupIds.length > 0 ? selectedGroupIds : [groups[0]?.id].filter(Boolean)}
+        defaultActiveKey={selectedGroupIds.length > 0 ? selectedGroupIds : (groups[0] ? [getGroupId(groups[0])] : [])}
         style={{ background: '#fafafa' }}
       />
     </div>

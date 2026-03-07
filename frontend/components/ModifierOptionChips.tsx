@@ -23,6 +23,8 @@ interface ModifierOptionChipsProps {
   loading?: boolean;
   /** true = product list: no [-] qty [+], only selectable chips; false = cart: full stepper */
   hideQuantityStepper?: boolean;
+  /** Optional group label (e.g. "Saucen"); defaults to "Extras" */
+  label?: string;
 }
 
 const LABEL_EXTRAS = 'Extras';
@@ -36,13 +38,14 @@ export function ModifierOptionChips({
   onRemove,
   loading = false,
   hideQuantityStepper = false,
+  label = LABEL_EXTRAS,
 }: ModifierOptionChipsProps) {
   const selectedById = new Map(selectedModifiers.map((m) => [m.id, m]));
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.label}>{LABEL_EXTRAS}</Text>
+        <Text style={styles.label}>{label}</Text>
         <ActivityIndicator size="small" color={SoftColors.accent} style={styles.loader} />
       </View>
     );
@@ -52,7 +55,7 @@ export function ModifierOptionChips({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{LABEL_EXTRAS}</Text>
+      <Text style={styles.label}>{label}</Text>
       <View style={styles.rows}>
         {modifiers.map((m) => {
           const selected = selectedById.get(m.id);

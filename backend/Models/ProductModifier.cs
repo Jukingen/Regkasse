@@ -5,6 +5,10 @@ namespace KasseAPI_Final.Models
 {
     /// <summary>
     /// Tekil modifier (örn. Ketchup, Mayo, Extra Fleisch). Bir gruba bağlıdır.
+    /// DEPRECATED: Add-on = Product (IsSellableAddOn) is the active model. This entity is kept for:
+    /// - Historical data (old receipts, audit)
+    /// - ModifierMigrationService (migrate to products)
+    /// - Read-only API responses (group.modifiers) until migration complete. Do not add new writes.
     /// </summary>
     [Table("product_modifiers")]
     public class ProductModifier : BaseEntity

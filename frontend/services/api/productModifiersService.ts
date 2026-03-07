@@ -1,5 +1,8 @@
 /**
  * POS: Ürün modifier grupları (Extra Zutaten). Cache ile gereksiz fetch önlenir.
+ *
+ * LEGACY: group.modifiers = deprecated (read-only for historical data; Phase D will remove from API).
+ * Phase C: POS uses only group.products for add-on UI. Add-on = Product is the only active model.
  */
 import { apiClient } from './config';
 import { API_PATHS } from './apiPaths';

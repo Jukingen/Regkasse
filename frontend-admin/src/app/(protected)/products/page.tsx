@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { keepPreviousData } from '@tanstack/react-query';
+import { keepPreviousData, useQueryClient } from '@tanstack/react-query';
 import { Button, Table, Space, message, Tag, Input, Popconfirm, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import { useProducts, useProductFilters } from '@/features/products/hooks/useProducts';
@@ -45,6 +45,7 @@ export default function ProductsPage() {
     }, [filters.page, filters.pageSize]); */
 
     // 2. React Query Hooks
+    const queryClient = useQueryClient();
     const {
         useList,
         useCreate,
@@ -116,6 +117,7 @@ export default function ProductsPage() {
             const createdId = result?.id;
             if (createdId && values.modifierGroupIds?.length) {
                 await setProductModifierGroups(createdId, values.modifierGroupIds);
+                queryClient.invalidateQueries({ queryKey: ['modifier-groups'] });
             }
             message.success('Product created successfully');
             setIsFormVisible(false);
@@ -134,6 +136,7 @@ export default function ProductsPage() {
             const result = await updateMutation.mutateAsync({ id: editingProduct.id, data: apiData as Product });
             if (values.modifierGroupIds !== undefined) {
                 await setProductModifierGroups(editingProduct.id, values.modifierGroupIds);
+                queryClient.invalidateQueries({ queryKey: ['modifier-groups'] });
             }
             if (result?.fromPayload) {
                 message.success('Saved. List will refresh.');

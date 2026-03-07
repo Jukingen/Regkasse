@@ -1,5 +1,5 @@
 /**
- * POS ürün satırı: tek tıkla sepete ekleme (one-tap add). Extras: Faz 1 products (ayrı satır) + Legacy modifiers (satıra bağlı).
+ * POS ürün satırı: tek tıkla sepete ekleme (one-tap add). Extras: group.products only (Phase C; legacy modifiers removed).
  * Memoized: re-renders only when product.id or selected modifiers (ids+prices) change.
  */
 import React, { memo, useMemo } from 'react';
@@ -7,7 +7,6 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Product } from '../services/api/productService';
 import { ModifierOptionChips, type ModifierOptionItem } from './ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
-import type { AddOnGroupProductItemDto } from '../services/api/productModifiersService';
 
 export interface ModifierChipItem {
   id: string;
@@ -47,23 +46,12 @@ function ProductRowInner({
   getCategoryEmoji = () => '📦',
 }: ProductRowProps) {
   const groups = product.modifierGroups ?? [];
-  const allAddOnProducts: AddOnGroupProductItemDto[] = useMemo(
-    () => groups.flatMap((g) => g.products ?? []),
+  /** Phase C: only groups with add-on products (group.products). Legacy group.modifiers removed. */
+  const groupsWithProducts = useMemo(
+    () => groups.filter((g) => (g.products ?? []).length > 0),
     [product.modifierGroups]
   );
-  /** Primary: group.products. Fallback: group.modifiers only for groups with no products (legacy). */
-  const allModifiers: ModifierOptionItem[] = useMemo(
-    () =>
-      groups.flatMap((g) => {
-        const prods = g.products ?? [];
-        if (prods.length > 0) return [];
-        return (g.modifiers ?? []).map((m) => ({ id: m.id, name: m.name, price: Number(m.price) }));
-      }),
-    [product.modifierGroups]
-  );
-  const hasAddOnProducts = allAddOnProducts.length > 0;
-  const hasModifiers = allModifiers.length > 0;
-  const hasExtras = hasAddOnProducts || hasModifiers;
+  const hasAddOnProducts = groupsWithProducts.length > 0;
 
   const handleRowPress = () => {
     onAdd(product, pendingModifiers);
@@ -90,24 +78,17 @@ function ProductRowInner({
             </View>
           </View>
 
-          {hasAddOnProducts && onAddAddOn && (
+          {hasAddOnProducts && onAddAddOn && groupsWithProducts.map((group) => (
             <ModifierOptionChips
-              modifiers={allAddOnProducts.map((p) => ({ id: p.productId, name: p.productName, price: p.price }))}
+              key={group.id}
+              label={group.name}
+              modifiers={(group.products ?? []).map((p) => ({ id: p.productId, name: p.productName, price: p.price }))}
               selectedModifiers={[]}
               onAdd={(m) => onAddAddOn({ productId: m.id, productName: m.name, price: m.price })}
               hideQuantityStepper
               loading={false}
             />
-          )}
-          {hasModifiers && (
-            <ModifierOptionChips
-              modifiers={allModifiers}
-              selectedModifiers={pendingModifiers.map((m) => ({ ...m, quantity: m.quantity ?? 1 }))}
-              onAdd={(m) => onAddModifier(product, m)}
-              hideQuantityStepper
-              loading={false}
-            />
-          )}
+          ))}
         </View>
       </View>
     </Pressable>

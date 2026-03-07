@@ -44,7 +44,8 @@ export function useProductModifierGroups(productId: string | null): UseProductMo
     fetchGroups();
   }, [productId, fetchGroups]);
 
-  const hasModifiers = groups.some((g) => (g.modifiers?.length ?? 0) > 0);
+  /** Phase C: add-ons only from group.products (legacy group.modifiers fallback removed). */
+  const hasModifiers = groups.some((g) => (g.products?.length ?? 0) > 0);
 
   return { groups, loading, hasModifiers, refetch: fetchGroups };
 }

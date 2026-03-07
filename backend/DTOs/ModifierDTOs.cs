@@ -44,6 +44,8 @@ namespace KasseAPI_Final.DTOs
         public decimal Price { get; set; }
         public int TaxType { get; set; }
         public int SortOrder { get; set; }
+        /// <summary>Admin: false = migriert/deaktiviert, in UI als „migriert“ anzeigen.</summary>
+        public bool IsActive { get; set; } = true;
     }
 
     /// <summary>

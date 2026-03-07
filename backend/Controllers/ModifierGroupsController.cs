@@ -5,6 +5,7 @@ using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -17,11 +18,13 @@ namespace KasseAPI_Final.Controllers
     public class ModifierGroupsController : BaseController
     {
         private readonly AppDbContext _context;
+        private readonly IModifierMigrationService _modifierMigrationService;
 
-        public ModifierGroupsController(AppDbContext context, ILogger<ModifierGroupsController> logger)
+        public ModifierGroupsController(AppDbContext context, IModifierMigrationService modifierMigrationService, ILogger<ModifierGroupsController> logger)
             : base(logger)
         {
             _context = context;
+            _modifierMigrationService = modifierMigrationService;
         }
 
         /// <summary>
@@ -36,7 +39,7 @@ namespace KasseAPI_Final.Controllers
                     .Where(g => g.IsActive)
                     .OrderBy(g => g.SortOrder)
                     .ThenBy(g => g.Name)
-                    .Include(g => g.Modifiers.Where(m => m.IsActive))
+                    .Include(g => g.Modifiers)
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)
                     .ToListAsync();
@@ -63,7 +66,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var group = await _context.ProductModifierGroups
-                    .Include(g => g.Modifiers.Where(m => m.IsActive))
+                    .Include(g => g.Modifiers)
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)
                     .FirstOrDefaultAsync(g => g.Id == id);
@@ -238,15 +241,19 @@ namespace KasseAPI_Final.Controllers
                     var create = request.CreateNewAddOnProduct!;
                     if (!create.CategoryId.HasValue || create.CategoryId.Value == Guid.Empty)
                         return ErrorResponse("CategoryId is required when creating a new add-on product.", 400);
+                    if (create.Price < 0)
+                        return ErrorResponse("Price must be >= 0.", 400);
 
                     var category = await _context.Categories.FindAsync(create.CategoryId.Value);
                     if (category == null)
                         return ErrorResponse("Category not found.", 404);
 
+                    var name = create.Name ?? string.Empty;
                     var newProduct = new Product
                     {
                         Id = Guid.NewGuid(),
-                        Name = create.Name,
+                        Name = name,
+                        Description = name,
                         Price = Math.Round(create.Price, 2),
                         TaxType = create.TaxType,
                         Category = category.Name,
@@ -255,6 +262,7 @@ namespace KasseAPI_Final.Controllers
                         MinStockLevel = 0,
                         Unit = "Stk",
                         Barcode = "ADDON-" + Guid.NewGuid().ToString("N")[..12],
+                        Cost = 0,
                         IsActive = true,
                         IsSellableAddOn = true,
                         TaxRate = TaxTypes.GetTaxRate(create.TaxType),
@@ -296,6 +304,63 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>
+        /// Faz 1: Produkt aus Gruppe entfernen (nur die Zuordnung; Product bleibt erhalten).
+        /// </summary>
+        [HttpDelete("{groupId:guid}/products/{productId:guid}")]
+        public async Task<IActionResult> RemoveProductFromGroup(Guid groupId, Guid productId)
+        {
+            try
+            {
+                var link = await _context.AddOnGroupProducts
+                    .FirstOrDefaultAsync(a => a.ModifierGroupId == groupId && a.ProductId == productId);
+                if (link == null)
+                    return ErrorResponse("Product is not in this group.", 404);
+
+                _context.AddOnGroupProducts.Remove(link);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Product {ProductId} removed from modifier group {GroupId}.", productId, groupId);
+                return SuccessResponse(new { groupId, productId }, "Product removed from group.");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "ModifierGroups.RemoveProductFromGroup");
+            }
+        }
+
+        /// <summary>
+        /// Legacy-Modifier als Add-on-Produkt migrieren (FE-Admin "Als Produkt migrieren"). Idempotent.
+        /// </summary>
+        [HttpPost("{groupId:guid}/modifiers/{modifierId:guid}/migrate")]
+        public async Task<IActionResult> MigrateLegacyModifier(Guid groupId, Guid modifierId, [FromBody] MigrateSingleModifierRequestDto request, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (request == null || request.CategoryId == Guid.Empty)
+                    return ErrorResponse("CategoryId is required.", 400);
+                // Validate modifier belongs to group BEFORE migration (avoid migrating then rejecting).
+                var mod = await _context.ProductModifiers
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(m => m.Id == modifierId, cancellationToken);
+                if (mod == null)
+                    return ErrorResponse("Modifier not found.", 404);
+                if (mod.ModifierGroupId != groupId)
+                    return ErrorResponse("Modifier does not belong to this group.", 400);
+                // Use MigrateSingleByModifierIdAsync for transactional safety (Product + AddOnGroupProduct + modifier deactivation atomic).
+                var result = await _modifierMigrationService.MigrateSingleByModifierIdAsync(modifierId, request.CategoryId, request.MarkModifierInactive, cancellationToken);
+                return SuccessResponse(result, result.AlreadyMigrated ? "Already migrated." : "Modifier migrated to product.");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ErrorResponse(ex.Message, 400);
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "ModifierGroups.MigrateLegacyModifier");
+            }
+        }
+
         /// <summary>Legacy Modifiers + Faz 1 Products (AddOnGroupProduct → Product). Fiyat Product'tan.</summary>
         private static ModifierGroupDto MapToModifierGroupDto(ProductModifierGroup g)
         {
@@ -329,7 +394,8 @@ namespace KasseAPI_Final.Controllers
                         Name = m.Name,
                         Price = m.Price,
                         TaxType = m.TaxType,
-                        SortOrder = m.SortOrder
+                        SortOrder = m.SortOrder,
+                        IsActive = m.IsActive
                     }).ToList(),
                 Products = products
             };

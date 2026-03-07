@@ -52,7 +52,9 @@ export default function ProductForm({
                 ]);
                 if (cancelled) return;
                 setModifierGroups(allGroups);
-                setSelectedModifierGroupIds(assignedGroups.map((g) => g.id));
+                setSelectedModifierGroupIds(
+                    assignedGroups.map((g) => String((g as { id?: string; Id?: string }).id ?? (g as { id?: string; Id?: string }).Id ?? '')).filter(Boolean)
+                );
             } catch (e) {
                 if (!cancelled) {
                     message.error('Add-on-Gruppen konnten nicht geladen werden.');
@@ -173,6 +175,9 @@ export default function ProductForm({
             onOk={handleOk}
             onCancel={onCancel}
             confirmLoading={loading}
+            okButtonProps={{
+                disabled: !!initialValues && modifierGroupsLoading,
+            }}
             width={600}
             destroyOnClose
         >

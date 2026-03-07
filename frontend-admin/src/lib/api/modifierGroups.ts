@@ -12,6 +12,8 @@ export interface ModifierDto {
   price: number;
   taxType: number;
   sortOrder: number;
+  /** false = migriert/deaktiviert (Legacy-Modifier nach Migration). */
+  isActive?: boolean;
 }
 
 /** Faz 1: Grup içi Produkt-Referenz (Fiyat/vergi Product'tan). */
@@ -114,4 +116,38 @@ export async function addProductToGroup(
   );
   const data = res.data?.data ?? res.data;
   return data as AddOnGroupProductItemDto;
+}
+
+/** Produkt aus Gruppe entfernen (nur Zuordnung; Product bleibt erhalten). DELETE /api/modifier-groups/{groupId}/products/{productId} */
+export async function removeProductFromGroup(groupId: string, productId: string): Promise<void> {
+  await AXIOS_INSTANCE.delete(`/api/modifier-groups/${groupId}/products/${productId}`);
+}
+
+/** Legacy-Modifier als Add-on-Produkt migrieren ("Als Produkt migrieren"). Idempotent. */
+export interface MigrateLegacyModifierBody {
+  categoryId: string;
+  markModifierInactive?: boolean;
+}
+
+export interface MigrateLegacyModifierResult {
+  modifierId: string;
+  modifierName: string;
+  productId?: string;
+  productName: string;
+  groupId: string;
+  alreadyMigrated: boolean;
+  modifierMarkedInactive: boolean;
+}
+
+export async function migrateLegacyModifier(
+  groupId: string,
+  modifierId: string,
+  body: MigrateLegacyModifierBody
+): Promise<MigrateLegacyModifierResult> {
+  const res = await AXIOS_INSTANCE.post<ApiResponse<MigrateLegacyModifierResult>>(
+    `/api/modifier-groups/${groupId}/modifiers/${modifierId}/migrate`,
+    body
+  );
+  const data = res.data?.data ?? res.data;
+  return data as MigrateLegacyModifierResult;
 }

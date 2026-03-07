@@ -6,6 +6,8 @@ namespace KasseAPI_Final.Services
 {
     /// <summary>
     /// Validates product-modifier assignment and returns DB-backed modifier prices for fiscal safety.
+    /// LEGACY: PaymentService no longer writes modifiers (Phase 3); this is used only for legacy validation
+    /// and by ModifierMigrationService. New add-ons use Product (IsSellableAddOn).
     /// </summary>
     public class ProductModifierValidationService : IProductModifierValidationService
     {

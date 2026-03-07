@@ -190,6 +190,12 @@ namespace KasseAPI_Final.Controllers
                 var productDtos = activeProducts.Select(p => MapToCatalogProductDto(p, productToModifierGroups[p.Id])).ToList();
                 var catalogResponse = new CatalogResponseDto { Categories = categoryList, Products = productDtos };
 
+                var catalogGroupsWithLegacyCount = productDtos
+                    .SelectMany(p => p.ModifierGroups ?? [])
+                    .Count(g => g.Modifiers != null && g.Modifiers.Count > 0);
+                if (catalogGroupsWithLegacyCount > 0)
+                    _logger.LogInformation("Phase2.LegacyModifier.ModifierGroupDtoReturnedWithModifiers GetCatalog GroupsWithModifiersCount={GroupsWithModifiersCount} ProductsCount={ProductsCount}", catalogGroupsWithLegacyCount, productDtos.Count);
+
                 _logger.LogInformation("Catalog built: {CC} categories, {PC} products with modifier groups", categoryList.Count, productDtos.Count);
                 return SuccessResponse(catalogResponse, $"Retrieved catalog with {categoryList.Count} categories and {productDtos.Count} products");
             }
@@ -226,6 +232,7 @@ namespace KasseAPI_Final.Controllers
             };
         }
 
+        /// <summary>Primary: Products (add-on products). Secondary: Modifiers (legacy, read-only). POS uses group.products for add-on rendering.</summary>
         private static ModifierGroupDto MapToModifierGroupDto(ProductModifierGroup g)
         {
             var products = (g.AddOnGroupProducts ?? new List<AddOnGroupProduct>())
@@ -530,6 +537,10 @@ namespace KasseAPI_Final.Controllers
                     .ToList();
 
                 var dtos = ordered.Select(g => MapToModifierGroupDto(g)).ToList();
+
+                var productGroupsWithLegacyCount = dtos.Count(g => g.Modifiers != null && g.Modifiers.Count > 0);
+                if (productGroupsWithLegacyCount > 0)
+                    _logger.LogInformation("Phase2.LegacyModifier.ModifierGroupDtoReturnedWithModifiers GetProductModifierGroups ProductId={ProductId} GroupsWithModifiersCount={GroupsWithModifiersCount}", id, productGroupsWithLegacyCount);
 
                 return SuccessResponse(dtos, "Product modifier groups retrieved.");
             }

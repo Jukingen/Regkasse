@@ -56,6 +56,7 @@ namespace KasseAPI_Final.Data
 
         // Extra Zutaten (Product Modifiers)
         public DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
+        /// <summary>Legacy: product_modifiers table. Add-on = Product (AddOnGroupProduct) is active. Kept for migration/history.</summary>
         public DbSet<ProductModifier> ProductModifiers { get; set; }
         public DbSet<ProductModifierGroupAssignment> ProductModifierGroupAssignments { get; set; }
         /// <summary>Faz 1: Grup içi product referansları (suggested add-on); fiyat Product'ta.</summary>
