@@ -76,6 +76,8 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Role).HasMaxLength(20);
                 entity.Property(e => e.TaxNumber).HasMaxLength(20);
                 entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.DeactivatedBy).HasMaxLength(450);
+                entity.Property(e => e.DeactivationReason).HasMaxLength(500);
                 
                 entity.HasIndex(e => e.EmployeeNumber).IsUnique();
                 entity.HasIndex(e => e.TaxNumber).IsUnique();

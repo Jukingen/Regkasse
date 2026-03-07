@@ -35,6 +35,13 @@ namespace KasseAPI_Final.Services
             string? description = null, string? notes = null, AuditLogStatus status = AuditLogStatus.Success,
             string? errorDetails = null, object? requestData = null, object? responseData = null);
 
+        /// <summary>
+        /// User lifecycle audit: actor (who), target user, action, reason. For RKSV/DSGVO traceability.
+        /// </summary>
+        Task<AuditLog> LogUserLifecycleAsync(string action, string actorUserId, string actorRole,
+            string targetUserId, string? reason = null, string? correlationId = null,
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null);
+
         Task<IEnumerable<AuditLog>> GetAuditLogsAsync(DateTime? startDate = null, DateTime? endDate = null,
             string? userId = null, string? userRole = null, string? action = null, string? entityType = null,
             Guid? entityId = null, AuditLogStatus? status = null, int page = 1, int pageSize = 50);
@@ -311,6 +318,60 @@ namespace KasseAPI_Final.Services
             {
                 _logger.LogError(ex, "Failed to create user activity audit log for action {Action} by user {UserId}", 
                     action, userId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// User lifecycle audit: actor performs action on target user (e.g. deactivate, reactivate, role change).
+        /// </summary>
+        public async Task<AuditLog> LogUserLifecycleAsync(string action, string actorUserId, string actorRole,
+            string targetUserId, string? reason = null, string? correlationId = null,
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null)
+        {
+            try
+            {
+                var httpContext = _httpContextAccessor.HttpContext;
+                var sessionId = Guid.NewGuid().ToString();
+                var requestData = new { targetUserId, reason };
+
+                var auditLog = new AuditLog
+                {
+                    Id = Guid.NewGuid(),
+                    SessionId = sessionId,
+                    UserId = actorUserId,
+                    UserRole = actorRole,
+                    Action = action,
+                    EntityType = AuditLogEntityTypes.USER,
+                    EntityId = null,
+                    EntityName = targetUserId,
+                    OldValues = null,
+                    NewValues = null,
+                    RequestData = JsonSerializer.Serialize(requestData),
+                    ResponseData = null,
+                    Status = status,
+                    Timestamp = DateTime.UtcNow,
+                    Description = description ?? $"User lifecycle: {action} on user {targetUserId}",
+                    Notes = reason,
+                    IpAddress = GetClientIpAddress(httpContext),
+                    UserAgent = GetUserAgent(httpContext),
+                    Endpoint = httpContext?.Request.Path,
+                    HttpMethod = httpContext?.Request.Method,
+                    HttpStatusCode = httpContext?.Response.StatusCode,
+                    CorrelationId = correlationId ?? Guid.NewGuid().ToString()
+                };
+
+                _context.AuditLogs.Add(auditLog);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("User lifecycle audit: {Action} on user {TargetUserId} by {ActorUserId}",
+                    action, targetUserId, actorUserId);
+
+                return auditLog;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create user lifecycle audit for {Action} on {TargetUserId}", action, targetUserId);
                 throw;
             }
         }

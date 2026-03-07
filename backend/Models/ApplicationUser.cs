@@ -64,6 +64,18 @@ namespace KasseAPI_Final.Models
         
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }
+
+        // Deaktivasyon audit alanları (RKSV/DSGVO: kim, ne zaman, neden)
+        [Column("deactivated_at")]
+        public DateTime? DeactivatedAt { get; set; }
+
+        [Column("deactivated_by")]
+        [MaxLength(450)]
+        public string? DeactivatedBy { get; set; }
+
+        [Column("deactivation_reason")]
+        [MaxLength(500)]
+        public string? DeactivationReason { get; set; }
         
         // Navigation properties
         public virtual ICollection<CashRegister> CashRegisters { get; set; } = new List<CashRegister>();

@@ -154,6 +154,9 @@ namespace KasseAPI_Final.Models
         public const string USER_UPDATE = "USER_UPDATE";
         public const string USER_DELETE = "USER_DELETE";
         public const string USER_ROLE_CHANGE = "USER_ROLE_CHANGE";
+        public const string USER_DEACTIVATE = "USER_DEACTIVATE";
+        public const string USER_REACTIVATE = "USER_REACTIVATE";
+        public const string USER_PASSWORD_RESET = "USER_PASSWORD_RESET";
 
         // System operations
         public const string SYSTEM_CONFIG_UPDATE = "SYSTEM_CONFIG_UPDATE";

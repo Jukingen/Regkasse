@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 
@@ -17,29 +18,44 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IAuditLogService _auditLogService;
         private readonly ILogger<UserManagementController> _logger;
 
         public UserManagementController(
             AppDbContext context,
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
+            IAuditLogService auditLogService,
             ILogger<UserManagementController> logger)
         {
             _context = context;
             _userManager = userManager;
             _roleManager = roleManager;
+            _auditLogService = auditLogService;
             _logger = logger;
         }
+
+        private string? GetCurrentUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        private string GetCurrentUserRole() => User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
 
         // GET: api/usermanagement
         [HttpGet]
         [Authorize(Roles = "Administrator")]
-        public async Task<ActionResult<IEnumerable<UserInfo>>> GetUsers()
+        public async Task<ActionResult<IEnumerable<UserInfo>>> GetUsers(
+            [FromQuery] string? role = null,
+            [FromQuery] bool? isActive = true)
         {
             try
             {
-                var users = await _userManager.Users
-                    .Where(u => u.IsActive)
+                var query = _userManager.Users.AsQueryable();
+
+                if (isActive.HasValue)
+                    query = query.Where(u => u.IsActive == isActive.Value);
+
+                if (!string.IsNullOrWhiteSpace(role))
+                    query = query.Where(u => u.Role == role);
+
+                var users = await query
                     .Select(u => new UserInfo
                     {
                         Id = u.Id,
@@ -75,7 +91,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var user = await _userManager.FindByIdAsync(id);
-                if (user == null || !user.IsActive)
+                if (user == null)
                 {
                     return NotFound(new { message = "User not found" });
                 }
@@ -189,6 +205,15 @@ namespace KasseAPI_Final.Controllers
                     CreatedAt = user.CreatedAt
                 };
 
+                var actorId = GetCurrentUserId();
+                var actorRole = GetCurrentUserRole();
+                if (!string.IsNullOrEmpty(actorId))
+                {
+                    await _auditLogService.LogUserLifecycleAsync(
+                        AuditLogActions.USER_CREATE, actorId, actorRole, user.Id, null, null,
+                        AuditLogStatus.Success, $"User created: {user.UserName}");
+                }
+
                 return CreatedAtAction(nameof(GetUser), new { id = user.Id }, createdUserInfo);
             }
             catch (Exception ex)
@@ -211,10 +236,12 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var user = await _userManager.FindByIdAsync(id);
-                if (user == null || !user.IsActive)
+                if (user == null)
                 {
                     return NotFound(new { message = "User not found" });
                 }
+
+                var previousRole = user.Role;
 
                 // Email kontrol et (kendisi hariç)
                 if (!string.IsNullOrEmpty(request.Email) && request.Email != user.Email)
@@ -265,6 +292,22 @@ namespace KasseAPI_Final.Controllers
 
                 await _context.SaveChangesAsync();
 
+                var actorId = GetCurrentUserId();
+                var actorRole = GetCurrentUserRole();
+                if (!string.IsNullOrEmpty(actorId))
+                {
+                    await _auditLogService.LogUserLifecycleAsync(
+                        AuditLogActions.USER_UPDATE, actorId, actorRole, id, null, null,
+                        AuditLogStatus.Success, $"User updated: {user.UserName}");
+                    if (!string.IsNullOrEmpty(request.Role) && request.Role != previousRole)
+                    {
+                        await _auditLogService.LogUserLifecycleAsync(
+                            AuditLogActions.USER_ROLE_CHANGE, actorId, actorRole, id,
+                            $"Role changed from {previousRole} to {request.Role}", null,
+                            AuditLogStatus.Success, $"Role change: {previousRole} -> {request.Role}");
+                    }
+                }
+
                 return Ok(new { message = "User updated successfully" });
             }
             catch (Exception ex)
@@ -296,6 +339,15 @@ namespace KasseAPI_Final.Controllers
                 if (!result.Succeeded)
                 {
                     return BadRequest(new { message = "Failed to change password", errors = result.Errors });
+                }
+
+                var actorId = GetCurrentUserId();
+                var actorRole = GetCurrentUserRole();
+                if (!string.IsNullOrEmpty(actorId) && id == actorId)
+                {
+                    await _auditLogService.LogUserActivityAsync(
+                        AuditLogActions.USER_UPDATE, actorId, actorRole,
+                        description: "User changed own password", status: AuditLogStatus.Success);
                 }
 
                 return Ok(new { message = "Password changed successfully" });
@@ -332,6 +384,15 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Failed to reset password", errors = result.Errors });
                 }
 
+                var actorId = GetCurrentUserId();
+                var actorRole = GetCurrentUserRole();
+                if (!string.IsNullOrEmpty(actorId))
+                {
+                    await _auditLogService.LogUserLifecycleAsync(
+                        AuditLogActions.USER_PASSWORD_RESET, actorId, actorRole, id, null, null,
+                        AuditLogStatus.Success, "Administrator reset password");
+                }
+
                 return Ok(new { message = "Password reset successfully" });
             }
             catch (Exception ex)
@@ -341,7 +402,116 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // DELETE: api/usermanagement/{id}
+        // PUT: api/usermanagement/{id}/deactivate
+        [HttpPut("{id}/deactivate")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> DeactivateUser(string id, [FromBody] DeactivateUserRequest request)
+        {
+            try
+            {
+                if (request == null || string.IsNullOrWhiteSpace(request.Reason))
+                {
+                    return BadRequest(new { message = "Deactivation reason is required for audit compliance" });
+                }
+
+                var user = await _userManager.FindByIdAsync(id);
+                if (user == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                if (!user.IsActive)
+                {
+                    return BadRequest(new { message = "User is already deactivated" });
+                }
+
+                var currentUserId = GetCurrentUserId();
+                if (id == currentUserId)
+                {
+                    return BadRequest(new { message = "Cannot deactivate your own account" });
+                }
+
+                user.IsActive = false;
+                user.UpdatedAt = DateTime.UtcNow;
+                user.DeactivatedAt = DateTime.UtcNow;
+                user.DeactivatedBy = currentUserId;
+                user.DeactivationReason = request.Reason.Trim();
+
+                var result = await _userManager.UpdateAsync(user);
+                if (!result.Succeeded)
+                {
+                    return BadRequest(new { message = "Failed to deactivate user", errors = result.Errors });
+                }
+
+                var actorRole = GetCurrentUserRole();
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    await _auditLogService.LogUserLifecycleAsync(
+                        AuditLogActions.USER_DEACTIVATE, currentUserId, actorRole, id,
+                        request.Reason.Trim(), null, AuditLogStatus.Success,
+                        $"User deactivated: {user.UserName}. Reason: {request.Reason}");
+                }
+
+                return Ok(new { message = "User deactivated successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deactivating user {UserId}", id);
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // PUT: api/usermanagement/{id}/reactivate
+        [HttpPut("{id}/reactivate")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> ReactivateUser(string id, [FromBody] ReactivateUserRequest? request = null)
+        {
+            try
+            {
+                var user = await _userManager.FindByIdAsync(id);
+                if (user == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                if (user.IsActive)
+                {
+                    return BadRequest(new { message = "User is already active" });
+                }
+
+                user.IsActive = true;
+                user.UpdatedAt = DateTime.UtcNow;
+                user.DeactivatedAt = null;
+                user.DeactivatedBy = null;
+                user.DeactivationReason = null;
+
+                var result = await _userManager.UpdateAsync(user);
+                if (!result.Succeeded)
+                {
+                    return BadRequest(new { message = "Failed to reactivate user", errors = result.Errors });
+                }
+
+                var currentUserId = GetCurrentUserId();
+                var actorRole = GetCurrentUserRole();
+                var reason = request?.Reason?.Trim();
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    await _auditLogService.LogUserLifecycleAsync(
+                        AuditLogActions.USER_REACTIVATE, currentUserId, actorRole, id,
+                        reason, null, AuditLogStatus.Success,
+                        $"User reactivated: {user.UserName}" + (string.IsNullOrEmpty(reason) ? "" : $". Note: {reason}"));
+                }
+
+                return Ok(new { message = "User reactivated successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reactivating user {UserId}", id);
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // DELETE: api/usermanagement/{id} (soft-delete: deactivate without reason – prefer PUT deactivate for compliance)
         [HttpDelete("{id}")]
         [Authorize(Roles = "Administrator")]
         public async Task<IActionResult> DeleteUser(string id)
@@ -355,13 +525,13 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // Kendini silmeye çalışıyorsa engelle
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var currentUserId = GetCurrentUserId();
                 if (id == currentUserId)
                 {
                     return BadRequest(new { message = "Cannot delete your own account" });
                 }
 
-                // Soft delete
+                // Soft delete (no reason stored – for backward compatibility; prefer PUT deactivate with reason)
                 user.IsActive = false;
                 user.UpdatedAt = DateTime.UtcNow;
 
@@ -369,6 +539,15 @@ namespace KasseAPI_Final.Controllers
                 if (!result.Succeeded)
                 {
                     return BadRequest(new { message = "Failed to delete user", errors = result.Errors });
+                }
+
+                var actorRole = GetCurrentUserRole();
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    await _auditLogService.LogUserLifecycleAsync(
+                        AuditLogActions.USER_DEACTIVATE, currentUserId, actorRole, id,
+                        "Legacy DELETE (no reason)", null, AuditLogStatus.Success,
+                        $"User deactivated via DELETE: {user.UserName}");
                 }
 
                 return Ok(new { message = "User deleted successfully" });
@@ -579,5 +758,20 @@ namespace KasseAPI_Final.Controllers
         [Required]
         [MaxLength(50)]
         public string Name { get; set; } = string.Empty;
+    }
+
+    /// <summary>RKSV/DSGVO: Deaktivasyon nedeni zorunlu (audit trail).</summary>
+    public class DeactivateUserRequest
+    {
+        [Required]
+        [MinLength(1)]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    public class ReactivateUserRequest
+    {
+        [MaxLength(500)]
+        public string? Reason { get; set; }
     }
 }

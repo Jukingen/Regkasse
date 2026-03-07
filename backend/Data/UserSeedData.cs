@@ -46,8 +46,9 @@ namespace KasseAPI_Final.Data
                 
                 if (result.Succeeded)
                 {
+                    await userManager.AddToRoleAsync(adminUser, "Administrator");
                     await userManager.AddToRoleAsync(adminUser, "Admin");
-                    Console.WriteLine("Admin user created successfully");
+                    Console.WriteLine("Admin user created successfully (roles: Administrator, Admin)");
                 }
                 else
                 {

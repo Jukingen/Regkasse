@@ -123,6 +123,16 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Authorization policies – role-based (backend only; FE cannot be trusted)
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminUsers", policy =>
+        policy.RequireRole("Administrator"));
+});
+
+// Session invalidation on critical account changes (stub until RefreshToken table exists)
+builder.Services.AddScoped<IUserSessionInvalidation, StubUserSessionInvalidation>();
+
 // CORS politikası
 builder.Services.AddCors(options =>
 {
