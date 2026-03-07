@@ -5,6 +5,7 @@
 import React, { memo, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Product } from '../services/api/productService';
+import type { AddOnSelection } from '../services/api/productModifiersService';
 import { ModifierOptionChips } from './ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
 import type { OnAddAddOn } from './ProductRow';
@@ -30,8 +31,10 @@ interface ProductGridCardProps {
   pendingModifiers: ModifierChipItem[];
   onAdd: (product: Product, modifiers: ModifierChipItem[]) => void;
   onAddModifier: (product: Product, modifier: ModifierOptionItem) => void;
-  /** Faz 1: Sellable add-on seçildiğinde ayrı satır ekle. */
+  /** Add-on product selected → add one cart line. */
   onAddAddOn?: OnAddAddOn;
+  /** When product has add-on groups, open bottom sheet (base + add-ons as flat cart). */
+  onOpenAddOnSheet?: (product: Product) => void;
   getCategoryEmoji?: (category?: string) => string;
 }
 
@@ -41,6 +44,7 @@ function ProductGridCardInner({
   onAdd,
   onAddModifier,
   onAddAddOn,
+  onOpenAddOnSheet,
   getCategoryEmoji = () => '📦',
 }: ProductGridCardProps) {
   const groups = product.modifierGroups ?? [];
@@ -51,10 +55,15 @@ function ProductGridCardInner({
   );
   const hasAddOnProducts = groupsWithProducts.length > 0;
 
+  const handlePress = () => {
+    if (hasAddOnProducts && onOpenAddOnSheet) onOpenAddOnSheet(product);
+    else onAdd(product, pendingModifiers);
+  };
+
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      onPress={() => onAdd(product, pendingModifiers)}
+      onPress={handlePress}
     >
       <View style={styles.imageWrapper}>
         <Text style={styles.emoji}>{getCategoryEmoji(product.productCategory || product.category)}</Text>

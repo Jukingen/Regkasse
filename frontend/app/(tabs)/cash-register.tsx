@@ -1,14 +1,11 @@
 // =============================================================================
-// POS Ana Ekran (Cash Register) – maximum cashier speed, minimal taps
+// POS Cash Register – maximum cashier speed, minimal taps
 // =============================================================================
-// UX rule: Tap product row => instantly add 1 item to cart (always).
-// If product has modifiers, show inline Extras under that row. Extras apply to
-// the most recently added cart line: lastCartItemIdByProductId[productId].
-// Tapping a chip toggles that line's modifiers (optimistic update + API). Same product again = new active line.
-//
-// State: cart.items[] with modifiers; lastCartItemIdByProductId derived from cart;
-// pendingModifiersByProduct only when no cart line exists for that product.
-// Modifiers included in final payment payload.
+// UX: Tap product row => add to cart. Products with add-on groups (group.products)
+//     open ModifierSelectionBottomSheet; on Fertig → base + add-ons as flat cart lines.
+//     Products without add-on groups add directly. Inline chips (legacy path) still
+//     supported for existing cart lines. State: cart (context), modifierSheetProduct (sheet),
+//     pendingModifiersByProduct (legacy chip state).
 // =============================================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -17,6 +14,7 @@ import { SafeAreaView, StyleSheet, View, Text } from 'react-native';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
 import { TableSelector } from '../../components/TableSelector';
 import { ProductList } from '../../components/ProductList';
+import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
 import CategoryFilter from '../../components/CategoryFilter';
@@ -30,6 +28,7 @@ import { useProductsUnified } from '../../hooks/useProductsUnified';
 import { useCart } from '../../contexts/CartContext';
 
 import { Product } from '../../services/api/productService';
+import type { AddOnSelection } from '../../services/api/productModifiersService';
 import type { ModifierOptionItem } from '../../components/ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftTypography } from '../../constants/SoftTheme';
 
@@ -108,7 +107,7 @@ function usePOSOrderFlow(
 
   /** Faz 1: Sellable add-on tıklandığında sepette ayrı satır; modifier state’e gitmez. */
   const handleAddAddOn = useCallback(
-    async (addOn: { productId: string; productName: string; price: number }) => {
+    async (addOn: AddOnSelection) => {
       if (!activeTableId) {
         addToast('error', 'Bitte zuerst Tisch wählen', 3000);
         return;
@@ -174,6 +173,7 @@ export default function CashRegisterScreen() {
     error: cartError,
     switchTable,
     addItem,
+    addItemWithAddOns,
     increment,
     decrement,
     remove,
@@ -192,6 +192,8 @@ export default function CashRegisterScreen() {
 
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
+  const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
 
   const cart = getCartForTable(activeTableId);
 
@@ -248,6 +250,19 @@ export default function CashRegisterScreen() {
     });
     return out;
   }, [lastCartItemModifiersByProductId, pendingModifiersByProduct]);
+
+  const handleApplyWithBase = useCallback(
+    async (base: { productId: string; productName: string; price: number }, addOns: { productId: string; productName: string; price: number }[]) => {
+      try {
+        await addItemWithAddOns(base.productId, base.productName, base.price, addOns);
+        addToast('success', `${base.productName} hinzugefügt`, 2000);
+      } catch (e: any) {
+        addToast('error', e?.message ?? 'Fehler beim Hinzufügen', 3000);
+      }
+      setModifierSheetProduct(null);
+    },
+    [addItemWithAddOns, addToast]
+  );
 
   // Masa badge counter için cartsByTable'dan Map türet (anlık güncelleme için tek kaynak)
   // Boş masalar dahil tüm entry'ler eklenir; Clear All sonrası badge 0 olur
@@ -439,6 +454,19 @@ export default function CashRegisterScreen() {
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
+      {/* Add-on selection bottom sheet: base + add-ons as flat cart lines */}
+      {modifierSheetProduct && (
+        <ModifierSelectionBottomSheet
+          visible={true}
+          productId={modifierSheetProduct.id}
+          productName={modifierSheetProduct.name}
+          productPrice={modifierSheetProduct.price ?? 0}
+          modifierGroups={modifierSheetProduct.modifierGroups ?? undefined}
+          onClose={() => setModifierSheetProduct(null)}
+          onApplyWithBase={handleApplyWithBase}
+        />
+      )}
+
       {/* Header */}
       <CashRegisterHeader
         selectedTable={activeTableId}
@@ -454,6 +482,7 @@ export default function CashRegisterScreen() {
         onAddProduct={handleAddProduct}
         onAddModifier={handleAddModifier}
         onAddAddOn={handleAddAddOn}
+        onOpenAddOnSheet={setModifierSheetProduct}
         showStockInfo={false}
         showTaxInfo={true}
         ListHeaderComponent={

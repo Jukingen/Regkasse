@@ -1,6 +1,7 @@
 /**
  * Add-on flow unit tests: group.products only (Phase C; legacy group.modifiers fallback removed).
- * Pure logic tests – no project imports to avoid TS/build issues.
+ * Pure logic replicates for ProductRow/GridCard and cart line total.
+ * Modifier selection helper tests live in __tests__/modifierSelectionUtils.test.ts.
  */
 
 interface ModifierDto {

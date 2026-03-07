@@ -5,6 +5,7 @@
 import React, { memo, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Product } from '../services/api/productService';
+import type { AddOnSelection } from '../services/api/productModifiersService';
 import { ModifierOptionChips, type ModifierOptionItem } from './ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
 
@@ -15,16 +16,18 @@ export interface ModifierChipItem {
   quantity?: number;
 }
 
-/** Faz 1: Add-on tıklandığında sepette ayrı satır (addItem(productId, 1)). */
-export type OnAddAddOn = (addOn: { productId: string; productName: string; price: number }) => void;
+/** Add-on product selected (chip tap). Adds one cart line: addItem(productId, 1, { productName, unitPrice }). */
+export type OnAddAddOn = (addOn: AddOnSelection) => void;
 
 interface ProductRowProps {
   product: Product;
   pendingModifiers: ModifierChipItem[];
   onAdd: (product: Product, modifiers: ModifierChipItem[]) => void;
   onAddModifier: (product: Product, modifier: ModifierOptionItem) => void;
-  /** Faz 1: Sellable add-on seçildiğinde ayrı satır ekle (modifier state’e gitmez). */
+  /** Add-on product selected → one cart line (no modifier state). */
   onAddAddOn?: OnAddAddOn;
+  /** When product has add-on groups, open bottom sheet (base + add-ons as flat cart). */
+  onOpenAddOnSheet?: (product: Product) => void;
   getCategoryEmoji?: (category?: string) => string;
 }
 
@@ -43,6 +46,7 @@ function ProductRowInner({
   onAdd,
   onAddModifier,
   onAddAddOn,
+  onOpenAddOnSheet,
   getCategoryEmoji = () => '📦',
 }: ProductRowProps) {
   const groups = product.modifierGroups ?? [];
@@ -54,7 +58,8 @@ function ProductRowInner({
   const hasAddOnProducts = groupsWithProducts.length > 0;
 
   const handleRowPress = () => {
-    onAdd(product, pendingModifiers);
+    if (hasAddOnProducts && onOpenAddOnSheet) onOpenAddOnSheet(product);
+    else onAdd(product, pendingModifiers);
   };
 
   return (

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../services/api/config';
 import type { AddItemToCartRequest } from '../services/api/cartService';
+import type { AddOnSelection } from '../services/api/productModifiersService';
 
 // ============================================
 // TYPE DEFINITIONS
@@ -89,6 +90,8 @@ interface CartContextType {
     setIsPaymentModalVisible: (visible: boolean) => void;
     switchTable: (tableNumber: number) => Promise<void>; // ✅ Added
     addItem: (productId: string, quantity?: number, options?: { modifiers?: CartItemModifier[]; productName?: string; unitPrice?: number }) => Promise<void>;
+    /** Base + add-ons: one line for base, one per add-on (flat cart). No parent_product_id in backend; order implies link. */
+    addItemWithAddOns: (baseProductId: string, baseProductName: string, baseUnitPrice: number, addOns: AddOnSelection[]) => Promise<void>;
     increment: (productId: string) => Promise<void>;
     decrement: (productId: string) => Promise<void>;
     remove: (productId: string) => Promise<void>;
@@ -465,6 +468,19 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             throw new Error(msg);
         }
     }, [activeTableId, cartsByTable, getModifierKey]);
+
+    /** Base + add-ons: one line for base (no modifiers), then one line per add-on. Flat cart; parent_product_id not in backend. */
+    const addItemWithAddOns = useCallback(async (
+        baseProductId: string,
+        baseProductName: string,
+        baseUnitPrice: number,
+        addOns: AddOnSelection[]
+    ) => {
+        await addItem(baseProductId, 1, { productName: baseProductName, unitPrice: baseUnitPrice });
+        for (const a of addOns) {
+            await addItem(a.productId, 1, { productName: a.productName, unitPrice: a.price });
+        }
+    }, [addItem]);
 
     const remove = useCallback(async (productId: string) => {
         const currentCart = cartsByTable[activeTableId];
@@ -991,6 +1007,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setIsPaymentModalVisible,
             switchTable, // ✅ Exposed
             addItem,
+            addItemWithAddOns,
             increment,
             decrement,
             remove,

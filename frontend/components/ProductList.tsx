@@ -37,8 +37,10 @@ interface ProductListProps {
   onAddProduct?: (product: Product, modifiers: ModifierChipItem[]) => void;
   /** POS: Modifier tıklandığında: ürün sepette yoksa önce ürün+modifier eklenir; sepette varsa aktif satıra modifier eklenir. */
   onAddModifier?: (product: Product, modifier: ModifierChipItem) => void;
-  /** Faz 1: Sellable add-on tıklandığında sepette ayrı satır (addItem(productId, 1)); modifier state’e gitmez. */
+  /** Add-on tapped → one cart line (addItem); no modifier state. */
   onAddAddOn?: OnAddAddOn;
+  /** Add-on grupları olan ürün tıklandığında bottom sheet aç (base + add-on'lar flat cart). */
+  onOpenAddOnSheet?: (product: Product) => void;
   showStockInfo?: boolean;
   showTaxInfo?: boolean;
   ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
@@ -55,6 +57,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   onAddProduct,
   onAddModifier,
   onAddAddOn,
+  onOpenAddOnSheet,
   showStockInfo = false,
   showTaxInfo = true,
   ListHeaderComponent,
@@ -148,6 +151,7 @@ export const ProductList: React.FC<ProductListProps> = ({
           onAdd={onAddProduct}
           onAddModifier={onAddModifier}
           onAddAddOn={onAddAddOn}
+          onOpenAddOnSheet={onOpenAddOnSheet}
           getCategoryEmoji={getCategoryEmoji}
         />
       );
@@ -192,6 +196,7 @@ export const ProductList: React.FC<ProductListProps> = ({
           onAdd={onAddProduct}
           onAddModifier={onAddModifier}
           onAddAddOn={onAddAddOn}
+          onOpenAddOnSheet={onOpenAddOnSheet}
           getCategoryEmoji={getCategoryEmoji}
         />
       );

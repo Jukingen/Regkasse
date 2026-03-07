@@ -16,14 +16,14 @@ import {
   getProductModifierGroups,
   type ModifierGroupDto,
   type AddOnGroupProductItemDto,
+  type AddOnSelection,
 } from '../services/api/productModifiersService';
+import {
+  getGroupControlType,
+  toggleSelectionInGroup,
+  isOptionDisabled,
+} from '../utils/modifierSelectionUtils';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography } from '../constants/SoftTheme';
-
-function isSingleChoiceGroup(g: ModifierGroupDto): boolean {
-  const min = g.minSelections ?? 0;
-  const max = g.maxSelections;
-  return min === 1 && max === 1;
-}
 
 export interface SelectedModifier {
   id: string;
@@ -39,10 +39,10 @@ interface ModifierSelectionModalProps {
   /** Catalog-first: pass product.modifierGroups to avoid extra API call. */
   modifierGroups?: ModifierGroupDto[] | null;
   onClose: () => void;
-  /** Legacy: modifier seçimi (satıra bağlı). */
-  onAdd: (selectedModifiers: SelectedModifier[]) => void;
-  /** Primary: add-on product seçimi – her biri sepette ayrı satır (flat cart). */
-  onAddAddOns?: (addOns: { productId: string; productName: string; price: number }[]) => void;
+  /** @deprecated Phase C: not used; add-on flow only via onAddAddOns. Kept for type compat. */
+  onAdd?: (selectedModifiers: SelectedModifier[]) => void;
+  /** Add-on product selection – each becomes a separate cart line (flat cart). */
+  onAddAddOns?: (addOns: AddOnSelection[]) => void;
 }
 
 export function ModifierSelectionModal({
@@ -95,29 +95,11 @@ export function ModifierSelectionModal({
   }, [visible, productId, modifierGroupsProp]);
 
   const toggleProduct = (group: ModifierGroupDto, p: AddOnGroupProductItemDto) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      const id = p.productId;
-      const productIdsInGroup = (group.products ?? []).map((x) => x.productId);
-      if (isSingleChoiceGroup(group)) {
-        productIdsInGroup.forEach((pid) => next.delete(pid));
-        if (!next.has(id)) next.add(id);
-        return next;
-      }
-      if (next.has(id)) {
-        next.delete(id);
-        return next;
-      }
-      const max = group.maxSelections ?? Infinity;
-      const countInGroup = productIdsInGroup.filter((pid) => next.has(pid)).length;
-      if (countInGroup >= max) return prev;
-      next.add(id);
-      return next;
-    });
+    setSelectedIds((prev) => toggleSelectionInGroup(prev, group, p.productId));
   };
 
-  const getSelectedAddOns = (): { productId: string; productName: string; price: number }[] => {
-    const out: { productId: string; productName: string; price: number }[] = [];
+  const getSelectedAddOns = (): AddOnSelection[] => {
+    const out: AddOnSelection[] = [];
     for (const g of groups) {
       for (const p of g.products ?? []) {
         if (selectedIds.has(p.productId)) out.push({ productId: p.productId, productName: p.productName, price: Number(p.price) });
@@ -126,10 +108,9 @@ export function ModifierSelectionModal({
     return out;
   };
 
-  /** Phase C: only add-on products; legacy modifier selection removed. */
+  /** Phase C: add-on products only; no legacy modifier branch. */
   const handleAdd = () => {
     const addOns = getSelectedAddOns();
-    onAdd([]);
     if (addOns.length > 0 && onAddAddOns) onAddAddOns(addOns);
     onClose();
   };
@@ -177,7 +158,7 @@ export function ModifierSelectionModal({
                 showsVerticalScrollIndicator={false}
               >
                 {groupsWithProducts.map((group) => {
-                  const singleChoice = isSingleChoiceGroup(group);
+                  const singleChoice = getGroupControlType(group) === 'radio';
                   const minReq = group.minSelections ?? 0;
                   const requiredLabel = group.isRequired ? ` (${minReq} erforderlich)` : '';
                   return (
@@ -190,6 +171,7 @@ export function ModifierSelectionModal({
                             key={p.productId}
                             style={[styles.modifierRow, checked && styles.modifierRowChecked]}
                             onPress={() => toggleProduct(group, p)}
+                            disabled={isOptionDisabled(group, selectedIds, p.productId)}
                           >
                             <View style={[singleChoice ? styles.radio : styles.checkbox, checked && (singleChoice ? styles.radioChecked : styles.checkboxChecked)]}>
                               {checked && <Text style={styles.checkmark}>✓</Text>}

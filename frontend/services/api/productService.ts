@@ -74,7 +74,10 @@ export interface Product {
   // Backend catalog endpoint'inden gelen ek field'lar
   productCategory?: string; // Backend'de ProductCategory olarak map edildi
   categoryId?: string; // Backend'de CategoryId olarak map edildi
-  /** Katalog cevabında gelir; ürün başına modifier fetch kaldırıldı */
+  /**
+   * Modifier groups from catalog. Phase C: POS uses only group.products for add-on UI.
+   * Shape: Product → modifierGroups[] → products[] (add-on items). Do not use group.modifiers.
+   */
   modifierGroups?: ModifierGroupDto[];
 }
 
@@ -131,6 +134,7 @@ const mapProduct = (p: any): Product => ({
   categoryId: p.CategoryId ?? p.categoryId,
 });
 
+/** Maps API modifier group to DTO. POS Phase C: only .products; legacy .modifiers never populated for POS. */
 const mapModifierGroup = (g: any): ModifierGroupDto => ({
   id: g.Id ?? g.id,
   name: g.Name ?? g.name,
@@ -139,15 +143,7 @@ const mapModifierGroup = (g: any): ModifierGroupDto => ({
   isRequired: g.IsRequired ?? g.isRequired ?? false,
   sortOrder: g.SortOrder ?? g.sortOrder ?? 0,
   isActive: g.IsActive ?? g.isActive ?? true,
-  modifiers: Array.isArray(g.Modifiers ?? g.modifiers)
-    ? (g.Modifiers ?? g.modifiers).map((m: any) => ({
-        id: m.Id ?? m.id,
-        name: m.Name ?? m.name,
-        price: Number(m.Price ?? m.price ?? 0),
-        taxType: m.TaxType ?? m.taxType ?? 1,
-        sortOrder: m.SortOrder ?? m.sortOrder ?? 0,
-      }))
-    : [],
+  modifiers: [],
   products: Array.isArray(g.Products ?? g.products)
     ? (g.Products ?? g.products).map((p: any) => ({
         productId: p.ProductId ?? p.productId,
