@@ -279,6 +279,7 @@ export default function PaymentModal({
         : guestCustomerId;
 
       // 4. Build payment request: flat items (one PaymentItem per cart line). Phase D: no modifierIds emission; add-ons = product lines only.
+      // Guard: flat items only — do not add modifierIds or modifiers (one item per cart line).
       const paymentItems: PaymentItem[] = cartItems.map(item => ({
         productId: item.productId,
         quantity: (item as any).qty ?? item.quantity,

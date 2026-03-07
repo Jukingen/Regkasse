@@ -6,6 +6,384 @@
     "version": "v1"
   },
   "paths": {
+    "/api/admin/migration-progress": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/migrate-legacy-modifiers": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierMigrationRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierMigrationRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifierMigrationRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/modifiers/{modifierId}/migrate-to-product": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "modifierId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigrateSingleModifierRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigrateSingleModifierRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigrateSingleModifierRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/products": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/products/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/products/search": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/products/stock/{id}": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStockRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStockRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/products/{id}/modifier-groups": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductModifierGroupsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductModifierGroupsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductModifierGroupsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/AuditLog": {
       "get": {
         "tags": [
@@ -677,6 +1055,31 @@
         "tags": [
           "Cart"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "tableNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/current": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "tableNumber",
@@ -700,6 +1103,52 @@
         "tags": [
           "Cart"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "cartId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      },
+      "delete": {
+        "tags": [
+          "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "cartId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/{cartId}": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "cartId",
@@ -718,7 +1167,7 @@
       },
       "delete": {
         "tags": [
-          "Cart"
+          "POS"
         ],
         "parameters": [
           {
@@ -741,6 +1190,39 @@
       "post": {
         "tags": [
           "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCartRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCartRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart": {
+      "post": {
+        "tags": [
+          "POS"
         ],
         "requestBody": {
           "content": {
@@ -773,6 +1255,39 @@
         "tags": [
           "Cart"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddItemToCartRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddItemToCartRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddItemToCartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/add-item": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -803,6 +1318,49 @@
       "post": {
         "tags": [
           "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "cartId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/{cartId}/items": {
+      "post": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -845,6 +1403,73 @@
         "tags": [
           "Cart"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      },
+      "delete": {
+        "tags": [
+          "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/items/{itemId}": {
+      "put": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "itemId",
@@ -883,7 +1508,7 @@
       },
       "delete": {
         "tags": [
-          "Cart"
+          "POS"
         ],
         "parameters": [
           {
@@ -907,6 +1532,89 @@
       "put": {
         "tags": [
           "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "cartId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      },
+      "delete": {
+        "tags": [
+          "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "cartId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/{cartId}/items/{itemId}": {
+      "put": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -954,7 +1662,7 @@
       },
       "delete": {
         "tags": [
-          "Cart"
+          "POS"
         ],
         "parameters": [
           {
@@ -987,6 +1695,30 @@
         "tags": [
           "Cart"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "cartId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/{cartId}/clear-items": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "cartId",
@@ -1008,6 +1740,30 @@
       "post": {
         "tags": [
           "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "tableNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/clear": {
+      "post": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -1031,6 +1787,20 @@
         "tags": [
           "Cart"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/clear-all": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -1042,6 +1812,49 @@
       "post": {
         "tags": [
           "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "cartId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetCartAfterPaymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetCartAfterPaymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetCartAfterPaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/{cartId}/reset-after-payment": {
+      "post": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -1084,6 +1897,49 @@
         "tags": [
           "Cart"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "cartId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteCartRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteCartRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteCartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/{cartId}/complete": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "cartId",
@@ -1125,6 +1981,20 @@
         "tags": [
           "Cart"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/history": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -1136,6 +2006,39 @@
       "post": {
         "tags": [
           "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForceCleanupRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForceCleanupRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForceCleanupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/force-cleanup": {
+      "post": {
+        "tags": [
+          "POS"
         ],
         "requestBody": {
           "content": {
@@ -1168,6 +2071,20 @@
         "tags": [
           "Cart"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/table-orders-recovery": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -1179,6 +2096,31 @@
       "post": {
         "tags": [
           "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/items/{itemId}/increment": {
+      "post": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -1202,6 +2144,31 @@
       "post": {
         "tags": [
           "Cart"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/cart/items/{itemId}/decrement": {
+      "post": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -1408,10 +2375,10 @@
         }
       }
     },
-    "/api/Categories": {
+    "/api/admin/categories": {
       "get": {
         "tags": [
-          "Categories"
+          "Admin"
         ],
         "responses": {
           "200": {
@@ -1447,7 +2414,7 @@
       },
       "post": {
         "tags": [
-          "Categories"
+          "Admin"
         ],
         "requestBody": {
           "content": {
@@ -1492,10 +2459,10 @@
         }
       }
     },
-    "/api/Categories/{id}": {
+    "/api/admin/categories/{id}": {
       "get": {
         "tags": [
-          "Categories"
+          "Admin"
         ],
         "parameters": [
           {
@@ -1533,7 +2500,7 @@
       },
       "put": {
         "tags": [
-          "Categories"
+          "Admin"
         ],
         "parameters": [
           {
@@ -1573,7 +2540,7 @@
       },
       "delete": {
         "tags": [
-          "Categories"
+          "Admin"
         ],
         "parameters": [
           {
@@ -1593,10 +2560,10 @@
         }
       }
     },
-    "/api/Categories/{id}/products": {
+    "/api/admin/categories/{id}/products": {
       "get": {
         "tags": [
-          "Categories"
+          "Admin"
         ],
         "parameters": [
           {
@@ -1642,10 +2609,10 @@
         }
       }
     },
-    "/api/Categories/search": {
+    "/api/admin/categories/search": {
       "get": {
         "tags": [
-          "Categories"
+          "Admin"
         ],
         "parameters": [
           {
@@ -4081,6 +5048,299 @@
         }
       }
     },
+    "/api/modifier-groups": {
+      "get": {
+        "tags": [
+          "ModifierGroups"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "ModifierGroups"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModifierGroupRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModifierGroupRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModifierGroupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/modifier-groups/{id}": {
+      "get": {
+        "tags": [
+          "ModifierGroups"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ModifierGroups"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModifierGroupRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModifierGroupRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModifierGroupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ModifierGroups"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/modifier-groups/{groupId}/modifiers": {
+      "post": {
+        "tags": [
+          "ModifierGroups"
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModifierRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModifierRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateModifierRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/modifier-groups/{id}/products": {
+      "post": {
+        "tags": [
+          "ModifierGroups"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProductToGroupRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProductToGroupRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddProductToGroupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/modifier-groups/{groupId}/products/{productId}": {
+      "delete": {
+        "tags": [
+          "ModifierGroups"
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/modifier-groups/{groupId}/modifiers/{modifierId}/migrate": {
+      "post": {
+        "tags": [
+          "ModifierGroups"
+        ],
+        "parameters": [
+          {
+            "name": "groupId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "modifierId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigrateSingleModifierRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigrateSingleModifierRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MigrateSingleModifierRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/MultilingualReceipt": {
       "get": {
         "tags": [
@@ -4702,6 +5962,20 @@
         "tags": [
           "Payment"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/methods": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -4713,6 +5987,60 @@
       "post": {
         "tags": [
           "Payment"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "paymentId": "c53521eb-0053-435a-b04e-54602578f62a",
+                  "message": "Payment created successfully",
+                  "payment": {
+                    "id": "c53521eb-0053-435a-b04e-54602578f62a",
+                    "totalAmount": "10.00",
+                    "receiptNumber": "AT-KASSE-001-20260228-011cfa48",
+                    "tseSignature": "eyJhbGci..."
+                  },
+                  "tse": {
+                    "tseSignature": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "qrPayload": "_R1-AT1_KASSE-001_AT-KASSE-001-20260228-011cfa48_2026-02-28T17:52:48_10.00_0.00_SW-TEST-abc12345_eyJhbGci...",
+                    "isDemoFiscal": true,
+                    "provider": "Demo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment": {
+      "post": {
+        "tags": [
+          "POS"
         ],
         "requestBody": {
           "content": {
@@ -4745,6 +6073,31 @@
         "tags": [
           "Payment"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/{id}": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -4767,6 +6120,49 @@
       "get": {
         "tags": [
           "Payment"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/customer/{customerId}": {
+      "get": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -4809,6 +6205,48 @@
         "tags": [
           "Payment"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "paymentMethod",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/method/{paymentMethod}": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "paymentMethod",
@@ -4848,6 +6286,56 @@
       "get": {
         "tags": [
           "Payment"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/date-range": {
+      "get": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -4897,6 +6385,71 @@
         "tags": [
           "Payment"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelPaymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelPaymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelPaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "paymentId": "c53521eb-0053-435a-b04e-54602578f62a",
+                  "message": "Payment created successfully",
+                  "payment": {
+                    "id": "c53521eb-0053-435a-b04e-54602578f62a",
+                    "totalAmount": "10.00",
+                    "receiptNumber": "AT-KASSE-001-20260228-011cfa48",
+                    "tseSignature": "eyJhbGci..."
+                  },
+                  "tse": {
+                    "tseSignature": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "qrPayload": "_R1-AT1_KASSE-001_AT-KASSE-001-20260228-011cfa48_2026-02-28T17:52:48_10.00_0.00_SW-TEST-abc12345_eyJhbGci...",
+                    "isDemoFiscal": true,
+                    "provider": "Demo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/{id}/cancel": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -4938,6 +6491,71 @@
       "post": {
         "tags": [
           "Payment"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundPaymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundPaymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefundPaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "paymentId": "c53521eb-0053-435a-b04e-54602578f62a",
+                  "message": "Payment created successfully",
+                  "payment": {
+                    "id": "c53521eb-0053-435a-b04e-54602578f62a",
+                    "totalAmount": "10.00",
+                    "receiptNumber": "AT-KASSE-001-20260228-011cfa48",
+                    "tseSignature": "eyJhbGci..."
+                  },
+                  "tse": {
+                    "tseSignature": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    "qrPayload": "_R1-AT1_KASSE-001_AT-KASSE-001-20260228-011cfa48_2026-02-28T17:52:48_10.00_0.00_SW-TEST-abc12345_eyJhbGci...",
+                    "isDemoFiscal": true,
+                    "provider": "Demo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/{id}/refund": {
+      "post": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -4981,6 +6599,36 @@
         "tags": [
           "Payment"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/statistics": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "startDate",
@@ -5004,10 +6652,203 @@
         }
       }
     },
+    "/api/Payment/{id}/qr.png": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/{id}/qr.png": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Payment/{id}/qr.svg": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/svg+xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "image/svg+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/{id}/qr.svg": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/svg+xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "image/svg+xml": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Payment/{id}/receipt": {
       "get": {
         "tags": [
           "Payment"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/{id}/receipt": {
+      "get": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -5032,6 +6873,31 @@
         "tags": [
           "Payment"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/{id}/tse-signature": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -5050,10 +6916,431 @@
         }
       }
     },
+    "/api/Payment/{id}/signature-debug": {
+      "get": {
+        "tags": [
+          "Payment"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SignatureDiagnosticStep"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SignatureDiagnosticStep"
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Signature diagnostic completed",
+                  "data": [
+                    {
+                      "stepId": 1,
+                      "name": "CMC match",
+                      "status": "PASS",
+                      "evidence": "Software mode: key provider used (no CMC)"
+                    },
+                    {
+                      "stepId": 2,
+                      "name": "JWS format",
+                      "status": "PASS",
+                      "evidence": "header.payload.signature valid"
+                    },
+                    {
+                      "stepId": 3,
+                      "name": "Hash",
+                      "status": "PASS",
+                      "evidence": "SHA-256(150 chars)"
+                    },
+                    {
+                      "stepId": 4,
+                      "name": "Signature verify",
+                      "status": "PASS",
+                      "evidence": "ES256 verification succeeded"
+                    },
+                    {
+                      "stepId": 5,
+                      "name": "Base64URL padding",
+                      "status": "PASS",
+                      "evidence": "No padding in any part"
+                    }
+                  ]
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SignatureDiagnosticStep"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/{id}/signature-debug": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SignatureDiagnosticStep"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SignatureDiagnosticStep"
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "Signature diagnostic completed",
+                  "data": [
+                    {
+                      "stepId": 1,
+                      "name": "CMC match",
+                      "status": "PASS",
+                      "evidence": "Software mode: key provider used (no CMC)"
+                    },
+                    {
+                      "stepId": 2,
+                      "name": "JWS format",
+                      "status": "PASS",
+                      "evidence": "header.payload.signature valid"
+                    },
+                    {
+                      "stepId": 3,
+                      "name": "Hash",
+                      "status": "PASS",
+                      "evidence": "SHA-256(150 chars)"
+                    },
+                    {
+                      "stepId": 4,
+                      "name": "Signature verify",
+                      "status": "PASS",
+                      "evidence": "ES256 verification succeeded"
+                    },
+                    {
+                      "stepId": 5,
+                      "name": "Base64URL padding",
+                      "status": "PASS",
+                      "evidence": "No padding in any part"
+                    }
+                  ]
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SignatureDiagnosticStep"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Payment/verify-signature": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifySignatureRequest"
+              },
+              "example": {
+                "compactJws": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJrYXNzZW5JZCI6IktBU1NFLTAwMSIsImJlbGVnTnIiOiJBUy1LQVNTRTAwMS0yMDI1MDIyNS0xMjM0NTY3OCIsImJlbGVnRGF0dW0iOiIyNS4wMi4yMDI1IiwidWhyemVpdCI6IjE0OjMwOjAwIiwiYmV0cmFnIjoiMTIzLjQ1IiwicHJldlNpZ25hdHVyZVZhbHVlIjoiIiwidGF4RGV0YWlscyI6Int9In0.SIGNATURE_B64URL_PART"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifySignatureRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifySignatureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifySignatureResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifySignatureResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifySignatureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/payment/verify-signature": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifySignatureRequest"
+              },
+              "example": {
+                "compactJws": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJrYXNzZW5JZCI6IktBU1NFLTAwMSIsImJlbGVnTnIiOiJBUy1LQVNTRTAwMS0yMDI1MDIyNS0xMjM0NTY3OCIsImJlbGVnRGF0dW0iOiIyNS4wMi4yMDI1IiwidWhyemVpdCI6IjE0OjMwOjAwIiwiYmV0cmFnIjoiMTIzLjQ1IiwicHJldlNpZ25hdHVyZVZhbHVlIjoiIiwidGF4RGV0YWlscyI6Int9In0.SIGNATURE_B64URL_PART"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifySignatureRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifySignatureRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifySignatureResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifySignatureResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifySignatureResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Product": {
       "get": {
         "tags": [
           "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      },
+      "post": {
+        "tags": [
+          "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos": {
+      "get": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -5083,7 +7370,7 @@
       },
       "post": {
         "tags": [
-          "Product"
+          "POS"
         ],
         "requestBody": {
           "content": {
@@ -5111,10 +7398,106 @@
         }
       }
     },
+    "/api/Product/list": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/list": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Product/all": {
       "get": {
         "tags": [
           "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/all": {
+      "get": {
+        "tags": [
+          "POS"
         ],
         "responses": {
           "200": {
@@ -5128,6 +7511,20 @@
         "tags": [
           "Product"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/catalog": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -5139,6 +7536,20 @@
       "get": {
         "tags": [
           "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/active": {
+      "get": {
+        "tags": [
+          "POS"
         ],
         "responses": {
           "200": {
@@ -5152,6 +7563,20 @@
         "tags": [
           "Product"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/debug/categories-products": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -5164,6 +7589,20 @@
         "tags": [
           "Product"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/categories": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -5175,6 +7614,30 @@
       "get": {
         "tags": [
           "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "categoryName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/category/{categoryName}": {
+      "get": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -5198,6 +7661,30 @@
         "tags": [
           "Product"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/stock/{status}": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "status",
@@ -5219,6 +7706,36 @@
       "get": {
         "tags": [
           "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/search": {
+      "get": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -5243,10 +7760,230 @@
         }
       }
     },
+    "/api/Product/{id}/modifier-groups": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      },
+      "post": {
+        "tags": [
+          "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductModifierGroupsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductModifierGroupsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductModifierGroupsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/{id}/modifier-groups": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductModifierGroupsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductModifierGroupsRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProductModifierGroupsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Product/{id}": {
       "put": {
         "tags": [
           "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/Product"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      },
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      },
+      "delete": {
+        "tags": [
+          "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/{id}": {
+      "put": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -5286,7 +8023,7 @@
       },
       "get": {
         "tags": [
-          "Product"
+          "POS"
         ],
         "parameters": [
           {
@@ -5307,7 +8044,7 @@
       },
       "delete": {
         "tags": [
-          "Product"
+          "POS"
         ],
         "parameters": [
           {
@@ -5331,6 +8068,50 @@
       "put": {
         "tags": [
           "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStockRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStockRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/stock/{id}": {
+      "put": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -5374,6 +8155,31 @@
         "tags": [
           "Product"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/{id}/permanent": {
+      "delete": {
+        "tags": [
+          "POS"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -5397,6 +8203,20 @@
         "tags": [
           "Product"
         ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/count": {
+      "get": {
+        "tags": [
+          "POS"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -5408,6 +8228,31 @@
       "get": {
         "tags": [
           "Product"
+        ],
+        "description": "Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/pos/{id}/exists": {
+      "get": {
+        "tags": [
+          "POS"
         ],
         "parameters": [
           {
@@ -5500,6 +8345,69 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReceiptDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Receipts/{receiptId}/signature-debug": {
+      "get": {
+        "tags": [
+          "Receipts"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "Signature diagnostic completed",
+                  "data": [
+                    {
+                      "stepId": 1,
+                      "name": "CMC match",
+                      "status": "PASS",
+                      "evidence": "Software mode: key provider used (no CMC)"
+                    },
+                    {
+                      "stepId": 2,
+                      "name": "JWS format",
+                      "status": "PASS",
+                      "evidence": "header.payload.signature valid"
+                    },
+                    {
+                      "stepId": 3,
+                      "name": "Hash",
+                      "status": "PASS",
+                      "evidence": "SHA-256(150 chars)"
+                    },
+                    {
+                      "stepId": 4,
+                      "name": "Signature verify",
+                      "status": "PASS",
+                      "evidence": "ES256 verification succeeded"
+                    },
+                    {
+                      "stepId": 5,
+                      "name": "Base64URL padding",
+                      "status": "PASS",
+                      "evidence": "No padding in any part"
+                    }
+                  ]
                 }
               }
             }
@@ -7244,6 +10152,14 @@
           "notes": {
             "type": "string",
             "nullable": true
+          },
+          "selectedModifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SelectedModifierInputDto"
+            },
+            "nullable": true,
+            "deprecated": true
           }
         },
         "additionalProperties": false
@@ -7270,6 +10186,49 @@
             "maxLength": 20,
             "minLength": 1,
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddOnGroupProduct": {
+        "required": [
+          "modifierGroupId",
+          "productId",
+          "sortOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "modifierGroupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modifierGroup": {
+            "$ref": "#/components/schemas/ProductModifierGroup"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddProductToGroupRequest": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "createNewAddOnProduct": {
+            "$ref": "#/components/schemas/CreateNewAddOnProductRequest"
           }
         },
         "additionalProperties": false
@@ -7985,6 +10944,59 @@
           },
           "cart": {
             "$ref": "#/components/schemas/Cart"
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItemModifier"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CartItemModifier": {
+        "required": [
+          "cartItemId",
+          "modifierId",
+          "name",
+          "price",
+          "quantity"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cartItemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifierId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "modifierGroupId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cartItem": {
+            "$ref": "#/components/schemas/CartItem"
           }
         },
         "additionalProperties": false
@@ -8207,6 +11219,19 @@
           "sortOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "vatRate": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number",
+            "format": "double"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -8599,6 +11624,12 @@
           "sortOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "vatRate": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -8757,6 +11788,93 @@
           },
           "taxDetails": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateModifierGroupRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minSelections": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxSelections": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "isRequired": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateModifierRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxType": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateNewAddOnProductRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxType": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -9985,6 +13103,36 @@
             "type": "string",
             "format": "date-time"
           },
+          "signatureFormat": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "jwsHeader": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "jwsPayload": {
+            "maxLength": 4000,
+            "type": "string",
+            "nullable": true
+          },
+          "jwsSignature": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "provider": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "correlationId": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
           "cashRegisterId": {
             "type": "string",
             "format": "uuid",
@@ -10270,6 +13418,32 @@
         },
         "additionalProperties": false
       },
+      "MigrateSingleModifierRequestDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "markModifierInactive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ModifierMigrationRequestDto": {
+        "type": "object",
+        "properties": {
+          "defaultCategoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dryRun": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "NotificationSettings": {
         "type": "object",
         "properties": {
@@ -10550,6 +13724,36 @@
         "type": "integer",
         "format": "int32"
       },
+      "PaymentItemModifierRequest": {
+        "required": [
+          "modifierId"
+        ],
+        "type": "object",
+        "properties": {
+          "modifierId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "priceDelta": {
+            "minimum": 0,
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "groupId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PaymentItemRequest": {
         "required": [
           "productId",
@@ -10569,8 +13773,24 @@
             "format": "int32"
           },
           "taxType": {
-            "minLength": 1,
-            "type": "string"
+            "$ref": "#/components/schemas/TaxType"
+          },
+          "modifierIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true,
+            "deprecated": true
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentItemModifierRequest"
+            },
+            "nullable": true,
+            "deprecated": true
           }
         },
         "additionalProperties": false
@@ -10681,8 +13901,36 @@
         },
         "additionalProperties": false
       },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
       "Product": {
         "required": [
+          "barcode",
           "category",
           "createdAt",
           "minStockLevel",
@@ -10731,9 +13979,8 @@
             "format": "double"
           },
           "taxType": {
-            "maxLength": 20,
-            "minLength": 1,
-            "type": "string"
+            "type": "integer",
+            "format": "int32"
           },
           "description": {
             "type": "string",
@@ -10776,6 +14023,18 @@
             "type": "number",
             "format": "double"
           },
+          "barcode": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryNavigation": {
+            "$ref": "#/components/schemas/Category"
+          },
           "isFiscalCompliant": {
             "type": "boolean"
           },
@@ -10796,6 +14055,180 @@
             "maxLength": 50,
             "type": "string",
             "nullable": true
+          },
+          "isSellableAddOn": {
+            "type": "boolean"
+          },
+          "modifierGroupAssignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductModifierGroupAssignment"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductModifier": {
+        "required": [
+          "createdAt",
+          "modifierGroupId",
+          "name",
+          "taxType"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "maxLength": 450,
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "maxLength": 450,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "modifierGroupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxType": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modifierGroup": {
+            "$ref": "#/components/schemas/ProductModifierGroup"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductModifierGroup": {
+        "required": [
+          "createdAt",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "maxLength": 450,
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "maxLength": 450,
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minSelections": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxSelections": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "isRequired": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "modifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductModifier"
+            },
+            "nullable": true
+          },
+          "productAssignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductModifierGroupAssignment"
+            },
+            "nullable": true
+          },
+          "addOnGroupProducts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AddOnGroupProduct"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductModifierGroupAssignment": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "modifierGroupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "modifierGroup": {
+            "$ref": "#/components/schemas/ProductModifierGroup"
           }
         },
         "additionalProperties": false
@@ -10925,6 +14358,9 @@
             "type": "number",
             "format": "double"
           },
+          "totals": {
+            "$ref": "#/components/schemas/ReceiptTotalsDTO"
+          },
           "taxRates": {
             "type": "array",
             "items": {
@@ -10988,6 +14424,11 @@
       "ReceiptItemDTO": {
         "type": "object",
         "properties": {
+          "itemId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
           "name": {
             "type": "string",
             "nullable": true
@@ -11004,9 +14445,37 @@
             "type": "number",
             "format": "double"
           },
+          "lineTotalNet": {
+            "type": "number",
+            "format": "double"
+          },
+          "lineTotalGross": {
+            "type": "number",
+            "format": "double"
+          },
           "taxRate": {
             "type": "number",
             "format": "double"
+          },
+          "vatRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "vatAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "categoryName": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentItemId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "isModifierLine": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -11070,15 +14539,19 @@
             "type": "string",
             "nullable": true
           },
-          "value": {
-            "type": "string",
-            "nullable": true
-          },
           "serialNumber": {
             "type": "string",
             "nullable": true
           },
           "timestamp": {
+            "type": "string",
+            "nullable": true
+          },
+          "prevSignatureValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "signatureValue": {
             "type": "string",
             "nullable": true
           },
@@ -11092,7 +14565,15 @@
       "ReceiptTaxLineDTO": {
         "type": "object",
         "properties": {
+          "taxType": {
+            "type": "integer",
+            "format": "int32"
+          },
           "rate": {
+            "type": "number",
+            "format": "double"
+          },
+          "vatRate": {
             "type": "number",
             "format": "double"
           },
@@ -11210,6 +14691,24 @@
           },
           "isDefault": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptTotalsDTO": {
+        "type": "object",
+        "properties": {
+          "totalNet": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalVat": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalGross": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -11382,6 +14881,56 @@
             "items": {
               "$ref": "#/components/schemas/DailySales"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SelectedModifierInputDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetProductModifierGroupsRequest": {
+        "type": "object",
+        "properties": {
+          "modifierGroupIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SignatureDiagnosticStep": {
+        "type": "object",
+        "properties": {
+          "stepId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "evidence": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -11571,6 +15120,16 @@
           }
         },
         "additionalProperties": false
+      },
+      "TaxType": {
+        "enum": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "format": "int32"
       },
       "TopCustomer": {
         "type": "object",
@@ -11983,6 +15542,14 @@
           "notes": {
             "type": "string",
             "nullable": true
+          },
+          "selectedModifiers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SelectedModifierInputDto"
+            },
+            "nullable": true,
+            "deprecated": true
           }
         },
         "additionalProperties": false
@@ -12047,6 +15614,12 @@
           "sortOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "vatRate": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -12217,6 +15790,48 @@
             "maxLength": 50,
             "minLength": 1,
             "type": "string"
+          },
+          "finanzOnlineApiUrl": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "finanzOnlineUsername": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "finanzOnlinePassword": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "finanzOnlineEnabled": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "finanzOnlineAutoSubmit": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "finanzOnlineSubmitInterval": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "defaultTseDeviceId": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "tseAutoConnect": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "tseConnectionTimeout": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -13067,6 +16682,39 @@
           },
           "user": {
             "$ref": "#/components/schemas/ApplicationUser"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerifySignatureRequest": {
+        "required": [
+          "compactJws"
+        ],
+        "type": "object",
+        "properties": {
+          "compactJws": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerifySignatureResponse": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SignatureDiagnosticStep"
+            },
+            "nullable": true
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

@@ -387,6 +387,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setError(null);
 
         // Phase D PR-B: add-item no longer sends selectedModifiers; add-ons are separate lines.
+        // Guard: do not add selectedModifiers to body (POS add-on = separate cart lines).
         try {
             const body: AddItemToCartRequest = {
                 productId,

@@ -76,7 +76,7 @@ function getCached(productId: string): ModifierGroupDto[] | null {
   return entry.data;
 }
 
-/** Normalize API group for POS. Phase D PR-C: Product modifier-groups endpoint returns empty modifiers; use .products only. */
+/** Normalize API group for POS. Phase D PR-C: use .products only for add-on options; .modifiers must not be used (guard). */
 function mapGroupForPOS(g: any): ModifierGroupDto {
   return {
     id: g.Id ?? g.id,
