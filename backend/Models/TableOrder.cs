@@ -130,7 +130,7 @@ namespace KasseAPI_Final.Models
         // Navigation properties
         [ForeignKey("TableOrderId")]
         public virtual TableOrder TableOrder { get; set; } = null!;
-        /// <summary>Seçili modifier'lar (fiyat DB'den; RKSV güvenli).</summary>
+        /// <summary>Legacy: Seçili modifier'lar (fiyat DB'den; RKSV güvenli). Phase 2 flat akışta add-on'lar ayrı TableOrderItem olarak gelir, bu liste boş kalır.</summary>
         public virtual ICollection<TableOrderItemModifier> Modifiers { get; set; } = new List<TableOrderItemModifier>();
     }
 

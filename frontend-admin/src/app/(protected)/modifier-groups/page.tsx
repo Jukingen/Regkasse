@@ -13,7 +13,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getModifierGroups,
   createModifierGroup,
-  addModifierToGroup,
   addProductToGroup,
   type ModifierGroupDto,
   type AddOnGroupProductItemDto,
@@ -26,11 +25,9 @@ const adminProductsListKey = ['admin', 'products', 'list'] as const;
 
 export default function ModifierGroupsPage() {
   const [groupModalOpen, setGroupModalOpen] = useState(false);
-  const [modifierModalOpen, setModifierModalOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<ModifierGroupDto | null>(null);
   const [groupForm] = Form.useForm();
-  const [modifierForm] = Form.useForm();
   const [productForm] = Form.useForm();
   const [productModalTab, setProductModalTab] = useState<'existing' | 'new'>('existing');
   const queryClient = useQueryClient();
@@ -68,33 +65,6 @@ export default function ModifierGroupsPage() {
     } catch (e: any) {
       if (e?.errorFields) return;
       message.error('Gruppe konnte nicht angelegt werden.');
-    }
-  };
-
-  const openAddModifier = (group: ModifierGroupDto) => {
-    setSelectedGroup(group);
-    modifierForm.setFieldsValue({ name: '', price: 0, taxType: 1, sortOrder: 0 });
-    setModifierModalOpen(true);
-  };
-
-  const handleAddModifier = async () => {
-    if (!selectedGroup) return;
-    try {
-      const values = await modifierForm.validateFields();
-      await addModifierToGroup(selectedGroup.id, {
-        name: values.name,
-        price: Number(values.price) || 0,
-        taxType: Number(values.taxType) || 1,
-        sortOrder: Number(values.sortOrder) || 0,
-      });
-      message.success('Modifier hinzugefügt (Legacy).');
-      setModifierModalOpen(false);
-      setSelectedGroup(null);
-      modifierForm.resetFields();
-      queryClient.invalidateQueries({ queryKey: modifierGroupsKey });
-    } catch (e: any) {
-      if (e?.errorFields) return;
-      message.error('Modifier konnte nicht hinzugefügt werden.');
     }
   };
 
@@ -151,14 +121,9 @@ export default function ModifierGroupsPage() {
       key: g.id,
       label: g.name,
       extra: (
-        <span>
-          <Button type="link" size="small" onClick={() => openAddProduct(g)}>
-            + Produkt
-          </Button>
-          <Button type="link" size="small" onClick={() => openAddModifier(g)} style={{ color: '#999' }}>
-            + Modifier (Legacy)
-          </Button>
-        </span>
+        <Button type="link" size="small" onClick={() => openAddProduct(g)}>
+          + Produkt
+        </Button>
       ),
       children: (
         <div style={{ paddingLeft: 8 }}>
@@ -174,7 +139,7 @@ export default function ModifierGroupsPage() {
               ))}
             </ul>
           )}
-          <div style={{ marginBottom: 4, fontSize: 12, color: '#999' }}>Modifier (Legacy)</div>
+          <div style={{ marginBottom: 4, fontSize: 12, color: '#999' }}>Modifier (Legacy, nur Leseansicht — neue bitte als „+ Produkt“ anlegen)</div>
           {modifiers.length === 0 ? (
             <div style={{ color: '#bbb', paddingLeft: 20 }}>Keine Modifier.</div>
           ) : (
@@ -227,29 +192,6 @@ export default function ModifierGroupsPage() {
           </Form.Item>
           <Form.Item name="isRequired" label="Pflicht (mind. 1 Auswahl)" valuePropName="checked">
             <Switch />
-          </Form.Item>
-          <Form.Item name="sortOrder" label="Sortierung">
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={selectedGroup ? `Modifier in „${selectedGroup.name}“ (Legacy)` : 'Modifier hinzufügen'}
-        open={modifierModalOpen}
-        onOk={handleAddModifier}
-        onCancel={() => { setModifierModalOpen(false); setSelectedGroup(null); modifierForm.resetFields(); }}
-        okText="Hinzufügen"
-      >
-        <Form form={modifierForm} layout="vertical" initialValues={{ price: 0, taxType: 1, sortOrder: 0 }}>
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input placeholder="z. B. Ketchup, Mayo" />
-          </Form.Item>
-          <Form.Item name="price" label="Preis (€)">
-            <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="taxType" label="MwSt.-Typ (1=20%, 2=10%, 3=13%)">
-            <InputNumber min={1} max={4} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="sortOrder" label="Sortierung">
             <InputNumber min={0} style={{ width: '100%' }} />

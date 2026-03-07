@@ -163,20 +163,22 @@ namespace KasseAPI_Final.Services
                         };
                     }
 
-                    if (product.StockQuantity < itemRequest.Quantity)
+                    // Phase 2: Sellable add-ons are product-only payment lines; no stock deduction (stok düşülmez).
+                    if (!product.IsSellableAddOn)
                     {
-                        return new PaymentResult
+                        if (product.StockQuantity < itemRequest.Quantity)
                         {
-                            Success = false,
-                            Message = "Insufficient stock",
-                            Errors = { $"Insufficient stock for product {product.Name}" }
-                        };
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Insufficient stock",
+                                Errors = { $"Insufficient stock for product {product.Name}" }
+                            };
+                        }
+                        product.StockQuantity -= itemRequest.Quantity;
+                        product.UpdatedAt = DateTime.UtcNow;
+                        await _productRepository.UpdateAsync(product);
                     }
-
-                    // Stok güncelle - transaction içinde yapılmalı
-                    product.StockQuantity -= itemRequest.Quantity;
-                    product.UpdatedAt = DateTime.UtcNow;
-                    await _productRepository.UpdateAsync(product);
 
                     // VAT oranı kategoriden (yüzde: 10, 20); tek rounding noktası CartMoneyHelper. decimal only.
                     var vatRatePercent = product.CategoryNavigation.VatRate;
@@ -197,10 +199,13 @@ namespace KasseAPI_Final.Services
                         LineNet = line.LineNet
                     };
 
-                    // Extra Zutaten: RKSV/fiscal – sadece ürüne atanmış modifier'lara izin ver; fiyat her zaman DB'den (FE priceDelta güvenilmez)
-                    var requestedModifierIds = (itemRequest.Modifiers != null && itemRequest.Modifiers.Count > 0)
-                        ? itemRequest.Modifiers.Select(m => m.ModifierId).Distinct().ToList()
-                        : (itemRequest.ModifierIds ?? new List<Guid>()).Distinct().ToList();
+                    // Phase 3 prep: No new legacy modifier writes. ModifierIds/Modifiers in request are ignored; add-ons must be separate payment items (productId). Read compat: historical PaymentItem.Modifiers unchanged.
+                    var requestedModifierIds = new List<Guid>();
+                    var hadLegacyPayload = !product.IsSellableAddOn && (
+                        (itemRequest.Modifiers != null && itemRequest.Modifiers.Count > 0) ||
+                        (itemRequest.ModifierIds != null && itemRequest.ModifierIds.Count > 0));
+                    if (hadLegacyPayload)
+                        _logger.LogInformation("Phase2.LegacyModifier.PaymentRequestModifierPayloadIgnored ProductId={ProductId} (Phase 3 - no write)", product.Id);
 
                     if (requestedModifierIds.Count > 0)
                     {
@@ -278,6 +283,11 @@ namespace KasseAPI_Final.Services
                         taxDetails[taxKey] = 0;
                     taxDetails[taxKey] += line.LineTax;
                 }
+
+                // Phase 2 observability: when this log stops appearing, no payments are created with ModifierIds/Modifiers payload anymore.
+                var legacyPayloadItemCount = paymentItems.Count(p => p.Modifiers != null && p.Modifiers.Count > 0);
+                if (legacyPayloadItemCount > 0)
+                    _logger.LogInformation("Phase2.LegacyModifier.PaymentCreatedWithLegacyModifierPayload CustomerId={CustomerId} ItemsWithModifiersCount={ItemsWithModifiersCount}", request.CustomerId, legacyPayloadItemCount);
 
                 // CashRegisterId çözümle (TSE imzası için)
                 Guid resolvedCashRegisterId = Guid.Empty;
@@ -1142,30 +1152,41 @@ namespace KasseAPI_Final.Services
                 var cashier = await _userService.GetUserByIdAsync(payment.CreatedBy);
                 var cashierName = cashier?.Name ?? cashier?.UserName ?? "Unknown";
 
-                // Map payment items to receipt items: ana satır + her modifier için alt satır ("+ Ketchup 0.30")
+                // Phase 2 receipt: Prefer flat lines (one ReceiptItemDTO per PaymentItem). Legacy: product + embedded Modifiers → main line + nested modifier lines.
                 var receiptItems = new List<ReceiptItemDTO>();
+                var legacySnapshotItemCount = 0;
                 foreach (var item in paymentItems)
                 {
                     var mainItemId = Guid.NewGuid();
+                    var hasLegacyModifiers = item.Modifiers != null && item.Modifiers.Count > 0;
+                    if (hasLegacyModifiers)
+                        legacySnapshotItemCount++;
+                    var modifierNet = item.Modifiers?.Sum(m => m.LineNet) ?? 0;
+                    var modifierGross = item.Modifiers?.Sum(m => m.TotalPrice) ?? 0;
+                    var modifierTax = item.Modifiers?.Sum(m => m.TaxAmount) ?? 0;
+
+                    // Flat path (new): product-only line — one receipt line with full totals.
+                    // Legacy path: main line shows base only (totals minus modifiers); modifier lines added below.
                     receiptItems.Add(new ReceiptItemDTO
                     {
                         ItemId = mainItemId,
                         Name = item.ProductName,
                         Quantity = item.Quantity,
                         UnitPrice = item.UnitPrice,
-                        TotalPrice = item.TotalPrice,
-                        LineTotalNet = item.LineNet - (item.Modifiers?.Sum(m => m.LineNet) ?? 0),
-                        LineTotalGross = item.TotalPrice - (item.Modifiers?.Sum(m => m.TotalPrice) ?? 0),
+                        TotalPrice = hasLegacyModifiers ? item.TotalPrice - modifierGross : item.TotalPrice,
+                        LineTotalNet = hasLegacyModifiers ? item.LineNet - modifierNet : item.LineNet,
+                        LineTotalGross = hasLegacyModifiers ? item.TotalPrice - modifierGross : item.TotalPrice,
                         TaxRate = item.TaxRate * 100,
                         VatRate = item.TaxRate,
-                        VatAmount = item.TaxAmount - (item.Modifiers?.Sum(m => m.TaxAmount) ?? 0),
+                        VatAmount = hasLegacyModifiers ? item.TaxAmount - modifierTax : item.TaxAmount,
                         CategoryName = null,
                         ParentItemId = null,
                         IsModifierLine = false
                     });
-                    if (item.Modifiers != null)
+                    // Legacy only: nested modifier lines (historical receipts keep parent + child display).
+                    if (hasLegacyModifiers)
                     {
-                        foreach (var m in item.Modifiers)
+                        foreach (var m in item.Modifiers!)
                         {
                             receiptItems.Add(new ReceiptItemDTO
                             {
@@ -1186,6 +1207,10 @@ namespace KasseAPI_Final.Services
                         }
                     }
                 }
+
+                // Phase 2 observability: when this log stops appearing, no receipts are rendered from PaymentItem.Modifiers (legacy snapshots) anymore.
+                if (legacySnapshotItemCount > 0)
+                    _logger.LogInformation("Phase2.LegacyModifier.ReceiptRenderedFromLegacyModifierSnapshots PaymentId={PaymentId} ItemsWithLegacyModifiersCount={ItemsWithLegacyModifiersCount}", payment.Id, legacySnapshotItemCount);
 
                 var subtotal = paymentItems.Sum(i => i.LineNet);
 

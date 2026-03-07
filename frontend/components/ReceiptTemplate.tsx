@@ -60,7 +60,7 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ receipt }) => 
                 {items.map((item, index) => (
                     <View key={item.itemId ?? index} style={[styles.itemRow, item.isModifierLine && styles.modifierRow]}>
                         <Text style={[styles.itemText, styles.flex2, item.isModifierLine && styles.modifierText]}>
-                            {item.isModifierLine ? `+ ${item.name}` : item.name}
+                            {item.isModifierLine && !item.name?.startsWith('+') ? `+ ${item.name}` : (item.name ?? '')}
                         </Text>
                         <Text style={[styles.itemText, styles.flexRight, item.isModifierLine && styles.modifierText]}>{item.quantity}</Text>
                         <Text style={[styles.itemText, styles.flexRight, item.isModifierLine && styles.modifierText]}>{formatCurrency(item.unitPrice)}</Text>

@@ -116,12 +116,16 @@ namespace KasseAPI_Final.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            // 6. Items: ana ürün satırı + her modifier için alt satır (ParentItemId ile); LineNet/VatAmount deterministik toplam için
+            // 6. Items: Phase 2 flat-first. Product-only (no Modifiers) → one ReceiptItem with full totals. Legacy (Modifiers present) → main line (base only) + nested modifier lines.
             var receiptItems = new List<ReceiptItem>();
             var taxLineInputs = new List<(int TaxType, decimal TaxRate, decimal LineNet, decimal LineTax, decimal LineGross)>();
+            var legacySnapshotItemCount = 0;
             foreach (var i in items)
             {
                 var productItemId = Guid.NewGuid();
+                var hasLegacyModifiers = i.Modifiers != null && i.Modifiers.Count > 0;
+                if (hasLegacyModifiers)
+                    legacySnapshotItemCount++;
                 var modifierNet = i.Modifiers?.Sum(m => m.LineNet) ?? 0;
                 var modifierTax = i.Modifiers?.Sum(m => m.TaxAmount) ?? 0;
                 var modifierGross = i.Modifiers?.Sum(m => m.TotalPrice) ?? 0;
@@ -132,17 +136,17 @@ namespace KasseAPI_Final.Services
                     ProductName = i.ProductName,
                     Quantity = i.Quantity,
                     UnitPrice = i.UnitPrice,
-                    TotalPrice = i.TotalPrice - modifierGross,
-                    LineNet = i.LineNet - modifierNet,
-                    VatAmount = i.TaxAmount - modifierTax,
+                    TotalPrice = hasLegacyModifiers ? i.TotalPrice - modifierGross : i.TotalPrice,
+                    LineNet = hasLegacyModifiers ? i.LineNet - modifierNet : i.LineNet,
+                    VatAmount = hasLegacyModifiers ? i.TaxAmount - modifierTax : i.TaxAmount,
                     TaxRate = i.TaxRate * 100, // 0.20 -> 20.00
                     ParentItemId = null,
                     CategoryName = null
                 });
-                taxLineInputs.Add((i.TaxType, i.TaxRate, i.LineNet - modifierNet, i.TaxAmount - modifierTax, i.TotalPrice - modifierGross));
-                if (i.Modifiers != null)
+                taxLineInputs.Add((i.TaxType, i.TaxRate, hasLegacyModifiers ? i.LineNet - modifierNet : i.LineNet, hasLegacyModifiers ? i.TaxAmount - modifierTax : i.TaxAmount, hasLegacyModifiers ? i.TotalPrice - modifierGross : i.TotalPrice));
+                if (hasLegacyModifiers)
                 {
-                    foreach (var m in i.Modifiers)
+                    foreach (var m in i.Modifiers!)
                     {
                         receiptItems.Add(new ReceiptItem
                         {
@@ -163,6 +167,10 @@ namespace KasseAPI_Final.Services
                 }
             }
             newReceipt.Items = receiptItems;
+
+            // Phase 2 observability: when this log stops appearing, no receipts are created from PaymentItem.Modifiers (legacy snapshots) anymore.
+            if (legacySnapshotItemCount > 0)
+                _logger.LogInformation("Phase2.LegacyModifier.ReceiptCreatedFromLegacyModifierSnapshots PaymentId={PaymentId} ReceiptId={ReceiptId} ItemsWithLegacyModifiersCount={ItemsWithLegacyModifiersCount}", paymentId, newReceipt.ReceiptId, legacySnapshotItemCount);
 
             // 7. Totals: satırlardan topla (deterministik; aynı input => aynı output)
             newReceipt.SubTotal = receiptItems.Sum(x => x.LineNet);

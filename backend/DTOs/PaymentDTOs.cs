@@ -43,7 +43,7 @@ namespace KasseAPI_Final.DTOs
     }
     
     /// <summary>
-    /// Satır bazlı extra/modifier – ödeme request'inde modifierId; quantity/priceDelta opsiyonel (backend DB fiyat kullanır).
+    /// Phase 2 deprecated: Satır bazlı extra/modifier. Yeni akış: add-on = ayrı PaymentItem (productId). Legacy compat için hâlâ kabul edilir.
     /// </summary>
     public class PaymentItemModifierRequest
     {
@@ -63,28 +63,28 @@ namespace KasseAPI_Final.DTOs
     }
 
     /// <summary>
-    /// Ödeme kalemi request'i
+    /// Ödeme kalemi request'i. Primary: productId, quantity, taxType (one line per product). Legacy: ModifierIds/Modifiers for old carts only.
     /// </summary>
     public class PaymentItemRequest
     {
         [Required]
         public Guid ProductId { get; set; }
-        
+
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be greater than 0")]
         public int Quantity { get; set; }
-        
-        /// <summary>
-        /// Vergi tipi. Tercih: string ("standard", "reduced", "special", "zerorate").
-        /// </summary>
+
+        /// <summary>Vergi tipi. standard, reduced, special, zerorate.</summary>
         [Required]
         [JsonConverter(typeof(TaxTypeJsonConverter))]
         public TaxType TaxType { get; set; } = TaxType.Standard;
 
-        /// <summary>Compat/deprecated. Yeni akış: sellable add-on ayrı PaymentItem satırı (productId). Legacy: bu satıra bağlı modifier ID'leri.</summary>
+        /// <summary>Phase 2 legacy: Add-ons should be separate PaymentItem lines. Kept for read/write compatibility with old clients.</summary>
+        [Obsolete("Add-ons as separate items (productId). Kept for backward compat.", false)]
         public List<Guid> ModifierIds { get; set; } = new();
 
-        /// <summary>Compat/deprecated. Yeni akış: add-on ayrı satır. Legacy: satır bazlı modifier detayı (modifierId, quantity, priceDelta).</summary>
+        /// <summary>Phase 2 legacy: Add-ons as separate items. Kept for backward compat.</summary>
+        [Obsolete("Add-ons as separate items. Kept for backward compat.", false)]
         public List<PaymentItemModifierRequest>? Modifiers { get; set; }
     }
     

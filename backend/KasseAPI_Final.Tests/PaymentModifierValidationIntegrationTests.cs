@@ -12,8 +12,7 @@ using Xunit;
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// Integration tests: modifier allowed → payment succeeds and totals include modifiers;
-/// disallowed modifier → 400; price tampering → 400.
+/// Integration tests for payment. Phase 3 prep: ModifierIds/Modifiers are ignored for write; payment succeeds with product-only totals. Historical validation tests updated to expect ignore behavior.
 /// </summary>
 public class PaymentModifierValidationIntegrationTests
 {
@@ -81,8 +80,10 @@ public class PaymentModifierValidationIntegrationTests
         var customerRepo = new GenericRepository<Customer>(context, loggerCust);
 
         var tseMock = new Mock<ITseService>();
-        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string?>(), It.IsAny<string?>()))
-            .ReturnsAsync((Guid _, string _, decimal _, string? _, string? _) => ("eyJ.eyJ.sign", "prev"));
+        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<DateTime?>(), It.IsAny<string?>()))
+            .ReturnsAsync(new TseSignatureResult("eyJ.eyJ.sign", "prev"));
+        tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
+            .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert123" });
 
         var finanzMock = new Mock<IFinanzOnlineService>();
         finanzMock.Setup(x => x.SubmitInvoiceAsync(It.IsAny<Invoice>())).ReturnsAsync(new FinanzOnlineSubmitResponse { Success = true });
@@ -91,7 +92,7 @@ public class PaymentModifierValidationIntegrationTests
         userMock.Setup(x => x.GetUserByIdAsync(It.IsAny<string>())).ReturnsAsync(new ApplicationUser { Id = "u1", UserName = "cashier", FirstName = "Test", LastName = "User", Role = "Cashier" });
 
         var companyProfile = new CompanyProfileOptions { CompanyName = "Test", TaxNumber = "ATU12345678", Street = "S1", ZipCode = "1010", City = "Wien", FooterText = "" };
-        var tseOptions = new TseOptions { IsOff = false, UseSoftTseWhenNoDevice = true };
+        var tseOptions = new TseOptions { TseMode = "Demo" }; // UseSoftTseWhenNoDevice = true for tests
 
         var modifierValidation = new ProductModifierValidationService(context);
 
@@ -110,10 +111,10 @@ public class PaymentModifierValidationIntegrationTests
     }
 
     [Fact]
-    public async Task CreatePayment_WithAllowedModifier_SucceedsAndTotalsIncludeModifier()
+    public async Task CreatePayment_WithModifierIds_Phase3IgnoresModifiers_TotalsProductOnly()
     {
         await using var context = CreateInMemoryContext();
-        var (_, customerId, productId, modifierId, productPrice, modifierPrice) = SeedData(context);
+        var (_, customerId, productId, modifierId, productPrice, _) = SeedData(context);
         var paymentService = CreatePaymentService(context);
 
         var request = new CreatePaymentRequest
@@ -121,7 +122,7 @@ public class PaymentModifierValidationIntegrationTests
             CustomerId = customerId,
             TableNumber = 1,
             CashierId = "c1",
-            TotalAmount = 0, // Will be computed
+            TotalAmount = 0,
             Steuernummer = "ATU12345678",
             KassenId = "KASSE-01",
             Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
@@ -141,18 +142,18 @@ public class PaymentModifierValidationIntegrationTests
 
         Assert.True(result.Success, result.Message + ": " + string.Join("; ", result.Errors));
         Assert.NotNull(result.Payment);
-        // Line: product 6.90 + modifier 0.30 = 7.20 (gross)
-        Assert.True(result.Payment.TotalAmount >= productPrice + modifierPrice - 0.01m && result.Payment.TotalAmount <= productPrice + modifierPrice + 0.01m,
-            $"TotalAmount {result.Payment.TotalAmount} should include product {productPrice} + modifier {modifierPrice}");
+        // Phase 3: ModifierIds ignored; total = product only
+        Assert.True(result.Payment.TotalAmount >= productPrice - 0.01m && result.Payment.TotalAmount <= productPrice + 0.01m,
+            $"TotalAmount {result.Payment.TotalAmount} should be product-only {productPrice} (Phase 3)");
     }
 
     [Fact]
-    public async Task CreatePayment_WithDisallowedModifier_Returns400()
+    public async Task CreatePayment_WithDisallowedModifierIds_Phase3Ignores_SucceedsWithProductOnly()
     {
         await using var context = CreateInMemoryContext();
-        var (_, customerId, productId, _, _, _) = SeedData(context);
+        var (_, customerId, productId, _, productPrice, _) = SeedData(context);
         var paymentService = CreatePaymentService(context);
-        var disallowedModifierId = Guid.NewGuid(); // Not assigned to product
+        var disallowedModifierId = Guid.NewGuid();
 
         var request = new CreatePaymentRequest
         {
@@ -177,16 +178,16 @@ public class PaymentModifierValidationIntegrationTests
 
         var result = await paymentService.CreatePaymentAsync(request, "u1");
 
-        Assert.False(result.Success);
-        Assert.Contains("not allowed", result.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.True(result.Errors.Any(e => e.Contains(productId.ToString()) && e.Contains(disallowedModifierId.ToString())));
+        Assert.True(result.Success);
+        Assert.NotNull(result.Payment);
+        Assert.True(result.Payment.TotalAmount >= productPrice - 0.01m && result.Payment.TotalAmount <= productPrice + 0.01m);
     }
 
     [Fact]
-    public async Task CreatePayment_WithWrongPriceDelta_Returns400()
+    public async Task CreatePayment_WithWrongPriceDeltaInModifiers_Phase3Ignores_SucceedsWithProductOnly()
     {
         await using var context = CreateInMemoryContext();
-        var (_, customerId, productId, modifierId, _, _) = SeedData(context);
+        var (_, customerId, productId, modifierId, productPrice, _) = SeedData(context);
         var paymentService = CreatePaymentService(context);
 
         var request = new CreatePaymentRequest
@@ -207,7 +208,7 @@ public class PaymentModifierValidationIntegrationTests
                     TaxType = TaxType.Reduced,
                     Modifiers = new List<PaymentItemModifierRequest>
                     {
-                        new() { ModifierId = modifierId, PriceDelta = 1.00m } // DB has 0.30; tampering
+                        new() { ModifierId = modifierId, PriceDelta = 1.00m }
                     }
                 }
             }
@@ -215,8 +216,8 @@ public class PaymentModifierValidationIntegrationTests
 
         var result = await paymentService.CreatePaymentAsync(request, "u1");
 
-        Assert.False(result.Success);
-        Assert.Contains("price", result.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.True(result.Errors.Any(e => e.Contains("catalog") || e.Contains("match")));
+        Assert.True(result.Success);
+        Assert.NotNull(result.Payment);
+        Assert.True(result.Payment.TotalAmount >= productPrice - 0.01m && result.Payment.TotalAmount <= productPrice + 0.01m);
     }
 }

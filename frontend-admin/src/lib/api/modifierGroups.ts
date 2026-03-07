@@ -77,7 +77,10 @@ export async function createModifierGroup(body: {
   return data as { id: string };
 }
 
-/** Gruba yeni modifier ekle (Legacy). */
+/**
+ * Gruba yeni modifier ekle (Legacy).
+ * @deprecated Phase 2: Legacy modifier creation is frozen. Backend returns 410. Use addProductToGroup instead.
+ */
 export async function addModifierToGroup(
   groupId: string,
   body: { name: string; price?: number; taxType?: number; sortOrder?: number }

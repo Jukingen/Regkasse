@@ -1,5 +1,5 @@
 /**
- * Fiş satırı: Ana ürün + altında modifier/extras (küçük font ile + Extra Fleisch €1.50).
+ * Fiş satırı: Phase 2 flat = one main line per product (modifiers empty). Legacy = main + modifier lines (name may include "+ " from backend).
  * ReceiptSummary FlatList item renderer.
  */
 import React from 'react';
@@ -40,7 +40,7 @@ export function ReceiptLineItem({ main, modifiers = [], compact }: ReceiptLineIt
           {modifiers.map((mod, idx) => (
             <View key={mod.itemId ?? idx} style={styles.modifierRow}>
               <Text style={[styles.modifierText, compact && styles.modifierTextCompact]}>
-                + {mod.name}
+                {mod.name?.startsWith('+') ? mod.name : `+ ${mod.name}`}
               </Text>
               <Text style={[styles.modifierPrice, compact && styles.modifierTextCompact]}>
                 {formatPrice(mod.totalPrice)}

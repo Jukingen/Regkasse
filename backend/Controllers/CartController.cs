@@ -152,9 +152,10 @@ namespace KasseAPI_Final.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
-                // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et
+                // ✅ Cart'ın bu kullanıcıya ait olduğunu kontrol et (Modifiers: read-only legacy compat)
                 var cart = await _context.Carts
                     .Include(c => c.Items)
+                    .ThenInclude(i => i.Modifiers)
                     .Include(c => c.Customer)
                     .FirstOrDefaultAsync(c => c.CartId == cartId && c.UserId == userId && c.Status == CartStatus.Active);
 
@@ -282,87 +283,73 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "Product not found" });
                 }
 
-                // Normalize modifiers: group by Id, sum Quantity; default 1 if missing or < 1
+                var baseUnitPrice = Math.Round(product.Price, 2, MidpointRounding.AwayFromZero);
+
+                // Phase 2: Flat cart — sellable add-on products are always a single line (no embedded modifiers). Merge by ProductId only.
+                if (product.IsSellableAddOn)
+                {
+                    var existingFlat = await _context.CartItems
+                        .Where(ci => ci.CartId == cart.CartId && ci.ProductId == request.ProductId && !_context.CartItemModifiers.Any(m => m.CartItemId == ci.Id))
+                        .FirstOrDefaultAsync();
+                    if (existingFlat != null)
+                    {
+                        existingFlat.Quantity += request.Quantity;
+                        existingFlat.Notes = request.Notes ?? existingFlat.Notes;
+                        _logger.LogInformation("Updated existing flat add-on line: ItemId={ItemId}, ProductId={ProductId}, NewQuantity={NewQuantity}", existingFlat.Id, request.ProductId, existingFlat.Quantity);
+                    }
+                    else
+                    {
+                        _context.CartItems.Add(new CartItem
+                        {
+                            CartId = cart.CartId,
+                            ProductId = request.ProductId,
+                            Quantity = request.Quantity,
+                            UnitPrice = baseUnitPrice,
+                            Notes = request.Notes
+                        });
+                        _logger.LogInformation("Added flat add-on line: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}", cart.CartId, request.ProductId, request.Quantity);
+                    }
+                    await _context.SaveChangesAsync();
+                    var cartWithItems = await _context.Carts.Include(c => c.Items).ThenInclude(i => i.Modifiers).FirstOrDefaultAsync(c => c.CartId == cart.CartId);
+                    var pIds = cartWithItems!.Items.Select(ci => ci.ProductId).ToList();
+                    var prods = await _context.Products.Where(p => pIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p);
+                    return Ok(new { message = "Item added to cart successfully", cart = BuildCartResponse(cartWithItems, prods) });
+                }
+
+                // Phase 3 prep: No new legacy modifier writes. Base product is treated as product-only; add-ons as separate add-item calls. SelectedModifiers accepted in request but ignored for write (read compat kept).
                 var rawMods = request.SelectedModifiers ?? new List<SelectedModifierInputDto>();
                 var normalizedMods = rawMods
                     .Where(s => s.Id != Guid.Empty)
                     .GroupBy(s => s.Id)
                     .Select(g => new { Id = g.Key, Quantity = Math.Max(1, g.Sum(x => x.Quantity < 1 ? 1 : x.Quantity)) })
                     .ToList();
-                var requestedModifierIds = normalizedMods.Select(m => m.Id).ToList();
-                List<ModifierPriceDto> validatedModifiers = new();
-                if (requestedModifierIds.Count > 0)
+                if (normalizedMods.Count > 0)
+                    _logger.LogInformation("Phase2.LegacyModifier.AddItemRequestSelectedModifiers CartId={CartId} ProductId={ProductId} ModifierCount={ModifierCount} (ignored for write - Phase 3)", cart.CartId, request.ProductId, normalizedMods.Count);
+
+                _logger.LogInformation("Processing cart item: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}, BaseUnitPrice={Price}, UserId={UserId}",
+                    cart.CartId, request.ProductId, request.Quantity, baseUnitPrice, userId);
+
+                // Merge by product only (no new CartItemModifiers written)
+                var existingProductOnly = await _context.CartItems
+                    .Where(ci => ci.CartId == cart.CartId && ci.ProductId == request.ProductId && !_context.CartItemModifiers.Any(m => m.CartItemId == ci.Id))
+                    .FirstOrDefaultAsync();
+                if (existingProductOnly != null)
                 {
-                    validatedModifiers = (await _modifierValidation.GetAllowedModifiersWithPricesForProductAsync(request.ProductId, requestedModifierIds)).ToList();
-                    var validatedIds = validatedModifiers.Select(m => m.Id).ToHashSet();
-                    var invalidIds = requestedModifierIds.Where(id => !validatedIds.Contains(id)).ToList();
-                    if (invalidIds.Count > 0)
-                    {
-                        _logger.LogWarning("Invalid product-modifier combination: ProductId={ProductId}, InvalidModifierIds={Ids}", request.ProductId, string.Join(",", invalidIds));
-                        return BadRequest(new { message = "One or more selected modifiers are not allowed for this product.", invalidModifierIds = invalidIds });
-                    }
-                }
-
-                // CartItem.UnitPrice = product base only; line total = base*Qty + sum(mod.Price*mod.Quantity)
-                var baseUnitPrice = Math.Round(product.Price, 2, MidpointRounding.AwayFromZero);
-
-                _logger.LogInformation("Processing cart item: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}, ModifiersCount={ModCount}, BaseUnitPrice={Price}, UserId={UserId}",
-                    cart.CartId, request.ProductId, request.Quantity, normalizedMods.Count, baseUnitPrice, userId);
-
-                var itemsWithSameProduct = await _context.CartItems
-                    .Where(ci => ci.CartId == cart.CartId && ci.ProductId == request.ProductId)
-                    .Include(ci => ci.Modifiers)
-                    .ToListAsync();
-
-                // Match existing line by same product + same (ModifierId, Quantity) set
-                var requestedSignature = normalizedMods
-                    .OrderBy(x => x.Id)
-                    .Select(x => (x.Id, x.Quantity))
-                    .ToList();
-                var existingItem = itemsWithSameProduct.FirstOrDefault(ci =>
-                {
-                    var itemSig = (ci.Modifiers ?? Enumerable.Empty<CartItemModifier>())
-                        .OrderBy(m => m.ModifierId)
-                        .Select(m => (m.ModifierId, m.Quantity))
-                        .ToList();
-                    return itemSig.Count == requestedSignature.Count
-                        && itemSig.Zip(requestedSignature, (a, b) => a.ModifierId == b.Id && a.Quantity == b.Quantity).All(x => x);
-                });
-
-                if (existingItem != null)
-                {
-                    existingItem.Quantity += request.Quantity;
-                    existingItem.Notes = request.Notes ?? existingItem.Notes;
-                    _logger.LogInformation("Updated existing cart item: ItemId={ItemId}, NewQuantity={NewQuantity}, UserId={UserId}",
-                        existingItem.Id, existingItem.Quantity, userId);
+                    existingProductOnly.Quantity += request.Quantity;
+                    existingProductOnly.Notes = request.Notes ?? existingProductOnly.Notes;
+                    _logger.LogInformation("Updated existing product-only line: ItemId={ItemId}, ProductId={ProductId}, NewQuantity={NewQuantity}", existingProductOnly.Id, request.ProductId, existingProductOnly.Quantity);
                 }
                 else
                 {
-                    var cartItem = new CartItem
+                    _context.CartItems.Add(new CartItem
                     {
                         CartId = cart.CartId,
                         ProductId = request.ProductId,
                         Quantity = request.Quantity,
                         UnitPrice = baseUnitPrice,
                         Notes = request.Notes
-                    };
-                    _context.CartItems.Add(cartItem);
-                    foreach (var nm in normalizedMods)
-                    {
-                        var mod = validatedModifiers.FirstOrDefault(m => m.Id == nm.Id);
-                        if (mod == null) continue;
-                        _context.CartItemModifiers.Add(new CartItemModifier
-                        {
-                            CartItemId = cartItem.Id,
-                            ModifierId = mod.Id,
-                            Name = mod.Name,
-                            Price = mod.Price,
-                            ModifierGroupId = null,
-                            Quantity = nm.Quantity
-                        });
-                    }
-                    _logger.LogInformation("Added new cart item with modifiers: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}, UserId={UserId}",
-                        cart.CartId, request.ProductId, request.Quantity, userId);
+                    });
+                    _logger.LogInformation("Added product-only line (no modifiers written): CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}", cart.CartId, request.ProductId, request.Quantity);
                 }
 
                 await _context.SaveChangesAsync();
@@ -500,53 +487,12 @@ namespace KasseAPI_Final.Controllers
                 cartItem.Quantity = request.Quantity;
                 cartItem.Notes = request.Notes ?? cartItem.Notes;
 
-                // Seçili modifier'lar verilmişse normalize et, doğrula, satır modifier'larını güncelle; UnitPrice = ürün baz fiyatı
+                // Phase 3 prep: No new legacy modifier writes. SelectedModifiers in request are ignored for write; existing CartItem.Modifiers left unchanged (historical read compat).
                 if (request.SelectedModifiers != null)
                 {
-                    var product = await _context.Products.FindAsync(cartItem.ProductId);
-                    if (product == null)
-                    {
-                        _logger.LogWarning("Product not found for cart item - ProductId: {ProductId}", cartItem.ProductId);
-                        return BadRequest(new { message = "Product not found" });
-                    }
-
-                    var rawMods = request.SelectedModifiers.Where(s => s.Id != Guid.Empty).ToList();
-                    var normalizedMods = rawMods
-                        .GroupBy(s => s.Id)
-                        .Select(g => new { Id = g.Key, Quantity = Math.Max(1, g.Sum(x => x.Quantity < 1 ? 1 : x.Quantity)) })
-                        .ToList();
-                    var requestedModifierIds = normalizedMods.Select(m => m.Id).ToList();
-                    var validatedModifiers = new List<ModifierPriceDto>();
-                    if (requestedModifierIds.Count > 0)
-                    {
-                        validatedModifiers = (await _modifierValidation.GetAllowedModifiersWithPricesForProductAsync(cartItem.ProductId, requestedModifierIds)).ToList();
-                        var validatedIds = validatedModifiers.Select(m => m.Id).ToHashSet();
-                        var invalidIds = requestedModifierIds.Where(id => !validatedIds.Contains(id)).ToList();
-                        if (invalidIds.Count > 0)
-                        {
-                            _logger.LogWarning("Invalid product-modifier combination: ProductId={ProductId}, InvalidModifierIds={Ids}", cartItem.ProductId, string.Join(",", invalidIds));
-                            return BadRequest(new { message = "One or more selected modifiers are not allowed for this product.", invalidModifierIds = invalidIds });
-                        }
-                    }
-
-                    _context.CartItemModifiers.RemoveRange(cartItem.Modifiers);
-                    foreach (var nm in normalizedMods)
-                    {
-                        var mod = validatedModifiers.FirstOrDefault(m => m.Id == nm.Id);
-                        if (mod == null) continue;
-                        _context.CartItemModifiers.Add(new CartItemModifier
-                        {
-                            CartItemId = cartItem.Id,
-                            ModifierId = mod.Id,
-                            Name = mod.Name,
-                            Price = mod.Price,
-                            ModifierGroupId = null,
-                            Quantity = nm.Quantity
-                        });
-                    }
-
-                    cartItem.UnitPrice = Math.Round(product.Price, 2, MidpointRounding.AwayFromZero);
-                    _logger.LogInformation("Cart item modifiers updated - ItemId: {ItemId}, ModifiersCount: {Count}, BaseUnitPrice: {UnitPrice}", itemId, normalizedMods.Count, cartItem.UnitPrice);
+                    var legacyUpdateMods = request.SelectedModifiers.Where(s => s.Id != Guid.Empty).ToList();
+                    if (legacyUpdateMods.Count > 0)
+                        _logger.LogInformation("Phase2.LegacyModifier.UpdateItemRequestSelectedModifiers CartItemId={CartItemId} ModifierCount={ModifierCount} (ignored for write - Phase 3)", cartItem.Id, legacyUpdateMods.Count);
                 }
 
                 await _context.SaveChangesAsync();
@@ -1509,7 +1455,7 @@ namespace KasseAPI_Final.Controllers
 
 
 
-        /// <summary>Cart + products'tan standart response. UnitPrice = ürün baz; line total = base*qty + sum(mod.Price*mod.Quantity).</summary>
+        /// <summary>Cart + products'tan standart response. UnitPrice = ürün baz; line total = base*qty + sum(mod). SelectedModifiers: legacy read-only for existing carts.</summary>
         private CartResponse BuildCartResponse(Cart cart, IReadOnlyDictionary<Guid, Product> products)
         {
             var allLineAmounts = new List<CartMoneyHelper.LineAmounts>();
@@ -1546,6 +1492,11 @@ namespace KasseAPI_Final.Controllers
                     SelectedModifiers = selectedModifiers
                 };
             }).ToList();
+
+            // Phase 2 observability: when this log stops appearing, no carts with embedded CartItemModifiers are loaded anymore.
+            var itemsWithEmbeddedModifiers = items.Count(i => (i.SelectedModifiers?.Count ?? 0) > 0);
+            if (itemsWithEmbeddedModifiers > 0)
+                _logger.LogInformation("Phase2.LegacyModifier.CartLoadedWithEmbeddedModifiers CartId={CartId} ItemsWithModifiersCount={ItemsWithModifiersCount}", cart.CartId, itemsWithEmbeddedModifiers);
 
             var totals = CartMoneyHelper.ComputeCartTotals(allLineAmounts);
 
@@ -1588,6 +1539,7 @@ namespace KasseAPI_Final.Controllers
         public string? Notes { get; set; }
     }
 
+    /// <summary>Primary: ProductId, Quantity. Legacy: SelectedModifiers (prefer adding add-ons as separate add-item calls).</summary>
     public class AddItemToCartRequest
     {
         public Guid ProductId { get; set; }
@@ -1595,7 +1547,8 @@ namespace KasseAPI_Final.Controllers
         public int? TableNumber { get; set; }
         public string? WaiterName { get; set; }
         public string? Notes { get; set; }
-        /// <summary>Compat/legacy. Yeni akış: add-on için ayrı add-item(productId). Legacy: bu satıra bağlı modifier id+quantity (fiyat DB'den).</summary>
+        /// <summary>Phase 2 legacy: Prefer flat cart (add-on = separate add-item). Still accepted for backward compat.</summary>
+        [Obsolete("Add add-ons as separate add-item(productId) lines. Kept for backward compat.", false)]
         public List<SelectedModifierInputDto>? SelectedModifiers { get; set; }
     }
 
@@ -1606,11 +1559,13 @@ namespace KasseAPI_Final.Controllers
         public string? Notes { get; set; }
     }
 
+    /// <summary>Primary: Quantity, Notes. Legacy: SelectedModifiers (prefer flat cart).</summary>
     public class UpdateCartItemRequest
     {
         public int Quantity { get; set; }
         public string? Notes { get; set; }
-        /// <summary>Compat/legacy. Yeni akış: add-on ayrı satır. Legacy: bu satırın modifier listesi (id zorunlu); verilirse güncellenir.</summary>
+        /// <summary>Phase 2 legacy: Prefer flat cart. Still accepted for backward compat.</summary>
+        [Obsolete("Add-ons as separate cart lines. Kept for backward compat.", false)]
         public List<SelectedModifierInputDto>? SelectedModifiers { get; set; }
     }
 
@@ -1653,7 +1608,7 @@ namespace KasseAPI_Final.Controllers
         public decimal GrossAmount { get; set; }
     }
 
-    /// <summary>UnitPrice/TotalPrice = GROSS (inkl. MwSt.). selectedModifiers: legacy (satır seçili modifier'lar); yeni akışta add-on ayrı item. JSON: camelCase.</summary>
+    /// <summary>Cart line: product-only (primary). UnitPrice/TotalPrice = GROSS. SelectedModifiers = legacy read-only.</summary>
     public class CartItemResponse
     {
         public Guid Id { get; set; }
@@ -1668,7 +1623,8 @@ namespace KasseAPI_Final.Controllers
         public string? Notes { get; set; }
         public int TaxType { get; set; } = 1;
         public decimal TaxRate { get; set; }
-        /// <summary>Legacy. Yeni akışta sellable add-on ayrı CartItemResponse satırı olarak döner.</summary>
+        /// <summary>Phase 2 legacy: Read-only for existing carts. New add-ons appear as separate Items.</summary>
+        [Obsolete("Read-only for legacy carts. New add-ons are separate Items.", false)]
         public List<SelectedModifierDto> SelectedModifiers { get; set; } = new();
     }
 
@@ -1733,6 +1689,7 @@ namespace KasseAPI_Final.Controllers
         public int TotalItems { get; set; }
     }
 
+    /// <summary>Table order line: product fields primary. SelectedModifiers = legacy read-only.</summary>
     public class TableOrderItemInfo
     {
         public Guid ProductId { get; set; }
@@ -1741,11 +1698,12 @@ namespace KasseAPI_Final.Controllers
         public decimal Price { get; set; }
         public decimal Total { get; set; }
         public string? Notes { get; set; }
-        /// <summary>add-item ile tutarlı - unitPrice (gross), totalPrice (gross), taxRate, taxType</summary>
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
         public decimal TaxRate { get; set; }
         public int TaxType { get; set; } = 1;
+        /// <summary>Phase 2 legacy: Read-only. New add-ons as separate lines.</summary>
+        [Obsolete("Read-only for legacy. New add-ons as separate lines.", false)]
         public List<SelectedModifierDto> SelectedModifiers { get; set; } = new();
     }
 }

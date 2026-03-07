@@ -4,7 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     /// <summary>
-    /// Persisted modifier selection for a table order line item. Price from DB (fiscal-safe).
+    /// Legacy: Persisted modifier selection for a table order line item (price from DB, fiscal-safe).
+    /// Phase 2 flat model: add-ons are separate TableOrderItems; new writes do not create this entity. Kept for historical/backward compatibility.
     /// </summary>
     [Table("table_order_item_modifiers")]
     public class TableOrderItemModifier

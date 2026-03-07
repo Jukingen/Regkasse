@@ -210,6 +210,7 @@ builder.Services.AddScoped<IReceiptService, ReceiptService>();
 // builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 // builder.Services.AddScoped<ITestService, TestService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 builder.Services.AddScoped<IProductModifierValidationService, ProductModifierValidationService>();
+builder.Services.AddScoped<IModifierMigrationService, ModifierMigrationService>(); // Phase 2: legacy modifier → add-on product migration
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
@@ -234,6 +235,45 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+// ----- Phase 2: Explicit migration command (operator-controlled; no server start). Safe for staging; dry-run supported. -----
+if (args.Length > 0 && args[0] == "migrate-legacy-modifiers")
+{
+    var categoryIdStr = args.Length > 1 && !args[1].StartsWith("--") ? args[1] : builder.Configuration["Migration:DefaultCategoryId"] ?? Environment.GetEnvironmentVariable("MIGRATE_DEFAULT_CATEGORY_ID");
+    var dryRun = args.Any(a => a == "--dryrun" || a.Equals("dryrun", StringComparison.OrdinalIgnoreCase));
+    if (string.IsNullOrEmpty(categoryIdStr))
+    {
+        Console.WriteLine("migrate-legacy-modifiers: DefaultCategoryId required.");
+        Console.WriteLine("  Usage: dotnet run -- migrate-legacy-modifiers <CategoryId> [--dryrun]");
+        Console.WriteLine("  Or set appsettings: Migration:DefaultCategoryId or env MIGRATE_DEFAULT_CATEGORY_ID.");
+        Environment.Exit(1);
+    }
+    if (!Guid.TryParse(categoryIdStr, out var categoryId))
+    {
+        Console.WriteLine("migrate-legacy-modifiers: Invalid CategoryId format.");
+        Environment.Exit(1);
+    }
+    using (var scope = app.Services.CreateScope())
+    {
+        var migrationService = scope.ServiceProvider.GetRequiredService<IModifierMigrationService>();
+        var result = await migrationService.MigrateAsync(categoryId, dryRun);
+        Console.WriteLine("--- Legacy modifier migration ---");
+        Console.WriteLine($"  Total processed: {result.TotalProcessed}");
+        Console.WriteLine($"  Migrated:        {result.MigratedCount}");
+        Console.WriteLine($"  Skipped (already migrated / duplicate): {result.SkippedCount}");
+        Console.WriteLine($"  Errors:          {result.ErrorCount}");
+        if (dryRun)
+            Console.WriteLine("  [DRY RUN - no changes written]");
+        if (result.ErrorCount > 0)
+        {
+            foreach (var e in result.Errors)
+                Console.WriteLine($"  Error: {e.ModifierName} ({e.ModifierId}): {e.Reason}");
+            Environment.Exit(1);
+        }
+        Environment.Exit(0);
+    }
+}
+// ----- End migration command -----
 
 // Veritabanı seed işlemleri
 using (var scope = app.Services.CreateScope())

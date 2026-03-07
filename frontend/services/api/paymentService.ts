@@ -9,12 +9,12 @@ export interface PaymentMethod {
   icon: string;
 }
 
-// Backend'deki PaymentItemRequest ile uyumlu (modifierIds = Extra Zutaten)
+// Backend PaymentItemRequest: one item per cart line. Add-ons = product-only (no modifierIds).
 export interface PaymentItem {
   productId: string;
   quantity: number;
   taxType: 'standard' | 'reduced' | 'special';
-  /** Extra Zutaten – seçilen modifier ID'leri; backend fiyat/vergi hesaplar, fişte satır olarak görünür */
+  /** @deprecated Phase 2: Legacy only. Add-ons are separate lines. Backend still accepts for old carts. */
   modifierIds?: string[];
 }
 

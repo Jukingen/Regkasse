@@ -42,6 +42,10 @@ namespace KasseAPI_Final.Controllers
                     .ToListAsync();
 
                 var dtos = groups.Select(g => MapToModifierGroupDto(g)).ToList();
+                // Phase 2 observability: when this log stops appearing, no modifier group responses include legacy Modifiers anymore.
+                var groupsWithLegacyCount = dtos.Count(g => g.Modifiers != null && g.Modifiers.Count > 0);
+                if (groupsWithLegacyCount > 0)
+                    _logger.LogInformation("Phase2.LegacyModifier.ModifierGroupDtoReturnedWithModifiers GetAll GroupsWithModifiersCount={GroupsWithModifiersCount}", groupsWithLegacyCount);
                 return SuccessResponse(dtos, "Modifier groups retrieved.");
             }
             catch (Exception ex)
@@ -68,6 +72,9 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("Modifier group not found.", 404);
 
                 var dto = MapToModifierGroupDto(group);
+                // Phase 2 observability: when this log stops appearing, no single-group response includes legacy Modifiers anymore.
+                if (dto.Modifiers != null && dto.Modifiers.Count > 0)
+                    _logger.LogInformation("Phase2.LegacyModifier.ModifierGroupDtoReturnedWithModifiers GetById GroupId={GroupId} ModifiersCount={ModifiersCount}", id, dto.Modifiers.Count);
                 return SuccessResponse(dto, "Modifier group retrieved.");
             }
             catch (Exception ex)
@@ -164,46 +171,17 @@ namespace KasseAPI_Final.Controllers
 
         /// <summary>
         /// Gruba yeni modifier ekle.
+        /// Phase 2: Legacy modifier creation is frozen. Use POST .../products (add-on products) instead.
+        /// Read support for existing modifiers remains. TODO Phase 2: Remove this endpoint after migration.
         /// </summary>
         [HttpPost("{groupId:guid}/modifiers")]
-        public async Task<IActionResult> AddModifier(Guid groupId, [FromBody] CreateModifierRequest request)
+        [Obsolete("Legacy modifier creation is disabled. Use add-on products (POST .../products) instead.")]
+        public Task<IActionResult> AddModifier(Guid groupId, [FromBody] CreateModifierRequest request)
         {
-            try
-            {
-                var group = await _context.ProductModifierGroups.FindAsync(groupId);
-                if (group == null)
-                    return ErrorResponse("Modifier group not found.", 404);
-
-                var modifier = new ProductModifier
-                {
-                    Id = Guid.NewGuid(),
-                    ModifierGroupId = groupId,
-                    Name = request.Name,
-                    Price = request.Price,
-                    TaxType = request.TaxType,
-                    SortOrder = request.SortOrder,
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                _context.ProductModifiers.Add(modifier);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Modifier added to group {GroupId}: {Name}", groupId, modifier.Name);
-                return SuccessResponse(new ModifierDto
-                {
-                    Id = modifier.Id,
-                    Name = modifier.Name,
-                    Price = modifier.Price,
-                    TaxType = modifier.TaxType,
-                    SortOrder = modifier.SortOrder
-                }, "Modifier added.");
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex, "ModifierGroups.AddModifier");
-            }
+            _logger.LogWarning("Legacy modifier creation attempted for group {GroupId}; rejected (Phase 2 freeze).", groupId);
+            return Task.FromResult<IActionResult>(ErrorResponse(
+                "Legacy modifier creation is disabled. Use add-on products (POST /api/modifier-groups/{id}/products) instead.",
+                410)); // 410 Gone = resource no longer available for creation
         }
 
         /// <summary>

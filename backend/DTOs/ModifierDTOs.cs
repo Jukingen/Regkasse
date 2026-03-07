@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace KasseAPI_Final.DTOs
 {
     /// <summary>
-    /// Modifier group list/detail response (Admin + POS). Faz 1: Products = suggested add-on product refs (fiyat Product'ta); Modifiers = legacy.
+    /// Modifier group list/detail response (Admin + POS). Primary: Products (sellable add-ons). Legacy: Modifiers (read-only for existing data).
     /// </summary>
     public class ModifierGroupDto
     {
@@ -14,10 +14,11 @@ namespace KasseAPI_Final.DTOs
         public bool IsRequired { get; set; }
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
-        /// <summary>Legacy. Yeni client Products kullanır. Fiyat ProductModifier'dan.</summary>
-        public List<ModifierDto> Modifiers { get; set; } = new();
-        /// <summary>Faz 1: Bu grupta önerilen product'lar (sellable add-on). Fiyat/vergi Product'tan; JSON: products (camelCase).</summary>
+        /// <summary>Primary: Suggested add-on products for this group. Price/tax from Product. Use this for new flows.</summary>
         public List<AddOnGroupProductItemDto> Products { get; set; } = new();
+        /// <summary>Phase 2 legacy: Read-only for existing groups. Prefer Products. Will be removed after migration.</summary>
+        [Obsolete("Prefer Products for add-ons. Modifiers kept for read compatibility only.", false)]
+        public List<ModifierDto> Modifiers { get; set; } = new();
     }
 
     /// <summary>
@@ -61,6 +62,7 @@ namespace KasseAPI_Final.DTOs
 
     /// <summary>
     /// Add modifier to a group. Legacy; yeni akış AddProductToGroupRequest kullanır.
+    /// Phase 2: Creation frozen; endpoint returns 410. Do not use for new code. TODO Phase 2: Remove after migration.
     /// </summary>
     public class CreateModifierRequest
     {
@@ -107,7 +109,7 @@ namespace KasseAPI_Final.DTOs
     }
 
     /// <summary>
-    /// Satır bazında seçili modifier (cart item / table-order item). JSON: camelCase.
+    /// Phase 2 deprecated: Satır bazında seçili modifier (cart/table-order). Read-only in API response for legacy carts. New flow uses flat cart lines (add-on = separate product line).
     /// </summary>
     public class SelectedModifierDto
     {
@@ -119,8 +121,7 @@ namespace KasseAPI_Final.DTOs
     }
 
     /// <summary>
-    /// add-item / update-item request: FE gönderir; name/price DB'den türetilir (güvenlik).
-    /// Quantity &lt; 1 ise 1 kabul edilir (backward compat). Aynı id iki kez gelirse miktarlar toplanır.
+    /// Phase 2 deprecated: add-item/update-item legacy modifier input. New add-ons should be added as separate add-item(productId) lines. Still accepted for backward compat; prefer flat cart.
     /// </summary>
     public class SelectedModifierInputDto
     {

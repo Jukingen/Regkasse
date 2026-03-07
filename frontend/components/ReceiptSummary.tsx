@@ -45,6 +45,7 @@ interface LineGroup {
   modifiers: { name: string; lineTotalGross: number }[];
 }
 
+/** Phase 2: Flat receipts = one group per item (modifiers empty). Legacy = main + modifiers nested under previous group. */
 function buildGroups(items: ReceiptSummaryItem[]): LineGroup[] {
   const groups: LineGroup[] = [];
   items.forEach((item, index) => {
@@ -82,7 +83,7 @@ export function ReceiptSummary({ receipt, mode }: ReceiptSummaryProps) {
       {item.modifiers.length > 0 && (
         <View style={styles.modifiers}>
           {item.modifiers.map((mod, i) => (
-            <Text key={i} style={styles.modifierText}>+ {mod.name} {formatMoney(mod.lineTotalGross)}</Text>
+            <Text key={i} style={styles.modifierText}>{mod.name} {formatMoney(mod.lineTotalGross)}</Text>
           ))}
         </View>
       )}

@@ -41,11 +41,11 @@ namespace KasseAPI_Final.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal LineNet { get; set; }
 
-        /// <summary>Extra Zutaten – bu satıra seçilen modifier'lar (fiş/receipt ve vergi için).</summary>
+        /// <summary>Phase 2 deprecated: Legacy embedded modifiers (fiş/receipt). Yeni akış: add-on = ayrı PaymentItem. Read-only for existing payment history.</summary>
         public List<PaymentItemModifierSnapshot> Modifiers { get; set; } = new();
     }
 
-    /// <summary>Fiş/receipt ve vergi toplamı için modifier satırı snapshot (PaymentItems JSON içinde).</summary>
+    /// <summary>Phase 2 deprecated: Legacy modifier snapshot in PaymentItems JSON. Read-only for receipt/history.</summary>
     public class PaymentItemModifierSnapshot
     {
         public Guid ModifierId { get; set; }

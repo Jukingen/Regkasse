@@ -74,7 +74,9 @@ namespace KasseAPI_Final.DTOs
         public decimal VatAmount { get; set; }
         /// <summary>Kategori adı (opsiyonel).</summary>
         public string? CategoryName { get; set; }
+        /// <summary>Phase 2 legacy: parent line ID when this is a nested modifier line. New receipts are flat (null).</summary>
         public Guid? ParentItemId { get; set; }
+        /// <summary>Phase 2 legacy: true when line is nested under a product (e.g. "+ Extra Cheese"). New receipts: all false (product-only lines).</summary>
         public bool IsModifierLine { get; set; }
     }
 

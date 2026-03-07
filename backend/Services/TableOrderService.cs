@@ -1,14 +1,15 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace KasseAPI_Final.Services
 {
     /// <summary>
-    /// TableOrder ile Cart arasında sync sağlayan service
-    /// Cart'tan TableOrder'a migration yapar
-    /// RKSV uyumlu audit trail sağlar
+    /// TableOrder ile Cart arasında sync sağlayan service.
+    /// Cart'tan TableOrder'a migration yapar; RKSV uyumlu audit trail sağlar.
+    /// Phase 3 prep: No new TableOrderItemModifier writes; historical reads unchanged. Totals still computed from cart (including modifier amounts when present).
     /// </summary>
     public class TableOrderService
     {
@@ -132,28 +133,8 @@ namespace KasseAPI_Final.Services
                 tableOrder.CreatedAt = DateTime.UtcNow;
                 tableOrder.UpdatedAt = DateTime.UtcNow;
 
-                // Database'e kaydet
+                // Database'e kaydet. Phase 3 prep: No new TableOrderItemModifier writes; totals still use cart item modifier amounts when present (read/historical).
                 _context.TableOrders.Add(tableOrder);
-                await _context.SaveChangesAsync();
-
-                // Cart satırlarındaki seçili modifier'ları TableOrderItemModifier olarak kopyala (recovery için)
-                var cartItemsList = cart.Items.ToList();
-                for (var i = 0; i < cartItemsList.Count; i++)
-                {
-                    var cartItem = cartItemsList[i];
-                    var toItem = tableOrderItems[i];
-                    foreach (var mod in cartItem.Modifiers ?? Enumerable.Empty<CartItemModifier>())
-                    {
-                        _context.TableOrderItemModifiers.Add(new TableOrderItemModifier
-                        {
-                            TableOrderItemId = toItem.Id,
-                            ModifierId = mod.ModifierId,
-                            Name = mod.Name,
-                            Price = mod.Price,
-                            ModifierGroupId = mod.ModifierGroupId
-                        });
-                    }
-                }
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("✅ Cart converted to TableOrder successfully - TableOrderId: {TableOrderId}, CartId: {CartId}, TableNumber: {TableNumber}, ItemCount: {ItemCount}, TotalAmount: {TotalAmount}", 
@@ -233,25 +214,7 @@ namespace KasseAPI_Final.Services
                 existingTableOrder.Items = newItems;
                 await _context.SaveChangesAsync();
 
-                var cartItemsListForUpdate = cart.Items.ToList();
-                for (var i = 0; i < cartItemsListForUpdate.Count; i++)
-                {
-                    var cartItem = cartItemsListForUpdate[i];
-                    var toItem = newItems[i];
-                    foreach (var mod in cartItem.Modifiers ?? Enumerable.Empty<CartItemModifier>())
-                    {
-                        _context.TableOrderItemModifiers.Add(new TableOrderItemModifier
-                        {
-                            TableOrderItemId = toItem.Id,
-                            ModifierId = mod.ModifierId,
-                            Name = mod.Name,
-                            Price = mod.Price,
-                            ModifierGroupId = mod.ModifierGroupId,
-                            Quantity = mod.Quantity
-                        });
-                    }
-                }
-                await _context.SaveChangesAsync();
+                // Phase 3 prep: No new TableOrderItemModifier writes; totals above still include cart modifier amounts when present (historical).
 
                 existingTableOrder.Subtotal = totals.SubtotalGross;
                 existingTableOrder.TaxAmount = totals.IncludedTaxTotal;

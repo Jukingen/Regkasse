@@ -92,6 +92,10 @@ namespace KasseAPI_Final.Models
         [Column("is_sellable_addon")]
         public bool IsSellableAddOn { get; set; }
 
+        /// <summary>Phase 2: Migre edilen legacy modifier Id. Bu ürün bu modifier'dan oluşturuldu; idempotent migration için kullanılır. TODO Phase 2: Migration tamamlandıktan sonra kaldırılabilir.</summary>
+        [Column("legacy_modifier_id")]
+        public Guid? LegacyModifierId { get; set; }
+
         // Navigation properties
         // public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
         // public virtual ICollection<InvoiceItem> InvoiceItems { get; set; } = new List<InvoiceItem>();

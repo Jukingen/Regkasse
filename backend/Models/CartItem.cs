@@ -25,7 +25,7 @@ namespace KasseAPI_Final.Models
 
         // Navigation properties
         public virtual Cart Cart { get; set; } = null!;
-        /// <summary>Seçili modifier'lar (fiyat DB'den; RKSV güvenli).</summary>
+        /// <summary>Phase 2 deprecated: Legacy embedded modifiers. Read-only for compatibility; new add-ons are separate cart lines (product-only). Do not write new CartItemModifier from add-item for sellable add-on products.</summary>
         public virtual ICollection<CartItemModifier> Modifiers { get; set; } = new List<CartItemModifier>();
     }
 }
