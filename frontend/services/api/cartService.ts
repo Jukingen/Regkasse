@@ -58,14 +58,14 @@ export interface AddItemToCartRequest {
   tableNumber?: number;
   waiterName?: string;
   notes?: string;
-  /** Backend contract: selectedModifiers[] with at least id. Do not send modifierIds. */
+  /** Backend accepts; optional. POS add-item does not send (Phase D PR-B); kept for API/legacy compat. */
   selectedModifiers?: SelectedModifierInput[];
 }
 
 export interface UpdateCartItemRequest {
   quantity: number;
   notes?: string;
-  /** Backend: updates line modifiers when provided. FE sends { id, quantity }; backend may only accept id until Quantity is supported. */
+  /** Legacy line modifier updates (e.g. persistModifiers). Backend may ignore for write; kept for compat. */
   selectedModifiers?: { id: string; quantity?: number }[];
 }
 

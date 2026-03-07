@@ -29,31 +29,26 @@ import { useCart } from '../../contexts/CartContext';
 
 import { Product } from '../../services/api/productService';
 import type { AddOnSelection } from '../../services/api/productModifiersService';
-import type { ModifierOptionItem } from '../../components/ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftTypography } from '../../constants/SoftTheme';
 
 // -----------------------------------------------------------------------------
 // Hook: Sepet ekleme + modifier pending state (tek tık akışı, minimal re-render)
 // -----------------------------------------------------------------------------
 function usePOSOrderFlow(
-  addItem: (productId: string, qty?: number, options?: { modifiers?: SelectedModifier[]; productName?: string; unitPrice?: number }) => Promise<void>,
+  addItem: (productId: string, qty?: number, options?: { productName?: string; unitPrice?: number }) => Promise<void>,
   activeTableId: number,
-  addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void,
-  lastCartItemIdByProductId: Record<string, string>,
-  addModifier: (cartItemId: string, modifier: { id: string; name: string; price: number; quantity?: number }) => Promise<void>
+  addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void
 ) {
   const [pendingModifiersByProduct, setPendingModifiersByProduct] = useState<Record<string, SelectedModifier[]>>({});
 
   const handleAddProduct = useCallback(
-    async (product: Product, modifiers: SelectedModifier[]) => {
+    async (product: Product) => {
       if (!activeTableId) {
         addToast('error', 'Bitte zuerst Tisch wählen', 3000);
         return;
       }
       try {
-        const withQty = modifiers.map((m) => ({ ...m, quantity: m.quantity ?? 1 }));
         await addItem(product.id, 1, {
-          modifiers: withQty,
           productName: product.name,
           unitPrice: product.price ?? 0,
         });
@@ -70,42 +65,6 @@ function usePOSOrderFlow(
     [addItem, activeTableId, addToast]
   );
 
-  /** Rule A: Product not in cart → add product + modifier. Rule B: Product in cart → add modifier to active line. (Legacy) */
-  const handleAddModifier = useCallback(
-    async (product: Product, modifier: ModifierOptionItem) => {
-      if (!activeTableId) {
-        addToast('error', 'Bitte zuerst Tisch wählen', 3000);
-        return;
-      }
-      const cartItemId = lastCartItemIdByProductId[product.id];
-      if (cartItemId) {
-        try {
-          await addModifier(cartItemId, { id: modifier.id, name: modifier.name, price: modifier.price, quantity: 1 });
-        } catch (e: any) {
-          addToast('error', e?.message || 'Extras konnten nicht hinzugefügt werden.', 3000);
-        }
-        return;
-      }
-      try {
-        await addItem(product.id, 1, {
-          modifiers: [{ id: modifier.id, name: modifier.name, price: modifier.price, quantity: 1 }],
-          productName: product.name,
-          unitPrice: product.price ?? 0,
-        });
-        addToast('success', `${product.name} + ${modifier.name} hinzugefügt`, 2000);
-        setPendingModifiersByProduct((prev) => {
-          const next = { ...prev };
-          delete next[product.id];
-          return next;
-        });
-      } catch (error: any) {
-        addToast('error', `${product.name}: ${error?.message || 'Fehler'}`, 5000);
-      }
-    },
-    [activeTableId, lastCartItemIdByProductId, addModifier, addItem, addToast]
-  );
-
-  /** Faz 1: Sellable add-on tıklandığında sepette ayrı satır; modifier state’e gitmez. */
   const handleAddAddOn = useCallback(
     async (addOn: AddOnSelection) => {
       if (!activeTableId) {
@@ -128,7 +87,6 @@ function usePOSOrderFlow(
   return {
     pendingModifiersByProduct,
     handleAddProduct,
-    handleAddModifier,
     handleAddAddOn,
   };
 }
@@ -225,15 +183,8 @@ export default function CashRegisterScreen() {
   const {
     pendingModifiersByProduct,
     handleAddProduct,
-    handleAddModifier,
     handleAddAddOn,
-  } = usePOSOrderFlow(
-    addItem,
-    activeTableId,
-    addToast,
-    lastCartItemIdByProductId,
-    addModifier
-  );
+  } = usePOSOrderFlow(addItem, activeTableId, addToast);
 
   // Chip'lerde gösterilecek seçim: önce sepetteki son satır, yoksa pending
   const selectedModifiersForProduct = useMemo(() => {
@@ -480,7 +431,6 @@ export default function CashRegisterScreen() {
         categoryFilterId={selectedCategoryId}
         pendingModifiersByProduct={selectedModifiersForProduct}
         onAddProduct={handleAddProduct}
-        onAddModifier={handleAddModifier}
         onAddAddOn={handleAddAddOn}
         onOpenAddOnSheet={setModifierSheetProduct}
         showStockInfo={false}

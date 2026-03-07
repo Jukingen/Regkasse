@@ -287,9 +287,9 @@ namespace KasseAPI_Final.Controllers
                 if (assignmentGroupIds.Count == 0)
                     return SuccessResponse(new List<ModifierGroupDto>(), "No modifier groups assigned.");
 
+                // Phase D PR-D: Admin product edit uses this only for assigned group IDs; return products-only (no Modifiers).
                 var groups = await _context.ProductModifierGroups
                     .Where(g => g.IsActive && assignmentGroupIds.Contains(g.Id))
-                    .Include(g => g.Modifiers.Where(m => m.IsActive))
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)
                     .OrderBy(g => g.SortOrder)
@@ -302,7 +302,7 @@ namespace KasseAPI_Final.Controllers
                     .Cast<ProductModifierGroup>()
                     .ToList();
 
-                var dtos = ordered.Select(g => MapToModifierGroupDto(g)).ToList();
+                var dtos = ordered.Select(g => MapToModifierGroupDtoForAdminProduct(g)).ToList();
 
                 return SuccessResponse(dtos, "Product modifier groups retrieved.");
             }
@@ -414,6 +414,35 @@ namespace KasseAPI_Final.Controllers
                     .ThenBy(m => m.Name)
                     .Select(m => new ModifierDto { Id = m.Id, Name = m.Name, Price = m.Price, TaxType = m.TaxType, SortOrder = m.SortOrder })
                     .ToList()
+            };
+        }
+
+        /// <summary>Phase D PR-D: Admin product modifier-groups endpoint returns products-only; Modifiers empty (used only for assigned group IDs).</summary>
+        private static ModifierGroupDto MapToModifierGroupDtoForAdminProduct(ProductModifierGroup g)
+        {
+            var products = (g.AddOnGroupProducts ?? new List<AddOnGroupProduct>())
+                .OrderBy(a => a.SortOrder)
+                .Where(a => a.Product != null && a.Product.IsActive)
+                .Select(a => new AddOnGroupProductItemDto
+                {
+                    ProductId = a.ProductId,
+                    ProductName = a.Product!.Name,
+                    Price = a.Product.Price,
+                    TaxType = a.Product.TaxType,
+                    SortOrder = a.SortOrder
+                }).ToList();
+
+            return new ModifierGroupDto
+            {
+                Id = g.Id,
+                Name = g.Name,
+                MinSelections = g.MinSelections,
+                MaxSelections = g.MaxSelections,
+                IsRequired = g.IsRequired,
+                SortOrder = g.SortOrder,
+                IsActive = g.IsActive,
+                Products = products,
+                Modifiers = new List<ModifierDto>()
             };
         }
     }

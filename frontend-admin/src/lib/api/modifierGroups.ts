@@ -45,14 +45,14 @@ interface ApiResponse<T> {
   data: T;
 }
 
-/** Tüm modifier gruplarını getir (modifier listesi ile). */
+/** All modifier groups with full details (products + modifiers). Use for migration UI and for group list in product form. Phase D PR-D: legacy modifiers only here. */
 export async function getModifierGroups(): Promise<ModifierGroupDto[]> {
   const res = await AXIOS_INSTANCE.get<ApiResponse<ModifierGroupDto[]>>('/api/modifier-groups');
   const data = res.data?.data ?? res.data;
   return Array.isArray(data) ? data : [];
 }
 
-/** Ürüne atanmış modifier gruplarını getir (admin API). */
+/** Assigned modifier groups for a product (admin API). Phase D PR-D: returns products-only; used for assigned group IDs. Full details (incl. modifiers) from getModifierGroups(). */
 export async function getProductModifierGroups(productId: string): Promise<ModifierGroupDto[]> {
   const data = await getAdminProductModifierGroups(productId);
   return Array.isArray(data) ? data : [];

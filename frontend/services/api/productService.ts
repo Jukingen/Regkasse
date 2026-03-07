@@ -75,8 +75,7 @@ export interface Product {
   productCategory?: string; // Backend'de ProductCategory olarak map edildi
   categoryId?: string; // Backend'de CategoryId olarak map edildi
   /**
-   * Modifier groups from catalog. Phase C: POS uses only group.products for add-on UI.
-   * Shape: Product → modifierGroups[] → products[] (add-on items). Do not use group.modifiers.
+   * Modifier groups from catalog. Phase D PR-C: catalog returns groups with empty modifiers; use .products only.
    */
   modifierGroups?: ModifierGroupDto[];
 }
@@ -134,7 +133,7 @@ const mapProduct = (p: any): Product => ({
   categoryId: p.CategoryId ?? p.categoryId,
 });
 
-/** Maps API modifier group to DTO. POS Phase C: only .products; legacy .modifiers never populated for POS. */
+/** Maps API modifier group to DTO. Phase D PR-C: POS endpoints return modifier groups with empty modifiers; use .products only. */
 const mapModifierGroup = (g: any): ModifierGroupDto => ({
   id: g.Id ?? g.id,
   name: g.Name ?? g.name,

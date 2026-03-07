@@ -1,20 +1,11 @@
 /**
  * POS: Ürün modifier grupları (Extra Zutaten). Cache ile gereksiz fetch önlenir.
- *
- * Phase C model: Product → modifierGroups → products.
- * POS uses only group.products as source of truth for add-on UI. group.modifiers is deprecated.
+ * Phase D PR-C: POS endpoints return modifier groups with empty modifiers; use .products only.
  */
 import { apiClient } from './config';
 import { API_PATHS } from './apiPaths';
 
-// ---------------------------------------------------------------------------
-// Legacy (API still returns; POS must not use for add-on display)
-// ---------------------------------------------------------------------------
-
-/**
- * Single legacy modifier (name, price). Backend may still return on group.
- * @deprecated POS must not use for add-on selection. Use group.products only. Phase D will remove from API.
- */
+/** Shape for group.modifiers. POS endpoints return empty array; type kept for DTO shape and admin compat. */
 export interface ModifierDto {
   id: string;
   name: string;
@@ -50,8 +41,8 @@ export interface AddOnSelection {
 }
 
 /**
- * Modifier group from API. Phase C: POS must use only .products for add-on UI.
- * Product → modifierGroups[] → products[] (add-on items).
+ * Modifier group from API. Phase D PR-C: POS endpoints (catalog, Product modifier-groups) return empty modifiers.
+ * Use .products only for add-on UI. Admin endpoints still return .modifiers for legacy display/migration.
  */
 export interface ModifierGroupDto {
   id: string;
@@ -61,14 +52,9 @@ export interface ModifierGroupDto {
   isRequired: boolean;
   sortOrder: number;
   isActive: boolean;
-  /**
-   * Add-on products in this group. Source of truth for POS. Use this for rendering and selection.
-   */
+  /** Add-on products in this group. Source of truth for POS. */
   products?: AddOnGroupProductItemDto[];
-  /**
-   * Legacy modifier list (line-attached). API may still return; do not use for POS add-on display.
-   * @deprecated Use .products only. Phase D will remove from API.
-   */
+  /** Legacy modifier list. Empty from POS endpoints (Phase D PR-C); admin endpoints may still populate. Do not use for POS add-on display. */
   modifiers: ModifierDto[];
 }
 
@@ -90,7 +76,7 @@ function getCached(productId: string): ModifierGroupDto[] | null {
   return entry.data;
 }
 
-/** Normalize API group to POS Phase C: only .products; .modifiers always [] (no UI fallback). */
+/** Normalize API group for POS. Phase D PR-C: Product modifier-groups endpoint returns empty modifiers; use .products only. */
 function mapGroupForPOS(g: any): ModifierGroupDto {
   return {
     id: g.Id ?? g.id,

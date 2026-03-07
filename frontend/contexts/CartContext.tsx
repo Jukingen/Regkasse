@@ -386,16 +386,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }));
         setError(null);
 
-        // PHASE 2: Backend Call – backend contract: selectedModifiers (not modifierIds)
+        // Phase D PR-B: add-item no longer sends selectedModifiers; add-ons are separate lines.
         try {
             const body: AddItemToCartRequest = {
                 productId,
                 quantity,
                 tableNumber: activeTableId
             };
-            if (modifiers.length) {
-                body.selectedModifiers = modifiers.map(m => ({ id: m.id, quantity: m.quantity ?? 1 }));
-            }
 
             const response = await apiClient.post<AddItemResponse>('/cart/add-item', body);
 

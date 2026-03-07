@@ -9,12 +9,12 @@ export interface PaymentMethod {
   icon: string;
 }
 
-// Backend PaymentItemRequest: one item per cart line. Add-ons = product-only (no modifierIds).
+// Backend PaymentItemRequest: one item per cart line. Phase D: POS does not send modifierIds; add-ons are separate lines.
 export interface PaymentItem {
   productId: string;
   quantity: number;
   taxType: 'standard' | 'reduced' | 'special';
-  /** @deprecated Phase 2: Legacy only. Add-ons are separate lines. Backend still accepts for old carts. */
+  /** Backend may still accept for historical compat; POS PR-A no longer sends. */
   modifierIds?: string[];
 }
 

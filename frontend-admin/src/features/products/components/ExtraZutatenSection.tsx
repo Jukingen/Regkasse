@@ -13,7 +13,7 @@ import type { ModifierGroupDto, AddOnGroupProductItemDto } from '@/lib/api/modif
 const { Text } = Typography;
 
 export interface ExtraZutatenSectionProps {
-  /** Tüm Add-on-Gruppen (products + modifiers). */
+  /** All add-on groups (from getModifierGroups). Includes products; modifiers only for legacy display subsection. */
   groups: ModifierGroupDto[];
   /** Bu ürüne atanmış grup id'leri. */
   selectedGroupIds: string[];
@@ -50,6 +50,7 @@ export default function ExtraZutatenSection({
   const items = groups.map((group) => {
     const gid = getGroupId(group);
     const products: AddOnGroupProductItemDto[] = group.products ?? [];
+    // Legacy-only: modifiers come from getModifierGroups() (not from product modifier-groups response). Phase D PR-D.
     const modifiers = group.modifiers ?? [];
     const productCount = products.length;
     const countLabel = productCount === 0 ? 'leer' : `${productCount} Produkt${productCount !== 1 ? 'e' : ''}`;

@@ -163,10 +163,10 @@ namespace KasseAPI_Final.Controllers
                     return SuccessResponse(response, $"Retrieved catalog with {categoryList.Count} categories and {products.Count} products");
                 }
 
+                // Phase D PR-C: Do not load Modifiers for POS catalog; response uses MapToModifierGroupDtoForPos (Modifiers empty).
                 var groups = await _context.ProductModifierGroups
                     .AsNoTracking()
                     .Where(g => g.IsActive && allGroupIds.Contains(g.Id))
-                    .Include(g => g.Modifiers.Where(m => m.IsActive))
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)
                     .OrderBy(g => g.SortOrder)
@@ -183,18 +183,12 @@ namespace KasseAPI_Final.Controllers
                             .Select(gid => groupDict.TryGetValue(gid, out var grp) ? grp : null)
                             .Where(g => g != null)
                             .Cast<ProductModifierGroup>()
-                            .Select(g => MapToModifierGroupDto(g))
+                            .Select(g => MapToModifierGroupDtoForPos(g))
                             .ToList();
                     });
 
                 var productDtos = activeProducts.Select(p => MapToCatalogProductDto(p, productToModifierGroups[p.Id])).ToList();
                 var catalogResponse = new CatalogResponseDto { Categories = categoryList, Products = productDtos };
-
-                var catalogGroupsWithLegacyCount = productDtos
-                    .SelectMany(p => p.ModifierGroups ?? [])
-                    .Count(g => g.Modifiers != null && g.Modifiers.Count > 0);
-                if (catalogGroupsWithLegacyCount > 0)
-                    _logger.LogInformation("Phase2.LegacyModifier.ModifierGroupDtoReturnedWithModifiers GetCatalog GroupsWithModifiersCount={GroupsWithModifiersCount} ProductsCount={ProductsCount}", catalogGroupsWithLegacyCount, productDtos.Count);
 
                 _logger.LogInformation("Catalog built: {CC} categories, {PC} products with modifier groups", categoryList.Count, productDtos.Count);
                 return SuccessResponse(catalogResponse, $"Retrieved catalog with {categoryList.Count} categories and {productDtos.Count} products");
@@ -262,6 +256,35 @@ namespace KasseAPI_Final.Controllers
                     .ThenBy(m => m.Name)
                     .Select(m => new ModifierDto { Id = m.Id, Name = m.Name, Price = m.Price, TaxType = m.TaxType, SortOrder = m.SortOrder })
                     .ToList()
+            };
+        }
+
+        /// <summary>Phase D PR-C: POS-facing responses only. Returns modifier group with Products; Modifiers always empty (not loaded).</summary>
+        private static ModifierGroupDto MapToModifierGroupDtoForPos(ProductModifierGroup g)
+        {
+            var products = (g.AddOnGroupProducts ?? new List<AddOnGroupProduct>())
+                .OrderBy(a => a.SortOrder)
+                .Where(a => a.Product != null && a.Product.IsActive)
+                .Select(a => new AddOnGroupProductItemDto
+                {
+                    ProductId = a.ProductId,
+                    ProductName = a.Product!.Name,
+                    Price = a.Product.Price,
+                    TaxType = a.Product.TaxType,
+                    SortOrder = a.SortOrder
+                }).ToList();
+
+            return new ModifierGroupDto
+            {
+                Id = g.Id,
+                Name = g.Name,
+                MinSelections = g.MinSelections,
+                MaxSelections = g.MaxSelections,
+                IsRequired = g.IsRequired,
+                SortOrder = g.SortOrder,
+                IsActive = g.IsActive,
+                Products = products,
+                Modifiers = new List<ModifierDto>()
             };
         }
 
@@ -521,9 +544,9 @@ namespace KasseAPI_Final.Controllers
                 if (assignmentGroupIds.Count == 0)
                     return SuccessResponse(new List<ModifierGroupDto>(), "No modifier groups assigned.");
 
+                // Phase D PR-C: Do not load Modifiers for POS; response uses MapToModifierGroupDtoForPos (Modifiers empty).
                 var groups = await _context.ProductModifierGroups
                     .Where(g => g.IsActive && assignmentGroupIds.Contains(g.Id))
-                    .Include(g => g.Modifiers.Where(m => m.IsActive))
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)
                     .OrderBy(g => g.SortOrder)
@@ -536,11 +559,7 @@ namespace KasseAPI_Final.Controllers
                     .Cast<ProductModifierGroup>()
                     .ToList();
 
-                var dtos = ordered.Select(g => MapToModifierGroupDto(g)).ToList();
-
-                var productGroupsWithLegacyCount = dtos.Count(g => g.Modifiers != null && g.Modifiers.Count > 0);
-                if (productGroupsWithLegacyCount > 0)
-                    _logger.LogInformation("Phase2.LegacyModifier.ModifierGroupDtoReturnedWithModifiers GetProductModifierGroups ProductId={ProductId} GroupsWithModifiersCount={GroupsWithModifiersCount}", id, productGroupsWithLegacyCount);
+                var dtos = ordered.Select(g => MapToModifierGroupDtoForPos(g)).ToList();
 
                 return SuccessResponse(dtos, "Product modifier groups retrieved.");
             }

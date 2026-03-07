@@ -278,12 +278,11 @@ export default function PaymentModal({
         ? customerId
         : guestCustomerId;
 
-      // 4. Build payment request: flat items (one PaymentItem per cart line). Add-on lines have no modifiers; legacy lines may have modifierIds (deprecated).
+      // 4. Build payment request: flat items (one PaymentItem per cart line). Phase D: no modifierIds emission; add-ons = product lines only.
       const paymentItems: PaymentItem[] = cartItems.map(item => ({
         productId: item.productId,
         quantity: (item as any).qty ?? item.quantity,
-        taxType: (item.taxType as 'standard' | 'reduced' | 'special') || 'standard',
-        modifierIds: (item.modifiers?.length ? (item.modifiers as any[]).map((m: any) => m.id ?? m.modifierId).filter(Boolean) : undefined)
+        taxType: (item.taxType as 'standard' | 'reduced' | 'special') || 'standard'
       }));
 
       // NOTE: TSE Logic

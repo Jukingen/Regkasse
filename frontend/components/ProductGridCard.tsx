@@ -29,9 +29,9 @@ function modifiersKey(mods: ModifierChipItem[]): string {
 interface ProductGridCardProps {
   product: Product;
   pendingModifiers: ModifierChipItem[];
-  onAdd: (product: Product, modifiers: ModifierChipItem[]) => void;
-  onAddModifier: (product: Product, modifier: ModifierOptionItem) => void;
-  /** Add-on product selected → add one cart line. */
+  /** Phase D PR-B: add product only; modifiers not sent on request. */
+  onAdd: (product: Product) => void;
+  /** Add-on product selected → add one cart line. Phase D: onAddModifier removed. */
   onAddAddOn?: OnAddAddOn;
   /** When product has add-on groups, open bottom sheet (base + add-ons as flat cart). */
   onOpenAddOnSheet?: (product: Product) => void;
@@ -42,7 +42,6 @@ function ProductGridCardInner({
   product,
   pendingModifiers,
   onAdd,
-  onAddModifier,
   onAddAddOn,
   onOpenAddOnSheet,
   getCategoryEmoji = () => '📦',
@@ -57,7 +56,7 @@ function ProductGridCardInner({
 
   const handlePress = () => {
     if (hasAddOnProducts && onOpenAddOnSheet) onOpenAddOnSheet(product);
-    else onAdd(product, pendingModifiers);
+    else onAdd(product);
   };
 
   return (

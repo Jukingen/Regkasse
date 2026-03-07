@@ -6,7 +6,7 @@ import React, { memo, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Product } from '../services/api/productService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
-import { ModifierOptionChips, type ModifierOptionItem } from './ModifierOptionChips';
+import { ModifierOptionChips } from './ModifierOptionChips';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
 
 export interface ModifierChipItem {
@@ -22,9 +22,9 @@ export type OnAddAddOn = (addOn: AddOnSelection) => void;
 interface ProductRowProps {
   product: Product;
   pendingModifiers: ModifierChipItem[];
-  onAdd: (product: Product, modifiers: ModifierChipItem[]) => void;
-  onAddModifier: (product: Product, modifier: ModifierOptionItem) => void;
-  /** Add-on product selected → one cart line (no modifier state). */
+  /** Phase D PR-B: add product only; modifiers not sent on request (display-only via pendingModifiers). */
+  onAdd: (product: Product) => void;
+  /** Add-on product selected → one cart line (no modifier state). Phase D: onAddModifier removed. */
   onAddAddOn?: OnAddAddOn;
   /** When product has add-on groups, open bottom sheet (base + add-ons as flat cart). */
   onOpenAddOnSheet?: (product: Product) => void;
@@ -44,7 +44,6 @@ function ProductRowInner({
   product,
   pendingModifiers,
   onAdd,
-  onAddModifier,
   onAddAddOn,
   onOpenAddOnSheet,
   getCategoryEmoji = () => '📦',
@@ -59,7 +58,7 @@ function ProductRowInner({
 
   const handleRowPress = () => {
     if (hasAddOnProducts && onOpenAddOnSheet) onOpenAddOnSheet(product);
-    else onAdd(product, pendingModifiers);
+    else onAdd(product);
   };
 
   return (
