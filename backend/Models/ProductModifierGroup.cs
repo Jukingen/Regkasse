@@ -26,7 +26,6 @@ namespace KasseAPI_Final.Models
         [Column("sort_order")]
         public int SortOrder { get; set; }
 
-        public virtual ICollection<ProductModifier> Modifiers { get; set; } = new List<ProductModifier>();
         public virtual ICollection<ProductModifierGroupAssignment> ProductAssignments { get; set; } = new List<ProductModifierGroupAssignment>();
 
         /// <summary>Faz 1: Bu grupta önerilen product referansları (sellable add-on). Fiyat Product'ta.</summary>

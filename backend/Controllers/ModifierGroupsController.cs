@@ -18,17 +18,15 @@ namespace KasseAPI_Final.Controllers
     public class ModifierGroupsController : BaseController
     {
         private readonly AppDbContext _context;
-        private readonly IModifierMigrationService _modifierMigrationService;
 
-        public ModifierGroupsController(AppDbContext context, IModifierMigrationService modifierMigrationService, ILogger<ModifierGroupsController> logger)
+        public ModifierGroupsController(AppDbContext context, ILogger<ModifierGroupsController> logger)
             : base(logger)
         {
             _context = context;
-            _modifierMigrationService = modifierMigrationService;
         }
 
         /// <summary>
-        /// Tüm modifier gruplarını listele (modifier'lar + Faz 1 Products ile birlikte). Legacy: Modifiers; yeni: Products (fiyat Product'tan).
+        /// Tüm modifier gruplarını listele (Add-on Products; fiyat Product'tan).
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -39,16 +37,11 @@ namespace KasseAPI_Final.Controllers
                     .Where(g => g.IsActive)
                     .OrderBy(g => g.SortOrder)
                     .ThenBy(g => g.Name)
-                    .Include(g => g.Modifiers)
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)
                     .ToListAsync();
 
                 var dtos = groups.Select(g => MapToModifierGroupDto(g)).ToList();
-                // Phase 2 observability: when this log stops appearing, no modifier group responses include legacy Modifiers anymore.
-                var groupsWithLegacyCount = dtos.Count(g => g.Modifiers != null && g.Modifiers.Count > 0);
-                if (groupsWithLegacyCount > 0)
-                    _logger.LogInformation("Phase2.LegacyModifier.ModifierGroupDtoReturnedWithModifiers GetAll GroupsWithModifiersCount={GroupsWithModifiersCount}", groupsWithLegacyCount);
                 return SuccessResponse(dtos, "Modifier groups retrieved.");
             }
             catch (Exception ex)
@@ -58,7 +51,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Tekil modifier group getir. Legacy: Modifiers; Faz 1: Products (AddOnGroupProduct + Product; fiyat Product'tan).
+        /// Tekil modifier group getir. Products (AddOnGroupProduct + Product); fiyat Product'tan.
         /// </summary>
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
@@ -66,7 +59,6 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var group = await _context.ProductModifierGroups
-                    .Include(g => g.Modifiers)
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)
                     .FirstOrDefaultAsync(g => g.Id == id);
@@ -75,9 +67,6 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("Modifier group not found.", 404);
 
                 var dto = MapToModifierGroupDto(group);
-                // Phase 2 observability: when this log stops appearing, no single-group response includes legacy Modifiers anymore.
-                if (dto.Modifiers != null && dto.Modifiers.Count > 0)
-                    _logger.LogInformation("Phase2.LegacyModifier.ModifierGroupDtoReturnedWithModifiers GetById GroupId={GroupId} ModifiersCount={ModifiersCount}", id, dto.Modifiers.Count);
                 return SuccessResponse(dto, "Modifier group retrieved.");
             }
             catch (Exception ex)
@@ -329,39 +318,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        /// <summary>
-        /// Legacy-Modifier als Add-on-Produkt migrieren (FE-Admin "Als Produkt migrieren"). Idempotent.
-        /// </summary>
-        [HttpPost("{groupId:guid}/modifiers/{modifierId:guid}/migrate")]
-        public async Task<IActionResult> MigrateLegacyModifier(Guid groupId, Guid modifierId, [FromBody] MigrateSingleModifierRequestDto request, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                if (request == null || request.CategoryId == Guid.Empty)
-                    return ErrorResponse("CategoryId is required.", 400);
-                // Validate modifier belongs to group BEFORE migration (avoid migrating then rejecting).
-                var mod = await _context.ProductModifiers
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(m => m.Id == modifierId, cancellationToken);
-                if (mod == null)
-                    return ErrorResponse("Modifier not found.", 404);
-                if (mod.ModifierGroupId != groupId)
-                    return ErrorResponse("Modifier does not belong to this group.", 400);
-                // Use MigrateSingleByModifierIdAsync for transactional safety (Product + AddOnGroupProduct + modifier deactivation atomic).
-                var result = await _modifierMigrationService.MigrateSingleByModifierIdAsync(modifierId, request.CategoryId, request.MarkModifierInactive, cancellationToken);
-                return SuccessResponse(result, result.AlreadyMigrated ? "Already migrated." : "Modifier migrated to product.");
-            }
-            catch (InvalidOperationException ex)
-            {
-                return ErrorResponse(ex.Message, 400);
-            }
-            catch (Exception ex)
-            {
-                return HandleException(ex, "ModifierGroups.MigrateLegacyModifier");
-            }
-        }
-
-        /// <summary>Legacy Modifiers + Faz 1 Products (AddOnGroupProduct → Product). Fiyat Product'tan.</summary>
+        /// <summary>Add-on Products only (AddOnGroupProduct → Product). Fiyat Product'tan.</summary>
         private static ModifierGroupDto MapToModifierGroupDto(ProductModifierGroup g)
         {
             var products = (g.AddOnGroupProducts ?? new List<AddOnGroupProduct>())
@@ -385,19 +342,8 @@ namespace KasseAPI_Final.Controllers
                 IsRequired = g.IsRequired,
                 SortOrder = g.SortOrder,
                 IsActive = g.IsActive,
-                Modifiers = (g.Modifiers ?? new List<ProductModifier>())
-                    .OrderBy(m => m.SortOrder)
-                    .ThenBy(m => m.Name)
-                    .Select(m => new ModifierDto
-                    {
-                        Id = m.Id,
-                        Name = m.Name,
-                        Price = m.Price,
-                        TaxType = m.TaxType,
-                        SortOrder = m.SortOrder,
-                        IsActive = m.IsActive
-                    }).ToList(),
-                Products = products
+                Products = products,
+                Modifiers = new List<ModifierDto>()
             };
         }
     }

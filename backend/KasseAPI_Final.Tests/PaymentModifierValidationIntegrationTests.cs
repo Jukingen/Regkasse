@@ -56,14 +56,6 @@ public class PaymentModifierValidationIntegrationTests
             ModifierGroupId = groupId,
             SortOrder = 0
         });
-        context.ProductModifiers.Add(new ProductModifier
-        {
-            Id = modifierId,
-            ModifierGroupId = groupId,
-            Name = "Ketchup",
-            Price = modifierPrice,
-            TaxType = 2
-        });
         context.SaveChanges();
         return (context, customerId, productId, modifierId, productPrice, modifierPrice);
     }
@@ -94,7 +86,7 @@ public class PaymentModifierValidationIntegrationTests
         var companyProfile = new CompanyProfileOptions { CompanyName = "Test", TaxNumber = "ATU12345678", Street = "S1", ZipCode = "1010", City = "Wien", FooterText = "" };
         var tseOptions = new TseOptions { TseMode = "Demo" }; // UseSoftTseWhenNoDevice = true for tests
 
-        var modifierValidation = new ProductModifierValidationService(context);
+        var modifierValidation = new NoOpProductModifierValidationService();
 
         return new PaymentService(
             context,

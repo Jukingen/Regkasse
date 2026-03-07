@@ -1,7 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Button, Table, Space, message, Popconfirm, Tooltip, Empty, Spin, Input } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
+import type { UseQueryOptions } from '@tanstack/react-query';
+import type { Category } from '@/api/generated/model';
+import { Button, Table, Space, message, Popconfirm, Tooltip, Empty, Spin, Input, Alert } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import type { CategoryWithVat } from '@/features/categories/types';
@@ -9,58 +12,92 @@ import type { CategoryFormSubmitValues } from '@/features/categories/components/
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import type { ColumnType } from 'antd/es/table';
 
-// Backend DTOs may not include vatRate in generated types yet; payload we send
 type CategoryCreatePayload = Parameters<ReturnType<typeof useCategories>['useCreate']>['0']['data'] & { vatRate?: number };
 type CategoryUpdatePayload = Parameters<ReturnType<typeof useCategories>['useUpdate']>['0']['data'] & { vatRate?: number };
 
+const SEARCH_DEBOUNCE_MS = 400;
+
 function CategoryProducts({ categoryId }: { categoryId: string }) {
     const { useProductsByCategory } = useCategories();
-    const { data: products, isLoading, isError } = useProductsByCategory(categoryId);
+    const { data: products, isLoading, isError, error, refetch } = useProductsByCategory(categoryId);
 
-    if (isLoading) return <div style={{ padding: 16, textAlign: 'center' }}><Spin /></div>;
-    if (isError) return <div style={{ color: 'red', padding: 16 }}>Failed to load products</div>;
-    if (!products?.length) return <Empty description="No products in this category" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+    if (isLoading) {
+        return (
+            <div style={{ padding: 16, textAlign: 'center' }}>
+                <Spin size="small" />
+            </div>
+        );
+    }
+    if (isError) {
+        return (
+            <div style={{ padding: 16 }}>
+                <Alert
+                    type="error"
+                    message="Failed to load products"
+                    description={error instanceof Error ? error.message : undefined}
+                    action={<Button size="small" onClick={() => refetch()}>Retry</Button>}
+                />
+            </div>
+        );
+    }
+    if (!products?.length) {
+        return (
+            <div style={{ padding: 16 }}>
+                <Empty description="No products in this category" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            </div>
+        );
+    }
 
     return (
-        <Table
-            size="small"
-            dataSource={products}
-            rowKey="id"
-            pagination={false}
-            style={{ margin: 16 }}
-            columns={[
-                { title: 'Product', dataIndex: 'name', key: 'name' },
-                { title: 'Barcode', dataIndex: 'barcode', key: 'barcode' },
-                { title: 'Price', dataIndex: 'price', key: 'price', render: (v: number) => `€${v?.toFixed(2)}` },
-                { title: 'Stock', dataIndex: 'stockQuantity', key: 'stock' },
-            ]}
-        />
+        <div style={{ padding: '8px 16px 16px' }}>
+            <div style={{ marginBottom: 8, fontSize: 12, color: '#666' }}>Products in this category</div>
+            <Table
+                size="small"
+                dataSource={products}
+                rowKey="id"
+                pagination={false}
+                columns={[
+                    { title: 'Product', dataIndex: 'name', key: 'name' },
+                    { title: 'Barcode', dataIndex: 'barcode', key: 'barcode' },
+                    { title: 'Price', dataIndex: 'price', key: 'price', render: (v: number) => `€${Number(v).toFixed(2)}` },
+                    { title: 'Stock', dataIndex: 'stockQuantity', key: 'stock' },
+                ]}
+            />
+        </div>
     );
 }
 
 export default function CategoriesPage() {
-    const [search, setSearch] = useState('');
-    const { useList, useCreate, useUpdate, useDelete, invalidateList } = useCategories();
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchDebounced, setSearchDebounced] = useState('');
 
-    const { data: categories, isLoading } = useList();
+    useEffect(() => {
+        const timer = setTimeout(() => setSearchDebounced(searchTerm), SEARCH_DEBOUNCE_MS);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    const { useList, useSearch, useCreate, useUpdate, useDelete, invalidateList } = useCategories();
+
+    const listOptions: Partial<UseQueryOptions<Category[], Error, Category[]>> = { placeholderData: keepPreviousData };
+    const listQuery = useList(listOptions);
+    const searchQuery = useSearch(searchDebounced.trim(), listOptions);
+
+    const isSearching = searchDebounced.trim().length > 0;
+    const activeQuery = isSearching ? searchQuery : listQuery;
+    const categories = (isSearching ? searchQuery.data : listQuery.data) ?? undefined;
+    const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading;
+    const isError = activeQuery.isError;
+    const error = activeQuery.error;
+    const refetch = activeQuery.refetch;
+
     const createMutation = useCreate();
     const updateMutation = useUpdate();
     const deleteMutation = useDelete();
 
-    const [isFormVisible, setIsFormVisible] = useState(false);
+    const [formVisible, setFormVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<CategoryWithVat | null>(null);
 
-    const filteredCategories = React.useMemo(() => {
-        if (!categories) return [];
-        const list = categories as CategoryWithVat[];
-        if (!search.trim()) return list;
-        const lower = search.toLowerCase();
-        return list.filter(
-            (c) =>
-                c.name?.toLowerCase().includes(lower) ||
-                (c.description ?? '').toLowerCase().includes(lower)
-        );
-    }, [categories, search]);
+    const listForTable = (categories ?? []) as CategoryWithVat[];
 
     const handleCreate = async (values: CategoryFormSubmitValues) => {
         try {
@@ -72,7 +109,7 @@ export default function CategoriesPage() {
                 } as CategoryCreatePayload,
             });
             message.success('Category created');
-            setIsFormVisible(false);
+            setFormVisible(false);
             invalidateList();
         } catch {
             message.error('Failed to create category');
@@ -91,7 +128,7 @@ export default function CategoriesPage() {
                 } as CategoryUpdatePayload,
             });
             message.success('Category updated');
-            setIsFormVisible(false);
+            setFormVisible(false);
             setEditingCategory(null);
             invalidateList();
         } catch {
@@ -142,14 +179,16 @@ export default function CategoriesPage() {
             title: 'Actions',
             key: 'actions',
             align: 'right',
-            render: (_, record) => (
+            render: (_: unknown, record: CategoryWithVat) => (
                 <Space>
                     <Tooltip title="Edit">
                         <Button
+                            type="text"
+                            size="small"
                             icon={<EditOutlined />}
                             onClick={() => {
                                 setEditingCategory(record);
-                                setIsFormVisible(true);
+                                setFormVisible(true);
                             }}
                         />
                     </Tooltip>
@@ -160,11 +199,15 @@ export default function CategoriesPage() {
                         okText="Yes"
                         cancelText="No"
                     >
-                        <Button
-                            danger
-                            icon={<DeleteOutlined />}
-                            loading={deleteMutation.isPending && deleteMutation.variables?.id === record.id}
-                        />
+                        <Tooltip title="Delete">
+                            <Button
+                                type="text"
+                                size="small"
+                                danger
+                                icon={<DeleteOutlined />}
+                                loading={deleteMutation.isPending && deleteMutation.variables?.id === record.id}
+                            />
+                        </Tooltip>
                     </Popconfirm>
                 </Space>
             ),
@@ -177,22 +220,40 @@ export default function CategoriesPage() {
                 <Input.Search
                     placeholder="Search categories..."
                     allowClear
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onSearch={setSearch}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onSearch={(v) => setSearchTerm(v)}
                     style={{ width: 280, maxWidth: '100%' }}
                 />
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingCategory(null); setIsFormVisible(true); }}>
+                <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                        setEditingCategory(null);
+                        setFormVisible(true);
+                    }}
+                >
                     New Category
                 </Button>
             </div>
 
+            {isError && (
+                <Alert
+                    type="error"
+                    message="Failed to load categories"
+                    description={error instanceof Error ? error.message : 'Unknown error'}
+                    action={<Button size="small" onClick={() => refetch()}>Retry</Button>}
+                    style={{ marginBottom: 16 }}
+                />
+            )}
+
             <Table
                 columns={columns}
-                dataSource={filteredCategories}
+                dataSource={listForTable}
                 rowKey="id"
                 loading={isLoading}
-                pagination={{ pageSize: 10 }}
+                pagination={{ pageSize: 10, showSizeChanger: true }}
+                locale={{ emptyText: <Empty description="No categories" /> }}
                 expandable={{
                     expandedRowRender: (record) => record.id ? <CategoryProducts categoryId={record.id} /> : null,
                     rowExpandable: () => true,
@@ -200,9 +261,12 @@ export default function CategoriesPage() {
             />
 
             <CategoryForm
-                visible={isFormVisible}
+                visible={formVisible}
                 initialValues={editingCategory ?? undefined}
-                onCancel={() => { setIsFormVisible(false); setEditingCategory(null); }}
+                onCancel={() => {
+                    setFormVisible(false);
+                    setEditingCategory(null);
+                }}
                 onSubmit={editingCategory ? handleUpdate : handleCreate}
                 loading={createMutation.isPending || updateMutation.isPending}
             />

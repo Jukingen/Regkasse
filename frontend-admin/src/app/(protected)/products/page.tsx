@@ -1,126 +1,90 @@
 'use client';
 
-import React, { useState } from 'react';
-import { keepPreviousData, useQueryClient } from '@tanstack/react-query';
-import { Button, Table, Space, message, Tag, Input, Popconfirm, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
+import { Button, Table, Space, message, Tag, Input, Popconfirm, Tooltip, Alert, Empty, Modal, InputNumber } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, StockOutlined } from '@ant-design/icons';
 import { useProducts, useProductFilters } from '@/features/products/hooks/useProducts';
 import { Product } from '@/api/generated/model';
 import { mapApiProductToUi, mapUiProductToApi } from '@/features/products/utils/productMapper';
 import ProductForm, { type ProductFormSubmitValues } from '@/features/products/components/ProductForm';
-import { setProductModifierGroups } from '@/lib/api/modifierGroups';
 import { ColumnType } from 'antd/es/table';
 
-export default function ProductsPage() {
-    // 1. URL State Management
-    const { filters, setParam } = useProductFilters();
+const SEARCH_DEBOUNCE_MS = 400;
+const MIN_SEARCH_LENGTH = 2;
 
-    // Local State for immediate UI updates
-    const [page, setPage] = useState(Number(filters.page) || 1);
-    const [pageSize, setPageSize] = useState(Number(filters.pageSize) || 10);
-    // Remove search from filters, use local state
+export default function ProductsPage() {
+    const { filters } = useProductFilters();
+    const [page, setPage] = useState(() => Number(filters.page) || 1);
+    const [pageSize, setPageSize] = useState(() => Number(filters.pageSize) || 10);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchDebounced, setSearchDebounced] = useState('');
 
-    // Debounce search term
-    React.useEffect(() => {
+    useEffect(() => {
         const timer = setTimeout(() => {
             setSearchDebounced(searchTerm);
-            if (searchTerm) {
-                // Reset to page 1 when searching (though pagination is disabled for search results for now)
-                setPage(1);
-            }
-        }, 500);
+            if (searchTerm.trim()) setPage(1);
+        }, SEARCH_DEBOUNCE_MS);
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
-    // Sync URL changes to local state (for back/forward navigation)
-    // Sync URL changes to local state (for back/forward navigation)
-    // Commented out to prevent router interaction during pagination
-    /* React.useEffect(() => {
-        const urlPage = Number(filters.page) || 1;
-        const urlPageSize = Number(filters.pageSize) || 10;
-        if (urlPage !== page) setPage(urlPage);
-        if (urlPageSize !== pageSize) setPageSize(urlPageSize);
-    }, [filters.page, filters.pageSize]); */
-
-    // 2. React Query Hooks
-    const queryClient = useQueryClient();
     const {
         useList,
         useCreate,
         useUpdate,
         useDelete,
-        invalidateList
+        useUpdateStock,
+        useSetModifierGroups,
+        invalidateList,
     } = useProducts();
 
-    // Queries
-    const isSearching = !!searchDebounced && searchDebounced.length >= 2;
-
     const listQuery = useList(
-        { page, pageSize },
         {
-            query: {
-                enabled: !isSearching,
-                placeholderData: keepPreviousData
-            } as any
-        }
+            pageNumber: page,
+            pageSize,
+            name: searchDebounced.trim().length >= MIN_SEARCH_LENGTH ? searchDebounced.trim() : undefined,
+            categoryId: filters.categoryId?.trim() || undefined,
+        },
+        { placeholderData: keepPreviousData }
     );
 
-    const searchQuery = useProducts().useSearch(
-        { name: searchDebounced },
-        { query: { enabled: isSearching } }
-    );
-
-    const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading;
-
-    // Admin API: list returns { items, pagination }; search returns Product[].
-    const rawSearchResults = Array.isArray(searchQuery.data) ? searchQuery.data : [];
-    const rawListItems = listQuery.data?.items ?? [];
-
-    // Normalize data source
-    const rawItems = isSearching ? rawSearchResults : rawListItems;
-
-    // Map to UI model (camelCase)
-    // Ensure we handle potential PascalCase fields from backend if not handled by mapper
-    const products = Array.isArray(rawItems) ? rawItems.map(mapApiProductToUi) : [];
-
-    const pagination = isSearching
-        ? false
-        : (listQuery.data?.pagination
-            ? {
-                current: page,
-                pageSize: pageSize,
-                total: listQuery.data.pagination.totalCount,
-                showSizeChanger: true,
-                onChange: (p: number, ps: number) => {
-                    setPage(p);
-                    setPageSize(ps);
-                },
-            }
-            : false);
-
-    // Mutations
     const createMutation = useCreate();
     const updateMutation = useUpdate();
     const deleteMutation = useDelete();
+    const stockMutation = useUpdateStock();
+    const setModifierGroupsMutation = useSetModifierGroups();
 
-    // 3. Local State for Modals
-    const [isFormVisible, setIsFormVisible] = useState(false);
+    const [formVisible, setFormVisible] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [stockModalProduct, setStockModalProduct] = useState<Product | null>(null);
+    const [stockQuantity, setStockQuantity] = useState<number>(0);
 
-    // 4. Handlers
+    const { data: listData, isLoading, isError, error, refetch } = listQuery;
+    const rawItems = listData?.items ?? [];
+    const products = rawItems.map(mapApiProductToUi);
+    const pagination = listData?.pagination
+        ? {
+            current: page,
+            pageSize,
+            total: listData.pagination.totalCount,
+            showSizeChanger: true,
+            onChange: (p: number, ps: number) => {
+                setPage(p);
+                setPageSize(ps);
+            },
+        }
+        : false;
+
     const handleCreate = async (values: ProductFormSubmitValues) => {
         try {
             const apiData = mapUiProductToApi(values);
             const result = await createMutation.mutateAsync({ data: apiData }) as { id?: string };
             const createdId = result?.id;
             if (createdId && values.modifierGroupIds?.length) {
-                await setProductModifierGroups(createdId, values.modifierGroupIds);
-                queryClient.invalidateQueries({ queryKey: ['modifier-groups'] });
+                await setModifierGroupsMutation.mutateAsync({ productId: createdId, modifierGroupIds: values.modifierGroupIds });
             }
             message.success('Product created successfully');
-            setIsFormVisible(false);
+            setFormVisible(false);
             invalidateList();
         } catch (err) {
             message.error('Failed to create product');
@@ -132,18 +96,13 @@ export default function ProductsPage() {
         if (!editingProduct?.id) return;
         try {
             const apiData = mapUiProductToApi(values);
-            apiData.id = editingProduct.id;
+            (apiData as Record<string, unknown>).id = editingProduct.id;
             const result = await updateMutation.mutateAsync({ id: editingProduct.id, data: apiData as Product });
             if (values.modifierGroupIds !== undefined) {
-                await setProductModifierGroups(editingProduct.id, values.modifierGroupIds);
-                queryClient.invalidateQueries({ queryKey: ['modifier-groups'] });
+                await setModifierGroupsMutation.mutateAsync({ productId: editingProduct.id, modifierGroupIds: values.modifierGroupIds });
             }
-            if (result?.fromPayload) {
-                message.success('Saved. List will refresh.');
-            } else {
-                message.success('Product updated successfully');
-            }
-            setIsFormVisible(false);
+            message.success(result?.fromPayload ? 'Saved. List will refresh.' : 'Product updated successfully');
+            setFormVisible(false);
             setEditingProduct(null);
             invalidateList();
         } catch (err) {
@@ -157,22 +116,38 @@ export default function ProductsPage() {
             await deleteMutation.mutateAsync({ id });
             message.success('Product deleted successfully');
             invalidateList();
-        } catch (err) {
+        } catch {
             message.error('Failed to delete product');
         }
     };
 
-    const openCreateModal = () => {
+    const openCreate = () => {
         setEditingProduct(null);
-        setIsFormVisible(true);
+        setFormVisible(true);
     };
 
-    const openEditModal = (product: Product) => {
+    const openEdit = (product: Product) => {
         setEditingProduct(product);
-        setIsFormVisible(true);
-    }
+        setFormVisible(true);
+    };
 
-    // 5. Table Configuration
+    const openStockModal = (product: Product) => {
+        setStockModalProduct(product);
+        setStockQuantity(Number(product.stockQuantity) ?? 0);
+    };
+
+    const handleStockSave = async () => {
+        if (!stockModalProduct?.id) return;
+        try {
+            await stockMutation.mutateAsync({ id: stockModalProduct.id, data: { quantity: stockQuantity } });
+            message.success('Stock updated');
+            setStockModalProduct(null);
+            invalidateList();
+        } catch {
+            message.error('Failed to update stock');
+        }
+    };
+
     const columns: ColumnType<Product>[] = [
         {
             title: 'Name',
@@ -189,13 +164,27 @@ export default function ProductsPage() {
             title: 'Price',
             dataIndex: 'price',
             key: 'price',
-            render: (price: number) => `€${price?.toFixed(2)}`,
+            render: (price: number) => `€${Number(price).toFixed(2)}`,
+        },
+        {
+            title: 'Stock',
+            dataIndex: 'stockQuantity',
+            key: 'stockQuantity',
+            render: (qty: number, record: Product) => {
+                const min = Number(record.minStockLevel) ?? 0;
+                const isLow = Number(qty) <= min;
+                return (
+                    <Tag color={isLow ? 'red' : 'green'}>
+                        {Number(qty)} {record.unit || 'pcs'}
+                    </Tag>
+                );
+            },
         },
         {
             title: 'Tax',
             dataIndex: 'taxRate',
             key: 'taxRate',
-            render: (rate: number) => `${rate}%`,
+            render: (rate: number) => `${Number(rate)}%`,
         },
         {
             title: 'Status',
@@ -203,18 +192,23 @@ export default function ProductsPage() {
             key: 'isActive',
             render: (isActive: boolean) => (
                 <Tag color={isActive ? 'blue' : 'default'}>{isActive ? 'Active' : 'Inactive'}</Tag>
-            )
+            ),
         },
         {
             title: 'Actions',
             key: 'actions',
             align: 'right',
-            render: (_: any, record: Product) => (
+            render: (_: unknown, record: Product) => (
                 <Space>
                     <Tooltip title="Edit">
+                        <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+                    </Tooltip>
+                    <Tooltip title="Adjust stock">
                         <Button
-                            icon={<EditOutlined />}
-                            onClick={() => openEditModal(record)}
+                            type="text"
+                            size="small"
+                            icon={<StockOutlined />}
+                            onClick={() => openStockModal(record)}
                         />
                     </Tooltip>
                     <Popconfirm
@@ -225,7 +219,13 @@ export default function ProductsPage() {
                         cancelText="No"
                     >
                         <Tooltip title="Delete">
-                            <Button danger icon={<DeleteOutlined />} loading={deleteMutation.isPending} />
+                            <Button
+                                type="text"
+                                size="small"
+                                danger
+                                icon={<DeleteOutlined />}
+                                loading={deleteMutation.isPending}
+                            />
                         </Tooltip>
                     </Popconfirm>
                 </Space>
@@ -240,20 +240,30 @@ export default function ProductsPage() {
                     <Input.Search
                         placeholder="Search products..."
                         allowClear
-                        // Remove router dependency: onSearch={(value) => setParam('search', value)}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        onSearch={(value) => {
-                            setPage(1);
-                            setParam('search', value);
-                        }}
+                        onSearch={(v) => setSearchTerm(v)}
                         style={{ width: 300 }}
                         value={searchTerm}
                     />
                 </Space>
-                <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+                <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                     New Product
                 </Button>
             </div>
+
+            {isError && (
+                <Alert
+                    type="error"
+                    message="Failed to load products"
+                    description={error instanceof Error ? error.message : 'Unknown error'}
+                    action={
+                        <Button size="small" onClick={() => refetch()}>
+                            Retry
+                        </Button>
+                    }
+                    style={{ marginBottom: 16 }}
+                />
+            )}
 
             <Table
                 columns={columns}
@@ -261,15 +271,37 @@ export default function ProductsPage() {
                 rowKey="id"
                 loading={isLoading}
                 pagination={pagination}
+                locale={{ emptyText: <Empty description="No products" /> }}
             />
 
             <ProductForm
-                visible={isFormVisible}
+                visible={formVisible}
                 initialValues={editingProduct}
-                onCancel={() => setIsFormVisible(false)}
+                onCancel={() => { setFormVisible(false); setEditingProduct(null); }}
                 onSubmit={editingProduct ? handleUpdate : handleCreate}
                 loading={createMutation.isPending || updateMutation.isPending}
             />
+
+            <Modal
+                title="Adjust stock"
+                open={!!stockModalProduct}
+                onOk={handleStockSave}
+                onCancel={() => setStockModalProduct(null)}
+                confirmLoading={stockMutation.isPending}
+                okText="Save"
+            >
+                {stockModalProduct && (
+                    <div style={{ marginTop: 8 }}>
+                        <div style={{ marginBottom: 8 }}>{stockModalProduct.name}</div>
+                        <InputNumber
+                            min={0}
+                            value={stockQuantity}
+                            onChange={(v) => setStockQuantity(Number(v) ?? 0)}
+                            style={{ width: '100%' }}
+                        />
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }

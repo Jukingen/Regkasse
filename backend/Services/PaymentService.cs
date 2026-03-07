@@ -199,84 +199,7 @@ namespace KasseAPI_Final.Services
                         LineNet = line.LineNet
                     };
 
-                    // Phase 3 prep: No new legacy modifier writes. ModifierIds/Modifiers in request are ignored; add-ons must be separate payment items (productId). Read compat: historical PaymentItem.Modifiers unchanged.
-                    var requestedModifierIds = new List<Guid>(); // Intentionally never populated: Phase 3 ignores modifier payload for write.
-                    var hadLegacyPayload = !product.IsSellableAddOn && (
-                        (itemRequest.Modifiers != null && itemRequest.Modifiers.Count > 0) ||
-                        (itemRequest.ModifierIds != null && itemRequest.ModifierIds.Count > 0));
-                    if (hadLegacyPayload)
-                        _logger.LogInformation("Phase2.LegacyModifier.PaymentRequestModifierPayloadIgnored ProductId={ProductId} (Phase 3 - no write)", product.Id);
-
-                    // Block below is intentionally unreachable (requestedModifierIds always empty). Kept for readability; do not re-enable modifier writes without Phase 3 rollback decision.
-                    if (requestedModifierIds.Count > 0)
-                    {
-                        var allowedIds = await _modifierValidation.GetAllowedModifierIdsForProductAsync(product.Id);
-                        var allowedSet = allowedIds.ToHashSet();
-                        var disallowed = requestedModifierIds.Where(id => !allowedSet.Contains(id)).ToList();
-                        if (disallowed.Count > 0)
-                        {
-                            var first = disallowed[0];
-                            _logger.LogWarning("Modifier not allowed for product: ProductId={ProductId}, ModifierId={ModifierId}", product.Id, first);
-                            return new PaymentResult
-                            {
-                                Success = false,
-                                Message = "Modifier is not allowed for this product",
-                                Errors = { $"ProductId {product.Id}: ModifierId {first} is not assigned to this product." }
-                            };
-                        }
-
-                        var dbModifiers = await _modifierValidation.GetAllowedModifiersWithPricesForProductAsync(product.Id, requestedModifierIds);
-                        var dbModifierById = dbModifiers.ToDictionary(m => m.Id);
-
-                        // FE priceDelta gönderilmişse DB fiyatı ile karşılaştır; uyuşmazsa 400 (fiscal/security)
-                        if (itemRequest.Modifiers != null)
-                        {
-                            foreach (var m in itemRequest.Modifiers)
-                            {
-                                if (m.PriceDelta.HasValue && dbModifierById.TryGetValue(m.ModifierId, out var dbMod))
-                                {
-                                    var fePrice = Math.Round(m.PriceDelta.Value, 2);
-                                    if (Math.Abs(fePrice - dbMod.Price) > 0.005m)
-                                    {
-                                        _logger.LogWarning("Modifier price mismatch: ProductId={ProductId}, ModifierId={ModifierId}, FE={FePrice}, DB={DbPrice}", product.Id, m.ModifierId, fePrice, dbMod.Price);
-                                        return new PaymentResult
-                                        {
-                                            Success = false,
-                                            Message = "Modifier price does not match catalog",
-                                            Errors = { $"ProductId {product.Id}, ModifierId {m.ModifierId}: sent price does not match catalog. Use catalog price." }
-                                        };
-                                    }
-                                }
-                            }
-                        }
-
-                        // Modifier satırlarını DB fiyatı ve ürün vergi oranı ile hesapla (decimal, 2 dp; vergi ürünle uyumlu)
-                        foreach (var mod in dbModifiers)
-                        {
-                            var modLine = CartMoneyHelper.ComputeLine(mod.Price, itemRequest.Quantity, vatRatePercent);
-                            totalAmount += modLine.LineGross;
-                            totalTaxAmount += modLine.LineTax;
-                            paymentItem.Modifiers.Add(new PaymentItemModifierSnapshot
-                            {
-                                ModifierId = mod.Id,
-                                Name = mod.Name,
-                                UnitPrice = modLine.UnitPriceGross,
-                                TotalPrice = modLine.LineGross,
-                                TaxType = modLine.TaxType,
-                                TaxRate = modLine.TaxRate,
-                                TaxAmount = modLine.LineTax,
-                                LineNet = modLine.LineNet
-                            });
-                            var modTaxKey = ((TaxType)modLine.TaxType).ToString().ToLowerInvariant();
-                            if (!taxDetails.ContainsKey(modTaxKey))
-                                taxDetails[modTaxKey] = 0;
-                            taxDetails[modTaxKey] += modLine.LineTax;
-                        }
-                        paymentItem.TotalPrice = line.LineGross + paymentItem.Modifiers.Sum(x => x.TotalPrice);
-                        paymentItem.TaxAmount = line.LineTax + paymentItem.Modifiers.Sum(x => x.TaxAmount);
-                        paymentItem.LineNet = line.LineNet + paymentItem.Modifiers.Sum(x => x.LineNet);
-                    }
-
+                    // Add-ons are separate payment items (productId). ModifierIds/Modifiers in request are not used for new writes.
                     paymentItems.Add(paymentItem);
 
                     var taxKey = line.TaxType.ToString().ToLowerInvariant();
@@ -284,11 +207,6 @@ namespace KasseAPI_Final.Services
                         taxDetails[taxKey] = 0;
                     taxDetails[taxKey] += line.LineTax;
                 }
-
-                // Phase 2 observability: when this log stops appearing, no payments are created with ModifierIds/Modifiers payload anymore.
-                var legacyPayloadItemCount = paymentItems.Count(p => p.Modifiers != null && p.Modifiers.Count > 0);
-                if (legacyPayloadItemCount > 0)
-                    _logger.LogInformation("Phase2.LegacyModifier.PaymentCreatedWithLegacyModifierPayload CustomerId={CustomerId} ItemsWithModifiersCount={ItemsWithModifiersCount}", request.CustomerId, legacyPayloadItemCount);
 
                 // CashRegisterId çözümle (TSE imzası için)
                 Guid resolvedCashRegisterId = Guid.Empty;

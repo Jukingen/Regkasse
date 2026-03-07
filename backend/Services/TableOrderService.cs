@@ -133,12 +133,7 @@ namespace KasseAPI_Final.Services
                 tableOrder.CreatedAt = DateTime.UtcNow;
                 tableOrder.UpdatedAt = DateTime.UtcNow;
 
-                // Phase 2 observability: when this log stops appearing, no cart→table-order conversions involve carts with embedded CartItemModifiers anymore.
-                var copiedModifiersCount = cart.Items.Sum(ci => ci.Modifiers?.Count ?? 0);
-                if (copiedModifiersCount > 0)
-                    _logger.LogInformation("Phase2.LegacyModifier.TableOrderCreatedWithLegacyModifiers TableOrderId={TableOrderId} CartId={CartId} CopiedModifiersCount={CopiedModifiersCount}", tableOrder.TableOrderId, cartId, copiedModifiersCount);
-
-                // Database'e kaydet. Phase 3 prep: No new TableOrderItemModifier writes; totals still use cart item modifier amounts when present (read/historical).
+                // Database'e kaydet. No new TableOrderItemModifier writes; totals still use cart item modifier amounts when present (historical read).
                 _context.TableOrders.Add(tableOrder);
                 await _context.SaveChangesAsync();
 
@@ -173,10 +168,6 @@ namespace KasseAPI_Final.Services
                 });
 
                 // Phase 2 observability: when this log stops appearing, no table-order updates from cart involve carts with embedded CartItemModifiers anymore.
-                var copiedModifiersCount = cart.Items.Sum(ci => ci.Modifiers?.Count ?? 0);
-                if (copiedModifiersCount > 0)
-                    _logger.LogInformation("Phase2.LegacyModifier.TableOrderUpdatedWithLegacyModifiers TableOrderId={TableOrderId} CartId={CartId} CopiedModifiersCount={CopiedModifiersCount}", existingTableOrder.TableOrderId, cart.CartId, copiedModifiersCount);
-
                 // Mevcut items'ları temizle ve yenilerini ekle
                 _context.TableOrderItems.RemoveRange(existingTableOrder.Items);
 

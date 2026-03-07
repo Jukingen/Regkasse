@@ -8,7 +8,7 @@ export const TAX_TYPE_ENUM = {
     ZeroRate: 4,
 } as const;
 
-/** Tek kaynak: enum id -> yüzde oranı (backend TaxTypes.GetTaxRate ile uyumlu). */
+/** Single source: enum id to tax rate percentage (aligned with backend TaxTypes.GetTaxRate). */
 export function taxTypeToRate(taxType: number): number {
     switch (taxType) {
         case 1: return 20;
@@ -19,7 +19,7 @@ export function taxTypeToRate(taxType: number): number {
     }
 }
 
-/** Form/table’da gösterim: enum id -> etiket. */
+/** Display in form/table: enum id to label. */
 export function taxTypeToLabel(taxType: number): string {
     const rate = taxTypeToRate(taxType);
     switch (taxType) {
@@ -51,7 +51,7 @@ export interface ApiProduct {
     [key: string]: any;
 }
 
-/** API’den gelen TaxType (int) ve TaxRate’i UI Product’a map eder. taxType sayı olarak korunur. */
+/** Maps API TaxType (int) and TaxRate to UI Product; taxType is kept as number. */
 export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
     if (!apiProduct) return {} as Product;
     const taxType = Number(apiProduct.TaxType ?? apiProduct.taxType ?? 1);
@@ -68,7 +68,7 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
         unit: apiProduct.Unit || apiProduct.unit,
         category: apiProduct.Category || apiProduct.category,
         categoryId: apiProduct.CategoryId || apiProduct.categoryId,
-        taxType: taxType as unknown as string, // Generated Product tipi string; backend int bekliyor, payload’da number gönderiyoruz
+        taxType: taxType as unknown as string, // Generated Product type is string; backend expects int; we send number in payload
         taxRate,
         isActive: apiProduct.IsActive ?? apiProduct.isActive ?? true,
         barcode: apiProduct.Barcode || apiProduct.barcode,
@@ -80,7 +80,7 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
     };
 };
 
-/** Backend’e gönderilecek payload: taxType integer (1,2,3), taxRate enum ile uyumlu yüzde. Backend Product.Category [Required] olduğu için hem categoryId hem category (ad) gönderilir. */
+/** Payload for backend: taxType integer (1,2,3), taxRate consistent with enum. Sends both categoryId and category (name) because Product.Category is [Required]. */
 export const mapUiProductToApi = (uiProduct: Product & { categoryId?: string; category?: string; taxType?: number }): Record<string, unknown> => {
     const taxType = Number(uiProduct.taxType ?? (uiProduct as any).taxType ?? 1);
     const taxRate = taxTypeToRate(taxType);

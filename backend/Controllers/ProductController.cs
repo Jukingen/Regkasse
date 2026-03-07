@@ -226,40 +226,7 @@ namespace KasseAPI_Final.Controllers
             };
         }
 
-        /// <summary>Primary: Products (add-on products). Secondary: Modifiers (legacy, read-only). POS uses group.products for add-on rendering.</summary>
-        private static ModifierGroupDto MapToModifierGroupDto(ProductModifierGroup g)
-        {
-            var products = (g.AddOnGroupProducts ?? new List<AddOnGroupProduct>())
-                .OrderBy(a => a.SortOrder)
-                .Where(a => a.Product != null && a.Product.IsActive)
-                .Select(a => new AddOnGroupProductItemDto
-                {
-                    ProductId = a.ProductId,
-                    ProductName = a.Product!.Name,
-                    Price = a.Product.Price,
-                    TaxType = a.Product.TaxType,
-                    SortOrder = a.SortOrder
-                }).ToList();
-
-            return new ModifierGroupDto
-            {
-                Id = g.Id,
-                Name = g.Name,
-                MinSelections = g.MinSelections,
-                MaxSelections = g.MaxSelections,
-                IsRequired = g.IsRequired,
-                SortOrder = g.SortOrder,
-                IsActive = g.IsActive,
-                Products = products,
-                Modifiers = (g.Modifiers ?? new List<ProductModifier>())
-                    .OrderBy(m => m.SortOrder)
-                    .ThenBy(m => m.Name)
-                    .Select(m => new ModifierDto { Id = m.Id, Name = m.Name, Price = m.Price, TaxType = m.TaxType, SortOrder = m.SortOrder })
-                    .ToList()
-            };
-        }
-
-        /// <summary>Phase D PR-C: POS-facing responses only. Returns modifier group with Products; Modifiers always empty (not loaded).</summary>
+        /// <summary>POS: modifier group with Products only (add-on model). Modifiers not used.</summary>
         private static ModifierGroupDto MapToModifierGroupDtoForPos(ProductModifierGroup g)
         {
             var products = (g.AddOnGroupProducts ?? new List<AddOnGroupProduct>())

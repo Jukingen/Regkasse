@@ -1,5 +1,5 @@
 /**
- * Admin categories API – tüm çağrılar /api/admin/categories.
+ * Admin categories API – all calls use /api/admin/categories.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationOptions, UseQueryOptions, UseQueryResult, UseMutationResult } from '@tanstack/react-query';

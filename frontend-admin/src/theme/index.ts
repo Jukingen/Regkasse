@@ -1,17 +1,17 @@
 import { createTheme } from '@mui/material/styles';
 import { deDE } from '@mui/material/locale';
 
-// Tema renkleri
+// Theme colors
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2', // Mavi
+      main: '#1976d2', // Blue
       light: '#42a5f5',
       dark: '#1565c0',
       contrastText: '#fff',
     },
     secondary: {
-      main: '#dc004e', // Kırmızı
+      main: '#dc004e', // Red
       light: '#ff4081',
       dark: '#9a0036',
       contrastText: '#fff',
@@ -103,6 +103,6 @@ const theme = createTheme({
       },
     },
   },
-}, deDE); // Almanca yerelleştirme
+}, deDE); // German locale
 
 export default theme; 

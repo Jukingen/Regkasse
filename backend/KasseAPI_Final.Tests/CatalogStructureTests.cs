@@ -115,31 +115,30 @@ public class CatalogStructureTests
 
         var response = ok.Value;
         Assert.NotNull(response);
-        // SuccessResponse wraps as { success, message, data, timestamp }; extract via JSON
-        var json = JsonSerializer.Serialize(response);
-        var wrapper = JsonSerializer.Deserialize<JsonElement>(json);
-        var data = JsonSerializer.Deserialize<CatalogResponseDto>(wrapper.GetProperty("data").GetRawText());
+        var data = GetCatalogDataFromResponse(response) as CatalogResponseDto;
         Assert.NotNull(data);
 
-        var productsProp = data!.GetType().GetProperty("Products");
-        Assert.NotNull(productsProp);
-        var products = productsProp.GetValue(data) as System.Collections.IList;
-        Assert.NotNull(products);
-        Assert.NotEmpty(products);
+        Assert.NotNull(data.Products);
+        Assert.NotEmpty(data.Products);
 
-        var product = products[0];
-        var modifierGroupsProp = product!.GetType().GetProperty("ModifierGroups");
+        // Catalog orders by Category then Name; add-on (Extra Käse) can be first — find product that has modifier groups
+        System.Collections.IList? modifierGroups = null;
+        var modifierGroupsProp = typeof(CatalogProductDto).GetProperty("ModifierGroups");
         Assert.NotNull(modifierGroupsProp);
-        var modifierGroups = modifierGroupsProp.GetValue(product) as System.Collections.IList;
+        foreach (var p in data.Products)
+        {
+            var mg = modifierGroupsProp.GetValue(p) as System.Collections.IList;
+            if (mg != null && mg.Count > 0) { modifierGroups = mg; break; }
+        }
         Assert.NotNull(modifierGroups);
         Assert.Single(modifierGroups);
 
-        var group = modifierGroups[0];
+        var group = modifierGroups![0];
         var productsInGroupProp = group!.GetType().GetProperty("Products");
         Assert.NotNull(productsInGroupProp);
         var productsInGroup = productsInGroupProp.GetValue(group) as System.Collections.IList;
         Assert.NotNull(productsInGroup);
-        Assert.Single(productsInGroup);
+        Assert.Single(productsInGroup!);
 
         var addOn = productsInGroup[0];
         var productNameProp = addOn!.GetType().GetProperty("ProductName");
@@ -218,20 +217,24 @@ public class CatalogStructureTests
         Assert.NotNull(ok);
 
         var response = ok.Value;
-        var data = GetCatalogDataFromResponse(response);
+        var data = GetCatalogDataFromResponse(response) as CatalogResponseDto;
         Assert.NotNull(data);
-        var productsProp = data!.GetType().GetProperty("Products");
-        var products = productsProp?.GetValue(data) as System.Collections.IList;
-        Assert.NotNull(products);
-        var product = products![0];
-        var modifierGroupsProp = product!.GetType().GetProperty("ModifierGroups");
-        var modifierGroups = modifierGroupsProp?.GetValue(product) as System.Collections.IList;
+        Assert.NotNull(data.Products);
+        Assert.NotEmpty(data.Products);
+        var modifierGroupsProp = typeof(CatalogProductDto).GetProperty("ModifierGroups");
+        Assert.NotNull(modifierGroupsProp);
+        System.Collections.IList? modifierGroups = null;
+        foreach (var p in data.Products)
+        {
+            var mg = modifierGroupsProp.GetValue(p) as System.Collections.IList;
+            if (mg != null && mg.Count > 0) { modifierGroups = mg; break; }
+        }
         Assert.NotNull(modifierGroups);
         var group = modifierGroups![0];
         var productsInGroupProp = group!.GetType().GetProperty("Products");
         var productsInGroup = productsInGroupProp?.GetValue(group) as System.Collections.IList;
         Assert.NotNull(productsInGroup);
-        Assert.Single(productsInGroup);
+        Assert.Single(productsInGroup!);
         Assert.Equal("Oliven", productsInGroup[0]!.GetType().GetProperty("ProductName")!.GetValue(productsInGroup[0]));
     }
 

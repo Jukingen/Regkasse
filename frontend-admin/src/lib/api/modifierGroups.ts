@@ -1,6 +1,6 @@
 /**
- * Extra Zutaten (Modifier Groups) API – Admin: ürün modifier’ları api/admin/products üzerinden.
- * Modifier-groups listesi hâlâ /api/modifier-groups (ortak endpoint).
+ * Modifier Groups API. Product modifier-group assignment uses api/admin/products;
+ * modifier-groups list and CRUD use /api/modifier-groups (shared endpoint).
  */
 
 import { AXIOS_INSTANCE } from '@/lib/axios';
@@ -12,11 +12,11 @@ export interface ModifierDto {
   price: number;
   taxType: number;
   sortOrder: number;
-  /** false = migriert/deaktiviert (Legacy-Modifier nach Migration). */
+  /** false when migrated/deactivated (legacy modifier after migration). */
   isActive?: boolean;
 }
 
-/** Faz 1: Grup içi Produkt-Referenz (Fiyat/vergi Product'tan). */
+/** In-group product reference (price/tax from product). */
 export interface AddOnGroupProductItemDto {
   productId: string;
   productName: string;
@@ -35,7 +35,7 @@ export interface ModifierGroupDto {
   isActive: boolean;
   /** Legacy (Fallback). */
   modifiers: ModifierDto[];
-  /** Faz 1: Önerilen Produkte – Preis/MwSt. nur aus Produktdaten. */
+  /** Add-on products in this group (price/tax from product data). */
   products?: AddOnGroupProductItemDto[];
 }
 
@@ -58,7 +58,7 @@ export async function getProductModifierGroups(productId: string): Promise<Modif
   return Array.isArray(data) ? data : [];
 }
 
-/** Ürüne modifier gruplarını ata (admin API). */
+/** Assign modifier groups to a product (admin API). */
 export async function setProductModifierGroups(
   productId: string,
   modifierGroupIds: string[]
@@ -66,7 +66,7 @@ export async function setProductModifierGroups(
   await setAdminProductModifierGroupsApi(productId, modifierGroupIds);
 }
 
-/** Yeni modifier group oluştur. */
+/** Create a new modifier group. */
 export async function createModifierGroup(body: {
   name: string;
   minSelections?: number;
@@ -79,7 +79,7 @@ export async function createModifierGroup(body: {
   return data as { id: string };
 }
 
-/** Modifier group metadata güncelle (Name, SortOrder, Min/MaxSelections, IsRequired). PUT /api/modifier-groups/{id} */
+/** Update modifier group metadata (name, sortOrder, min/maxSelections, isRequired). PUT /api/modifier-groups/{id} */
 export async function updateModifierGroup(
   groupId: string,
   body: { name: string; minSelections?: number; maxSelections?: number | null; isRequired?: boolean; sortOrder?: number }
@@ -88,7 +88,7 @@ export async function updateModifierGroup(
 }
 
 /**
- * Gruba yeni modifier ekle (Legacy).
+ * Add legacy modifier to group (Legacy).
  * @deprecated Phase 2: Legacy modifier creation is frozen. Backend returns 410. Use addProductToGroup instead.
  * Unused: no UI calls this; backend POST .../modifiers returns 410. Stub avoids dead HTTP calls.
  */
@@ -101,7 +101,7 @@ export function addModifierToGroup(
   );
 }
 
-/** Faz 1: Gruba Produkt hinzufügen – bestehendes Produkt (productId) oder neues Add-on (createNewAddOnProduct). */
+/** Add product to group: existing product (productId) or new add-on (createNewAddOnProduct). */
 export type AddProductToGroupBody =
   | { productId: string; createNewAddOnProduct?: never }
   | { productId?: never; createNewAddOnProduct: { name: string; price: number; taxType: number; categoryId?: string; sortOrder: number } };
@@ -123,31 +123,4 @@ export async function removeProductFromGroup(groupId: string, productId: string)
   await AXIOS_INSTANCE.delete(`/api/modifier-groups/${groupId}/products/${productId}`);
 }
 
-/** Legacy-Modifier als Add-on-Produkt migrieren ("Als Produkt migrieren"). Idempotent. */
-export interface MigrateLegacyModifierBody {
-  categoryId: string;
-  markModifierInactive?: boolean;
-}
-
-export interface MigrateLegacyModifierResult {
-  modifierId: string;
-  modifierName: string;
-  productId?: string;
-  productName: string;
-  groupId: string;
-  alreadyMigrated: boolean;
-  modifierMarkedInactive: boolean;
-}
-
-export async function migrateLegacyModifier(
-  groupId: string,
-  modifierId: string,
-  body: MigrateLegacyModifierBody
-): Promise<MigrateLegacyModifierResult> {
-  const res = await AXIOS_INSTANCE.post<ApiResponse<MigrateLegacyModifierResult>>(
-    `/api/modifier-groups/${groupId}/modifiers/${modifierId}/migrate`,
-    body
-  );
-  const data = res.data?.data ?? res.data;
-  return data as MigrateLegacyModifierResult;
-}
+/** Backend cleanup: POST .../modifier-groups/{groupId}/modifiers returns 410. addModifierToGroup is a frontend stub only. */

@@ -45,7 +45,7 @@ public class Phase2ReceiptFlatTests
         userMock.Setup(x => x.GetUserByIdAsync(It.IsAny<string>())).ReturnsAsync(new ApplicationUser { Id = "u1", UserName = "cashier", Role = "Cashier" });
         var tseOptions = new TseOptions { TseMode = "Demo" };
         var companyProfile = new CompanyProfileOptions { CompanyName = "Test", TaxNumber = "ATU12345678", Street = "S1", ZipCode = "1010", City = "Wien", FooterText = "" };
-        var modifierValidation = new ProductModifierValidationService(context);
+        var modifierValidation = new NoOpProductModifierValidationService();
         return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment);
     }
 
@@ -156,14 +156,12 @@ public class Phase2ReceiptFlatTests
         var productId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
-        var modifierId = Guid.NewGuid();
 
         context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product { Id = productId, Name = "Döner", Price = 6.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 10, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, Name = "Saucen", SortOrder = 0, IsActive = true });
         context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = productId, ModifierGroupId = groupId, SortOrder = 0 });
-        context.ProductModifiers.Add(new ProductModifier { Id = modifierId, ModifierGroupId = groupId, Name = "Ketchup", Price = 0.30m, TaxType = 2, IsActive = true });
         await context.SaveChangesAsync();
 
         var paymentService = CreatePaymentService(context);
@@ -172,13 +170,13 @@ public class Phase2ReceiptFlatTests
             CustomerId = customerId,
             TableNumber = 1,
             CashierId = "c1",
-            TotalAmount = 7.20m,
+            TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             KassenId = "KASSE-01",
             Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
             Items = new List<PaymentItemRequest>
             {
-                new() { ProductId = productId, Quantity = 1, TaxType = TaxType.Reduced, ModifierIds = new List<Guid> { modifierId } }
+                new() { ProductId = productId, Quantity = 1, TaxType = TaxType.Reduced }
             }
         };
 

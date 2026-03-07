@@ -1,14 +1,13 @@
 'use client';
 
 /**
- * Add-on-Gruppen (Suggested Add-On Groups).
- * Faz 1: Neuer Akfluss über Products; Modifiers bleiben als Legacy sichtbar.
- * Preis/MwSt. nur aus Produktdaten.
+ * Add-on groups (modifier groups). Create/edit groups and manage add-on products.
+ * Product–group assignment is configured on the product page.
  */
 
 import React, { useState } from 'react';
-import { Button, Modal, Form, Input, InputNumber, Switch, message, Collapse, Tabs, Select, Popconfirm, Tag } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SwapOutlined } from '@ant-design/icons';
+import { Button, Modal, Form, Input, InputNumber, Switch, message, Collapse, Tabs, Select, Popconfirm } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getModifierGroups,
@@ -16,10 +15,8 @@ import {
   updateModifierGroup,
   addProductToGroup,
   removeProductFromGroup,
-  migrateLegacyModifier,
   type ModifierGroupDto,
   type AddOnGroupProductItemDto,
-  type ModifierDto,
 } from '@/lib/api/modifierGroups';
 import { getAdminProductsList } from '@/api/admin/products';
 import { useCategories } from '@/features/categories/hooks/useCategories';
@@ -37,11 +34,6 @@ export default function ModifierGroupsPage() {
   const [productModalTab, setProductModalTab] = useState<'existing' | 'new'>('existing');
   const [editGroupModalOpen, setEditGroupModalOpen] = useState(false);
   const [groupToEdit, setGroupToEdit] = useState<ModifierGroupDto | null>(null);
-  const [migrateModalOpen, setMigrateModalOpen] = useState(false);
-  const [migrateLoading, setMigrateLoading] = useState(false);
-  const [modifierToMigrate, setModifierToMigrate] = useState<ModifierDto | null>(null);
-  const [groupForMigrate, setGroupForMigrate] = useState<ModifierGroupDto | null>(null);
-  const [migrateForm] = Form.useForm();
   const queryClient = useQueryClient();
 
   const { useList } = useCategories();
@@ -121,36 +113,6 @@ export default function ModifierGroupsPage() {
     }
   };
 
-  const openMigrateModal = (group: ModifierGroupDto, modifier: ModifierDto) => {
-    setGroupForMigrate(group);
-    setModifierToMigrate(modifier);
-    migrateForm.setFieldsValue({ categoryId: undefined, markModifierInactive: true });
-    setMigrateModalOpen(true);
-  };
-
-  const handleMigrateModifier = async () => {
-    if (!groupForMigrate || !modifierToMigrate) return;
-    setMigrateLoading(true);
-    try {
-      const values = await migrateForm.validateFields();
-      await migrateLegacyModifier(groupForMigrate.id, modifierToMigrate.id, {
-        categoryId: values.categoryId,
-        markModifierInactive: values.markModifierInactive ?? true,
-      });
-      message.success('Legacy-Modifier wurde als Produkt migriert. Das neue Add-on-Produkt erscheint oben in der Liste.');
-      setMigrateModalOpen(false);
-      setModifierToMigrate(null);
-      setGroupForMigrate(null);
-      migrateForm.resetFields();
-      await queryClient.refetchQueries({ queryKey: modifierGroupsKey });
-    } catch (e: any) {
-      if (e?.errorFields) return;
-      message.error(e?.response?.data?.message ?? e?.message ?? 'Migration fehlgeschlagen.');
-    } finally {
-      setMigrateLoading(false);
-    }
-  };
-
   const handleRemoveProduct = async (group: ModifierGroupDto, productId: string) => {
     if (!productId?.trim() || !group?.id) {
       message.error('Produkt oder Gruppe ungültig.');
@@ -206,7 +168,6 @@ export default function ModifierGroupsPage() {
 
   const items = groups.map((g) => {
     const products: AddOnGroupProductItemDto[] = (g as { products?: AddOnGroupProductItemDto[]; Products?: AddOnGroupProductItemDto[] }).products ?? (g as { products?: AddOnGroupProductItemDto[]; Products?: AddOnGroupProductItemDto[] }).Products ?? [];
-    const modifiers = g.modifiers ?? [];
     return {
       key: g.id,
       label: g.name,
@@ -257,39 +218,6 @@ export default function ModifierGroupsPage() {
             })}
             </ul>
           )}
-          <div style={{ marginTop: 16, marginBottom: 4, fontWeight: 600, color: '#8c8c8c' }}>Legacy-Modifier (Kompatibilität)</div>
-          <div style={{ marginBottom: 8, fontSize: 12, color: '#999', fontStyle: 'italic' }}>
-            Legacy-Modifier dienen nur der Kompatibilität. Für neue Add-ons bitte Produkte verwenden.
-          </div>
-          {modifiers.length === 0 ? (
-            <div style={{ color: '#bbb', paddingLeft: 20 }}>Keine Legacy-Modifier.</div>
-          ) : (
-            <ul style={{ margin: 0, paddingLeft: 20 }}>
-              {modifiers.map((m) => {
-                const isMigrated = m.isActive === false;
-                return (
-                  <li key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, color: isMigrated ? '#999' : '#666' }}>
-                    <span style={{ flex: 1 }}>
-                      {m.name} — €{Number(m.price).toFixed(2)} (MwSt. {m.taxType})
-                      {isMigrated && <Tag color="default" style={{ marginLeft: 8 }}>migriert</Tag>}
-                    </span>
-                    {!isMigrated && (
-                      <span onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          type="link"
-                          size="small"
-                          icon={<SwapOutlined />}
-                          onClick={() => openMigrateModal(g, m)}
-                        >
-                          Als Produkt migrieren
-                        </Button>
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
         </div>
       ),
     };
@@ -306,9 +234,7 @@ export default function ModifierGroupsPage() {
       <p style={{ color: '#666', marginBottom: 16 }}>
         Hier verwalten Sie Gruppen (z. B. Saucen, Extras) und deren Add-on-Produkte. Mit „Bearbeiten“ ändern Sie Gruppennamen und Sortierung. Mit „+ Produkt“ fügen Sie verkaufbare Add-on-Produkte zu einer Gruppe hinzu. Welche Gruppen pro Produkt angezeigt werden, legen Sie auf der Produktseite fest.
       </p>
-      <p style={{ color: '#8c8c8c', marginBottom: 16, fontSize: 13 }}>
-        <strong>Hinweis:</strong> Legacy-Modifier dienen nur der Kompatibilität. Für neue Add-ons bitte Produkte verwenden.
-      </p>
+
       {isLoading ? (
         <div style={{ padding: 24, textAlign: 'center' }}>Laden…</div>
       ) : (
@@ -421,30 +347,6 @@ export default function ModifierGroupsPage() {
             },
           ]}
         />
-      </Modal>
-
-      <Modal
-        title={modifierToMigrate ? `„${modifierToMigrate.name}" als Produkt migrieren` : 'Als Produkt migrieren'}
-        open={migrateModalOpen}
-        onOk={handleMigrateModifier}
-        onCancel={() => { setMigrateModalOpen(false); setModifierToMigrate(null); setGroupForMigrate(null); migrateForm.resetFields(); }}
-        okText="Migrieren"
-        confirmLoading={migrateLoading}
-        maskClosable={!migrateLoading}
-        closable={!migrateLoading}
-        width={420}
-      >
-        <p style={{ color: '#666', marginBottom: 16 }}>
-          Erstellt ein neues Add-on-Produkt mit Name, Preis und MwSt. des Legacy-Modifiers und fügt es dieser Gruppe hinzu. Der Legacy-Modifier bleibt erhalten (für alte Belege).
-        </p>
-        <Form form={migrateForm} layout="vertical" initialValues={{ markModifierInactive: true }}>
-          <Form.Item name="categoryId" label="Kategorie für das neue Produkt" rules={[{ required: true, message: 'Kategorie ist erforderlich.' }]}>
-            <Select placeholder="Kategorie wählen" options={categoryOptions} />
-          </Form.Item>
-          <Form.Item name="markModifierInactive" label="Legacy-Modifier nach Migration deaktivieren" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-        </Form>
       </Modal>
     </div>
   );

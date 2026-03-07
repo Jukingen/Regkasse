@@ -31,6 +31,10 @@ const createAxiosInstance = () => {
                 }
             }
         }
+        // Dev-only: warn when hitting legacy endpoint prefixes (non-breaking detection).
+        if (isDev && config.url && /\/api\/(Payment|Cart)\b/.test(config.url)) {
+            console.warn(`[API] Legacy path in use: ${config.url}. Prefer /api/admin/* or /api/pos/* when available.`);
+        }
         return config;
     });
 

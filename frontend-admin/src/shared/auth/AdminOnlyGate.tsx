@@ -10,7 +10,7 @@ interface AdminOnlyGateProps {
 }
 
 /**
- * Admin-only erişim: Administrator rolü yoksa /403'e yönlendirir.
+ * Admin-only access: redirects to /403 if user is not Administrator.
  */
 export const AdminOnlyGate: FC<AdminOnlyGateProps> = ({ children }) => {
     const { user, authStatus, isInitialized } = useAuth();

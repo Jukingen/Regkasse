@@ -8,7 +8,7 @@ import { getModifierGroups, getProductModifierGroups, type ModifierGroupDto } fr
 import { TAX_TYPE_ENUM } from '@/features/products/utils/productMapper';
 import ExtraZutatenSection from './ExtraZutatenSection';
 
-/** Dropdown seçenekleri: backend enum id (1,2,3) ve kullanıcı dostu etiket. */
+/** Dropdown options: backend enum id (1,2,3) and display label. */
 const TAX_TYPE_OPTIONS = [
     { value: TAX_TYPE_ENUM.Standard, label: '20% (Standard)' },
     { value: TAX_TYPE_ENUM.Reduced, label: '10% (Reduced)' },
@@ -39,7 +39,7 @@ export default function ProductForm({
     const [selectedModifierGroupIds, setSelectedModifierGroupIds] = useState<string[]>([]);
     const [modifierGroupsLoading, setModifierGroupsLoading] = useState(false);
 
-    // Extra Zutaten: Tüm grupları ve (edit modda) ürüne atanmış grupları yükle
+    // Load all modifier groups and (in edit mode) groups assigned to this product
     useEffect(() => {
         if (!visible) return;
         let cancelled = false;
@@ -68,7 +68,7 @@ export default function ProductForm({
         return () => { cancelled = true; };
     }, [visible, initialValues?.id]);
 
-    // Kategori listesi: /api/admin/categories (useCategories → src/api/admin/categories)
+    // Category list: /api/admin/categories (useCategories → src/api/admin/categories)
     const { useList } = useCategories();
     const { data: categoryList } = useList();
 
@@ -117,7 +117,7 @@ export default function ProductForm({
         try {
             const values = await form.validateFields();
 
-            // Kategori: dropdown value = categoryId (GUID); backend ayrıca [Required] Category (ad) bekliyor
+            // Category: dropdown value is categoryId (GUID); backend also expects [Required] Category (name)
             const categoryId = values.categoryId as string | undefined;
             if (!categoryId?.trim()) {
                 message.error('Please select a category');

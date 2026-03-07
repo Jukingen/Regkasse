@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace KasseAPI_Final.DTOs
 {
     /// <summary>
-    /// Modifier group list/detail response (Admin + POS). Primary: Products (sellable add-ons). Legacy: Modifiers (read-only for existing data).
+    /// Modifier group list/detail response (Admin + POS). Products = add-on products (active model). Modifiers deprecated; API returns empty for runtime.
     /// </summary>
     public class ModifierGroupDto
     {
@@ -16,7 +16,7 @@ namespace KasseAPI_Final.DTOs
         public bool IsActive { get; set; }
         /// <summary>Primary: Suggested add-on products for this group. Price/tax from Product. Use this for new flows.</summary>
         public List<AddOnGroupProductItemDto> Products { get; set; } = new();
-        /// <summary>Phase 2 legacy: Read-only for existing groups. Prefer Products. Will be removed after migration.</summary>
+        /// <summary>Deprecated. Runtime returns empty; use Products for add-ons.</summary>
         [Obsolete("Prefer Products for add-ons. Modifiers kept for read compatibility only.", false)]
         public List<ModifierDto> Modifiers { get; set; } = new();
     }

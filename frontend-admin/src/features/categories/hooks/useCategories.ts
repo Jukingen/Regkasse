@@ -1,14 +1,18 @@
+/**
+ * Category list, CRUD, and products-by-category: all calls use /api/admin/categories.
+ * List and search are separate endpoints; page uses list when search is empty, search when term is present.
+ */
 import { useQueryClient } from '@tanstack/react-query';
 import {
     useAdminCategoriesList,
     useAdminCategoriesSearch,
+    useAdminCategoryById,
     useAdminCategoryProducts,
     useCreateAdminCategory,
     useUpdateAdminCategory,
     useDeleteAdminCategory,
     adminCategoriesQueryKeys,
 } from '@/api/admin/categories';
-import type { CreateCategoryRequest, UpdateCategoryRequest } from '@/api/generated/model';
 
 export const categoryKeys = {
     all: adminCategoriesQueryKeys.all,
@@ -16,31 +20,28 @@ export const categoryKeys = {
     details: adminCategoriesQueryKeys.details,
     detail: (id: string) => adminCategoriesQueryKeys.detail(id),
     products: (id: string) => adminCategoriesQueryKeys.products(id),
+    search: (query: string) => adminCategoriesQueryKeys.search(query),
 };
 
 export function useCategories() {
     const queryClient = useQueryClient();
 
     const invalidateList = () => {
-        queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
-        queryClient.invalidateQueries({ queryKey: adminCategoriesQueryKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: adminCategoriesQueryKeys.all });
     };
 
     return {
-        useList: () =>
-            useAdminCategoriesList({
-                queryKey: categoryKeys.lists(),
-            }),
-        useSearch: (query: string) =>
-            useAdminCategoriesSearch(query, {
-                queryKey: [...categoryKeys.lists(), 'search', query],
-                enabled: !!query,
-            }),
-        useProductsByCategory: (id: string) =>
-            useAdminCategoryProducts(id, {
-                queryKey: categoryKeys.products(id),
-                enabled: !!id,
-            }),
+        useList: (options?: Parameters<typeof useAdminCategoriesList>[0]) =>
+            useAdminCategoriesList(options),
+
+        useSearch: (query: string, options?: Parameters<typeof useAdminCategoriesSearch>[1]) =>
+            useAdminCategoriesSearch(query, { enabled: !!query.trim(), ...options }),
+
+        useDetail: (id: string, options?: Parameters<typeof useAdminCategoryById>[1]) =>
+            useAdminCategoryById(id, options),
+
+        useProductsByCategory: (id: string, options?: Parameters<typeof useAdminCategoryProducts>[1]) =>
+            useAdminCategoryProducts(id, { enabled: !!id, ...options }),
 
         useCreate: useCreateAdminCategory,
         useUpdate: useUpdateAdminCategory,

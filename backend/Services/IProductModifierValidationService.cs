@@ -29,4 +29,16 @@ namespace KasseAPI_Final.Services
         public decimal Price { get; init; }
         public int TaxType { get; init; }
     }
+
+    /// <summary>
+    /// No-op implementation after product_modifiers table removal. Add-ons use Product (IsSellableAddOn); legacy modifier IDs are no longer resolved.
+    /// </summary>
+    public sealed class NoOpProductModifierValidationService : IProductModifierValidationService
+    {
+        public Task<IReadOnlyList<Guid>> GetAllowedModifierIdsForProductAsync(Guid productId, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<Guid>>(Array.Empty<Guid>());
+
+        public Task<IReadOnlyList<ModifierPriceDto>> GetAllowedModifiersWithPricesForProductAsync(Guid productId, IReadOnlyList<Guid> requestedModifierIds, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<ModifierPriceDto>>(Array.Empty<ModifierPriceDto>());
+    }
 }

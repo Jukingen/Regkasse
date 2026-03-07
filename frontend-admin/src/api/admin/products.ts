@@ -1,5 +1,5 @@
 /**
- * Admin products API – tüm çağrılar /api/admin/products (legacy api/Product kullanılmıyor).
+ * Admin products API – all calls use /api/admin/products (legacy api/Product is not used).
  * PUT update: safe parsing workaround when backend returns huge graphs (avoid JSON cycle / network error).
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

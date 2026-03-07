@@ -51,7 +51,7 @@ public class Phase2PaymentFlatItemsTests
         var companyProfile = new CompanyProfileOptions { CompanyName = "Test", TaxNumber = "ATU12345678", Street = "S1", ZipCode = "1010", City = "Wien", FooterText = "" };
         var tseOptions = new TseOptions { TseMode = "Demo" };
 
-        var modifierValidation = new ProductModifierValidationService(context);
+        var modifierValidation = new NoOpProductModifierValidationService();
 
         return new PaymentService(
             context,

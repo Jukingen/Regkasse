@@ -58,7 +58,6 @@ public class Phase2ModifierGroupProductsTests
 
         var groups = await context.ProductModifierGroups
             .Where(g => g.IsActive)
-            .Include(g => g.Modifiers.Where(m => m.IsActive))
             .Include(g => g.AddOnGroupProducts)
             .ThenInclude(a => a.Product)
             .OrderBy(g => g.SortOrder)
@@ -75,13 +74,12 @@ public class Phase2ModifierGroupProductsTests
     }
 
     [Fact]
-    public async Task ModifierGroup_WithLegacyModifiersAndProducts_LoadsBoth()
+    public async Task ModifierGroup_WithAddOnGroupProductsOnly_LoadsProducts()
     {
         await using var context = CreateContext();
         var categoryId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
         var productId = Guid.NewGuid();
-        var modifierId = Guid.NewGuid();
 
         context.Categories.Add(new Category { Id = categoryId, Name = "Extras", VatRate = 10m });
         context.Products.Add(new Product
@@ -105,15 +103,6 @@ public class Phase2ModifierGroupProductsTests
             SortOrder = 0,
             IsActive = true
         });
-        context.ProductModifiers.Add(new ProductModifier
-        {
-            Id = modifierId,
-            ModifierGroupId = groupId,
-            Name = "Legacy Ketchup",
-            Price = 0.30m,
-            TaxType = 2,
-            IsActive = true
-        });
         context.AddOnGroupProducts.Add(new AddOnGroupProduct
         {
             ModifierGroupId = groupId,
@@ -124,15 +113,12 @@ public class Phase2ModifierGroupProductsTests
 
         var groups = await context.ProductModifierGroups
             .Where(g => g.IsActive)
-            .Include(g => g.Modifiers.Where(m => m.IsActive))
             .Include(g => g.AddOnGroupProducts)
             .ThenInclude(a => a.Product)
             .ToListAsync();
 
         Assert.Single(groups);
         var group = groups[0];
-        Assert.Single(group.Modifiers);
-        Assert.Equal("Legacy Ketchup", group.Modifiers.First().Name);
         Assert.Single(group.AddOnGroupProducts);
         Assert.Equal("Add-on Product", group.AddOnGroupProducts.First().Product!.Name);
     }

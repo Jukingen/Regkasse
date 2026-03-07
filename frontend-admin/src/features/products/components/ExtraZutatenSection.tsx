@@ -15,15 +15,15 @@ const { Text } = Typography;
 export interface ExtraZutatenSectionProps {
   /** All add-on groups (from getModifierGroups). Includes products; modifiers only for legacy display subsection. */
   groups: ModifierGroupDto[];
-  /** Bu ürüne atanmış grup id'leri. */
+  /** Group IDs assigned to this product. */
   selectedGroupIds: string[];
-  /** Seçim değiştiğinde. */
+  /** Called when selection changes. */
   onChange: (selectedGroupIds: string[]) => void;
-  /** Yükleniyor (gruplar çekilirken). */
+  /** Loading (while groups are being fetched). */
   loading?: boolean;
 }
 
-/** API yanıtında id veya Id gelebilir; her iki durumda da string döndür. */
+/** API response may return id or Id; return string in both cases. */
 function getGroupId(g: ModifierGroupDto): string {
   return String((g as { id?: string; Id?: string }).id ?? (g as { id?: string; Id?: string }).Id ?? '');
 }

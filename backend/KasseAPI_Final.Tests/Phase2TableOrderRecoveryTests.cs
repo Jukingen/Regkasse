@@ -89,7 +89,7 @@ public class Phase2TableOrderRecoveryTests
         });
         await context.SaveChangesAsync();
 
-        var validation = new ProductModifierValidationService(context);
+        var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
         var controller = new CartController(context, logger, validation);
         SetAuth(controller);
@@ -159,15 +159,6 @@ public class Phase2TableOrderRecoveryTests
             IsActive = true
         });
         context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, Name = "Saucen", SortOrder = 0, IsActive = true });
-        context.ProductModifiers.Add(new ProductModifier
-        {
-            Id = modifierId,
-            ModifierGroupId = groupId,
-            Name = "Ketchup",
-            Price = 0.30m,
-            TaxType = 2,
-            IsActive = true
-        });
         context.Carts.Add(new Cart
         {
             CartId = cartId,

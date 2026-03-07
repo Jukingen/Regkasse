@@ -3,14 +3,20 @@
 import React from 'react';
 import { Table, Card, Typography, Tag, Space, Button } from 'antd';
 import { CreditCardOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { useGetApiPayment } from '@/api/generated/payment/payment';
-import type { PaymentResponse } from '@/api/generated/model';
+import { useLegacyPaymentList } from '@/api/legacy/payment';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
 
+const DEFAULT_DATE_RANGE = { startDate: dayjs().subtract(30, 'day').format('YYYY-MM-DD'), endDate: dayjs().format('YYYY-MM-DD') };
+
+type PaymentRow = { id?: string; transactionId?: string; createdAt?: string; amount?: number; method?: string; status?: string; currency?: string };
+
 export default function PaymentsPage() {
-    const { data: payments, isLoading } = useGetApiPayment();
+    const { data, isLoading } = useLegacyPaymentList(DEFAULT_DATE_RANGE);
+    const payments: PaymentRow[] = (data && typeof data === 'object' && 'items' in data && Array.isArray((data as { items?: unknown }).items))
+        ? ((data as { items: PaymentRow[] }).items)
+        : [];
 
     const columns = [
         {

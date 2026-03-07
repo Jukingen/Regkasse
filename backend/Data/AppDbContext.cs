@@ -54,10 +54,8 @@ namespace KasseAPI_Final.Data
         public DbSet<ReceiptItem> ReceiptItems { get; set; }
         public DbSet<ReceiptTaxLine> ReceiptTaxLines { get; set; }
 
-        // Extra Zutaten (Product Modifiers)
+        // Extra Zutaten (Add-on groups and assignments; add-on products in addon_group_products)
         public DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
-        /// <summary>Legacy: product_modifiers table. Add-on = Product (AddOnGroupProduct) is active. Kept for migration/history.</summary>
-        public DbSet<ProductModifier> ProductModifiers { get; set; }
         public DbSet<ProductModifierGroupAssignment> ProductModifierGroupAssignments { get; set; }
         /// <summary>Faz 1: Grup içi product referansları (suggested add-on); fiyat Product'ta.</summary>
         public DbSet<AddOnGroupProduct> AddOnGroupProducts { get; set; }
@@ -265,22 +263,6 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.IsRequired);
                 entity.Property(e => e.SortOrder);
                 entity.ToTable("product_modifier_groups");
-            });
-
-            // ProductModifier configuration
-            builder.Entity<ProductModifier>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.ModifierGroupId).IsRequired();
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TaxType).IsRequired();
-                entity.Property(e => e.SortOrder);
-                entity.HasOne(e => e.ModifierGroup)
-                    .WithMany(g => g.Modifiers)
-                    .HasForeignKey(e => e.ModifierGroupId)
-                    .OnDelete(DeleteBehavior.Cascade);
-                entity.ToTable("product_modifiers");
             });
 
             // ProductModifierGroupAssignment (Product M:N ModifierGroup)
