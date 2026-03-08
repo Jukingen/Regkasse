@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 
 namespace KasseAPI_Final.Data
@@ -23,6 +24,7 @@ namespace KasseAPI_Final.Data
             if (string.IsNullOrEmpty(connectionString))
                 throw new InvalidOperationException("DefaultConnection not found. Set in appsettings.json or environment.");
             optionsBuilder.UseNpgsql(connectionString);
+            optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
 
             return new AppDbContext(optionsBuilder.Options);
         }

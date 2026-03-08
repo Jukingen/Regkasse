@@ -114,7 +114,7 @@ export default function DashboardLayout({
             icon: <SettingOutlined />,
             label: <Link href="/settings">Settings</Link>,
         },
-        ...(user?.role === 'Administrator'
+        ...(['SuperAdmin', 'Admin'].includes(user?.role ?? '')
             ? [
                   {
                       key: '/rksv',
@@ -159,7 +159,7 @@ export default function DashboardLayout({
                 theme="light"
                 mode="inline"
                 selectedKeys={[pathname]}
-                defaultOpenKeys={user?.role === 'Administrator' ? ['/rksv'] : []}
+                defaultOpenKeys={['SuperAdmin', 'Admin'].includes(user?.role ?? '') ? ['/rksv'] : []}
                 items={menuItems}
                 onClick={() => {
                     if (isMobile) setDrawerVisible(false);

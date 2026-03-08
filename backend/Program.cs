@@ -123,11 +123,15 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Authorization policies – role-based (backend only; FE cannot be trusted)
+// Authorization policies – role-based. Roller: SuperAdmin, Admin, BranchManager, Auditor.
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminUsers", policy =>
-        policy.RequireRole("Administrator"));
+        policy.RequireRole("SuperAdmin", "Admin"));
+    options.AddPolicy("UsersView", policy =>
+        policy.RequireRole("SuperAdmin", "Admin", "BranchManager", "Auditor"));
+    options.AddPolicy("UsersManage", policy =>
+        policy.RequireRole("SuperAdmin", "Admin", "BranchManager"));
 });
 
 // Session invalidation on critical account changes (stub until RefreshToken table exists)
@@ -311,6 +315,9 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection(); // HTTPS redirect'i devre dışı bırak
 app.UseCors("AllowAll");
+
+// CorrelationId: propagate from request (X-Correlation-Id) or generate; required for audit traceability
+app.UseMiddleware<KasseAPI_Final.Middleware.CorrelationIdMiddleware>();
 
 // Authentication ve Authorization middleware
 app.UseAuthentication();

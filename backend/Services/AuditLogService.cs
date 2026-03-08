@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Middleware;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -52,6 +53,9 @@ namespace KasseAPI_Final.Services
         Task<IEnumerable<AuditLog>> GetUserAuditLogsAsync(string userId, DateTime? startDate = null, 
             DateTime? endDate = null, int page = 1, int pageSize = 50);
 
+        /// <summary>Count of user lifecycle events where the user is the target (EntityName).</summary>
+        Task<int> GetUserLifecycleAuditLogsCountAsync(string userId, DateTime? startDate = null, DateTime? endDate = null);
+
         Task<AuditLog?> GetAuditLogByIdAsync(Guid auditLogId);
 
         Task<int> GetAuditLogsCountAsync(DateTime? startDate = null, DateTime? endDate = null,
@@ -65,6 +69,9 @@ namespace KasseAPI_Final.Services
         Task<bool> DeleteAuditLogsOlderThanAsync(DateTime cutoffDate);
 
         Task<Dictionary<string, int>> GetAuditLogStatisticsAsync(DateTime? startDate = null, DateTime? endDate = null);
+
+        /// <summary>Incident playbook: high-risk admin/user-lifecycle actions (deactivate, reactivate, password reset, role change, create).</summary>
+        Task<IEnumerable<AuditLog>> GetSuspiciousAdminActionsAsync(DateTime? since = null, int limit = 100);
     }
 
     public class AuditLogService : IAuditLogService
@@ -114,7 +121,7 @@ namespace KasseAPI_Final.Services
                     Description = description ?? $"Payment operation: {action} on {entityType}",
                     Notes = notes,
                     IpAddress = GetClientIpAddress(httpContext),
-                    UserAgent = GetUserAgent(httpContext),
+                    UserAgent = GetUserAgentMinimized(httpContext),
                     Endpoint = httpContext?.Request.Path,
                     HttpMethod = httpContext?.Request.Method,
                     HttpStatusCode = httpContext?.Response.StatusCode,
@@ -174,13 +181,13 @@ namespace KasseAPI_Final.Services
                     Description = description ?? $"Entity change: {action} on {entityType}",
                     Notes = notes,
                     IpAddress = GetClientIpAddress(httpContext),
-                    UserAgent = GetUserAgent(httpContext),
+                    UserAgent = GetUserAgentMinimized(httpContext),
                     Endpoint = httpContext?.Request.Path,
                     HttpMethod = httpContext?.Request.Method,
                     HttpStatusCode = httpContext?.Response.StatusCode,
                     ProcessingTimeMs = null,
                     ErrorDetails = errorDetails,
-                    CorrelationId = null,
+                    CorrelationId = GetRequestCorrelationId(),
                     TransactionId = null,
                     Amount = null,
                     PaymentMethod = null,
@@ -234,13 +241,13 @@ namespace KasseAPI_Final.Services
                     Description = description ?? $"System operation: {action} on {entityType}",
                     Notes = notes,
                     IpAddress = GetClientIpAddress(httpContext),
-                    UserAgent = GetUserAgent(httpContext),
+                    UserAgent = GetUserAgentMinimized(httpContext),
                     Endpoint = httpContext?.Request.Path,
                     HttpMethod = httpContext?.Request.Method,
                     HttpStatusCode = httpContext?.Response.StatusCode,
                     ProcessingTimeMs = null,
                     ErrorDetails = errorDetails,
-                    CorrelationId = null,
+                    CorrelationId = GetRequestCorrelationId(),
                     TransactionId = null,
                     Amount = null,
                     PaymentMethod = null,
@@ -293,13 +300,13 @@ namespace KasseAPI_Final.Services
                     Description = description ?? $"User activity: {action}",
                     Notes = notes,
                     IpAddress = GetClientIpAddress(httpContext),
-                    UserAgent = GetUserAgent(httpContext),
+                    UserAgent = GetUserAgentMinimized(httpContext),
                     Endpoint = httpContext?.Request.Path,
                     HttpMethod = httpContext?.Request.Method,
                     HttpStatusCode = httpContext?.Response.StatusCode,
                     ProcessingTimeMs = null,
                     ErrorDetails = errorDetails,
-                    CorrelationId = null,
+                    CorrelationId = GetRequestCorrelationId(),
                     TransactionId = null,
                     Amount = null,
                     PaymentMethod = null,
@@ -354,11 +361,11 @@ namespace KasseAPI_Final.Services
                     Description = description ?? $"User lifecycle: {action} on user {targetUserId}",
                     Notes = reason,
                     IpAddress = GetClientIpAddress(httpContext),
-                    UserAgent = GetUserAgent(httpContext),
+                    UserAgent = GetUserAgentMinimized(httpContext),
                     Endpoint = httpContext?.Request.Path,
                     HttpMethod = httpContext?.Request.Method,
                     HttpStatusCode = httpContext?.Response.StatusCode,
-                    CorrelationId = correlationId ?? Guid.NewGuid().ToString()
+                    CorrelationId = correlationId ?? GetRequestCorrelationId() ?? Guid.NewGuid().ToString()
                 };
 
                 _context.AuditLogs.Add(auditLog);
@@ -465,14 +472,15 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
-        /// Get audit logs for a specific user
+        /// Get user lifecycle audit logs where the given user is the target (events on this user: create, deactivate, reactivate, role change, password reset).
         /// </summary>
         public async Task<IEnumerable<AuditLog>> GetUserAuditLogsAsync(string userId, DateTime? startDate = null,
             DateTime? endDate = null, int page = 1, int pageSize = 50)
         {
             try
             {
-                var query = _context.AuditLogs.Where(a => a.UserId == userId);
+                var query = _context.AuditLogs
+                    .Where(a => a.EntityType == AuditLogEntityTypes.USER && a.EntityName == userId);
 
                 if (startDate.HasValue)
                     query = query.Where(a => a.Timestamp >= startDate.Value);
@@ -485,7 +493,7 @@ namespace KasseAPI_Final.Services
                 var skip = (page - 1) * pageSize;
                 var auditLogs = await query.Skip(skip).Take(pageSize).ToListAsync();
 
-                _logger.LogInformation("Retrieved {Count} user audit logs for user {UserId}", 
+                _logger.LogInformation("Retrieved {Count} user lifecycle audit logs for user {UserId}", 
                     auditLogs.Count, userId);
 
                 return auditLogs;
@@ -493,6 +501,28 @@ namespace KasseAPI_Final.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve user audit logs for user {UserId}", userId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Count of user lifecycle events where the user is the target (EntityName).
+        /// </summary>
+        public async Task<int> GetUserLifecycleAuditLogsCountAsync(string userId, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var query = _context.AuditLogs
+                    .Where(a => a.EntityType == AuditLogEntityTypes.USER && a.EntityName == userId);
+                if (startDate.HasValue)
+                    query = query.Where(a => a.Timestamp >= startDate.Value);
+                if (endDate.HasValue)
+                    query = query.Where(a => a.Timestamp <= endDate.Value);
+                return await query.CountAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get user lifecycle audit log count for user {UserId}", userId);
                 throw;
             }
         }
@@ -705,6 +735,43 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        /// <summary>
+        /// Incident playbook: returns high-risk admin/user-lifecycle actions for security review (deactivate, reactivate, password reset, role change, user create).
+        /// </summary>
+        public async Task<IEnumerable<AuditLog>> GetSuspiciousAdminActionsAsync(DateTime? since = null, int limit = 100)
+        {
+            try
+            {
+                var highRiskActions = new[]
+                {
+                    AuditLogActions.USER_DEACTIVATE,
+                    AuditLogActions.USER_REACTIVATE,
+                    AuditLogActions.USER_PASSWORD_RESET,
+                    AuditLogActions.USER_ROLE_CHANGE,
+                    AuditLogActions.USER_CREATE
+                };
+
+                var query = _context.AuditLogs
+                    .Where(a => a.EntityType == AuditLogEntityTypes.USER && highRiskActions.Contains(a.Action));
+
+                if (since.HasValue)
+                    query = query.Where(a => a.Timestamp >= since.Value);
+
+                var list = await query
+                    .OrderByDescending(a => a.Timestamp)
+                    .Take(Math.Min(limit, 500))
+                    .ToListAsync();
+
+                _logger.LogInformation("Retrieved {Count} suspicious admin actions since {Since}", list.Count, since);
+                return list;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve suspicious admin actions");
+                throw;
+            }
+        }
+
         // Helper methods
         private string GetClientIpAddress(HttpContext? httpContext)
         {
@@ -736,6 +803,28 @@ namespace KasseAPI_Final.Services
             catch
             {
                 return "Unknown";
+            }
+        }
+
+        /// <summary>Privacy minimization: store truncated User-Agent (max 200 chars) for audit; avoid full fingerprint.</summary>
+        private string GetUserAgentMinimized(HttpContext? httpContext)
+        {
+            const int maxLength = 200;
+            var raw = GetUserAgent(httpContext);
+            if (string.IsNullOrEmpty(raw) || raw == "Unknown") return raw ?? "Unknown";
+            return raw.Length <= maxLength ? raw : raw.Substring(0, maxLength);
+        }
+
+        /// <summary>CorrelationId from current request (set by CorrelationIdMiddleware).</summary>
+        private string? GetRequestCorrelationId()
+        {
+            try
+            {
+                return _httpContextAccessor.HttpContext?.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+            }
+            catch
+            {
+                return null;
             }
         }
     }

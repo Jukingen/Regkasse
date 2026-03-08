@@ -54,6 +54,18 @@ namespace KasseAPI_Final.Data
                 await roleManager.CreateAsync(new IdentityRole("Manager"));
                 Console.WriteLine("Manager role created successfully");
             }
+
+            // SOP/Permission matrix: BranchManager, SuperAdmin (policies not yet extended; seeds for future use)
+            if (!await roleManager.RoleExistsAsync("BranchManager"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("BranchManager"));
+                Console.WriteLine("BranchManager role created successfully");
+            }
+            if (!await roleManager.RoleExistsAsync("SuperAdmin"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
+                Console.WriteLine("SuperAdmin role created successfully");
+            }
     }
     }
 }

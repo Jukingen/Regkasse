@@ -61,4 +61,8 @@ export const usersCopy = {
   noPermission: 'Nur Administratoren können Benutzer verwalten.',
   branchNotAvailable: '—',
   details: 'Details',
+  resetPassword: 'Passwort zurücksetzen',
+  resetPasswordUser: 'Passwort zurücksetzen',
+  newPassword: 'Neues Passwort (min. 6 Zeichen)',
+  successResetPassword: 'Passwort wurde zurückgesetzt. Sitzungen des Benutzers wurden ungültig.',
 } as const;

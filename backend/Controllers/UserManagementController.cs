@@ -19,6 +19,7 @@ namespace KasseAPI_Final.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IAuditLogService _auditLogService;
+        private readonly IUserSessionInvalidation _sessionInvalidation;
         private readonly ILogger<UserManagementController> _logger;
 
         public UserManagementController(
@@ -26,12 +27,14 @@ namespace KasseAPI_Final.Controllers
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
             IAuditLogService auditLogService,
+            IUserSessionInvalidation sessionInvalidation,
             ILogger<UserManagementController> logger)
         {
             _context = context;
             _userManager = userManager;
             _roleManager = roleManager;
             _auditLogService = auditLogService;
+            _sessionInvalidation = sessionInvalidation;
             _logger = logger;
         }
 
@@ -40,7 +43,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/usermanagement
         [HttpGet]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersView")]
         public async Task<ActionResult<IEnumerable<UserInfo>>> GetUsers(
             [FromQuery] string? role = null,
             [FromQuery] bool? isActive = true)
@@ -85,7 +88,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/usermanagement/{id}
         [HttpGet("{id}")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersView")]
         public async Task<ActionResult<UserInfo>> GetUser(string id)
         {
             try
@@ -123,7 +126,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/usermanagement
         [HttpPost]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersManage")]
         public async Task<ActionResult<UserInfo>> CreateUser([FromBody] CreateUserRequest request)
         {
             try
@@ -225,7 +228,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}
         [HttpPut("{id}")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserRequest request)
         {
             try
@@ -305,6 +308,7 @@ namespace KasseAPI_Final.Controllers
                             AuditLogActions.USER_ROLE_CHANGE, actorId, actorRole, id,
                             $"Role changed from {previousRole} to {request.Role}", null,
                             AuditLogStatus.Success, $"Role change: {previousRole} -> {request.Role}");
+                        await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
                     }
                 }
 
@@ -319,7 +323,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/password
         [HttpPut("{id}/password")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> ChangePassword(string id, [FromBody] ChangePasswordRequest request)
         {
             try
@@ -361,7 +365,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/reset-password
         [HttpPut("{id}/reset-password")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> ResetPassword(string id, [FromBody] ResetPasswordRequest request)
         {
             try
@@ -393,6 +397,7 @@ namespace KasseAPI_Final.Controllers
                         AuditLogStatus.Success, "Administrator reset password");
                 }
 
+                await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
                 return Ok(new { message = "Password reset successfully" });
             }
             catch (Exception ex)
@@ -404,7 +409,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/deactivate
         [HttpPut("{id}/deactivate")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> DeactivateUser(string id, [FromBody] DeactivateUserRequest request)
         {
             try
@@ -452,6 +457,7 @@ namespace KasseAPI_Final.Controllers
                         $"User deactivated: {user.UserName}. Reason: {request.Reason}");
                 }
 
+                await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
                 return Ok(new { message = "User deactivated successfully" });
             }
             catch (Exception ex)
@@ -463,7 +469,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/reactivate
         [HttpPut("{id}/reactivate")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> ReactivateUser(string id, [FromBody] ReactivateUserRequest? request = null)
         {
             try
@@ -513,7 +519,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/usermanagement/{id} (soft-delete: deactivate without reason – prefer PUT deactivate for compliance)
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> DeleteUser(string id)
         {
             try
@@ -550,6 +556,7 @@ namespace KasseAPI_Final.Controllers
                         $"User deactivated via DELETE: {user.UserName}");
                 }
 
+                await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
                 return Ok(new { message = "User deleted successfully" });
             }
             catch (Exception ex)
@@ -561,7 +568,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/usermanagement/roles
         [HttpGet("roles")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersView")]
         public async Task<ActionResult<IEnumerable<string>>> GetRoles()
         {
             try
@@ -578,7 +585,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/usermanagement/roles
         [HttpPost("roles")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
         {
             try
@@ -612,7 +619,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/usermanagement/search
         [HttpGet("search")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "UsersView")]
         public async Task<ActionResult<IEnumerable<UserInfo>>> SearchUsers([FromQuery] string query)
         {
             try

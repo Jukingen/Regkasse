@@ -12,7 +12,8 @@ import { usersCopy } from '../constants/copy';
 function fullName(record: UserInfo): string {
   const first = record.firstName ?? '';
   const last = record.lastName ?? '';
-  return `${first} ${last}`.trim() || record.userName ?? record.id ?? '—';
+  const name = `${first} ${last}`.trim();
+  return name || record.userName || record.id || '—';
 }
 
 type Props = {

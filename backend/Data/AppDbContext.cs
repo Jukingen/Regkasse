@@ -428,7 +428,7 @@ namespace KasseAPI_Final.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Action).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.EntityType).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.EntityId).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.EntityId).IsRequired(false); // optional for user lifecycle (EntityName used)
                 entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
                 entity.Property(e => e.OldValues).HasMaxLength(4000);
                 entity.Property(e => e.NewValues).HasMaxLength(4000);
@@ -874,6 +874,38 @@ namespace KasseAPI_Final.Data
             });
 
             Console.WriteLine("AppDbContext model configuration completed with TableOrder support");
+        }
+
+        /// <summary>
+        /// Compliance: Audit log is append-only. Any attempt to UPDATE existing AuditLog rows is rejected (anti-tamper).
+        /// DELETE is only allowed via the dedicated retention method DeleteAuditLogsOlderThanAsync.
+        /// </summary>
+        public override int SaveChanges()
+        {
+            EnforceAuditLogAppendOnly();
+            return base.SaveChanges();
+        }
+
+        /// <summary>
+        /// Async variant: enforces audit log append-only (no updates to existing audit rows).
+        /// </summary>
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            EnforceAuditLogAppendOnly();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void EnforceAuditLogAppendOnly()
+        {
+            var modifiedAuditLogs = ChangeTracker.Entries<AuditLog>()
+                .Where(e => e.State == EntityState.Modified)
+                .ToList();
+            if (modifiedAuditLogs.Any())
+            {
+                throw new InvalidOperationException(
+                    "Audit log is append-only. Updating existing audit records is not allowed for compliance. " +
+                    $"Attempted to modify {modifiedAuditLogs.Count} audit log entry/entries.");
+            }
         }
     }
 }

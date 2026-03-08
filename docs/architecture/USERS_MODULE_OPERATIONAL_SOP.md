@@ -209,4 +209,20 @@ Standard Operating Procedure for restaurant managers and authorised staff using 
 
 ---
 
+## Reason codes (examples for audit trail)
+
+For **deactivation**, the system requires a non-empty reason. Recommended short texts for Austrian fiscal traceability (RKSV/BAO):
+
+| Use case | Example reason (DE) |
+|----------|----------------------|
+| Employee leaving | `Ausscheiden zum 31.03.2025` |
+| End of contract | `Vertragsende – nicht verlängert zum 30.04.2025` |
+| Temporary suspension | `Temporäre Suspendierung – unbezahlter Urlaub bis 15.05.2025` |
+| Internal review | `Interne Prüfung – Zugang bis auf Weiteres gesperrt` |
+| Mutual agreement | `Kündigung zum 31.03.2025 – einvernehmlich` |
+
+**Permission matrix and backend policy names:** See `docs/architecture/USERS_MODULE_PERMISSION_MATRIX.md`. Backend policies in use: `UsersView` (Administrator, SuperAdmin, BranchManager, Auditor), `UsersManage` (Administrator, SuperAdmin, BranchManager).
+
+---
+
 *This SOP is for operational use with FE-Admin Users. Final HR and legal procedures remain the responsibility of your organisation. Keep this document updated when roles or system behaviour change.*

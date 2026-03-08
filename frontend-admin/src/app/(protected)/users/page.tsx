@@ -30,6 +30,7 @@ import {
     HistoryOutlined,
     EyeOutlined,
     SearchOutlined,
+    KeyOutlined,
 } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -39,6 +40,7 @@ import {
     useGetApiUserManagementRoles,
     usePostApiUserManagement,
     usePutApiUserManagementId,
+    usePutApiUserManagementIdResetPassword,
 } from '@/api/generated/user-management/user-management';
 import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
 import { UserFormDrawer } from '@/features/users/components/UserFormDrawer';
@@ -52,16 +54,15 @@ const { Title } = Typography;
 function fullName(record: UserInfo): string {
     const first = record.firstName ?? '';
     const last = record.lastName ?? '';
-    return `${first} ${last}`.trim() || record.userName ?? record.id ?? '—';
+    const name = `${first} ${last}`.trim();
+    return name || record.userName || record.id || '—';
 }
 
 const ROLE_OPTIONS = [
-    { value: 'Administrator', label: 'Administrator' },
-    { value: 'Manager', label: 'Manager' },
-    { value: 'Cashier', label: 'Cashier' },
-    { value: 'Kellner', label: 'Kellner' },
+    { value: 'SuperAdmin', label: 'SuperAdmin' },
+    { value: 'Admin', label: 'Admin' },
+    { value: 'BranchManager', label: 'BranchManager' },
     { value: 'Auditor', label: 'Auditor' },
-    { value: 'Demo', label: 'Demo' },
 ];
 
 const STATUS_OPTIONS = [
@@ -80,9 +81,10 @@ export default function UsersPage() {
     const [detailUser, setDetailUser] = useState<UserInfo | null>(null);
     const [deactivateUserRecord, setDeactivateUserRecord] = useState<UserInfo | null>(null);
     const [reactivateUserRecord, setReactivateUserRecord] = useState<UserInfo | null>(null);
+    const [resetPasswordUser, setResetPasswordUser] = useState<UserInfo | null>(null);
 
     const { user: currentUser } = useAuth();
-    const isAdmin = currentUser?.role === 'Administrator';
+    const canManageUsers = ['SuperAdmin', 'Admin', 'BranchManager'].includes(currentUser?.role ?? '');
 
     const queryClient = useQueryClient();
     const listParams = useMemo(
@@ -125,7 +127,21 @@ export default function UsersPage() {
             },
         },
     });
+    const resetPasswordMutation = usePutApiUserManagementIdResetPassword({
+        mutation: {
+            onSuccess: () => {
+                message.success(usersCopy.successResetPassword);
+                queryClient.invalidateQueries({ queryKey: usersListQueryKey });
+                setResetPasswordUser(null);
+                resetPasswordForm.resetFields();
+            },
+            onError: (e: unknown) => {
+                message.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? usersCopy.errorGeneric);
+            },
+        },
+    });
     const [deactivateForm] = Form.useForm();
+    const [resetPasswordForm] = Form.useForm();
 
     const handleCreate = (values: CreateUserRequest) => {
         createMutation.mutate({ data: values });
@@ -160,6 +176,12 @@ export default function UsersPage() {
             .catch((e: unknown) => {
                 message.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? usersCopy.errorGeneric);
             });
+    };
+    const handleResetPassword = () => {
+        if (!resetPasswordUser?.id) return;
+        resetPasswordForm.validateFields().then((values: { newPassword: string }) => {
+            resetPasswordMutation.mutate({ id: resetPasswordUser.id!, data: { newPassword: values.newPassword } });
+        });
     };
 
     const columns = [
@@ -198,7 +220,7 @@ export default function UsersPage() {
             key: 'actions',
             render: (_: unknown, record: UserInfo) => (
                 <Space wrap>
-                    {isAdmin && (
+                    {canManageUsers && (
                         <Button
                             size="small"
                             icon={<EyeOutlined />}
@@ -207,7 +229,7 @@ export default function UsersPage() {
                             {usersCopy.view}
                         </Button>
                     )}
-                    {isAdmin && (
+                    {canManageUsers && (
                         <Button
                             size="small"
                             icon={<EditOutlined />}
@@ -226,7 +248,7 @@ export default function UsersPage() {
                     >
                         {usersCopy.activity}
                     </Button>
-                    {isAdmin && record.isActive && (
+                    {canManageUsers && record.isActive && (
                         <Button
                             size="small"
                             danger
@@ -236,7 +258,7 @@ export default function UsersPage() {
                             {usersCopy.deactivate}
                         </Button>
                     )}
-                    {isAdmin && !record.isActive && (
+                    {canManageUsers && !record.isActive && (
                         <Button
                             size="small"
                             type="primary"
@@ -244,6 +266,15 @@ export default function UsersPage() {
                             onClick={() => setReactivateUserRecord(record)}
                         >
                             {usersCopy.reactivate}
+                        </Button>
+                    )}
+                    {canManageUsers && (
+                        <Button
+                            size="small"
+                            icon={<KeyOutlined />}
+                            onClick={() => setResetPasswordUser(record)}
+                        >
+                            {usersCopy.resetPassword}
                         </Button>
                     )}
                 </Space>
@@ -281,7 +312,7 @@ export default function UsersPage() {
                         onChange={(v) => setStatusFilter(v === undefined ? undefined : v === 'active')}
                         options={STATUS_OPTIONS}
                     />
-                    {isAdmin && (
+                    {canManageUsers && (
                         <Button type="primary" icon={<UserOutlined />} onClick={() => setCreateOpen(true)}>
                             {usersCopy.createUser}
                         </Button>
@@ -379,6 +410,33 @@ export default function UsersPage() {
                     <p>
                         <strong>{fullName(reactivateUserRecord)}</strong> {usersCopy.confirmReactivate}
                     </p>
+                )}
+            </Modal>
+
+            <Modal
+                title={usersCopy.resetPasswordUser}
+                open={!!resetPasswordUser}
+                onOk={handleResetPassword}
+                onCancel={() => { setResetPasswordUser(null); resetPasswordForm.resetFields(); }}
+                okText={usersCopy.save}
+                confirmLoading={resetPasswordMutation.isPending}
+                destroyOnClose
+            >
+                {resetPasswordUser && (
+                    <>
+                        <p style={{ marginBottom: 16 }}>
+                            <strong>{fullName(resetPasswordUser)}</strong> ({resetPasswordUser.userName}) – neues Passwort setzen. Alle Sitzungen werden ungültig.
+                        </p>
+                        <Form form={resetPasswordForm} layout="vertical">
+                            <Form.Item
+                                name="newPassword"
+                                label={usersCopy.newPassword}
+                                rules={[{ required: true, message: usersCopy.newPassword }, { min: 6, message: 'Min. 6 Zeichen' }]}
+                            >
+                                <Input.Password placeholder="••••••••" autoComplete="new-password" />
+                            </Form.Item>
+                        </Form>
+                    </>
                 )}
             </Modal>
         </Card>

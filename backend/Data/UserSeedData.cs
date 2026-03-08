@@ -22,17 +22,18 @@ namespace KasseAPI_Final.Data
                 Console.WriteLine("Old demo user deleted");
             }
 
-            // Admin kullanıcısı var mı kontrol et
-            if (await userManager.FindByEmailAsync("admin@admin.com") == null)
+            // Admin kullanıcısı: yoksa oluştur (SuperAdmin), varsa rolünü SuperAdmin yap
+            var adminUser = await userManager.FindByEmailAsync("admin@admin.com");
+            if (adminUser == null)
             {
-                var adminUser = new ApplicationUser
+                adminUser = new ApplicationUser
                 {
                     UserName = "admin@admin.com",
                     Email = "admin@admin.com",
                     FirstName = "Admin",
                     LastName = "User",
                     EmployeeNumber = "EMP001",
-                    Role = "Admin",
+                    Role = "SuperAdmin",
                     TaxNumber = "ATU12345678",
                     Notes = "Initial admin user",
                     IsActive = true,
@@ -43,20 +44,31 @@ namespace KasseAPI_Final.Data
                 };
 
                 var result = await userManager.CreateAsync(adminUser, "Admin123!");
-                
                 if (result.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(adminUser, "Administrator");
-                    await userManager.AddToRoleAsync(adminUser, "Admin");
-                    Console.WriteLine("Admin user created successfully (roles: Administrator, Admin)");
+                    await userManager.AddToRoleAsync(adminUser, "SuperAdmin");
+                    Console.WriteLine("Admin user created successfully (role: SuperAdmin)");
                 }
                 else
                 {
                     Console.WriteLine("Failed to create admin user:");
                     foreach (var error in result.Errors)
-                    {
                         Console.WriteLine($"- {error.Description}");
-                    }
+                }
+            }
+            else
+            {
+                // Mevcut admin@admin.com kullanıcısını SuperAdmin yap
+                if (adminUser.Role != "SuperAdmin")
+                {
+                    adminUser.Role = "SuperAdmin";
+                    adminUser.UpdatedAt = DateTime.UtcNow;
+                    await userManager.UpdateAsync(adminUser);
+                    var currentRoles = await userManager.GetRolesAsync(adminUser);
+                    if (currentRoles.Count > 0)
+                        await userManager.RemoveFromRolesAsync(adminUser, currentRoles);
+                    await userManager.AddToRoleAsync(adminUser, "SuperAdmin");
+                    Console.WriteLine("admin@admin.com updated to role SuperAdmin");
                 }
             }
 

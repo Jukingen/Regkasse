@@ -28,7 +28,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog - Get all audit logs with filtering and pagination
         /// </summary>
         [HttpGet]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "UsersView")]
         public async Task<ActionResult<AuditLogsResponse>> GetAuditLogs(
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
@@ -163,7 +163,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/user/{userId} - Get audit logs for specific user
         /// </summary>
         [HttpGet("user/{userId}")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "UsersView")]
         public async Task<ActionResult<AuditLogsResponse>> GetUserAuditLogs(
             string userId,
             [FromQuery] DateTime? startDate = null,
@@ -179,8 +179,8 @@ namespace KasseAPI_Final.Controllers
                 var auditLogs = await _auditLogService.GetUserAuditLogsAsync(
                     userId, startDate, endDate, page, pageSize);
 
-                var totalCount = await _auditLogService.GetAuditLogsCountAsync(
-                    startDate, endDate, userId, null, null, null, null, null);
+                var totalCount = await _auditLogService.GetUserLifecycleAuditLogsCountAsync(
+                    userId, startDate, endDate);
 
                 var response = new AuditLogsResponse
                 {
@@ -242,6 +242,37 @@ namespace KasseAPI_Final.Controllers
                     message = "Internal server error while retrieving correlation audit logs",
                     error = ex.Message 
                 });
+            }
+        }
+
+        /// <summary>
+        /// GET: api/auditlog/suspicious-admin-actions - Incident playbook: high-risk user-lifecycle actions (deactivate, reactivate, password reset, role change, create).
+        /// </summary>
+        [HttpGet("suspicious-admin-actions")]
+        [Authorize(Policy = "UsersView")]
+        public async Task<ActionResult<AuditLogsResponse>> GetSuspiciousAdminActions(
+            [FromQuery] DateTime? since = null,
+            [FromQuery] int limit = 100)
+        {
+            try
+            {
+                var auditLogs = await _auditLogService.GetSuspiciousAdminActionsAsync(since, limit);
+                var list = auditLogs.ToList();
+                return Ok(new AuditLogsResponse
+                {
+                    Success = true,
+                    AuditLogs = list,
+                    TotalCount = list.Count,
+                    Page = 1,
+                    PageSize = list.Count,
+                    TotalPages = 1,
+                    Message = "Suspicious admin actions retrieved for incident review"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving suspicious admin actions");
+                return StatusCode(500, new { message = "Internal server error while retrieving suspicious admin actions", error = ex.Message });
             }
         }
 

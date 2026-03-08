@@ -321,7 +321,7 @@ public class AdminUsersController : ControllerBase
         if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
         var logs = await _auditLogService.GetUserAuditLogsAsync(id, null, null, page, pageSize);
-        var total = await _auditLogService.GetAuditLogsCountAsync(null, null, id, null, null, null, null, null);
+        var total = await _auditLogService.GetUserLifecycleAuditLogsCountAsync(id, null, null);
 
         return Ok(new AdminUserActivityResponse
         {
