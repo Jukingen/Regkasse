@@ -1,17 +1,17 @@
 /**
- * Kullanıcı listesi – role, status, search (RKSV uyumlu backend GET/search parametreleri).
+ * Kullanıcı listesi – gateway üzerinden; server-side pagination + birleşik filtre.
  */
-import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
-import { getUsersList, type UsersListParams } from '../api/usersApi';
+import { useQuery } from '@tanstack/react-query';
+import { getUsersList, listQueryKey, type UsersListParams } from '../api/usersGateway';
 
-export const usersListQueryKey = ['/api/UserManagement'] as const;
+export const usersListQueryKey = listQueryKey;
 
 export function useUsersList(
   params?: UsersListParams,
   options?: { enabled?: boolean }
 ) {
   return useQuery({
-    queryKey: [...usersListQueryKey, params],
+    queryKey: [...listQueryKey, params],
     queryFn: () => getUsersList(params),
     enabled: options?.enabled !== false,
   });

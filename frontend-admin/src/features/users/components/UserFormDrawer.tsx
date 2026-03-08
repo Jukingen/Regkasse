@@ -1,13 +1,14 @@
 'use client';
 
 /**
- * Create/Edit user form in a Drawer (i18n-ready copy).
+ * Create/Edit user form in a Drawer – merkezi validasyon, backend contract uyumlu.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Drawer, Form, Input, Select, Button, Space } from 'antd';
 import type { UserInfo } from '@/api/generated/model';
 import type { CreateUserRequest, UpdateUserRequest } from '@/api/generated/model';
 import { usersCopy } from '../constants/copy';
+import { createUsersFormRules, NAME_MAX_LENGTH, EMAIL_MAX_LENGTH, SHORT_FIELD_MAX_LENGTH, NOTES_MAX_LENGTH } from '../constants/validation';
 
 type Mode = 'create' | 'edit';
 
@@ -21,6 +22,15 @@ type Props = {
   loading?: boolean;
 };
 
+const formRulesContext = {
+  requiredMessage: usersCopy.validationRequired,
+  emailInvalidMessage: usersCopy.validationEmail,
+  passwordMinMessage: usersCopy.validationPasswordMin,
+  maxLengthMessage: usersCopy.validationMaxLength,
+  reasonRequiredMessage: usersCopy.reasonRequiredMessage,
+  roleNameRequiredMessage: usersCopy.roleNameRequired,
+};
+
 export function UserFormDrawer({
   open,
   onClose,
@@ -31,6 +41,7 @@ export function UserFormDrawer({
   loading = false,
 }: Props) {
   const [form] = Form.useForm();
+  const rules = useMemo(() => createUsersFormRules(formRulesContext), []);
 
   useEffect(() => {
     if (!open) return;
@@ -77,34 +88,34 @@ export function UserFormDrawer({
       <Form form={form} layout="vertical" preserve={false}>
         {mode === 'create' && (
           <>
-            <Form.Item name="userName" label={usersCopy.userName} rules={[{ required: true }]}>
-              <Input />
+            <Form.Item name="userName" label={usersCopy.userName} rules={rules.userName}>
+              <Input maxLength={NAME_MAX_LENGTH} showCount placeholder={usersCopy.userName} />
             </Form.Item>
-            <Form.Item name="password" label={usersCopy.password} rules={[{ required: true, min: 6 }]}>
-              <Input.Password />
+            <Form.Item name="password" label={usersCopy.password} rules={rules.password}>
+              <Input.Password autoComplete="new-password" placeholder="••••••••" />
             </Form.Item>
           </>
         )}
-        <Form.Item name="firstName" label={usersCopy.firstName} rules={[{ required: true }]}>
-          <Input />
+        <Form.Item name="firstName" label={usersCopy.firstName} rules={rules.firstName}>
+          <Input maxLength={NAME_MAX_LENGTH} />
         </Form.Item>
-        <Form.Item name="lastName" label={usersCopy.lastName} rules={[{ required: true }]}>
-          <Input />
+        <Form.Item name="lastName" label={usersCopy.lastName} rules={rules.lastName}>
+          <Input maxLength={NAME_MAX_LENGTH} />
         </Form.Item>
-        <Form.Item name="email" label={usersCopy.email}>
-          <Input type="email" />
+        <Form.Item name="email" label={usersCopy.email} rules={rules.email}>
+          <Input type="email" maxLength={EMAIL_MAX_LENGTH} />
         </Form.Item>
-        <Form.Item name="employeeNumber" label={usersCopy.employeeNumber}>
-          <Input />
+        <Form.Item name="employeeNumber" label={usersCopy.employeeNumber} rules={rules.employeeNumber}>
+          <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
         </Form.Item>
-        <Form.Item name="role" label={usersCopy.role} rules={[{ required: true }]}>
-          <Select options={roleOptions} />
+        <Form.Item name="role" label={usersCopy.role} rules={rules.role}>
+          <Select options={roleOptions} placeholder={usersCopy.filterRole} />
         </Form.Item>
-        <Form.Item name="taxNumber" label={usersCopy.taxNumber}>
-          <Input />
+        <Form.Item name="taxNumber" label={usersCopy.taxNumber} rules={rules.taxNumber}>
+          <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
         </Form.Item>
-        <Form.Item name="notes" label={usersCopy.notes}>
-          <Input.TextArea rows={2} />
+        <Form.Item name="notes" label={usersCopy.notes} rules={rules.notes}>
+          <Input.TextArea rows={2} maxLength={NOTES_MAX_LENGTH} showCount />
         </Form.Item>
       </Form>
     </Drawer>

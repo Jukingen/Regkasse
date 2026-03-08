@@ -1,6 +1,6 @@
 /**
  * User Management API – RKSV/DSGVO uyumlu liste filtreleri ve deactivate/reactivate.
- * Generated client'da olmayan endpoint'ler (backend'de eklendi) buradan çağrılır.
+ * Liste: tek endpoint, server-side pagination + birleşik filtre (query + role + isActive).
  */
 import { customInstance } from '@/lib/axios';
 import type { UserInfo } from '@/api/generated/model';
@@ -9,24 +9,41 @@ export type UsersListParams = {
   role?: string;
   isActive?: boolean;
   query?: string;
+  page?: number;
+  pageSize?: number;
 };
 
-export async function getUsersList(params?: UsersListParams): Promise<UserInfo[]> {
-  const search = (params?.query ?? '').trim();
-  if (search) {
-    return customInstance<UserInfo[]>({
-      url: '/api/UserManagement/search',
-      method: 'GET',
-      params: { query: search },
-    });
-  }
-  const searchParams = new URLSearchParams();
-  if (params?.role != null) searchParams.set('role', params.role);
-  if (params?.isActive != null) searchParams.set('isActive', String(params.isActive));
-  const qs = searchParams.toString();
-  return customInstance<UserInfo[]>({
-    url: `/api/UserManagement${qs ? `?${qs}` : ''}`,
+export type UsersListPagination = {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+};
+
+export type UsersListResponse = {
+  items: UserInfo[];
+  pagination: UsersListPagination;
+};
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_PAGE_SIZE = 20;
+
+export async function getUsersList(params?: UsersListParams): Promise<UsersListResponse> {
+  const page = params?.page ?? DEFAULT_PAGE;
+  const pageSize = params?.pageSize ?? DEFAULT_PAGE_SIZE;
+  const searchParams: Record<string, string | number | boolean | undefined> = {
+    page,
+    pageSize,
+  };
+  if (params?.role != null) searchParams.role = params.role;
+  if (params?.isActive != null) searchParams.isActive = params.isActive;
+  const query = (params?.query ?? '').trim();
+  if (query) searchParams.query = query;
+
+  return customInstance<UsersListResponse>({
+    url: '/api/UserManagement',
     method: 'GET',
+    params: searchParams,
   });
 }
 

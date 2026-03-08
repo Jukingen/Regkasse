@@ -70,4 +70,11 @@ export const usersCopy = {
   successCreateRole: 'Rolle angelegt.',
   roleName: 'Rollenname',
   roleNameRequired: 'Rollenname erforderlich',
+  // Validierung (zentral)
+  validationRequired: 'Pflichtfeld.',
+  validationEmail: 'Ungültige E-Mail-Adresse.',
+  validationPasswordMin: 'Min. 6 Zeichen.',
+  validationMaxLength: (n: number) => `Max. ${n} Zeichen.`,
+  // Reset-Passwort: Sicherheitshinweis
+  resetPasswordSecurityNote: 'Alle Sitzungen des Benutzers werden beendet. Das neue Passwort muss mindestens 6 Zeichen haben.',
 } as const;

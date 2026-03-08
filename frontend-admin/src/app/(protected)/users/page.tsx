@@ -5,7 +5,7 @@
  * Tablo: name, email, role, branch, status, last login, actions.
  * Filtreler: role, status, branch, search. Drawer create/edit, deaktive (reason), reaktive, Activity timeline tab.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     Table,
     Card,
@@ -32,32 +32,29 @@ import {
     SearchOutlined,
     KeyOutlined,
 } from '@ant-design/icons';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import {
-    canViewUsers,
-    canManageUsers,
-    canEditUser,
-    canDeactivateReactivate,
-    canResetPassword,
-    canCreateRole,
-} from '@/features/auth/constants/roles';
+import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 import { useUsersList } from '@/features/users/hooks/useUsersList';
-import { deactivateUser, reactivateUser } from '@/features/users/api/usersApi';
+import { useRoles } from '@/features/users/hooks/useRoles';
 import {
-    useGetApiUserManagementRoles,
-    usePostApiUserManagement,
-    usePutApiUserManagementId,
-    usePutApiUserManagementIdResetPassword,
-    usePostApiUserManagementRoles,
-} from '@/api/generated/user-management/user-management';
+    listQueryKey,
+    rolesQueryKey,
+    createUser as gatewayCreateUser,
+    updateUser as gatewayUpdateUser,
+    deactivateUser as gatewayDeactivateUser,
+    reactivateUser as gatewayReactivateUser,
+    resetPassword as gatewayResetPassword,
+    createRole as gatewayCreateRole,
+    normalizeError,
+    type UserInfo,
+    type CreateUserRequest,
+    type UpdateUserRequest,
+} from '@/features/users/api/usersGateway';
 import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
 import { UserFormDrawer } from '@/features/users/components/UserFormDrawer';
-import type { UserInfo } from '@/api/generated/model';
-import type { CreateUserRequest, UpdateUserRequest } from '@/api/generated/model';
-import { usersListQueryKey } from '@/features/users/hooks/useUsersList';
-import { getGetApiUserManagementRolesQueryKey } from '@/api/generated/user-management/user-management';
 import { usersCopy } from '@/features/users/constants/copy';
+import { createUsersFormRules } from '@/features/users/constants/validation';
 
 const { Title } = Typography;
 
@@ -80,11 +77,25 @@ const STATUS_OPTIONS = [
     { value: 'inactive', label: usersCopy.statusInactive },
 ];
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_PAGE_SIZE = 20;
+
+const modalFormRulesContext = {
+  requiredMessage: usersCopy.validationRequired,
+  emailInvalidMessage: usersCopy.validationEmail,
+  passwordMinMessage: usersCopy.validationPasswordMin,
+  maxLengthMessage: usersCopy.validationMaxLength,
+  reasonRequiredMessage: usersCopy.reasonRequiredMessage,
+  roleNameRequiredMessage: usersCopy.roleNameRequired,
+};
+
 export default function UsersPage() {
     const [roleFilter, setRoleFilter] = useState<string | undefined>();
     const [statusFilter, setStatusFilter] = useState<boolean | undefined>(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchInput, setSearchInput] = useState('');
+    const [page, setPage] = useState(DEFAULT_PAGE);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
     const [createOpen, setCreateOpen] = useState(false);
     const [editUser, setEditUser] = useState<UserInfo | null>(null);
@@ -95,12 +106,7 @@ export default function UsersPage() {
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
 
     const { user: currentUser } = useAuth();
-    const currentRole = currentUser?.role ?? '';
-    const canView = canViewUsers(currentRole);
-    const canManage = canManageUsers(currentRole);
-    const canEdit = canEditUser(currentRole);
-    const canDeactivate = canDeactivateReactivate(currentRole);
-    const canCreateRoleBtn = canCreateRole(currentRole);
+    const policy = useUsersPolicy();
 
     const queryClient = useQueryClient();
     const listParams = useMemo(
@@ -108,65 +114,69 @@ export default function UsersPage() {
             role: roleFilter,
             isActive: statusFilter,
             query: searchTerm.trim() || undefined,
+            page,
+            pageSize,
         }),
-        [roleFilter, statusFilter, searchTerm]
+        [roleFilter, statusFilter, searchTerm, page, pageSize]
     );
-    const { data: users, isLoading, isError, refetch } = useUsersList(listParams, { enabled: canView });
-    const { data: roles } = useGetApiUserManagementRoles({ query: { enabled: canView } });
+    const { data: listData, isLoading, isError, refetch } = useUsersList(listParams, { enabled: policy.canView });
+    const users = listData?.items ?? [];
+    const pagination = listData?.pagination;
+    useEffect(() => {
+        setPage(DEFAULT_PAGE);
+    }, [roleFilter, statusFilter, searchTerm]);
+    const { data: roles } = useRoles({ enabled: policy.canView });
+    const modalRules = useMemo(() => createUsersFormRules(modalFormRulesContext), []);
 
     const roleOptions = useMemo(
         () => (roles?.map((r) => ({ value: r, label: r })) ?? ROLE_OPTIONS),
         [roles]
     );
 
-    const createMutation = usePostApiUserManagement({
-        mutation: {
-            onSuccess: () => {
-                message.success(usersCopy.successCreate);
-                queryClient.invalidateQueries({ queryKey: usersListQueryKey });
-                setCreateOpen(false);
-            },
-            onError: (e: unknown) => {
-                message.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? usersCopy.errorGeneric);
-            },
+    const createMutation = useMutation({
+        mutationFn: gatewayCreateUser,
+        onSuccess: () => {
+            message.success(usersCopy.successCreate);
+            queryClient.invalidateQueries({ queryKey: listQueryKey });
+            setCreateOpen(false);
+        },
+        onError: (e: unknown) => {
+            message.error(normalizeError(e, usersCopy.errorGeneric).message);
         },
     });
-    const updateMutation = usePutApiUserManagementId({
-        mutation: {
-            onSuccess: () => {
-                message.success(usersCopy.successUpdate);
-                queryClient.invalidateQueries({ queryKey: usersListQueryKey });
-                setEditUser(null);
-            },
-            onError: (e: unknown) => {
-                message.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? usersCopy.errorGeneric);
-            },
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: UpdateUserRequest }) => gatewayUpdateUser(id, data),
+        onSuccess: () => {
+            message.success(usersCopy.successUpdate);
+            queryClient.invalidateQueries({ queryKey: listQueryKey });
+            setEditUser(null);
+        },
+        onError: (e: unknown) => {
+            message.error(normalizeError(e, usersCopy.errorGeneric).message);
         },
     });
-    const resetPasswordMutation = usePutApiUserManagementIdResetPassword({
-        mutation: {
-            onSuccess: () => {
-                message.success(usersCopy.successResetPassword);
-                queryClient.invalidateQueries({ queryKey: usersListQueryKey });
-                setResetPasswordUser(null);
-                resetPasswordForm.resetFields();
-            },
-            onError: (e: unknown) => {
-                message.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? usersCopy.errorGeneric);
-            },
+    const resetPasswordMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: { newPassword: string } }) => gatewayResetPassword(id, data),
+        onSuccess: () => {
+            message.success(usersCopy.successResetPassword);
+            queryClient.invalidateQueries({ queryKey: listQueryKey });
+            setResetPasswordUser(null);
+            resetPasswordForm.resetFields();
+        },
+        onError: (e: unknown) => {
+            message.error(normalizeError(e, usersCopy.errorGeneric).message);
         },
     });
-    const createRoleMutation = usePostApiUserManagementRoles({
-        mutation: {
-            onSuccess: () => {
-                message.success(usersCopy.successCreateRole ?? 'Rolle angelegt.');
-                queryClient.invalidateQueries({ queryKey: getGetApiUserManagementRolesQueryKey() });
-                setCreateRoleOpen(false);
-                createRoleForm.resetFields();
-            },
-            onError: (e: unknown) => {
-                message.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? usersCopy.errorGeneric);
-            },
+    const createRoleMutation = useMutation({
+        mutationFn: (data: { name: string }) => gatewayCreateRole({ name: data.name.trim() }),
+        onSuccess: () => {
+            message.success(usersCopy.successCreateRole ?? 'Rolle angelegt.');
+            queryClient.invalidateQueries({ queryKey: rolesQueryKey });
+            setCreateRoleOpen(false);
+            createRoleForm.resetFields();
+        },
+        onError: (e: unknown) => {
+            message.error(normalizeError(e, usersCopy.errorGeneric).message);
         },
     });
     const [deactivateForm] = Form.useForm();
@@ -174,49 +184,79 @@ export default function UsersPage() {
     const [createRoleForm] = Form.useForm<{ name: string }>();
 
     const handleCreate = (values: CreateUserRequest) => {
-        createMutation.mutate({ data: values });
+        if (!policy.canCreate) {
+            message.error(usersCopy.noPermission);
+            return;
+        }
+        createMutation.mutate(values);
     };
     const handleEdit = (values: UpdateUserRequest) => {
         if (!editUser?.id) return;
+        if (!policy.canEdit) {
+            message.error(usersCopy.noPermission);
+            return;
+        }
         updateMutation.mutate({ id: editUser.id, data: values });
     };
     const handleDeactivate = () => {
         if (!deactivateUserRecord?.id) return;
-        deactivateForm.validateFields().then((values: { reason: string }) => {
-            deactivateUser(deactivateUserRecord.id!, { reason: values.reason })
-                .then(() => {
-                    message.success(usersCopy.successDeactivate);
-                    queryClient.invalidateQueries({ queryKey: usersListQueryKey });
-                    setDeactivateUserRecord(null);
-                    deactivateForm.resetFields();
-                })
-                .catch((e: unknown) => {
-                    message.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? usersCopy.errorGeneric);
-                });
-        });
+        if (!policy.canDeactivate) {
+            message.error(usersCopy.noPermission);
+            return;
+        }
+        deactivateForm.validateFields()
+            .then((values: { reason: string }) => {
+                gatewayDeactivateUser(deactivateUserRecord.id!, { reason: values.reason })
+                    .then(() => {
+                        message.success(usersCopy.successDeactivate);
+                        queryClient.invalidateQueries({ queryKey: listQueryKey });
+                        setDeactivateUserRecord(null);
+                        deactivateForm.resetFields();
+                    })
+                    .catch((e: unknown) => {
+                        message.error(normalizeError(e, usersCopy.errorGeneric).message);
+                    });
+            })
+            .catch(() => { /* validasyon hatası */ });
     };
     const handleReactivate = () => {
         if (!reactivateUserRecord?.id) return;
-        reactivateUser(reactivateUserRecord.id!)
+        if (!policy.canReactivate) {
+            message.error(usersCopy.noPermission);
+            return;
+        }
+        gatewayReactivateUser(reactivateUserRecord.id!)
             .then(() => {
                 message.success(usersCopy.successReactivate);
-                queryClient.invalidateQueries({ queryKey: usersListQueryKey });
+                queryClient.invalidateQueries({ queryKey: listQueryKey });
                 setReactivateUserRecord(null);
             })
             .catch((e: unknown) => {
-                message.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? usersCopy.errorGeneric);
+                message.error(normalizeError(e, usersCopy.errorGeneric).message);
             });
     };
     const handleResetPassword = () => {
         if (!resetPasswordUser?.id) return;
-        resetPasswordForm.validateFields().then((values: { newPassword: string }) => {
-            resetPasswordMutation.mutate({ id: resetPasswordUser.id!, data: { newPassword: values.newPassword } });
-        });
+        if (!policy.canResetPassword(resetPasswordUser.role)) {
+            message.error(usersCopy.noPermission);
+            return;
+        }
+        resetPasswordForm.validateFields()
+            .then((values: { newPassword: string }) => {
+                resetPasswordMutation.mutate({ id: resetPasswordUser.id!, data: { newPassword: values.newPassword } });
+            })
+            .catch(() => { /* validasyon hatası; form alanları zaten hata gösterir */ });
     };
     const handleCreateRole = () => {
-        createRoleForm.validateFields().then((values: { name: string }) => {
-            createRoleMutation.mutate({ data: { name: values.name.trim() } });
-        });
+        if (!policy.canCreateRole) {
+            message.error(usersCopy.noPermission);
+            return;
+        }
+        createRoleForm.validateFields()
+            .then((values: { name: string }) => {
+                createRoleMutation.mutate({ name: values.name.trim() });
+            })
+            .catch(() => { /* validasyon hatası */ });
     };
 
     const columns = [
@@ -255,7 +295,7 @@ export default function UsersPage() {
             key: 'actions',
             render: (_: unknown, record: UserInfo) => (
                 <Space wrap>
-                    {canEdit && (
+                    {policy.canEdit && (
                         <Button
                             size="small"
                             icon={<EyeOutlined />}
@@ -264,7 +304,7 @@ export default function UsersPage() {
                             {usersCopy.view}
                         </Button>
                     )}
-                    {canEdit && (
+                    {policy.canEdit && (
                         <Button
                             size="small"
                             icon={<EditOutlined />}
@@ -280,7 +320,7 @@ export default function UsersPage() {
                     >
                         {usersCopy.activity}
                     </Button>
-                    {canDeactivate && record.isActive && (
+                    {policy.canDeactivate && record.isActive && (
                         <Button
                             size="small"
                             danger
@@ -290,7 +330,7 @@ export default function UsersPage() {
                             {usersCopy.deactivate}
                         </Button>
                     )}
-                    {canDeactivate && !record.isActive && (
+                    {policy.canReactivate && !record.isActive && (
                         <Button
                             size="small"
                             type="primary"
@@ -300,7 +340,7 @@ export default function UsersPage() {
                             {usersCopy.reactivate}
                         </Button>
                     )}
-                    {canResetPassword(currentRole, record.role ?? '') && record.id !== currentUser?.id && (
+                    {policy.canResetPassword(record.role) && record.id !== currentUser?.id && (
                         <Button
                             size="small"
                             icon={<KeyOutlined />}
@@ -314,7 +354,7 @@ export default function UsersPage() {
         },
     ];
 
-    if (!canView) {
+    if (!policy.canView) {
         return (
             <Card>
                 <Alert
@@ -356,12 +396,12 @@ export default function UsersPage() {
                         onChange={(v) => setStatusFilter(v === undefined ? undefined : v === 'active')}
                         options={STATUS_OPTIONS}
                     />
-                    {canManage && (
+                    {policy.canCreate && (
                         <Button type="primary" icon={<UserOutlined />} onClick={() => setCreateOpen(true)}>
                             {usersCopy.createUser}
                         </Button>
                     )}
-                    {canCreateRoleBtn && (
+                    {policy.canCreateRole && (
                         <Button icon={<UserOutlined />} onClick={() => setCreateRoleOpen(true)}>
                             {usersCopy.createRole}
                         </Button>
@@ -384,10 +424,20 @@ export default function UsersPage() {
 
             <Table
                 columns={columns}
-                dataSource={users ?? []}
+                dataSource={users}
                 loading={isLoading}
                 rowKey={(r) => r.id ?? ''}
-                pagination={{ pageSize: 20, showSizeChanger: true }}
+                pagination={{
+                    current: pagination?.page ?? DEFAULT_PAGE,
+                    pageSize: pagination?.pageSize ?? DEFAULT_PAGE_SIZE,
+                    total: pagination?.totalCount ?? 0,
+                    showSizeChanger: true,
+                    pageSizeOptions: [10, 20, 50],
+                    onChange: (newPage, newPageSize) => {
+                        setPage(newPage);
+                        if (newPageSize != null) setPageSize(newPageSize);
+                    },
+                }}
                 locale={{
                     emptyText: (
                         <Empty
@@ -437,12 +487,8 @@ export default function UsersPage() {
                     </p>
                 )}
                 <Form form={deactivateForm} layout="vertical">
-                    <Form.Item
-                        name="reason"
-                        label={usersCopy.reasonRequired}
-                        rules={[{ required: true, message: usersCopy.reasonRequiredMessage }]}
-                    >
-                        <Input.TextArea rows={3} placeholder={usersCopy.reasonPlaceholder} />
+                    <Form.Item name="reason" label={usersCopy.reasonRequired} rules={modalRules.reason}>
+                        <Input.TextArea rows={3} placeholder={usersCopy.reasonPlaceholder} maxLength={500} showCount />
                     </Form.Item>
                 </Form>
             </Modal>
@@ -473,15 +519,17 @@ export default function UsersPage() {
             >
                 {resetPasswordUser && (
                     <>
-                        <p style={{ marginBottom: 16 }}>
-                            <strong>{fullName(resetPasswordUser)}</strong> ({resetPasswordUser.userName}) – neues Passwort setzen. Alle Sitzungen werden ungültig.
+                        <p style={{ marginBottom: 8 }}>
+                            <strong>{fullName(resetPasswordUser)}</strong> ({resetPasswordUser.userName})
                         </p>
+                        <Alert
+                            type="info"
+                            message={usersCopy.resetPasswordSecurityNote}
+                            showIcon
+                            style={{ marginBottom: 16 }}
+                        />
                         <Form form={resetPasswordForm} layout="vertical">
-                            <Form.Item
-                                name="newPassword"
-                                label={usersCopy.newPassword}
-                                rules={[{ required: true, message: usersCopy.newPassword }, { min: 6, message: 'Min. 6 Zeichen' }]}
-                            >
+                            <Form.Item name="newPassword" label={usersCopy.newPassword} rules={modalRules.newPassword}>
                                 <Input.Password placeholder="••••••••" autoComplete="new-password" />
                             </Form.Item>
                         </Form>
@@ -499,12 +547,8 @@ export default function UsersPage() {
                 destroyOnClose
             >
                 <Form form={createRoleForm} layout="vertical">
-                    <Form.Item
-                        name="name"
-                        label={usersCopy.roleName}
-                        rules={[{ required: true, message: usersCopy.roleNameRequired }, { max: 50, message: 'Max. 50 Zeichen' }]}
-                    >
-                        <Input placeholder="z. B. Manager" autoComplete="off" />
+                    <Form.Item name="name" label={usersCopy.roleName} rules={modalRules.roleName}>
+                        <Input placeholder="z. B. Manager" maxLength={50} showCount autoComplete="off" />
                     </Form.Item>
                 </Form>
             </Modal>

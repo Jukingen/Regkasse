@@ -87,24 +87,46 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/usermanagement
+        // GET: api/usermanagement — birleşik liste: query + role + isActive + page + pageSize
         [HttpGet]
         [Authorize(Policy = "UsersView")]
-        public async Task<ActionResult<IEnumerable<UserInfo>>> GetUsers(
+        public async Task<ActionResult<UsersListResponse>> GetUsers(
+            [FromQuery] string? query = null,
             [FromQuery] string? role = null,
-            [FromQuery] bool? isActive = true)
+            [FromQuery] bool? isActive = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
             try
             {
-                var query = _userManager.Users.AsQueryable();
+                if (page < 1) page = 1;
+                if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
+                var q = _userManager.Users.AsQueryable();
 
                 if (isActive.HasValue)
-                    query = query.Where(u => u.IsActive == isActive.Value);
+                    q = q.Where(u => u.IsActive == isActive.Value);
 
                 if (!string.IsNullOrWhiteSpace(role))
-                    query = query.Where(u => u.Role == role);
+                    q = q.Where(u => u.Role == role);
 
-                var users = await query
+                var search = (query ?? "").Trim();
+                if (!string.IsNullOrEmpty(search))
+                    q = q.Where(u =>
+                        (u.UserName != null && u.UserName.Contains(search)) ||
+                        (u.FirstName != null && u.FirstName.Contains(search)) ||
+                        (u.LastName != null && u.LastName.Contains(search)) ||
+                        (u.Email != null && u.Email.Contains(search)) ||
+                        (u.EmployeeNumber != null && u.EmployeeNumber.Contains(search)));
+
+                var ordered = q
+                    .OrderBy(u => u.LastName)
+                    .ThenBy(u => u.FirstName);
+
+                var totalCount = await ordered.CountAsync();
+                var items = await ordered
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .Select(u => new UserInfo
                     {
                         Id = u.Id,
@@ -119,11 +141,20 @@ namespace KasseAPI_Final.Controllers
                         CreatedAt = u.CreatedAt,
                         LastLoginAt = u.LastLoginAt
                     })
-                    .OrderBy(u => u.LastName)
-                    .ThenBy(u => u.FirstName)
                     .ToListAsync();
 
-                return Ok(users);
+                var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+                return Ok(new UsersListResponse
+                {
+                    Items = items,
+                    Pagination = new UsersListPagination
+                    {
+                        Page = page,
+                        PageSize = pageSize,
+                        TotalCount = totalCount,
+                        TotalPages = totalPages
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -689,49 +720,22 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/usermanagement/search
-        [HttpGet("search")]
-        [Authorize(Policy = "UsersView")]
-        public async Task<ActionResult<IEnumerable<UserInfo>>> SearchUsers([FromQuery] string query)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(query))
-                {
-                    return await GetUsers();
-                }
+    }
 
-                var users = await _userManager.Users
-                    .Where(u => u.IsActive && 
-                               (u.UserName.Contains(query) || 
-                                u.FirstName.Contains(query) || 
-                                u.LastName.Contains(query) || 
-                                u.Email.Contains(query) || 
-                                u.EmployeeNumber.Contains(query)))
-                    .Select(u => new UserInfo
-                    {
-                        Id = u.Id,
-                        UserName = u.UserName,
-                        Email = u.Email,
-                        FirstName = u.FirstName,
-                        LastName = u.LastName,
-                        EmployeeNumber = u.EmployeeNumber,
-                        Role = u.Role,
-                        IsActive = u.IsActive,
-                        CreatedAt = u.CreatedAt
-                    })
-                    .OrderBy(u => u.LastName)
-                    .ThenBy(u => u.FirstName)
-                    .ToListAsync();
+    /// <summary>Sayfalanmış kullanıcı listesi yanıtı (GET /api/UserManagement).</summary>
+    public class UsersListResponse
+    {
+        public List<UserInfo> Items { get; set; } = new();
+        public UsersListPagination Pagination { get; set; } = new();
+    }
 
-                return Ok(users);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error searching users");
-                return StatusCode(500, new { message = "Internal server error" });
-            }
-        }
+    /// <summary>Sayfa bilgisi (server-side pagination).</summary>
+    public class UsersListPagination
+    {
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
     }
 
     // DTOs

@@ -1,13 +1,16 @@
 'use client';
 
 /**
- * User detail drawer with Details + Activity timeline tabs (audit API).
+ * User detail drawer – Details + Activity; bilgi hiyerarşisi: Status/Rolle → Identität → Sonstiges.
  */
 import React, { useState } from 'react';
-import { Drawer, Tabs, Descriptions, Tag } from 'antd';
+import { Drawer, Tabs, Descriptions, Tag, Typography } from 'antd';
 import type { UserInfo } from '@/api/generated/model';
 import { UserActivityTimeline } from './UserActivityTimeline';
 import { usersCopy } from '../constants/copy';
+
+const { Text } = Typography;
+const NA = usersCopy.branchNotAvailable;
 
 function fullName(record: UserInfo): string {
   const first = record.firstName ?? '';
@@ -54,25 +57,32 @@ export function UserDetailDrawer({ open, onClose, user }: Props) {
             key: 'details',
             label: usersCopy.details,
             children: (
-              <Descriptions column={1} size="small" bordered>
-                <Descriptions.Item label={usersCopy.email}>{user.email ?? usersCopy.branchNotAvailable}</Descriptions.Item>
-                <Descriptions.Item label={usersCopy.userName}>{user.userName ?? usersCopy.branchNotAvailable}</Descriptions.Item>
-                <Descriptions.Item label={usersCopy.role}>
-                  <Tag color="gold">{user.role ?? usersCopy.branchNotAvailable}</Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label={usersCopy.status}>
-                  <Tag color={user.isActive ? 'green' : 'red'}>
-                    {user.isActive ? usersCopy.statusActive : usersCopy.statusInactive}
-                  </Tag>
-                </Descriptions.Item>
-                <Descriptions.Item label={usersCopy.employeeNumber}>{user.employeeNumber ?? usersCopy.branchNotAvailable}</Descriptions.Item>
-                <Descriptions.Item label={usersCopy.lastLogin}>
-                  {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('de-DE') : usersCopy.branchNotAvailable}
-                </Descriptions.Item>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <Descriptions column={1} size="small" bordered title={null}>
+                  <Descriptions.Item label={usersCopy.status}>
+                    <Tag color={user.isActive ? 'green' : 'red'}>
+                      {user.isActive ? usersCopy.statusActive : usersCopy.statusInactive}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label={usersCopy.role}>
+                    <Tag color="gold">{user.role ?? NA}</Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label={usersCopy.userName}>{user.userName ?? NA}</Descriptions.Item>
+                  <Descriptions.Item label={usersCopy.email}>{user.email ?? NA}</Descriptions.Item>
+                </Descriptions>
+                <Descriptions column={1} size="small" bordered>
+                  <Descriptions.Item label={usersCopy.employeeNumber}>{user.employeeNumber ?? NA}</Descriptions.Item>
+                  <Descriptions.Item label={usersCopy.lastLogin}>
+                    {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('de-DE') : NA}
+                  </Descriptions.Item>
+                </Descriptions>
                 {user.notes ? (
-                  <Descriptions.Item label={usersCopy.notes}>{user.notes}</Descriptions.Item>
+                  <>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{usersCopy.notes}</Text>
+                    <Text>{user.notes}</Text>
+                  </>
                 ) : null}
-              </Descriptions>
+              </div>
             ),
           },
         ]}
