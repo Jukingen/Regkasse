@@ -47,13 +47,13 @@ export function UserFormDrawer({
     if (!open) return;
     if (mode === 'edit' && user) {
       form.setFieldsValue({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        employeeNumber: user.employeeNumber,
-        role: user.role,
-        taxNumber: user.taxNumber,
-        notes: user.notes,
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
+        email: user.email ?? '',
+        employeeNumber: user.employeeNumber ?? '',
+        role: user.role ?? '',
+        taxNumber: user.taxNumber ?? '',
+        notes: user.notes ?? '',
       });
     } else {
       form.resetFields();
@@ -62,7 +62,12 @@ export function UserFormDrawer({
 
   const handleSubmit = () => {
     form.validateFields().then((values) => {
-      onSubmit(values as CreateUserRequest & UpdateUserRequest);
+      const raw = values as Record<string, unknown>;
+      const normalized = {
+        ...raw,
+        employeeNumber: typeof raw.employeeNumber === 'string' ? raw.employeeNumber.trim() : '',
+      };
+      onSubmit(normalized as CreateUserRequest & UpdateUserRequest);
     });
   };
 

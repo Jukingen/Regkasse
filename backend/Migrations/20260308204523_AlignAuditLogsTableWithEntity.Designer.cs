@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260308204523_AlignAuditLogsTableWithEntity")]
+    partial class AlignAuditLogsTableWithEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -213,16 +216,16 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
-                        .HasColumnName("action");
+                        .HasColumnName("Action");
 
                     b.Property<decimal?>("Amount")
                         .HasColumnType("decimal(18,2)")
-                        .HasColumnName("amount");
+                        .HasColumnName("Amount");
 
                     b.Property<string>("CorrelationId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("correlation_id");
+                        .HasColumnName("CorrelationId");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -236,46 +239,46 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
-                        .HasColumnName("description");
+                        .HasColumnName("Description");
 
                     b.Property<string>("Endpoint")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("endpoint");
+                        .HasColumnName("Endpoint");
 
                     b.Property<Guid?>("EntityId")
                         .HasColumnType("uuid")
-                        .HasColumnName("entity_id");
+                        .HasColumnName("EntityId");
 
                     b.Property<string>("EntityName")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("entity_name");
+                        .HasColumnName("EntityName");
 
                     b.Property<string>("EntityType")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("entity_type");
+                        .HasColumnName("EntityType");
 
                     b.Property<string>("ErrorDetails")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
-                        .HasColumnName("error_details");
+                        .HasColumnName("ErrorDetails");
 
                     b.Property<string>("HttpMethod")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)")
-                        .HasColumnName("http_method");
+                        .HasColumnName("HttpMethod");
 
                     b.Property<int?>("HttpStatusCode")
                         .HasColumnType("integer")
-                        .HasColumnName("http_status_code");
+                        .HasColumnName("HttpStatusCode");
 
                     b.Property<string>("IpAddress")
                         .HasMaxLength(45)
                         .HasColumnType("character varying(45)")
-                        .HasColumnName("ip_address");
+                        .HasColumnName("IpAddress");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
@@ -284,60 +287,60 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("NewValues")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)")
-                        .HasColumnName("new_values");
+                        .HasColumnName("NewValues");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
-                        .HasColumnName("notes");
+                        .HasColumnName("Notes");
 
                     b.Property<string>("OldValues")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)")
-                        .HasColumnName("old_values");
+                        .HasColumnName("OldValues");
 
                     b.Property<string>("PaymentMethod")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
-                        .HasColumnName("payment_method");
+                        .HasColumnName("PaymentMethod");
 
                     b.Property<double?>("ProcessingTimeMs")
                         .HasColumnType("double precision")
-                        .HasColumnName("processing_time_ms");
+                        .HasColumnName("ProcessingTimeMs");
 
                     b.Property<string>("RequestData")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)")
-                        .HasColumnName("request_data");
+                        .HasColumnName("RequestData");
 
                     b.Property<string>("ResponseData")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)")
-                        .HasColumnName("response_data");
+                        .HasColumnName("ResponseData");
 
                     b.Property<string>("SessionId")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("session_id");
+                        .HasColumnName("SessionId");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
-                        .HasColumnName("status");
+                        .HasColumnName("Status");
 
                     b.Property<DateTime>("Timestamp")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("timestamp");
+                        .HasColumnName("Timestamp");
 
                     b.Property<string>("TransactionId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasColumnName("transaction_id");
+                        .HasColumnName("TransactionId");
 
                     b.Property<string>("TseSignature")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
-                        .HasColumnName("tse_signature");
+                        .HasColumnName("TseSignature");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -351,19 +354,19 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("UserAgent")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
-                        .HasColumnName("user_agent");
+                        .HasColumnName("UserAgent");
 
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)")
-                        .HasColumnName("user_id");
+                        .HasColumnName("UserId");
 
                     b.Property<string>("UserRole")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
-                        .HasColumnName("user_role");
+                        .HasColumnName("UserRole");
 
                     b.HasKey("Id");
 

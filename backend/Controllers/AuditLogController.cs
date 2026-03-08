@@ -71,10 +71,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving audit logs");
-                return StatusCode(500, new { 
-                    message = "Internal server error while retrieving audit logs",
-                    error = ex.Message 
-                });
+                return StatusCode(500, new { message = "Internal server error while retrieving audit logs.", code = "AUDIT_LOG_LIST_ERROR" });
             }
         }
 
@@ -106,10 +103,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving audit log {AuditLogId}", id);
-                return StatusCode(500, new { 
-                    message = "Internal server error while retrieving audit log",
-                    error = ex.Message 
-                });
+                return StatusCode(500, new { message = "Internal server error while retrieving audit log.", code = "AUDIT_LOG_GET_ERROR" });
             }
         }
 
@@ -152,10 +146,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving payment audit logs for payment {PaymentId}", paymentId);
-                return StatusCode(500, new { 
-                    message = "Internal server error while retrieving payment audit logs",
-                    error = ex.Message 
-                });
+                return StatusCode(500, new { message = "Internal server error while retrieving payment audit logs.", code = "AUDIT_LOG_PAYMENT_ERROR" });
             }
         }
 
@@ -171,6 +162,10 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
         {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return BadRequest(new { message = "UserId is required.", code = "VALIDATION_ERROR" });
+            }
             try
             {
                 if (page < 1) page = 1;
@@ -185,11 +180,11 @@ namespace KasseAPI_Final.Controllers
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = auditLogs.ToList(),
+                    AuditLogs = auditLogs?.ToList() ?? new List<AuditLog>(),
                     TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize,
-                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                    TotalPages = totalCount == 0 ? 0 : (int)Math.Ceiling((double)totalCount / pageSize),
                     Message = $"User audit logs for user {userId} retrieved successfully"
                 };
 
@@ -201,10 +196,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving user audit logs for user {UserId}", userId);
-                return StatusCode(500, new { 
-                    message = "Internal server error while retrieving user audit logs",
-                    error = ex.Message 
-                });
+                return StatusCode(500, new { message = "Internal server error while retrieving user audit logs.", code = "AUDIT_LOG_USER_ERROR" });
             }
         }
 
@@ -238,10 +230,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving audit logs for correlation ID {CorrelationId}", correlationId);
-                return StatusCode(500, new { 
-                    message = "Internal server error while retrieving correlation audit logs",
-                    error = ex.Message 
-                });
+                return StatusCode(500, new { message = "Internal server error while retrieving correlation audit logs.", code = "AUDIT_LOG_CORRELATION_ERROR" });
             }
         }
 
@@ -272,7 +261,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving suspicious admin actions");
-                return StatusCode(500, new { message = "Internal server error while retrieving suspicious admin actions", error = ex.Message });
+                return StatusCode(500, new { message = "Internal server error while retrieving suspicious admin actions.", code = "AUDIT_LOG_SUSPICIOUS_ERROR" });
             }
         }
 
@@ -306,10 +295,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving audit logs for transaction ID {TransactionId}", transactionId);
-                return StatusCode(500, new { 
-                    message = "Internal server error while retrieving transaction audit logs",
-                    error = ex.Message 
-                });
+                return StatusCode(500, new { message = "Internal server error while retrieving transaction audit logs.", code = "AUDIT_LOG_TRANSACTION_ERROR" });
             }
         }
 
@@ -343,10 +329,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving audit log statistics");
-                return StatusCode(500, new { 
-                    message = "Internal server error while retrieving audit log statistics",
-                    error = ex.Message 
-                });
+                return StatusCode(500, new { message = "Internal server error while retrieving audit log statistics.", code = "AUDIT_LOG_STATISTICS_ERROR" });
             }
         }
 
@@ -382,10 +365,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during audit log cleanup");
-                return StatusCode(500, new { 
-                    message = "Internal server error during audit log cleanup",
-                    error = ex.Message 
-                });
+                return StatusCode(500, new { message = "Internal server error during audit log cleanup.", code = "AUDIT_LOG_CLEANUP_ERROR" });
             }
         }
 
@@ -432,10 +412,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error exporting audit logs");
-                return StatusCode(500, new { 
-                    message = "Internal server error while exporting audit logs",
-                    error = ex.Message 
-                });
+                return StatusCode(500, new { message = "Internal server error while exporting audit logs.", code = "AUDIT_LOG_EXPORT_ERROR" });
             }
         }
 

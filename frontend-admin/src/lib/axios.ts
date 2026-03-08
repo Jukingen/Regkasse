@@ -46,18 +46,20 @@ const createAxiosInstance = () => {
             return response;
         },
         async (error) => {
-            const originalRequest = error.config;
-            const status = error.response?.status;
-            const data = error.response?.data as { reasonCode?: string; requiredPolicy?: string; message?: string } | undefined;
+            const originalRequest = error?.config;
+            const status: number | undefined = error?.response?.status;
+            const url = originalRequest?.url ?? error?.config?.url ?? '';
+            const data = error?.response?.data as { reasonCode?: string; requiredPolicy?: string; message?: string } | undefined;
+            const serverMessage = typeof data?.message === 'string' ? data.message : null;
+            const fallbackMessage = error?.message ?? 'Request failed';
 
             if (isDev) {
                 if (status === 401) {
-                    console.debug('🔐 [API] 401 Unauthorized (Expected for public routes or expired token)');
+                    console.debug('🔐 [API] 401 Unauthorized');
+                } else if (status != null) {
+                    console.error(`❌ [API] ${status} ${url}`, serverMessage ?? data ?? fallbackMessage);
                 } else {
-                    console.error(`❌ [API] Error ${status}:`, {
-                        url: originalRequest?.url,
-                        data: error.response?.data,
-                    });
+                    console.error('❌ [API] Network/client error', { url: url || undefined, message: fallbackMessage });
                 }
             }
 
@@ -67,10 +69,12 @@ const createAxiosInstance = () => {
                 message.error(userMessage);
             }
 
-            if (status === 401 && !originalRequest._retry) {
+            if (status === 401 && originalRequest && !originalRequest._retry) {
                 originalRequest._retry = true;
             }
 
+            const normalized = { status: status ?? 0, url, message: serverMessage ?? fallbackMessage, data: data ?? null };
+            Object.defineProperty(error, 'normalized', { value: normalized, enumerable: false });
             return Promise.reject(error);
         }
     );

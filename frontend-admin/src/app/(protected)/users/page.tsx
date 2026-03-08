@@ -133,6 +133,10 @@ export default function UsersPage() {
         [roles]
     );
 
+    const [deactivateForm] = Form.useForm();
+    const [resetPasswordForm] = Form.useForm();
+    const [createRoleForm] = Form.useForm<{ name: string }>();
+
     const createMutation = useMutation({
         mutationFn: gatewayCreateUser,
         onSuccess: () => {
@@ -164,6 +168,34 @@ export default function UsersPage() {
             resetPasswordForm.resetFields();
         },
         onError: (e: unknown) => {
+            const normalized = normalizeError(e, usersCopy.errorResetPassword);
+            message.error(normalized.message);
+            const fieldErrors = (normalized.details as { errors?: { NewPassword?: string[] } })?.errors?.NewPassword;
+            if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+                resetPasswordForm.setFields([{ name: 'newPassword', errors: [fieldErrors[0]] }]);
+            }
+        },
+    });
+    const deactivateMutation = useMutation({
+        mutationFn: ({ id, reason }: { id: string; reason: string }) => gatewayDeactivateUser(id, { reason }),
+        onSuccess: () => {
+            message.success(usersCopy.successDeactivate);
+            queryClient.invalidateQueries({ queryKey: listQueryKey });
+            setDeactivateUserRecord(null);
+            deactivateForm.resetFields();
+        },
+        onError: (e: unknown) => {
+            message.error(normalizeError(e, usersCopy.errorGeneric).message);
+        },
+    });
+    const reactivateMutation = useMutation({
+        mutationFn: (id: string) => gatewayReactivateUser(id),
+        onSuccess: () => {
+            message.success(usersCopy.successReactivate);
+            queryClient.invalidateQueries({ queryKey: listQueryKey });
+            setReactivateUserRecord(null);
+        },
+        onError: (e: unknown) => {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
         },
     });
@@ -179,16 +211,21 @@ export default function UsersPage() {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
         },
     });
-    const [deactivateForm] = Form.useForm();
-    const [resetPasswordForm] = Form.useForm();
-    const [createRoleForm] = Form.useForm<{ name: string }>();
+
+    useEffect(() => {
+        if (resetPasswordUser) resetPasswordForm.resetFields();
+    }, [resetPasswordUser, resetPasswordForm]);
 
     const handleCreate = (values: CreateUserRequest) => {
         if (!policy.canCreate) {
             message.error(usersCopy.noPermission);
             return;
         }
-        createMutation.mutate(values);
+        const createPayload: CreateUserRequest = {
+            ...values,
+            employeeNumber: (values.employeeNumber ?? '').trim(),
+        };
+        createMutation.mutate(createPayload);
     };
     const handleEdit = (values: UpdateUserRequest) => {
         if (!editUser?.id) return;
@@ -196,7 +233,11 @@ export default function UsersPage() {
             message.error(usersCopy.noPermission);
             return;
         }
-        updateMutation.mutate({ id: editUser.id, data: values });
+        const updatePayload: UpdateUserRequest = {
+            ...values,
+            employeeNumber: (values.employeeNumber ?? '').trim(),
+        };
+        updateMutation.mutate({ id: editUser.id, data: updatePayload });
     };
     const handleDeactivate = () => {
         if (!deactivateUserRecord?.id) return;
@@ -204,20 +245,12 @@ export default function UsersPage() {
             message.error(usersCopy.noPermission);
             return;
         }
-        deactivateForm.validateFields()
-            .then((values: { reason: string }) => {
-                gatewayDeactivateUser(deactivateUserRecord.id!, { reason: values.reason })
-                    .then(() => {
-                        message.success(usersCopy.successDeactivate);
-                        queryClient.invalidateQueries({ queryKey: listQueryKey });
-                        setDeactivateUserRecord(null);
-                        deactivateForm.resetFields();
-                    })
-                    .catch((e: unknown) => {
-                        message.error(normalizeError(e, usersCopy.errorGeneric).message);
-                    });
-            })
-            .catch(() => { /* validasyon hatası */ });
+        deactivateForm.validateFields().then(
+            (values: { reason: string }) => {
+                deactivateMutation.mutate({ id: deactivateUserRecord.id!, reason: values.reason });
+            },
+            () => { /* validation errors shown on form */ }
+        );
     };
     const handleReactivate = () => {
         if (!reactivateUserRecord?.id) return;
@@ -225,15 +258,7 @@ export default function UsersPage() {
             message.error(usersCopy.noPermission);
             return;
         }
-        gatewayReactivateUser(reactivateUserRecord.id!)
-            .then(() => {
-                message.success(usersCopy.successReactivate);
-                queryClient.invalidateQueries({ queryKey: listQueryKey });
-                setReactivateUserRecord(null);
-            })
-            .catch((e: unknown) => {
-                message.error(normalizeError(e, usersCopy.errorGeneric).message);
-            });
+        reactivateMutation.mutate(reactivateUserRecord.id);
     };
     const handleResetPassword = () => {
         if (!resetPasswordUser?.id) return;
@@ -479,6 +504,7 @@ export default function UsersPage() {
                 onCancel={() => { setDeactivateUserRecord(null); deactivateForm.resetFields(); }}
                 okText={usersCopy.okDeactivate}
                 okButtonProps={{ danger: true }}
+                confirmLoading={deactivateMutation.isPending}
                 destroyOnClose
             >
                 {deactivateUserRecord && (
@@ -499,6 +525,7 @@ export default function UsersPage() {
                 onOk={handleReactivate}
                 onCancel={() => setReactivateUserRecord(null)}
                 okText={usersCopy.okReactivate}
+                confirmLoading={reactivateMutation.isPending}
                 destroyOnClose
             >
                 {reactivateUserRecord && (

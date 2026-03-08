@@ -422,20 +422,47 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.CompanyTaxNumber).IsUnique();
             });
 
-            // AuditLog configuration
+            // AuditLog: table audit_logs with snake_case columns everywhere (PostgreSQL default; no quoted identifiers).
+            // User navigation ignored so EF never joins AspNetUsers.
             builder.Entity<AuditLog>(entity =>
             {
+                entity.ToTable("audit_logs");
+                entity.Ignore(e => e.User);
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Action).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.EntityType).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.EntityId).IsRequired(false); // optional for user lifecycle (EntityName used)
-                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
-                entity.Property(e => e.OldValues).HasMaxLength(4000);
-                entity.Property(e => e.NewValues).HasMaxLength(4000);
-                entity.Property(e => e.IpAddress).HasMaxLength(45);
-                entity.Property(e => e.UserAgent).HasMaxLength(500);
-                entity.Property(e => e.Timestamp).IsRequired();
-                
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+                entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+                entity.Property(e => e.IsActive).HasColumnName("is_active");
+                entity.Property(e => e.Action).IsRequired().HasMaxLength(50).HasColumnName("action");
+                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)").HasColumnName("amount");
+                entity.Property(e => e.CorrelationId).HasMaxLength(100).HasColumnName("correlation_id");
+                entity.Property(e => e.Description).HasMaxLength(500).HasColumnName("description");
+                entity.Property(e => e.Endpoint).HasMaxLength(100).HasColumnName("endpoint");
+                entity.Property(e => e.EntityId).IsRequired(false).HasColumnName("entity_id");
+                entity.Property(e => e.EntityName).HasMaxLength(100).HasColumnName("entity_name");
+                entity.Property(e => e.EntityType).IsRequired().HasMaxLength(100).HasColumnName("entity_type");
+                entity.Property(e => e.ErrorDetails).HasMaxLength(500).HasColumnName("error_details");
+                entity.Property(e => e.HttpMethod).HasMaxLength(10).HasColumnName("http_method");
+                entity.Property(e => e.HttpStatusCode).HasColumnName("http_status_code");
+                entity.Property(e => e.IpAddress).HasMaxLength(45).HasColumnName("ip_address");
+                entity.Property(e => e.NewValues).HasMaxLength(4000).HasColumnName("new_values");
+                entity.Property(e => e.Notes).HasMaxLength(500).HasColumnName("notes");
+                entity.Property(e => e.OldValues).HasMaxLength(4000).HasColumnName("old_values");
+                entity.Property(e => e.PaymentMethod).HasMaxLength(50).HasColumnName("payment_method");
+                entity.Property(e => e.ProcessingTimeMs).HasColumnName("processing_time_ms");
+                entity.Property(e => e.RequestData).HasMaxLength(4000).HasColumnName("request_data");
+                entity.Property(e => e.ResponseData).HasMaxLength(4000).HasColumnName("response_data");
+                entity.Property(e => e.SessionId).IsRequired().HasMaxLength(100).HasColumnName("session_id");
+                entity.Property(e => e.Status).IsRequired().HasColumnName("status");
+                entity.Property(e => e.Timestamp).IsRequired().HasColumnName("timestamp");
+                entity.Property(e => e.TransactionId).HasMaxLength(100).HasColumnName("transaction_id");
+                entity.Property(e => e.TseSignature).HasMaxLength(500).HasColumnName("tse_signature");
+                entity.Property(e => e.UserAgent).HasMaxLength(500).HasColumnName("user_agent");
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450).HasColumnName("user_id");
+                entity.Property(e => e.UserRole).IsRequired().HasMaxLength(50).HasColumnName("user_role");
+
                 entity.HasIndex(e => e.Timestamp);
                 entity.HasIndex(e => e.Action);
                 entity.HasIndex(e => e.EntityType);

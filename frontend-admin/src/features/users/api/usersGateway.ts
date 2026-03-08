@@ -63,12 +63,25 @@ export interface NormalizedError {
 
 const FALLBACK_MESSAGE = 'Fehler.';
 
+function firstValidationMessage(errors: unknown): string | undefined {
+  if (errors == null || typeof errors !== 'object') return undefined;
+  const obj = errors as Record<string, unknown>;
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'string') return val[0];
+    if (typeof val === 'string') return val;
+  }
+  return undefined;
+}
+
 export function normalizeError(error: unknown, fallbackMessage: string = FALLBACK_MESSAGE): NormalizedError {
   if (error == null) return { message: fallbackMessage };
-  const err = error as { response?: { data?: { message?: string; reason?: string; code?: string; [k: string]: unknown } }; message?: string };
+  const err = error as { response?: { data?: { message?: string; reason?: string; code?: string; errors?: unknown; [k: string]: unknown } }; message?: string };
   const data = err.response?.data;
+  const validationMsg = data?.errors != null ? firstValidationMessage(data.errors) : undefined;
   const message =
     (typeof data?.message === 'string' && data.message) ||
+    validationMsg ||
     (typeof data?.reason === 'string' && data.reason) ||
     (typeof err.message === 'string' && err.message) ||
     fallbackMessage;

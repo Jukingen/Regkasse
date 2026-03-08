@@ -1,8 +1,7 @@
 /**
- * Kullanıcı aktivite zaman çizelgesi – GET api/AuditLog/user/{userId} ile denetim kayıtları.
- * RKSV/DSGVO: Who did what, when. Loading, empty, error states.
+ * User activity timeline – GET api/AuditLog/user/{userId}. Backend ensures audit_logs table at startup; empty state when no logs.
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Table, Tag, Typography, Empty, Alert, Button } from 'antd';
 import { useGetApiAuditLogUserUserId } from '@/api/generated/audit-log/audit-log';
 import dayjs from 'dayjs';
@@ -15,11 +14,27 @@ type Props = {
     userName?: string;
 };
 
+const AUDIT_LOG_STALE_MS = 60 * 1000;
+const PAGE_SIZE = 10;
+
 export function UserActivityTimeline({ userId, userName }: Props) {
     const [page, setPage] = useState(1);
-    const pageSize = 10;
+    const validUserId = (userId ?? '').trim();
+    const params = useMemo(() => ({ page, pageSize: PAGE_SIZE }), [page]);
 
-    const { data, isLoading, isError, refetch } = useGetApiAuditLogUserUserId(userId, { page, pageSize });
+    const { data, isLoading, isError, refetch } = useGetApiAuditLogUserUserId(
+        validUserId,
+        params,
+        {
+            query: {
+                enabled: validUserId.length > 0,
+                staleTime: AUDIT_LOG_STALE_MS,
+                retry: false,
+                refetchOnWindowFocus: false,
+                refetchOnReconnect: false,
+            },
+        }
+    );
 
     const columns = [
         {
@@ -52,14 +67,21 @@ export function UserActivityTimeline({ userId, userName }: Props) {
         },
     ];
 
-    const list = data?.auditLogs ?? [];
-    const total = data?.totalCount ?? 0;
+    const list = Array.isArray(data?.auditLogs) ? data.auditLogs : [];
+    const total = typeof data?.totalCount === 'number' ? data.totalCount : 0;
+
+    if (validUserId.length === 0) {
+        return (
+            <Alert type="info" message={usersCopy.emptyActivity} showIcon />
+        );
+    }
 
     if (isError) {
         return (
             <Alert
-                type="error"
-                message={usersCopy.errorLoad}
+                type="warning"
+                message={usersCopy.errorLoadActivity}
+                description={usersCopy.errorLoadActivityHint}
                 action={
                     <Button size="small" onClick={() => refetch()}>
                         {usersCopy.retry}
@@ -84,7 +106,7 @@ export function UserActivityTimeline({ userId, userName }: Props) {
                 rowKey={(r) => r.id ?? `${r.timestamp}-${r.action}`}
                 pagination={{
                     current: page,
-                    pageSize,
+                    pageSize: PAGE_SIZE,
                     total,
                     showSizeChanger: false,
                     onChange: setPage,

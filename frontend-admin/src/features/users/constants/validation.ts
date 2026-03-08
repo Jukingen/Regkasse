@@ -3,8 +3,9 @@
  * Tek kaynak: min/max uzunluk ve kurallar.
  */
 
-/** Backend: CreateUserRequest / ResetPasswordRequest */
+/** Backend: CreateUserRequest / ResetPasswordRequest (MinLength(6)); max 128 aligns with Identity. */
 export const PASSWORD_MIN_LENGTH = 6;
+export const PASSWORD_MAX_LENGTH = 128;
 
 /** Backend: UserName, FirstName, LastName */
 export const NAME_MAX_LENGTH = 50;
@@ -54,12 +55,12 @@ export function createUsersFormRules(copy: RuleFactoryContext) {
     password: [
       { required: true, message: copy.requiredMessage },
       { min: PASSWORD_MIN_LENGTH, message: copy.passwordMinMessage },
-      maxLen(128, copy.maxLengthMessage(128)),
+      maxLen(PASSWORD_MAX_LENGTH, copy.maxLengthMessage(PASSWORD_MAX_LENGTH)),
     ],
     newPassword: [
       { required: true, message: copy.requiredMessage },
       { min: PASSWORD_MIN_LENGTH, message: copy.passwordMinMessage },
-      maxLen(128, copy.maxLengthMessage(128)),
+      maxLen(PASSWORD_MAX_LENGTH, copy.maxLengthMessage(PASSWORD_MAX_LENGTH)),
     ],
     firstName: [
       { required: true, message: copy.requiredMessage },
@@ -73,7 +74,10 @@ export function createUsersFormRules(copy: RuleFactoryContext) {
       { type: 'email' as const, message: copy.emailInvalidMessage },
       maxLen(EMAIL_MAX_LENGTH, copy.maxLengthMessage(EMAIL_MAX_LENGTH)),
     ],
-    employeeNumber: [maxLen(SHORT_FIELD_MAX_LENGTH, copy.maxLengthMessage(SHORT_FIELD_MAX_LENGTH))],
+    employeeNumber: [
+      { required: true, message: copy.requiredMessage },
+      maxLen(SHORT_FIELD_MAX_LENGTH, copy.maxLengthMessage(SHORT_FIELD_MAX_LENGTH)),
+    ],
     role: [
       { required: true, message: copy.requiredMessage },
       maxLen(SHORT_FIELD_MAX_LENGTH, copy.maxLengthMessage(SHORT_FIELD_MAX_LENGTH)),

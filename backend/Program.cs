@@ -275,6 +275,8 @@ using (var scope = app.Services.CreateScope())
             throw new InvalidOperationException($"Database schema drift detected. Application cannot start with {pendingMigrations.Count()} pending migrations.");
         }
 
+        // audit_logs table is created/updated by EF migrations (AlignAuditLogsTableWithEntity). Single source of truth.
+
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         

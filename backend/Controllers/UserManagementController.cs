@@ -9,6 +9,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Middleware;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -42,6 +43,26 @@ namespace KasseAPI_Final.Controllers
 
         private string? GetCurrentUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         private string GetCurrentUserRole() => User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
+
+        /// <summary>
+        /// Runs user lifecycle audit without failing the primary operation. If audit write fails (e.g. schema/DB),
+        /// logs the error and continues so that user update/create/deactivate etc. still return success.
+        /// </summary>
+        private async Task TryLogUserLifecycleAsync(string action, string actorUserId, string actorRole,
+            string targetUserId, string? reason = null, string? correlationId = null,
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null)
+        {
+            try
+            {
+                await _auditLogService.LogUserLifecycleAsync(action, actorUserId, actorRole, targetUserId, reason, correlationId, status, description);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "User lifecycle audit failed (primary operation succeeded). Action: {Action}, TargetUserId: {TargetUserId}, ActorUserId: {ActorUserId}",
+                    action, targetUserId, actorUserId);
+            }
+        }
 
         // PUT: api/usermanagement/me/password — change own password (any authenticated user)
         [HttpPut("me/password")]
@@ -168,6 +189,10 @@ namespace KasseAPI_Final.Controllers
         [Authorize(Policy = "UsersView")]
         public async Task<ActionResult<UserInfo>> GetUser(string id)
         {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+            }
             try
             {
                 var user = await _userManager.FindByIdAsync(id);
@@ -208,9 +233,17 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                if (request == null)
+                {
+                    return BadRequest(new { message = "Request body is required.", code = "VALIDATION_ERROR" });
+                }
+                if (string.IsNullOrWhiteSpace(request.EmployeeNumber))
+                {
+                    return BadRequest(new { message = "Employee number is required.", code = "VALIDATION_ERROR", errors = new { EmployeeNumber = new[] { "Employee number is required." } } });
+                }
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    return BadRequest(new { message = "Validation failed.", code = "VALIDATION_ERROR", errors = ModelState });
                 }
 
                 // Kullanıcı adı kontrol et
@@ -247,7 +280,7 @@ namespace KasseAPI_Final.Controllers
                     Email = request.Email,
                     FirstName = request.FirstName,
                     LastName = request.LastName,
-                    EmployeeNumber = request.EmployeeNumber,
+                    EmployeeNumber = request.EmployeeNumber.Trim(),
                     Role = request.Role,
                     TaxNumber = request.TaxNumber,
                     Notes = request.Notes,
@@ -289,7 +322,7 @@ namespace KasseAPI_Final.Controllers
                 var actorRole = GetCurrentUserRole();
                 if (!string.IsNullOrEmpty(actorId))
                 {
-                    await _auditLogService.LogUserLifecycleAsync(
+                    await TryLogUserLifecycleAsync(
                         AuditLogActions.USER_CREATE, actorId, actorRole, user.Id, null, null,
                         AuditLogStatus.Success, $"User created: {user.UserName}");
                 }
@@ -308,11 +341,23 @@ namespace KasseAPI_Final.Controllers
         [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserRequest request)
         {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+            }
             try
             {
+                if (request == null)
+                {
+                    return BadRequest(new { message = "Request body is required.", code = "VALIDATION_ERROR" });
+                }
+                if (string.IsNullOrWhiteSpace(request.EmployeeNumber))
+                {
+                    return BadRequest(new { message = "Employee number is required.", code = "VALIDATION_ERROR", errors = new { EmployeeNumber = new[] { "Employee number is required." } } });
+                }
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    return BadRequest(new { message = "Validation failed.", code = "VALIDATION_ERROR", errors = ModelState });
                 }
 
                 var user = await _userManager.FindByIdAsync(id);
@@ -344,10 +389,17 @@ namespace KasseAPI_Final.Controllers
                     }
                 }
 
+                // Email güncelle (duplicate zaten kontrol edildi; Identity lookup için NormalizedEmail gerekli)
+                if (!string.IsNullOrEmpty(request.Email) && request.Email != user.Email)
+                {
+                    user.Email = request.Email;
+                    user.NormalizedEmail = _userManager.NormalizeEmail(request.Email);
+                }
+
                 // Kullanıcı bilgilerini güncelle
                 user.FirstName = request.FirstName;
                 user.LastName = request.LastName;
-                user.EmployeeNumber = request.EmployeeNumber;
+                user.EmployeeNumber = request.EmployeeNumber.Trim();
                 user.TaxNumber = request.TaxNumber;
                 user.Notes = request.Notes;
                 user.UpdatedAt = DateTime.UtcNow;
@@ -376,12 +428,12 @@ namespace KasseAPI_Final.Controllers
                 var actorRole = GetCurrentUserRole();
                 if (!string.IsNullOrEmpty(actorId))
                 {
-                    await _auditLogService.LogUserLifecycleAsync(
+                    await TryLogUserLifecycleAsync(
                         AuditLogActions.USER_UPDATE, actorId, actorRole, id, null, null,
                         AuditLogStatus.Success, $"User updated: {user.UserName}");
                     if (!string.IsNullOrEmpty(request.Role) && request.Role != previousRole)
                     {
-                        await _auditLogService.LogUserLifecycleAsync(
+                        await TryLogUserLifecycleAsync(
                             AuditLogActions.USER_ROLE_CHANGE, actorId, actorRole, id,
                             $"Role changed from {previousRole} to {request.Role}", null,
                             AuditLogStatus.Success, $"Role change: {previousRole} -> {request.Role}");
@@ -403,6 +455,10 @@ namespace KasseAPI_Final.Controllers
         [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> ChangePassword(string id, [FromBody] ChangePasswordRequest request)
         {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+            }
             var currentUserId = GetCurrentUserId();
             if (id == currentUserId)
             {
@@ -431,7 +487,7 @@ namespace KasseAPI_Final.Controllers
                 var actorRole = GetCurrentUserRole();
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
-                    await _auditLogService.LogUserLifecycleAsync(
+                    await TryLogUserLifecycleAsync(
                         AuditLogActions.USER_UPDATE, currentUserId!, actorRole, id, null, null,
                         AuditLogStatus.Success, "Admin changed user password (with current password)");
                 }
@@ -450,17 +506,39 @@ namespace KasseAPI_Final.Controllers
         [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> ResetPassword(string id, [FromBody] ResetPasswordRequest request)
         {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+            }
             var currentUserId = GetCurrentUserId();
             if (id == currentUserId)
             {
-                return BadRequest(new { message = "Cannot force-reset your own password. Use PUT /api/UserManagement/me/password to change your password." });
+                return BadRequest(new { message = "Cannot force-reset your own password. Use PUT /api/UserManagement/me/password to change your password.", code = "VALIDATION_ERROR", errors = new { NewPassword = new[] { "Cannot reset own password from this screen." } } });
+            }
+
+            if (request == null)
+            {
+                return BadRequest(new { message = "Request body is required.", code = "VALIDATION_ERROR", errors = new { NewPassword = new[] { "Request body is required." } } });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                return BadRequest(new { message = "New password is required.", code = "VALIDATION_ERROR", errors = new { NewPassword = new[] { "New password is required." } } });
+            }
+
+            if (request.NewPassword.Length < 6)
+            {
+                return BadRequest(new { message = "Password must be at least 6 characters.", code = "VALIDATION_ERROR", errors = new { NewPassword = new[] { "Password must be at least 6 characters." } } });
             }
 
             try
             {
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(ModelState);
+                    var newPasswordErrors = ModelState.TryGetValue("NewPassword", out var entry)
+                        ? entry!.Errors.Select(e => e.ErrorMessage).ToArray()
+                        : new[] { "Validation failed." };
+                    return BadRequest(new { message = newPasswordErrors.Length > 0 ? newPasswordErrors[0] : "Validation failed.", code = "VALIDATION_ERROR", errors = new { NewPassword = newPasswordErrors } });
                 }
 
                 var user = await _userManager.FindByIdAsync(id);
@@ -490,12 +568,14 @@ namespace KasseAPI_Final.Controllers
                 var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
                 if (!result.Succeeded)
                 {
-                    return BadRequest(new { message = "Failed to reset password", errors = result.Errors });
+                    var descriptions = result.Errors.Select(e => e.Description).ToArray();
+                    var firstMessage = descriptions.Length > 0 ? descriptions[0] : "Password does not meet requirements.";
+                    return BadRequest(new { message = firstMessage, code = "PASSWORD_RESET_FAILED", errors = new { NewPassword = descriptions } });
                 }
 
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
-                    await _auditLogService.LogUserLifecycleAsync(
+                    await TryLogUserLifecycleAsync(
                         AuditLogActions.FORCE_RESET_PASSWORD, currentUserId, actorRole, id, null, null,
                         AuditLogStatus.Success, "Force password reset by administrator");
                 }
@@ -515,6 +595,10 @@ namespace KasseAPI_Final.Controllers
         [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> DeactivateUser(string id, [FromBody] DeactivateUserRequest request)
         {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+            }
             try
             {
                 if (request == null || string.IsNullOrWhiteSpace(request.Reason))
@@ -554,7 +638,7 @@ namespace KasseAPI_Final.Controllers
                 var actorRole = GetCurrentUserRole();
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
-                    await _auditLogService.LogUserLifecycleAsync(
+                    await TryLogUserLifecycleAsync(
                         AuditLogActions.USER_DEACTIVATE, currentUserId, actorRole, id,
                         request.Reason.Trim(), null, AuditLogStatus.Success,
                         $"User deactivated: {user.UserName}. Reason: {request.Reason}");
@@ -575,6 +659,10 @@ namespace KasseAPI_Final.Controllers
         [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> ReactivateUser(string id, [FromBody] ReactivateUserRequest? request = null)
         {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+            }
             try
             {
                 var user = await _userManager.FindByIdAsync(id);
@@ -605,7 +693,7 @@ namespace KasseAPI_Final.Controllers
                 var reason = request?.Reason?.Trim();
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
-                    await _auditLogService.LogUserLifecycleAsync(
+                    await TryLogUserLifecycleAsync(
                         AuditLogActions.USER_REACTIVATE, currentUserId, actorRole, id,
                         reason, null, AuditLogStatus.Success,
                         $"User reactivated: {user.UserName}" + (string.IsNullOrEmpty(reason) ? "" : $". Note: {reason}"));
@@ -625,6 +713,10 @@ namespace KasseAPI_Final.Controllers
         [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> DeleteUser(string id)
         {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+            }
             try
             {
                 var user = await _userManager.FindByIdAsync(id);
@@ -653,7 +745,7 @@ namespace KasseAPI_Final.Controllers
                 var actorRole = GetCurrentUserRole();
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
-                    await _auditLogService.LogUserLifecycleAsync(
+                    await TryLogUserLifecycleAsync(
                         AuditLogActions.USER_DEACTIVATE, currentUserId, actorRole, id,
                         "Legacy DELETE (no reason)", null, AuditLogStatus.Success,
                         $"User deactivated via DELETE: {user.UserName}");
@@ -777,8 +869,9 @@ namespace KasseAPI_Final.Controllers
         [MaxLength(50)]
         public string LastName { get; set; } = string.Empty;
 
+        [Required(AllowEmptyStrings = false, ErrorMessage = "Employee number is required for audit and DB constraint compliance.")]
         [MaxLength(20)]
-        public string? EmployeeNumber { get; set; }
+        public string EmployeeNumber { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(20)]
@@ -805,8 +898,9 @@ namespace KasseAPI_Final.Controllers
         [MaxLength(100)]
         public string? Email { get; set; }
 
+        [Required(AllowEmptyStrings = false, ErrorMessage = "Employee number is required for audit and DB constraint compliance.")]
         [MaxLength(20)]
-        public string? EmployeeNumber { get; set; }
+        public string EmployeeNumber { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(20)]
@@ -829,10 +923,12 @@ namespace KasseAPI_Final.Controllers
         public string NewPassword { get; set; } = string.Empty;
     }
 
+    /// <summary>Contract: JSON property must be "newPassword" (camelCase) to match OpenAPI and frontend.</summary>
     public class ResetPasswordRequest
     {
-        [Required]
-        [MinLength(6)]
+        [JsonPropertyName("newPassword")]
+        [Required(ErrorMessage = "New password is required.")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters.")]
         public string NewPassword { get; set; } = string.Empty;
     }
 

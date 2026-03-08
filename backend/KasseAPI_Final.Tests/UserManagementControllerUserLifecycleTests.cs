@@ -297,4 +297,124 @@ public class UserManagementControllerUserLifecycleTests
         Assert.NotNull(statusResult.Value);
     }
 
+    /// <summary>Error isolation: when audit log write fails, primary operation (deactivate) still returns 200.</summary>
+    [Fact]
+    public async Task DeactivateUser_WhenAuditLogThrows_StillReturnsOk()
+    {
+        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", IsActive = true };
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
+        var auditMock = new Mock<IAuditLogService>();
+        auditMock.Setup(x => x.LogUserLifecycleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>()))
+            .ThrowsAsync(new InvalidOperationException("audit_logs insert failed"));
+        var sessionMock = new Mock<IUserSessionInvalidation>();
+        using var context = CreateContext();
+        var controller = CreateController(context, userManager, roleManager, auditMock.Object, sessionMock.Object);
+
+        var result = await controller.DeactivateUser("u1", new DeactivateUserRequest { Reason = "Test" });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(ok.Value);
+        var stillExists = await userManager.FindByIdAsync("u1");
+        Assert.NotNull(stillExists);
+        Assert.False(stillExists.IsActive);
+    }
+
+    // --- UpdateUser (PUT /api/UserManagement/{id}) ---
+
+    [Fact]
+    public async Task UpdateUser_WhenIdEmpty_ReturnsBadRequest()
+    {
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers();
+        using var context = CreateContext();
+        var controller = CreateController(context, userManager, roleManager,
+            new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.UpdateUser("", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin" });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task UpdateUser_WhenEmployeeNumberEmpty_ReturnsBadRequest()
+    {
+        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true };
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
+        using var context = CreateContext();
+        var controller = CreateController(context, userManager, roleManager,
+            new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.UpdateUser("u1", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "", Role = "Admin" });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequest.Value);
+        var json = JsonSerializer.Serialize(badRequest.Value);
+        Assert.Contains("Employee number", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UpdateUser_WhenUserNotFound_ReturnsNotFound()
+    {
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: null);
+        using var context = CreateContext();
+        var controller = CreateController(context, userManager, roleManager,
+            new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.UpdateUser("nonexistent", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin" });
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    /// <summary>Valid payload (same role to avoid GetRolesAsync); expects 200 and message.</summary>
+    [Fact]
+    public async Task UpdateUser_WhenValidPayload_SameRole_ReturnsOkWithMessage()
+    {
+        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true };
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
+        var auditMock = new Mock<IAuditLogService>();
+        using var context = CreateContext();
+        var controller = CreateController(context, userManager, roleManager, auditMock.Object, new Mock<IUserSessionInvalidation>().Object);
+
+        var request = new UpdateUserRequest
+        {
+            FirstName = "UpdatedFirst",
+            LastName = "UpdatedLast",
+            EmployeeNumber = "E1",
+            Role = "Admin",
+            Notes = "Note"
+        };
+        var result = await controller.UpdateUser("u1", request);
+
+        var ok = Assert.IsAssignableFrom<ObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        var value = ok.Value;
+        Assert.NotNull(value);
+        var message = value.GetType().GetProperty("message")?.GetValue(value) as string;
+        Assert.Equal("User updated successfully", message);
+        auditMock.Verify(
+            x => x.LogUserLifecycleAsync(AuditLogActions.USER_UPDATE, It.IsAny<string>(), It.IsAny<string>(), "u1", null, null, AuditLogStatus.Success, It.IsAny<string>()),
+            Times.Once);
+    }
+
+    /// <summary>When audit log throws, UpdateUser still returns 200 (error isolation).</summary>
+    [Fact]
+    public async Task UpdateUser_WhenAuditLogThrows_StillReturnsOk()
+    {
+        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true };
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
+        var auditMock = new Mock<IAuditLogService>();
+        auditMock.Setup(x => x.LogUserLifecycleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>()))
+            .ThrowsAsync(new InvalidOperationException("audit_logs insert failed"));
+        using var context = CreateContext();
+        var controller = CreateController(context, userManager, roleManager, auditMock.Object, new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.UpdateUser("u1", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin" });
+
+        var ok = Assert.IsAssignableFrom<ObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        var value = ok.Value;
+        Assert.NotNull(value);
+        var message = value.GetType().GetProperty("message")?.GetValue(value) as string;
+        Assert.Equal("User updated successfully", message);
+    }
 }

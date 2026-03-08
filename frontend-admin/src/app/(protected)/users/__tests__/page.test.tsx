@@ -88,7 +88,7 @@ vi.mock('@/features/users/components/UserFormDrawer', () => ({
     open ? (
       <div data-testid="user-form-drawer">
         <span>{mode === 'create' ? 'Create user' : 'Edit user'}</span>
-        <button type="button" onClick={() => onSubmit({ userName: 'newuser', password: 'secret12', firstName: 'New', lastName: 'User', email: 'new@test.com', role: 'Admin' })}>
+        <button type="button" onClick={() => onSubmit({ userName: 'newuser', password: 'secret12', firstName: 'New', lastName: 'User', email: 'new@test.com', employeeNumber: 'EMP001', role: 'Admin' })}>
           Submit
         </button>
         <button type="button" onClick={onClose}>Close</button>
@@ -225,6 +225,7 @@ describe('Users page', () => {
             firstName: 'New',
             lastName: 'User',
             email: 'new@test.com',
+            employeeNumber: 'EMP001',
             role: 'Admin',
           })
         );
@@ -266,7 +267,7 @@ describe('Users page', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
       await waitFor(() => {
-        expect(mockUpdateUser).toHaveBeenCalledWith('user-1', expect.any(Object));
+        expect(mockUpdateUser).toHaveBeenCalledWith('user-1', expect.objectContaining({ employeeNumber: 'EMP001', firstName: 'New', lastName: 'User', role: 'Admin' }));
       });
       expect(message.success).toHaveBeenCalledWith('Benutzer aktualisiert.');
     });
