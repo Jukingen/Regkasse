@@ -19,6 +19,7 @@ import Link from 'next/link';
 // import { usePostApiAuthLogout } from '@/api/generated/auth/auth'; // Replaced by useAuth
 import { AuthGate } from '@/shared/auth/AuthGate';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { canViewUsers, canShowRksvMenu } from '@/features/auth/constants/roles';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -104,17 +105,19 @@ export default function DashboardLayout({
             icon: <CreditCardOutlined />,
             label: <Link href="/payments">Payments</Link>,
         },
-        {
-            key: '/users',
-            icon: <UserOutlined />,
-            label: <Link href="/users">Users</Link>,
-        },
+        ...(canViewUsers(user?.role ?? '')
+            ? [{
+                key: '/users',
+                icon: <UserOutlined />,
+                label: <Link href="/users">Users</Link>,
+            }]
+            : []),
         {
             key: '/settings',
             icon: <SettingOutlined />,
             label: <Link href="/settings">Settings</Link>,
         },
-        ...(['SuperAdmin', 'Admin'].includes(user?.role ?? '')
+        ...(canShowRksvMenu(user?.role ?? '')
             ? [
                   {
                       key: '/rksv',
@@ -159,7 +162,7 @@ export default function DashboardLayout({
                 theme="light"
                 mode="inline"
                 selectedKeys={[pathname]}
-                defaultOpenKeys={['SuperAdmin', 'Admin'].includes(user?.role ?? '') ? ['/rksv'] : []}
+                defaultOpenKeys={canShowRksvMenu(user?.role ?? '') ? ['/rksv'] : []}
                 items={menuItems}
                 onClick={() => {
                     if (isMobile) setDrawerVisible(false);

@@ -15,10 +15,12 @@ public class UserManagementAuthorizationPolicyTests
         var services = new ServiceCollection();
         services.AddAuthorization(options =>
         {
+            options.AddPolicy("AdminUsers", policy =>
+                policy.RequireRole("SuperAdmin", "Admin", "Administrator"));
             options.AddPolicy("UsersView", policy =>
-                policy.RequireRole("SuperAdmin", "Admin", "BranchManager", "Auditor"));
+                policy.RequireRole("SuperAdmin", "Admin", "Administrator", "BranchManager", "Auditor"));
             options.AddPolicy("UsersManage", policy =>
-                policy.RequireRole("SuperAdmin", "Admin", "BranchManager"));
+                policy.RequireRole("SuperAdmin", "Admin", "Administrator", "BranchManager"));
         });
         services.AddLogging();
         return services.BuildServiceProvider();
@@ -91,5 +93,53 @@ public class UserManagementAuthorizationPolicyTests
         var result = auth.AuthorizeAsync(user, "UsersManage").GetAwaiter().GetResult();
 
         Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public void UsersView_Policy_Allows_Administrator_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = UserWithRole("Administrator");
+
+        var result = auth.AuthorizeAsync(user, "UsersView").GetAwaiter().GetResult();
+
+        Assert.True(result.Succeeded, "UsersView policy should allow role Administrator (legacy alias).");
+    }
+
+    [Fact]
+    public void UsersManage_Policy_Allows_Administrator_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = UserWithRole("Administrator");
+
+        var result = auth.AuthorizeAsync(user, "UsersManage").GetAwaiter().GetResult();
+
+        Assert.True(result.Succeeded, "UsersManage policy should allow role Administrator (legacy alias).");
+    }
+
+    [Fact]
+    public void UsersView_Policy_Denies_Kellner_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = UserWithRole("Kellner");
+
+        var result = auth.AuthorizeAsync(user, "UsersView").GetAwaiter().GetResult();
+
+        Assert.False(result.Succeeded, "UsersView policy should deny Kellner.");
+    }
+
+    [Fact]
+    public void UsersManage_Policy_Denies_Kellner_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = UserWithRole("Kellner");
+
+        var result = auth.AuthorizeAsync(user, "UsersManage").GetAwaiter().GetResult();
+
+        Assert.False(result.Succeeded, "UsersManage policy should deny Kellner.");
     }
 }

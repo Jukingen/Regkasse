@@ -1,5 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import { message } from 'antd';
 import { authStorage } from '@/features/auth/services/authStorage';
+import { getForbiddenMessage, mapRequiredPolicyToReasonCode } from '@/shared/errors/forbiddenMessages';
 
 const isDev = process.env.NODE_ENV === 'development';
 // STRICT: Require NEXT_PUBLIC_API_BASE_URL to be set, or fallback to localhost:5183 (matching backend default)
@@ -46,6 +48,7 @@ const createAxiosInstance = () => {
         async (error) => {
             const originalRequest = error.config;
             const status = error.response?.status;
+            const data = error.response?.data as { reasonCode?: string; requiredPolicy?: string; message?: string } | undefined;
 
             if (isDev) {
                 if (status === 401) {
@@ -58,10 +61,14 @@ const createAxiosInstance = () => {
                 }
             }
 
-            // Handle 401 - You might want to dispatch a specific event here or just let React Query handle it (retry: false)
+            if (status === 403) {
+                const reasonCode = data?.reasonCode ?? mapRequiredPolicyToReasonCode(data?.requiredPolicy);
+                const userMessage = getForbiddenMessage(reasonCode);
+                message.error(userMessage);
+            }
+
             if (status === 401 && !originalRequest._retry) {
                 originalRequest._retry = true;
-                // Potential TODO: Refresh token logic here if implemented
             }
 
             return Promise.reject(error);

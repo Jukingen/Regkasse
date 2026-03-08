@@ -747,6 +747,8 @@ namespace KasseAPI_Final.Services
                     AuditLogActions.USER_DEACTIVATE,
                     AuditLogActions.USER_REACTIVATE,
                     AuditLogActions.USER_PASSWORD_RESET,
+                    AuditLogActions.FORCE_RESET_PASSWORD,
+                    AuditLogActions.CHANGE_OWN_PASSWORD,
                     AuditLogActions.USER_ROLE_CHANGE,
                     AuditLogActions.USER_CREATE
                 };

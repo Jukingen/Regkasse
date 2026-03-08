@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Auth;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Middleware;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 
@@ -40,6 +42,50 @@ namespace KasseAPI_Final.Controllers
 
         private string? GetCurrentUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         private string GetCurrentUserRole() => User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
+
+        // PUT: api/usermanagement/me/password — change own password (any authenticated user)
+        [HttpPut("me/password")]
+        [Authorize]
+        public async Task<IActionResult> ChangeOwnPassword([FromBody] ChangePasswordRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var currentUserId = GetCurrentUserId();
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var user = await _userManager.FindByIdAsync(currentUserId);
+                if (user == null || !user.IsActive)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+                if (!result.Succeeded)
+                {
+                    return BadRequest(new { message = "Failed to change password", errors = result.Errors });
+                }
+
+                var actorRole = GetCurrentUserRole();
+                await _auditLogService.LogUserActivityAsync(
+                    AuditLogActions.CHANGE_OWN_PASSWORD, currentUserId, actorRole,
+                    description: "User changed own password", status: AuditLogStatus.Success);
+
+                return Ok(new { message = "Password changed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error changing own password for user {UserId}", GetCurrentUserId());
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
 
         // GET: api/usermanagement
         [HttpGet]
@@ -321,11 +367,17 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // PUT: api/usermanagement/{id}/password
+        // PUT: api/usermanagement/{id}/password — admin changes another user's password with current password (rare). Prefer reset-password for force reset.
         [HttpPut("{id}/password")]
         [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> ChangePassword(string id, [FromBody] ChangePasswordRequest request)
         {
+            var currentUserId = GetCurrentUserId();
+            if (id == currentUserId)
+            {
+                return BadRequest(new { message = "Use PUT /api/UserManagement/me/password to change your own password" });
+            }
+
             try
             {
                 if (!ModelState.IsValid)
@@ -345,13 +397,12 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Failed to change password", errors = result.Errors });
                 }
 
-                var actorId = GetCurrentUserId();
                 var actorRole = GetCurrentUserRole();
-                if (!string.IsNullOrEmpty(actorId) && id == actorId)
+                if (!string.IsNullOrEmpty(currentUserId))
                 {
-                    await _auditLogService.LogUserActivityAsync(
-                        AuditLogActions.USER_UPDATE, actorId, actorRole,
-                        description: "User changed own password", status: AuditLogStatus.Success);
+                    await _auditLogService.LogUserLifecycleAsync(
+                        AuditLogActions.USER_UPDATE, currentUserId!, actorRole, id, null, null,
+                        AuditLogStatus.Success, "Admin changed user password (with current password)");
                 }
 
                 return Ok(new { message = "Password changed successfully" });
@@ -363,11 +414,17 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // PUT: api/usermanagement/{id}/reset-password
+        // PUT: api/usermanagement/{id}/reset-password — force reset (admin only; no current password). Block self; only SuperAdmin can reset SuperAdmin.
         [HttpPut("{id}/reset-password")]
         [Authorize(Policy = "UsersManage")]
         public async Task<IActionResult> ResetPassword(string id, [FromBody] ResetPasswordRequest request)
         {
+            var currentUserId = GetCurrentUserId();
+            if (id == currentUserId)
+            {
+                return BadRequest(new { message = "Cannot force-reset your own password. Use PUT /api/UserManagement/me/password to change your password." });
+            }
+
             try
             {
                 if (!ModelState.IsValid)
@@ -381,6 +438,23 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "User not found" });
                 }
 
+                var actorRole = GetCurrentUserRole();
+                var targetCanonicalRole = RoleCanonicalization.GetCanonicalRole(user.Role);
+                var actorCanonicalRole = RoleCanonicalization.GetCanonicalRole(actorRole);
+                if (string.Equals(targetCanonicalRole, RoleCanonicalization.Canonical.SuperAdmin, StringComparison.Ordinal) &&
+                    !string.Equals(actorCanonicalRole, RoleCanonicalization.Canonical.SuperAdmin, StringComparison.Ordinal))
+                {
+                    var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+                    return StatusCode(403, new
+                    {
+                        code = ApiError.ForbiddenPayload.Code,
+                        reason = ApiError.ForbiddenPayload.Reason,
+                        requiredPolicy = "UsersManage",
+                        missingRequirement = "Role",
+                        correlationId,
+                    });
+                }
+
                 var token = await _userManager.GeneratePasswordResetTokenAsync(user);
                 var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
                 if (!result.Succeeded)
@@ -388,13 +462,11 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Failed to reset password", errors = result.Errors });
                 }
 
-                var actorId = GetCurrentUserId();
-                var actorRole = GetCurrentUserRole();
-                if (!string.IsNullOrEmpty(actorId))
+                if (!string.IsNullOrEmpty(currentUserId))
                 {
                     await _auditLogService.LogUserLifecycleAsync(
-                        AuditLogActions.USER_PASSWORD_RESET, actorId, actorRole, id, null, null,
-                        AuditLogStatus.Success, "Administrator reset password");
+                        AuditLogActions.FORCE_RESET_PASSWORD, currentUserId, actorRole, id, null, null,
+                        AuditLogStatus.Success, "Force password reset by administrator");
                 }
 
                 await _sessionInvalidation.InvalidateSessionsForUserAsync(id);

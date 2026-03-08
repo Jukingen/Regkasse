@@ -33,6 +33,19 @@ public class ApiError
     public static ApiError BusinessRule(string title, string? detail = null, int status = 400) =>
         new() { Type = "BusinessRule", Title = title, Status = status, Detail = detail };
 
+    /// <summary>Structured 403 payload for API contract and FE diagnostics. No secret leakage.</summary>
+    public class ForbiddenPayload
+    {
+        public const string Code = "AUTH_FORBIDDEN";
+        public const string Reason = "MISSING_ROLE_OR_SCOPE";
+
+        public string CodeValue { get; set; } = Code;
+        public string ReasonValue { get; set; } = Reason;
+        public string? RequiredPolicy { get; set; }
+        public string? MissingRequirement { get; set; }
+        public string? CorrelationId { get; set; }
+    }
+
     /// <summary>Stable reason codes for 403 Forbidden. FE can map to i18n (e.g. errors.forbidden.USERS_MANAGE_REQUIRED).</summary>
     public static class ForbiddenReasonCodes
     {

@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using KasseAPI_Final.Auth;
 using KasseAPI_Final.Models;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -58,8 +60,9 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Geçersiz şifre" });
                 }
 
-                var token = GenerateJwtToken(user);
                 var roles = await _userManager.GetRolesAsync(user);
+                var primaryRole = roles.FirstOrDefault() ?? user.Role ?? "User";
+                var token = GenerateJwtToken(user, primaryRole);
 
                 var response = new
                 {
@@ -71,7 +74,7 @@ namespace KasseAPI_Final.Controllers
                         email = user.Email,
                         firstName = user.FirstName,
                         lastName = user.LastName,
-                        role = user.Role,
+                        role = primaryRole,
                         roles = roles
                     }
                 };
@@ -245,11 +248,12 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        private string GenerateJwtToken(ApplicationUser user)
+        private string GenerateJwtToken(ApplicationUser user, string roleForToken)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"] ?? "default-secret-key-32-chars-long"));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expires = DateTime.Now.AddHours(1);
+            var roleValue = RoleCanonicalization.GetCanonicalRole(roleForToken ?? user.Role ?? "User");
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["JwtSettings:Issuer"],
@@ -257,12 +261,11 @@ namespace KasseAPI_Final.Controllers
                 claims: new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id),
-                    new Claim(ClaimTypes.Name, user.Email),
-                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Name, user.Email ?? string.Empty),
+                    new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
                     new Claim("user_id", user.Id),
-                    new Claim("user_role", user.Role ?? "User"),
-                    // ASP.NET Core role-based authorization bu claim'i bekler
-                    new Claim(ClaimTypes.Role, user.Role ?? "User")
+                    new Claim("user_role", roleValue),
+                    new Claim(ClaimTypes.Role, roleValue)
                 },
                 expires: expires,
                 signingCredentials: creds

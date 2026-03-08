@@ -261,4 +261,40 @@ public class UserManagementControllerUserLifecycleTests
         Assert.NotNull(stillExists);
         Assert.False(stillExists.IsActive);
     }
+
+    /// <summary>Force-reset endpoint must block self; user must use me/password.</summary>
+    [Fact]
+    public async Task ResetPassword_WhenTargetIsSelf_ReturnsBadRequest()
+    {
+        var user = new ApplicationUser { Id = "self-id", UserName = "self", FirstName = "S", LastName = "U", IsActive = true };
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
+        using var context = CreateContext();
+        var controller = CreateController(context, userManager, roleManager,
+            new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object,
+            actorId: "self-id", actorRole: "Admin");
+
+        var result = await controller.ResetPassword("self-id", new ResetPasswordRequest { NewPassword = "NewPass123!" });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    /// <summary>Admin cannot force-reset a SuperAdmin user; only SuperAdmin can.</summary>
+    [Fact]
+    public async Task ResetPassword_WhenAdminResetsSuperAdmin_Returns403()
+    {
+        var superAdminUser = new ApplicationUser { Id = "super-id", UserName = "super", FirstName = "S", LastName = "A", IsActive = true, Role = "SuperAdmin" };
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: superAdminUser);
+        using var context = CreateContext();
+        var controller = CreateController(context, userManager, roleManager,
+            new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object,
+            actorId: "admin-id", actorRole: "Admin");
+
+        var result = await controller.ResetPassword("super-id", new ResetPasswordRequest { NewPassword = "NewPass123!" });
+
+        var statusResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, statusResult.StatusCode);
+        Assert.NotNull(statusResult.Value);
+    }
+
 }

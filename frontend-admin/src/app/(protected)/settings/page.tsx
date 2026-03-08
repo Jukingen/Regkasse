@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Form, Input, Button, Card, Tabs, message, Row, Col, InputNumber, Switch, Divider, Spin } from 'antd';
-import { SaveOutlined } from '@ant-design/icons';
+import { SaveOutlined, LockOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
     useGetApiCompanySettings,
@@ -13,6 +13,7 @@ import {
     mapFormValuesToUpdateRequest,
     type SettingsFormValues,
 } from '@/features/settings/types/settingsForm';
+import { customInstance } from '@/lib/axios';
 
 const ATU_REGEX = /^ATU\d{8}$/;
 
@@ -93,6 +94,12 @@ export default function SettingsPage() {
                             key: '4',
                             label: 'TSE',
                             children: <TSETab />,
+                        },
+                        {
+                            key: '5',
+                            label: 'Mein Passwort',
+                            icon: <LockOutlined />,
+                            children: <ChangeMyPasswordTab />,
                         },
                     ]}
                 />
@@ -320,6 +327,88 @@ function TSETab() {
             >
                 <InputNumber style={{ width: '100%' }} min={5} max={120000} />
             </Form.Item>
+        </Card>
+    );
+}
+
+const changePasswordCopy = {
+    title: 'Mein Passwort ändern',
+    currentPassword: 'Aktuelles Passwort',
+    newPassword: 'Neues Passwort (min. 8 Zeichen, Groß-/Kleinbuchstaben, Zahl, Sonderzeichen)',
+    confirmPassword: 'Neues Passwort bestätigen',
+    submit: 'Passwort ändern',
+    success: 'Passwort wurde geändert.',
+    confirmMismatch: 'Passwörter stimmen nicht überein.',
+};
+
+function ChangeMyPasswordTab() {
+    const [form] = Form.useForm<{ currentPassword: string; newPassword: string; confirmPassword: string }>();
+    const [loading, setLoading] = useState(false);
+
+    const onFinish = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+        if (values.newPassword !== values.confirmPassword) {
+            form.setFields([{ name: 'confirmPassword', errors: [changePasswordCopy.confirmMismatch] }]);
+            return;
+        }
+        setLoading(true);
+        try {
+            await customInstance<{ message?: string }>({
+                url: '/api/UserManagement/me/password',
+                method: 'PUT',
+                data: { currentPassword: values.currentPassword, newPassword: values.newPassword },
+            });
+            message.success(changePasswordCopy.success);
+            form.resetFields();
+        } catch (err: unknown) {
+            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+            message.error(msg ?? 'Passwort konnte nicht geändert werden.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Card title={changePasswordCopy.title}>
+            <Form form={form} layout="vertical" onFinish={onFinish} style={{ maxWidth: 400 }}>
+                <Form.Item
+                    name="currentPassword"
+                    label={changePasswordCopy.currentPassword}
+                    rules={[{ required: true, message: 'Aktuelles Passwort erforderlich' }]}
+                >
+                    <Input.Password placeholder="••••••••" autoComplete="current-password" />
+                </Form.Item>
+                <Form.Item
+                    name="newPassword"
+                    label={changePasswordCopy.newPassword}
+                    rules={[
+                        { required: true, message: 'Neues Passwort erforderlich' },
+                        { min: 8, message: 'Mindestens 8 Zeichen' },
+                    ]}
+                >
+                    <Input.Password placeholder="••••••••" autoComplete="new-password" />
+                </Form.Item>
+                <Form.Item
+                    name="confirmPassword"
+                    label={changePasswordCopy.confirmPassword}
+                    dependencies={['newPassword']}
+                    rules={[
+                        { required: true, message: 'Bitte bestätigen Sie das neue Passwort' },
+                        ({ getFieldValue }) => ({
+                            validator(_, value) {
+                                if (!value || getFieldValue('newPassword') === value) return Promise.resolve();
+                                return Promise.reject(new Error(changePasswordCopy.confirmMismatch));
+                            },
+                        }),
+                    ]}
+                >
+                    <Input.Password placeholder="••••••••" autoComplete="new-password" />
+                </Form.Item>
+                <Form.Item>
+                    <Button type="primary" htmlType="submit" loading={loading} icon={<LockOutlined />}>
+                        {changePasswordCopy.submit}
+                    </Button>
+                </Form.Item>
+            </Form>
         </Card>
     );
 }

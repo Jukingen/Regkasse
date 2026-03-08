@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -14,6 +15,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final;
 using KasseAPI_Final.Tse;
 using KasseAPI_Final.Swagger;
+using KasseAPI_Final.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -98,8 +100,11 @@ builder.Services.AddAuthentication(options =>
         OnTokenValidated = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("JWT token validated successfully for user: {UserId}",
-                context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var correlationId = context.HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+            logger.LogInformation(
+                "JWT token validated successfully: userId={UserId}, correlationId={CorrelationId}",
+                context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+                correlationId);
             return Task.CompletedTask;
         },
         OnAuthenticationFailed = context =>
@@ -111,28 +116,27 @@ builder.Services.AddAuthentication(options =>
         OnForbidden = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            var correlationId = context.HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
             var userId = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "unknown";
-            var roles = string.Join(", ", context.HttpContext.User.Claims
-                .Where(c => c.Type == ClaimTypes.Role)
-                .Select(c => c.Value));
             logger.LogWarning(
-                "403 Forbidden: userId={UserId}, roles=[{Roles}], path={Path}",
-                userId, roles, context.HttpContext.Request.Path);
+                "403 Forbidden (auth handler): correlationId={CorrelationId}, userId={UserId}, path={Path}",
+                correlationId, userId, context.HttpContext.Request.Path);
             return Task.CompletedTask;
         }
     };
 });
 
-// Authorization policies – role-based. Roller: SuperAdmin, Admin, BranchManager, Auditor.
+// Authorization policies – role-based. Administrator = legacy alias for Admin (backward compatibility).
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminUsers", policy =>
-        policy.RequireRole("SuperAdmin", "Admin"));
+        policy.RequireRole("SuperAdmin", "Admin", "Administrator"));
     options.AddPolicy("UsersView", policy =>
-        policy.RequireRole("SuperAdmin", "Admin", "BranchManager", "Auditor"));
+        policy.RequireRole("SuperAdmin", "Admin", "Administrator", "BranchManager", "Auditor"));
     options.AddPolicy("UsersManage", policy =>
-        policy.RequireRole("SuperAdmin", "Admin", "BranchManager"));
+        policy.RequireRole("SuperAdmin", "Admin", "Administrator", "BranchManager"));
 });
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, ForbiddenResponseAuthorizationHandler>();
 
 // Session invalidation on critical account changes (stub until RefreshToken table exists)
 builder.Services.AddScoped<IUserSessionInvalidation, StubUserSessionInvalidation>();
@@ -339,3 +343,6 @@ Console.WriteLine("=== LOCAL IP: http://192.168.1.2:5183 ===");
 Console.WriteLine("=== SWAGGER: http://localhost:5183/ ===");
 
 app.Run();
+
+// Expose for WebApplicationFactory in integration tests.
+public partial class Program { }

@@ -34,6 +34,14 @@ import {
 } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import {
+    canViewUsers,
+    canManageUsers,
+    canEditUser,
+    canDeactivateReactivate,
+    canResetPassword,
+    canCreateRole,
+} from '@/features/auth/constants/roles';
 import { useUsersList } from '@/features/users/hooks/useUsersList';
 import { deactivateUser, reactivateUser } from '@/features/users/api/usersApi';
 import {
@@ -41,12 +49,14 @@ import {
     usePostApiUserManagement,
     usePutApiUserManagementId,
     usePutApiUserManagementIdResetPassword,
+    usePostApiUserManagementRoles,
 } from '@/api/generated/user-management/user-management';
 import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
 import { UserFormDrawer } from '@/features/users/components/UserFormDrawer';
 import type { UserInfo } from '@/api/generated/model';
 import type { CreateUserRequest, UpdateUserRequest } from '@/api/generated/model';
 import { usersListQueryKey } from '@/features/users/hooks/useUsersList';
+import { getGetApiUserManagementRolesQueryKey } from '@/api/generated/user-management/user-management';
 import { usersCopy } from '@/features/users/constants/copy';
 
 const { Title } = Typography;
@@ -82,9 +92,15 @@ export default function UsersPage() {
     const [deactivateUserRecord, setDeactivateUserRecord] = useState<UserInfo | null>(null);
     const [reactivateUserRecord, setReactivateUserRecord] = useState<UserInfo | null>(null);
     const [resetPasswordUser, setResetPasswordUser] = useState<UserInfo | null>(null);
+    const [createRoleOpen, setCreateRoleOpen] = useState(false);
 
     const { user: currentUser } = useAuth();
-    const canManageUsers = ['SuperAdmin', 'Admin', 'BranchManager'].includes(currentUser?.role ?? '');
+    const currentRole = currentUser?.role ?? '';
+    const canView = canViewUsers(currentRole);
+    const canManage = canManageUsers(currentRole);
+    const canEdit = canEditUser(currentRole);
+    const canDeactivate = canDeactivateReactivate(currentRole);
+    const canCreateRoleBtn = canCreateRole(currentRole);
 
     const queryClient = useQueryClient();
     const listParams = useMemo(
@@ -95,8 +111,8 @@ export default function UsersPage() {
         }),
         [roleFilter, statusFilter, searchTerm]
     );
-    const { data: users, isLoading, isError, refetch } = useUsersList(listParams);
-    const { data: roles } = useGetApiUserManagementRoles();
+    const { data: users, isLoading, isError, refetch } = useUsersList(listParams, { enabled: canView });
+    const { data: roles } = useGetApiUserManagementRoles({ query: { enabled: canView } });
 
     const roleOptions = useMemo(
         () => (roles?.map((r) => ({ value: r, label: r })) ?? ROLE_OPTIONS),
@@ -140,8 +156,22 @@ export default function UsersPage() {
             },
         },
     });
+    const createRoleMutation = usePostApiUserManagementRoles({
+        mutation: {
+            onSuccess: () => {
+                message.success(usersCopy.successCreateRole ?? 'Rolle angelegt.');
+                queryClient.invalidateQueries({ queryKey: getGetApiUserManagementRolesQueryKey() });
+                setCreateRoleOpen(false);
+                createRoleForm.resetFields();
+            },
+            onError: (e: unknown) => {
+                message.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? usersCopy.errorGeneric);
+            },
+        },
+    });
     const [deactivateForm] = Form.useForm();
     const [resetPasswordForm] = Form.useForm();
+    const [createRoleForm] = Form.useForm<{ name: string }>();
 
     const handleCreate = (values: CreateUserRequest) => {
         createMutation.mutate({ data: values });
@@ -183,6 +213,11 @@ export default function UsersPage() {
             resetPasswordMutation.mutate({ id: resetPasswordUser.id!, data: { newPassword: values.newPassword } });
         });
     };
+    const handleCreateRole = () => {
+        createRoleForm.validateFields().then((values: { name: string }) => {
+            createRoleMutation.mutate({ data: { name: values.name.trim() } });
+        });
+    };
 
     const columns = [
         {
@@ -220,7 +255,7 @@ export default function UsersPage() {
             key: 'actions',
             render: (_: unknown, record: UserInfo) => (
                 <Space wrap>
-                    {canManageUsers && (
+                    {canEdit && (
                         <Button
                             size="small"
                             icon={<EyeOutlined />}
@@ -229,14 +264,11 @@ export default function UsersPage() {
                             {usersCopy.view}
                         </Button>
                     )}
-                    {canManageUsers && (
+                    {canEdit && (
                         <Button
                             size="small"
                             icon={<EditOutlined />}
-                            onClick={() => {
-                                setEditUser(record);
-                                // form set in UserFormDrawer via useEffect
-                            }}
+                            onClick={() => setEditUser(record)}
                         >
                             {usersCopy.edit}
                         </Button>
@@ -248,7 +280,7 @@ export default function UsersPage() {
                     >
                         {usersCopy.activity}
                     </Button>
-                    {canManageUsers && record.isActive && (
+                    {canDeactivate && record.isActive && (
                         <Button
                             size="small"
                             danger
@@ -258,7 +290,7 @@ export default function UsersPage() {
                             {usersCopy.deactivate}
                         </Button>
                     )}
-                    {canManageUsers && !record.isActive && (
+                    {canDeactivate && !record.isActive && (
                         <Button
                             size="small"
                             type="primary"
@@ -268,7 +300,7 @@ export default function UsersPage() {
                             {usersCopy.reactivate}
                         </Button>
                     )}
-                    {canManageUsers && (
+                    {canResetPassword(currentRole, record.role ?? '') && record.id !== currentUser?.id && (
                         <Button
                             size="small"
                             icon={<KeyOutlined />}
@@ -281,6 +313,18 @@ export default function UsersPage() {
             ),
         },
     ];
+
+    if (!canView) {
+        return (
+            <Card>
+                <Alert
+                    type="warning"
+                    message={usersCopy.accessDenied}
+                    description="Nur Rollen mit UsersView (SuperAdmin, Admin, Administrator, BranchManager, Auditor) können diese Seite öffnen."
+                />
+            </Card>
+        );
+    }
 
     return (
         <Card>
@@ -312,9 +356,14 @@ export default function UsersPage() {
                         onChange={(v) => setStatusFilter(v === undefined ? undefined : v === 'active')}
                         options={STATUS_OPTIONS}
                     />
-                    {canManageUsers && (
+                    {canManage && (
                         <Button type="primary" icon={<UserOutlined />} onClick={() => setCreateOpen(true)}>
                             {usersCopy.createUser}
+                        </Button>
+                    )}
+                    {canCreateRoleBtn && (
+                        <Button icon={<UserOutlined />} onClick={() => setCreateRoleOpen(true)}>
+                            {usersCopy.createRole}
                         </Button>
                     )}
                 </Space>
@@ -438,6 +487,26 @@ export default function UsersPage() {
                         </Form>
                     </>
                 )}
+            </Modal>
+
+            <Modal
+                title={usersCopy.createRole}
+                open={createRoleOpen}
+                onOk={handleCreateRole}
+                onCancel={() => { setCreateRoleOpen(false); createRoleForm.resetFields(); }}
+                okText={usersCopy.save}
+                confirmLoading={createRoleMutation.isPending}
+                destroyOnClose
+            >
+                <Form form={createRoleForm} layout="vertical">
+                    <Form.Item
+                        name="name"
+                        label={usersCopy.roleName}
+                        rules={[{ required: true, message: usersCopy.roleNameRequired }, { max: 50, message: 'Max. 50 Zeichen' }]}
+                    >
+                        <Input placeholder="z. B. Manager" autoComplete="off" />
+                    </Form.Item>
+                </Form>
             </Modal>
         </Card>
     );
