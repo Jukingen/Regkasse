@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using KasseAPI_Final.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -6,140 +7,139 @@ using Xunit;
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// Verifies that UsersView and UsersManage policies allow Admin role (legacy alias for Administrator).
+/// Permission-first: verifies user.view and user.manage via AddAppAuthorization (PermissionAuthorizationHandler).
+/// Admin and SuperAdmin have both; Manager has user.view only; Cashier and Waiter have neither.
 /// </summary>
 public class UserManagementAuthorizationPolicyTests
 {
     private static IServiceProvider BuildAuthorizationServices()
     {
         var services = new ServiceCollection();
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy("AdminUsers", policy =>
-                policy.RequireRole("SuperAdmin", "Admin", "Administrator"));
-            options.AddPolicy("UsersView", policy =>
-                policy.RequireRole("SuperAdmin", "Admin", "Administrator", "BranchManager", "Auditor"));
-            options.AddPolicy("UsersManage", policy =>
-                policy.RequireRole("SuperAdmin", "Admin", "Administrator", "BranchManager"));
-        });
         services.AddLogging();
+        services.AddAppAuthorization();
         return services.BuildServiceProvider();
     }
 
-    private static ClaimsPrincipal UserWithRole(string role)
+    private static string PermissionPolicy(string permission) => PermissionCatalog.PolicyPrefix + permission;
+
+    private static ClaimsPrincipal CreatePrincipalWithRoles(params string[] roles)
     {
-        return new ClaimsPrincipal(new ClaimsIdentity(new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, "user-id"),
-            new Claim(ClaimTypes.Role, role)
-        }, "Test"));
+        var identity = new ClaimsIdentity("Test");
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "user-id"));
+        foreach (var role in roles)
+            identity.AddClaim(new Claim(ClaimTypes.Role, role));
+        return new ClaimsPrincipal(identity);
     }
 
+    // --- user.view: Admin, SuperAdmin, Manager allowed; Cashier, Waiter denied ---
+
     [Fact]
-    public void UsersView_Policy_Allows_Admin_Role()
+    public async Task UserView_Permission_Allows_Admin_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = UserWithRole("Admin");
+        var user = CreatePrincipalWithRoles(Roles.Admin);
 
-        var result = auth.AuthorizeAsync(user, "UsersView").GetAwaiter().GetResult();
-
-        Assert.True(result.Succeeded, "UsersView policy should allow role Admin.");
-    }
-
-    [Fact]
-    public void UsersView_Policy_Allows_SuperAdmin_Role()
-    {
-        var provider = BuildAuthorizationServices();
-        var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = UserWithRole("SuperAdmin");
-
-        var result = auth.AuthorizeAsync(user, "UsersView").GetAwaiter().GetResult();
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserView));
 
         Assert.True(result.Succeeded);
     }
 
     [Fact]
-    public void UsersManage_Policy_Allows_Admin_Role()
+    public async Task UserView_Permission_Allows_SuperAdmin_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = UserWithRole("Admin");
+        var user = CreatePrincipalWithRoles(Roles.SuperAdmin);
 
-        var result = auth.AuthorizeAsync(user, "UsersManage").GetAwaiter().GetResult();
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserView));
 
-        Assert.True(result.Succeeded, "UsersManage policy should allow role Admin.");
+        Assert.True(result.Succeeded);
     }
 
     [Fact]
-    public void UsersView_Policy_Denies_Cashier_Role()
+    public async Task UserView_Permission_Allows_Manager_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = UserWithRole("Cashier");
+        var user = CreatePrincipalWithRoles(Roles.Manager);
 
-        var result = auth.AuthorizeAsync(user, "UsersView").GetAwaiter().GetResult();
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserView));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task UserView_Permission_Denies_Cashier_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Cashier);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserView));
 
         Assert.False(result.Succeeded);
     }
 
     [Fact]
-    public void UsersManage_Policy_Denies_Cashier_Role()
+    public async Task UserView_Permission_Denies_Waiter_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = UserWithRole("Cashier");
+        var user = CreatePrincipalWithRoles(Roles.Waiter);
 
-        var result = auth.AuthorizeAsync(user, "UsersManage").GetAwaiter().GetResult();
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserView));
+
+        Assert.False(result.Succeeded);
+    }
+
+    // --- user.manage: Admin, SuperAdmin allowed; Manager, Cashier, Waiter denied ---
+
+    [Fact]
+    public async Task UserManage_Permission_Allows_Admin_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Admin);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task UserManage_Permission_Allows_SuperAdmin_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.SuperAdmin);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task UserManage_Permission_Denies_Manager_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Manager);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
 
         Assert.False(result.Succeeded);
     }
 
     [Fact]
-    public void UsersView_Policy_Allows_Administrator_Role()
+    public async Task UserManage_Permission_Denies_Cashier_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = UserWithRole("Administrator");
+        var user = CreatePrincipalWithRoles(Roles.Cashier);
 
-        var result = auth.AuthorizeAsync(user, "UsersView").GetAwaiter().GetResult();
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
 
-        Assert.True(result.Succeeded, "UsersView policy should allow role Administrator (legacy alias).");
-    }
-
-    [Fact]
-    public void UsersManage_Policy_Allows_Administrator_Role()
-    {
-        var provider = BuildAuthorizationServices();
-        var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = UserWithRole("Administrator");
-
-        var result = auth.AuthorizeAsync(user, "UsersManage").GetAwaiter().GetResult();
-
-        Assert.True(result.Succeeded, "UsersManage policy should allow role Administrator (legacy alias).");
-    }
-
-    [Fact]
-    public void UsersView_Policy_Denies_Kellner_Role()
-    {
-        var provider = BuildAuthorizationServices();
-        var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = UserWithRole("Kellner");
-
-        var result = auth.AuthorizeAsync(user, "UsersView").GetAwaiter().GetResult();
-
-        Assert.False(result.Succeeded, "UsersView policy should deny Kellner.");
-    }
-
-    [Fact]
-    public void UsersManage_Policy_Denies_Kellner_Role()
-    {
-        var provider = BuildAuthorizationServices();
-        var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = UserWithRole("Kellner");
-
-        var result = auth.AuthorizeAsync(user, "UsersManage").GetAwaiter().GetResult();
-
-        Assert.False(result.Succeeded, "UsersManage policy should deny Kellner.");
+        Assert.False(result.Succeeded);
     }
 }

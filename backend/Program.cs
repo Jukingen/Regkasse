@@ -141,7 +141,7 @@ builder.Services.AddAuthentication(options =>
 
 // Authorization: legacy role policies + permission-based policies. Use AddAppAuthorization() (AuthorizationExtensions).
 // Legacy: [Authorize(Policy = "PosSales")] etc. remain. New endpoints: [HasPermission(AppPermissions.X)].
-// Administrator → Admin permission set in RolePermissionMatrix.
+// Admin/SuperAdmin permission set in RolePermissionMatrix.
 builder.Services.AddAppAuthorization();
 
 // Session invalidation on critical account changes (stub until RefreshToken table exists)

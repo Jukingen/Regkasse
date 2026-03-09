@@ -1,9 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+/** Canonical roles – aligned with backend Roles.cs. */
 export enum UserRole {
-  Cashier = 'Cashier',
+  SuperAdmin = 'SuperAdmin',
   Admin = 'Admin',
-  Manager = 'Manager'
+  Manager = 'Manager',
+  Cashier = 'Cashier',
+  Waiter = 'Waiter',
+  Kitchen = 'Kitchen',
+  ReportViewer = 'ReportViewer',
+  Accountant = 'Accountant',
 }
 
 export interface Permission {
@@ -13,27 +19,28 @@ export interface Permission {
 }
 
 export const PERMISSIONS: Permission[] = [
-  // Kasiyer yetkileri
-  { resource: 'sales', action: 'create', roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager] },
-  { resource: 'sales', action: 'view', roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager] },
-  { resource: 'products', action: 'view', roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager] },
-  { resource: 'cart', action: 'manage', roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager] },
-  { resource: 'payment', action: 'process', roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager] },
-  { resource: 'invoice', action: 'create', roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager] },
-  { resource: 'customers', action: 'view', roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager] },
-  { resource: 'barcode', action: 'scan', roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager] },
+  // POS – Cashier, Manager, Admin, SuperAdmin
+  { resource: 'sales', action: 'create', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'sales', action: 'view', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'products', action: 'view', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'cart', action: 'manage', roles: [UserRole.Cashier, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'cart', action: 'view', roles: [UserRole.Waiter, UserRole.Cashier, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'payment', action: 'process', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'invoice', action: 'create', roles: [UserRole.Cashier, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'customers', action: 'view', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'barcode', action: 'scan', roles: [UserRole.Cashier, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
   
-  // Admin yetkileri
-  { resource: 'users', action: 'manage', roles: [UserRole.Admin] },
-  { resource: 'roles', action: 'manage', roles: [UserRole.Admin] },
-  { resource: 'system', action: 'settings', roles: [UserRole.Admin] },
-  { resource: 'reports', action: 'view', roles: [UserRole.Admin, UserRole.Manager] },
-  { resource: 'audit', action: 'view', roles: [UserRole.Admin, UserRole.Manager] },
-  { resource: 'demo', action: 'manage', roles: [UserRole.Admin] },
-  { resource: 'hardware', action: 'manage', roles: [UserRole.Admin] },
-  { resource: 'inventory', action: 'manage', roles: [UserRole.Admin] },
-  { resource: 'finanzonline', action: 'manage', roles: [UserRole.Admin] },
-  { resource: 'backup', action: 'create', roles: [UserRole.Admin] },
+  // Admin / SuperAdmin
+  { resource: 'users', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'roles', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'system', action: 'settings', roles: [UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'reports', action: 'view', roles: [UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager] },
+  { resource: 'audit', action: 'view', roles: [UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager] },
+  { resource: 'demo', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'hardware', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'inventory', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'finanzonline', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
+  { resource: 'backup', action: 'create', roles: [UserRole.Admin, UserRole.SuperAdmin] },
   
   // Manager yetkileri
   { resource: 'staff', action: 'manage', roles: [UserRole.Manager] },
@@ -41,44 +48,65 @@ export const PERMISSIONS: Permission[] = [
   { resource: 'schedule', action: 'update', roles: [UserRole.Manager] }
 ];
 
-export const SCREEN_ACCESS: Record<UserRole, string[]> = {
+/**
+ * Screen → required permission (resource.action). When user has permissions, use this for access.
+ * Aligned with backend endpoint permission (e.g. report.view, audit.view, user.manage).
+ */
+export const SCREEN_REQUIRED_PERMISSION: Partial<Record<string, string>> = {
+  SalesScreen: 'sale.view',
+  ProductListScreen: 'product.view',
+  CartScreen: 'cart.view',
+  PaymentScreen: 'payment.view',
+  InvoiceScreen: 'invoice.view',
+  CustomerScreen: 'customer.view',
+  BarcodeScannerScreen: 'product.view',
+  TableSelectionScreen: 'table.view',
+  UserManagementScreen: 'user.view',
+  RoleManagementScreen: 'role.view',
+  SystemSettingsScreen: 'settings.view',
+  ReportsScreen: 'report.view',
+  AuditLogsScreen: 'audit.view',
+  DemoUserManagementScreen: 'user.manage',
+  HardwareManagementScreen: 'settings.manage',
+  InventoryManagementScreen: 'inventory.view',
+  FinanzOnlineScreen: 'finanzonline.view',
+  BackupRestoreScreen: 'settings.manage',
+  InventoryScreen: 'inventory.view',
+  StaffManagementScreen: 'user.view',
+  ScheduleScreen: 'report.view',
+};
+
+/** Screen access by role – aligned with backend RolePermissionMatrix. Fallback when permissions not in token. */
+export const SCREEN_ACCESS: Partial<Record<UserRole, string[]>> = {
   [UserRole.Cashier]: [
-    'SalesScreen',
-    'ProductListScreen',
-    'CartScreen', 
-    'PaymentScreen',
-    'InvoiceScreen',
-    'CustomerScreen',
-    'BarcodeScannerScreen',
-    'TableSelectionScreen'
+    'SalesScreen', 'ProductListScreen', 'CartScreen', 'PaymentScreen',
+    'InvoiceScreen', 'CustomerScreen', 'BarcodeScannerScreen', 'TableSelectionScreen',
   ],
   [UserRole.Admin]: [
-    // Tüm kasiyer ekranları
     'SalesScreen', 'ProductListScreen', 'CartScreen', 'PaymentScreen',
     'InvoiceScreen', 'CustomerScreen', 'BarcodeScannerScreen', 'TableSelectionScreen',
-    // Admin özel ekranları
-    'UserManagementScreen',
-    'RoleManagementScreen',
-    'SystemSettingsScreen', 
-    'ReportsScreen',
-    'AuditLogsScreen',
-    'DemoUserManagementScreen',
-    'HardwareManagementScreen',
-    'InventoryManagementScreen',
-    'FinanzOnlineScreen',
-    'BackupRestoreScreen'
+    'UserManagementScreen', 'RoleManagementScreen', 'SystemSettingsScreen',
+    'ReportsScreen', 'AuditLogsScreen', 'DemoUserManagementScreen',
+    'HardwareManagementScreen', 'InventoryManagementScreen', 'FinanzOnlineScreen', 'BackupRestoreScreen',
+  ],
+  [UserRole.SuperAdmin]: [
+    'SalesScreen', 'ProductListScreen', 'CartScreen', 'PaymentScreen',
+    'InvoiceScreen', 'CustomerScreen', 'BarcodeScannerScreen', 'TableSelectionScreen',
+    'UserManagementScreen', 'RoleManagementScreen', 'SystemSettingsScreen',
+    'ReportsScreen', 'AuditLogsScreen', 'DemoUserManagementScreen',
+    'HardwareManagementScreen', 'InventoryManagementScreen', 'FinanzOnlineScreen', 'BackupRestoreScreen',
   ],
   [UserRole.Manager]: [
-    // Kasiyer ekranları
     'SalesScreen', 'ProductListScreen', 'CartScreen', 'PaymentScreen',
     'InvoiceScreen', 'CustomerScreen', 'BarcodeScannerScreen', 'TableSelectionScreen',
-    // Manager ekranları
-    'ReportsScreen',
-    'AuditLogsScreen',
-    'InventoryScreen',
-    'StaffManagementScreen',
-    'ScheduleScreen'
-  ]
+    'ReportsScreen', 'AuditLogsScreen', 'InventoryScreen', 'StaffManagementScreen', 'ScheduleScreen',
+  ],
+  [UserRole.Waiter]: [
+    'SalesScreen', 'ProductListScreen', 'CartScreen', 'CustomerScreen', 'TableSelectionScreen',
+  ],
+  [UserRole.Kitchen]: [],
+  [UserRole.ReportViewer]: [],
+  [UserRole.Accountant]: [],
 };
 
 export class PermissionHelper {
@@ -122,6 +150,14 @@ export class PermissionHelper {
     return SCREEN_ACCESS[this.currentUserRole]?.includes(screenName) ?? false;
   }
 
+  /** Permission-first: true if user has the permission required for this screen. */
+  static hasScreenAccessByPermission(screenName: string, userPermissions: string[]): boolean {
+    if (!userPermissions?.length) return false;
+    const required = SCREEN_REQUIRED_PERMISSION[screenName];
+    if (!required) return false;
+    return userPermissions.includes(required);
+  }
+
   static getAccessibleScreens(): string[] {
     if (!this.currentUserRole) return [];
 
@@ -143,23 +179,29 @@ export class PermissionHelper {
 
   static getRoleDisplayName(role: UserRole): string {
     switch (role) {
+      case UserRole.SuperAdmin: return 'SuperAdmin';
       case UserRole.Cashier: return 'Kasiyer';
-      case UserRole.Admin: return 'Yönetici';
+      case UserRole.Admin: return 'Admin';
       case UserRole.Manager: return 'Müdür';
-      default: return 'Bilinmeyen';
+      case UserRole.Waiter: return 'Kellner';
+      case UserRole.Kitchen: return 'Küche';
+      case UserRole.ReportViewer: return 'Berichte';
+      case UserRole.Accountant: return 'Buchhaltung';
+      default: return role ?? 'Unbekannt';
     }
   }
 
   static getRoleDescription(role: UserRole): string {
     switch (role) {
-      case UserRole.Cashier:
-        return 'Satış, ödeme alma ve ürün görüntüleme işlemleri';
-      case UserRole.Admin:
-        return 'Tüm sistem yönetimi ve yönetici işlemleri';
-      case UserRole.Manager:
-        return 'Raporlama, denetim ve personel yönetimi';
-      default:
-        return 'Yetki tanımlanmamış';
+      case UserRole.SuperAdmin: return 'Voller Systemzugriff inkl. systemkritischer Aktionen';
+      case UserRole.Cashier: return 'Verkauf, Zahlung, Warenkorb, Katalog';
+      case UserRole.Admin: return 'Backoffice, Benutzer, Katalog, Einstellungen, Berichte';
+      case UserRole.Manager: return 'Betrieb, Berichte, Audit, Lager';
+      case UserRole.Waiter: return 'Bestellung, Tische, Verkauf';
+      case UserRole.Kitchen: return 'Küchenanzeige, Bestellstatus';
+      case UserRole.ReportViewer: return 'Berichte und Audit anzeigen';
+      case UserRole.Accountant: return 'Berichte, Audit, FinanzOnline anzeigen';
+      default: return 'Rolle nicht definiert';
     }
   }
 } 

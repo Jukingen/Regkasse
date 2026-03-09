@@ -59,7 +59,7 @@ public class AdminUsersControllerTests
         IUserSessionInvalidation sessionInvalidation,
         IUserUniquenessValidationService? uniquenessValidation = null,
         string? actorId = "admin-id",
-        string actorRole = "Administrator")
+        string actorRole = "Admin")
     {
         var logger = new Mock<ILogger<AdminUsersController>>().Object;
         var controller = new AdminUsersController(userManager, roleManager, auditLogService, sessionInvalidation, uniquenessValidation ?? CreateUniquenessValidationMock(), logger);
@@ -186,7 +186,7 @@ public class AdminUsersControllerTests
         var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
-        var controller = CreateController(userManager, roleManager, audit, session, actorId: "u1", actorRole: "Administrator");
+        var controller = CreateController(userManager, roleManager, audit, session, actorId: "u1", actorRole: "Admin");
 
         var result = await controller.Deactivate("u1", new AdminUsersController.AdminDeactivateRequest { Reason = "Leaving" });
 

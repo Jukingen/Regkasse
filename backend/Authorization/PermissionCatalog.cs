@@ -59,10 +59,12 @@ public static class PermissionCatalog
         AppPermissions.ShiftView,
         AppPermissions.ShiftOpen,
         AppPermissions.ShiftClose,
+        AppPermissions.ShiftManage,
         // Inventory, Customer
         AppPermissions.InventoryView,
         AppPermissions.InventoryManage,
         AppPermissions.InventoryAdjust,
+        AppPermissions.InventoryDelete,
         AppPermissions.CustomerView,
         AppPermissions.CustomerManage,
         // Invoice, CreditNote
@@ -90,6 +92,10 @@ public static class PermissionCatalog
         // Kitchen
         AppPermissions.KitchenView,
         AppPermissions.KitchenUpdate,
+        // TSE, system-critical
+        AppPermissions.TseSign,
+        AppPermissions.TseDiagnostics,
+        AppPermissions.SystemCritical,
         // Legacy / convenience
         AppPermissions.PriceOverride,
         AppPermissions.ReceiptReprint,

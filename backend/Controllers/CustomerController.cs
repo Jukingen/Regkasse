@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -13,7 +14,7 @@ namespace KasseAPI_Final.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Policy = "PosTableOrder")]
+    [HasPermission(AppPermissions.OrderCreate)]
     public class CustomerController : EntityController<Customer>
     {
         private readonly AppDbContext _context;

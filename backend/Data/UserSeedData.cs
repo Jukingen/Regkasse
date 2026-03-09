@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Data
@@ -33,7 +34,7 @@ namespace KasseAPI_Final.Data
                     FirstName = "Admin",
                     LastName = "User",
                     EmployeeNumber = "EMP001",
-                    Role = "SuperAdmin",
+                    Role = Roles.SuperAdmin,
                     TaxNumber = "ATU12345678",
                     Notes = "Initial admin user",
                     IsActive = true,
@@ -46,7 +47,7 @@ namespace KasseAPI_Final.Data
                 var result = await userManager.CreateAsync(adminUser, "Admin123!");
                 if (result.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(adminUser, "SuperAdmin");
+                    await userManager.AddToRoleAsync(adminUser, Roles.SuperAdmin);
                     Console.WriteLine("Admin user created successfully (role: SuperAdmin)");
                 }
                 else
@@ -59,15 +60,15 @@ namespace KasseAPI_Final.Data
             else
             {
                 // Mevcut admin@admin.com kullanıcısını SuperAdmin yap
-                if (adminUser.Role != "SuperAdmin")
+                if (adminUser.Role != Roles.SuperAdmin)
                 {
-                    adminUser.Role = "SuperAdmin";
+                    adminUser.Role = Roles.SuperAdmin;
                     adminUser.UpdatedAt = DateTime.UtcNow;
                     await userManager.UpdateAsync(adminUser);
                     var currentRoles = await userManager.GetRolesAsync(adminUser);
                     if (currentRoles.Count > 0)
                         await userManager.RemoveFromRolesAsync(adminUser, currentRoles);
-                    await userManager.AddToRoleAsync(adminUser, "SuperAdmin");
+                    await userManager.AddToRoleAsync(adminUser, Roles.SuperAdmin);
                     Console.WriteLine("admin@admin.com updated to role SuperAdmin");
                 }
             }
@@ -82,7 +83,7 @@ namespace KasseAPI_Final.Data
                     FirstName = "Demo",
                     LastName = "Cashier",
                     EmployeeNumber = "EMP002",
-                    Role = "Cashier",
+                    Role = Roles.Cashier,
                     TaxNumber = "ATU87654321",
                     Notes = "Demo cashier user",
                     IsActive = true,
@@ -96,7 +97,7 @@ namespace KasseAPI_Final.Data
                 
                 if (result.Succeeded)
                 {
-                    await userManager.AddToRoleAsync(demoUser, "Cashier");
+                    await userManager.AddToRoleAsync(demoUser, Roles.Cashier);
                     Console.WriteLine("Demo cashier user created successfully");
                 }
                 else

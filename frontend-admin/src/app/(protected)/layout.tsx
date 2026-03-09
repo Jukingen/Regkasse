@@ -18,7 +18,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 // import { usePostApiAuthLogout } from '@/api/generated/auth/auth'; // Replaced by useAuth
 import { AuthGate } from '@/shared/auth/AuthGate';
+import { PermissionRouteGuard } from '@/shared/auth/PermissionRouteGuard';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { canViewUsers, canShowRksvMenu } from '@/features/auth/constants/roles';
 
 const { Header, Sider, Content } = Layout;
@@ -35,7 +37,9 @@ export default function DashboardLayout({
     const screens = useBreakpoint();
     const router = useRouter();
     const pathname = usePathname();
-    const { user, logout } = useAuth(); // Destructure only what is needed for UI
+    const { user, logout } = useAuth();
+    const permissions = user?.permissions ?? [];
+    const usePermissionFirst = permissions.length > 0;
     const {
         token: { colorBgContainer, borderRadiusLG },
     } = theme.useToken();
@@ -49,90 +53,41 @@ export default function DashboardLayout({
         }
     }, [isMobile]);
 
-    const menuItems = [
+    const allMenuItems = [
+        { key: '/dashboard', icon: <DashboardOutlined />, label: <Link href="/dashboard">Dashboard</Link> },
+        { key: '/invoices', icon: <FileTextOutlined />, label: <Link href="/invoices">Invoices</Link> },
+        { key: '/products', icon: <FileTextOutlined />, label: <Link href="/products">Products</Link> },
+        { key: '/modifier-groups', icon: <FileTextOutlined />, label: <Link href="/modifier-groups">Add-on-Gruppen</Link> },
+        { key: '/categories', icon: <FileTextOutlined />, label: <Link href="/categories">Categories</Link> },
+        { key: '/customers', icon: <UserOutlined />, label: <Link href="/customers">Customers</Link> },
+        { key: '/receipts', icon: <FileTextOutlined />, label: <Link href="/receipts">Receipts</Link> },
+        { key: '/receipt-templates', icon: <FileTextOutlined />, label: <Link href="/receipt-templates">Receipt Templates</Link> },
+        { key: '/receipt-generate', icon: <FileTextOutlined />, label: <Link href="/receipt-generate">Generate Receipt</Link> },
+        { key: '/audit-logs', icon: <SafetyCertificateOutlined />, label: <Link href="/audit-logs">Audit Logs</Link> },
+        { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">Payments</Link> },
+        { key: '/users', icon: <UserOutlined />, label: <Link href="/users">Users</Link> },
+        { key: '/settings', icon: <SettingOutlined />, label: <Link href="/settings">Settings</Link> },
         {
-            key: '/dashboard',
-            icon: <DashboardOutlined />,
-            label: <Link href="/dashboard">Dashboard</Link>,
+            key: '/rksv',
+            icon: <SafetyOutlined />,
+            label: 'RKSV',
+            children: [
+                { key: '/rksv/status', label: <Link href="/rksv/status">General Status</Link> },
+                { key: '/rksv/cmc-certificate', label: <Link href="/rksv/cmc-certificate">CMC / Certificate</Link> },
+                { key: '/rksv/verifications', label: <Link href="/rksv/verifications">Last 100 Verifications</Link> },
+                { key: '/rksv/finanz-online-queue', label: <Link href="/rksv/finanz-online-queue">FinanzOnline Queue</Link> },
+            ],
         },
-        {
-            key: '/invoices',
-            icon: <FileTextOutlined />,
-            label: <Link href="/invoices">Invoices</Link>,
-        },
-        {
-            key: '/products',
-            icon: <FileTextOutlined />,
-            label: <Link href="/products">Products</Link>,
-        },
-        {
-            key: '/modifier-groups',
-            icon: <FileTextOutlined />,
-            label: <Link href="/modifier-groups">Add-on-Gruppen</Link>,
-        },
-        {
-            key: '/categories',
-            icon: <FileTextOutlined />,
-            label: <Link href="/categories">Categories</Link>,
-        },
-        {
-            key: '/customers',
-            icon: <UserOutlined />,
-            label: <Link href="/customers">Customers</Link>,
-        },
-        {
-            key: '/receipts',
-            icon: <FileTextOutlined />,
-            label: <Link href="/receipts">Receipts</Link>,
-        },
-        {
-            key: '/receipt-templates',
-            icon: <FileTextOutlined />,
-            label: <Link href="/receipt-templates">Receipt Templates</Link>,
-        },
-        {
-            key: '/receipt-generate',
-            icon: <FileTextOutlined />,
-            label: <Link href="/receipt-generate">Generate Receipt</Link>,
-        },
-        {
-            key: '/audit-logs',
-            icon: <SafetyCertificateOutlined />,
-            label: <Link href="/audit-logs">Audit Logs</Link>,
-        },
-        {
-            key: '/payments',
-            icon: <CreditCardOutlined />,
-            label: <Link href="/payments">Payments</Link>,
-        },
-        ...(canViewUsers(user?.role ?? '')
-            ? [{
-                key: '/users',
-                icon: <UserOutlined />,
-                label: <Link href="/users">Users</Link>,
-            }]
-            : []),
-        {
-            key: '/settings',
-            icon: <SettingOutlined />,
-            label: <Link href="/settings">Settings</Link>,
-        },
-        ...(canShowRksvMenu(user?.role ?? '')
-            ? [
-                  {
-                      key: '/rksv',
-                      icon: <SafetyOutlined />,
-                      label: 'RKSV',
-                      children: [
-                          { key: '/rksv/status', label: <Link href="/rksv/status">General Status</Link> },
-                          { key: '/rksv/cmc-certificate', label: <Link href="/rksv/cmc-certificate">CMC / Certificate</Link> },
-                          { key: '/rksv/verifications', label: <Link href="/rksv/verifications">Last 100 Verifications</Link> },
-                          { key: '/rksv/finanz-online-queue', label: <Link href="/rksv/finanz-online-queue">FinanzOnline Queue</Link> },
-                      ],
-                  },
-              ]
-            : []),
     ];
+
+    // When permissions exist, menu is permission-based; else role fallback for /users and /rksv
+    const menuItems = usePermissionFirst
+        ? allMenuItems.filter((item) => isMenuItemAllowed(item.key, permissions))
+        : allMenuItems.filter((item) => {
+            if (item.key === '/users') return canViewUsers(user?.role ?? '');
+            if (item.key === '/rksv') return canShowRksvMenu(user?.role ?? '');
+            return true;
+        });
 
     const userMenu: MenuProps = {
         items: [
@@ -162,7 +117,7 @@ export default function DashboardLayout({
                 theme="light"
                 mode="inline"
                 selectedKeys={[pathname]}
-                defaultOpenKeys={canShowRksvMenu(user?.role ?? '') ? ['/rksv'] : []}
+                defaultOpenKeys={(usePermissionFirst ? isMenuItemAllowed('/rksv', permissions) : canShowRksvMenu(user?.role ?? '')) ? ['/rksv'] : []}
                 items={menuItems}
                 onClick={() => {
                     if (isMobile) setDrawerVisible(false);
@@ -173,6 +128,7 @@ export default function DashboardLayout({
 
     return (
         <AuthGate mode="protected">
+            <PermissionRouteGuard>
             <Layout style={{ minHeight: '100vh' }}>
                 {!isMobile && (
                     <Sider trigger={null} collapsible collapsed={collapsed} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
@@ -224,6 +180,7 @@ export default function DashboardLayout({
                     </Content>
                 </Layout>
             </Layout>
+            </PermissionRouteGuard>
         </AuthGate>
     );
 }

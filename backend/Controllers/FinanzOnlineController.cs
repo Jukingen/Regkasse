@@ -10,7 +10,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
 {
-    [Authorize(Policy = "BackofficeSettings")]
+    [HasPermission(AppPermissions.SettingsView)]
     [ApiController]
     [Route("api/[controller]")]
     public class FinanzOnlineController : ControllerBase
@@ -103,7 +103,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/finanzonline/status
+        [HasPermission(AppPermissions.FinanzOnlineView)]
         [HttpGet("status")]
         public async Task<ActionResult<FinanzOnlineStatusResponse>> GetStatus()
         {
@@ -229,7 +229,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/finanzonline/errors
+        [HasPermission(AppPermissions.FinanzOnlineView)]
         [HttpGet("errors")]
         public async Task<ActionResult<List<FinanzOnlineErrorResponse>>> GetErrors()
         {
@@ -257,7 +257,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/finanzonline/test-connection
+        [HasPermission(AppPermissions.FinanzOnlineManage)]
         [HttpPost("test-connection")]
         public async Task<ActionResult<FinanzOnlineTestResponse>> TestConnection()
         {
@@ -291,7 +291,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/finanzonline/history/{invoiceId}
+        [HasPermission(AppPermissions.FinanzOnlineView)]
         [HttpGet("history/{invoiceId}")]
         public async Task<ActionResult<IEnumerable<FinanzOnlineSubmission>>> GetSubmissionHistory(Guid invoiceId)
         {

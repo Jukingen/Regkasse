@@ -1,10 +1,10 @@
 /**
- * Users ekranı yetki matrisi – Backend UsersView/UsersManage ile tek kaynak.
- * UI görünürlüğü ve mutation guard buradan türetilir.
- *
- * Backend–FE eşleşme: ai/USERS_AUTH_MATRIX.md
+ * Users screen policy – permission-first when user.permissions exist, else role-based fallback.
+ * Backend: user.view (list), user.manage (create/edit/deactivate/reactivate/reset), role.create (SuperAdmin only).
  */
 import { useMemo } from 'react';
+import { PERMISSIONS } from './permissions';
+import { hasPermission } from './permissions';
 import {
   canViewUsers,
   canManageUsers,
@@ -12,6 +12,7 @@ import {
   canResetPassword as roleCanResetPassword,
 } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import type { UserWithPermissions } from './permissions';
 
 export type UsersAction =
   | 'view'
@@ -29,23 +30,27 @@ export interface UsersPolicy {
   canDeactivate: boolean;
   canReactivate: boolean;
   canCreateRole: boolean;
-  /** Hedef kullanıcının rolüne göre (SuperAdmin sadece SuperAdmin tarafından reset edilebilir). */
   canResetPassword: (targetRole: string | undefined | null) => boolean;
 }
 
 /**
- * Aktör rolüne göre Users ekranı aksiyon yetkilerini döndürür.
- * Tek kaynak: sayfa ve mutation guard bu objeyi kullanır.
+ * Permission-first: when permissions array is present, use it; otherwise fall back to role.
  */
-export function getUsersPolicy(actorRole: string | undefined | null): UsersPolicy {
+export function getUsersPolicy(
+  actorRole: string | undefined | null,
+  permissions?: string[]
+): UsersPolicy {
   const role = actorRole ?? '';
+  const usePerms = permissions && permissions.length > 0;
+  const userWithPerms: UserWithPermissions | null = usePerms ? { permissions } : null;
+
   return {
-    canView: canViewUsers(role),
-    canCreate: canManageUsers(role),
-    canEdit: canManageUsers(role),
-    canDeactivate: canManageUsers(role),
-    canReactivate: canManageUsers(role),
-    canCreateRole: roleCanCreateRole(role),
+    canView: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_VIEW) : canViewUsers(role),
+    canCreate: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE) : canManageUsers(role),
+    canEdit: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE) : canManageUsers(role),
+    canDeactivate: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE) : canManageUsers(role),
+    canReactivate: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE) : canManageUsers(role),
+    canCreateRole: usePerms ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE) : roleCanCreateRole(role),
     canResetPassword: (targetRole: string | undefined | null) =>
       roleCanResetPassword(role, targetRole ?? ''),
   };
@@ -82,9 +87,13 @@ export function canUsers(
 }
 
 /**
- * Giriş yapmış kullanıcının Users ekranı yetkileri (sayfa/hook tek kaynak).
+ * Current user's Users screen policy – permission-first when backend sends permissions.
  */
 export function useUsersPolicy(): UsersPolicy {
   const { user } = useAuth();
-  return useMemo(() => getUsersPolicy(user?.role), [user?.role]);
+  const permissions = (user as { permissions?: string[] } | undefined)?.permissions;
+  return useMemo(
+    () => getUsersPolicy(user?.role ?? null, permissions),
+    [user?.role, permissions]
+  );
 }

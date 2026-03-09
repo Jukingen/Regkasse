@@ -5,7 +5,7 @@
 import { PERMISSIONS } from './permissions';
 
 export const MENU_PERMISSION: Record<string, string | string[] | undefined> = {
-  '/dashboard': undefined,
+  '/dashboard': PERMISSIONS.SETTINGS_VIEW,
   '/invoices': PERMISSIONS.INVOICE_VIEW,
   '/products': PERMISSIONS.PRODUCT_VIEW,
   '/modifier-groups': PERMISSIONS.PRODUCT_VIEW,

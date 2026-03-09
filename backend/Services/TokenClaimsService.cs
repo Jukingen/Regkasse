@@ -7,7 +7,7 @@ namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// Builds JWT/cookie claims: sub, name, role (canonical), permission claims, optional tenant_id/branch_id.
-/// Administrator → Admin for token and permission set (RoleCanonicalization + RolePermissionMatrix).
+/// Builds role (trimmed) and permission claims from RolePermissionMatrix.
 /// </summary>
 public sealed class TokenClaimsService : ITokenClaimsService
 {
@@ -25,7 +25,7 @@ public sealed class TokenClaimsService : ITokenClaimsService
         list.Add(new Claim(ClaimTypes.Name, user.Name));
         list.Add(new Claim("user_id", user.Id));
 
-        var primaryRole = roles?.FirstOrDefault() ?? user.Role ?? "User";
+        var primaryRole = roles?.FirstOrDefault() ?? user.Role ?? Roles.FallbackUnknown;
         var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
         list.Add(new Claim("role", canonicalRole));
         list.Add(new Claim(ClaimTypes.Role, canonicalRole));

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
@@ -37,7 +38,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/Invoice/list
-        // Date boundary: from is inclusive (>= start-of-day UTC), to is inclusive via exclusive-next-day (< to+1day UTC)
+        [HasPermission(AppPermissions.InvoiceView)]
         [HttpGet("list")]
         public async Task<ActionResult<PagedResult<InvoiceListItemDto>>> GetInvoicesList(
             [FromQuery] int page = 1,
@@ -126,8 +127,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/Invoice/pos-list
-        // POS-backed listing — sources data from PaymentDetails (actual POS transactions)
-        // Date boundary: from >= fromUtc, to < nextDayStartUtc
+        [HasPermission(AppPermissions.InvoiceView)]
         [HttpGet("pos-list")]
         public async Task<ActionResult<PagedResult<InvoiceListItemDto>>> GetPosInvoicesList(
             [FromQuery] int page = 1,
@@ -220,7 +220,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/Invoice/export
+        [HasPermission(AppPermissions.InvoiceExport)]
         [HttpGet("export")]
         public async Task<IActionResult> ExportInvoices(
             [FromQuery] DateTime? from = null,
@@ -294,7 +294,7 @@ namespace KasseAPI_Final.Controllers
             return value;
         }
 
-        // GET: api/Invoice
+        [HasPermission(AppPermissions.InvoiceView)]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Invoice>>> GetInvoices(
             [FromQuery] DateTime? from = null,
@@ -348,7 +348,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/Invoice/5
+        [HasPermission(AppPermissions.InvoiceView)]
         [HttpGet("{id}")]
         public async Task<ActionResult<Invoice>> GetInvoice(Guid id)
         {
@@ -400,7 +400,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/Invoice
+        [HasPermission(AppPermissions.InvoiceManage)]
         [HttpPost]
         public async Task<ActionResult<Invoice>> CreateInvoice(CreateInvoiceRequest request)
         {
@@ -466,7 +466,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // PUT: api/Invoice/5
+        [HasPermission(AppPermissions.InvoiceManage)]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateInvoice(Guid id, UpdateInvoiceRequest request)
         {
@@ -508,7 +508,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // DELETE: api/Invoice/5
+        [HasPermission(AppPermissions.InvoiceManage)]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteInvoice(Guid id)
         {
@@ -529,7 +529,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/Invoice/5/duplicate
+        [HasPermission(AppPermissions.InvoiceManage)]
         [HttpPost("{id}/duplicate")]
         public async Task<ActionResult<Invoice>> DuplicateInvoice(Guid id)
         {
@@ -588,8 +588,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/Invoice/{id}/credit-note
-        // Creates a reversal (Gutschrift/Stornobeleg) linked to the original invoice.
+        [HasPermission(AppPermissions.CreditNoteCreate)]
         [HttpPost("{id}/credit-note")]
         public async Task<ActionResult<Invoice>> CreateCreditNote(Guid id, [FromBody] CreateCreditNoteRequest request)
         {
@@ -675,7 +674,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/Invoice/5/pdf
+        [HasPermission(AppPermissions.InvoiceView)]
         [HttpGet("{id}/pdf")]
         public async Task<IActionResult> GetInvoicePdf(Guid id, [FromQuery] bool copy = false)
         {
@@ -860,7 +859,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/Invoice/search?query=...
+        [HasPermission(AppPermissions.InvoiceView)]
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<Invoice>>> SearchInvoices([FromQuery] string query)
         {
@@ -868,7 +867,7 @@ namespace KasseAPI_Final.Controllers
              return await GetInvoices(query: query, page: 1, pageSize: 20);
         }
 
-        // GET: api/Invoice/status/{status}
+        [HasPermission(AppPermissions.InvoiceView)]
         [HttpGet("status/{status}")]
         public async Task<ActionResult<IEnumerable<Invoice>>> GetInvoicesByStatus(InvoiceStatus status)
         {
@@ -882,7 +881,7 @@ namespace KasseAPI_Final.Controllers
         // Required role: Admin
         // Responses: 200 OK (success + counts), 401 Unauthorized (no token), 403 Forbidden (non-Admin role)
         [HttpPost("backfill-from-payments")]
-        [Authorize(Policy = "SystemCritical")]
+        [HasPermission(AppPermissions.SystemCritical)]
         public async Task<IActionResult> BackfillInvoicesFromPayments()
         {
             int inserted = 0, skipped = 0, failed = 0;

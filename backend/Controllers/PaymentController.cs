@@ -24,7 +24,7 @@ namespace KasseAPI_Final.Controllers
     [Route("api/[controller]")]
     [Route("api/pos/payment")]
     [ApiController]
-    [Authorize(Policy = "PosSales")]
+    [HasPermission(AppPermissions.PaymentTake)]
     public class PaymentController : BaseController
     {
         private readonly IPaymentService _paymentService;
@@ -491,7 +491,7 @@ namespace KasseAPI_Final.Controllers
         /// TSE imzası oluştur
         /// </summary>
         [HttpPost("{id}/tse-signature")]
-        [Authorize(Policy = "PosTse")]
+        [HasPermission(AppPermissions.TseSign)]
         public async Task<IActionResult> GenerateTseSignature(Guid id)
         {
             try
@@ -521,7 +521,7 @@ namespace KasseAPI_Final.Controllers
         /// <response code="200">Diagnostic steps returned</response>
         /// <response code="404">Payment not found</response>
         [HttpGet("{id}/signature-debug")]
-        [Authorize(Policy = "PosTseDiagnostics")]
+        [HasPermission(AppPermissions.TseDiagnostics)]
         [ProducesResponseType(typeof(IReadOnlyList<SignatureDiagnosticStep>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetSignatureDebug(Guid id)
@@ -577,7 +577,7 @@ namespace KasseAPI_Final.Controllers
         /// <returns>Structured diagnostic result</returns>
         /// <response code="200">Verify result with checklist steps</response>
         [HttpPost("verify-signature")]
-        [Authorize(Policy = "PosTseDiagnostics")]
+        [HasPermission(AppPermissions.TseDiagnostics)]
         [ProducesResponseType(typeof(VerifySignatureResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public IActionResult VerifySignature([FromBody] VerifySignatureRequest request)

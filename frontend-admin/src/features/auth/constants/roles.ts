@@ -1,30 +1,40 @@
 /**
- * Kanonik roller ve yetki yardımcıları – backend UsersView/UsersManage ile uyumlu.
- * Tek kaynak: menü, sayfa guard'ları ve buton görünürlüğü buradan türetilir.
+ * Canonical roles and role-based helpers – aligned with backend Roles.cs.
+ * Prefer permission checks when user.permissions is available; use these for fallback/display only.
  */
 
-/** Backend UsersView policy: list/roles/search */
+/** Canonical role set – backend Roles.Canonical (SuperAdmin, Admin, Manager, Cashier, Waiter, Kitchen, ReportViewer, Accountant). */
+export const ROLES_CANONICAL = [
+  'SuperAdmin',
+  'Admin',
+  'Manager',
+  'Cashier',
+  'Waiter',
+  'Kitchen',
+  'ReportViewer',
+  'Accountant',
+] as const;
+
+export type CanonicalRole = (typeof ROLES_CANONICAL)[number];
+
+/** Roles that have user.view (list/roles/search). Backend: Manager, Admin, SuperAdmin. */
 export const ROLES_CAN_VIEW_USERS = [
   'SuperAdmin',
   'Admin',
-  'Administrator',
-  'BranchManager',
-  'Auditor',
+  'Manager',
 ] as const;
 
-/** Backend UsersManage policy: create/update/deactivate/reactivate/reset-password */
+/** Roles that have user.manage (create/update/deactivate/reactivate/reset-password). Backend: Admin, SuperAdmin only. */
 export const ROLES_CAN_MANAGE_USERS = [
   'SuperAdmin',
   'Admin',
-  'Administrator',
-  'BranchManager',
 ] as const;
 
 /** Sadece SuperAdmin rol oluşturabilir (POST /api/UserManagement/roles) */
 export const ROLES_CAN_CREATE_ROLE = ['SuperAdmin'] as const;
 
-/** RKSV menü: SuperAdmin, Admin, Administrator */
-export const ROLES_RKSV_MENU = ['SuperAdmin', 'Admin', 'Administrator'] as const;
+/** RKSV menü: SuperAdmin, Admin */
+export const ROLES_RKSV_MENU = ['SuperAdmin', 'Admin'] as const;
 
 export type UserRole = string;
 

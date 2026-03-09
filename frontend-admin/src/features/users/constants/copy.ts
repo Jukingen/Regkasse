@@ -65,7 +65,7 @@ export const usersCopy = {
   successDeactivate: 'Benutzer deaktiviert.',
   successReactivate: 'Benutzer reaktiviert.',
   errorGeneric: 'Fehler.',
-  noPermission: 'Nur Administratoren können Benutzer verwalten.',
+  noPermission: 'Nur Admins (Admin/SuperAdmin) können Benutzer verwalten.',
   accessDenied: 'Sie haben keine Berechtigung, Benutzer anzuzeigen.',
   branchNotAvailable: '—',
   details: 'Details',

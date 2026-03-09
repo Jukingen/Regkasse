@@ -7,16 +7,13 @@ namespace KasseAPI_Final.Authorization;
 /// <summary>
 /// Extension methods for permission-based authorization registration.
 /// Registers one policy per permission in PermissionCatalog.All (policy name: "Permission:{permission}").
-/// Legacy: Role-based policies remain; new endpoints use [HasPermission(AppPermissions.X)] or [Authorize(Policy = "Permission:...")].
-/// Administrator role is mapped to Admin permission set in RolePermissionMatrix (legacy alias).
+/// All endpoint authorization is permission-first via [HasPermission(AppPermissions.X)]; legacy role policies are no longer registered.
 /// </summary>
 public static class AuthorizationExtensions
 {
     /// <summary>
-    /// Registers the full app authorization layer: legacy role-based policies, permission-based policies,
-    /// PermissionAuthorizationHandler, and ForbiddenResponseAuthorizationHandler.
-    /// Legacy compatibility: existing [Authorize(Policy = "PosSales")] etc. stay; new endpoints use [HasPermission].
-    /// Administrator → Admin permission set in RolePermissionMatrix.
+    /// Registers the full app authorization layer: permission-based policies (one per PermissionCatalog.All),
+    /// PermissionAuthorizationHandler, and ForbiddenResponseAuthorizationHandler. Endpoints use [HasPermission(AppPermissions.X)].
     /// </summary>
     public static IServiceCollection AddAppAuthorization(this IServiceCollection services)
     {
@@ -47,52 +44,11 @@ public static class AuthorizationExtensions
     }
 
     /// <summary>
-    /// Legacy role-based policies. Kept for backward compatibility; do not remove until all endpoints use permission policies.
-    /// Uses Roles.* constants to avoid magic strings.
+    /// Legacy role-based policies: not registered. All endpoint protection is explicit via [HasPermission(AppPermissions.X)].
+    /// No bridge or coarse role policies; critical endpoints (Settings, CashRegister, SystemCritical) use permission attributes only.
     /// </summary>
     private static void AddLegacyRolePolicies(AuthorizationOptions options)
     {
-        options.AddPolicy("AdminUsers", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator));
-        options.AddPolicy("UsersView", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator, "BranchManager", "Auditor"));
-        options.AddPolicy("UsersManage", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator, "BranchManager"));
-
-        options.AddPolicy("BackofficeManagement", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator, Roles.Manager));
-        options.AddPolicy("BackofficeSettings", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator));
-
-        options.AddPolicy("PosSales", policy =>
-            policy.RequireRole(Roles.Cashier, Roles.Manager, Roles.Admin, Roles.Administrator, Roles.SuperAdmin));
-        options.AddPolicy("PosTableOrder", policy =>
-            policy.RequireRole(Roles.Waiter, Roles.Cashier, Roles.Manager, Roles.Admin, Roles.Administrator, Roles.SuperAdmin));
-        options.AddPolicy("PosCatalogRead", policy =>
-            policy.RequireRole(Roles.Waiter, Roles.Cashier, Roles.Manager, Roles.Admin, Roles.Administrator, Roles.SuperAdmin));
-
-        options.AddPolicy("CatalogManage", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator, Roles.Manager));
-        options.AddPolicy("InventoryManage", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator, Roles.Manager));
-        options.AddPolicy("InventoryDelete", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator));
-
-        options.AddPolicy("AuditView", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator, Roles.Manager));
-        options.AddPolicy("AuditViewWithCashier", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator, Roles.Manager, Roles.Cashier));
-        options.AddPolicy("AuditAdmin", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator));
-
-        options.AddPolicy("PosTse", policy =>
-            policy.RequireRole(Roles.Cashier, Roles.Manager, Roles.Admin, Roles.Administrator, Roles.SuperAdmin));
-        options.AddPolicy("PosTseDiagnostics", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator));
-
-        options.AddPolicy("SystemCritical", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator));
-        options.AddPolicy("CashRegisterManage", policy =>
-            policy.RequireRole(Roles.SuperAdmin, Roles.Admin, Roles.Administrator));
+        // Intentionally empty: permission-first only. Do not add role-based policies here.
     }
 }

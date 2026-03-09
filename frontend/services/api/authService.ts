@@ -19,6 +19,7 @@ export interface LoginResponse {
     firstName?: string;
     lastName?: string;
     roles?: string[];
+    permissions?: string[];
   };
 }
 
@@ -30,6 +31,8 @@ export interface User {
   firstName?: string;
   lastName?: string;
   roles?: string[];
+  /** Backend permission claims (resource.action). Aligned with backend RolePermissionMatrix. */
+  permissions?: string[];
 }
 
 // Login işlemi

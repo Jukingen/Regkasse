@@ -1,30 +1,36 @@
 'use client';
 
-import { useEffect, ReactNode, FC } from 'react';
+import React, { useEffect, ReactNode, FC } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
+import { hasAnyPermission } from './permissions';
 import { Spin } from 'antd';
+
+const ADMIN_PERMISSIONS = ['user.manage', 'settings.manage'] as const;
 
 interface AdminOnlyGateProps {
     children: ReactNode;
 }
 
 /**
- * Admin-only access: redirects to /403 if user is not Administrator.
+ * Admin-only access: permission-first (user.manage or settings.manage); fallback to canonical roles Admin/SuperAdmin.
+ * Redirects to /403 if user lacks admin permission/role. No legacy role names.
  */
 export const AdminOnlyGate: FC<AdminOnlyGateProps> = ({ children }) => {
     const { user, authStatus, isInitialized } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-
-    const isAdmin = user?.role === 'Administrator';
+    const permissions = user?.permissions ?? [];
+    const role = user?.role ?? '';
+    const isAdmin =
+        permissions.length > 0
+            ? hasAnyPermission(user, [...ADMIN_PERMISSIONS])
+            : role === 'Admin' || role === 'SuperAdmin';
 
     useEffect(() => {
         if (!isInitialized || authStatus === AuthStatus.Loading) return;
         if (authStatus === AuthStatus.Unauthenticated) return;
-        if (!isAdmin) {
-            router.replace('/403');
-        }
+        if (!isAdmin) router.replace('/403');
     }, [isInitialized, authStatus, isAdmin, router, pathname]);
 
     if (!isInitialized || authStatus === AuthStatus.Loading) {

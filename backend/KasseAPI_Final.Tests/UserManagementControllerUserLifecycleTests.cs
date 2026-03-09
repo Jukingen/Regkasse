@@ -79,7 +79,7 @@ public class UserManagementControllerUserLifecycleTests
         IUserSessionInvalidation sessionInvalidation,
         IUserUniquenessValidationService? uniquenessValidation = null,
         string? actorId = "admin-id",
-        string actorRole = "Administrator")
+        string actorRole = "Admin")
     {
         var logger = new Mock<ILogger<UserManagementController>>().Object;
         var controller = new UserManagementController(context, userManager, roleManager, auditLogService, sessionInvalidation, uniquenessValidation ?? CreateUniquenessValidationMock(), logger);
@@ -149,7 +149,7 @@ public class UserManagementControllerUserLifecycleTests
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         using var context = CreateContext();
-        var controller = CreateController(context, userManager, roleManager, audit, session, actorId: "u1", actorRole: "Administrator");
+        var controller = CreateController(context, userManager, roleManager, audit, session, actorId: "u1", actorRole: "Admin");
 
         var result = await controller.DeactivateUser("u1", new DeactivateUserRequest { Reason = "Leaving" });
 

@@ -50,11 +50,14 @@ public static class AppPermissions
     public const string ShiftView = "shift.view";
     public const string ShiftOpen = "shift.open";
     public const string ShiftClose = "shift.close";
+    /// <summary>Combined shift management (open/close/config). Use when action spans both open and close.</summary>
+    public const string ShiftManage = "shift.manage";
 
     // --- Inventory, Customer ---
     public const string InventoryView = "inventory.view";
     public const string InventoryManage = "inventory.manage";
     public const string InventoryAdjust = "inventory.adjust";
+    public const string InventoryDelete = "inventory.delete";
     public const string CustomerView = "customer.view";
     public const string CustomerManage = "customer.manage";
 
@@ -87,6 +90,13 @@ public static class AppPermissions
     // --- Kitchen (order display / status updates) ---
     public const string KitchenView = "kitchen.view";
     public const string KitchenUpdate = "kitchen.update";
+
+    // --- TSE (fiscal signing) ---
+    public const string TseSign = "tse.sign";
+    public const string TseDiagnostics = "tse.diagnostics";
+
+    // --- System-critical (permanent delete, high-risk) ---
+    public const string SystemCritical = "system.critical";
 
     // --- Legacy / convenience (price override, receipt reprint) ---
     public const string PriceOverride = "price.override";

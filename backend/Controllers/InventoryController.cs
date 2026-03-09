@@ -22,7 +22,7 @@ namespace KasseAPI_Final.Controllers
             _logger = logger;
         }
 
-        // GET: api/inventory
+        [HasPermission(AppPermissions.InventoryView)]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<InventoryItem>>> GetInventory()
         {
@@ -67,7 +67,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/inventory/{id}
+        [HasPermission(AppPermissions.InventoryView)]
         [HttpGet("{id}")]
         public async Task<ActionResult<InventoryItem>> GetInventoryItem(Guid id)
         {
@@ -116,7 +116,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/inventory
         [HttpPost]
-        [Authorize(Policy = "InventoryManage")]
+        [HasPermission(AppPermissions.InventoryManage)]
         public async Task<ActionResult<InventoryItem>> CreateInventoryItem([FromBody] CreateInventoryItemRequest request)
         {
             try
@@ -179,7 +179,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/inventory/{id}
         [HttpPut("{id}")]
-        [Authorize(Policy = "InventoryManage")]
+        [HasPermission(AppPermissions.InventoryManage)]
         public async Task<IActionResult> UpdateInventoryItem(Guid id, [FromBody] UpdateInventoryItemRequest request)
         {
             try
@@ -223,7 +223,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/inventory/{id}/restock
         [HttpPost("{id}/restock")]
-        [Authorize(Policy = "InventoryManage")]
+        [HasPermission(AppPermissions.InventoryManage)]
         public async Task<IActionResult> RestockInventory(Guid id, [FromBody] RestockRequest request)
         {
             try
@@ -283,7 +283,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/inventory/{id}/adjust
         [HttpPost("{id}/adjust")]
-        [Authorize(Policy = "InventoryManage")]
+        [HasPermission(AppPermissions.InventoryManage)]
         [HasPermission(AppPermissions.InventoryAdjust)]
         public async Task<IActionResult> AdjustInventory(Guid id, [FromBody] AdjustInventoryRequest request)
         {
@@ -345,6 +345,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/inventory/low-stock
+        [HasPermission(AppPermissions.InventoryView)]
         [HttpGet("low-stock")]
         public async Task<ActionResult<IEnumerable<InventoryItem>>> GetLowStockItems()
         {
@@ -391,6 +392,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/inventory/transactions/{id}
+        [HasPermission(AppPermissions.InventoryView)]
         [HttpGet("transactions/{id}")]
         public async Task<ActionResult<IEnumerable<InventoryTransaction>>> GetInventoryTransactions(Guid id)
         {
@@ -412,7 +414,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/inventory/{id}
         [HttpDelete("{id}")]
-        [Authorize(Policy = "InventoryDelete")]
+        [HasPermission(AppPermissions.InventoryDelete)]
         public async Task<IActionResult> DeleteInventoryItem(Guid id)
         {
             try

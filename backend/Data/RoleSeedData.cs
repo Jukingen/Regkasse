@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using KasseAPI_Final.Authorization;
 
 namespace KasseAPI_Final.Data
 {
@@ -6,24 +7,15 @@ namespace KasseAPI_Final.Data
     {
     public static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
     {
-            // Administrator: FE-Admin ve API [Authorize(Roles = "Administrator")] ile uyumlu
-            if (!await roleManager.RoleExistsAsync("Administrator"))
+            if (!await roleManager.RoleExistsAsync(Roles.Admin))
             {
-                await roleManager.CreateAsync(new IdentityRole("Administrator"));
-                Console.WriteLine("Administrator role created successfully");
-            }
-
-            // Admin rolü (geriye uyumluluk)
-            if (!await roleManager.RoleExistsAsync("Admin"))
-            {
-                await roleManager.CreateAsync(new IdentityRole("Admin"));
+                await roleManager.CreateAsync(new IdentityRole(Roles.Admin));
                 Console.WriteLine("Admin role created successfully");
             }
 
-            // Kasiyer rolü
-            if (!await roleManager.RoleExistsAsync("Cashier"))
+            if (!await roleManager.RoleExistsAsync(Roles.Cashier))
             {
-                await roleManager.CreateAsync(new IdentityRole("Cashier"));
+                await roleManager.CreateAsync(new IdentityRole(Roles.Cashier));
                 Console.WriteLine("Cashier role created successfully");
             }
 
@@ -34,10 +26,9 @@ namespace KasseAPI_Final.Data
                 Console.WriteLine("Kellner role created successfully");
             }
 
-            // Waiter – canonical role for POS table/order (policy PosTableOrder)
-            if (!await roleManager.RoleExistsAsync("Waiter"))
+            if (!await roleManager.RoleExistsAsync(Roles.Waiter))
             {
-                await roleManager.CreateAsync(new IdentityRole("Waiter"));
+                await roleManager.CreateAsync(new IdentityRole(Roles.Waiter));
                 Console.WriteLine("Waiter role created successfully");
             }
 
@@ -55,24 +46,24 @@ namespace KasseAPI_Final.Data
                 Console.WriteLine("Demo role created successfully");
             }
 
-            // Manager rolü
-            if (!await roleManager.RoleExistsAsync("Manager"))
+            if (!await roleManager.RoleExistsAsync(Roles.Manager))
             {
-                await roleManager.CreateAsync(new IdentityRole("Manager"));
+                await roleManager.CreateAsync(new IdentityRole(Roles.Manager));
                 Console.WriteLine("Manager role created successfully");
             }
 
-            // SOP/Permission matrix: BranchManager, SuperAdmin (policies not yet extended; seeds for future use)
             if (!await roleManager.RoleExistsAsync("BranchManager"))
             {
                 await roleManager.CreateAsync(new IdentityRole("BranchManager"));
                 Console.WriteLine("BranchManager role created successfully");
             }
-            if (!await roleManager.RoleExistsAsync("SuperAdmin"))
+            if (!await roleManager.RoleExistsAsync(Roles.SuperAdmin))
             {
-                await roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
+                await roleManager.CreateAsync(new IdentityRole(Roles.SuperAdmin));
                 Console.WriteLine("SuperAdmin role created successfully");
             }
+
+            // Single admin role is Admin only (see Roles.cs). Do not seed legacy role names.
     }
     }
 }

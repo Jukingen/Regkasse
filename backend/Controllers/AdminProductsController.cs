@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
@@ -14,7 +15,7 @@ namespace KasseAPI_Final.Controllers
     /// </summary>
     [Route("api/admin/products")]
     [ApiController]
-    [Authorize(Policy = "CatalogManage")]
+    [HasPermission(AppPermissions.ProductManage)]
     public class AdminProductsController : BaseController
     {
         private readonly AppDbContext _context;

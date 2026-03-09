@@ -1,20 +1,38 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Linq; // Added for FirstOrDefault
+using KasseAPI_Final.Authorization;
 
 namespace KasseAPI_Final.Middleware
 {
     /// <summary>
-    /// Middleware for enhancing security of payment cancellation/modification API requests
-    /// This middleware validates payment operations and prevents unauthorized modifications
+    /// Middleware for payment security endpoints (refund, cancel, modify, void, reverse, update-status).
+    /// Permission-first: no role list; access is determined only by JWT permission claims.
+    /// Admin has all payment permissions in RolePermissionMatrix, so Admin is never locked out.
+    /// Fail-closed: no permission claims or missing required permission → 403.
     /// </summary>
     public class PaymentSecurityMiddleware
     {
+        /// <summary>Path segment → required permission(s). User must have at least one. Uses AppPermissions only.</summary>
+        private static readonly IReadOnlyDictionary<string, string[]> EndpointRequiredPermissions = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["refund"] = new[] { AppPermissions.RefundCreate },
+            ["cancel"] = new[] { AppPermissions.PaymentCancel },
+            ["modify"] = new[] { AppPermissions.PaymentCancel },
+            ["void"] = new[] { AppPermissions.PaymentCancel },
+            ["reverse"] = new[] { AppPermissions.PaymentCancel },
+            ["update-status"] = new[] { AppPermissions.PaymentTake },
+        };
+
+        /// <summary>Fallback when path does not match any key: require at least one of these (no role list).</summary>
+        private static readonly string[] FallbackPaymentPermissions = { AppPermissions.PaymentTake, AppPermissions.PaymentCancel, AppPermissions.RefundCreate };
+
         private readonly RequestDelegate _next;
         private readonly ILogger<PaymentSecurityMiddleware> _logger;
 
@@ -50,7 +68,7 @@ namespace KasseAPI_Final.Middleware
                     }
 
                     // Log request details for audit purposes
-                    await LogPaymentRequest(context, requestPath, requestMethod);
+                    await LogPaymentRequest(context, requestPath ?? string.Empty, requestMethod);
 
                     // Validate request body for payment operations
                     if (requestMethod == "POST" || requestMethod == "PUT")
@@ -116,6 +134,21 @@ namespace KasseAPI_Final.Middleware
         }
 
         /// <summary>
+        /// Returns the permission(s) required for the given path. User must have at least one.
+        /// Uses AppPermissions only; no role names.
+        /// </summary>
+        private static string[] GetRequiredPermissionsForPath(string requestPath)
+        {
+            if (string.IsNullOrEmpty(requestPath)) return FallbackPaymentPermissions;
+            foreach (var kvp in EndpointRequiredPermissions)
+            {
+                if (requestPath.Contains(kvp.Key, StringComparison.OrdinalIgnoreCase))
+                    return kvp.Value;
+            }
+            return FallbackPaymentPermissions;
+        }
+
+        /// <summary>
         /// Validates payment request headers and authentication
         /// </summary>
         private async Task<bool> ValidatePaymentRequest(HttpContext context)
@@ -130,22 +163,23 @@ namespace KasseAPI_Final.Middleware
                     return false;
                 }
 
-                // Check if user has required role for payment operations
-                var userRole = context.User.FindFirst("role")?.Value;
-                if (string.IsNullOrEmpty(userRole))
+                // Permission-first: resolve required permission(s) for this path; user must have at least one (no role list)
+                var requestPath = context.Request.Path.Value?.ToLower() ?? string.Empty;
+                var requiredPermissions = GetRequiredPermissionsForPath(requestPath);
+                var permissionClaims = context.User.Claims
+                    .Where(c => string.Equals(c.Type, PermissionCatalog.PermissionClaimType, StringComparison.OrdinalIgnoreCase))
+                    .Select(c => c.Value)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                if (permissionClaims.Count == 0)
                 {
-                    _logger.LogWarning("User without role attempting payment operation from IP: {IP}", 
+                    _logger.LogWarning("User with no permission claims attempting payment operation from IP: {IP}", 
                         GetClientIpAddress(context));
                     return false;
                 }
-
-                // Validate user role permissions
-                var allowedRoles = new[] { "Administrator", "Manager", "Cashier" };
-                if (!Array.Exists(allowedRoles, role => 
-                    string.Equals(role, userRole, StringComparison.OrdinalIgnoreCase)))
+                if (!requiredPermissions.Any(p => permissionClaims.Contains(p)))
                 {
-                    _logger.LogWarning("User with insufficient role {UserRole} attempting payment operation from IP: {IP}", 
-                        userRole, GetClientIpAddress(context));
+                    _logger.LogWarning("User lacking required payment permission for path {Path} (required: {Required}) from IP: {IP}", 
+                        requestPath, string.Join(", ", requiredPermissions), GetClientIpAddress(context));
                     return false;
                 }
 

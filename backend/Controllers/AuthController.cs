@@ -75,7 +75,7 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var roles = await _userManager.GetRolesAsync(user);
-                var primaryRole = roles.FirstOrDefault() ?? user.Role ?? "User";
+                var primaryRole = roles.FirstOrDefault() ?? user.Role ?? Roles.FallbackUnknown;
                 var claims = await _tokenClaimsService.BuildClaimsAsync(user, roles);
                 var token = GenerateJwtToken(claims);
                 var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles).ToList();
@@ -182,9 +182,9 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "User account is not active" });
                 }
 
-                // Kullanıcı rollerini al; permission set RolePermissionMatrix'ten (Administrator → Admin set)
+                // Kullanıcı rollerini al; permission set RolePermissionMatrix'ten
                 var roles = await _userManager.GetRolesAsync(user);
-                var primaryRole = roles.FirstOrDefault() ?? user.Role ?? "User";
+                var primaryRole = roles.FirstOrDefault() ?? user.Role ?? Roles.FallbackUnknown;
                 var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles).ToList();
                 var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
 
@@ -257,7 +257,7 @@ namespace KasseAPI_Final.Controllers
                 
                 if (result.Succeeded)
                 {
-                    await _userManager.AddToRoleAsync(user, "Cashier");
+                    await _userManager.AddToRoleAsync(user, Roles.Cashier);
                     return Ok(new { message = "Kullanıcı başarıyla oluşturuldu" });
                 }
                 

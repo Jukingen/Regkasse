@@ -4,7 +4,7 @@ using Xunit;
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// Unit tests for RolePermissionMatrix: role-to-permission mapping and Administrator = Admin alias.
+/// Unit tests for RolePermissionMatrix: role-to-permission mapping.
 /// </summary>
 public class RolePermissionMatrixTests
 {
@@ -46,7 +46,13 @@ public class RolePermissionMatrixTests
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.SettingsManage));
     }
 
-    // --- Negative: role must NOT have permission (authorization migration scenarios) ---
+    [Fact]
+    public void RoleHasPermission_Admin_Has_PaymentTake_So_PaymentMiddleware_Allows_Admin()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.PaymentTake));
+    }
+
+    // --- Negative: role must NOT have permission ---
 
     [Fact]
     public void RoleHasPermission_Waiter_DoesNotHave_RefundCreate()
@@ -72,30 +78,82 @@ public class RolePermissionMatrixTests
         Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.ReportViewer, AppPermissions.PaymentTake));
     }
 
-    // --- Administrator = Admin alias ---
-
     [Fact]
-    public void RoleHasPermission_Administrator_Has_SettingsManage_SameAs_Admin()
+    public void RoleHasPermission_Waiter_DoesNotHave_CartManage()
     {
-        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Administrator, AppPermissions.SettingsManage));
-        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.SettingsManage));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Waiter, AppPermissions.CartManage));
     }
 
     [Fact]
-    public void RoleHasPermission_Administrator_Has_UserManage_SameAs_Admin()
+    public void RoleHasPermission_Waiter_Has_CartView()
     {
-        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Administrator, AppPermissions.UserManage));
-        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.UserManage));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Waiter, AppPermissions.CartView));
     }
 
     [Fact]
-    public void GetPermissionsForRoles_Administrator_SetEquals_Admin()
+    public void RoleHasPermission_SuperAdmin_Has_SystemCritical()
     {
-        var adminPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Admin });
-        var administratorPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Administrator });
-        Assert.Equal(adminPerms.Count, administratorPerms.Count);
-        foreach (var p in adminPerms)
-            Assert.True(administratorPerms.Contains(p));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.SystemCritical));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Admin_DoesNotHave_SystemCritical()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.SystemCritical));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_Has_UserView()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.UserView));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_DoesNotHave_UserManage()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.UserManage));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Admin_DoesNotHave_InventoryDelete()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.InventoryDelete));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Admin_DoesNotHave_TseDiagnostics()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.TseDiagnostics));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Admin_DoesNotHave_AuditCleanup()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.AuditCleanup));
+    }
+
+    [Fact]
+    public void RoleHasPermission_SuperAdmin_Has_TseDiagnostics()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.TseDiagnostics));
+    }
+
+    [Fact]
+    public void RoleHasPermission_SuperAdmin_Has_AuditCleanup()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.AuditCleanup));
+    }
+
+    [Fact]
+    public void RoleHasPermission_SuperAdmin_Has_InventoryDelete()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.InventoryDelete));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_DoesNotHave_InventoryDelete()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.InventoryDelete));
     }
 
     // --- Edge cases ---
@@ -104,6 +162,22 @@ public class RolePermissionMatrixTests
     public void RoleHasPermission_UnknownRole_ReturnsFalse()
     {
         Assert.False(RolePermissionMatrix.RoleHasPermission("UnknownRole", AppPermissions.PaymentTake));
+    }
+
+    /// <summary>Administrator is unsupported/absent; canonical admin role is Admin only.</summary>
+    [Fact]
+    public void RoleHasPermission_AdministratorRole_NotInMatrix_ReturnsFalse()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission("Administrator", AppPermissions.UserManage));
+        Assert.False(RolePermissionMatrix.RoleHasPermission("Administrator", AppPermissions.SettingsManage));
+    }
+
+    [Fact]
+    public void GetPermissionsForRoles_Administrator_ReturnsEmpty()
+    {
+        var perms = RolePermissionMatrix.GetPermissionsForRoles(new[] { "Administrator" });
+        Assert.NotNull(perms);
+        Assert.Empty(perms);
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
 
@@ -154,7 +155,7 @@ namespace KasseAPI_Final.Controllers.Base
         /// Entity'yi kalıcı olarak sil
         /// </summary>
         [HttpDelete("{id}/permanent")]
-        [Authorize(Policy = "SystemCritical")] // Sadece admin kalıcı silebilir
+        [HasPermission(AppPermissions.SystemCritical)]
         public virtual async Task<IActionResult> HardDelete(Guid id)
         {
             try

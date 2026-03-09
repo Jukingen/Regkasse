@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.DTOs;
 using System.Security.Claims;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Controllers
 {
-    [Authorize(Policy = "PosSales")]
+    [HasPermission(AppPermissions.SaleCreate)]
     [ApiController]
     [Route("api/[controller]")]
     public class ReceiptsController : ControllerBase

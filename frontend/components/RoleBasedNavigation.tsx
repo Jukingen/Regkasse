@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { AuthContext } from '../contexts/AuthContext';
 import { PermissionHelper, UserRole } from '../shared/utils/PermissionHelper';
 
 interface NavigationItem {
@@ -15,13 +16,13 @@ interface NavigationItem {
 }
 
 const NAVIGATION_ITEMS: NavigationItem[] = [
-  // Kasiyer menüleri
+  // POS – Cashier, Waiter, Manager, Admin, SuperAdmin
   {
     id: 'sales',
     title: 'navigation.sales',
     icon: 'point-of-sale',
     screen: 'SalesScreen',
-    roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
+    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.sales'
   },
   {
@@ -29,7 +30,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.products',
     icon: 'inventory',
     screen: 'ProductListScreen',
-    roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
+    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.products'
   },
   {
@@ -37,7 +38,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.cart',
     icon: 'shopping-cart',
     screen: 'CartScreen',
-    roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
+    roles: [UserRole.Cashier, UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.cart'
   },
   {
@@ -45,26 +46,25 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.customers',
     icon: 'people',
     screen: 'CustomerScreen',
-    roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
+    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.customers'
   },
-
   {
     id: 'tables',
     title: 'navigation.tables',
     icon: 'table-restaurant',
     screen: 'TableSelectionScreen',
-    roles: [UserRole.Cashier, UserRole.Admin, UserRole.Manager],
+    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.tables'
   },
 
-  // Admin menüleri
+  // Admin / SuperAdmin
   {
     id: 'users',
     title: 'navigation.users',
     icon: 'admin-panel-settings',
     screen: 'UserManagementScreen',
-    roles: [UserRole.Admin],
+    roles: [UserRole.Admin, UserRole.SuperAdmin],
     description: 'navigation.users'
   },
   {
@@ -72,7 +72,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.roles',
     icon: 'security',
     screen: 'RoleManagementScreen',
-    roles: [UserRole.Admin],
+    roles: [UserRole.Admin, UserRole.SuperAdmin],
     description: 'navigation.roles'
   },
   {
@@ -80,7 +80,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.system',
     icon: 'settings',
     screen: 'SystemSettingsScreen',
-    roles: [UserRole.Admin],
+    roles: [UserRole.Admin, UserRole.SuperAdmin],
     description: 'navigation.system'
   },
   {
@@ -88,7 +88,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.demo',
     icon: 'person-add',
     screen: 'DemoUserManagementScreen',
-    roles: [UserRole.Admin],
+    roles: [UserRole.Admin, UserRole.SuperAdmin],
     description: 'navigation.demo'
   },
   {
@@ -96,7 +96,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.hardware',
     icon: 'devices',
     screen: 'HardwareManagementScreen',
-    roles: [UserRole.Admin],
+    roles: [UserRole.Admin, UserRole.SuperAdmin],
     description: 'navigation.hardware'
   },
   {
@@ -104,7 +104,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.inventory',
     icon: 'inventory-2',
     screen: 'InventoryManagementScreen',
-    roles: [UserRole.Admin],
+    roles: [UserRole.Admin, UserRole.SuperAdmin],
     description: 'navigation.inventory'
   },
   {
@@ -112,7 +112,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.finanzonline',
     icon: 'account-balance',
     screen: 'FinanzOnlineScreen',
-    roles: [UserRole.Admin],
+    roles: [UserRole.Admin, UserRole.SuperAdmin],
     description: 'navigation.finanzonline'
   },
   {
@@ -120,17 +120,17 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.backup',
     icon: 'backup',
     screen: 'BackupRestoreScreen',
-    roles: [UserRole.Admin],
+    roles: [UserRole.Admin, UserRole.SuperAdmin],
     description: 'navigation.backup'
   },
 
-  // Manager menüleri
+  // Reports / Audit
   {
     id: 'reports',
     title: 'navigation.reports',
     icon: 'assessment',
     screen: 'ReportsScreen',
-    roles: [UserRole.Admin, UserRole.Manager],
+    roles: [UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.reports'
   },
   {
@@ -138,7 +138,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.audit',
     icon: 'history',
     screen: 'AuditLogsScreen',
-    roles: [UserRole.Admin, UserRole.Manager],
+    roles: [UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.audit'
   },
   {
@@ -165,26 +165,48 @@ interface RoleBasedNavigationProps {
 }
 
 export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleBasedNavigationProps) {
+  const { user } = React.useContext(AuthContext);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [accessibleItems, setAccessibleItems] = useState<NavigationItem[]>([]);
   const { t } = useTranslation();
 
+  const usePermissionFirst = (user?.permissions?.length ?? 0) > 0;
+
   useEffect(() => {
     loadUserRole();
-  }, []);
+  }, [user?.role, user?.permissions]);
 
   const loadUserRole = async () => {
-    const role = await PermissionHelper.getUserRole();
-    setUserRole(role);
-    
+    const role = user?.role ? (user.role as UserRole) : await PermissionHelper.getUserRole();
     if (role) {
-      const items = NAVIGATION_ITEMS.filter(item => item.roles.includes(role));
+      PermissionHelper.setUserRole(role);
+      setUserRole(role);
+    } else {
+      setUserRole(null);
+    }
+
+    if (usePermissionFirst && user?.permissions?.length) {
+      const items = NAVIGATION_ITEMS.filter((item) =>
+        PermissionHelper.hasScreenAccessByPermission(item.screen, user.permissions!)
+      );
       setAccessibleItems(items);
+    } else if (role) {
+      const items = NAVIGATION_ITEMS.filter((item) => item.roles.includes(role));
+      setAccessibleItems(items);
+    } else {
+      setAccessibleItems([]);
     }
   };
 
+  const hasAccess = (screen: string): boolean => {
+    if (usePermissionFirst && user?.permissions?.length) {
+      return PermissionHelper.hasScreenAccessByPermission(screen, user.permissions);
+    }
+    return PermissionHelper.hasScreenAccess(screen);
+  };
+
   const handleNavigation = (item: NavigationItem) => {
-    if (!PermissionHelper.hasScreenAccess(item.screen)) {
+    if (!hasAccess(item.screen)) {
       Alert.alert(
         t('errors.unauthorized', 'Yetkisiz Erişim'),
         t('errors.noAccess', 'Bu ekrana erişim yetkiniz bulunmamaktadır.'),
@@ -198,7 +220,7 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
 
   const renderNavigationItem = (item: NavigationItem) => {
     const isActive = currentScreen === item.screen;
-    const hasAccess = PermissionHelper.hasScreenAccess(item.screen);
+    const itemHasAccess = hasAccess(item.screen);
 
     return (
       <TouchableOpacity
@@ -206,36 +228,36 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
         style={[
           styles.navItem,
           isActive && styles.activeNavItem,
-          !hasAccess && styles.disabledNavItem
+          !itemHasAccess && styles.disabledNavItem
         ]}
         onPress={() => handleNavigation(item)}
-        disabled={!hasAccess}
+        disabled={!itemHasAccess}
       >
         <View style={styles.navItemContent}>
           <MaterialIcons
             name={item.icon as any}
             size={24}
-            color={isActive ? '#fff' : hasAccess ? '#333' : '#ccc'}
+            color={isActive ? '#fff' : itemHasAccess ? '#333' : '#ccc'}
           />
           <View style={styles.navItemText}>
             <Text style={[
               styles.navItemTitle,
               isActive && styles.activeNavItemTitle,
-              !hasAccess && styles.disabledNavItemTitle
+              !itemHasAccess && styles.disabledNavItemTitle
             ]}>
               {t(item.title)}
             </Text>
             <Text style={[
               styles.navItemDescription,
               isActive && styles.activeNavItemDescription,
-              !hasAccess && styles.disabledNavItemDescription
+              !itemHasAccess && styles.disabledNavItemDescription
             ]}>
               {t(item.description)}
             </Text>
           </View>
         </View>
         
-        {!hasAccess && (
+        {!itemHasAccess && (
           <View style={styles.accessDeniedBadge}>
             <MaterialIcons name="block" size={16} color="#f44336" />
           </View>

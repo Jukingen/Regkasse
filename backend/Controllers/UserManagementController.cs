@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Auth;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
@@ -67,7 +68,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // PUT: api/usermanagement/me/password — change own password (any authenticated user)
+        // PUT: api/usermanagement/me/password — change own password (any authenticated user; self-service, no resource permission)
         [HttpPut("me/password")]
         [Authorize]
         public async Task<IActionResult> ChangeOwnPassword([FromBody] ChangePasswordRequest request)
@@ -113,7 +114,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/usermanagement — birleşik liste: query + role + isActive + page + pageSize
         [HttpGet]
-        [Authorize(Policy = "UsersView")]
+        [HasPermission(AppPermissions.UserView)]
         public async Task<ActionResult<UsersListResponse>> GetUsers(
             [FromQuery] string? query = null,
             [FromQuery] string? role = null,
@@ -193,7 +194,7 @@ namespace KasseAPI_Final.Controllers
         /// Route: GET /api/UserManagement/{id}
         /// </summary>
         [HttpGet("{id}")]
-        [Authorize(Policy = "UsersView")]
+        [HasPermission(AppPermissions.UserView)]
         public async Task<ActionResult<UserInfo>> GetUser(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -235,7 +236,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/usermanagement
         [HttpPost]
-        [Authorize(Policy = "UsersManage")]
+        [HasPermission(AppPermissions.UserManage)]
         public async Task<ActionResult<UserInfo>> CreateUser([FromBody] CreateUserRequest request)
         {
             try
@@ -332,7 +333,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}
         [HttpPut("{id}")]
-        [Authorize(Policy = "UsersManage")]
+        [HasPermission(AppPermissions.UserManage)]
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserRequest request)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -437,7 +438,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/password — admin changes another user's password with current password (rare). Prefer reset-password for force reset.
         [HttpPut("{id}/password")]
-        [Authorize(Policy = "UsersManage")]
+        [HasPermission(AppPermissions.UserManage)]
         public async Task<IActionResult> ChangePassword(string id, [FromBody] ChangePasswordRequest request)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -488,7 +489,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/reset-password — force reset (admin only; no current password). Block self; only SuperAdmin can reset SuperAdmin.
         [HttpPut("{id}/reset-password")]
-        [Authorize(Policy = "UsersManage")]
+        [HasPermission(AppPermissions.UserManage)]
         public async Task<IActionResult> ResetPassword(string id, [FromBody] ResetPasswordRequest request)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -535,15 +536,15 @@ namespace KasseAPI_Final.Controllers
                 var actorRole = GetCurrentUserRole();
                 var targetCanonicalRole = RoleCanonicalization.GetCanonicalRole(user.Role);
                 var actorCanonicalRole = RoleCanonicalization.GetCanonicalRole(actorRole);
-                if (string.Equals(targetCanonicalRole, RoleCanonicalization.Canonical.SuperAdmin, StringComparison.Ordinal) &&
-                    !string.Equals(actorCanonicalRole, RoleCanonicalization.Canonical.SuperAdmin, StringComparison.Ordinal))
+                if (string.Equals(targetCanonicalRole, Roles.SuperAdmin, StringComparison.Ordinal) &&
+                    !string.Equals(actorCanonicalRole, Roles.SuperAdmin, StringComparison.Ordinal))
                 {
                     var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
                     return StatusCode(403, new
                     {
                         code = ApiError.ForbiddenPayload.Code,
                         reason = ApiError.ForbiddenPayload.Reason,
-                        requiredPolicy = "UsersManage",
+                        requiredPolicy = "user.manage",
                         missingRequirement = "Role",
                         correlationId,
                     });
@@ -577,7 +578,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/deactivate
         [HttpPut("{id}/deactivate")]
-        [Authorize(Policy = "UsersManage")]
+        [HasPermission(AppPermissions.UserManage)]
         public async Task<IActionResult> DeactivateUser(string id, [FromBody] DeactivateUserRequest request)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -641,7 +642,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/reactivate
         [HttpPut("{id}/reactivate")]
-        [Authorize(Policy = "UsersManage")]
+        [HasPermission(AppPermissions.UserManage)]
         public async Task<IActionResult> ReactivateUser(string id, [FromBody] ReactivateUserRequest? request = null)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -695,7 +696,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/usermanagement/{id} (soft-delete: deactivate without reason – prefer PUT deactivate for compliance)
         [HttpDelete("{id}")]
-        [Authorize(Policy = "UsersManage")]
+        [HasPermission(AppPermissions.UserManage)]
         public async Task<IActionResult> DeleteUser(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -748,7 +749,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/usermanagement/roles
         [HttpGet("roles")]
-        [Authorize(Policy = "UsersView")]
+        [HasPermission(AppPermissions.UserView)]
         public async Task<ActionResult<IEnumerable<string>>> GetRoles()
         {
             try
@@ -765,7 +766,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/usermanagement/roles
         [HttpPost("roles")]
-        [Authorize(Policy = "UsersManage")]
+        [HasPermission(AppPermissions.UserManage)]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
         {
             try
@@ -824,7 +825,7 @@ namespace KasseAPI_Final.Controllers
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string? EmployeeNumber { get; set; }
-        /// <summary>Role name for display and form select (e.g. Admin, BranchManager).</summary>
+        /// <summary>Role name for display and form select (e.g. Admin, Manager).</summary>
         public string? Role { get; set; }
         public string? TaxNumber { get; set; }
         public string? Notes { get; set; }

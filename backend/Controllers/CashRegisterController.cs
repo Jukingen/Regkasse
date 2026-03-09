@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -29,6 +30,7 @@ namespace KasseAPI_Final.Controllers
             _userManager = userManager;
         }
 
+        [HasPermission(AppPermissions.CashRegisterView)]
         [HttpGet]
         public async Task<IActionResult> GetCashRegisters()
         {
@@ -48,6 +50,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        [HasPermission(AppPermissions.CashRegisterView)]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCashRegister(Guid id)
         {
@@ -72,7 +75,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "CashRegisterManage")]
+        [HasPermission(AppPermissions.CashRegisterManage)]
         public async Task<IActionResult> CreateCashRegister([FromBody] CreateCashRegisterModel model)
         {
             try
@@ -113,6 +116,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        [HasPermission(AppPermissions.ShiftOpen)]
         [HttpPost("{id}/open")]
         public async Task<IActionResult> OpenCashRegister(Guid id, [FromBody] OpenCashRegisterModel model)
         {
@@ -163,6 +167,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        [HasPermission(AppPermissions.ShiftClose)]
         [HttpPost("{id}/close")]
         public async Task<IActionResult> CloseCashRegister(Guid id, [FromBody] CloseCashRegisterModel model)
         {
@@ -213,6 +218,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        [HasPermission(AppPermissions.CashRegisterView)]
         [HttpGet("{id}/transactions")]
         public async Task<IActionResult> GetCashRegisterTransactions(Guid id, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {

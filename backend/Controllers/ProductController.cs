@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
-using Microsoft.AspNetCore.Authorization;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data.Repositories;
 using System.Security.Cryptography;
@@ -19,7 +20,7 @@ namespace KasseAPI_Final.Controllers
     [Route("api/Product")]
     [Route("api/pos")]
     [ApiController]
-    [Authorize(Policy = "PosCatalogRead")]
+    [HasPermission(AppPermissions.ProductView)]
     public class ProductController : EntityController<Product>
     {
         private readonly AppDbContext _context;
@@ -539,6 +540,7 @@ namespace KasseAPI_Final.Controllers
         /// <summary>
         /// Ürüne modifier gruplarını ata. Mevcut atamalar replace edilir.
         /// </summary>
+        [HasPermission(AppPermissions.ProductManage)]
         [HttpPost("{id:guid}/modifier-groups")]
         public async Task<IActionResult> SetProductModifierGroups(Guid id, [FromBody] SetProductModifierGroupsRequest request)
         {
@@ -587,6 +589,7 @@ namespace KasseAPI_Final.Controllers
         /// <summary>
         /// Yeni ürün oluştur
         /// </summary>
+        [HasPermission(AppPermissions.ProductManage)]
         [HttpPost]
         public override async Task<IActionResult> Create([FromBody] Product product)
         {
@@ -631,6 +634,7 @@ namespace KasseAPI_Final.Controllers
         /// <summary>
         /// Ürün güncelle
         /// </summary>
+        [HasPermission(AppPermissions.ProductManage)]
         [HttpPut("{id}")]
         public override async Task<IActionResult> Update(Guid id, [FromBody] Product product)
         {
@@ -688,6 +692,7 @@ namespace KasseAPI_Final.Controllers
         /// <summary>
         /// Ürün stok güncelle
         /// </summary>
+        [HasPermission(AppPermissions.ProductManage)]
         [HttpPut("stock/{id}")]
         public async Task<IActionResult> UpdateProductStock(Guid id, [FromBody] UpdateStockRequest request)
         {

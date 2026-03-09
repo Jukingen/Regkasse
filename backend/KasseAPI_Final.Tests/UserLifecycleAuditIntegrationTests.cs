@@ -33,7 +33,7 @@ public class UserLifecycleAuditIntegrationTests
 
         await auditService.LogUserLifecycleAsync(
             AuditLogActions.USER_DEACTIVATE,
-            "admin-1", "Administrator", "u1",
+            "admin-1", "Admin", "u1",
             "Ausscheiden zum 31.03.2025", null, AuditLogStatus.Success,
             "User deactivated: u. Reason: Ausscheiden zum 31.03.2025");
 
@@ -54,8 +54,8 @@ public class UserLifecycleAuditIntegrationTests
         httpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null);
         var auditService = new AuditLogService(context, new Mock<ILogger<AuditLogService>>().Object, httpContextAccessor.Object);
 
-        await auditService.LogUserLifecycleAsync(AuditLogActions.USER_DEACTIVATE, "admin-1", "Administrator", "u1", "Urlaub", null, AuditLogStatus.Success, "Deactivated");
-        await auditService.LogUserLifecycleAsync(AuditLogActions.USER_REACTIVATE, "admin-1", "Administrator", "u1", null, null, AuditLogStatus.Success, "Reactivated");
+        await auditService.LogUserLifecycleAsync(AuditLogActions.USER_DEACTIVATE, "admin-1", "Admin", "u1", "Urlaub", null, AuditLogStatus.Success, "Deactivated");
+        await auditService.LogUserLifecycleAsync(AuditLogActions.USER_REACTIVATE, "admin-1", "Admin", "u1", null, null, AuditLogStatus.Success, "Reactivated");
 
         var deactivateLogs = await context.AuditLogs.Where(a => a.Action == AuditLogActions.USER_DEACTIVATE && a.EntityName == "u1").ToListAsync();
         var reactivateLogs = await context.AuditLogs.Where(a => a.Action == AuditLogActions.USER_REACTIVATE && a.EntityName == "u1").ToListAsync();

@@ -22,7 +22,7 @@ namespace KasseAPI_Final.Controllers
             _logger = logger;
         }
 
-        // GET: api/companysettings
+        [HasPermission(AppPermissions.SettingsView)]
         [HttpGet]
         public async Task<ActionResult<CompanySettings>> GetCompanySettings()
         {
@@ -90,7 +90,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings
         [HttpPut]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateCompanySettings([FromBody] UpdateCompanySettingsRequest request)
         {
@@ -160,7 +160,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/companysettings/business-hours
+        [HasPermission(AppPermissions.SettingsView)]
         [HttpGet("business-hours")]
         public async Task<ActionResult<Dictionary<string, string>>> GetBusinessHours()
         {
@@ -183,7 +183,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings/business-hours
         [HttpPut("business-hours")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateBusinessHours([FromBody] Dictionary<string, string> businessHours)
         {
@@ -211,7 +211,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/companysettings/banking
         [HttpGet("banking")]
-        [Authorize(Policy = "BackofficeManagement")]
+        [HasPermission(AppPermissions.SettingsView)]
         public async Task<ActionResult<BankingInfo>> GetBankingInfo()
         {
             try
@@ -241,7 +241,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings/banking
         [HttpPut("banking")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateBankingInfo([FromBody] UpdateBankingInfoRequest request)
         {
@@ -276,6 +276,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/companysettings/localization
+        [HasPermission(AppPermissions.SettingsView)]
         [HttpGet("localization")]
         public async Task<ActionResult<LocalizationSettings>> GetLocalizationSettings()
         {
@@ -315,7 +316,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings/localization
         [HttpPut("localization")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateLocalizationSettings([FromBody] LocalizationSettings request)
         {
@@ -353,7 +354,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/companysettings/billing
         [HttpGet("billing")]
-        [Authorize(Policy = "BackofficeManagement")]
+        [HasPermission(AppPermissions.SettingsView)]
         public async Task<ActionResult<BillingSettings>> GetBillingSettings()
         {
             try
@@ -384,7 +385,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings/billing
         [HttpPut("billing")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateBillingSettings([FromBody] UpdateBillingSettingsRequest request)
         {
@@ -421,7 +422,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/companysettings/export
         [HttpGet("export")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> ExportCompanySettings()
         {

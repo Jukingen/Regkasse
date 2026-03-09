@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using System.ComponentModel.DataAnnotations;
@@ -10,10 +11,11 @@ using System.Security.Claims;
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// Admin user management API – role-based policy, audit on every mutation, no hard delete.
+/// Admin user management API – permission-first (user.manage), audit on every mutation, no hard delete.
 /// Base route: /api/admin/users
 /// </summary>
-[Authorize(Policy = "AdminUsers")]
+[Authorize]
+[HasPermission(AppPermissions.UserManage)]
 [ApiController]
 [Route("api/admin/users")]
 [Produces("application/json")]
@@ -312,7 +314,7 @@ public class AdminUsersController : ControllerBase
             return BadRequest(ApiError.Validation("Password reset failed", result.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray())));
 
         if (ActorId != null)
-            await _auditLogService.LogUserLifecycleAsync(AuditLogActions.USER_PASSWORD_RESET, ActorId, ActorRole, id, null, null, AuditLogStatus.Success, "Administrator force password reset");
+            await _auditLogService.LogUserLifecycleAsync(AuditLogActions.USER_PASSWORD_RESET, ActorId, ActorRole, id, null, null, AuditLogStatus.Success, "Admin force password reset");
 
         await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
         return NoContent();

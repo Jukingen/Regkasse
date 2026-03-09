@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
@@ -14,7 +15,7 @@ namespace KasseAPI_Final.Controllers
     /// </summary>
     [Route("api/modifier-groups")]
     [ApiController]
-    [Authorize(Policy = "PosCatalogRead")]
+    [HasPermission(AppPermissions.ModifierView)]
     public class ModifierGroupsController : BaseController
     {
         private readonly AppDbContext _context;
@@ -79,7 +80,7 @@ namespace KasseAPI_Final.Controllers
         /// Yeni modifier group oluştur.
         /// </summary>
         [HttpPost]
-        [Authorize(Policy = "CatalogManage")]
+        [HasPermission(AppPermissions.ModifierManage)]
         public async Task<IActionResult> Create([FromBody] CreateModifierGroupRequest request)
         {
             try
@@ -113,7 +114,7 @@ namespace KasseAPI_Final.Controllers
         /// Modifier group güncelle.
         /// </summary>
         [HttpPut("{id:guid}")]
-        [Authorize(Policy = "CatalogManage")]
+        [HasPermission(AppPermissions.ModifierManage)]
         public async Task<IActionResult> Update(Guid id, [FromBody] CreateModifierGroupRequest request)
         {
             try
@@ -143,7 +144,7 @@ namespace KasseAPI_Final.Controllers
         /// Modifier group sil (soft: IsActive = false).
         /// </summary>
         [HttpDelete("{id:guid}")]
-        [Authorize(Policy = "CatalogManage")]
+        [HasPermission(AppPermissions.ModifierManage)]
         public async Task<IActionResult> Delete(Guid id)
         {
             try
@@ -182,7 +183,7 @@ namespace KasseAPI_Final.Controllers
         /// Faz 1: Gruba product ekle (mevcut product veya yeni Zusatzprodukt). Fiyat her zaman Product tablosundan; grup satırı fiyat taşımaz.
         /// </summary>
         [HttpPost("{id:guid}/products")]
-        [Authorize(Policy = "CatalogManage")]
+        [HasPermission(AppPermissions.ModifierManage)]
         public async Task<IActionResult> AddProductToGroup(Guid id, [FromBody] AddProductToGroupRequest request)
         {
             try
@@ -301,7 +302,7 @@ namespace KasseAPI_Final.Controllers
         /// Faz 1: Produkt aus Gruppe entfernen (nur die Zuordnung; Product bleibt erhalten).
         /// </summary>
         [HttpDelete("{groupId:guid}/products/{productId:guid}")]
-        [Authorize(Policy = "CatalogManage")]
+        [HasPermission(AppPermissions.ModifierManage)]
         public async Task<IActionResult> RemoveProductFromGroup(Guid groupId, Guid productId)
         {
             try

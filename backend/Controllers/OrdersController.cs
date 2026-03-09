@@ -7,7 +7,7 @@ using KasseAPI_Final.Authorization;
 
 namespace KasseAPI_Final.Controllers
 {
-    [Authorize(Policy = "PosTableOrder")]
+    [HasPermission(AppPermissions.OrderCreate)]
     [ApiController]
     [Route("api/[controller]")]
     public class OrdersController : ControllerBase

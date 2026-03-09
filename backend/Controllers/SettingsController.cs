@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using System.ComponentModel.DataAnnotations;
@@ -21,7 +22,7 @@ namespace KasseAPI_Final.Controllers
             _logger = logger;
         }
 
-        // GET: api/settings
+        [HasPermission(AppPermissions.SettingsView)]
         [HttpGet]
         public async Task<ActionResult<SystemSettings>> GetSettings()
         {
@@ -76,7 +77,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/settings
         [HttpPut]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateSettings([FromBody] UpdateSettingsRequest request)
         {
             try
@@ -127,6 +128,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/settings/tax-rates
+        [HasPermission(AppPermissions.SettingsView)]
         [HttpGet("tax-rates")]
         public async Task<ActionResult<Dictionary<string, decimal>>> GetTaxRates()
         {
@@ -149,7 +151,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/settings/tax-rates
         [HttpPut("tax-rates")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateTaxRates([FromBody] Dictionary<string, decimal> taxRates)
         {
             try
@@ -175,8 +177,8 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/settings/backup
+        [HasPermission(AppPermissions.SettingsView)]
         [HttpGet("backup")]
-        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> GetBackupSettings()
         {
             try
@@ -207,7 +209,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/settings/backup/now
         [HttpPost("backup/now")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> CreateBackupNow()
         {
             try
@@ -238,6 +240,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/settings/notifications
+        [HasPermission(AppPermissions.SettingsView)]
         [HttpGet("notifications")]
         public async Task<ActionResult<NotificationSettings>> GetNotificationSettings()
         {
@@ -268,7 +271,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/settings/notifications
         [HttpPut("notifications")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateNotificationSettings([FromBody] UpdateNotificationSettingsRequest request)
         {
             try
@@ -303,7 +306,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/settings/export
         [HttpGet("export")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> ExportSettings()
         {
             try

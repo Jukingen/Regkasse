@@ -1,5 +1,16 @@
-// Kullanıcı rolleri - Backend ile uyumlu
-export type UserRole = 'Admin' | 'Cashier' | 'Manager';
+// Canonical roles – aligned with backend Roles.cs. Use ROLES.* instead of string literals.
+export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'Cashier' | 'Waiter' | 'Kitchen' | 'ReportViewer' | 'Accountant';
+
+export const ROLES = {
+  SuperAdmin: 'SuperAdmin',
+  Admin: 'Admin',
+  Manager: 'Manager',
+  Cashier: 'Cashier',
+  Waiter: 'Waiter',
+  Kitchen: 'Kitchen',
+  ReportViewer: 'ReportViewer',
+  Accountant: 'Accountant',
+} as const satisfies Record<string, UserRole>;
 
 // Sistem yetkileri - Backend ile uyumlu
 export interface Permission {
@@ -64,6 +75,7 @@ export interface UsePermissionReturn {
   
   // Rol kısayolları
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isCashier: boolean;
   isManager: boolean;
   

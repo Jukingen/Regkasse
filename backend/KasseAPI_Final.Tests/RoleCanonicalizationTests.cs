@@ -1,28 +1,28 @@
 using KasseAPI_Final.Auth;
+using KasseAPI_Final.Authorization;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
-/// <summary>Legacy role alias → canonical (Phase 7).</summary>
+/// <summary>Role normalization: trim/empty only; no legacy alias mapping.</summary>
 public class RoleCanonicalizationTests
 {
     [Fact]
-    public void GetCanonicalRole_Maps_Administrator_To_Admin()
-    {
-        Assert.Equal(RoleCanonicalization.Canonical.Admin, RoleCanonicalization.GetCanonicalRole("Administrator"));
-        Assert.Equal(RoleCanonicalization.Canonical.Admin, RoleCanonicalization.GetCanonicalRole("administrator"));
-    }
-
-    [Fact]
     public void GetCanonicalRole_Leaves_Admin_Unchanged()
     {
-        Assert.Equal(RoleCanonicalization.Canonical.Admin, RoleCanonicalization.GetCanonicalRole("Admin"));
+        Assert.Equal(Roles.Admin, RoleCanonicalization.GetCanonicalRole("Admin"));
     }
 
     [Fact]
     public void GetCanonicalRole_Leaves_SuperAdmin_Unchanged()
     {
-        Assert.Equal(RoleCanonicalization.Canonical.SuperAdmin, RoleCanonicalization.GetCanonicalRole("SuperAdmin"));
+        Assert.Equal(Roles.SuperAdmin, RoleCanonicalization.GetCanonicalRole("SuperAdmin"));
+    }
+
+    [Fact]
+    public void GetCanonicalRole_Trims_Whitespace()
+    {
+        Assert.Equal(Roles.Admin, RoleCanonicalization.GetCanonicalRole("  Admin  "));
     }
 
     [Fact]
@@ -34,9 +34,8 @@ public class RoleCanonicalizationTests
     }
 
     [Fact]
-    public void GetLegacyAliases_Contains_Administrator()
+    public void GetCanonicalRole_UnknownRole_Returns_AsIs()
     {
-        var aliases = RoleCanonicalization.GetLegacyAliases();
-        Assert.Contains("Administrator", aliases);
+        Assert.Equal("CustomRole", RoleCanonicalization.GetCanonicalRole("CustomRole"));
     }
 }

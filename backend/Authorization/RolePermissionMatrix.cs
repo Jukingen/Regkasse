@@ -1,10 +1,12 @@
 using System.Collections.Frozen;
+using System.Linq;
 
 namespace KasseAPI_Final.Authorization;
 
 /// <summary>
 /// Static role-to-permissions mapping. Single source of truth for default permission sets per role.
-/// SuperAdmin and Admin/Administrator get all permissions. Administrator is a legacy alias for Admin.
+/// SuperAdmin: system-critical and override role (full set including system.critical, tse.diagnostics, audit.cleanup, inventory.delete).
+/// Admin: backoffice/business management (all except SuperAdmin-only: system.critical, tse.diagnostics, audit.cleanup, inventory.delete).
 /// </summary>
 public static class RolePermissionMatrix
 {
@@ -48,13 +50,21 @@ public static class RolePermissionMatrix
     private static FrozenDictionary<string, FrozenSet<string>> BuildMatrix()
     {
         var all = PermissionCatalog.All.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+        // SuperAdmin-only: system-critical, TSE diagnostics, audit cleanup, inventory permanent delete.
+        var superAdminOnly = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.SystemCritical,
+            AppPermissions.TseDiagnostics,
+            AppPermissions.AuditCleanup,
+            AppPermissions.InventoryDelete,
+        };
+        // Admin: backoffice/business; exclude SuperAdmin-only permissions.
+        var adminSet = all.Where(p => !superAdminOnly.Contains(p)).ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
         var matrix = new Dictionary<string, FrozenSet<string>>(StringComparer.OrdinalIgnoreCase)
         {
             [Roles.SuperAdmin] = all,
-            [Roles.Admin] = all,
-            // Legacy alias: Administrator is mapped to same permission set as Admin. Do not use for new assignments.
-            [Roles.Administrator] = all,
+            [Roles.Admin] = adminSet,
 
             [Roles.Manager] = new[]
             {
@@ -69,9 +79,11 @@ public static class RolePermissionMatrix
                 AppPermissions.PaymentView, AppPermissions.PaymentTake, AppPermissions.PaymentCancel,
                 AppPermissions.RefundCreate,
                 AppPermissions.DiscountApply, AppPermissions.PriceOverride,
-                AppPermissions.CashRegisterView, AppPermissions.CashdrawerOpen, AppPermissions.CashdrawerClose,
-                AppPermissions.ShiftView, AppPermissions.ShiftOpen, AppPermissions.ShiftClose,
+                AppPermissions.CashRegisterView, AppPermissions.CashRegisterManage,
+                AppPermissions.CashdrawerOpen, AppPermissions.CashdrawerClose,
+                AppPermissions.ShiftView, AppPermissions.ShiftOpen, AppPermissions.ShiftClose, AppPermissions.ShiftManage,
                 AppPermissions.InventoryView, AppPermissions.InventoryManage,
+                AppPermissions.TseSign,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView, AppPermissions.InvoiceManage, AppPermissions.InvoiceExport,
                 AppPermissions.ReportView, AppPermissions.ReportExport,
@@ -92,12 +104,13 @@ public static class RolePermissionMatrix
                 AppPermissions.RefundCreate,
                 AppPermissions.DiscountApply, AppPermissions.PriceOverride,
                 AppPermissions.CashRegisterView, AppPermissions.CashdrawerOpen, AppPermissions.CashdrawerClose,
-                AppPermissions.ShiftView, AppPermissions.ShiftOpen, AppPermissions.ShiftClose,
+                AppPermissions.ShiftView, AppPermissions.ShiftOpen, AppPermissions.ShiftClose, AppPermissions.ShiftManage,
                 AppPermissions.InventoryView,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView,
                 AppPermissions.ReceiptReprint,
                 AppPermissions.KitchenView,
+                AppPermissions.TseSign,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Waiter] = new[]
@@ -105,7 +118,7 @@ public static class RolePermissionMatrix
                 AppPermissions.ProductView, AppPermissions.CategoryView, AppPermissions.ModifierView,
                 AppPermissions.OrderView, AppPermissions.OrderCreate, AppPermissions.OrderUpdate, AppPermissions.OrderCancel,
                 AppPermissions.TableView, AppPermissions.TableManage,
-                AppPermissions.CartView, AppPermissions.CartManage,
+                AppPermissions.CartView,
                 AppPermissions.SaleView, AppPermissions.SaleCreate,
                 AppPermissions.PaymentView, AppPermissions.PaymentTake,
                 AppPermissions.ShiftView, AppPermissions.ShiftClose,
@@ -123,19 +136,15 @@ public static class RolePermissionMatrix
             [Roles.ReportViewer] = new[]
             {
                 AppPermissions.ReportView, AppPermissions.ReportExport,
-                AppPermissions.AuditView, AppPermissions.AuditExport,
-                AppPermissions.InvoiceView, AppPermissions.InvoiceExport,
-                AppPermissions.PaymentView,
+                AppPermissions.AuditView,
                 AppPermissions.SettingsView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Accountant] = new[]
             {
                 AppPermissions.ReportView, AppPermissions.ReportExport,
-                AppPermissions.AuditView, AppPermissions.AuditExport,
-                AppPermissions.InvoiceView, AppPermissions.InvoiceExport,
-                AppPermissions.PaymentView,
-                AppPermissions.SettingsView,
+                AppPermissions.AuditView,
+                AppPermissions.FinanzOnlineView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
         };
 

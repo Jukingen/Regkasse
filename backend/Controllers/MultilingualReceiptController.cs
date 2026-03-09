@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using System.ComponentModel.DataAnnotations;
@@ -22,7 +23,7 @@ namespace KasseAPI_Final.Controllers
             _logger = logger;
         }
 
-        // GET: api/multilingualreceipt
+        [HasPermission(AppPermissions.ReceiptTemplateView)]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ReceiptTemplate>>> GetReceiptTemplates()
         {
@@ -64,7 +65,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/multilingualreceipt/language/{language}
+        [HasPermission(AppPermissions.ReceiptTemplateView)]
         [HttpGet("language/{language}")]
         public async Task<ActionResult<IEnumerable<ReceiptTemplate>>> GetReceiptTemplatesByLanguage(string language)
         {
@@ -84,7 +85,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/multilingualreceipt/type/{type}
+        [HasPermission(AppPermissions.ReceiptTemplateView)]
         [HttpGet("type/{type}")]
         public async Task<ActionResult<IEnumerable<ReceiptTemplate>>> GetReceiptTemplatesByType(string type)
         {
@@ -107,7 +108,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/multilingualreceipt
         [HttpPost]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.ReceiptTemplateManage)]
         public async Task<ActionResult<ReceiptTemplate>> CreateReceiptTemplate([FromBody] CreateReceiptTemplateRequest request)
         {
             try
@@ -175,7 +176,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/multilingualreceipt/{id}
         [HttpPut("{id}")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.ReceiptTemplateManage)]
         public async Task<IActionResult> UpdateReceiptTemplate(Guid id, [FromBody] UpdateReceiptTemplateRequest request)
         {
             try
@@ -234,7 +235,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/multilingualreceipt/{id}
         [HttpDelete("{id}")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.ReceiptTemplateManage)]
         public async Task<IActionResult> DeleteReceiptTemplate(Guid id)
         {
             try
@@ -267,6 +268,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // POST: api/multilingualreceipt/generate
+        [HasPermission(AppPermissions.ReceiptTemplateView)]
         [HttpPost("generate")]
         public async Task<ActionResult<GeneratedReceipt>> GenerateReceipt([FromBody] GenerateReceiptRequest request)
         {
@@ -322,6 +324,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/multilingualreceipt/preview/{id}
+        [HasPermission(AppPermissions.ReceiptTemplateView)]
         [HttpGet("preview/{id}")]
         public async Task<ActionResult<ReceiptPreview>> PreviewReceiptTemplate(Guid id)
         {
@@ -388,7 +391,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/multilingualreceipt/export
         [HttpGet("export")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.ReceiptTemplateManage)]
         public async Task<IActionResult> ExportReceiptTemplates()
         {
             try

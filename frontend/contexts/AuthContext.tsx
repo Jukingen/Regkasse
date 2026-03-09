@@ -56,14 +56,16 @@ const checkBackendAuth = async (): Promise<{ isAuthenticated: boolean; user: any
 };
 
 interface User {
-    id: string; // Required field
+    id: string;
     username?: string;
     email: string;
     role: string;
     firstName?: string;
     lastName?: string;
     roles?: string[];
-    token?: string; // Token field'ı eklendi
+    /** Backend permission claims (resource.action). Used for permission-first UI. */
+    permissions?: string[];
+    token?: string;
 }
 
 

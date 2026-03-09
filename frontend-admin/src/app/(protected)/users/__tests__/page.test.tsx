@@ -71,7 +71,7 @@ vi.mock('@/shared/auth/usersPolicy', () => ({
 }));
 
 vi.mock('@/features/users/hooks/useRoles', () => ({
-  useRoles: () => ({ data: ['Admin', 'SuperAdmin', 'BranchManager', 'Auditor'] }),
+  useRoles: () => ({ data: ['SuperAdmin', 'Admin', 'Manager', 'Cashier', 'Waiter', 'Kitchen', 'ReportViewer', 'Accountant'] }),
 }));
 
 vi.mock('@/features/users/components/UserDetailDrawer', () => ({
@@ -131,8 +131,34 @@ describe('Users page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetUsersList.mockResolvedValue(listResponse([]));
+    mockUseUsersPolicy.mockReturnValue({
+      canView: true,
+      canCreate: true,
+      canEdit: true,
+      canDeactivate: true,
+      canReactivate: true,
+      canCreateRole: false,
+      canResetPassword: () => true,
+    });
     vi.spyOn(message, 'success').mockImplementation(() => {});
     vi.spyOn(message, 'error').mockImplementation(() => {});
+  });
+
+  describe('authorization', () => {
+    it('shows no-permission alert when user cannot view (e.g. Cashier)', () => {
+      mockUseUsersPolicy.mockReturnValue({
+        canView: false,
+        canCreate: false,
+        canEdit: false,
+        canDeactivate: false,
+        canReactivate: false,
+        canCreateRole: false,
+        canResetPassword: () => false,
+      });
+      renderPage();
+      expect(screen.getByText(/Nur mit Berechtigung/)).toBeInTheDocument();
+      expect(screen.getByText(/Benutzer anzeigen/)).toBeInTheDocument();
+    });
   });
 
   describe('list loading', () => {

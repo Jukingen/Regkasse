@@ -70,8 +70,12 @@ function fullName(record: UserInfo): string {
 const ROLE_OPTIONS = [
     { value: 'SuperAdmin', label: 'SuperAdmin' },
     { value: 'Admin', label: 'Admin' },
-    { value: 'BranchManager', label: 'BranchManager' },
-    { value: 'Auditor', label: 'Auditor' },
+    { value: 'Manager', label: 'Manager' },
+    { value: 'Cashier', label: 'Cashier' },
+    { value: 'Waiter', label: 'Waiter' },
+    { value: 'Kitchen', label: 'Kitchen' },
+    { value: 'ReportViewer', label: 'ReportViewer' },
+    { value: 'Accountant', label: 'Accountant' },
 ];
 
 const STATUS_OPTIONS = [
@@ -419,7 +423,7 @@ export default function UsersPage() {
                 <Alert
                     type="warning"
                     message={usersCopy.accessDenied}
-                    description="Nur Rollen mit UsersView (SuperAdmin, Admin, Administrator, BranchManager, Auditor) können diese Seite öffnen."
+                    description="Nur mit Berechtigung „Benutzer anzeigen“ (z. B. SuperAdmin, Admin, Manager) können Sie diese Seite öffnen."
                 />
             </Card>
         );

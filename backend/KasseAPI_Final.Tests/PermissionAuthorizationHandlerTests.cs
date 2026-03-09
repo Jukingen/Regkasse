@@ -128,30 +128,28 @@ public class PermissionAuthorizationHandlerTests
         Assert.True(result.Succeeded);
     }
 
-    // --- Administrator legacy alias: same as Admin ---
-
     [Fact]
-    public async Task PermissionPolicy_SettingsManage_Allows_Administrator_Role()
+    public async Task PermissionPolicy_AuditCleanup_Allows_SuperAdmin_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = CreatePrincipalWithRoles("Administrator");
+        var user = CreatePrincipalWithRoles(Roles.SuperAdmin);
 
-        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.SettingsManage));
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.AuditCleanup));
 
         Assert.True(result.Succeeded);
     }
 
     [Fact]
-    public async Task PermissionPolicy_AuditCleanup_Allows_Admin_Role()
+    public async Task PermissionPolicy_AuditCleanup_Denies_Admin_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = CreatePrincipalWithRoles("Admin");
+        var user = CreatePrincipalWithRoles(Roles.Admin);
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.AuditCleanup));
 
-        Assert.True(result.Succeeded);
+        Assert.False(result.Succeeded);
     }
 
     // --- Permission claims take precedence over role ---
@@ -182,5 +180,159 @@ public class PermissionAuthorizationHandlerTests
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.PaymentTake));
 
         Assert.False(result.Succeeded);
+    }
+
+    // --- UserView / UserManage ---
+
+    [Fact]
+    public async Task PermissionPolicy_UserView_Allows_Manager_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles("Manager");
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserView));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PermissionPolicy_UserManage_Denies_Manager_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles("Manager");
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
+
+        Assert.False(result.Succeeded);
+    }
+
+    // --- SystemCritical: SuperAdmin only ---
+
+    [Fact]
+    public async Task PermissionPolicy_SystemCritical_Allows_SuperAdmin_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.SuperAdmin);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.SystemCritical));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PermissionPolicy_SystemCritical_Denies_Admin_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Admin);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.SystemCritical));
+
+        Assert.False(result.Succeeded);
+    }
+
+    // --- InventoryDelete: SuperAdmin only ---
+
+    [Fact]
+    public async Task PermissionPolicy_InventoryDelete_Allows_SuperAdmin_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.SuperAdmin);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.InventoryDelete));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PermissionPolicy_InventoryDelete_Denies_Admin_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Admin);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.InventoryDelete));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PermissionPolicy_InventoryDelete_Denies_Manager_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Manager);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.InventoryDelete));
+
+        Assert.False(result.Succeeded);
+    }
+
+    // --- TseDiagnostics: SuperAdmin only ---
+
+    [Fact]
+    public async Task PermissionPolicy_TseDiagnostics_Allows_SuperAdmin_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.SuperAdmin);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.TseDiagnostics));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PermissionPolicy_TseDiagnostics_Denies_Admin_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Admin);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.TseDiagnostics));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PermissionPolicy_TseDiagnostics_Denies_Cashier_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Cashier);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.TseDiagnostics));
+
+        Assert.False(result.Succeeded);
+    }
+
+    // --- CartManage: Waiter denied ---
+
+    [Fact]
+    public async Task PermissionPolicy_CartManage_Denies_Waiter_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Waiter);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.CartManage));
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PermissionPolicy_CartManage_Allows_Cashier_Role()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles(Roles.Cashier);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.CartManage));
+
+        Assert.True(result.Succeeded);
     }
 }

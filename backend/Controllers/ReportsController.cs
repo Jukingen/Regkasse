@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Controllers
 {
-    [Authorize(Policy = "BackofficeManagement")]
+    /// <summary>Permission-first: report.view allows ReportViewer, Manager, Admin, SuperAdmin (RolePermissionMatrix).</summary>
+    [HasPermission(AppPermissions.ReportView)]
     [ApiController]
     [Route("api/[controller]")]
     public class ReportsController : ControllerBase
@@ -256,7 +258,8 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/reports/export/sales
+        // GET: api/reports/export/sales — export requires report.export
+        [HasPermission(AppPermissions.ReportExport)]
         [HttpGet("export/sales")]
         public async Task<IActionResult> ExportSalesReport([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] string format = "json")
         {

@@ -29,7 +29,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog - Get all audit logs with filtering and pagination
         /// </summary>
         [HttpGet]
-        [Authorize(Policy = "UsersView")]
+        [HasPermission(AppPermissions.UserView)]
         public async Task<ActionResult<AuditLogsResponse>> GetAuditLogs(
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
@@ -80,7 +80,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/{id} - Get specific audit log by ID
         /// </summary>
         [HttpGet("{id}")]
-        [Authorize(Policy = "AuditView")]
+        [HasPermission(AppPermissions.AuditView)]
         public async Task<ActionResult<AuditLogResponse>> GetAuditLog(Guid id)
         {
             try
@@ -112,7 +112,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/payment/{paymentId} - Get audit logs for specific payment
         /// </summary>
         [HttpGet("payment/{paymentId}")]
-        [Authorize(Policy = "AuditViewWithCashier")]
+        [HasPermission(AppPermissions.AuditView)]
         public async Task<ActionResult<AuditLogsResponse>> GetPaymentAuditLogs(
             Guid paymentId,
             [FromQuery] DateTime? startDate = null,
@@ -155,7 +155,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/user/{userId} - Get audit logs for specific user
         /// </summary>
         [HttpGet("user/{userId}")]
-        [Authorize(Policy = "UsersView")]
+        [HasPermission(AppPermissions.UserView)]
         public async Task<ActionResult<AuditLogsResponse>> GetUserAuditLogs(
             string userId,
             [FromQuery] DateTime? startDate = null,
@@ -205,7 +205,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/correlation/{correlationId} - Get audit logs by correlation ID
         /// </summary>
         [HttpGet("correlation/{correlationId}")]
-        [Authorize(Policy = "AuditView")]
+        [HasPermission(AppPermissions.AuditView)]
         public async Task<ActionResult<AuditLogsResponse>> GetAuditLogsByCorrelationId(string correlationId)
         {
             try
@@ -239,7 +239,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/suspicious-admin-actions - Incident playbook: high-risk user-lifecycle actions (deactivate, reactivate, password reset, role change, create).
         /// </summary>
         [HttpGet("suspicious-admin-actions")]
-        [Authorize(Policy = "UsersView")]
+        [HasPermission(AppPermissions.UserView)]
         public async Task<ActionResult<AuditLogsResponse>> GetSuspiciousAdminActions(
             [FromQuery] DateTime? since = null,
             [FromQuery] int limit = 100)
@@ -270,7 +270,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/transaction/{transactionId} - Get audit logs by transaction ID
         /// </summary>
         [HttpGet("transaction/{transactionId}")]
-        [Authorize(Policy = "AuditView")]
+        [HasPermission(AppPermissions.AuditView)]
         public async Task<ActionResult<AuditLogsResponse>> GetAuditLogsByTransactionId(string transactionId)
         {
             try
@@ -304,7 +304,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/statistics - Get audit log statistics
         /// </summary>
         [HttpGet("statistics")]
-        [Authorize(Policy = "AuditView")]
+        [HasPermission(AppPermissions.AuditView)]
         public async Task<ActionResult<AuditLogStatisticsResponse>> GetAuditLogStatistics(
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null)
@@ -375,7 +375,6 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/export - Export audit logs to CSV/JSON
         /// </summary>
         [HttpGet("export")]
-        [Authorize(Policy = "AuditAdmin")]
         [HasPermission(AppPermissions.AuditExport)]
         public async Task<ActionResult> ExportAuditLogs(
             [FromQuery] string format = "json",

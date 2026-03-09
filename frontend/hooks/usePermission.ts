@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AuthContext } from '../contexts/AuthContext';
-import { UsePermissionReturn, UserRole } from '../types/auth';
+import { UsePermissionReturn, UserRole, ROLES } from '../types/auth';
 import { PERMISSIONS } from '../shared/utils/PermissionHelper';
 
 /**
@@ -118,10 +118,11 @@ export const usePermission = (): UsePermissionReturn => {
    */
   const isActiveUser = user?.isActive || false;
 
-  // Rol kontrolü için kısayollar
-  const isAdmin = hasRole('Admin');
-  const isCashier = hasRole('Cashier');
-  const isManager = hasRole('Manager');
+  // Role shortcuts – use ROLES.* constants; prefer permission when available.
+  const isAdmin = hasRole(ROLES.Admin) || hasRole(ROLES.SuperAdmin);
+  const isCashier = hasRole(ROLES.Cashier);
+  const isManager = hasRole(ROLES.Manager);
+  const isSuperAdmin = hasRole(ROLES.SuperAdmin);
 
   /**
    * Kullanıcının kritik işlemler yapma yetkisi var mı kontrol eder
@@ -130,36 +131,34 @@ export const usePermission = (): UsePermissionReturn => {
   const canPerformCriticalOperations = isAdmin || isManager;
 
   /**
-   * Kullanıcının sistem ayarlarını değiştirme yetkisi var mı kontrol eder
+   * Kullanıcının sistem ayarlarını değiştirme yetkisi var mı kontrol eder (permission-first: settings.manage)
    * Türkçe açıklama: Sistem ayarları yetkisi
    */
-  const canManageSystemSettings = isAdmin;
+  const canManageSystemSettings =
+    hasPermission('settings', 'manage') || isAdmin;
 
   /**
-   * Kullanıcının raporları görüntüleme yetkisi var mı kontrol eder
+   * Kullanıcının raporları görüntüleme yetkisi var mı kontrol eder (permission-first: report.view)
    * Türkçe açıklama: Rapor görüntüleme yetkisi
    */
-  const canViewReports = isAdmin || isManager;
+  const canViewReports =
+    hasPermission('report', 'view') || isAdmin || isManager;
 
   /**
-   * Kullanıcının kullanıcı yönetimi yapma yetkisi var mı kontrol eder
+   * Kullanıcının kullanıcı yönetimi yapma yetkisi var mı kontrol eder (permission-first: user.manage)
    * Türkçe açıklama: Kullanıcı yönetimi yetkisi
    */
-  const canManageUsers = isAdmin;
+  const canManageUsers = hasPermission('user', 'manage') || isAdmin;
 
   return {
-    // Temel yetki kontrolü
     hasPermission,
     hasRole,
     hasAnyRole,
     hasAllRoles,
-    
-    // Güvenli erişim kontrolü
     checkPermissionWithAlert,
     checkRoleWithAlert,
-    
-    // Rol kısayolları
     isAdmin,
+    isSuperAdmin,
     isCashier,
     isManager,
     

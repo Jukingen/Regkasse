@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using System.ComponentModel.DataAnnotations;
@@ -21,7 +22,7 @@ namespace KasseAPI_Final.Controllers
             _logger = logger;
         }
 
-        // GET: api/localization
+        [HasPermission(AppPermissions.LocalizationView)]
         [HttpGet]
         public async Task<ActionResult<LocalizationSettings>> GetLocalizationSettings()
         {
@@ -84,7 +85,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/localization
         [HttpPut]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.LocalizationManage)]
         public async Task<IActionResult> UpdateLocalizationSettings([FromBody] UpdateLocalizationSettingsRequest request)
         {
             try
@@ -127,7 +128,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/localization/languages
+        [HasPermission(AppPermissions.LocalizationView)]
         [HttpGet("languages")]
         public async Task<ActionResult<List<string>>> GetSupportedLanguages()
         {
@@ -148,7 +149,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/localization/currencies
+        [HasPermission(AppPermissions.LocalizationView)]
         [HttpGet("currencies")]
         public async Task<ActionResult<List<string>>> GetSupportedCurrencies()
         {
@@ -169,7 +170,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/localization/timezones
+        [HasPermission(AppPermissions.LocalizationView)]
         [HttpGet("timezones")]
         public async Task<ActionResult<List<string>>> GetSupportedTimeZones()
         {
@@ -190,7 +191,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/localization/format/{language}
+        [HasPermission(AppPermissions.LocalizationView)]
         [HttpGet("format/{language}")]
         public async Task<ActionResult<LanguageFormat>> GetLanguageFormat(string language)
         {
@@ -224,7 +225,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/localization/currency/{currency}
+        [HasPermission(AppPermissions.LocalizationView)]
         [HttpGet("currency/{currency}")]
         public async Task<ActionResult<CurrencyInfo>> GetCurrencyInfo(string currency)
         {
@@ -257,7 +258,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/localization/add-language
         [HttpPost("add-language")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.LocalizationManage)]
         public async Task<IActionResult> AddSupportedLanguage([FromBody] AddLanguageRequest request)
         {
             try
@@ -296,7 +297,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/localization/add-currency
         [HttpPost("add-currency")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.LocalizationManage)]
         public async Task<IActionResult> AddSupportedCurrency([FromBody] AddCurrencyRequest request)
         {
             try
@@ -334,7 +335,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/localization/remove-language/{language}
         [HttpDelete("remove-language/{language}")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.LocalizationManage)]
         public async Task<IActionResult> RemoveSupportedLanguage(string language)
         {
             try
@@ -373,7 +374,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/localization/remove-currency/{currency}
         [HttpDelete("remove-currency/{currency}")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.LocalizationManage)]
         public async Task<IActionResult> RemoveSupportedCurrency(string currency)
         {
             try
@@ -411,7 +412,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/localization/export
         [HttpGet("export")]
-        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.LocalizationManage)]
         public async Task<IActionResult> ExportLocalizationSettings()
         {
             try

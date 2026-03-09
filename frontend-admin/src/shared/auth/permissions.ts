@@ -6,6 +6,8 @@
 export const PERMISSIONS = {
   USER_VIEW: 'user.view',
   USER_MANAGE: 'user.manage',
+  ROLE_VIEW: 'role.view',
+  ROLE_MANAGE: 'role.manage',
   PRODUCT_VIEW: 'product.view',
   PRODUCT_MANAGE: 'product.manage',
   CATEGORY_VIEW: 'category.view',
@@ -41,8 +43,18 @@ export const PERMISSIONS = {
   INVENTORY_VIEW: 'inventory.view',
   INVENTORY_MANAGE: 'inventory.manage',
   INVENTORY_ADJUST: 'inventory.adjust',
+  INVENTORY_DELETE: 'inventory.delete',
+  CASHREGISTER_VIEW: 'cashregister.view',
+  CASHREGISTER_MANAGE: 'cashregister.manage',
+  LOCALIZATION_VIEW: 'localization.view',
+  LOCALIZATION_MANAGE: 'localization.manage',
   RECEIPT_TEMPLATE_VIEW: 'receipttemplate.view',
   RECEIPT_TEMPLATE_MANAGE: 'receipttemplate.manage',
+  TSE_SIGN: 'tse.sign',
+  TSE_DIAGNOSTICS: 'tse.diagnostics',
+  SYSTEM_CRITICAL: 'system.critical',
+  PRICE_OVERRIDE: 'price.override',
+  RECEIPT_REPRINT: 'receipt.reprint',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

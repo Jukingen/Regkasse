@@ -28,13 +28,12 @@ public static class Roles
     public const string Accountant = "Accountant";
 
     /// <summary>
-    /// Legacy role; treat as Admin in all policies. Kept in Identity for backward compatibility.
-    /// Target single role name is Admin; do not use Administrator for new assignments.
+    /// Fallback when no role is assigned (e.g. token build). Not a real role; do not use for authorization.
     /// </summary>
-    public const string Administrator = "Administrator";
+    public const string FallbackUnknown = "User";
 
     /// <summary>
-    /// All canonical roles used in policy definitions (excluding legacy Administrator).
+    /// Canonical roles for policy and assignments: core (SuperAdmin, Admin, Manager, Cashier, Waiter) + optional.
     /// </summary>
     public static readonly IReadOnlyList<string> Canonical = new[]
     {

@@ -5,9 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations
 {
     /// <summary>
-    /// One-time data migration: legacy role "Administrator" → canonical "Admin".
-    /// Run with: dotnet ef database update (or apply migrations as usual).
-    /// After rollout, see ai/08_ROLE_MIGRATION.md for alias removal steps.
+    /// Historical: one-time data migration. Legacy admin role in DB was renamed to Admin; single admin role is Admin.
+    /// SQL references legacy DB value only; no active role constant.
     /// </summary>
     public partial class CanonicalizeLegacyRoleNames : Migration
     {

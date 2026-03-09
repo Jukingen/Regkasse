@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
@@ -13,7 +14,7 @@ namespace KasseAPI_Final.Controllers
     /// Sepet işlemleri (POS). Legacy: api/Cart/* deprecated; use api/pos/cart/*.
     /// TODO: api/Cart route kaldırılamıyor — POS cartService /cart/current vb. ile hâlâ kullanıyor. POS api/pos/cart'a geçince kaldır.
     /// </summary>
-    [Authorize(Policy = "PosSales")]
+    [HasPermission(AppPermissions.CartManage)]
     [ApiController]
     [Route("api/[controller]")]
     [Route("api/pos/cart")]
@@ -72,7 +73,7 @@ namespace KasseAPI_Final.Controllers
                     {
                         CartId = Guid.NewGuid().ToString(),
                         TableNumber = tableNumber,
-                        WaiterName = User.FindFirst(ClaimTypes.Name)?.Value ?? "Kasiyer",
+                        WaiterName = User.FindFirst(ClaimTypes.Name)?.Value ?? "Kasiyer", // Display fallback only; not used for authorization
                         UserId = userId,
                         ExpiresAt = DateTime.UtcNow.AddHours(24),
                         Status = CartStatus.Active,
@@ -259,7 +260,7 @@ namespace KasseAPI_Final.Controllers
                     {
                         CartId = cartId,
                         TableNumber = tableNumber,
-                        WaiterName = request.WaiterName ?? "Kasiyer",
+                        WaiterName = request.WaiterName ?? "Kasiyer", // Display fallback only; not used for authorization
                         UserId = userId, // 🔒 Güvenlik: UserId set et
                         ExpiresAt = DateTime.UtcNow.AddHours(24),
                         Status = CartStatus.Active
@@ -1025,8 +1026,9 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogInformation("🧹 Force cart cleanup requested by UserId: {UserId}, Role: {UserRole}, Reason: {Reason}", 
                     userId, userRole, request.Reason);
 
-                // 🔒 GÜVENLİK: Sadece admin ve kasiyerler manuel temizlik yapabilir
-                if (userRole != "Admin" && userRole != "Kasiyer")
+                // Authorization: only Admin and Cashier may run force cleanup. Token carries canonical role (Cashier, not "Kasiyer").
+                var allowedForCleanup = new[] { Roles.Admin, Roles.Cashier };
+                if (string.IsNullOrEmpty(userRole) || !Array.Exists(allowedForCleanup, r => string.Equals(r, userRole, StringComparison.OrdinalIgnoreCase)))
                 {
                     _logger.LogWarning("⚠️ Unauthorized force cleanup attempt by UserId: {UserId}, Role: {UserRole}", userId, userRole);
                     return Forbid();

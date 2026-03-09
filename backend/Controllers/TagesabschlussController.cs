@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Models;
 using System.Security.Claims;
@@ -9,7 +10,7 @@ namespace KasseAPI_Final.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Policy = "PosTse")]
+    [HasPermission(AppPermissions.TseSign)]
     public class TagesabschlussController : ControllerBase
     {
         private readonly ITagesabschlussService _tagesabschlussService;
