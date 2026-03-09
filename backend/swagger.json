@@ -11112,7 +11112,7 @@
             "type": "string"
           },
           "newPassword": {
-            "minLength": 6,
+            "minLength": 8,
             "type": "string"
           }
         },
@@ -11939,7 +11939,7 @@
             "type": "string"
           },
           "password": {
-            "minLength": 6,
+            "minLength": 8,
             "type": "string"
           },
           "email": {
@@ -14633,7 +14633,7 @@
         "type": "object",
         "properties": {
           "newPassword": {
-            "minLength": 6,
+            "minLength": 8,
             "type": "string"
           }
         },

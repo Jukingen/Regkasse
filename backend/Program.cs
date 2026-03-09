@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
+using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
@@ -113,6 +114,16 @@ builder.Services.AddAuthentication(options =>
             logger.LogError("JWT authentication failed: {Exception}", context.Exception);
             return Task.CompletedTask;
         },
+        OnChallenge = context =>
+        {
+            if (context.Response.HasStarted) return Task.CompletedTask;
+            context.HandleResponse();
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            var message = context.AuthenticateFailure?.Message ?? "Token missing or invalid. Please sign in again.";
+            var body = System.Text.Json.JsonSerializer.Serialize(new { message, code = "UNAUTHORIZED" });
+            return context.Response.WriteAsync(body);
+        },
         OnForbidden = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
@@ -170,10 +181,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddControllers()
 .AddJsonOptions(options =>
 {
-// JSON serialization ayarları
-    // options.JsonSerializerOptions.PropertyNamingPolicy = null; // PascalCase override removed to use default camelCase
-    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Case insensitive
-    options.JsonSerializerOptions.WriteIndented = true; // Debug için indented
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // GET /api/UserManagement/{id} etc. return camelCase for frontend
+    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    options.JsonSerializerOptions.WriteIndented = true;
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -247,6 +257,7 @@ builder.Services.AddScoped<CartLifecycleService>();
 
 // Audit log service
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IUserUniquenessValidationService, UserUniquenessValidationService>();
 
 // HttpContext accessor for audit logging
 builder.Services.AddHttpContextAccessor();

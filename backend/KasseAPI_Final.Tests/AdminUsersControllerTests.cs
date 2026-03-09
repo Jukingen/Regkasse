@@ -43,16 +43,26 @@ public class AdminUsersControllerTests
         return (userManager, roleManager);
     }
 
+    private static IUserUniquenessValidationService CreateUniquenessValidationMock()
+    {
+        var m = new Mock<IUserUniquenessValidationService>();
+        m.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(false);
+        m.Setup(x => x.IsEmployeeNumberTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(false);
+        m.Setup(x => x.IsTaxNumberTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(false);
+        return m.Object;
+    }
+
     private static AdminUsersController CreateController(
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
         IAuditLogService auditLogService,
         IUserSessionInvalidation sessionInvalidation,
+        IUserUniquenessValidationService? uniquenessValidation = null,
         string? actorId = "admin-id",
         string actorRole = "Administrator")
     {
         var logger = new Mock<ILogger<AdminUsersController>>().Object;
-        var controller = new AdminUsersController(userManager, roleManager, auditLogService, sessionInvalidation, logger);
+        var controller = new AdminUsersController(userManager, roleManager, auditLogService, sessionInvalidation, uniquenessValidation ?? CreateUniquenessValidationMock(), logger);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, actorId ?? ""),
@@ -256,7 +266,7 @@ public class AdminUsersControllerTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var controller = CreateController(userManager, roleManager, audit, session);
 
-        var result = await controller.ForcePasswordReset("u1", new AdminUsersController.AdminForcePasswordResetRequest { NewPassword = "12345" });
+        var result = await controller.ForcePasswordReset("u1", new AdminUsersController.AdminForcePasswordResetRequest { NewPassword = "1234567" });
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         var body = Assert.IsType<ApiError>(badRequest.Value);

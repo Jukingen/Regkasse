@@ -73,7 +73,7 @@ export function UserDetailDrawer({ open, onClose, user }: Props) {
                 <Descriptions column={1} size="small" bordered>
                   <Descriptions.Item label={usersCopy.employeeNumber}>{user.employeeNumber ?? NA}</Descriptions.Item>
                   <Descriptions.Item label={usersCopy.lastLogin}>
-                    {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('de-DE') : NA}
+                    {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('de-DE') : '—'}
                   </Descriptions.Item>
                 </Descriptions>
                 {user.notes ? (

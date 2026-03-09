@@ -60,6 +60,16 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Geçersiz şifre" });
                 }
 
+                // Persist last login for audit and UI (Users list / detail).
+                user.LastLoginAt = DateTime.UtcNow;
+                user.LoginCount++;
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    _logger.LogWarning("LastLoginAt/LoginCount update failed for user {UserId}, login will continue. Errors: {Errors}",
+                        user.Id, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
+                }
+
                 var roles = await _userManager.GetRolesAsync(user);
                 var primaryRole = roles.FirstOrDefault() ?? user.Role ?? "User";
                 var token = GenerateJwtToken(user, primaryRole);

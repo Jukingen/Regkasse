@@ -2,9 +2,11 @@
 
 /**
  * Create/Edit user form in a Drawer – merkezi validasyon, backend contract uyumlu.
+ * Edit: form is filled only from detail API response (user prop). Never use list row data.
+ * When open in edit mode: show loading until user is loaded, then setFieldsValue(user); on close parent clears selectedUserId.
  */
 import React, { useEffect, useMemo } from 'react';
-import { Drawer, Form, Input, Select, Button, Space } from 'antd';
+import { Drawer, Form, Input, Select, Button, Space, Spin, Alert } from 'antd';
 import type { UserInfo } from '@/api/generated/model';
 import type { CreateUserRequest, UpdateUserRequest } from '@/api/generated/model';
 import { usersCopy } from '../constants/copy';
@@ -16,7 +18,14 @@ type Props = {
   open: boolean;
   onClose: () => void;
   mode: Mode;
+  /** For edit: full user from GET /api/UserManagement/{id} (includes Notes). Undefined while loading. */
   user?: UserInfo | null;
+  /** True while fetching user in edit mode; form shows loading until user is set. */
+  initialLoading?: boolean;
+  /** When edit mode and detail fetch failed; show error and retry. */
+  fetchError?: unknown;
+  /** Retry callback for detail fetch (edit mode). */
+  onRetryFetch?: () => void;
   roleOptions: { value: string; label: string }[];
   onSubmit: (values: CreateUserRequest | UpdateUserRequest) => void;
   loading?: boolean;
@@ -26,16 +35,45 @@ const formRulesContext = {
   requiredMessage: usersCopy.validationRequired,
   emailInvalidMessage: usersCopy.validationEmail,
   passwordMinMessage: usersCopy.validationPasswordMin,
+  passwordPolicyMessage: usersCopy.validationPasswordPolicy,
   maxLengthMessage: usersCopy.validationMaxLength,
   reasonRequiredMessage: usersCopy.reasonRequiredMessage,
   roleNameRequiredMessage: usersCopy.roleNameRequired,
 };
+
+/**
+ * Map UserInfo to form field values. Keys must match Form.Item name props exactly:
+ * firstName, lastName, email, employeeNumber, role, taxNumber, notes.
+ * Backend returns role as string (e.g. "Admin"); form select uses same string.
+ */
+function userToFormValues(u: UserInfo | Record<string, unknown>): Record<string, string> {
+  const get = (key: string, altKeys: string[] = []) => {
+    const obj = u as Record<string, unknown>;
+    if (obj[key] != null && obj[key] !== '') return String(obj[key]);
+    for (const k of altKeys) {
+      if (obj[k] != null && obj[k] !== '') return String(obj[k]);
+    }
+    return '';
+  };
+  return {
+    firstName: get('firstName', ['FirstName']),
+    lastName: get('lastName', ['LastName']),
+    email: get('email', ['Email']),
+    employeeNumber: get('employeeNumber', ['EmployeeNumber', 'employeeNo']),
+    role: get('role', ['Role', 'roleName']),
+    taxNumber: get('taxNumber', ['TaxNumber', 'taxNo']),
+    notes: get('notes', ['Notes', 'comment', 'description']),
+  };
+}
 
 export function UserFormDrawer({
   open,
   onClose,
   mode,
   user,
+  initialLoading = false,
+  fetchError = null,
+  onRetryFetch,
   roleOptions,
   onSubmit,
   loading = false,
@@ -45,19 +83,24 @@ export function UserFormDrawer({
 
   useEffect(() => {
     if (!open) return;
-    if (mode === 'edit' && user) {
-      form.setFieldsValue({
-        firstName: user.firstName ?? '',
-        lastName: user.lastName ?? '',
-        email: user.email ?? '',
-        employeeNumber: user.employeeNumber ?? '',
-        role: user.role ?? '',
-        taxNumber: user.taxNumber ?? '',
-        notes: user.notes ?? '',
-      });
-    } else {
+    if (mode === 'create') {
+      form.resetFields();
+      return;
+    }
+    if (mode === 'edit' && user == null) {
       form.resetFields();
     }
+  }, [open, mode, user, form]);
+
+  const formValues = mode === 'edit' && user != null ? userToFormValues(user) : null;
+  useEffect(() => {
+    if (!open || mode !== 'edit' || user == null) return;
+    const values = userToFormValues(user);
+    const id = setTimeout(() => {
+      form.resetFields();
+      form.setFieldsValue(values);
+    }, 0);
+    return () => clearTimeout(id);
   }, [open, mode, user, form]);
 
   const handleSubmit = () => {
@@ -72,6 +115,9 @@ export function UserFormDrawer({
   };
 
   const title = mode === 'create' ? usersCopy.createUser : usersCopy.editUser;
+  const saveDisabled = mode === 'edit' && (initialLoading || !!fetchError);
+  // Edit: never render form until user detail is loaded (avoids empty form + initialValues-only hydration).
+  const showForm = mode === 'create' || (mode === 'edit' && user != null);
 
   return (
     <Drawer
@@ -84,45 +130,65 @@ export function UserFormDrawer({
       footer={
         <Space>
           <Button onClick={onClose}>{usersCopy.cancel}</Button>
-          <Button type="primary" onClick={handleSubmit} loading={loading}>
+          <Button type="primary" onClick={handleSubmit} loading={loading} disabled={saveDisabled}>
             {usersCopy.save}
           </Button>
         </Space>
       }
     >
-      <Form form={form} layout="vertical" preserve={false}>
-        {mode === 'create' && (
-          <>
-            <Form.Item name="userName" label={usersCopy.userName} rules={rules.userName}>
-              <Input maxLength={NAME_MAX_LENGTH} showCount placeholder={usersCopy.userName} />
-            </Form.Item>
-            <Form.Item name="password" label={usersCopy.password} rules={rules.password}>
-              <Input.Password autoComplete="new-password" placeholder="••••••••" />
-            </Form.Item>
-          </>
-        )}
-        <Form.Item name="firstName" label={usersCopy.firstName} rules={rules.firstName}>
-          <Input maxLength={NAME_MAX_LENGTH} />
-        </Form.Item>
-        <Form.Item name="lastName" label={usersCopy.lastName} rules={rules.lastName}>
-          <Input maxLength={NAME_MAX_LENGTH} />
-        </Form.Item>
-        <Form.Item name="email" label={usersCopy.email} rules={rules.email}>
-          <Input type="email" maxLength={EMAIL_MAX_LENGTH} />
-        </Form.Item>
-        <Form.Item name="employeeNumber" label={usersCopy.employeeNumber} rules={rules.employeeNumber}>
-          <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
-        </Form.Item>
-        <Form.Item name="role" label={usersCopy.role} rules={rules.role}>
-          <Select options={roleOptions} placeholder={usersCopy.filterRole} />
-        </Form.Item>
-        <Form.Item name="taxNumber" label={usersCopy.taxNumber} rules={rules.taxNumber}>
-          <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
-        </Form.Item>
-        <Form.Item name="notes" label={usersCopy.notes} rules={rules.notes}>
-          <Input.TextArea rows={2} maxLength={NOTES_MAX_LENGTH} showCount />
-        </Form.Item>
-      </Form>
+      {mode === 'edit' && (initialLoading || user == null) ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+          <Spin tip="Laden…" />
+        </div>
+      ) : mode === 'edit' && fetchError ? (
+        <Alert
+          type="error"
+          message={usersCopy.errorLoadUser}
+          description={((fetchError as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ?? (fetchError as { message?: string })?.message) ?? String(fetchError)}
+          action={onRetryFetch && <Button size="small" onClick={onRetryFetch}>Erneut versuchen</Button>}
+          showIcon
+        />
+      ) : showForm ? (
+        <Form
+          key={mode === 'edit' && user ? `edit-${user.id ?? 'user'}` : 'create'}
+          form={form}
+          layout="vertical"
+          preserve={false}
+          initialValues={formValues ?? undefined}
+        >
+          {mode === 'create' && (
+            <>
+              <Form.Item name="userName" label={usersCopy.userName} rules={rules.userName}>
+                <Input maxLength={NAME_MAX_LENGTH} showCount placeholder={usersCopy.userName} />
+              </Form.Item>
+              <Form.Item name="password" label={usersCopy.password} rules={rules.password}>
+                <Input.Password autoComplete="new-password" placeholder="••••••••" />
+              </Form.Item>
+            </>
+          )}
+          <Form.Item name="firstName" label={usersCopy.firstName} rules={rules.firstName}>
+            <Input maxLength={NAME_MAX_LENGTH} />
+          </Form.Item>
+          <Form.Item name="lastName" label={usersCopy.lastName} rules={rules.lastName}>
+            <Input maxLength={NAME_MAX_LENGTH} />
+          </Form.Item>
+          <Form.Item name="email" label={usersCopy.email} rules={rules.email}>
+            <Input type="email" maxLength={EMAIL_MAX_LENGTH} />
+          </Form.Item>
+          <Form.Item name="employeeNumber" label={usersCopy.employeeNumber} rules={rules.employeeNumber}>
+            <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
+          </Form.Item>
+          <Form.Item name="role" label={usersCopy.role} rules={rules.role}>
+            <Select options={roleOptions} placeholder={usersCopy.filterRole} />
+          </Form.Item>
+          <Form.Item name="taxNumber" label={usersCopy.taxNumber} rules={rules.taxNumber}>
+            <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
+          </Form.Item>
+          <Form.Item name="notes" label={usersCopy.notes} rules={rules.notes}>
+            <Input.TextArea rows={2} maxLength={NOTES_MAX_LENGTH} showCount />
+          </Form.Item>
+        </Form>
+      ) : null}
     </Drawer>
   );
 }

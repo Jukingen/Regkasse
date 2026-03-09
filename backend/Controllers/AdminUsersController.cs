@@ -23,6 +23,7 @@ public class AdminUsersController : ControllerBase
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IAuditLogService _auditLogService;
     private readonly IUserSessionInvalidation _sessionInvalidation;
+    private readonly IUserUniquenessValidationService _uniquenessValidation;
     private readonly ILogger<AdminUsersController> _logger;
 
     public AdminUsersController(
@@ -30,12 +31,14 @@ public class AdminUsersController : ControllerBase
         RoleManager<IdentityRole> roleManager,
         IAuditLogService auditLogService,
         IUserSessionInvalidation sessionInvalidation,
+        IUserUniquenessValidationService uniquenessValidation,
         ILogger<AdminUsersController> logger)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _auditLogService = auditLogService;
         _sessionInvalidation = sessionInvalidation;
+        _uniquenessValidation = uniquenessValidation;
         _logger = logger;
     }
 
@@ -105,8 +108,8 @@ public class AdminUsersController : ControllerBase
         var errors = new Dictionary<string, string[]>();
         if (string.IsNullOrWhiteSpace(request.UserName))
             errors["userName"] = new[] { "Username is required." };
-        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
-            errors["password"] = new[] { "Password must be at least 6 characters." };
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+            errors["password"] = new[] { "Password must be at least 8 characters." };
         if (string.IsNullOrWhiteSpace(request.FirstName))
             errors["firstName"] = new[] { "First name is required." };
         if (string.IsNullOrWhiteSpace(request.LastName))
@@ -120,12 +123,12 @@ public class AdminUsersController : ControllerBase
         if (existing != null)
             return BadRequest(ApiError.Conflict("Username already exists", $"Username '{request.UserName}' is already in use."));
 
-        if (!string.IsNullOrEmpty(request.Email))
-        {
-            existing = await _userManager.FindByEmailAsync(request.Email);
-            if (existing != null)
-                return BadRequest(ApiError.Conflict("Email already exists", $"Email '{request.Email}' is already in use."));
-        }
+        if (await _uniquenessValidation.IsEmailTakenByOtherUserAsync(request.Email, excludeUserId: null))
+            return BadRequest(ApiError.Conflict("Email already exists", $"Email '{request.Email}' is already in use."));
+        if (await _uniquenessValidation.IsEmployeeNumberTakenByOtherUserAsync(request.EmployeeNumber, excludeUserId: null))
+            return BadRequest(ApiError.Conflict("Employee number already exists", "Employee number is already in use."));
+        if (await _uniquenessValidation.IsTaxNumberTakenByOtherUserAsync(request.TaxNumber, excludeUserId: null))
+            return BadRequest(ApiError.Conflict("Tax number already exists", "Tax number is already in use."));
 
         var user = new ApplicationUser
         {
@@ -174,6 +177,14 @@ public class AdminUsersController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(ifMatch) && user.ConcurrencyStamp != ifMatch)
             return StatusCode(412, ApiError.ConcurrencyConflict("Resource version does not match. Refresh and try again."));
+
+        // Unique fields: validate before applying; exclude current user (user.Id) so own record is not a conflict.
+        if (request.Email != null && request.Email != user.Email && await _uniquenessValidation.IsEmailTakenByOtherUserAsync(request.Email, user.Id))
+            return BadRequest(ApiError.Conflict("Email already exists", $"Email '{request.Email}' is already in use."));
+        if (request.EmployeeNumber != null && request.EmployeeNumber.Trim() != (user.EmployeeNumber?.Trim() ?? "") && await _uniquenessValidation.IsEmployeeNumberTakenByOtherUserAsync(request.EmployeeNumber, user.Id))
+            return BadRequest(ApiError.Conflict("Employee number already exists", "Employee number is already in use."));
+        if (request.TaxNumber != null && request.TaxNumber.Trim() != (user.TaxNumber?.Trim() ?? "") && await _uniquenessValidation.IsTaxNumberTakenByOtherUserAsync(request.TaxNumber, user.Id))
+            return BadRequest(ApiError.Conflict("Tax number already exists", "Tax number is already in use."));
 
         var roleChanged = false;
         var previousRole = user.Role;
@@ -288,8 +299,8 @@ public class AdminUsersController : ControllerBase
     [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<IActionResult> ForcePasswordReset(string id, [FromBody] AdminForcePasswordResetRequest request)
     {
-        if (request == null || string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 6)
-            return BadRequest(ApiError.Validation("Invalid password", new Dictionary<string, string[]> { ["newPassword"] = new[] { "New password must be at least 6 characters." } }));
+        if (request == null || string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+            return BadRequest(ApiError.Validation("Invalid password", new Dictionary<string, string[]> { ["newPassword"] = new[] { "New password must be at least 8 characters." } }));
 
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
@@ -369,7 +380,7 @@ public class AdminUsersController : ControllerBase
     {
         [Required, MaxLength(50)]
         public string UserName { get; set; } = string.Empty;
-        [Required, MinLength(6)]
+        [Required, MinLength(8)]
         public string Password { get; set; } = string.Empty;
         [EmailAddress, MaxLength(256)]
         public string? Email { get; set; }
@@ -419,7 +430,7 @@ public class AdminUsersController : ControllerBase
 
     public class AdminForcePasswordResetRequest
     {
-        [Required, MinLength(6)]
+        [Required, MinLength(8)]
         public string NewPassword { get; set; } = string.Empty;
     }
 

@@ -1,11 +1,29 @@
 /**
  * Users modülü form validasyonu – backend contract ile hizalı (UserManagementController DTOs).
  * Tek kaynak: min/max uzunluk ve kurallar.
+ *
+ * Backend password policy (single source of truth): Program.cs
+ *   options.Password.RequiredLength = 8;
+ *   options.Password.RequireDigit = true;
+ *   options.Password.RequireLowercase = true;
+ *   options.Password.RequireUppercase = true;
+ *   options.Password.RequireNonAlphanumeric = true;
  */
 
-/** Backend: CreateUserRequest / ResetPasswordRequest (MinLength(6)); max 128 aligns with Identity. */
-export const PASSWORD_MIN_LENGTH = 6;
+/** Backend: Identity Password.RequiredLength (Program.cs) */
+export const PASSWORD_MIN_LENGTH = 8;
+/** Backend: Identity default max; DTOs align. */
 export const PASSWORD_MAX_LENGTH = 128;
+
+/** Mirrors backend Identity options for UI copy and client-side validation. */
+export const PASSWORD_POLICY = {
+  minLength: PASSWORD_MIN_LENGTH,
+  maxLength: PASSWORD_MAX_LENGTH,
+  requireDigit: true,
+  requireLowercase: true,
+  requireUppercase: true,
+  requireNonAlphanumeric: true,
+} as const;
 
 /** Backend: UserName, FirstName, LastName */
 export const NAME_MAX_LENGTH = 50;
@@ -29,10 +47,26 @@ export type RuleFactoryContext = {
   requiredMessage: string;
   emailInvalidMessage: string;
   passwordMinMessage: string;
+  /** Single message when password fails policy (uppercase, lowercase, digit, special). */
+  passwordPolicyMessage: string;
   maxLengthMessage: (max: number) => string;
   reasonRequiredMessage?: string;
   roleNameRequiredMessage?: string;
 };
+
+/** Returns first policy violation message or null if valid. Aligns with backend Identity. */
+export function getPasswordPolicyError(
+  value: string | undefined | null,
+  policyMessage: string
+): string | null {
+  if (value == null || value.length === 0) return null;
+  if (value.length < PASSWORD_POLICY.minLength) return null; // handled by min rule
+  if (PASSWORD_POLICY.requireDigit && !/\d/.test(value)) return policyMessage;
+  if (PASSWORD_POLICY.requireLowercase && !/[a-z]/.test(value)) return policyMessage;
+  if (PASSWORD_POLICY.requireUppercase && !/[A-Z]/.test(value)) return policyMessage;
+  if (PASSWORD_POLICY.requireNonAlphanumeric && !/[^A-Za-z0-9]/.test(value)) return policyMessage;
+  return null;
+}
 
 /** String max-length validator (Ant Design Rule). */
 function maxLen(max: number, message: string) {
@@ -56,11 +90,23 @@ export function createUsersFormRules(copy: RuleFactoryContext) {
       { required: true, message: copy.requiredMessage },
       { min: PASSWORD_MIN_LENGTH, message: copy.passwordMinMessage },
       maxLen(PASSWORD_MAX_LENGTH, copy.maxLengthMessage(PASSWORD_MAX_LENGTH)),
+      {
+        validator: (_: unknown, value: string | undefined) => {
+          const err = getPasswordPolicyError(value, copy.passwordPolicyMessage);
+          return err ? Promise.reject(new Error(err)) : Promise.resolve();
+        },
+      },
     ],
     newPassword: [
       { required: true, message: copy.requiredMessage },
       { min: PASSWORD_MIN_LENGTH, message: copy.passwordMinMessage },
       maxLen(PASSWORD_MAX_LENGTH, copy.maxLengthMessage(PASSWORD_MAX_LENGTH)),
+      {
+        validator: (_: unknown, value: string | undefined) => {
+          const err = getPasswordPolicyError(value, copy.passwordPolicyMessage);
+          return err ? Promise.reject(new Error(err)) : Promise.resolve();
+        },
+      },
     ],
     firstName: [
       { required: true, message: copy.requiredMessage },

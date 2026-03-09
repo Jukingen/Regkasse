@@ -1,6 +1,9 @@
 /**
  * Users module copy – i18n-ready keys (replace values or use with t(key) when i18n is added).
+ * Password min length from validation.ts (single source of truth; must match backend Identity).
  */
+import { PASSWORD_MIN_LENGTH } from './validation';
+
 export const usersCopy = {
   title: 'Benutzerverwaltung',
   name: 'Name',
@@ -53,6 +56,7 @@ export const usersCopy = {
   emptyList: 'Keine Benutzer gefunden.',
   emptyActivity: 'Keine Aktivität.',
   errorLoad: 'Benutzerliste konnte nicht geladen werden.',
+  errorLoadUser: 'Benutzerdaten konnten nicht geladen werden.',
   errorLoadActivity: 'Aktivitätsverlauf konnte nicht geladen werden.',
   errorLoadActivityHint: 'Übrige Benutzerdetails sind weiterhin nutzbar.',
   retry: 'Erneut versuchen',
@@ -67,17 +71,39 @@ export const usersCopy = {
   details: 'Details',
   resetPassword: 'Passwort zurücksetzen',
   resetPasswordUser: 'Passwort zurücksetzen',
-  newPassword: 'Neues Passwort (min. 6 Zeichen)',
+  newPassword: `Neues Passwort (min. ${PASSWORD_MIN_LENGTH} Zeichen, Groß-/Kleinbuchstaben, Zahl, Sonderzeichen)`,
   successResetPassword: 'Passwort wurde zurückgesetzt. Sitzungen des Benutzers wurden ungültig.',
   errorResetPassword: 'Passwort konnte nicht zurückgesetzt werden.',
+  errorResetPasswordUserNotFound: 'Benutzer wurde nicht gefunden.',
+  errorResetPasswordForbidden: 'Keine Berechtigung, dieses Passwort zurückzusetzen.',
+  sessionExpiredOrUnauthorized: 'Sitzung abgelaufen oder nicht angemeldet. Bitte erneut anmelden.',
   successCreateRole: 'Rolle angelegt.',
   roleName: 'Rollenname',
   roleNameRequired: 'Rollenname erforderlich',
-  // Validierung (zentral)
+  // Validierung (zentral; Policy = backend Program.cs Identity)
   validationRequired: 'Pflichtfeld.',
   validationEmail: 'Ungültige E-Mail-Adresse.',
-  validationPasswordMin: 'Min. 6 Zeichen.',
+  validationPasswordMin: `Min. ${PASSWORD_MIN_LENGTH} Zeichen.`,
+  validationPasswordPolicy: 'Mindestens ein Großbuchstabe, ein Kleinbuchstabe, eine Zahl und ein Sonderzeichen.',
   validationMaxLength: (n: number) => `Max. ${n} Zeichen.`,
-  // Reset-Passwort: Sicherheitshinweis
-  resetPasswordSecurityNote: 'Alle Sitzungen des Benutzers werden beendet. Das neue Passwort muss mindestens 6 Zeichen haben.',
+  // Reset-Passwort: Sicherheitshinweis (Policy = backend Identity)
+  resetPasswordSecurityNote: `Alle Sitzungen des Benutzers werden beendet. Das neue Passwort muss mindestens ${PASSWORD_MIN_LENGTH} Zeichen haben sowie Groß- und Kleinbuchstaben, eine Zahl und ein Sonderzeichen.`,
+  // Backend/Identity validation errors (DE) – for display in modal when backend returns 400
+  resetPasswordErrorMinLength: 'Das Passwort muss mindestens 8 Zeichen haben.',
+  resetPasswordErrorDigit: 'Das Passwort muss mindestens eine Ziffer enthalten.',
+  resetPasswordErrorLowercase: 'Das Passwort muss mindestens einen Kleinbuchstaben enthalten.',
+  resetPasswordErrorUppercase: 'Das Passwort muss mindestens einen Großbuchstaben enthalten.',
+  resetPasswordErrorNonAlphanumeric: 'Das Passwort muss mindestens ein Sonderzeichen enthalten.',
+  resetPasswordErrorGeneric: 'Das Passwort erfüllt die Anforderungen nicht.',
 } as const;
+
+/** Maps backend/Identity English password error message to German for modal display. */
+export function mapBackendPasswordErrorToGerman(backendMessage: string, copy: typeof usersCopy): string {
+  const lower = backendMessage.toLowerCase();
+  if (lower.includes('at least') && lower.includes('character')) return copy.resetPasswordErrorMinLength;
+  if (lower.includes('digit') || lower.includes('number')) return copy.resetPasswordErrorDigit;
+  if (lower.includes('lowercase') || lower.includes('lower case')) return copy.resetPasswordErrorLowercase;
+  if (lower.includes('uppercase') || lower.includes('upper case')) return copy.resetPasswordErrorUppercase;
+  if (lower.includes('non-alphanumeric') || lower.includes('non alphanumeric') || lower.includes('special')) return copy.resetPasswordErrorNonAlphanumeric;
+  return copy.resetPasswordErrorGeneric;
+}

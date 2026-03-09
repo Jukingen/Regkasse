@@ -6,9 +6,11 @@ import {
   postApiUserManagement,
   putApiUserManagementId,
   putApiUserManagementIdResetPassword,
+  getApiUserManagementId,
   getApiUserManagementRoles,
   postApiUserManagementRoles,
 } from '@/api/generated/user-management/user-management';
+import { authStorage } from '@/features/auth/services/authStorage';
 import {
   getUsersList as getUsersListFromApi,
   deactivateUser as deactivateUserFromApi,
@@ -26,6 +28,50 @@ export const rolesQueryKey = ['/api/UserManagement/roles'] as const;
 export { getUsersListFromApi as getUsersList };
 export type { UsersListParams, UsersListResponse, UsersListPagination } from './usersApi';
 
+// --- Tekil kullanıcı (edit drawer için tam DTO, Notes dahil) ---
+/** Pick first defined from possible backend key names (camelCase, PascalCase, snake_case, etc.). */
+function pick<T>(obj: Record<string, unknown>, ...keys: string[]): T | undefined {
+  for (const k of keys) {
+    if (Object.prototype.hasOwnProperty.call(obj, k) && obj[k] !== undefined) return obj[k] as T;
+  }
+  return undefined;
+}
+
+/**
+ * Normalize GET /api/UserManagement/{id} response to UserInfo (camelCase).
+ * Handles: direct body (customInstance returns response.data), PascalCase or camelCase, alternate names.
+ */
+function normalizeUserInfo(raw: Record<string, unknown>): UserInfo {
+  return {
+    id: pick<string>(raw, 'id', 'Id') ?? undefined,
+    userName: pick<string>(raw, 'userName', 'UserName') ?? undefined,
+    email: pick<string>(raw, 'email', 'Email') ?? undefined,
+    firstName: pick<string>(raw, 'firstName', 'FirstName') ?? '',
+    lastName: pick<string>(raw, 'lastName', 'LastName') ?? '',
+    employeeNumber: pick<string>(raw, 'employeeNumber', 'EmployeeNumber', 'employeeNo', 'employee_no') ?? undefined,
+    role: pick<string>(raw, 'role', 'Role', 'roleId', 'roleName') ?? undefined,
+    taxNumber: pick<string>(raw, 'taxNumber', 'TaxNumber', 'taxNo', 'tax_no', 'vatNumber') ?? undefined,
+    notes: pick<string>(raw, 'notes', 'Notes', 'comment', 'description') ?? undefined,
+    isActive: pick<boolean>(raw, 'isActive', 'IsActive') ?? true,
+    createdAt: pick<string>(raw, 'createdAt', 'CreatedAt') ?? undefined,
+    lastLoginAt: pick<string>(raw, 'lastLoginAt', 'LastLoginAt') ?? undefined,
+  };
+}
+
+export async function getUserById(id: string): Promise<UserInfo> {
+  let raw: unknown = await getApiUserManagementId(id);
+  // If backend ever wraps in { data: ... } or { result: ... }, unwrap once
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const obj = raw as Record<string, unknown>;
+    if (obj.data && typeof obj.data === 'object') raw = obj.data;
+    else if (obj.result && typeof obj.result === 'object') raw = obj.result;
+  }
+  const normalized = normalizeUserInfo((raw ?? {}) as Record<string, unknown>);
+  return { ...normalized } as UserInfo;
+}
+
+export const getUserByIdQueryKey = (id: string) => ['/api/UserManagement', id] as const;
+
 // --- Roller ---
 export async function getRoles(): Promise<string[]> {
   return getApiUserManagementRoles();
@@ -40,8 +86,17 @@ export async function updateUser(id: string, data: UpdateUserRequest): Promise<v
   return putApiUserManagementId(id, data);
 }
 
+/** Reset password (admin): ensures Bearer token is sent; fails fast if not authenticated. */
 export async function resetPassword(id: string, data: ResetPasswordRequest): Promise<void> {
-  return putApiUserManagementIdResetPassword(id, data);
+  const token = typeof window !== 'undefined' ? authStorage.getToken() : null;
+  if (!token) {
+    return Promise.reject(
+      Object.assign(new Error('Nicht angemeldet. Bitte erneut anmelden.'), { response: { status: 401, data: { message: 'Nicht angemeldet. Bitte erneut anmelden.' } } })
+    );
+  }
+  return putApiUserManagementIdResetPassword(id, data, {
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+  });
 }
 
 export async function createRole(data: CreateRoleRequest): Promise<void> {

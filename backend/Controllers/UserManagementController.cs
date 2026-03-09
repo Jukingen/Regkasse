@@ -23,6 +23,7 @@ namespace KasseAPI_Final.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IAuditLogService _auditLogService;
         private readonly IUserSessionInvalidation _sessionInvalidation;
+        private readonly IUserUniquenessValidationService _uniquenessValidation;
         private readonly ILogger<UserManagementController> _logger;
 
         public UserManagementController(
@@ -31,6 +32,7 @@ namespace KasseAPI_Final.Controllers
             RoleManager<IdentityRole> roleManager,
             IAuditLogService auditLogService,
             IUserSessionInvalidation sessionInvalidation,
+            IUserUniquenessValidationService uniquenessValidation,
             ILogger<UserManagementController> logger)
         {
             _context = context;
@@ -38,6 +40,7 @@ namespace KasseAPI_Final.Controllers
             _roleManager = roleManager;
             _auditLogService = auditLogService;
             _sessionInvalidation = sessionInvalidation;
+            _uniquenessValidation = uniquenessValidation;
             _logger = logger;
         }
 
@@ -184,7 +187,11 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/usermanagement/{id}
+        /// <summary>
+        /// Single user detail for view/edit. Returns JSON with camelCase (e.g. firstName, lastName, role).
+        /// Example response: { "id": "...", "userName": "...", "firstName": "...", "lastName": "...", "email": "...", "employeeNumber": "...", "role": "Admin", "taxNumber": "...", "notes": "...", "isActive": true, "createdAt": "...", "lastLoginAt": "..." }.
+        /// Route: GET /api/UserManagement/{id}
+        /// </summary>
         [HttpGet("{id}")]
         [Authorize(Policy = "UsersView")]
         public async Task<ActionResult<UserInfo>> GetUser(string id)
@@ -203,13 +210,13 @@ namespace KasseAPI_Final.Controllers
 
                 var userInfo = new UserInfo
                 {
-                    Id = user.Id,
-                    UserName = user.UserName,
+                    Id = user.Id ?? string.Empty,
+                    UserName = user.UserName ?? string.Empty,
                     Email = user.Email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    EmployeeNumber = user.EmployeeNumber,
-                    Role = user.Role,
+                    FirstName = user.FirstName ?? string.Empty,
+                    LastName = user.LastName ?? string.Empty,
+                    EmployeeNumber = user.EmployeeNumber ?? string.Empty,
+                    Role = user.Role ?? string.Empty,
                     TaxNumber = user.TaxNumber,
                     Notes = user.Notes,
                     IsActive = user.IsActive,
@@ -253,26 +260,13 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Username already exists" });
                 }
 
-                // Email kontrol et
-                if (!string.IsNullOrEmpty(request.Email))
-                {
-                    var existingEmail = await _userManager.FindByEmailAsync(request.Email);
-                    if (existingEmail != null)
-                    {
-                        return BadRequest(new { message = "Email already exists" });
-                    }
-                }
-
-                // Employee number kontrol et
-                if (!string.IsNullOrEmpty(request.EmployeeNumber))
-                {
-                    var existingEmployee = await _userManager.Users
-                        .FirstOrDefaultAsync(u => u.EmployeeNumber == request.EmployeeNumber && u.IsActive);
-                    if (existingEmployee != null)
-                    {
-                        return BadRequest(new { message = "Employee number already exists" });
-                    }
-                }
+                // Unique fields: create has no user to exclude (excludeUserId = null).
+                if (await _uniquenessValidation.IsEmailTakenByOtherUserAsync(request.Email, excludeUserId: null))
+                    return BadRequest(new { message = "Email already exists" });
+                if (await _uniquenessValidation.IsEmployeeNumberTakenByOtherUserAsync(request.EmployeeNumber, excludeUserId: null))
+                    return BadRequest(new { message = "Employee number already exists" });
+                if (await _uniquenessValidation.IsTaxNumberTakenByOtherUserAsync(request.TaxNumber, excludeUserId: null))
+                    return BadRequest(new { message = "Tax number already exists" });
 
                 var user = new ApplicationUser
                 {
@@ -368,26 +362,17 @@ namespace KasseAPI_Final.Controllers
 
                 var previousRole = user.Role;
 
-                // Email kontrol et (kendisi hariç)
-                if (!string.IsNullOrEmpty(request.Email) && request.Email != user.Email)
-                {
-                    var existingEmail = await _userManager.FindByEmailAsync(request.Email);
-                    if (existingEmail != null)
-                    {
-                        return BadRequest(new { message = "Email already exists" });
-                    }
-                }
-
-                // Employee number kontrol et (kendisi hariç)
-                if (!string.IsNullOrEmpty(request.EmployeeNumber) && request.EmployeeNumber != user.EmployeeNumber)
-                {
-                    var existingEmployee = await _userManager.Users
-                        .FirstOrDefaultAsync(u => u.EmployeeNumber == request.EmployeeNumber && u.IsActive && u.Id != id);
-                    if (existingEmployee != null)
-                    {
-                        return BadRequest(new { message = "Employee number already exists" });
-                    }
-                }
+                // Uniqueness: exclude current user by loaded entity Id (user.Id), never by route id, so self-update with same employeeNumber/email does not false-conflict.
+                var (hasConflict, conflictMessage) = await _uniquenessValidation.ValidateUniquenessForUpdateAsync(
+                    currentUserId: user.Id,
+                    user.Email,
+                    user.EmployeeNumber,
+                    user.TaxNumber,
+                    request.Email,
+                    request.EmployeeNumber,
+                    request.TaxNumber);
+                if (hasConflict)
+                    return BadRequest(new { message = conflictMessage });
 
                 // Email güncelle (duplicate zaten kontrol edildi; Identity lookup için NormalizedEmail gerekli)
                 if (!string.IsNullOrEmpty(request.Email) && request.Email != user.Email)
@@ -526,9 +511,9 @@ namespace KasseAPI_Final.Controllers
                 return BadRequest(new { message = "New password is required.", code = "VALIDATION_ERROR", errors = new { NewPassword = new[] { "New password is required." } } });
             }
 
-            if (request.NewPassword.Length < 6)
+            if (request.NewPassword.Length < 8)
             {
-                return BadRequest(new { message = "Password must be at least 6 characters.", code = "VALIDATION_ERROR", errors = new { NewPassword = new[] { "Password must be at least 6 characters." } } });
+                return BadRequest(new { message = "Password must be at least 8 characters.", code = "VALIDATION_ERROR", errors = new { NewPassword = new[] { "Password must be at least 8 characters." } } });
             }
 
             try
@@ -830,7 +815,7 @@ namespace KasseAPI_Final.Controllers
         public int TotalPages { get; set; }
     }
 
-    // DTOs
+    /// <summary>User DTO for list and detail. Detail (GET {id}) includes all fields required by the edit form.</summary>
     public class UserInfo
     {
         public string Id { get; set; } = string.Empty;
@@ -839,6 +824,7 @@ namespace KasseAPI_Final.Controllers
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string? EmployeeNumber { get; set; }
+        /// <summary>Role name for display and form select (e.g. Admin, BranchManager).</summary>
         public string? Role { get; set; }
         public string? TaxNumber { get; set; }
         public string? Notes { get; set; }
@@ -854,7 +840,7 @@ namespace KasseAPI_Final.Controllers
         public string UserName { get; set; } = string.Empty;
 
         [Required]
-        [MinLength(6)]
+        [MinLength(8)]
         public string Password { get; set; } = string.Empty;
 
         [EmailAddress]
@@ -919,16 +905,16 @@ namespace KasseAPI_Final.Controllers
         public string CurrentPassword { get; set; } = string.Empty;
 
         [Required]
-        [MinLength(6)]
+        [MinLength(8)]
         public string NewPassword { get; set; } = string.Empty;
     }
 
-    /// <summary>Contract: JSON property must be "newPassword" (camelCase) to match OpenAPI and frontend.</summary>
+    /// <summary>Contract: JSON property must be "newPassword" (camelCase) to match OpenAPI and frontend. Min length must match Identity Password.RequiredLength (8).</summary>
     public class ResetPasswordRequest
     {
         [JsonPropertyName("newPassword")]
         [Required(ErrorMessage = "New password is required.")]
-        [MinLength(6, ErrorMessage = "Password must be at least 6 characters.")]
+        [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
         public string NewPassword { get; set; } = string.Empty;
     }
 

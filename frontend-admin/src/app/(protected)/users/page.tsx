@@ -32,7 +32,7 @@ import {
     SearchOutlined,
     KeyOutlined,
 } from '@ant-design/icons';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 import { useUsersList } from '@/features/users/hooks/useUsersList';
@@ -42,6 +42,8 @@ import {
     rolesQueryKey,
     createUser as gatewayCreateUser,
     updateUser as gatewayUpdateUser,
+    getUserById,
+    getUserByIdQueryKey,
     deactivateUser as gatewayDeactivateUser,
     reactivateUser as gatewayReactivateUser,
     resetPassword as gatewayResetPassword,
@@ -53,7 +55,7 @@ import {
 } from '@/features/users/api/usersGateway';
 import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
 import { UserFormDrawer } from '@/features/users/components/UserFormDrawer';
-import { usersCopy } from '@/features/users/constants/copy';
+import { usersCopy, mapBackendPasswordErrorToGerman } from '@/features/users/constants/copy';
 import { createUsersFormRules } from '@/features/users/constants/validation';
 
 const { Title } = Typography;
@@ -84,6 +86,7 @@ const modalFormRulesContext = {
   requiredMessage: usersCopy.validationRequired,
   emailInvalidMessage: usersCopy.validationEmail,
   passwordMinMessage: usersCopy.validationPasswordMin,
+  passwordPolicyMessage: usersCopy.validationPasswordPolicy,
   maxLengthMessage: usersCopy.validationMaxLength,
   reasonRequiredMessage: usersCopy.reasonRequiredMessage,
   roleNameRequiredMessage: usersCopy.roleNameRequired,
@@ -98,11 +101,14 @@ export default function UsersPage() {
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
     const [createOpen, setCreateOpen] = useState(false);
-    const [editUser, setEditUser] = useState<UserInfo | null>(null);
+    /** Edit: only store selected user id. Detail is fetched by useQuery below; never use list row data for edit form. */
+    const [editUserId, setEditUserId] = useState<string | null>(null);
     const [detailUser, setDetailUser] = useState<UserInfo | null>(null);
     const [deactivateUserRecord, setDeactivateUserRecord] = useState<UserInfo | null>(null);
     const [reactivateUserRecord, setReactivateUserRecord] = useState<UserInfo | null>(null);
     const [resetPasswordUser, setResetPasswordUser] = useState<UserInfo | null>(null);
+    /** Backend validation error shown inside reset password modal (German); cleared when modal closes. */
+    const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
 
     const { user: currentUser } = useAuth();
@@ -126,6 +132,12 @@ export default function UsersPage() {
         setPage(DEFAULT_PAGE);
     }, [roleFilter, statusFilter, searchTerm]);
     const { data: roles } = useRoles({ enabled: policy.canView });
+    // Edit flow: when editUserId is set, fetch full user detail (GET /api/UserManagement/{id}); form is filled from this response only.
+    const { data: editUserFull, isLoading: editUserLoading, isError: editUserError, error: editUserFetchError, refetch: refetchEditUser } = useQuery({
+        queryKey: getUserByIdQueryKey(editUserId ?? ''),
+        queryFn: () => getUserById(editUserId!),
+        enabled: !!editUserId,
+    });
     const modalRules = useMemo(() => createUsersFormRules(modalFormRulesContext), []);
 
     const roleOptions = useMemo(
@@ -153,7 +165,7 @@ export default function UsersPage() {
         onSuccess: () => {
             message.success(usersCopy.successUpdate);
             queryClient.invalidateQueries({ queryKey: listQueryKey });
-            setEditUser(null);
+            setEditUserId(null);
         },
         onError: (e: unknown) => {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
@@ -168,11 +180,29 @@ export default function UsersPage() {
             resetPasswordForm.resetFields();
         },
         onError: (e: unknown) => {
-            const normalized = normalizeError(e, usersCopy.errorResetPassword);
-            message.error(normalized.message);
-            const fieldErrors = (normalized.details as { errors?: { NewPassword?: string[] } })?.errors?.NewPassword;
-            if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-                resetPasswordForm.setFields([{ name: 'newPassword', errors: [fieldErrors[0]] }]);
+            const err = e as { response?: { status?: number; data?: { errors?: Record<string, string[]> } } };
+            const status = err.response?.status;
+            const is401 = status === 401;
+            const is403 = status === 403;
+            const is404 = status === 404;
+            const is400 = status === 400;
+            const fallback =
+                is401 ? usersCopy.sessionExpiredOrUnauthorized
+                : is403 ? usersCopy.errorResetPasswordForbidden
+                : is404 ? usersCopy.errorResetPasswordUserNotFound
+                : usersCopy.errorResetPassword;
+            const normalized = normalizeError(e, fallback);
+            const data = err.response?.data as { errors?: Record<string, string[]> } | undefined;
+            const errors = data?.errors;
+            const fieldErrors = errors?.newPassword ?? errors?.NewPassword;
+            const firstBackendMessage = Array.isArray(fieldErrors) && fieldErrors.length > 0 ? fieldErrors[0] : normalized.message;
+            const displayMessage = mapBackendPasswordErrorToGerman(firstBackendMessage, usersCopy);
+
+            if (is400) {
+                setResetPasswordValidationError(displayMessage);
+                resetPasswordForm.setFields([{ name: 'newPassword', errors: [displayMessage] }]);
+            } else {
+                message.error(normalized.message);
             }
         },
     });
@@ -213,22 +243,26 @@ export default function UsersPage() {
     });
 
     useEffect(() => {
-        if (resetPasswordUser) resetPasswordForm.resetFields();
+        if (resetPasswordUser) {
+            resetPasswordForm.resetFields();
+            setResetPasswordValidationError(null);
+        }
     }, [resetPasswordUser, resetPasswordForm]);
 
-    const handleCreate = (values: CreateUserRequest) => {
+    const handleCreate = (values: CreateUserRequest | UpdateUserRequest) => {
         if (!policy.canCreate) {
             message.error(usersCopy.noPermission);
             return;
         }
+        const raw = values as CreateUserRequest;
         const createPayload: CreateUserRequest = {
-            ...values,
-            employeeNumber: (values.employeeNumber ?? '').trim(),
+            ...raw,
+            employeeNumber: (raw.employeeNumber ?? '').trim(),
         };
         createMutation.mutate(createPayload);
     };
     const handleEdit = (values: UpdateUserRequest) => {
-        if (!editUser?.id) return;
+        if (!editUserId) return;
         if (!policy.canEdit) {
             message.error(usersCopy.noPermission);
             return;
@@ -237,7 +271,7 @@ export default function UsersPage() {
             ...values,
             employeeNumber: (values.employeeNumber ?? '').trim(),
         };
-        updateMutation.mutate({ id: editUser.id, data: updatePayload });
+        updateMutation.mutate({ id: editUserId, data: updatePayload });
     };
     const handleDeactivate = () => {
         if (!deactivateUserRecord?.id) return;
@@ -333,7 +367,7 @@ export default function UsersPage() {
                         <Button
                             size="small"
                             icon={<EditOutlined />}
-                            onClick={() => setEditUser(record)}
+                            onClick={() => setEditUserId(record.id ?? null)}
                         >
                             {usersCopy.edit}
                         </Button>
@@ -482,10 +516,14 @@ export default function UsersPage() {
                 loading={createMutation.isPending}
             />
             <UserFormDrawer
-                open={!!editUser}
-                onClose={() => setEditUser(null)}
+                key={editUserId ?? 'edit'}
+                open={!!editUserId}
+                onClose={() => setEditUserId(null)}
                 mode="edit"
-                user={editUser}
+                user={editUserFull ?? undefined}
+                initialLoading={!!editUserId && editUserLoading}
+                fetchError={editUserError ? (editUserFetchError ?? null) : null}
+                onRetryFetch={refetchEditUser}
                 roleOptions={roleOptions}
                 onSubmit={handleEdit}
                 loading={updateMutation.isPending}
@@ -539,7 +577,7 @@ export default function UsersPage() {
                 title={usersCopy.resetPasswordUser}
                 open={!!resetPasswordUser}
                 onOk={handleResetPassword}
-                onCancel={() => { setResetPasswordUser(null); resetPasswordForm.resetFields(); }}
+                onCancel={() => { setResetPasswordUser(null); setResetPasswordValidationError(null); resetPasswordForm.resetFields(); }}
                 okText={usersCopy.save}
                 confirmLoading={resetPasswordMutation.isPending}
                 destroyOnClose
@@ -555,6 +593,14 @@ export default function UsersPage() {
                             showIcon
                             style={{ marginBottom: 16 }}
                         />
+                        {resetPasswordValidationError && (
+                            <Alert
+                                type="error"
+                                message={resetPasswordValidationError}
+                                showIcon
+                                style={{ marginBottom: 16 }}
+                            />
+                        )}
                         <Form form={resetPasswordForm} layout="vertical">
                             <Form.Item name="newPassword" label={usersCopy.newPassword} rules={modalRules.newPassword}>
                                 <Input.Password placeholder="••••••••" autoComplete="new-password" />
