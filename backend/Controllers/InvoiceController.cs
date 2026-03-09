@@ -882,7 +882,7 @@ namespace KasseAPI_Final.Controllers
         // Required role: Admin
         // Responses: 200 OK (success + counts), 401 Unauthorized (no token), 403 Forbidden (non-Admin role)
         [HttpPost("backfill-from-payments")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "SystemCritical")]
         public async Task<IActionResult> BackfillInvoicesFromPayments()
         {
             int inserted = 0, skipped = 0, failed = 0;

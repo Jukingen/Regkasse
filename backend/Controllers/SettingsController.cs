@@ -76,7 +76,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/settings
         [HttpPut]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> UpdateSettings([FromBody] UpdateSettingsRequest request)
         {
             try
@@ -149,7 +149,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/settings/tax-rates
         [HttpPut("tax-rates")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> UpdateTaxRates([FromBody] Dictionary<string, decimal> taxRates)
         {
             try
@@ -176,7 +176,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/settings/backup
         [HttpGet("backup")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> GetBackupSettings()
         {
             try
@@ -207,7 +207,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/settings/backup/now
         [HttpPost("backup/now")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> CreateBackupNow()
         {
             try
@@ -268,7 +268,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/settings/notifications
         [HttpPut("notifications")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> UpdateNotificationSettings([FromBody] UpdateNotificationSettingsRequest request)
         {
             try
@@ -303,7 +303,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/settings/export
         [HttpGet("export")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> ExportSettings()
         {
             try

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Authorization;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -89,7 +90,8 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings
         [HttpPut]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateCompanySettings([FromBody] UpdateCompanySettingsRequest request)
         {
             try
@@ -135,6 +137,7 @@ namespace KasseAPI_Final.Controllers
                 settings.InvoiceNumbering = request.InvoiceNumbering;
                 settings.ReceiptNumbering = request.ReceiptNumbering;
                 settings.DefaultPaymentMethod = request.DefaultPaymentMethod;
+                // TODO: optional – tenant/branch restriction if multi-tenant; FinanzOnline config is typically tenant-wide.
                 if (request.FinanzOnlineUsername != null) settings.FinanzOnlineUsername = request.FinanzOnlineUsername;
                 if (request.FinanzOnlinePassword != null) settings.FinanzOnlinePassword = request.FinanzOnlinePassword;
                 if (request.FinanzOnlineApiUrl != null) settings.FinanzOnlineApiUrl = request.FinanzOnlineApiUrl;
@@ -180,7 +183,8 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings/business-hours
         [HttpPut("business-hours")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateBusinessHours([FromBody] Dictionary<string, string> businessHours)
         {
             try
@@ -207,7 +211,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/companysettings/banking
         [HttpGet("banking")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "BackofficeManagement")]
         public async Task<ActionResult<BankingInfo>> GetBankingInfo()
         {
             try
@@ -237,7 +241,8 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings/banking
         [HttpPut("banking")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateBankingInfo([FromBody] UpdateBankingInfoRequest request)
         {
             try
@@ -310,7 +315,8 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings/localization
         [HttpPut("localization")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateLocalizationSettings([FromBody] LocalizationSettings request)
         {
             try
@@ -347,7 +353,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/companysettings/billing
         [HttpGet("billing")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "BackofficeManagement")]
         public async Task<ActionResult<BillingSettings>> GetBillingSettings()
         {
             try
@@ -378,7 +384,8 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings/billing
         [HttpPut("billing")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateBillingSettings([FromBody] UpdateBillingSettingsRequest request)
         {
             try
@@ -414,7 +421,8 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/companysettings/export
         [HttpGet("export")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
+        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> ExportCompanySettings()
         {
             try

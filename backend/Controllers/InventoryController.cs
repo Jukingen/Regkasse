@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Authorization;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -115,7 +116,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/inventory
         [HttpPost]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "InventoryManage")]
         public async Task<ActionResult<InventoryItem>> CreateInventoryItem([FromBody] CreateInventoryItemRequest request)
         {
             try
@@ -178,7 +179,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/inventory/{id}
         [HttpPut("{id}")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "InventoryManage")]
         public async Task<IActionResult> UpdateInventoryItem(Guid id, [FromBody] UpdateInventoryItemRequest request)
         {
             try
@@ -222,7 +223,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/inventory/{id}/restock
         [HttpPost("{id}/restock")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "InventoryManage")]
         public async Task<IActionResult> RestockInventory(Guid id, [FromBody] RestockRequest request)
         {
             try
@@ -282,7 +283,8 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/inventory/{id}/adjust
         [HttpPost("{id}/adjust")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "InventoryManage")]
+        [HasPermission(AppPermissions.InventoryAdjust)]
         public async Task<IActionResult> AdjustInventory(Guid id, [FromBody] AdjustInventoryRequest request)
         {
             try
@@ -303,6 +305,8 @@ namespace KasseAPI_Final.Controllers
                 {
                     return BadRequest(new { message = "Adjustment would result in negative stock" });
                 }
+
+                // TODO: optional – manager approval for large negative adjustments; branch restriction if multi-tenant.
 
                 // Stok miktarını güncelle
                 inventoryItem.CurrentStock = newStock;
@@ -408,7 +412,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/inventory/{id}
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "InventoryDelete")]
         public async Task<IActionResult> DeleteInventoryItem(Guid id)
         {
             try

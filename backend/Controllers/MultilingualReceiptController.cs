@@ -107,7 +107,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/multilingualreceipt
         [HttpPost]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<ActionResult<ReceiptTemplate>> CreateReceiptTemplate([FromBody] CreateReceiptTemplateRequest request)
         {
             try
@@ -175,7 +175,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/multilingualreceipt/{id}
         [HttpPut("{id}")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> UpdateReceiptTemplate(Guid id, [FromBody] UpdateReceiptTemplateRequest request)
         {
             try
@@ -234,7 +234,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/multilingualreceipt/{id}
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> DeleteReceiptTemplate(Guid id)
         {
             try
@@ -388,7 +388,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/multilingualreceipt/export
         [HttpGet("export")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> ExportReceiptTemplates()
         {
             try

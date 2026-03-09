@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Authorization;
 
 namespace KasseAPI_Final.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "PosTableOrder")]
     [ApiController]
     [Route("api/[controller]")]
     public class OrdersController : ControllerBase
@@ -167,6 +168,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/orders/{id}/status
         [HttpPut("{id}/status")]
+        [HasPermission(AppPermissions.OrderUpdate)]
         public async Task<IActionResult> UpdateOrderStatus(Guid id, [FromBody] UpdateOrderStatusRequest request)
         {
             try
@@ -193,10 +195,12 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/orders/{id}
         [HttpDelete("{id}")]
+        [HasPermission(AppPermissions.OrderCancel)]
         public async Task<IActionResult> DeleteOrder(Guid id)
         {
             try
             {
+                // TODO: scope check – branch/ownership restriction (e.g. waiter own order, manager any in branch).
                 var order = await _context.Orders.FindAsync(id);
                 if (order == null)
                 {

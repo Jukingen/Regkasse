@@ -10,6 +10,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Authorization;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -20,15 +21,18 @@ namespace KasseAPI_Final.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
+        private readonly ITokenClaimsService _tokenClaimsService;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            ITokenClaimsService tokenClaimsService)
         {
             _userManager = userManager;
             _configuration = configuration;
             _logger = logger;
+            _tokenClaimsService = tokenClaimsService;
         }
 
         [HttpPost("login")]
@@ -72,7 +76,10 @@ namespace KasseAPI_Final.Controllers
 
                 var roles = await _userManager.GetRolesAsync(user);
                 var primaryRole = roles.FirstOrDefault() ?? user.Role ?? "User";
-                var token = GenerateJwtToken(user, primaryRole);
+                var claims = await _tokenClaimsService.BuildClaimsAsync(user, roles);
+                var token = GenerateJwtToken(claims);
+                var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles).ToList();
+                var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
 
                 var response = new
                 {
@@ -84,8 +91,9 @@ namespace KasseAPI_Final.Controllers
                         email = user.Email,
                         firstName = user.FirstName,
                         lastName = user.LastName,
-                        role = primaryRole,
-                        roles = roles
+                        role = canonicalRole,
+                        roles = roles,
+                        permissions = permissions
                     }
                 };
 
@@ -174,8 +182,11 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "User account is not active" });
                 }
 
-                // Kullanıcı rollerini al
+                // Kullanıcı rollerini al; permission set RolePermissionMatrix'ten (Administrator → Admin set)
                 var roles = await _userManager.GetRolesAsync(user);
+                var primaryRole = roles.FirstOrDefault() ?? user.Role ?? "User";
+                var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles).ToList();
+                var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
 
                 var userResponse = new
                 {
@@ -183,8 +194,9 @@ namespace KasseAPI_Final.Controllers
                     email = user.Email,
                     firstName = user.FirstName,
                     lastName = user.LastName,
-                    role = user.Role,
-                    roles = roles
+                    role = canonicalRole,
+                    roles = roles,
+                    permissions = permissions
                 };
 
                 _logger.LogInformation("GetCurrentUser: Successfully retrieved user {Email} with role {Role}", user.Email, user.Role);
@@ -258,25 +270,16 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        private string GenerateJwtToken(ApplicationUser user, string roleForToken)
+        private string GenerateJwtToken(IReadOnlyList<Claim> claims)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"] ?? "default-secret-key-32-chars-long"));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expires = DateTime.Now.AddHours(1);
-            var roleValue = RoleCanonicalization.GetCanonicalRole(roleForToken ?? user.Role ?? "User");
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["JwtSettings:Issuer"],
                 audience: _configuration["JwtSettings:Audience"],
-                claims: new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id),
-                    new Claim(ClaimTypes.Name, user.Email ?? string.Empty),
-                    new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
-                    new Claim("user_id", user.Id),
-                    new Claim("user_role", roleValue),
-                    new Claim(ClaimTypes.Role, roleValue)
-                },
+                claims: claims,
                 expires: expires,
                 signingCredentials: creds
             );

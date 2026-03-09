@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Authorization;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -79,7 +80,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/{id} - Get specific audit log by ID
         /// </summary>
         [HttpGet("{id}")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "AuditView")]
         public async Task<ActionResult<AuditLogResponse>> GetAuditLog(Guid id)
         {
             try
@@ -111,7 +112,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/payment/{paymentId} - Get audit logs for specific payment
         /// </summary>
         [HttpGet("payment/{paymentId}")]
-        [Authorize(Roles = "Administrator,Manager,Cashier")]
+        [Authorize(Policy = "AuditViewWithCashier")]
         public async Task<ActionResult<AuditLogsResponse>> GetPaymentAuditLogs(
             Guid paymentId,
             [FromQuery] DateTime? startDate = null,
@@ -204,7 +205,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/correlation/{correlationId} - Get audit logs by correlation ID
         /// </summary>
         [HttpGet("correlation/{correlationId}")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "AuditView")]
         public async Task<ActionResult<AuditLogsResponse>> GetAuditLogsByCorrelationId(string correlationId)
         {
             try
@@ -269,7 +270,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/transaction/{transactionId} - Get audit logs by transaction ID
         /// </summary>
         [HttpGet("transaction/{transactionId}")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "AuditView")]
         public async Task<ActionResult<AuditLogsResponse>> GetAuditLogsByTransactionId(string transactionId)
         {
             try
@@ -303,7 +304,7 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/statistics - Get audit log statistics
         /// </summary>
         [HttpGet("statistics")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "AuditView")]
         public async Task<ActionResult<AuditLogStatisticsResponse>> GetAuditLogStatistics(
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null)
@@ -337,7 +338,8 @@ namespace KasseAPI_Final.Controllers
         /// DELETE: api/auditlog/cleanup - Delete audit logs older than specified date
         /// </summary>
         [HttpDelete("cleanup")]
-        [Authorize(Roles = "Administrator")]
+        [HasPermission(AppPermissions.AuditCleanup)]
+        // TODO: optional – manager approval or audit retention window; branch restriction if multi-tenant.
         public async Task<ActionResult<AuditLogCleanupResponse>> CleanupOldAuditLogs(
             [FromBody] AuditLogCleanupRequest request)
         {
@@ -373,7 +375,8 @@ namespace KasseAPI_Final.Controllers
         /// GET: api/auditlog/export - Export audit logs to CSV/JSON
         /// </summary>
         [HttpGet("export")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "AuditAdmin")]
+        [HasPermission(AppPermissions.AuditExport)]
         public async Task<ActionResult> ExportAuditLogs(
             [FromQuery] string format = "json",
             [FromQuery] DateTime? startDate = null,

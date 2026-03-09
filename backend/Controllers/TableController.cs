@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Collections.Generic;
 
 namespace KasseAPI_Final.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "PosTableOrder")]
     public class TableController : ControllerBase
     {
         // Basit masa listesi - gerçek uygulamada veritabanından gelir

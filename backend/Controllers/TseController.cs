@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "PosTse")]
     [ApiController]
     [Route("api/[controller]")]
     public class TseController : ControllerBase

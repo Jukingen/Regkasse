@@ -6,7 +6,7 @@ using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "BackofficeManagement")]
     [ApiController]
     [Route("api/[controller]")]
     public class ReportsController : ControllerBase

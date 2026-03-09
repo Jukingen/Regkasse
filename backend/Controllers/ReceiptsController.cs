@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "PosSales")]
     [ApiController]
     [Route("api/[controller]")]
     public class ReceiptsController : ControllerBase

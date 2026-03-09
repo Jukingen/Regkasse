@@ -9,7 +9,7 @@ namespace KasseAPI_Final.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = "PosTse")]
     public class TagesabschlussController : ControllerBase
     {
         private readonly ITagesabschlussService _tagesabschlussService;

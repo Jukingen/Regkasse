@@ -72,7 +72,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "CashRegisterManage")]
         public async Task<IActionResult> CreateCashRegister([FromBody] CreateCashRegisterModel model)
         {
             try

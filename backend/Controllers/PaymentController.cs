@@ -12,6 +12,7 @@ using System.Text;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Tse;
+using KasseAPI_Final.Authorization;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -23,7 +24,7 @@ namespace KasseAPI_Final.Controllers
     [Route("api/[controller]")]
     [Route("api/pos/payment")]
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = "PosSales")]
     public class PaymentController : BaseController
     {
         private readonly IPaymentService _paymentService;
@@ -43,7 +44,6 @@ namespace KasseAPI_Final.Controllers
         /// Mevcut ödeme yöntemlerini getir
         /// </summary>
         [HttpGet("methods")]
-        [Authorize] // Authentication gerekli
         public IActionResult GetPaymentMethods()
         {
             try
@@ -75,6 +75,7 @@ namespace KasseAPI_Final.Controllers
         /// Yeni ödeme oluştur
         /// </summary>
         [HttpPost]
+        [HasPermission(AppPermissions.PaymentTake)]
         public async Task<IActionResult> CreatePayment([FromBody] CreatePaymentRequest request)
         {
             try
@@ -275,6 +276,7 @@ namespace KasseAPI_Final.Controllers
         /// Ödeme iptal et
         /// </summary>
         [HttpPost("{id}/cancel")]
+        [HasPermission(AppPermissions.PaymentCancel)]
         public async Task<IActionResult> CancelPayment(Guid id, [FromBody] CancelPaymentRequest request)
         {
             try
@@ -291,6 +293,7 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("User not authenticated", 401);
                 }
 
+                // TODO: scope check – ensure user can cancel this payment (e.g. same branch/cash register or manager).
                 var result = await _paymentService.CancelPaymentAsync(id, request.Reason, userId);
                 
                 if (result.Success)
@@ -310,6 +313,7 @@ namespace KasseAPI_Final.Controllers
         /// Ödeme iade et
         /// </summary>
         [HttpPost("{id}/refund")]
+        [HasPermission(AppPermissions.RefundCreate)]
         public async Task<IActionResult> RefundPayment(Guid id, [FromBody] RefundPaymentRequest request)
         {
             try
@@ -487,7 +491,7 @@ namespace KasseAPI_Final.Controllers
         /// TSE imzası oluştur
         /// </summary>
         [HttpPost("{id}/tse-signature")]
-        [Authorize(Roles = "Administrator,Kasiyer")]
+        [Authorize(Policy = "PosTse")]
         public async Task<IActionResult> GenerateTseSignature(Guid id)
         {
             try
@@ -517,7 +521,7 @@ namespace KasseAPI_Final.Controllers
         /// <response code="200">Diagnostic steps returned</response>
         /// <response code="404">Payment not found</response>
         [HttpGet("{id}/signature-debug")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "PosTseDiagnostics")]
         [ProducesResponseType(typeof(IReadOnlyList<SignatureDiagnosticStep>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetSignatureDebug(Guid id)
@@ -573,7 +577,7 @@ namespace KasseAPI_Final.Controllers
         /// <returns>Structured diagnostic result</returns>
         /// <response code="200">Verify result with checklist steps</response>
         [HttpPost("verify-signature")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "PosTseDiagnostics")]
         [ProducesResponseType(typeof(VerifySignatureResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public IActionResult VerifySignature([FromBody] VerifySignatureRequest request)

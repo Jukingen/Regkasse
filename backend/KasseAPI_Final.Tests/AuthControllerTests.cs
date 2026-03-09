@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -51,7 +53,10 @@ public class AuthControllerTests
         config.Setup(c => c["JwtSettings:Issuer"]).Returns("Test");
         config.Setup(c => c["JwtSettings:Audience"]).Returns("Test");
         var logger = new Mock<ILogger<AuthController>>().Object;
-        var controller = new AuthController(userManager, config.Object, logger);
+        var tokenClaims = new Mock<ITokenClaimsService>();
+        tokenClaims.Setup(t => t.BuildClaimsAsync(It.IsAny<ApplicationUser>(), It.IsAny<IList<string>>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Claim> { new Claim(ClaimTypes.NameIdentifier, "id") });
+        var controller = new AuthController(userManager, config.Object, logger, tokenClaims.Object);
 
         var result = await controller.Login(new LoginModel { Email = "deact@test.com", Password = "any" });
 
@@ -65,7 +70,8 @@ public class AuthControllerTests
         var userManager = CreateUserManagerForDeactivatedUser(null);
         var config = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
         var logger = new Mock<ILogger<AuthController>>().Object;
-        var controller = new AuthController(userManager, config.Object, logger);
+        var tokenClaims = new Mock<ITokenClaimsService>();
+        var controller = new AuthController(userManager, config.Object, logger, tokenClaims.Object);
 
         var result = await controller.Login(new LoginModel { Email = "nobody@test.com", Password = "any" });
 

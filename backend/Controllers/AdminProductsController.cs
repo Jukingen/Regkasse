@@ -14,7 +14,7 @@ namespace KasseAPI_Final.Controllers
     /// </summary>
     [Route("api/admin/products")]
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = "CatalogManage")]
     public class AdminProductsController : BaseController
     {
         private readonly AppDbContext _context;

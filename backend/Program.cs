@@ -17,6 +17,7 @@ using KasseAPI_Final;
 using KasseAPI_Final.Tse;
 using KasseAPI_Final.Swagger;
 using KasseAPI_Final.Middleware;
+using KasseAPI_Final.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -90,9 +91,10 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
-        // Debug için ek ayarlar
         RequireExpirationTime = true,
-        ValidateTokenReplay = false
+        ValidateTokenReplay = false,
+        // JWT payload uses short claim name "role"; [Authorize(Roles="...")] / User.IsInRole() require this mapping
+        RoleClaimType = "role"
     };
     
     // Debug için JWT events ekle
@@ -137,20 +139,15 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Authorization policies – role-based. Administrator = legacy alias for Admin (backward compatibility).
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminUsers", policy =>
-        policy.RequireRole("SuperAdmin", "Admin", "Administrator"));
-    options.AddPolicy("UsersView", policy =>
-        policy.RequireRole("SuperAdmin", "Admin", "Administrator", "BranchManager", "Auditor"));
-    options.AddPolicy("UsersManage", policy =>
-        policy.RequireRole("SuperAdmin", "Admin", "Administrator", "BranchManager"));
-});
-builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, ForbiddenResponseAuthorizationHandler>();
+// Authorization: legacy role policies + permission-based policies. Use AddAppAuthorization() (AuthorizationExtensions).
+// Legacy: [Authorize(Policy = "PosSales")] etc. remain. New endpoints: [HasPermission(AppPermissions.X)].
+// Administrator → Admin permission set in RolePermissionMatrix.
+builder.Services.AddAppAuthorization();
 
 // Session invalidation on critical account changes (stub until RefreshToken table exists)
 builder.Services.AddScoped<IUserSessionInvalidation, StubUserSessionInvalidation>();
+builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();
+builder.Services.AddScoped<IScopeCheckService, ScopeCheckService>();
 
 // CORS politikası
 builder.Services.AddCors(options =>

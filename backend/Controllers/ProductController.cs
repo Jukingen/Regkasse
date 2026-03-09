@@ -19,7 +19,7 @@ namespace KasseAPI_Final.Controllers
     [Route("api/Product")]
     [Route("api/pos")]
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = "PosCatalogRead")]
     public class ProductController : EntityController<Product>
     {
         private readonly AppDbContext _context;

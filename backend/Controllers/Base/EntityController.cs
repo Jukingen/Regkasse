@@ -154,7 +154,7 @@ namespace KasseAPI_Final.Controllers.Base
         /// Entity'yi kalıcı olarak sil
         /// </summary>
         [HttpDelete("{id}/permanent")]
-        [Authorize(Roles = "Administrator")] // Sadece admin kalıcı silebilir
+        [Authorize(Policy = "SystemCritical")] // Sadece admin kalıcı silebilir
         public virtual async Task<IActionResult> HardDelete(Guid id)
         {
             try

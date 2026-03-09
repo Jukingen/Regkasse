@@ -13,7 +13,7 @@ namespace KasseAPI_Final.Controllers
     /// Sepet işlemleri (POS). Legacy: api/Cart/* deprecated; use api/pos/cart/*.
     /// TODO: api/Cart route kaldırılamıyor — POS cartService /cart/current vb. ile hâlâ kullanıyor. POS api/pos/cart'a geçince kaldır.
     /// </summary>
-    [Authorize]
+    [Authorize(Policy = "PosSales")]
     [ApiController]
     [Route("api/[controller]")]
     [Route("api/pos/cart")]

@@ -6,36 +6,50 @@ import { usePostApiAuthLogout } from '@/api/generated/auth/auth';
 import { UserInfo } from '@/api/generated/model';
 import { message } from 'antd';
 import { authStorage } from '@/features/auth/services/authStorage';
+import type { AuthUser } from '@/shared/auth/types';
 
 // Define the key for the user query
 export const AUTH_KEYS = {
     user: ['auth', 'me'] as const,
 };
 
-const fetchUser = async (): Promise<UserInfo> => {
+/** API /me response may include permissions/roles (various casing). */
+type MeResponse = UserInfo & {
+    permissions?: string[];
+    Permissions?: string[];
+    roles?: string[];
+    Roles?: string[];
+};
+
+const fetchUser = async (): Promise<AuthUser> => {
     if (process.env.NODE_ENV === 'development') {
         console.log('📡 [API] Fetching /api/Auth/me');
     }
-    const res = await customInstance<UserInfo>({
+    const res = await customInstance<MeResponse>({
         url: '/api/Auth/me',
         method: 'GET',
     });
 
-    // Provide generic fallback adapter mapping for auth contracts changing casing over versions
+    // Map permissions/roles for permission-based guards; fallback to [] when not yet provided by backend
+    const permissions = res.permissions ?? res.Permissions ?? [];
+    const roles = res.roles ?? res.Roles ?? [];
+
     return {
-        id: res.id ?? res.Id,
+        id: res.id ?? res.Id ?? null,
         userName: res.userName ?? res.UserName,
         email: res.email ?? res.Email,
         firstName: res.firstName ?? res.FirstName,
         lastName: res.lastName ?? res.LastName,
         role: res.role ?? res.Role,
+        roles: roles.length > 0 ? roles : undefined,
+        permissions,
         employeeNumber: res.employeeNumber ?? res.EmployeeNumber,
         taxNumber: res.taxNumber ?? res.TaxNumber,
         notes: res.notes ?? res.Notes,
         isActive: res.isActive ?? res.IsActive,
         createdAt: res.createdAt ?? res.CreatedAt,
         lastLoginAt: res.lastLoginAt ?? res.LastLoginAt,
-    } as UserInfo;
+    };
 };
 
 export enum AuthStatus {

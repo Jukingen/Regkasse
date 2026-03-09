@@ -10,7 +10,7 @@ namespace KasseAPI_Final.Controllers
     /// <summary>
     /// Kategori yönetimi. Tek route: api/admin/categories (legacy api/Categories kaldırıldı).
     /// </summary>
-    [Authorize]
+    [Authorize(Policy = "PosCatalogRead")]
     [ApiController]
     [Route("api/admin/categories")]
     public class CategoriesController : ControllerBase
@@ -69,9 +69,9 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/categories
+        // POST: api/categories – create; token may have "Admin" (canonical) or "SuperAdmin", "Manager"
         [HttpPost]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "CatalogManage")]
         public async Task<ActionResult<Category>> CreateCategory([FromBody] CreateCategoryRequest request)
         {
             try
@@ -113,9 +113,9 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // PUT: api/categories/{id}
+        // PUT: api/categories/{id} – update; same roles as create
         [HttpPut("{id}")]
-        [Authorize(Roles = "Administrator,Manager")]
+        [Authorize(Policy = "CatalogManage")]
         public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] UpdateCategoryRequest request)
         {
             try
@@ -160,9 +160,9 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // DELETE: api/categories/{id}
+        // DELETE: api/categories/{id} – admin-only; token has canonical "Admin" for Administrator, "SuperAdmin" as-is
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "CatalogManage")]
         public async Task<IActionResult> DeleteCategory(Guid id)
         {
             try

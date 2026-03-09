@@ -27,11 +27,18 @@ namespace KasseAPI_Final.Data
                 Console.WriteLine("Cashier role created successfully");
             }
 
-            // Kellner (garson) rolü
+            // Kellner (garson) rolü – legacy; policies use Waiter
             if (!await roleManager.RoleExistsAsync("Kellner"))
             {
                 await roleManager.CreateAsync(new IdentityRole("Kellner"));
                 Console.WriteLine("Kellner role created successfully");
+            }
+
+            // Waiter – canonical role for POS table/order (policy PosTableOrder)
+            if (!await roleManager.RoleExistsAsync("Waiter"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("Waiter"));
+                Console.WriteLine("Waiter role created successfully");
             }
 
             // Auditor (salt okunur denetim)

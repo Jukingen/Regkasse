@@ -3,13 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Authorization;
 using System.Security.Claims;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "BackofficeSettings")]
     [ApiController]
     [Route("api/[controller]")]
     public class FinanzOnlineController : ControllerBase
@@ -25,6 +26,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/finanzonline/config
         [HttpGet("config")]
+        [HasPermission(AppPermissions.FinanzOnlineView)]
         public async Task<ActionResult<FinanzOnlineConfigResponse>> GetConfig()
         {
             try
@@ -59,6 +61,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/finanzonline/config
         [HttpPut("config")]
+        [HasPermission(AppPermissions.FinanzOnlineManage)]
         public async Task<ActionResult<FinanzOnlineConfigResponse>> UpdateConfig([FromBody] FinanzOnlineConfigRequest request)
         {
             try
@@ -145,6 +148,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/finanzonline/submit-invoice
         [HttpPost("submit-invoice")]
+        [HasPermission(AppPermissions.FinanzOnlineSubmit)]
         public async Task<ActionResult<FinanzOnlineSubmitResponse>> SubmitInvoice([FromBody] FinanzOnlineSubmitRequest request)
         {
             var submission = new FinanzOnlineSubmission
@@ -155,6 +159,7 @@ namespace KasseAPI_Final.Controllers
 
             try
             {
+                // TODO: scope – tenant/branch if multi-tenant; submit is typically tenant-scoped.
                 // Find invoice to link if possible (optional, but good for tracking)
                 var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceNumber == request.InvoiceNumber);
                 if (invoice != null) submission.InvoiceId = invoice.Id;

@@ -13,7 +13,7 @@ namespace KasseAPI_Final.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = "PosTableOrder")]
     public class CustomerController : EntityController<Customer>
     {
         private readonly AppDbContext _context;

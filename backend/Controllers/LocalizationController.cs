@@ -84,7 +84,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/localization
         [HttpPut]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> UpdateLocalizationSettings([FromBody] UpdateLocalizationSettingsRequest request)
         {
             try
@@ -257,7 +257,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/localization/add-language
         [HttpPost("add-language")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> AddSupportedLanguage([FromBody] AddLanguageRequest request)
         {
             try
@@ -296,7 +296,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/localization/add-currency
         [HttpPost("add-currency")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> AddSupportedCurrency([FromBody] AddCurrencyRequest request)
         {
             try
@@ -334,7 +334,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/localization/remove-language/{language}
         [HttpDelete("remove-language/{language}")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> RemoveSupportedLanguage(string language)
         {
             try
@@ -373,7 +373,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/localization/remove-currency/{currency}
         [HttpDelete("remove-currency/{currency}")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> RemoveSupportedCurrency(string currency)
         {
             try
@@ -411,7 +411,7 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/localization/export
         [HttpGet("export")]
-        [Authorize(Roles = "Administrator")]
+        [Authorize(Policy = "BackofficeSettings")]
         public async Task<IActionResult> ExportLocalizationSettings()
         {
             try
