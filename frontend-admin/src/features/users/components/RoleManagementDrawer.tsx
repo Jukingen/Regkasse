@@ -27,6 +27,19 @@ import { usersCopy } from '../constants/copy';
 import { ROLE_PRESETS, getPresetKeysInCatalog, type RolePreset } from '../constants/rolePresets';
 import { validateCatalogAlignment } from '@/shared/auth/validateCatalogAlignment';
 
+/** Stable empty refs so default props do not create new [] each render (avoids effect dependency churn). */
+const EMPTY_ROLES: RoleWithPermissionsDto[] = [];
+const EMPTY_CATALOG: PermissionCatalogItemDto[] = [];
+
+function setsEqual(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  let equal = true;
+  a.forEach((x) => {
+    if (!b.has(x)) equal = false;
+  });
+  return equal;
+}
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -60,8 +73,8 @@ function groupCatalogByGroup(catalog: PermissionCatalogItemDto[]): Map<string, P
 export function RoleManagementDrawer({
   open,
   onClose,
-  roles = [],
-  catalog = [],
+  roles = EMPTY_ROLES,
+  catalog = EMPTY_CATALOG,
   rolesLoading,
   catalogLoading,
   rolesError,
@@ -115,25 +128,42 @@ export function RoleManagementDrawer({
     return r ? [...(r.permissions ?? [])].sort().join(',') : '';
   }, [roles, selectedRoleName]);
 
-  // Initialize selected to first role when data loads; sync draft from selected role
+  // Stable key for role list: same string when role names (after sort) are unchanged. Avoids first effect
+  // re-running on every new `roles`/sortedRoles reference from React Query.
+  const roleNamesKey = useMemo(() => {
+    const sorted = [...(roles || [])].sort((a, b) => {
+      const systemA = a.isSystemRole ? 0 : 1;
+      const systemB = b.isSystemRole ? 0 : 1;
+      if (systemA !== systemB) return systemA - systemB;
+      return a.roleName.localeCompare(b.roleName, 'de');
+    });
+    return sorted.map((r) => r.roleName).join(',');
+  }, [roles]);
+
+  // Initialize selected to first role when data loads. Depend on roleNamesKey (primitive) so we don't
+  // re-run when only `roles`/sortedRoles reference changes; use sortedRoles from closure inside.
+  // Guard setState: avoid new Set(null) / redundant updates that would retrigger render chains.
   useEffect(() => {
     if (!open || sortedRoles.length === 0) {
-      setSelectedRoleName(null);
-      setDraftPermissions(new Set());
+      setSelectedRoleName((prev) => (prev !== null ? null : prev));
+      setDraftPermissions((prev) => (prev.size === 0 ? prev : new Set()));
       return;
     }
     if (!selectedRoleName || !sortedRoles.some((r) => r.roleName === selectedRoleName)) {
-      setSelectedRoleName(sortedRoles[0]!.roleName);
+      const firstName = sortedRoles[0]!.roleName;
+      setSelectedRoleName((prev) => (prev === firstName ? prev : firstName));
     }
-  }, [open, sortedRoles, selectedRoleName]);
+  }, [open, roleNamesKey, selectedRoleName]);
 
   // Sync draft from server when selected role (by name) or its permissions change. Use primitive key
   // instead of selectedRole object so we don't re-run on every new roles array reference (avoids loop).
+  // Idempotent: only update when Set content actually differs (new Set(...) every time would still re-render).
   useEffect(() => {
     if (!selectedRoleName || !selectedRolePermissionsKey) return;
     const role = roles.find((r) => r.roleName === selectedRoleName);
     if (!role) return;
-    setDraftPermissions(new Set(role.permissions ?? []));
+    const next = new Set(role.permissions ?? []);
+    setDraftPermissions((prev) => (setsEqual(prev, next) ? prev : next));
   }, [selectedRoleName, selectedRolePermissionsKey]);
 
   const groupedCatalog = useMemo(() => groupCatalogByGroup(catalog), [catalog]);
@@ -146,7 +176,7 @@ export function RoleManagementDrawer({
   }, [open, catalog.length, catalogKeySet]);
 
   const handleApplyPreset = (preset: RolePreset) => {
-    if (isSystemRole) return;
+    if (!canEditRole) return;
     const keysInCatalog = getPresetKeysInCatalog(preset, catalogKeySet);
     setDraftPermissions(new Set(keysInCatalog));
     setPresetSelectValue(null);
@@ -186,7 +216,7 @@ export function RoleManagementDrawer({
   };
 
   const handleTogglePermission = (key: string, checked: boolean) => {
-    if (isSystemRole) return;
+    if (!canEditRole) return;
     setDraftPermissions((prev) => {
       const next = new Set(prev);
       if (checked) next.add(key);
@@ -196,7 +226,7 @@ export function RoleManagementDrawer({
   };
 
   const handleSave = async () => {
-    if (!selectedRoleName || isSystemRole || !dirty) return;
+    if (!selectedRoleName || !canEditRole || !dirty) return;
     await onSavePermissions(selectedRoleName, Array.from(draftPermissions));
   };
 
@@ -242,7 +272,7 @@ export function RoleManagementDrawer({
       width={720}
       open={open}
       onClose={handleClose}
-      destroyOnClose
+      destroyOnHidden
       footer={
         <Space>
           {canCreateRole && (
@@ -295,7 +325,10 @@ export function RoleManagementDrawer({
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-          <Spin tip="Laden…" />
+          {/* tip only works in nest pattern (antd Spin API) */}
+          <Spin spinning tip="Laden…">
+            <div style={{ minHeight: 80 }} />
+          </Spin>
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 24, minHeight: 400 }}>
@@ -359,11 +392,20 @@ export function RoleManagementDrawer({
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={usersCopy.noRoleSelected} style={{ marginTop: 24 }} />
             ) : (
               <>
-                {selectedRole?.isSystemRole && (
+                {selectedRole?.isSystemRole && !canEditRole && (
                   <Alert
                     type="info"
                     message={usersCopy.badgeSystemRole}
-                    description={usersCopy.systemRoleProtectedNoDelete}
+                    description={usersCopy.systemRolePermissionsReadOnly}
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                  />
+                )}
+                {selectedRole?.isSystemRole && canEditRole && (
+                  <Alert
+                    type="info"
+                    message={usersCopy.badgeSystemRole}
+                    description={usersCopy.systemRoleEditablePermissions}
                     showIcon
                     style={{ marginBottom: 12 }}
                   />

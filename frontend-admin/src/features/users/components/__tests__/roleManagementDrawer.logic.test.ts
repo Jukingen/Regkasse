@@ -32,11 +32,11 @@ describe('RoleManagementDrawer logic', () => {
   describe('delete next selection', () => {
     it('returns first remaining role in sorted order after delete', () => {
       const roles = [
-        { roleName: 'Admin' },
+        { roleName: 'SuperAdmin' },
         { roleName: 'Custom' },
         { roleName: 'Manager' },
       ];
-      expect(getNextRoleAfterDelete(roles, 'Custom')).toBe('Admin');
+      expect(getNextRoleAfterDelete(roles, 'Custom')).toBe('SuperAdmin');
     });
 
     it('returns null when deleted was the only role', () => {
@@ -71,7 +71,7 @@ describe('RoleManagementDrawer logic', () => {
 
   describe('system role delete disabled', () => {
     it('isSystemRole true implies delete should be disabled in UI', () => {
-      const role = { roleName: 'Admin', isSystemRole: true, userCount: 1 };
+      const role = { roleName: 'Manager', isSystemRole: true, userCount: 1 };
       expect(role.isSystemRole).toBe(true);
     });
   });

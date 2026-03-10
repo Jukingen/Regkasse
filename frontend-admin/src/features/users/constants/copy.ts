@@ -7,7 +7,6 @@ import { PASSWORD_MIN_LENGTH } from './validation';
 /** German display names for canonical system roles (align with backend Roles.Canonical). */
 const ROLE_DISPLAY_NAMES: Record<string, string> = {
   SuperAdmin: 'Super-Administrator',
-  Admin: 'Administrator',
   Manager: 'Manager',
   Cashier: 'Kassierer',
   Waiter: 'Kellner',
@@ -77,7 +76,7 @@ export const usersCopy = {
   successDeactivate: 'Benutzer deaktiviert.',
   successReactivate: 'Benutzer reaktiviert.',
   errorGeneric: 'Fehler.',
-  noPermission: 'Nur Admins (Admin/SuperAdmin) können Benutzer verwalten.',
+  noPermission: 'Nur SuperAdmin (bzw. Benutzer mit entsprechender Berechtigung) können Benutzer verwalten.',
   accessDenied: 'Sie haben keine Berechtigung, Benutzer anzuzeigen.',
   branchNotAvailable: '—',
   details: 'Details',
@@ -101,6 +100,12 @@ export const usersCopy = {
   /** Tooltip/alert when a system role is selected; system roles cannot be deleted. */
   systemRoleNoDelete: 'Systemrollen können nicht gelöscht werden.',
   systemRoleProtectedNoDelete: 'Systemrollen sind geschützt und können nicht gelöscht werden.',
+  /** SuperAdmin (matrix-only): permissions cannot be changed in UI. */
+  systemRolePermissionsReadOnly:
+    'Diese Systemrolle ist fest im Code verankert; Berechtigungen können hier nicht geändert werden.',
+  /** Other canonical roles: permissions editable via claims; delete still blocked. */
+  systemRoleEditablePermissions:
+    'Systemrolle: Löschen weiterhin geschützt. Berechtigungen können angepasst werden (wirksam nach Speichern).',
   roleHasUsers: 'Rolle kann nicht gelöscht werden: mindestens ein Benutzer ist zugewiesen.',
   /** Shown when delete is blocked because role has assigned users; instructs to reassign first. */
   roleDeleteBlockedReassignFirst: 'Diese Rolle kann nicht gelöscht werden, weil noch Benutzer zugewiesen sind. Weisen Sie diese Benutzer zuerst einer anderen Rolle zu.',

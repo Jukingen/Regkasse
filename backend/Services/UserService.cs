@@ -135,7 +135,8 @@ namespace KasseAPI_Final.Services
                 // Rol bazlı yetki kontrolü (canonical roller)
                 var roleHasPermission = user.Role switch
                 {
-                    "Admin" => true, // Admin tüm yetkilere sahip
+                    "SuperAdmin" => true, // SuperAdmin full access in legacy path
+                    "Admin" => true, // Legacy token/DB until migration applied everywhere
                     "Cashier" => permission switch
                     {
                         "payment.create" => true,

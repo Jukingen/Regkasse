@@ -19,7 +19,7 @@ export interface RoleWithPermissionsDto {
   userCount: number;
   /** True only for custom roles with no assigned users. */
   canDelete?: boolean;
-  /** True only for custom roles; system roles have fixed permissions. */
+  /** False only for SuperAdmin (matrix-only). True for custom and other canonical roles. */
   canEditPermissions?: boolean;
 }
 

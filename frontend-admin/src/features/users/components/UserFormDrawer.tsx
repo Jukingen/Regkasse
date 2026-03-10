@@ -44,7 +44,7 @@ const formRulesContext = {
 /**
  * Map UserInfo to form field values. Keys must match Form.Item name props exactly:
  * firstName, lastName, email, employeeNumber, role, taxNumber, notes.
- * Backend returns role as string (e.g. "Admin"); form select uses same string.
+ * Backend returns role as string (e.g. "SuperAdmin", "Manager"); form select uses same string.
  */
 function userToFormValues(u: UserInfo | Record<string, unknown>): Record<string, string> {
   const get = (key: string, altKeys: string[] = []) => {
@@ -87,9 +87,8 @@ export function UserFormDrawer({
       form.resetFields();
       return;
     }
-    if (mode === 'edit' && user == null) {
-      form.resetFields();
-    }
+    // Edit + user still loading: Form is not mounted yet; resetFields would disconnect useForm.
+    if (mode === 'edit' && user == null) return;
   }, [open, mode, user, form]);
 
   const formValues = mode === 'edit' && user != null ? userToFormValues(user) : null;
@@ -126,7 +125,7 @@ export function UserFormDrawer({
       width={480}
       open={open}
       onClose={onClose}
-      destroyOnClose
+      destroyOnHidden
       footer={
         <Space>
           <Button onClick={onClose}>{usersCopy.cancel}</Button>
@@ -137,8 +136,11 @@ export function UserFormDrawer({
       }
     >
       {mode === 'edit' && (initialLoading || user == null) ? (
+        // Spin tip only works in nest pattern (child required); avoid useForm-disconnected phase without Form mounted.
         <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-          <Spin tip="Laden…" />
+          <Spin spinning tip="Laden…">
+            <div style={{ minHeight: 80 }} />
+          </Spin>
         </div>
       ) : mode === 'edit' && fetchError ? (
         <Alert

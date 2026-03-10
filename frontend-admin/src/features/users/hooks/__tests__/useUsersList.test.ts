@@ -32,7 +32,7 @@ const sampleUser: UserInfo = {
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
-  role: 'Admin',
+  role: 'SuperAdmin',
   isActive: true,
   employeeNumber: 'E001',
   lastLoginAt: '2025-01-15T10:00:00Z',
@@ -116,7 +116,7 @@ describe('useUsersList', () => {
       () =>
         useUsersList(
           {
-            role: 'Admin',
+            role: 'SuperAdmin',
             isActive: true,
             query: 'jane',
             page: 2,
@@ -128,7 +128,7 @@ describe('useUsersList', () => {
     );
     await waitFor(() => {
       expect(mockGetUsersList).toHaveBeenCalledWith({
-        role: 'Admin',
+        role: 'SuperAdmin',
         isActive: true,
         query: 'jane',
         page: 2,

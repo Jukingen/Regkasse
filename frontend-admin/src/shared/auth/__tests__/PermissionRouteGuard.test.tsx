@@ -62,7 +62,7 @@ describe('PermissionRouteGuard', () => {
 
   it('renders children when user has required permission for path', () => {
     mockUseAuth.mockReturnValue({
-      user: { id: 'u1', role: 'Admin', permissions: ['settings.view'] },
+      user: { id: 'u1', role: 'SuperAdmin', permissions: ['settings.view'] },
       authStatus: AuthStatus.Authenticated,
       isInitialized: true,
     });

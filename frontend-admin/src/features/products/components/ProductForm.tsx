@@ -179,7 +179,7 @@ export default function ProductForm({
                 disabled: !!initialValues && modifierGroupsLoading,
             }}
             width={600}
-            destroyOnClose
+            destroyOnHidden
         >
             <Form
                 form={form}

@@ -54,7 +54,7 @@ public class RoleManagementTests
         var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger);
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, "Admin") }, "Test")) }
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.Manager) }, "Test")) }
         };
 
         var result = await controller.SetRolePermissions("CustomRole", new UpdateRolePermissionsRequest { Permissions = new List<string> { AppPermissions.ProductView } }, CancellationToken.None);
@@ -77,7 +77,7 @@ public class RoleManagementTests
         var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger);
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, "Admin") }, "Test")) }
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.Manager) }, "Test")) }
         };
 
         var result = await controller.DeleteRole("CustomRole", CancellationToken.None);
@@ -144,7 +144,7 @@ public class RoleManagementTests
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
         var roleMgmt = new Mock<IRoleManagementService>();
-        roleMgmt.Setup(x => x.DeleteRoleAsync("Admin", It.IsAny<CancellationToken>())).ReturnsAsync(DeleteRoleResult.SystemRoleNotDeletable);
+        roleMgmt.Setup(x => x.DeleteRoleAsync(Roles.Manager, It.IsAny<CancellationToken>())).ReturnsAsync(DeleteRoleResult.SystemRoleNotDeletable);
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
@@ -155,7 +155,7 @@ public class RoleManagementTests
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
         };
 
-        var result = await controller.DeleteRole("Admin", CancellationToken.None);
+        var result = await controller.DeleteRole(Roles.Manager, CancellationToken.None);
 
         var badRequest = result as BadRequestObjectResult;
         Assert.NotNull(badRequest);
@@ -236,7 +236,8 @@ public class RoleManagementTests
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
         var roleMgmt = new Mock<IRoleManagementService>();
-        roleMgmt.Setup(x => x.SetRolePermissionsAsync("Admin", It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(SetRolePermissionsResult.SystemRoleNotEditable);
+        // SuperAdmin role name remains non-editable at service layer (matrix-only).
+        roleMgmt.Setup(x => x.SetRolePermissionsAsync(Roles.SuperAdmin, It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(SetRolePermissionsResult.SystemRoleNotEditable);
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
@@ -247,7 +248,7 @@ public class RoleManagementTests
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
         };
 
-        var result = await controller.SetRolePermissions("Admin", new UpdateRolePermissionsRequest { Permissions = new List<string> { AppPermissions.ProductView } }, CancellationToken.None);
+        var result = await controller.SetRolePermissions(Roles.SuperAdmin, new UpdateRolePermissionsRequest { Permissions = new List<string> { AppPermissions.ProductView } }, CancellationToken.None);
 
         var badRequest = result as BadRequestObjectResult;
         Assert.NotNull(badRequest);
@@ -258,7 +259,6 @@ public class RoleManagementTests
     public async Task CreateRole_WhenNameIsSystemRole_Returns400WithROLE_NAME_RESERVED()
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
-        await roleManager.CreateAsync(new IdentityRole("Admin"));
         var roleMgmt = new Mock<IRoleManagementService>().Object;
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
@@ -270,7 +270,7 @@ public class RoleManagementTests
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
         };
 
-        var result = await controller.CreateRole(new CreateRoleRequest { Name = "Admin" });
+        var result = await controller.CreateRole(new CreateRoleRequest { Name = "Admin" }); // ReservedRoleNames
 
         var badRequest = result as BadRequestObjectResult;
         Assert.NotNull(badRequest);
@@ -324,7 +324,7 @@ public class RoleManagementTests
                 User = new ClaimsPrincipal(new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, "a1"),
-                    new Claim(ClaimTypes.Role, "Admin"),
+                    new Claim(ClaimTypes.Role, Roles.Manager),
                     new Claim(KasseAPI_Final.Authorization.PermissionCatalog.PermissionClaimType, AppPermissions.UserView),
                 }, "Test"))
             }

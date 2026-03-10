@@ -1,5 +1,5 @@
 /**
- * AdminOnlyGate: permission-first (user.manage or settings.manage); fallback Admin/SuperAdmin role. Redirects to /403 when not admin.
+ * AdminOnlyGate: permission-first; fallback isSuperAdmin (SuperAdmin + legacy Admin). Redirects to /403 when not allowed.
  */
 import '@testing-library/jest-dom';
 import React from 'react';
@@ -28,7 +28,7 @@ describe('AdminOnlyGate', () => {
     vi.clearAllMocks();
   });
 
-  it('redirects to /403 when user has no admin permission and not Admin/SuperAdmin role', () => {
+  it('redirects to /403 when user has no admin permission and not SuperAdmin (or legacy Admin) role', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Cashier', permissions: ['product.view'] },
       authStatus: AuthStatus.Authenticated,
@@ -36,13 +36,13 @@ describe('AdminOnlyGate', () => {
     });
     render(
       <AdminOnlyGate>
-        <div>Admin content</div>
+        <div>Protected content</div>
       </AdminOnlyGate>
     );
     expect(mockReplace).toHaveBeenCalledWith('/403');
   });
 
-  it('renders children when user has Admin role', () => {
+  it('renders children when user has legacy Admin role (treated as SuperAdmin)', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Admin', permissions: [] },
       authStatus: AuthStatus.Authenticated,
@@ -50,10 +50,10 @@ describe('AdminOnlyGate', () => {
     });
     const { getByText } = render(
       <AdminOnlyGate>
-        <div>Admin content</div>
+        <div>Protected content</div>
       </AdminOnlyGate>
     );
-    expect(getByText('Admin content')).toBeInTheDocument();
+    expect(getByText('Protected content')).toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
@@ -65,10 +65,10 @@ describe('AdminOnlyGate', () => {
     });
     const { getByText } = render(
       <AdminOnlyGate>
-        <div>Admin content</div>
+        <div>Protected content</div>
       </AdminOnlyGate>
     );
-    expect(getByText('Admin content')).toBeInTheDocument();
+    expect(getByText('Protected content')).toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 });

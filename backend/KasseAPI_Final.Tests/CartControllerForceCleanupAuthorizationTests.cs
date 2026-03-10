@@ -30,6 +30,6 @@ public class CartControllerForceCleanupAuthorizationTests
     [Fact]
     public void ForceCleanup_Requires_CartManage_Admin_Has_Permission()
     {
-        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.CartManage));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.CartManage));
     }
 }

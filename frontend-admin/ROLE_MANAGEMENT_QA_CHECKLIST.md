@@ -6,8 +6,8 @@
 
 - [ ] **GET /api/UserManagement/roles/permissions-catalog** – returns 200, array of `{ key, group, resource, action, description? }`; requires UserView.
 - [ ] **GET /api/UserManagement/roles/with-permissions** – returns 200, array of roles with `roleName`, `permissions`, `isSystemRole`, `userCount`; requires UserView.
-- [ ] **PUT .../roles/{roleName}/permissions** – as **Admin**: 403. As **SuperAdmin** with custom role: 200; with system role: 400; with invalid key: 400; role not found: 404. Empty `permissions` array: 200.
-- [ ] **DELETE .../roles/{roleName}** – as **Admin**: 403. As **SuperAdmin** with custom role, no users: 200; with system role: 400; role has users: 409; role not found: 404.
+- [ ] **PUT .../roles/{roleName}/permissions** – as **non-SuperAdmin** (e.g. Manager): 403. As **SuperAdmin** with custom role: 200; SuperAdmin role matrix-only: 400; with invalid key: 400; role not found: 404. Empty `permissions` array: 200.
+- [ ] **DELETE .../roles/{roleName}** – as **non-SuperAdmin**: 403. As **SuperAdmin** with custom role, no users: 200; with system role: 400; role has users: 409; role not found: 404.
 
 ## Frontend – Users Page
 

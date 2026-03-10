@@ -30,8 +30,34 @@ public sealed class RolePermissionResolver : IRolePermissionResolver
 
             if (IsSystemRole(roleName))
             {
-                var fromMatrix = RolePermissionMatrix.GetPermissionsForRoles(new[] { roleName });
-                foreach (var p in fromMatrix) result.Add(p);
+                // SuperAdmin permissions stay code-defined only (prevents lockout if claims are cleared).
+                if (string.Equals(roleName, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+                {
+                    var fromMatrix = RolePermissionMatrix.GetPermissionsForRoles(new[] { roleName });
+                    foreach (var p in fromMatrix) result.Add(p);
+                    continue;
+                }
+
+                // Other canonical roles: if AspNetRoleClaims has permission entries, they override the matrix
+                // (SuperAdmin-editable governance). If no claims, matrix remains the source (backward compatible).
+                var role = await _roleManager.FindByNameAsync(roleName);
+                if (role != null)
+                {
+                    var claims = await _roleManager.GetClaimsAsync(role);
+                    var claimPerms = claims
+                        .Where(c => string.Equals(c.Type, PermissionCatalog.PermissionClaimType, StringComparison.OrdinalIgnoreCase) &&
+                                    !string.IsNullOrEmpty(c.Value))
+                        .Select(c => c.Value)
+                        .ToList();
+                    if (claimPerms.Count > 0)
+                    {
+                        foreach (var p in claimPerms) result.Add(p);
+                        continue;
+                    }
+                }
+
+                var fromMatrixOnly = RolePermissionMatrix.GetPermissionsForRoles(new[] { roleName });
+                foreach (var p in fromMatrixOnly) result.Add(p);
             }
             else
             {

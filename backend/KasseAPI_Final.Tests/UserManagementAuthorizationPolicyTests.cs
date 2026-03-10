@@ -38,7 +38,7 @@ public class UserManagementAuthorizationPolicyTests
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = CreatePrincipalWithRoles(Roles.Admin);
+        var user = CreatePrincipalWithRoles(Roles.SuperAdmin);
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserView));
 
@@ -100,7 +100,7 @@ public class UserManagementAuthorizationPolicyTests
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = CreatePrincipalWithRoles(Roles.Admin);
+        var user = CreatePrincipalWithRoles(Roles.SuperAdmin);
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserManage));
 

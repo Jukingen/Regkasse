@@ -10,7 +10,7 @@ public class RoleCanonicalizationTests
     [Fact]
     public void GetCanonicalRole_Leaves_Admin_Unchanged()
     {
-        Assert.Equal(Roles.Admin, RoleCanonicalization.GetCanonicalRole("Admin"));
+        Assert.Equal(Roles.SuperAdmin, RoleCanonicalization.GetCanonicalRole("Admin"));
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public class RoleCanonicalizationTests
     [Fact]
     public void GetCanonicalRole_Trims_Whitespace()
     {
-        Assert.Equal(Roles.Admin, RoleCanonicalization.GetCanonicalRole("  Admin  "));
+        Assert.Equal(Roles.SuperAdmin, RoleCanonicalization.GetCanonicalRole("  Admin  "));
     }
 
     [Fact]

@@ -2,7 +2,7 @@
 
 ## Backend
 
-- **System role permissions**: Defined in code (RolePermissionMatrix); PUT permissions for system role returns 400. UI should not allow editing.
+- **System role permissions**: Matrix defaults; SuperAdmin is matrix-only (PUT returns 400). Other canonical roles may be editable via claims after save; UI follows `canEditPermissions` from API.
 - **Empty permission set**: Allowed; custom role can have zero permissions (PUT with `[]` returns 200).
 - **Role name encoding**: Role names with spaces or special characters are URL-encoded (e.g. `Custom Role` → `Custom%20Role`). Backend receives decoded name.
 - **Concurrent delete**: If two SuperAdmins delete the same role, one may get 404 after the first delete. No optimistic locking.
@@ -19,4 +19,4 @@
 ## Security / Policy
 
 - **SuperAdmin-only**: Permission update and role delete are enforced on backend (403 for non-SuperAdmin). Frontend hides or disables actions based on `canEditRolePermissions` / `canDeleteRole` (SuperAdmin or ROLE_MANAGE).
-- **System role in list**: Even if a role name matches a system role (e.g. "Admin"), backend treats it by identity from RoleManager; system roles are not deletable and not editable for permissions.
+- **System role in list**: Canonical roles come from `Roles.Canonical` (Admin removed; SuperAdmin only top admin). Reserved names (`Admin`, `Administrator`) cannot be created via API. Custom roles are Identity-only; system roles are not deletable. Permission editing for system roles: SuperAdmin-only; SuperAdmin role itself remains matrix-only (read-only in UI).

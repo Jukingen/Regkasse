@@ -37,7 +37,7 @@ export function UserDetailDrawer({ open, onClose, user }: Props) {
       width={640}
       onClose={onClose}
       open={open}
-      destroyOnClose
+      destroyOnHidden
     >
       <Tabs
         activeKey={activeTab}

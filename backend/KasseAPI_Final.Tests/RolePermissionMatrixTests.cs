@@ -5,6 +5,7 @@ namespace KasseAPI_Final.Tests;
 
 /// <summary>
 /// Unit tests for RolePermissionMatrix: role-to-permission mapping.
+/// Admin role removed; SuperAdmin has full set, Manager has explicit set.
 /// </summary>
 public class RolePermissionMatrixTests
 {
@@ -41,15 +42,15 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
-    public void RoleHasPermission_Admin_Has_SettingsManage()
+    public void RoleHasPermission_SuperAdmin_Has_SettingsManage()
     {
-        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.SettingsManage));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.SettingsManage));
     }
 
     [Fact]
-    public void RoleHasPermission_Admin_Has_PaymentTake_So_PaymentMiddleware_Allows_Admin()
+    public void RoleHasPermission_SuperAdmin_Has_PaymentTake_So_PaymentMiddleware_Allows_SuperAdmin()
     {
-        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.PaymentTake));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.PaymentTake));
     }
 
     // --- Negative: role must NOT have permission ---
@@ -97,9 +98,9 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
-    public void RoleHasPermission_Admin_DoesNotHave_SystemCritical()
+    public void RoleHasPermission_Manager_DoesNotHave_SystemCritical()
     {
-        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.SystemCritical));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.SystemCritical));
     }
 
     [Fact]
@@ -115,21 +116,15 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
-    public void RoleHasPermission_Admin_DoesNotHave_InventoryDelete()
+    public void RoleHasPermission_Manager_DoesNotHave_InventoryDelete()
     {
-        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.InventoryDelete));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.InventoryDelete));
     }
 
     [Fact]
-    public void RoleHasPermission_Admin_DoesNotHave_TseDiagnostics()
+    public void RoleHasPermission_Manager_DoesNotHave_TseDiagnostics()
     {
-        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.TseDiagnostics));
-    }
-
-    [Fact]
-    public void RoleHasPermission_Admin_DoesNotHave_AuditCleanup()
-    {
-        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Admin, AppPermissions.AuditCleanup));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.TseDiagnostics));
     }
 
     [Fact]
@@ -150,12 +145,6 @@ public class RolePermissionMatrixTests
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.InventoryDelete));
     }
 
-    [Fact]
-    public void RoleHasPermission_Manager_DoesNotHave_InventoryDelete()
-    {
-        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.InventoryDelete));
-    }
-
     // --- Edge cases ---
 
     [Fact]
@@ -164,12 +153,19 @@ public class RolePermissionMatrixTests
         Assert.False(RolePermissionMatrix.RoleHasPermission("UnknownRole", AppPermissions.PaymentTake));
     }
 
-    /// <summary>Administrator is unsupported/absent; canonical admin role is Admin only.</summary>
+    /// <summary>Administrator legacy name not in matrix.</summary>
     [Fact]
     public void RoleHasPermission_AdministratorRole_NotInMatrix_ReturnsFalse()
     {
         Assert.False(RolePermissionMatrix.RoleHasPermission("Administrator", AppPermissions.UserManage));
         Assert.False(RolePermissionMatrix.RoleHasPermission("Administrator", AppPermissions.SettingsManage));
+    }
+
+    /// <summary>Admin role removed from matrix; treated as unknown for matrix lookup.</summary>
+    [Fact]
+    public void RoleHasPermission_AdminRole_NotInMatrix_ReturnsFalse()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission("Admin", AppPermissions.UserManage));
     }
 
     [Fact]

@@ -55,7 +55,7 @@ describe('roleManagementApi', () => {
 
   describe('getRolesWithPermissions', () => {
     it('returns array from API', async () => {
-      const data = [{ roleName: 'Admin', permissions: [], isSystemRole: true, userCount: 1 }];
+      const data = [{ roleName: 'Manager', permissions: [], isSystemRole: true, userCount: 1 }];
       mockCustomInstance.mockResolvedValue(data);
       const result = await getRolesWithPermissions();
       expect(result).toEqual(data);

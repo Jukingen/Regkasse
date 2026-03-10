@@ -4,7 +4,9 @@ namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// Use-case layer for role and permission management: catalog, list roles with permissions, set custom role permissions, delete custom roles.
-/// Business rules: system roles are read-only for permissions; only custom roles can be updated or deleted; delete blocked when role has assigned users.
+/// Business rules: SuperAdmin role is read-only for permissions (matrix-only). Other canonical roles
+/// may be updated via claims by SuperAdmin. Only custom roles can be deleted; canonical roles cannot
+/// be deleted; delete blocked when role has assigned users.
 /// </summary>
 public interface IRoleManagementService
 {
@@ -19,7 +21,8 @@ public interface IRoleManagementService
     Task<IReadOnlyList<RoleWithPermissionsDto>> GetRolesWithPermissionsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Sets permissions for a custom role (AspNetRoleClaims). System roles return error.
+    /// Sets permissions via AspNetRoleClaims. SuperAdmin role returns error (matrix-only). Other
+    /// canonical roles accept updates (claims override matrix when present).
     /// Invalid permission keys return validation error. Empty list is allowed.
     /// </summary>
     Task<SetRolePermissionsResult> SetRolePermissionsAsync(string roleName, IReadOnlyList<string> permissionKeys, CancellationToken cancellationToken = default);
@@ -38,7 +41,7 @@ public sealed class RoleWithPermissionsDto
     public int UserCount { get; init; }
     /// <summary>True only for custom roles with no assigned users. Frontend uses this to enable/disable delete.</summary>
     public bool CanDelete { get; init; }
-    /// <summary>True only for custom roles. System roles have fixed permissions.</summary>
+    /// <summary>False for SuperAdmin only (matrix-only). True for custom roles and other canonical roles.</summary>
     public bool CanEditPermissions { get; init; }
 }
 

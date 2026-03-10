@@ -68,7 +68,7 @@ export default function CategoryForm({
             onOk={handleOk}
             onCancel={onCancel}
             confirmLoading={loading}
-            destroyOnClose
+            destroyOnHidden
         >
             <Form
                 form={form}

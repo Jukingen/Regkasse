@@ -952,7 +952,9 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                if (Roles.Canonical.Contains(request.Name.Trim(), StringComparer.OrdinalIgnoreCase))
+                var trimmedName = request.Name.Trim();
+                if (Roles.Canonical.Contains(trimmedName, StringComparer.OrdinalIgnoreCase) ||
+                    Roles.ReservedRoleNames.Contains(trimmedName, StringComparer.OrdinalIgnoreCase))
                 {
                     return BadRequest(new { message = "Role name is reserved for system roles. Choose a different name for a custom role.", code = "ROLE_NAME_RESERVED", errors = new { Name = new[] { "This role name is reserved." } } });
                 }

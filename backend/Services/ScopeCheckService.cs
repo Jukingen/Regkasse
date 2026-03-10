@@ -52,7 +52,6 @@ public sealed class ScopeCheckService : IScopeCheckService
             return true;
 
         if (string.Equals(role, Roles.Manager, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(role, Roles.Admin, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
             return true;
 
@@ -78,7 +77,6 @@ public sealed class ScopeCheckService : IScopeCheckService
 
         var role = GetRole(user);
         if (string.Equals(role, Roles.Manager, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(role, Roles.Admin, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
             return true;
 

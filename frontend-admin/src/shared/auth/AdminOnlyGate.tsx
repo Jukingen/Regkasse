@@ -4,6 +4,7 @@ import React, { useEffect, ReactNode, FC } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
 import { hasAnyPermission } from './permissions';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { Spin } from 'antd';
 
 const ADMIN_PERMISSIONS = ['user.manage', 'settings.manage'] as const;
@@ -13,7 +14,7 @@ interface AdminOnlyGateProps {
 }
 
 /**
- * Admin-only access: permission-first (user.manage or settings.manage); fallback to canonical roles Admin/SuperAdmin.
+ * Admin-only access: permission-first (user.manage or settings.manage); fallback SuperAdmin (legacy Admin token treated as SuperAdmin).
  * Redirects to /403 if user lacks admin permission/role. No legacy role names.
  */
 export const AdminOnlyGate: FC<AdminOnlyGateProps> = ({ children }) => {
@@ -25,7 +26,7 @@ export const AdminOnlyGate: FC<AdminOnlyGateProps> = ({ children }) => {
     const isAdmin =
         permissions.length > 0
             ? hasAnyPermission(user, [...ADMIN_PERMISSIONS])
-            : role === 'Admin' || role === 'SuperAdmin';
+            : isSuperAdmin(role);
 
     useEffect(() => {
         if (!isInitialized || authStatus === AuthStatus.Loading) return;

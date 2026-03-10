@@ -8,7 +8,8 @@ namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// Implements role catalog, list with permissions, set permissions (custom only), delete (custom only, no assigned users).
-/// Permission update is explicitly limited to custom roles; system roles are read-only.
+/// Permission update: custom roles always via claims. Canonical roles use matrix unless SuperAdmin
+/// persists claims (then resolver uses claims only for that role). SuperAdmin role stays matrix-only.
 /// </summary>
 public sealed class RoleManagementService : IRoleManagementService
 {
@@ -43,6 +44,7 @@ public sealed class RoleManagementService : IRoleManagementService
             var permissions = await _resolver.GetPermissionsForRolesAsync(new[] { name }, cancellationToken);
             var userCount = await _userManager.GetUsersInRoleAsync(name);
             var count = userCount?.Count ?? 0;
+            var canEdit = !isSystem || CanEditPermissionsForSystemRole(name);
             result.Add(new RoleWithPermissionsDto
             {
                 RoleName = name,
@@ -50,7 +52,7 @@ public sealed class RoleManagementService : IRoleManagementService
                 IsSystemRole = isSystem,
                 UserCount = count,
                 CanDelete = !isSystem && count == 0,
-                CanEditPermissions = !isSystem,
+                CanEditPermissions = canEdit,
             });
         }
 
@@ -66,7 +68,7 @@ public sealed class RoleManagementService : IRoleManagementService
         if (role == null)
             return SetRolePermissionsResult.RoleNotFound;
 
-        if (IsSystemRole(roleName))
+        if (IsSystemRole(roleName) && !CanEditPermissionsForSystemRole(roleName))
             return SetRolePermissionsResult.SystemRoleNotEditable;
 
         if (permissionKeys != null)
@@ -121,5 +123,15 @@ public sealed class RoleManagementService : IRoleManagementService
     private static bool IsSystemRole(string roleName)
     {
         return Roles.Canonical.Contains(roleName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// SuperAdmin role must remain matrix-only so permission UI cannot strip all access by mistake.
+    /// Other canonical roles may be edited by SuperAdmin (claims override matrix when present).
+    /// </summary>
+    private static bool CanEditPermissionsForSystemRole(string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName)) return false;
+        return !string.Equals(roleName, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
     }
 }

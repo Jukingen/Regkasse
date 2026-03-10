@@ -23,7 +23,7 @@ function createWrapper() {
 }
 
 const sampleRoles: RoleWithPermissionsDto[] = [
-  { roleName: 'Admin', permissions: ['user.view'], isSystemRole: true, userCount: 2 },
+  { roleName: 'Manager', permissions: ['user.view'], isSystemRole: true, userCount: 2 },
   { roleName: 'Custom', permissions: ['sale.view'], isSystemRole: false, userCount: 0 },
 ];
 

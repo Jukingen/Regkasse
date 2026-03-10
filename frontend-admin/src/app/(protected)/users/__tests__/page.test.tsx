@@ -67,7 +67,7 @@ vi.mock('@/features/users/api/usersGateway', () => ({
 }));
 
 vi.mock('@/features/auth/hooks/useAuth', () => ({
-  useAuth: () => ({ user: { id: 'current-user-id', role: 'Admin' } }),
+  useAuth: () => ({ user: { id: 'current-user-id', role: 'SuperAdmin' } }),
 }));
 
 const mockUseUsersPolicy = vi.fn(() => ({
@@ -86,7 +86,7 @@ vi.mock('@/shared/auth/usersPolicy', () => ({
 }));
 
 vi.mock('@/features/users/hooks/useRoles', () => ({
-  useRoles: () => ({ data: ['SuperAdmin', 'Admin', 'Manager', 'Cashier', 'Waiter', 'Kitchen', 'ReportViewer', 'Accountant'] }),
+  useRoles: () => ({ data: ['SuperAdmin', 'Manager', 'Cashier', 'Waiter', 'Kitchen', 'ReportViewer', 'Accountant'] }),
 }));
 
 vi.mock('@/features/users/components/UserDetailDrawer', () => ({
@@ -107,7 +107,7 @@ vi.mock('@/features/users/components/UserFormDrawer', () => ({
     open ? (
       <div data-testid="user-form-drawer">
         <span>{mode === 'create' ? 'Create user' : 'Edit user'}</span>
-        <button type="button" onClick={() => onSubmit({ userName: 'newuser', password: 'secret12', firstName: 'New', lastName: 'User', email: 'new@test.com', employeeNumber: 'EMP001', role: 'Admin' })}>
+        <button type="button" onClick={() => onSubmit({ userName: 'newuser', password: 'secret12', firstName: 'New', lastName: 'User', email: 'new@test.com', employeeNumber: 'EMP001', role: 'Manager' })}>
           Submit
         </button>
         <button type="button" onClick={onClose}>Close</button>
@@ -129,7 +129,7 @@ const sampleUser: UserInfo = {
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
-  role: 'Admin',
+  role: 'Manager',
   isActive: true,
   employeeNumber: 'E001',
   lastLoginAt: '2025-01-15T10:00:00Z',
@@ -205,7 +205,7 @@ describe('Users page', () => {
       });
       expect(screen.getByRole('table')).toBeInTheDocument();
       expect(screen.getAllByText(/jane@example\.com/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText('Admin')).toBeInTheDocument();
+      expect(screen.getByText('Manager')).toBeInTheDocument();
     });
 
     it('shows empty state when list returns no items', async () => {
@@ -277,7 +277,7 @@ describe('Users page', () => {
             lastName: 'User',
             email: 'new@test.com',
             employeeNumber: 'EMP001',
-            role: 'Admin',
+            role: 'Manager',
           })
         );
       });
@@ -318,7 +318,7 @@ describe('Users page', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
       await waitFor(() => {
-        expect(mockUpdateUser).toHaveBeenCalledWith('user-1', expect.objectContaining({ employeeNumber: 'EMP001', firstName: 'New', lastName: 'User', role: 'Admin' }));
+        expect(mockUpdateUser).toHaveBeenCalledWith('user-1', expect.objectContaining({ employeeNumber: 'EMP001', firstName: 'New', lastName: 'User', role: 'Manager' }));
       });
       expect(message.success).toHaveBeenCalledWith('Benutzer aktualisiert.');
     });

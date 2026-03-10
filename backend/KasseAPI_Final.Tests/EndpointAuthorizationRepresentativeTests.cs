@@ -82,10 +82,10 @@ public class EndpointAuthorizationRepresentativeTests
     }
 
     [Fact]
-    public async Task Inventory_InventoryDelete_Admin_Denied()
+    public async Task Inventory_InventoryDelete_Waiter_Denied()
     {
         var auth = BuildServices().GetRequiredService<IAuthorizationService>();
-        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Admin), null, Policy(AppPermissions.InventoryDelete));
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Waiter), null, Policy(AppPermissions.InventoryDelete));
         Assert.False(result.Succeeded);
     }
 
@@ -164,10 +164,10 @@ public class EndpointAuthorizationRepresentativeTests
 
     // --- Settings ---
     [Fact]
-    public async Task Settings_SettingsManage_Admin_Allowed()
+    public async Task Settings_SettingsManage_SuperAdmin_Allowed()
     {
         var auth = BuildServices().GetRequiredService<IAuthorizationService>();
-        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Admin), null, Policy(AppPermissions.SettingsManage));
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.SuperAdmin), null, Policy(AppPermissions.SettingsManage));
         Assert.True(result.Succeeded);
     }
 
@@ -223,10 +223,10 @@ public class EndpointAuthorizationRepresentativeTests
     }
 
     [Fact]
-    public async Task SystemCritical_Admin_Denied()
+    public async Task SystemCritical_Manager_Denied()
     {
         var auth = BuildServices().GetRequiredService<IAuthorizationService>();
-        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Admin), null, Policy(AppPermissions.SystemCritical));
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Manager), null, Policy(AppPermissions.SystemCritical));
         Assert.False(result.Succeeded);
     }
 }

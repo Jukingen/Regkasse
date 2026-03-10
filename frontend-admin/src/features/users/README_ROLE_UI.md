@@ -12,10 +12,10 @@
 
 - **Sorting:** System roles first (alphabetical), then custom roles (alphabetical). Implemented in `sortedRoles` in `RoleManagementDrawer`.
 - **Badges:** Each role in the list shows a `Tag`: "System" (blue) or "Benutzerdefiniert" (default). User count is shown below the role name.
-- **Display names:** Known system roles (e.g. SuperAdmin, Cashier) are shown with German labels (e.g. "Super-Administrator", "Kassierer") via `usersCopy.roleDisplayName(roleName)`. Unknown/custom roles show the raw `roleName`.
+- **Display names:** Known system roles (e.g. SuperAdmin, Cashier) are shown with German labels (e.g. "Super-Administrator", "Kassierer") via `usersCopy.roleDisplayName(roleName)`. Unknown/custom roles show the raw `roleName`. The **Admin** role was removed from backend canonical set; legacy JWT may still show `Admin` until re-login—display falls back to raw `roleName`.
 - **Delete button:** Enabled only when the current user has `canDeleteRole` and the selected role has `selectedRoleCanDelete` (backend `canDelete` or derived: custom role with zero users). Tooltip explains why delete is disabled: system role vs. "reassign users first".
 - **Helper text:** When a **system role** is selected, an `Alert` states that system roles are protected and cannot be deleted (`systemRoleProtectedNoDelete`). When a **custom role** with `userCount > 0` is selected, an `Alert` explains that the role cannot be deleted until users are reassigned (`roleDeleteBlockedReassignFirst`).
-- **Save / checkboxes:** Save and permission checkboxes are disabled when the selected role is not editable (`!canEditRole`), i.e. system roles. Preset selector is only shown when the selected role is editable.
+- **Save / checkboxes:** Save and permission checkboxes are disabled when `!canEditRole` (API `canEditPermissions`; false only for SuperAdmin matrix-only). Other system roles can be edited after governance change. Preset selector only when editable.
 
 ## Files
 

@@ -54,7 +54,7 @@ public class UserManagementControllerUserLifecycleTests
             keyNormalizer.Object, errors, services, logger);
 
         var roleStore = new Mock<IRoleStore<IdentityRole>>();
-        // So controller role-exists validation passes when tests send Role = "Admin" (or any name)
+        // So controller role-exists validation passes when tests send Role = "SuperAdmin" (or any name)
         roleStore.Setup(x => x.FindByNameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((string name, CancellationToken _) => new IdentityRole(name));
         var roleManager = new RoleManager<IdentityRole>(
@@ -83,7 +83,7 @@ public class UserManagementControllerUserLifecycleTests
         IUserUniquenessValidationService? uniquenessValidation = null,
         IRoleManagementService? roleManagementService = null,
         string? actorId = "admin-id",
-        string actorRole = "Admin")
+        string actorRole = "SuperAdmin")
     {
         var logger = new Mock<ILogger<UserManagementController>>().Object;
         var roleMgmt = roleManagementService ?? new Mock<IRoleManagementService>().Object;
@@ -154,7 +154,7 @@ public class UserManagementControllerUserLifecycleTests
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
         using var context = CreateContext();
-        var controller = CreateController(context, userManager, roleManager, audit, session, actorId: "u1", actorRole: "Admin");
+        var controller = CreateController(context, userManager, roleManager, audit, session, actorId: "u1", actorRole: "Manager");
 
         var result = await controller.DeactivateUser("u1", new DeactivateUserRequest { Reason = "Leaving" });
 
@@ -289,7 +289,7 @@ public class UserManagementControllerUserLifecycleTests
         using var context = CreateContext();
         var controller = CreateController(context, userManager, roleManager,
             new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object,
-            actorId: "self-id", actorRole: "Admin");
+            actorId: "self-id", actorRole: "Manager");
 
         var result = await controller.ResetPassword("self-id", new ResetPasswordRequest { NewPassword = "NewPass123!" });
 
@@ -306,7 +306,7 @@ public class UserManagementControllerUserLifecycleTests
         using var context = CreateContext();
         var controller = CreateController(context, userManager, roleManager,
             new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object,
-            actorId: "admin-id", actorRole: "Admin");
+            actorId: "admin-id", actorRole: "Manager");
 
         var result = await controller.ResetPassword("super-id", new ResetPasswordRequest { NewPassword = "NewPass123!" });
 
@@ -323,7 +323,7 @@ public class UserManagementControllerUserLifecycleTests
         using var context = CreateContext();
         var controller = CreateController(context, userManager, roleManager,
             new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object,
-            actorId: "admin-id", actorRole: "Admin");
+            actorId: "admin-id", actorRole: "Manager");
 
         var result = await controller.ResetPassword("nonexistent-id", new ResetPasswordRequest { NewPassword = "NewPass123!" });
 
@@ -340,7 +340,7 @@ public class UserManagementControllerUserLifecycleTests
         using var context = CreateContext();
         var controller = CreateController(context, userManager, roleManager,
             new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object,
-            actorId: "admin-id", actorRole: "Admin");
+            actorId: "admin-id", actorRole: "Manager");
 
         var result = await controller.ResetPassword("inactive-id", new ResetPasswordRequest { NewPassword = "NewPass123!" });
 
@@ -356,7 +356,7 @@ public class UserManagementControllerUserLifecycleTests
         using var context = CreateContext();
         var controller = CreateController(context, userManager, roleManager,
             new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object,
-            actorId: "admin-id", actorRole: "Admin");
+            actorId: "admin-id", actorRole: "Manager");
 
         var result = await controller.ResetPassword("any-id", new ResetPasswordRequest { NewPassword = "1234567" });
 
@@ -374,7 +374,7 @@ public class UserManagementControllerUserLifecycleTests
         using var context = CreateContext();
         var controller = CreateController(context, userManager, roleManager,
             new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object,
-            actorId: "admin-id", actorRole: "Admin");
+            actorId: "admin-id", actorRole: "Manager");
 
         var result = await controller.ResetPassword("any-id", request: null!);
 
@@ -414,7 +414,7 @@ public class UserManagementControllerUserLifecycleTests
         var controller = CreateController(context, userManager, roleManager,
             new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object);
 
-        var result = await controller.UpdateUser("", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin" });
+        var result = await controller.UpdateUser("", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin" });
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         Assert.NotNull(badRequest.Value);
@@ -423,13 +423,13 @@ public class UserManagementControllerUserLifecycleTests
     [Fact]
     public async Task UpdateUser_WhenEmployeeNumberEmpty_ReturnsBadRequest()
     {
-        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true };
+        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin", IsActive = true };
         var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
         using var context = CreateContext();
         var controller = CreateController(context, userManager, roleManager,
             new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object);
 
-        var result = await controller.UpdateUser("u1", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "", Role = "Admin" });
+        var result = await controller.UpdateUser("u1", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "", Role = "SuperAdmin" });
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         Assert.NotNull(badRequest.Value);
@@ -445,7 +445,7 @@ public class UserManagementControllerUserLifecycleTests
         var controller = CreateController(context, userManager, roleManager,
             new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object);
 
-        var result = await controller.UpdateUser("nonexistent", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin" });
+        var result = await controller.UpdateUser("nonexistent", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin" });
 
         Assert.IsType<NotFoundObjectResult>(result);
     }
@@ -454,7 +454,7 @@ public class UserManagementControllerUserLifecycleTests
     [Fact]
     public async Task UpdateUser_WhenValidPayload_SameRole_ReturnsOkWithMessage()
     {
-        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true };
+        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin", IsActive = true };
         var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
         var auditMock = new Mock<IAuditLogService>();
         using var context = CreateContext();
@@ -465,7 +465,7 @@ public class UserManagementControllerUserLifecycleTests
             FirstName = "UpdatedFirst",
             LastName = "UpdatedLast",
             EmployeeNumber = "E1",
-            Role = "Admin",
+            Role = "SuperAdmin",
             Notes = "Note"
         };
         var result = await controller.UpdateUser("u1", request);
@@ -485,7 +485,7 @@ public class UserManagementControllerUserLifecycleTests
     [Fact]
     public async Task UpdateUser_WhenAuditLogThrows_StillReturnsOk()
     {
-        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true };
+        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin", IsActive = true };
         var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogUserLifecycleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>()))
@@ -493,7 +493,7 @@ public class UserManagementControllerUserLifecycleTests
         using var context = CreateContext();
         var controller = CreateController(context, userManager, roleManager, auditMock.Object, new Mock<IUserSessionInvalidation>().Object);
 
-        var result = await controller.UpdateUser("u1", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin" });
+        var result = await controller.UpdateUser("u1", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin" });
 
         var ok = Assert.IsAssignableFrom<ObjectResult>(result);
         Assert.Equal(200, ok.StatusCode);
@@ -507,7 +507,7 @@ public class UserManagementControllerUserLifecycleTests
     [Fact]
     public async Task UpdateUser_SelfUpdate_SameEmployeeNumber_ReturnsOk()
     {
-        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "234234", Role = "Admin", IsActive = true };
+        var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "234234", Role = "SuperAdmin", IsActive = true };
         var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
         using var context = CreateContext();
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object);
@@ -517,7 +517,7 @@ public class UserManagementControllerUserLifecycleTests
             FirstName = "aaa",
             LastName = "bbbb",
             EmployeeNumber = "234234",
-            Role = "Admin",
+            Role = "SuperAdmin",
             Notes = "dfgsfg"
         };
         var result = await controller.UpdateUser("u1", request);
@@ -535,11 +535,11 @@ public class UserManagementControllerUserLifecycleTests
     public async Task UpdateUser_WhenEmployeeNumberTakenByAnotherUser_ReturnsBadRequest()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "user1", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true },
-            new ApplicationUser { Id = "u2", UserName = "user2", FirstName = "C", LastName = "D", EmployeeNumber = "E2", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "user1", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin", IsActive = true },
+            new ApplicationUser { Id = "u2", UserName = "user2", FirstName = "C", LastName = "D", EmployeeNumber = "E2", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
-        var result = await controller.UpdateUser("u1", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E2", Role = "Admin" });
+        var result = await controller.UpdateUser("u1", new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E2", Role = "SuperAdmin" });
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         Assert.NotNull(badRequest.Value);
@@ -552,11 +552,11 @@ public class UserManagementControllerUserLifecycleTests
     public async Task UpdateUser_WhenTaxNumberTakenByAnotherUser_ReturnsBadRequest()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "user1", FirstName = "A", LastName = "B", EmployeeNumber = "E1", TaxNumber = "T1", Role = "Admin", IsActive = true },
-            new ApplicationUser { Id = "u2", UserName = "user2", FirstName = "C", LastName = "D", EmployeeNumber = "E2", TaxNumber = "T2", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "user1", FirstName = "A", LastName = "B", EmployeeNumber = "E1", TaxNumber = "T1", Role = "SuperAdmin", IsActive = true },
+            new ApplicationUser { Id = "u2", UserName = "user2", FirstName = "C", LastName = "D", EmployeeNumber = "E2", TaxNumber = "T2", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
-        var request = new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", TaxNumber = "T2", Role = "Admin" };
+        var request = new UpdateUserRequest { FirstName = "A", LastName = "B", EmployeeNumber = "E1", TaxNumber = "T2", Role = "SuperAdmin" };
         var result = await controller.UpdateUser("u1", request);
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
@@ -573,7 +573,7 @@ public class UserManagementControllerUserLifecycleTests
     {
         var currentUserId = "63760eeb-750a-494a-93d2-65a592e20bb3";
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = currentUserId, UserName = "me", FirstName = "A", LastName = "B", EmployeeNumber = "234234", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = currentUserId, UserName = "me", FirstName = "A", LastName = "B", EmployeeNumber = "234234", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var result = await controller.UpdateUser(currentUserId, new UpdateUserRequest
@@ -582,7 +582,7 @@ public class UserManagementControllerUserLifecycleTests
             LastName = "bbbb",
             Email = "aa@bb.cc",
             EmployeeNumber = "234234",
-            Role = "Admin",
+            Role = "SuperAdmin",
             TaxNumber = "123",
             Notes = "notes"
         });
@@ -599,12 +599,12 @@ public class UserManagementControllerUserLifecycleTests
     public async Task UpdateUser_SameUser_SameEmployeeNumber_ReturnsSuccess()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "Admin"
+            FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "SuperAdmin"
         });
 
         var ok = Assert.IsAssignableFrom<ObjectResult>(result);
@@ -616,12 +616,12 @@ public class UserManagementControllerUserLifecycleTests
     public async Task UpdateUser_SameUser_NewUniqueEmployeeNumber_ReturnsSuccess()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", EmployeeNumber = "EN-999", Role = "Admin"
+            FirstName = "A", LastName = "B", EmployeeNumber = "EN-999", Role = "SuperAdmin"
         });
 
         var ok = Assert.IsAssignableFrom<ObjectResult>(result);
@@ -633,13 +633,13 @@ public class UserManagementControllerUserLifecycleTests
     public async Task UpdateUser_SameUser_EmployeeNumberUsedByOther_Returns400()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "Admin", IsActive = true },
-            new ApplicationUser { Id = "u2", UserName = "u2", FirstName = "C", LastName = "D", EmployeeNumber = "EN-002", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "SuperAdmin", IsActive = true },
+            new ApplicationUser { Id = "u2", UserName = "u2", FirstName = "C", LastName = "D", EmployeeNumber = "EN-002", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", EmployeeNumber = "EN-002", Role = "Admin"
+            FirstName = "A", LastName = "B", EmployeeNumber = "EN-002", Role = "SuperAdmin"
         });
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
@@ -653,7 +653,7 @@ public class UserManagementControllerUserLifecycleTests
     public async Task CreateUser_WhenEmployeeNumberDuplicate_Returns400()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "existing", Email = "existing@example.com", FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "existing", Email = "existing@example.com", FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var request = new CreateUserRequest
@@ -664,7 +664,7 @@ public class UserManagementControllerUserLifecycleTests
             FirstName = "X",
             LastName = "Y",
             EmployeeNumber = "EN-001",
-            Role = "Admin"
+            Role = "SuperAdmin"
         };
         var result = await controller.CreateUser(request);
 
@@ -679,12 +679,12 @@ public class UserManagementControllerUserLifecycleTests
     public async Task UpdateUser_SameUser_SameEmail_ReturnsSuccess()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "u1", Email = "same@test.com", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "u1", Email = "same@test.com", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", Email = "same@test.com", EmployeeNumber = "E1", Role = "Admin"
+            FirstName = "A", LastName = "B", Email = "same@test.com", EmployeeNumber = "E1", Role = "SuperAdmin"
         });
 
         var ok = Assert.IsAssignableFrom<ObjectResult>(result);
@@ -696,12 +696,12 @@ public class UserManagementControllerUserLifecycleTests
     public async Task UpdateUser_SameUser_NewUniqueEmail_ReturnsSuccess()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "u1", Email = "old@test.com", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "u1", Email = "old@test.com", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", Email = "newunique@test.com", EmployeeNumber = "E1", Role = "Admin"
+            FirstName = "A", LastName = "B", Email = "newunique@test.com", EmployeeNumber = "E1", Role = "SuperAdmin"
         });
 
         var ok = Assert.IsAssignableFrom<ObjectResult>(result);
@@ -713,13 +713,13 @@ public class UserManagementControllerUserLifecycleTests
     public async Task UpdateUser_SameUser_EmailUsedByOther_Returns400()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "u1", Email = "one@test.com", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true },
-            new ApplicationUser { Id = "u2", UserName = "u2", Email = "two@test.com", FirstName = "C", LastName = "D", EmployeeNumber = "E2", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "u1", Email = "one@test.com", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin", IsActive = true },
+            new ApplicationUser { Id = "u2", UserName = "u2", Email = "two@test.com", FirstName = "C", LastName = "D", EmployeeNumber = "E2", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
         {
-            FirstName = "A", LastName = "B", Email = "two@test.com", EmployeeNumber = "E1", Role = "Admin"
+            FirstName = "A", LastName = "B", Email = "two@test.com", EmployeeNumber = "E1", Role = "SuperAdmin"
         });
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
@@ -783,7 +783,7 @@ public class UserManagementControllerUserLifecycleTests
     public async Task UpdateUser_WhenRoleEmpty_Returns400()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
@@ -805,7 +805,7 @@ public class UserManagementControllerUserLifecycleTests
     public async Task UpdateUser_WhenRoleNotFound_Returns400()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var result = await controller.UpdateUser("u1", new UpdateUserRequest
@@ -827,7 +827,7 @@ public class UserManagementControllerUserLifecycleTests
     public async Task CreateUser_WhenEmailDuplicate_Returns400()
     {
         var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
-            new ApplicationUser { Id = "u1", UserName = "existing", Email = "taken@test.com", FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "Admin", IsActive = true });
+            new ApplicationUser { Id = "u1", UserName = "existing", Email = "taken@test.com", FirstName = "A", LastName = "B", EmployeeNumber = "EN-001", Role = "SuperAdmin", IsActive = true });
         var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
 
         var request = new CreateUserRequest
@@ -838,7 +838,7 @@ public class UserManagementControllerUserLifecycleTests
             FirstName = "X",
             LastName = "Y",
             EmployeeNumber = "EN-002",
-            Role = "Admin"
+            Role = "SuperAdmin"
         };
         var result = await controller.CreateUser(request);
 
@@ -888,7 +888,7 @@ public class UserManagementControllerUserLifecycleTests
         var roleStore = new RoleStore<IdentityRole, AppDbContext>(context);
         var roleManager = new RoleManager<IdentityRole>(roleStore, null!, keyNormalizer, errors, null!);
         // Seed roles via RoleManager so NormalizedName is set and controller role-exists validation passes
-        foreach (var roleName in new[] { "Admin", "Cashier", "Manager", "SuperAdmin", "Waiter" })
+        foreach (var roleName in new[] { "Cashier", "Manager", "SuperAdmin", "Waiter" })
         {
             if (!await roleManager.RoleExistsAsync(roleName))
                 await roleManager.CreateAsync(new IdentityRole(roleName));

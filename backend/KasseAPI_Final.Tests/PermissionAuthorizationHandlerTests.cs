@@ -105,11 +105,11 @@ public class PermissionAuthorizationHandlerTests
     }
 
     [Fact]
-    public async Task PermissionPolicy_SettingsManage_Allows_Admin_Role()
+    public async Task PermissionPolicy_SettingsManage_Allows_SuperAdmin_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = CreatePrincipalWithRoles("Admin");
+        var user = CreatePrincipalWithRoles(Roles.SuperAdmin);
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.SettingsManage));
 
@@ -138,18 +138,6 @@ public class PermissionAuthorizationHandlerTests
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.AuditCleanup));
 
         Assert.True(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task PermissionPolicy_AuditCleanup_Denies_Admin_Role()
-    {
-        var provider = BuildAuthorizationServices();
-        var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = CreatePrincipalWithRoles(Roles.Admin);
-
-        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.AuditCleanup));
-
-        Assert.False(result.Succeeded);
     }
 
     // --- Permission claims take precedence over role ---
@@ -223,11 +211,11 @@ public class PermissionAuthorizationHandlerTests
     }
 
     [Fact]
-    public async Task PermissionPolicy_SystemCritical_Denies_Admin_Role()
+    public async Task PermissionPolicy_SystemCritical_Denies_Manager_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = CreatePrincipalWithRoles(Roles.Admin);
+        var user = CreatePrincipalWithRoles(Roles.Manager);
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.SystemCritical));
 
@@ -246,18 +234,6 @@ public class PermissionAuthorizationHandlerTests
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.InventoryDelete));
 
         Assert.True(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task PermissionPolicy_InventoryDelete_Denies_Admin_Role()
-    {
-        var provider = BuildAuthorizationServices();
-        var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = CreatePrincipalWithRoles(Roles.Admin);
-
-        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.InventoryDelete));
-
-        Assert.False(result.Succeeded);
     }
 
     [Fact]
@@ -287,11 +263,11 @@ public class PermissionAuthorizationHandlerTests
     }
 
     [Fact]
-    public async Task PermissionPolicy_TseDiagnostics_Denies_Admin_Role()
+    public async Task PermissionPolicy_TseDiagnostics_Denies_Manager_Role()
     {
         var provider = BuildAuthorizationServices();
         var auth = provider.GetRequiredService<IAuthorizationService>();
-        var user = CreatePrincipalWithRoles(Roles.Admin);
+        var user = CreatePrincipalWithRoles(Roles.Manager);
 
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.TseDiagnostics));
 

@@ -1,3 +1,5 @@
+using KasseAPI_Final.Authorization;
+
 namespace KasseAPI_Final.Auth;
 
 /// <summary>
@@ -11,6 +13,10 @@ public static class RoleCanonicalization
     public static string GetCanonicalRole(string? role)
     {
         if (string.IsNullOrWhiteSpace(role)) return string.Empty;
-        return role.Trim();
+        var trimmed = role.Trim();
+        // Legacy Admin role merged into SuperAdmin; normalize for token/policy until all JWTs refreshed.
+        if (string.Equals(trimmed, "Admin", StringComparison.OrdinalIgnoreCase))
+            return Roles.SuperAdmin;
+        return trimmed;
     }
 }

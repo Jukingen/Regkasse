@@ -166,7 +166,7 @@ public class PaymentSecurityMiddlewareTests
     [Fact]
     public async Task InvokeAsync_RefundEndpoint_WithAdminMatrixPermissions_AllowsRequest()
     {
-        var adminPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Admin }).ToArray();
+        var adminPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.SuperAdmin }).ToArray();
         var context = CreateContextWithPermissions(adminPerms, path: "/api/payment/refund");
         var nextCalled = false;
         RequestDelegate next = _ => { nextCalled = true; return Task.CompletedTask; };

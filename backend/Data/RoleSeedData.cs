@@ -4,7 +4,7 @@ using KasseAPI_Final.Authorization;
 namespace KasseAPI_Final.Data;
 
 /// <summary>
-/// Seeds only the 8 canonical system roles. Does not create or delete legacy roles (Administrator, Kellner, BranchManager, Auditor, Demo).
+/// Seeds only the canonical system roles (Admin removed; use SuperAdmin). Does not create or delete legacy roles (Administrator, Kellner, BranchManager, Auditor, Demo).
 /// Legacy roles may still exist in DB from previous seeds; handle them via data migration or admin reassignment.
 /// </summary>
 public static class RoleSeedData

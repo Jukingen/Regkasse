@@ -76,7 +76,6 @@ function fullName(record: UserInfo): string {
 
 const ROLE_OPTIONS = [
     { value: 'SuperAdmin', label: 'SuperAdmin' },
-    { value: 'Admin', label: 'Admin' },
     { value: 'Manager', label: 'Manager' },
     { value: 'Cashier', label: 'Cashier' },
     { value: 'Waiter', label: 'Waiter' },
@@ -471,7 +470,7 @@ export default function UsersPage() {
                 <Alert
                     type="warning"
                     message={usersCopy.accessDenied}
-                    description="Nur mit Berechtigung „Benutzer anzeigen“ (z. B. SuperAdmin, Admin, Manager) können Sie diese Seite öffnen."
+                    description="Nur mit Berechtigung „Benutzer anzeigen“ (z. B. SuperAdmin, Manager) können Sie diese Seite öffnen."
                 />
             </Card>
         );
@@ -600,7 +599,7 @@ export default function UsersPage() {
                 okText={usersCopy.okDeactivate}
                 okButtonProps={{ danger: true }}
                 confirmLoading={deactivateMutation.isPending}
-                destroyOnClose
+                destroyOnHidden
             >
                 {deactivateUserRecord && (
                     <p style={{ marginBottom: 16 }}>
@@ -621,7 +620,7 @@ export default function UsersPage() {
                 onCancel={() => setReactivateUserRecord(null)}
                 okText={usersCopy.okReactivate}
                 confirmLoading={reactivateMutation.isPending}
-                destroyOnClose
+                destroyOnHidden
             >
                 {reactivateUserRecord && (
                     <p>
@@ -637,7 +636,7 @@ export default function UsersPage() {
                 onCancel={() => { setResetPasswordUser(null); setResetPasswordValidationError(null); resetPasswordForm.resetFields(); }}
                 okText={usersCopy.save}
                 confirmLoading={resetPasswordMutation.isPending}
-                destroyOnClose
+                destroyOnHidden
             >
                 {resetPasswordUser && (
                     <>
@@ -674,7 +673,7 @@ export default function UsersPage() {
                 onCancel={() => { setCreateRoleOpen(false); createRoleForm.resetFields(); }}
                 okText={usersCopy.save}
                 confirmLoading={createRoleMutation.isPending}
-                destroyOnClose
+                destroyOnHidden
             >
                 <Form form={createRoleForm} layout="vertical">
                     <Form.Item name="name" label={usersCopy.roleName} rules={modalRules.roleName}>

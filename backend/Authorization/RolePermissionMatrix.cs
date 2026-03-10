@@ -5,8 +5,8 @@ namespace KasseAPI_Final.Authorization;
 
 /// <summary>
 /// Static role-to-permissions mapping. Single source of truth for default permission sets per role.
-/// SuperAdmin: system-critical and override role (full set including system.critical, tse.diagnostics, audit.cleanup, inventory.delete).
-/// Admin: backoffice/business management (all except SuperAdmin-only: system.critical, tse.diagnostics, audit.cleanup, inventory.delete).
+/// SuperAdmin: full set including system.critical, tse.diagnostics, audit.cleanup, inventory.delete.
+/// Other canonical roles: explicit sets. Admin role removed; former Admin users migrated to SuperAdmin.
 /// </summary>
 public static class RolePermissionMatrix
 {
@@ -50,21 +50,10 @@ public static class RolePermissionMatrix
     private static FrozenDictionary<string, FrozenSet<string>> BuildMatrix()
     {
         var all = PermissionCatalog.All.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
-        // SuperAdmin-only: system-critical, TSE diagnostics, audit cleanup, inventory permanent delete.
-        var superAdminOnly = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            AppPermissions.SystemCritical,
-            AppPermissions.TseDiagnostics,
-            AppPermissions.AuditCleanup,
-            AppPermissions.InventoryDelete,
-        };
-        // Admin: backoffice/business; exclude SuperAdmin-only permissions.
-        var adminSet = all.Where(p => !superAdminOnly.Contains(p)).ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
         var matrix = new Dictionary<string, FrozenSet<string>>(StringComparer.OrdinalIgnoreCase)
         {
             [Roles.SuperAdmin] = all,
-            [Roles.Admin] = adminSet,
 
             [Roles.Manager] = new[]
             {
