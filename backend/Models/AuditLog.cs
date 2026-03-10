@@ -171,6 +171,10 @@ namespace KasseAPI_Final.Models
         public const string READ = "READ";
         public const string UPDATE = "UPDATE";
         public const string DELETE = "DELETE";
+
+        // Role management (custom role delete, permission update)
+        public const string ROLE_DELETE = "ROLE_DELETE";
+        public const string ROLE_PERMISSIONS_UPDATE = "ROLE_PERMISSIONS_UPDATE";
     }
 
             // Entity types for audit logging
@@ -182,6 +186,7 @@ namespace KasseAPI_Final.Models
             public const string CART_ITEM = "CartItem";
             public const string CUSTOMER = "Customer";
             public const string USER = "User";
+            public const string ROLE = "Role";
             public const string PAYMENT_SESSION = "PaymentSession";
             public const string PAYMENT_LOG = "PaymentLog";
             public const string AUDIT_LOG = "AuditLog";

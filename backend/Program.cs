@@ -146,6 +146,8 @@ builder.Services.AddAppAuthorization();
 
 // Session invalidation on critical account changes (stub until RefreshToken table exists)
 builder.Services.AddScoped<IUserSessionInvalidation, StubUserSessionInvalidation>();
+builder.Services.AddScoped<IRolePermissionResolver, RolePermissionResolver>();
+builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();
 builder.Services.AddScoped<IScopeCheckService, ScopeCheckService>();
 

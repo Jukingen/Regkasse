@@ -19,10 +19,19 @@ import {
 import type { CreateUserRequest, UpdateUserRequest, ResetPasswordRequest, UserInfo } from '@/api/generated/model';
 import type { CreateRoleRequest } from '@/api/generated/model';
 import type { UsersListParams, DeactivateUserRequest, ReactivateUserRequest } from './usersApi';
+import {
+  getPermissionsCatalog as getPermissionsCatalogFromApi,
+  getRolesWithPermissions as getRolesWithPermissionsFromApi,
+  updateRolePermissions as updateRolePermissionsFromApi,
+  deleteRole as deleteRoleFromApi,
+} from './roleManagementApi';
+export type { PermissionCatalogItemDto, RoleWithPermissionsDto } from './roleManagementApi';
 
 // --- Query keys (invalidation tek yerden) ---
 export const listQueryKey = ['/api/UserManagement'] as const;
 export const rolesQueryKey = ['/api/UserManagement/roles'] as const;
+export const rolesWithPermissionsQueryKey = ['/api/UserManagement/roles/with-permissions'] as const;
+export const permissionsCatalogQueryKey = ['/api/UserManagement/roles/permissions-catalog'] as const;
 
 // --- Liste (server-side pagination + birleşik filtre) ---
 export { getUsersListFromApi as getUsersList };
@@ -102,6 +111,12 @@ export async function resetPassword(id: string, data: ResetPasswordRequest): Pro
 export async function createRole(data: CreateRoleRequest): Promise<void> {
   return postApiUserManagementRoles(data);
 }
+
+// --- Role management (catalog, with-permissions, set permissions, delete) ---
+export const getPermissionsCatalog = getPermissionsCatalogFromApi;
+export const getRolesWithPermissions = getRolesWithPermissionsFromApi;
+export const updateRolePermissions = updateRolePermissionsFromApi;
+export const deleteRole = deleteRoleFromApi;
 
 export {
   deactivateUserFromApi as deactivateUser,

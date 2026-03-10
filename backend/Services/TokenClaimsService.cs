@@ -7,11 +7,18 @@ namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// Builds JWT/cookie claims: sub, name, role (canonical), permission claims, optional tenant_id/branch_id.
-/// Builds role (trimmed) and permission claims from RolePermissionMatrix.
+/// Deterministic model: system roles => RolePermissionMatrix; custom roles => AspNetRoleClaims (via IRolePermissionResolver).
 /// </summary>
 public sealed class TokenClaimsService : ITokenClaimsService
 {
-    public Task<IReadOnlyList<Claim>> BuildClaimsAsync(
+    private readonly IRolePermissionResolver _rolePermissionResolver;
+
+    public TokenClaimsService(IRolePermissionResolver rolePermissionResolver)
+    {
+        _rolePermissionResolver = rolePermissionResolver;
+    }
+
+    public async Task<IReadOnlyList<Claim>> BuildClaimsAsync(
         ApplicationUser user,
         IList<string> roles,
         string? tenantId = null,
@@ -40,7 +47,7 @@ public sealed class TokenClaimsService : ITokenClaimsService
             }
         }
 
-        var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles ?? Array.Empty<string>());
+        var permissions = await _rolePermissionResolver.GetPermissionsForRolesAsync(roles ?? Array.Empty<string>(), cancellationToken);
         foreach (var p in permissions)
             list.Add(new Claim(PermissionCatalog.PermissionClaimType, p));
 
@@ -49,6 +56,6 @@ public sealed class TokenClaimsService : ITokenClaimsService
         if (!string.IsNullOrEmpty(branchId))
             list.Add(new Claim(ScopeCheckService.BranchIdClaim, branchId));
 
-        return Task.FromResult<IReadOnlyList<Claim>>(list);
+        return list;
     }
 }

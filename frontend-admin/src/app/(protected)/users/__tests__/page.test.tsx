@@ -36,11 +36,24 @@ const mockDeactivateUser = vi.fn();
 const mockReactivateUser = vi.fn();
 const mockResetPassword = vi.fn();
 const mockCreateRole = vi.fn();
+const mockGetRolesWithPermissions = vi.fn();
+const mockGetPermissionsCatalog = vi.fn();
+const mockUpdateRolePermissions = vi.fn();
+const mockDeleteRole = vi.fn();
+const mockGetUserById = vi.fn();
 
 vi.mock('@/features/users/api/usersGateway', () => ({
   listQueryKey: ['/api/UserManagement'] as const,
   rolesQueryKey: ['/api/UserManagement/roles'] as const,
+  rolesWithPermissionsQueryKey: ['/api/UserManagement/roles/with-permissions'] as const,
+  permissionsCatalogQueryKey: ['/api/UserManagement/roles/permissions-catalog'] as const,
+  getUserByIdQueryKey: (id: string) => ['/api/UserManagement', id] as const,
   getUsersList: (params: unknown) => mockGetUsersList(params),
+  getUserById: (id: string) => mockGetUserById(id),
+  getRolesWithPermissions: () => mockGetRolesWithPermissions(),
+  getPermissionsCatalog: () => mockGetPermissionsCatalog(),
+  updateRolePermissions: (roleName: string, permissions: string[]) => mockUpdateRolePermissions(roleName, permissions),
+  deleteRole: (roleName: string) => mockDeleteRole(roleName),
   createUser: (data: unknown) => mockCreateUser(data),
   updateUser: (id: string, data: unknown) => mockUpdateUser(id, data),
   deactivateUser: (id: string, data: unknown) => mockDeactivateUser(id, data),
@@ -64,6 +77,8 @@ const mockUseUsersPolicy = vi.fn(() => ({
   canDeactivate: true,
   canReactivate: true,
   canCreateRole: false,
+  canDeleteRole: false,
+  canEditRolePermissions: false,
   canResetPassword: () => true,
 }));
 vi.mock('@/shared/auth/usersPolicy', () => ({
@@ -76,6 +91,10 @@ vi.mock('@/features/users/hooks/useRoles', () => ({
 
 vi.mock('@/features/users/components/UserDetailDrawer', () => ({
   UserDetailDrawer: () => null,
+}));
+
+vi.mock('@/features/users/components/RoleManagementDrawer', () => ({
+  RoleManagementDrawer: () => null,
 }));
 
 vi.mock('@/features/users/components/UserFormDrawer', () => ({
@@ -131,6 +150,8 @@ describe('Users page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetUsersList.mockResolvedValue(listResponse([]));
+    mockGetRolesWithPermissions.mockResolvedValue([]);
+    mockGetPermissionsCatalog.mockResolvedValue([]);
     mockUseUsersPolicy.mockReturnValue({
       canView: true,
       canCreate: true,
@@ -138,6 +159,8 @@ describe('Users page', () => {
       canDeactivate: true,
       canReactivate: true,
       canCreateRole: false,
+      canDeleteRole: false,
+      canEditRolePermissions: false,
       canResetPassword: () => true,
     });
     vi.spyOn(message, 'success').mockImplementation(() => {});
@@ -153,6 +176,8 @@ describe('Users page', () => {
         canDeactivate: false,
         canReactivate: false,
         canCreateRole: false,
+        canDeleteRole: false,
+        canEditRolePermissions: false,
         canResetPassword: () => false,
       });
       renderPage();
@@ -404,6 +429,8 @@ describe('Users page', () => {
         canDeactivate: false,
         canReactivate: false,
         canCreateRole: false,
+        canDeleteRole: false,
+        canEditRolePermissions: false,
         canResetPassword: () => false,
       });
       renderPage();

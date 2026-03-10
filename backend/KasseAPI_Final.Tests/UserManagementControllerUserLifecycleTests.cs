@@ -78,11 +78,13 @@ public class UserManagementControllerUserLifecycleTests
         IAuditLogService auditLogService,
         IUserSessionInvalidation sessionInvalidation,
         IUserUniquenessValidationService? uniquenessValidation = null,
+        IRoleManagementService? roleManagementService = null,
         string? actorId = "admin-id",
         string actorRole = "Admin")
     {
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, auditLogService, sessionInvalidation, uniquenessValidation ?? CreateUniquenessValidationMock(), logger);
+        var roleMgmt = roleManagementService ?? new Mock<IRoleManagementService>().Object;
+        var controller = new UserManagementController(context, userManager, roleManager, auditLogService, sessionInvalidation, uniquenessValidation ?? CreateUniquenessValidationMock(), roleMgmt, logger);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, actorId ?? ""),

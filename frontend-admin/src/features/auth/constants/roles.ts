@@ -33,6 +33,12 @@ export const ROLES_CAN_MANAGE_USERS = [
 /** Sadece SuperAdmin rol oluşturabilir (POST /api/UserManagement/roles) */
 export const ROLES_CAN_CREATE_ROLE = ['SuperAdmin'] as const;
 
+/** Sadece SuperAdmin rol silebilir (DELETE /api/UserManagement/roles/{roleName}); custom roller. */
+export const ROLES_CAN_DELETE_ROLE = ['SuperAdmin'] as const;
+
+/** Sadece SuperAdmin rol izinlerini düzenleyebilir (PUT .../roles/{roleName}/permissions). */
+export const ROLES_CAN_EDIT_ROLE_PERMISSIONS = ['SuperAdmin'] as const;
+
 /** RKSV menü: SuperAdmin, Admin */
 export const ROLES_RKSV_MENU = ['SuperAdmin', 'Admin'] as const;
 
@@ -48,6 +54,14 @@ export function canManageUsers(role: UserRole | undefined | null): boolean {
 
 export function canCreateRole(role: UserRole | undefined | null): boolean {
   return ROLES_CAN_CREATE_ROLE.includes(role as (typeof ROLES_CAN_CREATE_ROLE)[number]);
+}
+
+export function canDeleteRole(role: UserRole | undefined | null): boolean {
+  return ROLES_CAN_DELETE_ROLE.includes(role as (typeof ROLES_CAN_DELETE_ROLE)[number]);
+}
+
+export function canEditRolePermissions(role: UserRole | undefined | null): boolean {
+  return ROLES_CAN_EDIT_ROLE_PERMISSIONS.includes(role as (typeof ROLES_CAN_EDIT_ROLE_PERMISSIONS)[number]);
 }
 
 export function isSuperAdmin(role: UserRole | undefined | null): boolean {

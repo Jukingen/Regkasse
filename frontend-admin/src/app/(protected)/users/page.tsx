@@ -37,9 +37,13 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 import { useUsersList } from '@/features/users/hooks/useUsersList';
 import { useRoles } from '@/features/users/hooks/useRoles';
+import { useRolesWithPermissions } from '@/features/users/hooks/useRolesWithPermissions';
+import { usePermissionsCatalog } from '@/features/users/hooks/usePermissionsCatalog';
 import {
     listQueryKey,
     rolesQueryKey,
+    rolesWithPermissionsQueryKey,
+    permissionsCatalogQueryKey,
     createUser as gatewayCreateUser,
     updateUser as gatewayUpdateUser,
     getUserById,
@@ -48,6 +52,8 @@ import {
     reactivateUser as gatewayReactivateUser,
     resetPassword as gatewayResetPassword,
     createRole as gatewayCreateRole,
+    updateRolePermissions as gatewayUpdateRolePermissions,
+    deleteRole as gatewayDeleteRole,
     normalizeError,
     type UserInfo,
     type CreateUserRequest,
@@ -55,6 +61,7 @@ import {
 } from '@/features/users/api/usersGateway';
 import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
 import { UserFormDrawer } from '@/features/users/components/UserFormDrawer';
+import { RoleManagementDrawer } from '@/features/users/components/RoleManagementDrawer';
 import { usersCopy, mapBackendPasswordErrorToGerman } from '@/features/users/constants/copy';
 import { createUsersFormRules } from '@/features/users/constants/validation';
 
@@ -114,6 +121,7 @@ export default function UsersPage() {
     /** Backend validation error shown inside reset password modal (German); cleared when modal closes. */
     const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
+    const [roleManagementDrawerOpen, setRoleManagementDrawerOpen] = useState(false);
 
     const { user: currentUser } = useAuth();
     const policy = useUsersPolicy();
@@ -136,6 +144,9 @@ export default function UsersPage() {
         setPage(DEFAULT_PAGE);
     }, [roleFilter, statusFilter, searchTerm]);
     const { data: roles } = useRoles({ enabled: policy.canView });
+    const canManageRoles = policy.canCreateRole || policy.canDeleteRole || policy.canEditRolePermissions;
+    const { data: rolesWithPermissions, isLoading: rolesWithPermsLoading, isError: rolesWithPermsError, refetch: refetchRolesWithPerms } = useRolesWithPermissions({ enabled: roleManagementDrawerOpen });
+    const { data: permissionsCatalog, isLoading: catalogLoading, isError: catalogError, refetch: refetchCatalog } = usePermissionsCatalog({ enabled: roleManagementDrawerOpen });
     // Edit flow: when editUserId is set, fetch full user detail (GET /api/UserManagement/{id}); form is filled from this response only.
     const { data: editUserFull, isLoading: editUserLoading, isError: editUserError, error: editUserFetchError, refetch: refetchEditUser } = useQuery({
         queryKey: getUserByIdQueryKey(editUserId ?? ''),
@@ -238,11 +249,35 @@ export default function UsersPage() {
         onSuccess: () => {
             message.success(usersCopy.successCreateRole ?? 'Rolle angelegt.');
             queryClient.invalidateQueries({ queryKey: rolesQueryKey });
+            queryClient.invalidateQueries({ queryKey: rolesWithPermissionsQueryKey });
             setCreateRoleOpen(false);
             createRoleForm.resetFields();
         },
         onError: (e: unknown) => {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
+        },
+    });
+    const updateRolePermissionsMutation = useMutation({
+        mutationFn: ({ roleName, permissions }: { roleName: string; permissions: string[] }) =>
+            gatewayUpdateRolePermissions(roleName, permissions),
+        onSuccess: () => {
+            message.success(usersCopy.successPermissionsSaved);
+            queryClient.invalidateQueries({ queryKey: rolesWithPermissionsQueryKey });
+            queryClient.invalidateQueries({ queryKey: rolesQueryKey });
+        },
+        onError: (e: unknown) => {
+            message.error(normalizeError(e, usersCopy.errorSavePermissions).message);
+        },
+    });
+    const deleteRoleMutation = useMutation({
+        mutationFn: (roleName: string) => gatewayDeleteRole(roleName),
+        onSuccess: () => {
+            message.success(usersCopy.successRoleDeleted);
+            queryClient.invalidateQueries({ queryKey: rolesWithPermissionsQueryKey });
+            queryClient.invalidateQueries({ queryKey: rolesQueryKey });
+        },
+        onError: (e: unknown) => {
+            message.error(normalizeError(e, usersCopy.errorDeleteRole).message);
         },
     });
 
@@ -320,6 +355,19 @@ export default function UsersPage() {
                 createRoleMutation.mutate({ name: values.name.trim() });
             })
             .catch(() => { /* validasyon hatası */ });
+    };
+
+    const handleRoleManagementRetry = () => {
+        refetchRolesWithPerms();
+        refetchCatalog();
+    };
+
+    const handleSaveRolePermissions = async (roleName: string, permissions: string[]) => {
+        await updateRolePermissionsMutation.mutateAsync({ roleName, permissions });
+    };
+
+    const handleDeleteRole = async (roleName: string) => {
+        await deleteRoleMutation.mutateAsync(roleName);
     };
 
     const columns = [
@@ -467,6 +515,11 @@ export default function UsersPage() {
                     {policy.canCreateRole && (
                         <Button icon={<UserOutlined />} onClick={() => setCreateRoleOpen(true)}>
                             {usersCopy.createRole}
+                        </Button>
+                    )}
+                    {canManageRoles && (
+                        <Button type="default" onClick={() => setRoleManagementDrawerOpen(true)}>
+                            {usersCopy.manageRoles}
                         </Button>
                     )}
                 </Space>
@@ -629,6 +682,26 @@ export default function UsersPage() {
                     </Form.Item>
                 </Form>
             </Modal>
+
+            <RoleManagementDrawer
+                open={roleManagementDrawerOpen}
+                onClose={() => setRoleManagementDrawerOpen(false)}
+                roles={rolesWithPermissions}
+                catalog={permissionsCatalog}
+                rolesLoading={rolesWithPermsLoading}
+                catalogLoading={catalogLoading}
+                rolesError={rolesWithPermsError}
+                catalogError={catalogError}
+                onRetry={handleRoleManagementRetry}
+                canCreateRole={policy.canCreateRole}
+                canDeleteRole={policy.canDeleteRole}
+                canEditRolePermissions={policy.canEditRolePermissions}
+                onCreateRole={() => setCreateRoleOpen(true)}
+                onSavePermissions={handleSaveRolePermissions}
+                onDeleteRole={handleDeleteRole}
+                saveLoading={updateRolePermissionsMutation.isPending}
+                deleteLoading={deleteRoleMutation.isPending}
+            />
         </Card>
     );
 }

@@ -25,6 +25,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IAuditLogService _auditLogService;
         private readonly IUserSessionInvalidation _sessionInvalidation;
         private readonly IUserUniquenessValidationService _uniquenessValidation;
+        private readonly IRoleManagementService _roleManagementService;
         private readonly ILogger<UserManagementController> _logger;
 
         public UserManagementController(
@@ -34,6 +35,7 @@ namespace KasseAPI_Final.Controllers
             IAuditLogService auditLogService,
             IUserSessionInvalidation sessionInvalidation,
             IUserUniquenessValidationService uniquenessValidation,
+            IRoleManagementService roleManagementService,
             ILogger<UserManagementController> logger)
         {
             _context = context;
@@ -42,11 +44,19 @@ namespace KasseAPI_Final.Controllers
             _auditLogService = auditLogService;
             _sessionInvalidation = sessionInvalidation;
             _uniquenessValidation = uniquenessValidation;
+            _roleManagementService = roleManagementService;
             _logger = logger;
         }
 
         private string? GetCurrentUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         private string GetCurrentUserRole() => User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
+
+        /// <summary>Returns 403 if current user is not SuperAdmin. Used for role permission update and role delete.</summary>
+        private bool IsCurrentUserSuperAdmin()
+        {
+            var role = GetCurrentUserRole();
+            return string.Equals(RoleCanonicalization.GetCanonicalRole(role), Roles.SuperAdmin, StringComparison.Ordinal);
+        }
 
         /// <summary>
         /// Runs user lifecycle audit without failing the primary operation. If audit write fails (e.g. schema/DB),
@@ -747,6 +757,147 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        // GET: api/usermanagement/roles/permissions-catalog
+        [HttpGet("roles/permissions-catalog")]
+        [HasPermission(AppPermissions.UserView)]
+        public ActionResult<IEnumerable<PermissionCatalogItemDto>> GetPermissionsCatalog()
+        {
+            var items = _roleManagementService.GetPermissionsCatalog();
+            return Ok(items.Select(x => new PermissionCatalogItemDto
+            {
+                Key = x.Key,
+                Group = x.Group,
+                Resource = x.Resource,
+                Action = x.Action,
+                Description = x.Description,
+            }));
+        }
+
+        // GET: api/usermanagement/roles/with-permissions
+        [HttpGet("roles/with-permissions")]
+        [HasPermission(AppPermissions.UserView)]
+        public async Task<ActionResult<IEnumerable<RoleWithPermissionsDto>>> GetRolesWithPermissions(CancellationToken cancellationToken)
+        {
+            var list = await _roleManagementService.GetRolesWithPermissionsAsync(cancellationToken);
+            return Ok(list);
+        }
+
+        // PUT: api/usermanagement/roles/{roleName}/permissions — SuperAdmin only; custom roles only.
+        [HttpPut("roles/{roleName}/permissions")]
+        [HasPermission(AppPermissions.UserManage)]
+        public async Task<IActionResult> SetRolePermissions(string roleName, [FromBody] UpdateRolePermissionsRequest request, CancellationToken cancellationToken)
+        {
+            if (!IsCurrentUserSuperAdmin())
+            {
+                var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+                return StatusCode(403, new
+                {
+                    code = ApiError.ForbiddenPayload.Code,
+                    reason = ApiError.ForbiddenPayload.Reason,
+                    requiredPolicy = "SuperAdmin",
+                    missingRequirement = "Role",
+                    correlationId,
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(roleName))
+                return BadRequest(new { message = "Role name is required.", code = "VALIDATION_ERROR" });
+
+            request ??= new UpdateRolePermissionsRequest();
+            IReadOnlyList<string> keys = request.Permissions != null ? request.Permissions : Array.Empty<string>();
+
+            var result = await _roleManagementService.SetRolePermissionsAsync(roleName, keys, cancellationToken);
+            switch (result)
+            {
+                case SetRolePermissionsResult.RoleNotFound:
+                    return NotFound(new { message = "Role not found", code = "ROLE_NOT_FOUND" });
+                case SetRolePermissionsResult.SystemRoleNotEditable:
+                    return BadRequest(new { message = "System roles cannot be edited. Permission set is defined in code.", code = "SYSTEM_ROLE_NOT_EDITABLE" });
+                case SetRolePermissionsResult.InvalidPermissionKeys:
+                    return BadRequest(new { message = "One or more permission keys are invalid. Use GET /roles/permissions-catalog for valid keys.", code = "VALIDATION_ERROR", errors = new { Permissions = new[] { "Invalid permission key(s)." } } });
+                case SetRolePermissionsResult.Success:
+                    break;
+            }
+
+            var actorId = GetCurrentUserId();
+            var actorRole = GetCurrentUserRole();
+            if (!string.IsNullOrEmpty(actorId))
+            {
+                try
+                {
+                    await _auditLogService.LogSystemOperationAsync(
+                        AuditLogActions.ROLE_PERMISSIONS_UPDATE,
+                        AuditLogEntityTypes.ROLE,
+                        actorId,
+                        actorRole,
+                        description: $"Role permissions updated: {roleName}",
+                        requestData: new { roleName, permissionCount = keys.Count });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Role lifecycle audit failed. Role: {RoleName}", roleName);
+                }
+            }
+
+            return Ok(new { message = "Role permissions updated successfully" });
+        }
+
+        // DELETE: api/usermanagement/roles/{roleName} — SuperAdmin only; custom roles only; blocks when users assigned.
+        [HttpDelete("roles/{roleName}")]
+        [HasPermission(AppPermissions.UserManage)]
+        public async Task<IActionResult> DeleteRole(string roleName, CancellationToken cancellationToken)
+        {
+            if (!IsCurrentUserSuperAdmin())
+            {
+                var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+                return StatusCode(403, new
+                {
+                    code = ApiError.ForbiddenPayload.Code,
+                    reason = ApiError.ForbiddenPayload.Reason,
+                    requiredPolicy = "SuperAdmin",
+                    missingRequirement = "Role",
+                    correlationId,
+                });
+            }
+
+            if (string.IsNullOrWhiteSpace(roleName))
+                return BadRequest(new { message = "Role name is required.", code = "VALIDATION_ERROR" });
+
+            var result = await _roleManagementService.DeleteRoleAsync(roleName, cancellationToken);
+            switch (result)
+            {
+                case DeleteRoleResult.RoleNotFound:
+                    return NotFound(new { message = "Role not found", code = "ROLE_NOT_FOUND" });
+                case DeleteRoleResult.SystemRoleNotDeletable:
+                    return BadRequest(new { message = "System roles cannot be deleted.", code = "SYSTEM_ROLE_NOT_DELETABLE" });
+                case DeleteRoleResult.RoleHasAssignedUsers:
+                    return StatusCode(409, new { message = "Cannot delete role: one or more users are assigned to this role.", code = "ROLE_HAS_ASSIGNED_USERS" });
+                case DeleteRoleResult.Success:
+                    break;
+            }
+
+            var actorId = GetCurrentUserId();
+            var actorRole = GetCurrentUserRole();
+            if (!string.IsNullOrEmpty(actorId))
+            {
+                try
+                {
+                    await _auditLogService.LogSystemOperationAsync(
+                        AuditLogActions.ROLE_DELETE,
+                        AuditLogEntityTypes.ROLE,
+                        actorId,
+                        actorRole,
+                        description: $"Role deleted: {roleName}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Role lifecycle audit failed. Role: {RoleName}", roleName);
+                }
+            }
+
+            return Ok(new { message = "Role deleted successfully" });
+        }
+
         // GET: api/usermanagement/roles
         [HttpGet("roles")]
         [HasPermission(AppPermissions.UserView)]
@@ -939,5 +1090,21 @@ namespace KasseAPI_Final.Controllers
     {
         [MaxLength(500)]
         public string? Reason { get; set; }
+    }
+
+    /// <summary>Response item for GET /api/UserManagement/roles/permissions-catalog.</summary>
+    public class PermissionCatalogItemDto
+    {
+        public string Key { get; set; } = string.Empty;
+        public string Group { get; set; } = string.Empty;
+        public string Resource { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    /// <summary>Request body for PUT /api/UserManagement/roles/{roleName}/permissions. Empty list allowed.</summary>
+    public class UpdateRolePermissionsRequest
+    {
+        public List<string>? Permissions { get; set; }
     }
 }

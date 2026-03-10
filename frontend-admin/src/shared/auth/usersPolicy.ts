@@ -9,6 +9,8 @@ import {
   canViewUsers,
   canManageUsers,
   canCreateRole as roleCanCreateRole,
+  canDeleteRole as roleCanDeleteRole,
+  canEditRolePermissions as roleCanEditRolePermissions,
   canResetPassword as roleCanResetPassword,
 } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -21,7 +23,9 @@ export type UsersAction =
   | 'deactivate'
   | 'reactivate'
   | 'resetPassword'
-  | 'createRole';
+  | 'createRole'
+  | 'deleteRole'
+  | 'editRolePermissions';
 
 export interface UsersPolicy {
   canView: boolean;
@@ -30,6 +34,8 @@ export interface UsersPolicy {
   canDeactivate: boolean;
   canReactivate: boolean;
   canCreateRole: boolean;
+  canDeleteRole: boolean;
+  canEditRolePermissions: boolean;
   canResetPassword: (targetRole: string | undefined | null) => boolean;
 }
 
@@ -51,6 +57,8 @@ export function getUsersPolicy(
     canDeactivate: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE) : canManageUsers(role),
     canReactivate: usePerms ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE) : canManageUsers(role),
     canCreateRole: usePerms ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE) : roleCanCreateRole(role),
+    canDeleteRole: usePerms ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE) : roleCanDeleteRole(role),
+    canEditRolePermissions: usePerms ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE) : roleCanEditRolePermissions(role),
     canResetPassword: (targetRole: string | undefined | null) =>
       roleCanResetPassword(role, targetRole ?? ''),
   };
@@ -81,6 +89,10 @@ export function canUsers(
       return policy.canResetPassword(context?.targetRole ?? '');
     case 'createRole':
       return policy.canCreateRole;
+    case 'deleteRole':
+      return policy.canDeleteRole;
+    case 'editRolePermissions':
+      return policy.canEditRolePermissions;
     default:
       return false;
   }
