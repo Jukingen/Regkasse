@@ -112,7 +112,7 @@ public class RoleManagementTests
     }
 
     [Fact]
-    public async Task DeleteRole_WhenSuperAdmin_AndServiceReturnsRoleHasUsers_Returns409()
+    public async Task DeleteRole_WhenSuperAdmin_AndServiceReturnsRoleHasUsers_Returns409_WithMessageAndUserCount()
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
         var roleMgmt = new Mock<IRoleManagementService>();
@@ -132,6 +132,11 @@ public class RoleManagementTests
         var status = result as ObjectResult;
         Assert.NotNull(status);
         Assert.Equal(409, status.StatusCode);
+        Assert.NotNull(status.Value);
+        var valueType = status.Value.GetType();
+        Assert.Equal("ROLE_HAS_ASSIGNED_USERS", valueType.GetProperty("code")?.GetValue(status.Value) as string);
+        Assert.NotNull(valueType.GetProperty("userCount"));
+        Assert.Contains("Reassign", (valueType.GetProperty("message")?.GetValue(status.Value) as string) ?? "", StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -247,6 +252,34 @@ public class RoleManagementTests
         var badRequest = result as BadRequestObjectResult;
         Assert.NotNull(badRequest);
         Assert.Equal(400, badRequest.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateRole_WhenNameIsSystemRole_Returns400WithROLE_NAME_RESERVED()
+    {
+        var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
+        await roleManager.CreateAsync(new IdentityRole("Admin"));
+        var roleMgmt = new Mock<IRoleManagementService>().Object;
+        var audit = new Mock<IAuditLogService>().Object;
+        var session = new Mock<IUserSessionInvalidation>().Object;
+        var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
+        var logger = new Mock<ILogger<UserManagementController>>().Object;
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt, logger);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
+        };
+
+        var result = await controller.CreateRole(new CreateRoleRequest { Name = "Admin" });
+
+        var badRequest = result as BadRequestObjectResult;
+        Assert.NotNull(badRequest);
+        Assert.Equal(400, badRequest.StatusCode);
+        Assert.NotNull(badRequest.Value);
+        var valueType = badRequest.Value.GetType();
+        var codeProp = valueType.GetProperty("code");
+        Assert.NotNull(codeProp);
+        Assert.Equal("ROLE_NAME_RESERVED", codeProp.GetValue(badRequest.Value) as string);
     }
 
     [Fact]

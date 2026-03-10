@@ -36,6 +36,10 @@ public sealed class RoleWithPermissionsDto
     public IReadOnlyList<string> Permissions { get; init; } = Array.Empty<string>();
     public bool IsSystemRole { get; init; }
     public int UserCount { get; init; }
+    /// <summary>True only for custom roles with no assigned users. Frontend uses this to enable/disable delete.</summary>
+    public bool CanDelete { get; init; }
+    /// <summary>True only for custom roles. System roles have fixed permissions.</summary>
+    public bool CanEditPermissions { get; init; }
 }
 
 public enum SetRolePermissionsResult

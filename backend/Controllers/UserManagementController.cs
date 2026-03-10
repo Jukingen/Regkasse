@@ -259,9 +259,19 @@ namespace KasseAPI_Final.Controllers
                 {
                     return BadRequest(new { message = "Employee number is required.", code = "VALIDATION_ERROR", errors = new { EmployeeNumber = new[] { "Employee number is required." } } });
                 }
+                if (string.IsNullOrWhiteSpace(request.Role))
+                {
+                    return BadRequest(new { message = "Role is required. Users must have a valid role.", code = "ROLE_REQUIRED", errors = new { Role = new[] { "Role is required." } } });
+                }
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(new { message = "Validation failed.", code = "VALIDATION_ERROR", errors = ModelState });
+                }
+
+                var roleExists = await _roleManager.FindByNameAsync(request.Role);
+                if (roleExists == null)
+                {
+                    return BadRequest(new { message = "The specified role does not exist.", code = "ROLE_NOT_FOUND", errors = new { Role = new[] { "Role does not exist." } } });
                 }
 
                 // Kullanıcı adı kontrol et
@@ -299,14 +309,12 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Failed to create user", errors = result.Errors });
                 }
 
-                // Role ekle
-                if (!string.IsNullOrEmpty(request.Role))
+                // Role is required and already validated; add user to role
+                var roleResult = await _userManager.AddToRoleAsync(user, request.Role);
+                if (!roleResult.Succeeded)
                 {
-                    var roleResult = await _userManager.AddToRoleAsync(user, request.Role);
-                    if (!roleResult.Succeeded)
-                    {
-                        _logger.LogWarning("Failed to add role {Role} to user {UserName}", request.Role, request.UserName);
-                    }
+                    _logger.LogWarning("Failed to add role {Role} to user {UserName}", request.Role, request.UserName);
+                    return BadRequest(new { message = "Failed to assign role to user.", code = "ROLE_ASSIGN_FAILED", errors = roleResult.Errors });
                 }
 
                 var createdUserInfo = new UserInfo
@@ -360,9 +368,19 @@ namespace KasseAPI_Final.Controllers
                 {
                     return BadRequest(new { message = "Employee number is required.", code = "VALIDATION_ERROR", errors = new { EmployeeNumber = new[] { "Employee number is required." } } });
                 }
+                if (string.IsNullOrWhiteSpace(request.Role))
+                {
+                    return BadRequest(new { message = "Role is required. Users must have a valid role.", code = "ROLE_REQUIRED", errors = new { Role = new[] { "Role is required." } } });
+                }
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(new { message = "Validation failed.", code = "VALIDATION_ERROR", errors = ModelState });
+                }
+
+                var roleExists = await _roleManager.FindByNameAsync(request.Role);
+                if (roleExists == null)
+                {
+                    return BadRequest(new { message = "The specified role does not exist.", code = "ROLE_NOT_FOUND", errors = new { Role = new[] { "Role does not exist." } } });
                 }
 
                 var user = await _userManager.FindByIdAsync(id);
@@ -406,8 +424,8 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Failed to update user", errors = result.Errors });
                 }
 
-                // Role güncelle
-                if (!string.IsNullOrEmpty(request.Role) && request.Role != user.Role)
+                // Role is required and already validated; update if changed
+                if (request.Role != user.Role)
                 {
                     var currentRoles = await _userManager.GetRolesAsync(user);
                     if (currentRoles.Any())
@@ -871,7 +889,14 @@ namespace KasseAPI_Final.Controllers
                 case DeleteRoleResult.SystemRoleNotDeletable:
                     return BadRequest(new { message = "System roles cannot be deleted.", code = "SYSTEM_ROLE_NOT_DELETABLE" });
                 case DeleteRoleResult.RoleHasAssignedUsers:
-                    return StatusCode(409, new { message = "Cannot delete role: one or more users are assigned to this role.", code = "ROLE_HAS_ASSIGNED_USERS" });
+                    var usersInRole = await _userManager.GetUsersInRoleAsync(roleName);
+                    var userCount = usersInRole?.Count ?? 0;
+                    return StatusCode(409, new
+                    {
+                        message = "Cannot delete role: one or more users are assigned to this role. Reassign them to another role before deleting.",
+                        code = "ROLE_HAS_ASSIGNED_USERS",
+                        userCount,
+                    });
                 case DeleteRoleResult.Success:
                     break;
             }
@@ -927,10 +952,15 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
+                if (Roles.Canonical.Contains(request.Name.Trim(), StringComparer.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { message = "Role name is reserved for system roles. Choose a different name for a custom role.", code = "ROLE_NAME_RESERVED", errors = new { Name = new[] { "This role name is reserved." } } });
+                }
+
                 var existingRole = await _roleManager.FindByNameAsync(request.Name);
                 if (existingRole != null)
                 {
-                    return BadRequest(new { message = "Role already exists" });
+                    return BadRequest(new { message = "Role already exists", code = "ROLE_ALREADY_EXISTS" });
                 }
 
                 var role = new IdentityRole(request.Name);
@@ -1011,7 +1041,7 @@ namespace KasseAPI_Final.Controllers
         [MaxLength(20)]
         public string EmployeeNumber { get; set; } = string.Empty;
 
-        [Required]
+        [Required(AllowEmptyStrings = false, ErrorMessage = "Role is required.")]
         [MaxLength(20)]
         public string Role { get; set; } = string.Empty;
 
@@ -1040,7 +1070,7 @@ namespace KasseAPI_Final.Controllers
         [MaxLength(20)]
         public string EmployeeNumber { get; set; } = string.Empty;
 
-        [Required]
+        [Required(AllowEmptyStrings = false, ErrorMessage = "Role is required. Users must have a valid role.")]
         [MaxLength(20)]
         public string Role { get; set; } = string.Empty;
 

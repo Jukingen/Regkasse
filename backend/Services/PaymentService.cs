@@ -68,9 +68,9 @@ namespace KasseAPI_Final.Services
             {
                 _logger.LogInformation("Creating payment for customer {CustomerId} by user {UserId}", request.CustomerId, userId);
 
-                // Demo kullanıcı kontrolü - demo kullanıcılar gerçek ödeme oluşturamaz
+                // Demo kullanıcı kontrolü: IsDemo bayrağı (ve eski Demo rolü geriye dönük uyumluluk için)
                 var user = await _userService.GetUserByIdAsync(userId);
-                if (user?.Role == "Demo")
+                if (user?.IsDemo == true || user?.Role == "Demo")
                 {
                     _logger.LogWarning("Demo user {UserId} attempted to create real payment", userId);
                     return new PaymentResult
@@ -603,9 +603,9 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Demo kullanıcı kontrolü
+                // Demo kullanıcı kontrolü: IsDemo bayrağı (ve eski Demo rolü geriye dönük uyumluluk için)
                 var user = await _userService.GetUserByIdAsync(userId);
-                if (user?.Role == "Demo")
+                if (user?.IsDemo == true || user?.Role == "Demo")
                 {
                     _logger.LogWarning("Demo user {UserId} attempted to cancel payment {PaymentId}", userId, paymentId);
                     return new PaymentResult
@@ -706,9 +706,9 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Demo kullanıcı kontrolü
+                // Demo kullanıcı kontrolü: IsDemo bayrağı (ve eski Demo rolü geriye dönük uyumluluk için)
                 var user = await _userService.GetUserByIdAsync(userId);
-                if (user?.Role == "Demo")
+                if (user?.IsDemo == true || user?.Role == "Demo")
                 {
                     _logger.LogWarning("Demo user {UserId} attempted to refund payment {PaymentId}", userId, paymentId);
                     return new PaymentResult

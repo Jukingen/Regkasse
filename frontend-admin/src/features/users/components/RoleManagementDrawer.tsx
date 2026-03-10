@@ -18,6 +18,7 @@ import {
   Typography,
   Modal,
   Select,
+  Tag,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons';
 import type { RoleWithPermissionsDto } from '../api/usersGateway';
@@ -75,7 +76,16 @@ export function RoleManagementDrawer({
   saveLoading = false,
   deleteLoading = false,
 }: Props) {
-  const sortedRoles = useMemo(() => [...roles].sort((a, b) => a.roleName.localeCompare(b.roleName)), [roles]);
+  const sortedRoles = useMemo(
+    () =>
+      [...roles].sort((a, b) => {
+        const systemA = a.isSystemRole ? 0 : 1;
+        const systemB = b.isSystemRole ? 0 : 1;
+        if (systemA !== systemB) return systemA - systemB;
+        return a.roleName.localeCompare(b.roleName, 'de');
+      }),
+    [roles]
+  );
   const [selectedRoleName, setSelectedRoleName] = useState<string | null>(null);
   const [draftPermissions, setDraftPermissions] = useState<Set<string>>(new Set());
   const [presetSelectValue, setPresetSelectValue] = useState<string | null>(null);
@@ -85,6 +95,8 @@ export function RoleManagementDrawer({
     [roles, selectedRoleName]
   );
   const isSystemRole = selectedRole?.isSystemRole ?? false;
+  const selectedRoleCanDelete = selectedRole?.canDelete ?? (!isSystemRole && (selectedRole?.userCount ?? 0) === 0);
+  const canEditRole = selectedRole?.canEditPermissions ?? !isSystemRole;
   const savedPermissionsSet = useMemo(
     () => new Set(selectedRole?.permissions ?? []),
     [selectedRole]
@@ -95,6 +107,13 @@ export function RoleManagementDrawer({
     const savedArr = Array.from(savedPermissionsSet);
     return !draftArr.every((p) => savedPermissionsSet.has(p)) || !savedArr.every((p) => draftPermissions.has(p));
   }, [selectedRoleName, draftPermissions, savedPermissionsSet]);
+
+  // Stable key for "selected role's permissions": only changes when role or its permissions content change.
+  // Used as effect dependency to avoid re-running when `roles` array reference changes (e.g. React Query).
+  const selectedRolePermissionsKey = useMemo(() => {
+    const r = roles.find((rr) => rr.roleName === selectedRoleName);
+    return r ? [...(r.permissions ?? [])].sort().join(',') : '';
+  }, [roles, selectedRoleName]);
 
   // Initialize selected to first role when data loads; sync draft from selected role
   useEffect(() => {
@@ -108,10 +127,14 @@ export function RoleManagementDrawer({
     }
   }, [open, sortedRoles, selectedRoleName]);
 
+  // Sync draft from server when selected role (by name) or its permissions change. Use primitive key
+  // instead of selectedRole object so we don't re-run on every new roles array reference (avoids loop).
   useEffect(() => {
-    if (!selectedRole) return;
-    setDraftPermissions(new Set(selectedRole.permissions));
-  }, [selectedRole]);
+    if (!selectedRoleName || !selectedRolePermissionsKey) return;
+    const role = roles.find((r) => r.roleName === selectedRoleName);
+    if (!role) return;
+    setDraftPermissions(new Set(role.permissions ?? []));
+  }, [selectedRoleName, selectedRolePermissionsKey]);
 
   const groupedCatalog = useMemo(() => groupCatalogByGroup(catalog), [catalog]);
   const catalogKeySet = useMemo(() => new Set(catalog.map((c) => c.key)), [catalog]);
@@ -178,9 +201,12 @@ export function RoleManagementDrawer({
   };
 
   const handleDelete = () => {
-    if (!selectedRoleName || isSystemRole) return;
+    if (!selectedRoleName || !selectedRoleCanDelete) return;
     if (selectedRole && selectedRole.userCount > 0) {
-      Modal.warning({ title: usersCopy.roleHasUsers });
+      Modal.warning({
+        title: usersCopy.roleHasUsers,
+        content: usersCopy.roleDeleteBlockedReassignFirst,
+      });
       return;
     }
     Modal.confirm({
@@ -196,6 +222,15 @@ export function RoleManagementDrawer({
       },
     });
   };
+
+  const deleteButtonTooltip =
+    !selectedRoleName
+      ? undefined
+      : isSystemRole
+        ? usersCopy.systemRoleProtectedNoDelete
+        : (selectedRole?.userCount ?? 0) > 0
+          ? usersCopy.roleDeleteBlockedReassignFirst
+          : undefined;
 
   const loading = rolesLoading || catalogLoading;
   const error = rolesError || catalogError;
@@ -216,16 +251,18 @@ export function RoleManagementDrawer({
             </Button>
           )}
           {canDeleteRole && (
-            <Tooltip title={isSystemRole ? usersCopy.systemRoleNoDelete : undefined}>
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                onClick={handleDelete}
-                disabled={isSystemRole || !selectedRoleName}
-                loading={deleteLoading}
-              >
-                {usersCopy.deleteRole}
-              </Button>
+            <Tooltip title={deleteButtonTooltip}>
+              <span>
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={handleDelete}
+                  disabled={!selectedRoleCanDelete || !selectedRoleName}
+                  loading={deleteLoading}
+                >
+                  {usersCopy.deleteRole}
+                </Button>
+              </span>
             </Tooltip>
           )}
           <span style={{ flex: 1 }} />
@@ -234,7 +271,7 @@ export function RoleManagementDrawer({
               type="primary"
               icon={<SaveOutlined />}
               onClick={handleSave}
-              disabled={!dirty || isSystemRole || !selectedRoleName}
+              disabled={!dirty || !canEditRole || !selectedRoleName}
               loading={saveLoading}
             >
               {usersCopy.savePermissions}
@@ -284,11 +321,11 @@ export function RoleManagementDrawer({
                     onClick={() => handleSelectRole(r.roleName)}
                   >
                     <div style={{ width: '100%' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                        <span>{r.roleName}</span>
-                        {r.isSystemRole && (
-                          <Typography.Text type="secondary" style={{ fontSize: 11 }}>(System)</Typography.Text>
-                        )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span>{usersCopy.roleDisplayName(r.roleName)}</span>
+                        <Tag color={r.isSystemRole ? 'blue' : 'default'} style={{ margin: 0, fontSize: 11 }}>
+                          {r.isSystemRole ? usersCopy.badgeSystemRole : usersCopy.badgeCustomRole}
+                        </Tag>
                       </div>
                       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {usersCopy.userCount(r.userCount)}
@@ -304,7 +341,7 @@ export function RoleManagementDrawer({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
               <Typography.Text strong>{usersCopy.permissionsByGroup}</Typography.Text>
-              {canEditRolePermissions && selectedRoleName && !isSystemRole && (
+              {canEditRolePermissions && selectedRoleName && canEditRole && (
                 <Select
                   placeholder={usersCopy.presetPlaceholder}
                   style={{ minWidth: 180 }}
@@ -321,7 +358,26 @@ export function RoleManagementDrawer({
             {!selectedRoleName ? (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={usersCopy.noRoleSelected} style={{ marginTop: 24 }} />
             ) : (
-              <div style={{ marginTop: 8, maxHeight: 420, overflow: 'auto' }}>
+              <>
+                {selectedRole?.isSystemRole && (
+                  <Alert
+                    type="info"
+                    message={usersCopy.badgeSystemRole}
+                    description={usersCopy.systemRoleProtectedNoDelete}
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                  />
+                )}
+                {selectedRole && !selectedRole.isSystemRole && selectedRole.userCount > 0 && (
+                  <Alert
+                    type="info"
+                    message={usersCopy.roleHasUsers}
+                    description={usersCopy.roleDeleteBlockedReassignFirst}
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                  />
+                )}
+                <div style={{ marginTop: 8, maxHeight: 420, overflow: 'auto' }}>
                 {Array.from(groupedCatalog.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([groupName, items]) => (
                   <div key={groupName} style={{ marginBottom: 16 }}>
                     <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>
@@ -333,7 +389,7 @@ export function RoleManagementDrawer({
                           key={item.key}
                           checked={draftPermissions.has(item.key)}
                           onChange={(e) => handleTogglePermission(item.key, e.target.checked)}
-                          disabled={isSystemRole}
+                          disabled={!canEditRole}
                         >
                           <Typography.Text style={{ fontSize: 13 }}>{item.key}</Typography.Text>
                         </Checkbox>
@@ -341,7 +397,8 @@ export function RoleManagementDrawer({
                     </Space>
                   </div>
                 ))}
-              </div>
+                </div>
+              </>
             )}
           </div>
         </div>

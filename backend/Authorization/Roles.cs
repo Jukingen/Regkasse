@@ -33,7 +33,7 @@ public static class Roles
     public const string FallbackUnknown = "User";
 
     /// <summary>
-    /// Canonical roles for policy and assignments: core (SuperAdmin, Admin, Manager, Cashier, Waiter) + optional.
+    /// Canonical system roles for policy and assignments. Obsolete names (Administrator, Kellner, BranchManager, Auditor, Demo) are not included; use migration/reassignment for existing DBs.
     /// </summary>
     public static readonly IReadOnlyList<string> Canonical = new[]
     {

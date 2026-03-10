@@ -54,6 +54,9 @@ public class UserManagementControllerUserLifecycleTests
             keyNormalizer.Object, errors, services, logger);
 
         var roleStore = new Mock<IRoleStore<IdentityRole>>();
+        // So controller role-exists validation passes when tests send Role = "Admin" (or any name)
+        roleStore.Setup(x => x.FindByNameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string name, CancellationToken _) => new IdentityRole(name));
         var roleManager = new RoleManager<IdentityRole>(
             roleStore.Object, null!, keyNormalizer.Object, errors, null!);
 
@@ -725,6 +728,100 @@ public class UserManagementControllerUserLifecycleTests
         Assert.Contains("Email already exists", json, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Create user with empty role -> 400 ROLE_REQUIRED.</summary>
+    [Fact]
+    public async Task CreateUser_WhenRoleEmpty_Returns400()
+    {
+        var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync();
+        var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
+
+        var request = new CreateUserRequest
+        {
+            UserName = "newuser",
+            Password = "Pass123!@#",
+            Email = "new@example.com",
+            FirstName = "X",
+            LastName = "Y",
+            EmployeeNumber = "EN-999",
+            Role = ""
+        };
+        var result = await controller.CreateUser(request);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+        var json = JsonSerializer.Serialize(badRequest.Value);
+        Assert.Contains("ROLE_REQUIRED", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Create user with non-existent role -> 400 ROLE_NOT_FOUND.</summary>
+    [Fact]
+    public async Task CreateUser_WhenRoleNotFound_Returns400()
+    {
+        var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync();
+        var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
+
+        var request = new CreateUserRequest
+        {
+            UserName = "newuser",
+            Password = "Pass123!@#",
+            Email = "new@example.com",
+            FirstName = "X",
+            LastName = "Y",
+            EmployeeNumber = "EN-999",
+            Role = "NonExistentRole"
+        };
+        var result = await controller.CreateUser(request);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.NotNull(badRequest.Value);
+        var json = JsonSerializer.Serialize(badRequest.Value);
+        Assert.Contains("ROLE_NOT_FOUND", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Update user with empty role -> 400 ROLE_REQUIRED.</summary>
+    [Fact]
+    public async Task UpdateUser_WhenRoleEmpty_Returns400()
+    {
+        var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
+            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true });
+        var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
+
+        var result = await controller.UpdateUser("u1", new UpdateUserRequest
+        {
+            FirstName = "A",
+            LastName = "B",
+            EmployeeNumber = "E1",
+            Role = ""
+        });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequest.Value);
+        var json = JsonSerializer.Serialize(badRequest.Value);
+        Assert.Contains("ROLE_REQUIRED", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Update user with non-existent role -> 400 ROLE_NOT_FOUND.</summary>
+    [Fact]
+    public async Task UpdateUser_WhenRoleNotFound_Returns400()
+    {
+        var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
+            new ApplicationUser { Id = "u1", UserName = "u1", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "Admin", IsActive = true });
+        var controller = CreateController(context, userManager, roleManager, new Mock<IAuditLogService>().Object, new Mock<IUserSessionInvalidation>().Object, uniquenessValidation);
+
+        var result = await controller.UpdateUser("u1", new UpdateUserRequest
+        {
+            FirstName = "A",
+            LastName = "B",
+            EmployeeNumber = "E1",
+            Role = "NonExistentRole"
+        });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequest.Value);
+        var json = JsonSerializer.Serialize(badRequest.Value);
+        Assert.Contains("ROLE_NOT_FOUND", json, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>5d. Create new user with duplicate email -> 400.</summary>
     [Fact]
     public async Task CreateUser_WhenEmailDuplicate_Returns400()
@@ -788,8 +885,14 @@ public class UserManagementControllerUserLifecycleTests
         var userManager = new UserManager<ApplicationUser>(
             userStore, optionsIdentity, hasher, userValidators, passwordValidators, keyNormalizer, errors, services, logger);
 
-        var roleStore = new Mock<IRoleStore<IdentityRole>>().Object;
+        var roleStore = new RoleStore<IdentityRole, AppDbContext>(context);
         var roleManager = new RoleManager<IdentityRole>(roleStore, null!, keyNormalizer, errors, null!);
+        // Seed roles via RoleManager so NormalizedName is set and controller role-exists validation passes
+        foreach (var roleName in new[] { "Admin", "Cashier", "Manager", "SuperAdmin", "Waiter" })
+        {
+            if (!await roleManager.RoleExistsAsync(roleName))
+                await roleManager.CreateAsync(new IdentityRole(roleName));
+        }
         var uniquenessValidation = new UserUniquenessValidationService(userManager);
 
         return (context, userManager, roleManager, uniquenessValidation);

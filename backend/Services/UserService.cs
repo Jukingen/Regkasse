@@ -117,8 +117,23 @@ namespace KasseAPI_Final.Services
                     return false;
                 }
 
-                // Rol bazlı yetki kontrolü
-                var hasPermission = user.Role switch
+                // Demo kullanıcılar (IsDemo bayrağı veya eski Demo rolü): sadece görüntüleme yetkisi
+                var isDemoUser = user.IsDemo || string.Equals(user.Role, "Demo", StringComparison.OrdinalIgnoreCase);
+                if (isDemoUser)
+                {
+                    var hasPermission = permission switch
+                    {
+                        "payment.view" => true,
+                        "customer.view" => true,
+                        "product.view" => true,
+                        _ => false
+                    };
+                    _logger.LogDebug("User {UserId} permission check: {Permission} = {HasPermission} (demo user)", userId, permission, hasPermission);
+                    return hasPermission;
+                }
+
+                // Rol bazlı yetki kontrolü (canonical roller)
+                var roleHasPermission = user.Role switch
                 {
                     "Admin" => true, // Admin tüm yetkilere sahip
                     "Cashier" => permission switch
@@ -131,20 +146,13 @@ namespace KasseAPI_Final.Services
                         "product.view" => true,
                         _ => false
                     },
-                    "Demo" => permission switch
-                    {
-                        "payment.view" => true,
-                        "customer.view" => true,
-                        "product.view" => true,
-                        _ => false
-                    },
                     _ => false
                 };
 
                 _logger.LogDebug("User {UserId} permission check: {Permission} = {HasPermission}", 
-                    userId, permission, hasPermission);
+                    userId, permission, roleHasPermission);
 
-                return hasPermission;
+                return roleHasPermission;
             }
             catch (Exception ex)
             {

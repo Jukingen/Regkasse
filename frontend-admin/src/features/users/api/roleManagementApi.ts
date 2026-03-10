@@ -17,6 +17,10 @@ export interface RoleWithPermissionsDto {
   permissions: string[];
   isSystemRole: boolean;
   userCount: number;
+  /** True only for custom roles with no assigned users. */
+  canDelete?: boolean;
+  /** True only for custom roles; system roles have fixed permissions. */
+  canEditPermissions?: boolean;
 }
 
 export async function getPermissionsCatalog(): Promise<PermissionCatalogItemDto[]> {

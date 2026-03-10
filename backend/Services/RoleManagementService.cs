@@ -42,12 +42,15 @@ public sealed class RoleManagementService : IRoleManagementService
             var isSystem = IsSystemRole(name);
             var permissions = await _resolver.GetPermissionsForRolesAsync(new[] { name }, cancellationToken);
             var userCount = await _userManager.GetUsersInRoleAsync(name);
+            var count = userCount?.Count ?? 0;
             result.Add(new RoleWithPermissionsDto
             {
                 RoleName = name,
                 Permissions = permissions.ToList(),
                 IsSystemRole = isSystem,
-                UserCount = userCount?.Count ?? 0,
+                UserCount = count,
+                CanDelete = !isSystem && count == 0,
+                CanEditPermissions = !isSystem,
             });
         }
 

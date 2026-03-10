@@ -4,6 +4,18 @@
  */
 import { PASSWORD_MIN_LENGTH } from './validation';
 
+/** German display names for canonical system roles (align with backend Roles.Canonical). */
+const ROLE_DISPLAY_NAMES: Record<string, string> = {
+  SuperAdmin: 'Super-Administrator',
+  Admin: 'Administrator',
+  Manager: 'Manager',
+  Cashier: 'Kassierer',
+  Waiter: 'Kellner',
+  Kitchen: 'Küche',
+  ReportViewer: 'Berichte (nur Lesen)',
+  Accountant: 'Buchhaltung',
+};
+
 export const usersCopy = {
   title: 'Benutzerverwaltung',
   name: 'Name',
@@ -86,8 +98,16 @@ export const usersCopy = {
   newRole: 'Neue Rolle',
   deleteRole: 'Rolle löschen',
   savePermissions: 'Berechtigungen speichern',
+  /** Tooltip/alert when a system role is selected; system roles cannot be deleted. */
   systemRoleNoDelete: 'Systemrollen können nicht gelöscht werden.',
+  systemRoleProtectedNoDelete: 'Systemrollen sind geschützt und können nicht gelöscht werden.',
   roleHasUsers: 'Rolle kann nicht gelöscht werden: mindestens ein Benutzer ist zugewiesen.',
+  /** Shown when delete is blocked because role has assigned users; instructs to reassign first. */
+  roleDeleteBlockedReassignFirst: 'Diese Rolle kann nicht gelöscht werden, weil noch Benutzer zugewiesen sind. Weisen Sie diese Benutzer zuerst einer anderen Rolle zu.',
+  badgeSystemRole: 'System',
+  badgeCustomRole: 'Benutzerdefiniert',
+  /** Display label for known system roles (POS terminology). */
+  roleDisplayName: (roleName: string) => ROLE_DISPLAY_NAMES[roleName] ?? roleName,
   confirmCloseWithDirty: 'Ungespeicherte Änderungen verwerfen?',
   successPermissionsSaved: 'Berechtigungen gespeichert.',
   successRoleDeleted: 'Rolle gelöscht.',
