@@ -138,6 +138,12 @@ namespace KasseAPI_Final.Controllers
                         responseData);
                 }
 
+                // Include non-sensitive diagnosticCode in details when present (demo rejection etc.)
+                // CashierId mismatch is identity violation — 403; other failures stay 400.
+                if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == "CASHIER_ID_MISMATCH")
+                    return ErrorResponse(result.Message, 403, new { errors = result.Errors, diagnosticCode = result.DiagnosticCode });
+                if (!string.IsNullOrEmpty(result.DiagnosticCode))
+                    return ErrorResponse(result.Message, 400, new { errors = result.Errors, diagnosticCode = result.DiagnosticCode });
                 return ErrorResponse(result.Message, 400, result.Errors);
             }
             catch (Exception ex)
@@ -301,6 +307,8 @@ namespace KasseAPI_Final.Controllers
                     return SuccessResponse(result, "Payment cancelled successfully");
                 }
 
+                if (!string.IsNullOrEmpty(result.DiagnosticCode))
+                    return ErrorResponse(result.Message, 400, new { errors = result.Errors, diagnosticCode = result.DiagnosticCode });
                 return ErrorResponse(result.Message, 400, result.Errors);
             }
             catch (Exception ex)
@@ -337,6 +345,8 @@ namespace KasseAPI_Final.Controllers
                     return SuccessResponse(result, "Refund processed successfully");
                 }
 
+                if (!string.IsNullOrEmpty(result.DiagnosticCode))
+                    return ErrorResponse(result.Message, 400, new { errors = result.Errors, diagnosticCode = result.DiagnosticCode });
                 return ErrorResponse(result.Message, 400, result.Errors);
             }
             catch (Exception ex)

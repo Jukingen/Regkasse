@@ -1,274 +1,188 @@
-# Safe Migration Plan: Legacy Roles → Canonical Roles
+# Legacy Role Migration Plan
 
-**Last updated:** 2025-03-10
+**Goal:** Safe transition from legacy role names to the canonical role set without leaving users without roles, while keeping `AspNetUsers.role` and `AspNetUserRoles` consistent.
 
-This document defines a **safe, step-by-step** approach to migrate users from legacy role names to the agreed canonical model. It assumes **reassignment before deletion** and includes verification so that **no user becomes role-less**.
+**Canonical set (source of truth):** `backend/Authorization/Roles.cs` → `Roles.Canonical`  
+SuperAdmin, Manager, Cashier, Waiter, Kitchen, ReportViewer, Accountant
 
----
+**Existing migrations already applied in repo:**
+- `20260308140000_CanonicalizeLegacyRoleNames` — Administrator → Admin (AspNetUsers.role + AspNetUserRoles), then Administrator row removed from user-role links
+- `20260309120000_DropAdministratorRole` — DELETE Administrator from AspNetRoles
+- `20260310175350_MigrateAdminToSuperAdminAndDropAdminRole` — Admin → SuperAdmin, drop Admin role
+- `20260310180000_RemoveDemoRoleUseIsDemoFlag` — Demo → Cashier + `is_demo = true`, drop Demo role
 
-## 1) Legacy role mapping
-
-| Legacy role    | Target role   | Extra step (e.g. Demo)     |
-|----------------|---------------|----------------------------|
-| Administrator  | Admin         | — (may already be done by existing migration) |
-| Kellner        | Waiter        | —                          |
-| BranchManager  | Manager       | —                          |
-| Auditor        | ReportViewer  | —                          |
-| Demo           | Cashier       | Set `IsDemo = true`        |
-| Unknown/typo   | —             | Manual reassignment, then delete role when empty |
+**Code map:** `backend/Auth/RoleLegacyMapping.cs` — extend when adding new legacy→canonical pairs.
 
 ---
 
-## 2) Safe step-by-step migration sequence
+## 1. Legacy roles detected (repo + typical DB drift)
 
-Execute in this order. **Do not delete a role until all its users have been reassigned.**
+| Legacy name | Evidence in repo | Typical origin |
+|-------------|------------------|----------------|
+| **Administrator** | Migrations above | Old Identity seed / admin alias |
+| **Admin** | Migration MigrateAdminToSuperAdmin… | Intermediate step before SuperAdmin |
+| **Demo** | Migration RemoveDemoRole…, `DemoUserHelper` | Demo-as-role (replaced by `IsDemo`) |
+| **Kellner** | Not seeded; FE label for Waiter only | German-named role row if created manually |
+| **BranchManager** | Comment-only in RoleSeedData | Custom / old product |
+| **Auditor** | Comment-only | Custom; closest canonical is ReportViewer/Accountant |
+| **Super-Administrator** | FE display only (`copy.ts`); not a role constant | Hyphenated duplicate if created as custom |
+| **Waiter / Manager / …** | Canonical | No migration if name matches exactly |
 
-### Phase A: Pre-migration (mandatory)
-
-1. **Backup the database** (full backup or at least `AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`).
-2. **Ensure canonical roles exist.** Run the application once so that `RoleSeedData.SeedRolesAsync` has created Admin, Waiter, Manager, ReportViewer, Cashier, etc. Or run the verification query below and confirm all target roles exist in `AspNetRoles`.
-3. **Run the pre-migration verification** (Section 5) and store the results. Resolve any users with **no role** or **unknown roles** before continuing.
-
-### Phase B: Reassign users (no role row deleted yet)
-
-4. For each legacy role in the table above (except Unknown):
-   - **Reassign users** to the target role:
-     - Update `AspNetUsers.role` to the target role name for all users where `role = '<LegacyRole>'`.
-     - In `AspNetUserRoles`: add the target role for each user who had only the legacy role (avoid duplicate target assignment), then remove the legacy role assignment.
-   - **Demo only:** For users with role `Demo`, also set `AspNetUsers.is_demo = true`.
-5. **Do not delete** any row from `AspNetRoles` in this phase. Legacy role rows can remain; they will have zero users in `AspNetUserRoles` after reassignment.
-
-### Phase C: Verify no user is role-less
-
-6. **Run the post-reassignment verification** (Section 5). Every user must have:
-   - `AspNetUsers.role` in the set of canonical role names (SuperAdmin, Admin, Manager, Cashier, Waiter, Kitchen, ReportViewer, Accountant).
-   - At least one row in `AspNetUserRoles` linking them to that same role (role name in `AspNetRoles`).
-7. If any user has a legacy role still in `AspNetUsers.role` or has no role assignment, fix before proceeding.
-
-### Phase D: Delete legacy role rows (optional)
-
-8. Only after **all** users have been reassigned and verification passes:
-   - Delete from `AspNetUserRoles` where `RoleId` is the legacy role (should be 0 rows if reassignment was done correctly).
-   - Delete from `AspNetRoles` where `Name` in ('Administrator','Kellner','BranchManager','Auditor','Demo') (and any other legacy names you migrated).
-9. Run the verification again to confirm no broken references.
-
-### Phase E: Unknown / typo roles
-
-10. For any role **not** in the canonical list and **not** in the legacy mapping table:
-    - List users in that role (query below).
-    - **Manually reassign** each user to a valid canonical role via Admin UI or API (or bulk SQL if you have a clear mapping).
-    - After the role has zero users, delete the role via API (DELETE role when `userCount = 0`) or via SQL.
-
----
-
-## 3) Optional: EF Core data migration
-
-The repository already has a pattern: `CanonicalizeLegacyRoleNames` (Administrator → Admin) and `DropAdministratorRole`. You can add a **single new migration** that performs the remaining legacy role reassignments in one go, **without** deleting role rows (deletion can be a separate migration or manual step).
-
-**Order of operations in the migration Up():**
-
-1. **Kellner → Waiter**  
-   - Update `AspNetUsers` set `role = 'Waiter'` where `role = 'Kellner'`.  
-   - Insert into `AspNetUserRoles` (UserId, RoleId) for users who had Kellner but do not already have Waiter (use subquery with NOT EXISTS on Waiter).  
-   - Delete from `AspNetUserRoles` where RoleId = Kellner.
-
-2. **BranchManager → Manager**  
-   - Same pattern: update `AspNetUsers`, insert Waiter role for users missing it, delete BranchManager from `AspNetUserRoles`.
-
-3. **Auditor → ReportViewer**  
-   - Same pattern with ReportViewer.
-
-4. **Demo → Cashier + IsDemo**  
-   - Update `AspNetUsers` set `role = 'Cashier'`, `is_demo = true` where `role = 'Demo'`.  
-   - Insert into `AspNetUserRoles` for users who had Demo but do not already have Cashier; then delete Demo from `AspNetUserRoles`.
-
-5. **Do not** delete from `AspNetRoles` in this migration; do that in a **separate** migration or manually after verification.
-
-**Down():** Not supported for data migrations. Rollback = restore from backup.
-
-Example migration file name: `YYYYMMDDHHMMSS_MigrateLegacyRolesToCanonical.cs`. See existing `20260308140000_CanonicalizeLegacyRoleNames.cs` for SQL style (PostgreSQL quoted identifiers: `"AspNetUsers"`, `"AspNetRoles"`, `"AspNetUserRoles"`, column `role`).
-
----
-
-## 4) Rollback considerations
-
-- **No Down() for data:** Reassigning and deleting role rows is a one-way data change. The migration `Down()` should be left empty or only document that rollback is not supported.
-- **Rollback = restore from backup.** Before Phase B, take a full backup (or at least the three Identity tables). To roll back, restore that backup.
-- **Partial rollback:** If you have run only part of the steps (e.g. only Kellner → Waiter), you can manually reverse that step by:
-  - Re-inserting the legacy role into `AspNetRoles` if it was deleted,
-  - Re-assigning affected users back to the legacy role in both `AspNetUsers.role` and `AspNetUserRoles`,
-  - Setting `IsDemo = false` for Demo users if you had set it to true.
-- **Recommendation:** Prefer doing one legacy role at a time (or one migration per role) in staging, verify, then run in production; or run the full migration in a maintenance window with backup and verification.
-
----
-
-## 5) Admin / operator warnings
-
-- **Do not run destructive deletes** (e.g. `DELETE FROM AspNetRoles WHERE Name = 'Demo'`) **before** every user in that role has been reassigned. Otherwise users can be left with no valid role or orphaned `AspNetUserRoles` references.
-- **ApplicationUser.Role must stay in sync** with `AspNetUserRoles`. Any script or migration that changes a user’s role must update **both** `AspNetUsers.role` and the corresponding row(s) in `AspNetUserRoles`.
-- **Demo:** Setting `IsDemo = true` is required when moving from Demo role to Cashier so that payment restrictions and view-only permissions still apply.
-- **Run verification before and after.** Keep the pre-migration output; after reassignment, run the verification again and confirm zero users with legacy/empty role and zero orphaned assignments.
-- **Idempotency:** If you run the same reassignment SQL twice (e.g. migration run twice), design it so that the second run does not create duplicate `AspNetUserRoles` rows (use `NOT EXISTS` / “only if not already in target role”) and does not change users already in the target role.
-
----
-
-## 6) Verification: no user becomes role-less
-
-Use these checks **before** (to see current state) and **after** (to ensure no user is left without a valid role).
-
-### 6.1) Canonical role names (must exist in DB)
-
+**Discovery query (run before migration):**
 ```sql
--- All 8 canonical roles should exist in AspNetRoles.
-SELECT "Name" FROM "AspNetRoles" WHERE "Name" IN (
-  'SuperAdmin', 'Admin', 'Manager', 'Cashier', 'Waiter', 'Kitchen', 'ReportViewer', 'Accountant'
+-- All role names in Identity
+SELECT "Id", "Name" FROM "AspNetRoles" ORDER BY "Name";
+
+-- Users whose AspNetUsers.role is not in canonical set (adjust list as needed)
+SELECT id, user_name, role FROM "AspNetUsers"
+WHERE role IS NOT NULL AND role NOT IN (
+  'SuperAdmin','Manager','Cashier','Waiter','Kitchen','ReportViewer','Accountant'
 );
--- Expect 8 rows (or more if you have custom roles too).
-```
 
-### 6.2) Users whose ApplicationUser.Role is not canonical
-
-```sql
--- Users with legacy or unknown role in AspNetUsers.role.
-SELECT u."Id", u."UserName", u.role
+-- Users with AspNetUserRoles pointing to non-canonical role names
+SELECT u.id, u.user_name, r."Name" AS role_name
 FROM "AspNetUsers" u
-WHERE u.role IS NULL OR u.role = ''
-   OR u.role NOT IN (
-     'SuperAdmin', 'Admin', 'Manager', 'Cashier', 'Waiter', 'Kitchen', 'ReportViewer', 'Accountant'
-   );
--- Before migration: may show Administrator, Kellner, BranchManager, Auditor, Demo, or typos.
--- After migration: expect 0 rows.
-```
-
-### 6.3) Users with no AspNetUserRoles assignment
-
-```sql
--- Users who have no row in AspNetUserRoles (role-less).
-SELECT u."Id", u."UserName", u.role
-FROM "AspNetUsers" u
-LEFT JOIN "AspNetUserRoles" ur ON ur."UserId" = u."Id"
-WHERE ur."UserId" IS NULL;
--- Must be 0 rows at all times.
-```
-
-### 6.4) Users whose role column does not match their AspNetUserRoles role
-
-```sql
--- AspNetUsers.role should match the role name in AspNetUserRoles/AspNetRoles.
-SELECT u."Id", u."UserName", u.role AS user_role, r."Name" AS aspnet_role_name
-FROM "AspNetUsers" u
-INNER JOIN "AspNetUserRoles" ur ON ur."UserId" = u."Id"
-INNER JOIN "AspNetRoles" r ON r."Id" = ur."RoleId"
-WHERE u.role IS DISTINCT FROM r."Name";
--- After migration: expect 0 rows (sync between denormalized role and Identity).
-```
-
-### 6.5) Count of users per role (before/after snapshot)
-
-```sql
-SELECT u.role, COUNT(*) AS user_count
-FROM "AspNetUsers" u
-GROUP BY u.role
-ORDER BY u.role;
--- Before: may include Administrator, Kellner, BranchManager, Auditor, Demo.
--- After: only canonical names (and any custom roles you keep).
+JOIN "AspNetUserRoles" ur ON ur."UserId" = u.id
+JOIN "AspNetRoles" r ON r."Id" = ur."RoleId"
+WHERE r."Name" NOT IN ('SuperAdmin','Manager','Cashier','Waiter','Kitchen','ReportViewer','Accountant');
 ```
 
 ---
 
-## 7) Verification checklist
+## 2. Canonical mapping proposal
 
-Use this as a sign-off list.
-
-- [ ] Database backup taken (AspNetUsers, AspNetRoles, AspNetUserRoles).
-- [ ] Pre-migration verification (6.1–6.5) run and results saved.
-- [ ] All canonical roles exist in AspNetRoles (6.1).
-- [ ] Reassignment executed (Phase B) for each legacy role; no role row deleted before reassignment.
-- [ ] For Demo: `is_demo = true` set for migrated users.
-- [ ] Post-migration verification run: (6.2) returns 0 rows (no legacy/empty role); (6.3) returns 0 rows (no role-less user); (6.4) returns 0 rows (sync).
-- [ ] Optional: legacy role rows deleted from AspNetRoles only after verification.
-- [ ] Unknown/typo roles: users reassigned manually; role deleted only when userCount = 0.
+| Legacy | Target | Notes |
+|--------|--------|--------|
+| Administrator | SuperAdmin | Already migrated via Admin chain |
+| Admin | SuperAdmin | Done in 20260310175350 |
+| Demo | Cashier + `IsDemo = true` | Done in 20260310180000 |
+| **Kellner** | **Waiter** | Same operational scope; matrix has Waiter only |
+| **Super-Administrator** | **SuperAdmin** | Normalize display vs Identity Name; if AspNetRoles row exists with hyphen, merge to SuperAdmin |
+| **BranchManager** | **Manager** *or* **custom review** | If branch-scoped permissions existed, map to Manager first; if custom claims only, create temporary custom role then reassign — **belirsiz** |
+| **Auditor** | **ReportViewer** *or* **Accountant** *or* **custom** | Report-only → ReportViewer; audit+invoice read → Accountant; otherwise preserve as custom until preset defined — **belirsiz** |
 
 ---
 
-## 8) Optional SQL script (manual run)
+## 3. Uncertain mappings (manual / business decision)
 
-If you prefer **not** to add an EF migration and will run SQL manually (after backup and verification), you can use the following as a template. Run in a transaction and verify after each block; roll back if anything is wrong.
+- **BranchManager → Manager:** Safe default if no extra permissions; if BranchManager had custom claims, clone claims to a new custom role or map to Manager and accept permission change.
+- **Auditor:** No matrix row; choose ReportViewer (narrower) vs Accountant (audit/invoice read) vs keep custom.
+- **Any role not in LegacyToCanonicalRole:** Run discovery query; either add to map or leave as custom (not deleted).
 
-**PostgreSQL.** Ensure canonical roles exist (seed has run). Column names: `role`, `is_demo` on `AspNetUsers` (if your schema uses quoted snake_case, adjust to `"is_demo"` etc.).
+---
 
-```sql
-BEGIN;
+## 4. Migration phases
 
--- 1) Kellner → Waiter
-UPDATE "AspNetUsers" SET role = 'Waiter' WHERE role = 'Kellner';
+### Phase 0 — Backup
+- Full DB backup (pg_dump) or snapshot.
+- Optional: export `AspNetRoles`, `AspNetUserRoles`, `AspNetUsers` (id, role) to CSV.
+
+### Phase 1 — Seed canonical roles
+- Ensure app startup runs `RoleSeedData.SeedRolesAsync` **before** any reassignment migration, or run migration that INSERTs missing canonical roles only if your process does not auto-seed.
+- **Rule:** Target role row must exist before `INSERT INTO AspNetUserRoles`.
+
+### Phase 2 — Reassign users (per legacy role)
+For each legacy role `L` → canonical `C`:
+1. `INSERT INTO AspNetUserRoles` — add `C` for every user who has `L` and does not already have `C` (same pattern as existing Demo/Admin migrations).
+2. `UPDATE AspNetUsers SET role = 'C' WHERE role = 'L'`.
+3. `DELETE FROM AspNetUserRoles` where `RoleId` = role id of `L`.
+4. Optional: `UPDATE AspNetUsers SET is_demo = true` when migrating Demo-like roles to Cashier.
+
+**Order:** Always add new role membership **before** removing old, so no user is left without a role between statements.
+
+### Phase 3 — Verification
+- Run checklist queries (section 5). Fix any row failing before delete.
+- Smoke test: login as migrated users; JWT role claim should match `AspNetUsers.role` after re-login.
+
+### Phase 4 — Deprecate / delete legacy role rows
+- `DELETE FROM AspNetRoleClaims WHERE RoleId = …`
+- `DELETE FROM AspNetRoles WHERE Name = 'L'`
+- **Do not delete** canonical system roles.
+
+### Phase 5 — Reserve names (optional)
+- Add legacy names to `Roles.ReservedRoleNames` to block new custom roles with same name (already done for Admin, Administrator, Demo).
+
+---
+
+## 5. Verification checklist
+
+Run after each batch migration.
+
+| Check | Query / action |
+|-------|----------------|
+| **Users without role (column)** | `SELECT id, user_name FROM "AspNetUsers" WHERE role IS NULL OR trim(role) = '';` → must be 0 |
+| **Users without any AspNetUserRoles** | `SELECT u.id FROM "AspNetUsers" u WHERE NOT EXISTS (SELECT 1 FROM "AspNetUserRoles" ur WHERE ur."UserId" = u.id);` → should be 0 for active app |
+| **Mismatched role tables** | For each user, `AspNetUsers.role` should equal the single role in `AspNetUserRoles` if you enforce single-role model; if multi-role, document rule |
+| **Users still on deprecated roles** | `SELECT r."Name", count(*) FROM "AspNetUserRoles" ur JOIN "AspNetRoles" r ON r."Id" = ur."RoleId" GROUP BY r."Name";` — deprecated names must be 0 before delete |
+| **Duplicate canonical equivalents** | Same user with both `L` and `C` after migration is OK until `L` removed; after cleanup, each user should not have duplicate rows for same logical role |
+
+**Consistency rule:** After migration, for single-role policy:  
+`AspNetUsers.role` = name of the role in `AspNetUserRoles` (or primary role if multi-role is ever allowed).
+
+---
+
+## 6. Migration pseudocode / template
+
+Pattern matches `RemoveDemoRoleUseIsDemoFlag` / `MigrateAdminToSuperAdminAndDropAdminRole` (PostgreSQL).
+
+```text
+-- Prerequisites: canonical role TARGET exists in AspNetRoles.
+
+-- 1) AspNetUserRoles: assign TARGET to each user on LEGACY who does not already have TARGET
 INSERT INTO "AspNetUserRoles" ("UserId", "RoleId")
-SELECT ur."UserId", (SELECT r."Id" FROM "AspNetRoles" r WHERE r."Name" = 'Waiter' LIMIT 1)
+SELECT ur."UserId", (SELECT r."Id" FROM "AspNetRoles" r WHERE r."Name" = 'TARGET' LIMIT 1)
 FROM "AspNetUserRoles" ur
-INNER JOIN "AspNetRoles" r ON r."Id" = ur."RoleId" AND r."Name" = 'Kellner'
-WHERE NOT EXISTS (
-  SELECT 1 FROM "AspNetUserRoles" ur2
-  INNER JOIN "AspNetRoles" r2 ON r2."Id" = ur2."RoleId" AND r2."Name" = 'Waiter'
-  WHERE ur2."UserId" = ur."UserId"
+INNER JOIN "AspNetRoles" r ON r."Id" = ur."RoleId" AND r."Name" = 'LEGACY'
+WHERE EXISTS (SELECT 1 FROM "AspNetRoles" c WHERE c."Name" = 'TARGET')
+  AND NOT EXISTS (
+    SELECT 1 FROM "AspNetUserRoles" ur2
+    INNER JOIN "AspNetRoles" r2 ON r2."Id" = ur2."RoleId" AND r2."Name" = 'TARGET'
+    WHERE ur2."UserId" = ur."UserId"
 );
-DELETE FROM "AspNetUserRoles"
-WHERE "RoleId" = (SELECT "Id" FROM "AspNetRoles" WHERE "Name" = 'Kellner');
 
--- 2) BranchManager → Manager
-UPDATE "AspNetUsers" SET role = 'Manager' WHERE role = 'BranchManager';
-INSERT INTO "AspNetUserRoles" ("UserId", "RoleId")
-SELECT ur."UserId", (SELECT r."Id" FROM "AspNetRoles" r WHERE r."Name" = 'Manager' LIMIT 1)
-FROM "AspNetUserRoles" ur
-INNER JOIN "AspNetRoles" r ON r."Id" = ur."RoleId" AND r."Name" = 'BranchManager'
-WHERE NOT EXISTS (
-  SELECT 1 FROM "AspNetUserRoles" ur2
-  INNER JOIN "AspNetRoles" r2 ON r2."Id" = ur2."RoleId" AND r2."Name" = 'Manager'
-  WHERE ur2."UserId" = ur."UserId"
-);
-DELETE FROM "AspNetUserRoles"
-WHERE "RoleId" = (SELECT "Id" FROM "AspNetRoles" WHERE "Name" = 'BranchManager');
+-- 2) AspNetUsers.role column
+UPDATE "AspNetUsers" SET role = 'TARGET' WHERE role = 'LEGACY';
 
--- 3) Auditor → ReportViewer
-UPDATE "AspNetUsers" SET role = 'ReportViewer' WHERE role = 'Auditor';
-INSERT INTO "AspNetUserRoles" ("UserId", "RoleId")
-SELECT ur."UserId", (SELECT r."Id" FROM "AspNetRoles" r WHERE r."Name" = 'ReportViewer' LIMIT 1)
-FROM "AspNetUserRoles" ur
-INNER JOIN "AspNetRoles" r ON r."Id" = ur."RoleId" AND r."Name" = 'Auditor'
-WHERE NOT EXISTS (
-  SELECT 1 FROM "AspNetUserRoles" ur2
-  INNER JOIN "AspNetRoles" r2 ON r2."Id" = ur2."RoleId" AND r2."Name" = 'ReportViewer'
-  WHERE ur2."UserId" = ur."UserId"
-);
-DELETE FROM "AspNetUserRoles"
-WHERE "RoleId" = (SELECT "Id" FROM "AspNetRoles" WHERE "Name" = 'Auditor');
+-- 3) Optional: Demo-like → IsDemo
+-- UPDATE "AspNetUsers" SET is_demo = true WHERE ... ;
 
--- 4) Demo → Cashier + IsDemo
-UPDATE "AspNetUsers" SET role = 'Cashier', is_demo = true WHERE role = 'Demo';
-INSERT INTO "AspNetUserRoles" ("UserId", "RoleId")
-SELECT ur."UserId", (SELECT r."Id" FROM "AspNetRoles" r WHERE r."Name" = 'Cashier' LIMIT 1)
-FROM "AspNetUserRoles" ur
-INNER JOIN "AspNetRoles" r ON r."Id" = ur."RoleId" AND r."Name" = 'Demo'
-WHERE NOT EXISTS (
-  SELECT 1 FROM "AspNetUserRoles" ur2
-  INNER JOIN "AspNetRoles" r2 ON r2."Id" = ur2."RoleId" AND r2."Name" = 'Cashier'
-  WHERE ur2."UserId" = ur."UserId"
-);
+-- 4) Remove LEGACY assignments
 DELETE FROM "AspNetUserRoles"
-WHERE "RoleId" = (SELECT "Id" FROM "AspNetRoles" WHERE "Name" = 'Demo');
+WHERE "RoleId" IN (SELECT "Id" FROM "AspNetRoles" WHERE "Name" = 'LEGACY');
 
--- Run verification queries (6.2–6.4); expect 0 rows. Then:
-COMMIT;
--- To drop legacy role rows (optional, after verification):
--- DELETE FROM "AspNetRoles" WHERE "Name" IN ('Kellner','BranchManager','Auditor','Demo');
+-- 5) Claims then role row
+DELETE FROM "AspNetRoleClaims"
+WHERE "RoleId" IN (SELECT "Id" FROM "AspNetRoles" WHERE "Name" = 'LEGACY');
+
+DELETE FROM "AspNetRoles" WHERE "Name" = 'LEGACY';
 ```
 
-If your schema uses **snake_case** for columns (e.g. `is_demo`), keep as above. If the column is `"IsDemo"` (PascalCase), use `"IsDemo" = true` in the UPDATE.
+**Example: Kellner → Waiter** — replace `LEGACY` = `Kellner`, `TARGET` = `Waiter`.  
+**Example: Super-Administrator → SuperAdmin** — only if a role row with that exact name exists; otherwise normalize at token layer only.
 
 ---
 
-## 9) References
+## 7. Specific mapping evaluation (requested)
 
-- **Existing migrations:** `backend/Migrations/20260308140000_CanonicalizeLegacyRoleNames.cs`, `20260309120000_DropAdministratorRole.cs`
-- **Seed:** `backend/Data/RoleSeedData.cs` (only creates canonical roles; does not delete)
-- **Legacy handling:** `ai/ROLE_SEED_AND_LEGACY_MIGRATION_NOTES.md`
-- **Demo flag:** `ai/DEMO_FLAG_MIGRATION.md`
+| Mapping | Recommendation |
+|---------|----------------|
+| **Kellner → Waiter** | **Approve.** Same POS surface; matrix and seed use Waiter only. |
+| **BranchManager → Manager or custom review** | **Default Manager** if no custom claims; **custom review** if AspNetRoleClaims exist — export claims before merge. |
+| **Auditor → report-read preset / custom** | **ReportViewer** if read-only reports; **Accountant** if audit log + invoice read; else **keep custom** and add preset later. |
+| **Demo → operational role + IsDemo** | **Done:** Cashier + `is_demo = true` in 20260310180000. |
+| **Super-Administrator → SuperAdmin** | **Approve** if Identity name is hyphenated duplicate; if only UI label, no DB change. |
+| **Administrator → merge or deprecate** | **Already merged** into SuperAdmin via Admin migration chain; no separate Administrator row should remain. |
+
+---
+
+## 8. Backward compatibility
+
+- **JWT:** Old tokens carry old role names until expiry; `RoleCanonicalization` handles Admin → SuperAdmin; extend for Kellner → Waiter if needed until re-login.
+- **APIs filtering by `AspNetUsers.role`:** After UPDATE, list filters align; invalidate sessions if role change must take effect immediately.
+- **Down:** Migrations are data-only down-unsupported by design; restore from backup to revert.
+
+---
+
+## 9. Long-term note
+
+Target cleaner POS model (e.g. SuperAdmin, Operator, Backoffice, Kitchen) should be a **later** migration with new matrix rows and seed list change — not mixed into this legacy rename pass.

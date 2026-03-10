@@ -119,6 +119,11 @@ namespace KasseAPI_Final.DTOs
         /// <summary>TSE provider: "Hardware", "Software", "Demo".</summary>
         public string? TseProvider { get; set; }
         public List<string> Errors { get; set; } = new();
+
+        /// <summary>
+        /// Non-sensitive diagnostic code when Success is false (e.g. DEMO_BY_FLAG, DEMO_BY_ROLE). For ops/debug only.
+        /// </summary>
+        public string? DiagnosticCode { get; set; }
     }
     
     /// <summary>

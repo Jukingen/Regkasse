@@ -8,8 +8,8 @@ namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// Implements role catalog, list with permissions, set permissions (custom only), delete (custom only, no assigned users).
-/// Permission update: custom roles always via claims. Canonical roles use matrix unless SuperAdmin
-/// persists claims (then resolver uses claims only for that role). SuperAdmin role stays matrix-only.
+/// Permission update: custom roles via claims only. Canonical (system) roles are matrix-only and
+/// cannot be edited at runtime; SuperAdmin can assign system roles and manage custom roles only.
 /// </summary>
 public sealed class RoleManagementService : IRoleManagementService
 {
@@ -44,12 +44,17 @@ public sealed class RoleManagementService : IRoleManagementService
             var permissions = await _resolver.GetPermissionsForRolesAsync(new[] { name }, cancellationToken);
             var userCount = await _userManager.GetUsersInRoleAsync(name);
             var count = userCount?.Count ?? 0;
-            var canEdit = !isSystem || CanEditPermissionsForSystemRole(name);
+            // All system roles are immutable at runtime: permissions come from RolePermissionMatrix only.
+            var canEdit = !isSystem;
             result.Add(new RoleWithPermissionsDto
             {
                 RoleName = name,
+                RoleKey = RoleMetadata.GetRoleKey(name),
+                DisplayName = RoleMetadata.GetDisplayName(name),
+                Description = RoleMetadata.GetDescription(name),
                 Permissions = permissions.ToList(),
                 IsSystemRole = isSystem,
+                IsImmutable = isSystem,
                 UserCount = count,
                 CanDelete = !isSystem && count == 0,
                 CanEditPermissions = canEdit,
@@ -68,7 +73,7 @@ public sealed class RoleManagementService : IRoleManagementService
         if (role == null)
             return SetRolePermissionsResult.RoleNotFound;
 
-        if (IsSystemRole(roleName) && !CanEditPermissionsForSystemRole(roleName))
+        if (IsSystemRole(roleName))
             return SetRolePermissionsResult.SystemRoleNotEditable;
 
         if (permissionKeys != null)
@@ -109,6 +114,7 @@ public sealed class RoleManagementService : IRoleManagementService
         if (IsSystemRole(roleName))
             return DeleteRoleResult.SystemRoleNotDeletable;
 
+        // Delete guard: never remove a role still assigned — users must not be left without a role in our single-role model.
         var usersInRole = await _userManager.GetUsersInRoleAsync(roleName);
         if (usersInRole != null && usersInRole.Count > 0)
             return DeleteRoleResult.RoleHasAssignedUsers;
@@ -120,18 +126,13 @@ public sealed class RoleManagementService : IRoleManagementService
         return DeleteRoleResult.Success;
     }
 
+    /// <summary>
+    /// System role behavior is defined solely by Roles.Canonical membership (case-insensitive).
+    /// Any name in that list is immutable at runtime, matrix-only for permissions, and not deletable.
+    /// </summary>
     private static bool IsSystemRole(string roleName)
     {
         return Roles.Canonical.Contains(roleName, StringComparer.OrdinalIgnoreCase);
     }
 
-    /// <summary>
-    /// SuperAdmin role must remain matrix-only so permission UI cannot strip all access by mistake.
-    /// Other canonical roles may be edited by SuperAdmin (claims override matrix when present).
-    /// </summary>
-    private static bool CanEditPermissionsForSystemRole(string roleName)
-    {
-        if (string.IsNullOrWhiteSpace(roleName)) return false;
-        return !string.Equals(roleName, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
-    }
 }

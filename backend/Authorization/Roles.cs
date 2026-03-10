@@ -35,6 +35,9 @@ public static class Roles
 
     /// <summary>
     /// Canonical system roles for seed and non-deletable policy. Admin removed; use SuperAdmin only for top admin.
+    /// Membership here defines system-role behavior (immutable, matrix-only, not deletable) via RoleManagementService.IsSystemRole.
+    /// Current list is preserved for backward compatibility — not yet the final minimized POS taxonomy (e.g. Operator/Backoffice/Kitchen).
+    /// Removing or reclassifying roles (e.g. Manager) requires a dedicated migration + matrix follow-up; do not shrink this list ad hoc in a small PR.
     /// </summary>
     public static readonly IReadOnlyList<string> Canonical = new[]
     {
@@ -48,11 +51,12 @@ public static class Roles
     };
 
     /// <summary>
-    /// Role names that must not be created as custom roles (merged/removed or legacy).
+    /// Names that must not be used for custom roles (merged/removed or legacy). Demo reserved: use IsDemo flag only.
     /// </summary>
     public static readonly IReadOnlyList<string> ReservedRoleNames = new[]
     {
         "Admin",
         "Administrator",
+        "Demo",
     };
 }

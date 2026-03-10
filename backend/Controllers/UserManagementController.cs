@@ -416,6 +416,10 @@ namespace KasseAPI_Final.Controllers
                 user.EmployeeNumber = request.EmployeeNumber.Trim();
                 user.TaxNumber = request.TaxNumber;
                 user.Notes = request.Notes;
+                // Demo flag is separate from role after RemoveDemoRoleUseIsDemoFlag; role change alone does not clear IsDemo.
+                // Allow explicit update so Cashier + IsDemo drift can be resolved without raw SQL.
+                if (request.IsDemo.HasValue)
+                    user.IsDemo = request.IsDemo.Value;
                 user.UpdatedAt = DateTime.UtcNow;
 
                 var result = await _userManager.UpdateAsync(user);
@@ -800,7 +804,7 @@ namespace KasseAPI_Final.Controllers
             return Ok(list);
         }
 
-        // PUT: api/usermanagement/roles/{roleName}/permissions — SuperAdmin only; custom roles only.
+        // PUT: api/usermanagement/roles/{roleName}/permissions — SuperAdmin only; custom roles only (system roles immutable).
         [HttpPut("roles/{roleName}/permissions")]
         [HasPermission(AppPermissions.UserManage)]
         public async Task<IActionResult> SetRolePermissions(string roleName, [FromBody] UpdateRolePermissionsRequest request, CancellationToken cancellationToken)
@@ -1081,6 +1085,9 @@ namespace KasseAPI_Final.Controllers
 
         [MaxLength(500)]
         public string? Notes { get; set; }
+
+        /// <summary>Optional. When set, updates ApplicationUser.IsDemo. Omit to leave unchanged (avoids unintended preserve on role-only edits).</summary>
+        public bool? IsDemo { get; set; }
     }
 
     public class ChangePasswordRequest

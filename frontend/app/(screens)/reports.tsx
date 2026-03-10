@@ -25,10 +25,8 @@ const ReportsScreen = () => {
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  // Rol kontrolü
-  const isAdmin = user?.role === 'admin';
-  const isCashier = user?.role === 'kasiyer';
-  const isDemo = user?.role === 'demo';
+  // Demo is user flag (IsDemo), not a role name
+  const isDemo = user?.isDemo === true;
 
   // Raporları getir (örnek veri ile simüle)
   useEffect(() => {
@@ -102,11 +100,14 @@ const ReportsScreen = () => {
     </View>
   );
 
-  // Yetki mesajı
+  // Yetki mesajı (canonical role names from backend)
+  const role = user?.role ?? '';
+  const isCashierLike = role === 'Cashier' || role === 'Waiter';
+  const isAdminLike = role === 'SuperAdmin' || role === 'Admin' || role === 'Manager';
   let infoMsg = '';
   if (isDemo) infoMsg = t('reports.demoInfo', 'Demo kullanıcılar sadece örnek raporları görebilir.');
-  else if (isCashier) infoMsg = t('reports.cashierInfo', 'Sadece kendi gün sonu raporlarınızı görebilirsiniz.');
-  else if (isAdmin) infoMsg = t('reports.adminInfo', 'Tüm kullanıcıların raporlarını görebilir ve indirebilirsiniz.');
+  else if (isCashierLike) infoMsg = t('reports.cashierInfo', 'Sadece kendi gün sonu raporlarınızı görebilirsiniz.');
+  else if (isAdminLike) infoMsg = t('reports.adminInfo', 'Tüm kullanıcıların raporlarını görebilir ve indirebilirsiniz.');
 
   return (
     <View style={styles.container}>

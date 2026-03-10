@@ -117,8 +117,8 @@ namespace KasseAPI_Final.Services
                     return false;
                 }
 
-                // Demo kullanıcılar (IsDemo bayrağı veya eski Demo rolü): sadece görüntüleme yetkisi
-                var isDemoUser = user.IsDemo || string.Equals(user.Role, "Demo", StringComparison.OrdinalIgnoreCase);
+                // Demo kullanıcılar: IsDemo flag (legacy Role == Demo until migration applied everywhere)
+                var isDemoUser = DemoUserHelper.IsDemoUser(user);
                 if (isDemoUser)
                 {
                     var hasPermission = permission switch

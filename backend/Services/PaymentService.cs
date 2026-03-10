@@ -70,14 +70,54 @@ namespace KasseAPI_Final.Services
 
                 // Demo kullanıcı kontrolü: IsDemo bayrağı (ve eski Demo rolü geriye dönük uyumluluk için)
                 var user = await _userService.GetUserByIdAsync(userId);
-                if (user?.IsDemo == true || user?.Role == "Demo")
+                if (DemoUserHelper.IsDemoUser(user))
                 {
-                    _logger.LogWarning("Demo user {UserId} attempted to create real payment", userId);
+                    var rejectionReason = DemoUserHelper.GetDemoRejectionReason(user) ?? "DEMO_UNKNOWN";
+                    var cashierIdMismatch =
+                        !string.IsNullOrEmpty(request.CashierId) &&
+                        !string.Equals(request.CashierId, userId, StringComparison.Ordinal);
+                    // Structured diagnostic — no behavior change; explains why demo gate fired in prod/debug.
+                    _logger.LogWarning(
+                        "Payment demo rejection: authenticatedUserId={AuthenticatedUserId}, payloadCashierId={PayloadCashierId}, resolvedUserId={ResolvedUserId}, resolvedUserEmail={ResolvedUserEmail}, resolvedUserRole={ResolvedUserRole}, resolvedUserIsDemo={ResolvedUserIsDemo}, rejectionReason={RejectionReason}, cashierIdMismatch={CashierIdMismatch}",
+                        userId,
+                        request.CashierId ?? "",
+                        user?.Id ?? "",
+                        user?.Email ?? "",
+                        user?.Role ?? "",
+                        user?.IsDemo ?? false,
+                        rejectionReason,
+                        cashierIdMismatch);
+                    var diagnosticCode = cashierIdMismatch
+                        ? $"{rejectionReason}_CASHIER_ID_MISMATCH"
+                        : rejectionReason;
                     return new PaymentResult
                     {
                         Success = false,
                         Message = "Demo users cannot create real payments",
-                        Errors = { "Demo users are restricted to test operations only" }
+                        Errors = { "Demo users are restricted to test operations only" },
+                        DiagnosticCode = diagnosticCode
+                    };
+                }
+
+                // CashierId must match authenticated user — single source of truth for who performed the payment.
+                // Do not trust body alone: prevents wrong attribution and confusion with demo checks (always on JWT user).
+                var payloadCashierId = (request.CashierId ?? string.Empty).Trim();
+                var placeholderCashierIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "UNKNOWN", "current-user", ""
+                };
+                if (!placeholderCashierIds.Contains(payloadCashierId) &&
+                    !string.Equals(payloadCashierId, userId, StringComparison.Ordinal))
+                {
+                    _logger.LogWarning(
+                        "Payment rejected: CashierId mismatch. AuthenticatedUserId={UserId}, PayloadCashierId={CashierId}",
+                        userId, request.CashierId);
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "CashierId must match the authenticated user",
+                        Errors = { "Payment identity mismatch: cashierId must equal the signed-in user id." },
+                        DiagnosticCode = "CASHIER_ID_MISMATCH"
                     };
                 }
 
@@ -242,7 +282,8 @@ namespace KasseAPI_Final.Services
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true,
                     TableNumber = request.TableNumber,
-                    CashierId = request.CashierId,
+                    // Single source: authenticated user only (validated above; placeholders rejected or normalized).
+                    CashierId = userId,
                     Steuernummer = request.Steuernummer,
                     KassenId = request.KassenId,
                     TseTimestamp = DateTime.UtcNow,
@@ -605,14 +646,25 @@ namespace KasseAPI_Final.Services
             {
                 // Demo kullanıcı kontrolü: IsDemo bayrağı (ve eski Demo rolü geriye dönük uyumluluk için)
                 var user = await _userService.GetUserByIdAsync(userId);
-                if (user?.IsDemo == true || user?.Role == "Demo")
+                if (DemoUserHelper.IsDemoUser(user))
                 {
-                    _logger.LogWarning("Demo user {UserId} attempted to cancel payment {PaymentId}", userId, paymentId);
+                    var rejectionReason = DemoUserHelper.GetDemoRejectionReason(user) ?? "DEMO_UNKNOWN";
+                    _logger.LogWarning(
+                        "Payment cancel demo rejection: authenticatedUserId={AuthenticatedUserId}, payloadCashierId={PayloadCashierId}, resolvedUserId={ResolvedUserId}, resolvedUserEmail={ResolvedUserEmail}, resolvedUserRole={ResolvedUserRole}, resolvedUserIsDemo={ResolvedUserIsDemo}, rejectionReason={RejectionReason}, paymentId={PaymentId}",
+                        userId,
+                        "",
+                        user?.Id ?? "",
+                        user?.Email ?? "",
+                        user?.Role ?? "",
+                        user?.IsDemo ?? false,
+                        rejectionReason,
+                        paymentId);
                     return new PaymentResult
                     {
                         Success = false,
                         Message = "Demo users cannot cancel real payments",
-                        Errors = { "Demo users are restricted to test operations only" }
+                        Errors = { "Demo users are restricted to test operations only" },
+                        DiagnosticCode = rejectionReason
                     };
                 }
 
@@ -708,14 +760,25 @@ namespace KasseAPI_Final.Services
             {
                 // Demo kullanıcı kontrolü: IsDemo bayrağı (ve eski Demo rolü geriye dönük uyumluluk için)
                 var user = await _userService.GetUserByIdAsync(userId);
-                if (user?.IsDemo == true || user?.Role == "Demo")
+                if (DemoUserHelper.IsDemoUser(user))
                 {
-                    _logger.LogWarning("Demo user {UserId} attempted to refund payment {PaymentId}", userId, paymentId);
+                    var rejectionReason = DemoUserHelper.GetDemoRejectionReason(user) ?? "DEMO_UNKNOWN";
+                    _logger.LogWarning(
+                        "Payment refund demo rejection: authenticatedUserId={AuthenticatedUserId}, payloadCashierId={PayloadCashierId}, resolvedUserId={ResolvedUserId}, resolvedUserEmail={ResolvedUserEmail}, resolvedUserRole={ResolvedUserRole}, resolvedUserIsDemo={ResolvedUserIsDemo}, rejectionReason={RejectionReason}, paymentId={PaymentId}",
+                        userId,
+                        "",
+                        user?.Id ?? "",
+                        user?.Email ?? "",
+                        user?.Role ?? "",
+                        user?.IsDemo ?? false,
+                        rejectionReason,
+                        paymentId);
                     return new PaymentResult
                     {
                         Success = false,
                         Message = "Demo users cannot refund real payments",
-                        Errors = { "Demo users are restricted to test operations only" }
+                        Errors = { "Demo users are restricted to test operations only" },
+                        DiagnosticCode = rejectionReason
                     };
                 }
 

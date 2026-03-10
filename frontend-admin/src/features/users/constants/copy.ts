@@ -100,17 +100,33 @@ export const usersCopy = {
   /** Tooltip/alert when a system role is selected; system roles cannot be deleted. */
   systemRoleNoDelete: 'Systemrollen können nicht gelöscht werden.',
   systemRoleProtectedNoDelete: 'Systemrollen sind geschützt und können nicht gelöscht werden.',
-  /** SuperAdmin (matrix-only): permissions cannot be changed in UI. */
+  /** System roles (immutable): permissions cannot be changed; delete/rename not available. */
   systemRolePermissionsReadOnly:
     'Diese Systemrolle ist fest im Code verankert; Berechtigungen können hier nicht geändert werden.',
-  /** Other canonical roles: permissions editable via claims; delete still blocked. */
-  systemRoleEditablePermissions:
-    'Systemrolle: Löschen weiterhin geschützt. Berechtigungen können angepasst werden (wirksam nach Speichern).',
+  /** Single info block: system role = read-only permissions, no delete, no rename (no rename UI). */
+  systemRoleImmutableInfo:
+    'Systemrollen sind fest im Backend definiert: Berechtigungen können hier nicht bearbeitet werden, Löschen und Umbenennen sind nicht möglich. Benutzer können weiterhin dieser Rolle zugewiesen werden.',
   roleHasUsers: 'Rolle kann nicht gelöscht werden: mindestens ein Benutzer ist zugewiesen.',
   /** Shown when delete is blocked because role has assigned users; instructs to reassign first. */
   roleDeleteBlockedReassignFirst: 'Diese Rolle kann nicht gelöscht werden, weil noch Benutzer zugewiesen sind. Weisen Sie diese Benutzer zuerst einer anderen Rolle zu.',
   badgeSystemRole: 'System',
   badgeCustomRole: 'Benutzerdefiniert',
+  /** Role drawer left column section headings (information architecture; behavior unchanged). */
+  systemRolesSection: 'System Roles',
+  customRolesSection: 'Custom Roles',
+  legacyRolesSection: 'Legacy / Deprecated',
+  /** Short helper text under each section heading. */
+  systemRolesSectionHint:
+    'Zuweisbar, hier nicht änderbar (fest im Backend).',
+  customRolesSectionHint:
+    'Berechtigungen bearbeitbar; löschbar nur ohne zugewiesene Benutzer.',
+  legacyRolesSectionHint:
+    'Migration oder Entfernung empfohlen; siehe Legacy-Migrationsplan.',
+  badgeLegacyRole: 'Legacy',
+  /** Warning when a legacy-named role is selected (English for audit trail clarity). */
+  legacyRoleWarningMessage: 'Legacy role',
+  legacyRoleWarningDescription:
+    'This role is legacy and should be reviewed for migration or removal.',
   /** Display label for known system roles (POS terminology). */
   roleDisplayName: (roleName: string) => ROLE_DISPLAY_NAMES[roleName] ?? roleName,
   confirmCloseWithDirty: 'Ungespeicherte Änderungen verwerfen?',

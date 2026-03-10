@@ -236,7 +236,7 @@ public class RoleManagementTests
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
         var roleMgmt = new Mock<IRoleManagementService>();
-        // SuperAdmin role name remains non-editable at service layer (matrix-only).
+        // System roles are non-editable at service layer (matrix-only).
         roleMgmt.Setup(x => x.SetRolePermissionsAsync(Roles.SuperAdmin, It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(SetRolePermissionsResult.SystemRoleNotEditable);
         var audit = new Mock<IAuditLogService>().Object;
         var session = new Mock<IUserSessionInvalidation>().Object;
@@ -270,7 +270,7 @@ public class RoleManagementTests
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
         };
 
-        var result = await controller.CreateRole(new CreateRoleRequest { Name = "Admin" }); // ReservedRoleNames
+        var result = await controller.CreateRole(new CreateRoleRequest { Name = "Admin" });
 
         var badRequest = result as BadRequestObjectResult;
         Assert.NotNull(badRequest);
@@ -278,6 +278,54 @@ public class RoleManagementTests
         Assert.NotNull(badRequest.Value);
         var valueType = badRequest.Value.GetType();
         var codeProp = valueType.GetProperty("code");
+        Assert.NotNull(codeProp);
+        Assert.Equal("ROLE_NAME_RESERVED", codeProp.GetValue(badRequest.Value) as string);
+    }
+
+    [Fact]
+    public async Task SetRolePermissions_WhenSuperAdmin_AndServiceReturnsSystemRoleNotEditable_ForManager_Returns400()
+    {
+        var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
+        var roleMgmt = new Mock<IRoleManagementService>();
+        roleMgmt.Setup(x => x.SetRolePermissionsAsync(Roles.Manager, It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync(SetRolePermissionsResult.SystemRoleNotEditable);
+        var audit = new Mock<IAuditLogService>().Object;
+        var session = new Mock<IUserSessionInvalidation>().Object;
+        var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
+        var logger = new Mock<ILogger<UserManagementController>>().Object;
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
+        };
+
+        var result = await controller.SetRolePermissions(Roles.Manager, new UpdateRolePermissionsRequest { Permissions = new List<string> { AppPermissions.ProductView } }, CancellationToken.None);
+
+        var badRequest = result as BadRequestObjectResult;
+        Assert.NotNull(badRequest);
+        Assert.Equal(400, badRequest.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateRole_WhenNameIsDemo_Returns400WithROLE_NAME_RESERVED()
+    {
+        var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
+        var roleMgmt = new Mock<IRoleManagementService>().Object;
+        var audit = new Mock<IAuditLogService>().Object;
+        var session = new Mock<IUserSessionInvalidation>().Object;
+        var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
+        var logger = new Mock<ILogger<UserManagementController>>().Object;
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt, logger);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
+        };
+
+        var result = await controller.CreateRole(new CreateRoleRequest { Name = "Demo" });
+
+        var badRequest = result as BadRequestObjectResult;
+        Assert.NotNull(badRequest);
+        Assert.Equal(400, badRequest.StatusCode);
+        var codeProp = badRequest.Value!.GetType().GetProperty("code");
         Assert.NotNull(codeProp);
         Assert.Equal("ROLE_NAME_RESERVED", codeProp.GetValue(badRequest.Value) as string);
     }

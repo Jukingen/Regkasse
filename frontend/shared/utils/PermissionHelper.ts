@@ -111,9 +111,16 @@ export const SCREEN_ACCESS: Partial<Record<UserRole, string[]>> = {
 
 export class PermissionHelper {
   private static currentUserRole: UserRole | null = null;
+  /** Set from login/user payload (ApplicationUser.IsDemo). Never infer from role name. */
+  private static isDemoUserFlag = false;
 
   static setUserRole(role: UserRole) {
     this.currentUserRole = role;
+  }
+
+  /** Call after login when user object includes isDemo (backend ApplicationUser.IsDemo). */
+  static setIsDemoUser(isDemo: boolean) {
+    this.isDemoUserFlag = isDemo;
   }
 
   static async getUserRole(): Promise<UserRole | null> {
@@ -173,8 +180,8 @@ export class PermissionHelper {
   }
 
   static isDemoUser(): boolean {
-    // Demo kullanıcı kontrolü
-    return this.currentUserRole === UserRole.Cashier || this.currentUserRole === UserRole.Admin;
+    // Demo is not a role — backend uses IsDemo flag only. Do not treat Cashier/Admin as demo.
+    return this.isDemoUserFlag;
   }
 
   static getRoleDisplayName(role: UserRole): string {

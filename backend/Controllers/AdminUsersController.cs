@@ -197,6 +197,7 @@ public class AdminUsersController : ControllerBase
         if (request.EmployeeNumber != null) user.EmployeeNumber = request.EmployeeNumber;
         if (request.TaxNumber != null) user.TaxNumber = request.TaxNumber;
         if (request.Notes != null) user.Notes = request.Notes;
+        if (request.IsDemo.HasValue) user.IsDemo = request.IsDemo.Value;
         if (request.Role != null && request.Role != user.Role)
         {
             user.Role = request.Role;
@@ -210,6 +211,17 @@ public class AdminUsersController : ControllerBase
         {
             var errors = result.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
             return BadRequest(ApiError.Validation("Update failed", errors));
+        }
+
+        // Keep AspNetUserRoles in sync with ApplicationUser.Role (same rule as UserManagementController).
+        if (roleChanged && !string.IsNullOrWhiteSpace(request.Role))
+        {
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            if (currentRoles.Count > 0)
+                await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            var addResult = await _userManager.AddToRoleAsync(user, request.Role);
+            if (!addResult.Succeeded)
+                _logger.LogWarning("AdminUsersController Patch: AddToRoleAsync failed for user {UserId} role {Role}", id, request.Role);
         }
 
         if (ActorId != null)
@@ -416,6 +428,8 @@ public class AdminUsersController : ControllerBase
         public string? TaxNumber { get; set; }
         [MaxLength(500)]
         public string? Notes { get; set; }
+        /// <summary>Optional. When set, updates ApplicationUser.IsDemo (demo is not a role; flag must be cleared to allow real payments).</summary>
+        public bool? IsDemo { get; set; }
     }
 
     public class AdminDeactivateRequest

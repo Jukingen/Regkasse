@@ -180,8 +180,10 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
     const role = user?.role ? (user.role as UserRole) : await PermissionHelper.getUserRole();
     if (role) {
       PermissionHelper.setUserRole(role);
+      PermissionHelper.setIsDemoUser(!!user?.isDemo);
       setUserRole(role);
     } else {
+      PermissionHelper.setIsDemoUser(false);
       setUserRole(null);
     }
 

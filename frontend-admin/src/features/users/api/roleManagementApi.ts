@@ -14,12 +14,18 @@ export interface PermissionCatalogItemDto {
 
 export interface RoleWithPermissionsDto {
   roleName: string;
+  /** Stable key for clients; mirrors backend RoleKey. */
+  roleKey?: string;
+  displayName?: string | null;
+  description?: string | null;
   permissions: string[];
   isSystemRole: boolean;
+  /** System roles immutable (matrix-only). */
+  isImmutable?: boolean;
   userCount: number;
   /** True only for custom roles with no assigned users. */
   canDelete?: boolean;
-  /** False only for SuperAdmin (matrix-only). True for custom and other canonical roles. */
+  /** False for any system role (matrix-only). True for custom roles only. */
   canEditPermissions?: boolean;
 }
 
