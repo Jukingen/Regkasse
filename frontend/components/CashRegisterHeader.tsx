@@ -1,7 +1,8 @@
-// Soft minimal cash register header
+// Compact POS header: title + sticky table/recovery bar (no large hero)
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
+import { useTranslation } from 'react-i18next';
 
 interface CashRegisterHeaderProps {
   selectedTable: number;
@@ -9,8 +10,6 @@ interface CashRegisterHeaderProps {
   /** 503/TABLE_ORDERS_MISSING durumunda gösterilecek bilgi mesajı */
   provisioningMessage?: string | null;
 }
-
-import { useTranslation } from 'react-i18next';
 
 export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
   selectedTable,
@@ -20,100 +19,86 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
   const { t } = useTranslation(['checkout', 'common']);
 
   return (
-    <View style={styles.header}>
-      <View style={styles.headerContent}>
+    <View style={styles.wrapper} accessibilityRole="header" accessibilityLabel={t('checkout:title')}>
+      <View style={styles.headerRow}>
         <Text style={styles.headerEmoji}>☕</Text>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>{t('checkout:title')}</Text>
-          <Text style={styles.headerSubtitle}>{t('checkout:subtitle', 'Table Management & Payments')}</Text>
-        </View>
+        <Text style={styles.headerTitle}>{t('checkout:title')}</Text>
+        {selectedTable > 0 && (
+          <View style={styles.tableBadge}>
+            <Text style={styles.tableBadgeText}>{t('common:table', 'Tisch')} {selectedTable}</Text>
+          </View>
+        )}
+        {recoveryLoading && (
+          <View style={styles.recoveryBadge} accessibilityLabel="Tische werden wiederhergestellt">
+            <Text style={styles.recoveryText} accessibilityElementsHidden>🔄</Text>
+          </View>
+        )}
+        {provisioningMessage && !recoveryLoading && (
+          <View style={[styles.recoveryBadge, styles.provisioningBadge]} accessibilityLabel={provisioningMessage}>
+            <Text style={styles.provisioningText} accessibilityElementsHidden>ℹ️</Text>
+          </View>
+        )}
       </View>
-
-      {selectedTable && (
-        <View style={styles.tableBadge}>
-          <Text style={styles.tableBadgeText}>{t('common:table', 'Table')} {selectedTable}</Text>
-        </View>
-      )}
-
-      {recoveryLoading && (
-        <View style={styles.recoveryBadge}>
-          <Text style={styles.recoveryText}>🔄 {t('common:loading', 'Loading orders...')}</Text>
-        </View>
-      )}
-
-      {provisioningMessage && !recoveryLoading && (
-        <View style={[styles.recoveryBadge, styles.provisioningBadge]}>
-          <Text style={styles.provisioningText}>ℹ️ {provisioningMessage}</Text>
-        </View>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  header: {
+  wrapper: {
     backgroundColor: SoftColors.accent,
-    paddingTop: SoftSpacing.xl,
-    paddingBottom: SoftSpacing.lg,
-    paddingHorizontal: SoftSpacing.lg,
-    borderBottomLeftRadius: SoftRadius.xxl,
-    borderBottomRightRadius: SoftRadius.xxl,
-    ...SoftShadows.md,
+    borderBottomLeftRadius: SoftRadius.lg,
+    borderBottomRightRadius: SoftRadius.lg,
+    ...SoftShadows.sm,
   },
-  headerContent: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SoftSpacing.sm,
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.md,
+    gap: SoftSpacing.sm,
   },
   headerEmoji: {
-    fontSize: 32,
-    marginRight: SoftSpacing.md,
-  },
-  headerText: {
-    flex: 1,
+    fontSize: 20,
   },
   headerTitle: {
-    ...SoftTypography.h1,
+    ...SoftTypography.h3,
     color: SoftColors.textInverse,
-  },
-  headerSubtitle: {
-    ...SoftTypography.bodySmall,
-    color: SoftColors.textInverse,
-    opacity: 0.85,
-    marginTop: SoftSpacing.xs,
+    flex: 1,
   },
   tableBadge: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: SoftSpacing.md,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    paddingHorizontal: SoftSpacing.sm,
     paddingVertical: SoftSpacing.xs,
     borderRadius: SoftRadius.full,
-    marginTop: SoftSpacing.sm,
+    minHeight: 28,
+    justifyContent: 'center',
   },
   tableBadgeText: {
     ...SoftTypography.label,
+    fontSize: 12,
     color: SoftColors.textInverse,
   },
   recoveryBadge: {
     backgroundColor: SoftColors.bgCard,
-    alignSelf: 'flex-start',
-    paddingHorizontal: SoftSpacing.md,
+    paddingHorizontal: SoftSpacing.xs,
     paddingVertical: SoftSpacing.xs,
     borderRadius: SoftRadius.full,
-    marginTop: SoftSpacing.sm,
+    minHeight: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   recoveryText: {
     ...SoftTypography.caption,
+    fontSize: 12,
     color: SoftColors.accent,
   },
   provisioningBadge: {
-    backgroundColor: 'rgba(255,193,7,0.2)',
+    backgroundColor: 'rgba(255,193,7,0.22)',
     borderWidth: 1,
     borderColor: 'rgba(255,193,7,0.5)',
   },
   provisioningText: {
     ...SoftTypography.caption,
     color: SoftColors.textPrimary,
-    fontSize: 12,
   },
 });

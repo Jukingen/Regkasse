@@ -1,32 +1,35 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, Redirect } from 'expo-router';
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator, Text, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { View, ActivityIndicator, Text, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import PaymentModal from '../../components/PaymentModal';
+import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
+import { SoftColors, SoftShadows } from '../../constants/SoftTheme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
-import PaymentModal from '../../components/PaymentModal';
 
 export default function TabLayout() {
     const { t } = useTranslation(['navigation']);
+    const insets = useSafeAreaInsets();
     const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus } = useAuth();
 
     // Context usage
     const {
         activeTableId,
-        getCartForTable,
+        currentCart,
         isPaymentModalVisible,
         setIsPaymentModalVisible,
         clearCart
     } = useCart();
 
-    const activeCart = getCartForTable(activeTableId);
-    const totals = getCartDisplayTotals(activeCart);
+    const totals = getCartDisplayTotals(currentCart);
     const cartCount = totals.itemCount;
 
-    const handlePaymentSuccess = async (paymentId: string) => {
-        await clearCart(activeTableId);
+    const handlePaymentSuccess = async (paymentId: string, paidTableNumber?: number) => {
+        await clearCart(paidTableNumber ?? activeTableId);
     };
 
     // OPTIMIZATION: Auth status kontrolünü daha az sıklıkta yap
@@ -62,10 +65,15 @@ export default function TabLayout() {
         <View style={{ flex: 1 }}>
             <Tabs
                 screenOptions={{
-                    tabBarActiveTintColor: '#007AFF',
-                    tabBarInactiveTintColor: '#8E8E93',
-                    tabBarStyle: { height: 60, paddingBottom: 10, overflow: 'visible' },
-                    headerShown: true
+                    tabBarActiveTintColor: SoftColors.accent,
+                    tabBarInactiveTintColor: SoftColors.textMuted,
+                    tabBarStyle: {
+                        height: TAB_BAR_HEIGHT + insets.bottom,
+                        paddingBottom: insets.bottom,
+                        paddingTop: 8,
+                        overflow: 'visible',
+                    },
+                    headerShown: true,
                 }}
             >
                 <Tabs.Screen
@@ -86,9 +94,12 @@ export default function TabLayout() {
                                 <Pressable
                                     onPress={() => setIsPaymentModalVisible(true)}
                                     style={[style, styles.cartTabButton]}
+                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                    accessibilityLabel={cartCount > 0 ? `Warenkorb, ${cartCount} Artikel, zum Bezahlen` : 'Warenkorb, zum Bezahlen'}
+                                    accessibilityRole="button"
                                 >
                                     <View style={styles.cartIconContainer}>
-                                        <Ionicons name="cart" size={28} color="#fff" />
+                                        <Ionicons name="cart" size={28} color={SoftColors.textInverse} />
                                         {cartCount > 0 && (
                                             <View style={styles.badge}>
                                                 <Text style={styles.badgeText}>{cartCount}</Text>
@@ -115,7 +126,7 @@ export default function TabLayout() {
                 visible={isPaymentModalVisible}
                 onClose={() => setIsPaymentModalVisible(false)}
                 onSuccess={handlePaymentSuccess}
-                cartItems={(activeCart?.items || []).map(item => ({
+                cartItems={(currentCart?.items || []).map(item => ({
                     id: item.itemId ?? item.clientId ?? item.productId,
                     productId: item.productId,
                     productName: item.productName || 'Unknown Product',
@@ -142,28 +153,24 @@ const styles = StyleSheet.create({
     },
     cartIconContainer: {
         width: 54,
-        height: 54,
+        minHeight: 54,
         borderRadius: 27,
-        backgroundColor: '#007AFF',
+        backgroundColor: SoftColors.accent,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 8,
+        ...SoftShadows.md,
     },
     cartLabel: {
         fontSize: 10,
-        color: '#007AFF',
+        color: SoftColors.accentDark,
         marginTop: 4,
-        fontWeight: 'bold',
+        fontWeight: '600',
     },
     badge: {
         position: 'absolute',
         top: -4,
         right: -4,
-        backgroundColor: '#FF3B30',
+        backgroundColor: SoftColors.error,
         borderRadius: 10,
         minWidth: 20,
         height: 20,
@@ -171,10 +178,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 4,
         borderWidth: 2,
-        borderColor: '#fff',
+        borderColor: SoftColors.bgCard,
     },
     badgeText: {
-        color: '#fff',
+        color: SoftColors.textInverse,
         fontSize: 10,
         fontWeight: 'bold',
     },

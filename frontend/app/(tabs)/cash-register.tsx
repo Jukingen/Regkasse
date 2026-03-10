@@ -9,27 +9,119 @@
 // =============================================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { SafeAreaView, StyleSheet, View, Text } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CashRegisterHeader } from '../../components/CashRegisterHeader';
-import { TableSelector } from '../../components/TableSelector';
-import { ProductList } from '../../components/ProductList';
-import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
+import { CashRegisterHeader } from '../../components/CashRegisterHeader';
 import CategoryFilter from '../../components/CategoryFilter';
-/** POS modifier selection (quantity independent from product qty). Cart is source of truth. */
-type SelectedModifier = { id: string; name: string; price: number; quantity?: number };
+import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
+import { ProductList } from '../../components/ProductList';
+import { TableSelector } from '../../components/TableSelector';
 import { ToastContainer } from '../../components/ToastNotification';
-
+import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
+import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography, Space8 } from '../../constants/SoftTheme';
+import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
 import { useCashRegister } from '../../hooks/useCashRegister';
 import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecoveryOptimized';
 import { useProductsUnified } from '../../hooks/useProductsUnified';
-import { useCart } from '../../contexts/CartContext';
-
-import { Product } from '../../services/api/productService';
 import type { AddOnSelection } from '../../services/api/productModifiersService';
-import { SoftColors, SoftSpacing, SoftTypography } from '../../constants/SoftTheme';
+import { Product } from '../../services/api/productService';
+import { formatPrice } from '../../utils/formatPrice';
+
+/** POS modifier selection (quantity independent from product qty). Cart is source of truth. */
+type SelectedModifier = { id: string; name: string; price: number; quantity?: number };
+
+/** Presentational: step number + section title (used for Category and Summary headers). */
+function SectionHeader({
+  step,
+  title,
+  rowStyle,
+  stepStyle,
+  titleStyle,
+}: {
+  step: string;
+  title: string;
+  rowStyle?: ViewStyle;
+  stepStyle?: TextStyle;
+  titleStyle?: TextStyle;
+}) {
+  return (
+    <View style={[styles.sectionTitleRow, rowStyle]}>
+      <Text style={[styles.stepLabel, stepStyle]}>{step}</Text>
+      <Text style={[styles.sectionTitle, titleStyle]} accessibilityRole="header">{title}</Text>
+    </View>
+  );
+}
+
+/** Presentational: cart summary block (critical strip + CartDisplay + CartSummary). */
+function POSSummaryBlock({
+  activeTableId,
+  summaryTotals,
+  cart,
+  cartLoading,
+  cartError,
+  paymentError,
+  paymentProcessing,
+  preventDoubleClick,
+  onQuantityUpdate,
+  onItemRemove,
+  onClearCart,
+  onRemoveModifier,
+  incrementModifier,
+  decrementModifier,
+  onPayment,
+  paddingBottom,
+}: {
+  activeTableId: number;
+  summaryTotals: { itemCount: number; grandTotalGross: number };
+  cart: any;
+  cartLoading: boolean;
+  cartError: string | null;
+  paymentError: string | null;
+  paymentProcessing: boolean;
+  preventDoubleClick: boolean;
+  onQuantityUpdate: (itemId: string, action: 'increment' | 'decrement') => Promise<void>;
+  onItemRemove: (itemId: string) => Promise<void>;
+  onClearCart: () => Promise<void>;
+  onRemoveModifier: (itemId: string, m: { id: string }) => void;
+  incrementModifier: (itemId: string, modifierId: string) => void;
+  decrementModifier: (itemId: string, modifierId: string) => void;
+  onPayment: () => void;
+  paddingBottom: number;
+}) {
+  return (
+    <View style={[styles.summaryBlock, { paddingBottom }]}>
+      <SectionHeader step="4" title="Zusammenfassung" rowStyle={styles.summaryBlockHeader} titleStyle={styles.summaryBlockTitle} />
+      <View style={styles.criticalStrip}>
+        <Text style={styles.criticalStripText} numberOfLines={1} ellipsizeMode="tail">
+          Tisch {activeTableId} · {summaryTotals.itemCount} Artikel · GESAMT {formatPrice(summaryTotals.grandTotalGross)}
+        </Text>
+      </View>
+      <CartDisplay
+        cart={cart}
+        selectedTable={activeTableId}
+        loading={cartLoading}
+        error={cartError}
+        onQuantityUpdate={onQuantityUpdate}
+        onItemRemove={onItemRemove}
+        onClearCart={onClearCart}
+        onRemoveModifier={onRemoveModifier}
+        onIncrementModifier={incrementModifier}
+        onDecrementModifier={decrementModifier}
+      />
+      <CartSummary
+        cart={cart}
+        loading={cartLoading}
+        error={paymentError}
+        paymentProcessing={paymentProcessing}
+        preventDoubleClick={preventDoubleClick}
+        onPayment={onPayment}
+      />
+    </View>
+  );
+}
 
 // -----------------------------------------------------------------------------
 // Hook: Sepet ekleme + modifier pending state (tek tık akışı, minimal re-render)
@@ -92,18 +184,7 @@ function usePOSOrderFlow(
 }
 
 export default function CashRegisterScreen() {
-  // Unified product hook - tüm ürün işlemlerini tek noktada yönet
-  const {
-    products,
-    categories,
-    loading: productsLoading,
-    error: productsError,
-    refreshData,
-    getProductsByCategory,
-    searchProducts
-  } = useProductsUnified();
-
-  // Cash register hook'u
+  const { categories } = useProductsUnified();
   const {
     paymentProcessing,
     preventDoubleClick,
@@ -111,41 +192,29 @@ export default function CashRegisterScreen() {
     toasts,
     addToast,
     removeToast,
-    clearCurrentCart
   } = useCashRegister();
-
-
-  // Table orders recovery hook'u
   const {
     recoveryData,
-    isRecoveryCompleted,
     isLoading: recoveryLoading,
     provisioningMessage: recoveryProvisioningMessage,
   } = useTableOrdersRecoveryOptimized();
-
-  // ✅ Cart Context Usage
   const {
     activeTableId,
+    currentCart,
     cartsByTable,
     loading: cartLoading,
     error: cartError,
     switchTable,
     addItem,
     addItemWithAddOns,
-    increment,
-    decrement,
-    remove,
     removeByItemId,
     clearCart,
     getCartForTable,
-    updateItemQuantity: contextUpdateItemQuantity,
     updateItemQuantityByItemId,
-    addModifier,
     incrementModifier,
     decrementModifier,
     removeModifier,
-    isPaymentModalVisible,
-    setIsPaymentModalVisible
+    setIsPaymentModalVisible,
   } = useCart();
 
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
@@ -153,22 +222,14 @@ export default function CashRegisterScreen() {
   /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
   const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
 
-  const cart = getCartForTable(activeTableId);
+  // Use context's currentCart so summary/checkout always follow active table (no stale table cart)
+  const cart = currentCart;
+  const insets = useSafeAreaInsets();
+  const footerBottomPadding = TAB_BAR_HEIGHT + insets.bottom;
 
-  /** productId → cartItemId of the last-added cart line for that product (active for modifier toggles). */
-  const lastCartItemIdByProductId = useMemo(() => {
-    const map: Record<string, string> = {};
-    const items = cart?.items ?? [];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const pid = item.productId;
-      const id = item.itemId ?? (item as any).clientId;
-      if (pid && id) map[pid] = String(id);
-    }
-    return map;
-  }, [cart?.items]);
-
-  // Ürün bazında son satırdaki seçili extras (chip'lerin seçili state'i için)
+  // ——— Derived UI state (from cart / tables) ———
+  const summaryTotals = useMemo(() => getCartDisplayTotals(cart), [cart]);
+  /** productId → modifiers on the last cart line (for chip selection display). */
   const lastCartItemModifiersByProductId = useMemo(() => {
     const map: Record<string, Array<{ id: string; name: string; price: number }>> = {};
     const items = cart?.items ?? [];
@@ -185,8 +246,7 @@ export default function CashRegisterScreen() {
     handleAddProduct,
     handleAddAddOn,
   } = usePOSOrderFlow(addItem, activeTableId, addToast);
-
-  // Chip'lerde gösterilecek seçim: önce sepetteki son satır, yoksa pending
+  /** Merged modifier selection per product: last cart line or pending (for inline chips). */
   const selectedModifiersForProduct = useMemo(() => {
     const out: Record<string, SelectedModifier[]> = {};
     const pids = new Set([
@@ -215,8 +275,7 @@ export default function CashRegisterScreen() {
     [addItemWithAddOns, addToast]
   );
 
-  // Masa badge counter için cartsByTable'dan Map türet (anlık güncelleme için tek kaynak)
-  // Boş masalar dahil tüm entry'ler eklenir; Clear All sonrası badge 0 olur
+  /** Table number → { items, totalItems } for table selector badges. */
   const tableCartsMap = useMemo(() => {
     const map = new Map<number, { items: any[]; totalItems: number }>();
     for (const [tableNumStr, cartData] of Object.entries(cartsByTable)) {
@@ -228,94 +287,41 @@ export default function CashRegisterScreen() {
     return map;
   }, [cartsByTable]);
 
-  // ---------------------------------------------------------------------------
-  // ADAPTERS for Context (Mapping old hook API to Context API)
-  // ---------------------------------------------------------------------------
-
-  const addToCart = async (item: any, tableId: number) => {
-    try {
-      if (tableId !== activeTableId) await switchTable(tableId);
-      await addItem(item.productId, item.quantity);
-      return { success: true };
-    } catch (e: any) {
-      return { success: false, message: e.message };
-    }
-  };
-
-  const removeFromCart = async (tableId: number, itemId: string) => {
-    try {
-      // Note: Context uses productId, but cash-register might pass itemId.
-      // Assuming itemId here IS productId for now due to check above.
-      await remove(itemId);
-      return { success: true };
-    } catch (e: any) {
-      console.error(e);
-      return { success: false };
-    }
-  };
-
-  const updateItemQuantity = async (tableId: number, itemId: string, qty: number) => {
-    try {
-      await contextUpdateItemQuantity(itemId, qty);
-      return { success: true };
-    } catch (e) { console.error(e); return { success: false }; }
-  };
-
-  // Mock load function as Context manages loading state via useEffect/actions
-  const loadCartForTable = async (tableId: number) => {
-    // In Context, data is either there or will be loaded/optimistic.
-    // We can trigger a refresh if context had a refresh method, but for now just return current state.
-    // If we really need fresh data, we could call an API here, but let's trust the Context.
-    return { success: true, cart: getCartForTable(tableId) };
-  };
-
-  const clearAllTables = async () => {
-    // Context doesn't have clearAllTables yet, but we can clear current.
-    // Or implement it. For now, specific table clear.
-    try {
-      await clearCart(activeTableId);
-      return { success: true, message: 'Table cleared' };
-    } catch (e: any) {
-      return { success: false, message: e.message || 'Failed' };
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-
+  // ——— Event handlers ———
   const handleCategoryChange = useCallback((categoryId: string | null) => {
     setSelectedCategoryId(categoryId);
   }, []);
 
+  // Contract: User can always switch table; having items on current table must not block.
   const handleTableSelect = useCallback(async (tableNumber: number) => {
+    if (!tableNumber || tableNumber < 1 || tableNumber > 10) {
+      addToast('error', 'Ungültige Tischnummer', 3000);
+      return;
+    }
+
+    if (activeTableId === tableNumber) {
+      return;
+    }
+
+    setTableSelectionLoading(tableNumber);
+    const clearLoading = () => setTableSelectionLoading(null);
+    const loadingTimeout = setTimeout(clearLoading, 8000);
+
     try {
-      if (!tableNumber || tableNumber < 1 || tableNumber > 10) {
-        addToast('error', 'Invalid table number', 3000);
-        return;
-      }
-
-      if (activeTableId === tableNumber) {
-        return;
-      }
-
-      if (tableSelectionLoading !== null) {
-        return;
-      }
-
-      setTableSelectionLoading(tableNumber);
-
-      // IMPERATIVE SWITCH
-      await switchTable(tableNumber);
-
-      addToast('info', `Switching to table ${tableNumber}`, 2000);
-
-      setTimeout(() => {
-        setTableSelectionLoading(null);
-      }, 500);
-
+      // Timeout so loading always clears even if fetch hangs (regression: stuck loading blocked other tables)
+      await Promise.race([
+        switchTable(tableNumber),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Table switch timeout')), 6000)
+        ),
+      ]);
+      addToast('info', `Zu Tisch ${tableNumber} wechseln`, 2000);
     } catch (error) {
       console.error('❌ Masa seçim hatası:', error);
-      addToast('error', 'Failed to switch table', 3000);
-      setTableSelectionLoading(null);
+      addToast('error', 'Tischwechsel fehlgeschlagen', 3000);
+    } finally {
+      clearTimeout(loadingTimeout);
+      setTimeout(clearLoading, 300);
     }
   }, [activeTableId, switchTable, addToast]);
 
@@ -332,7 +338,7 @@ export default function CashRegisterScreen() {
     try {
       await updateItemQuantityByItemId(itemId, newQty);
     } catch (err: any) {
-      addToast('error', 'Update failed', 2000);
+      addToast('error', 'Aktualisierung fehlgeschlagen', 2000);
     }
   }, [activeTableId, getCartForTable, updateItemQuantityByItemId, addToast]);
 
@@ -348,24 +354,24 @@ export default function CashRegisterScreen() {
 
   const handleClearCart = useCallback(async () => {
     if (!activeTableId) {
-      addToast('error', 'No table selected. Please select a table first.', 3000);
+      addToast('error', 'Bitte zuerst Tisch wählen.', 3000);
       return;
     }
 
     try {
       await clearCart(activeTableId);
-      addToast('success', `Cart cleared for Table ${activeTableId}`, 2000);
+      addToast('success', `Warenkorb für Tisch ${activeTableId} geleert`, 2000);
 
-    } catch (error) {
-      console.error(`❌ Error clearing table ${activeTableId}:`, error);
-      addToast('error', `Failed to clear table ${activeTableId}`, 3000);
+    } catch (err) {
+      console.error(`❌ Error clearing table ${activeTableId}:`, err);
+      addToast('error', `Tisch ${activeTableId} konnte nicht geleert werden`, 3000);
     }
   }, [activeTableId, clearCart, addToast]);
 
   const handleClearAllTables = useCallback(async () => {
     try {
       if (!activeTableId) {
-        addToast('error', 'No table selected', 3000);
+        addToast('error', 'Bitte zuerst Tisch wählen.', 3000);
         return;
       }
 
@@ -379,22 +385,22 @@ export default function CashRegisterScreen() {
       // ❌ REMOVED: switchTable(1); - This was forcing the UI to jump to table 1
       // ✅ Behavior: UI stays on the same table (targetTableId)
 
-      addToast('success', `Table ${targetTableId} cleared successfully`, 3000);
+      addToast('success', `Tisch ${targetTableId} geleert`, 3000);
 
-    } catch (error: any) {
-      console.error('❌ Error clearing table:', error);
-      addToast('error', error.message || 'Error clearing table', 3000);
+    } catch (err: any) {
+      console.error('❌ Error clearing table:', err);
+      addToast('error', err?.message ?? 'Tisch konnte nicht geleert werden', 3000);
     }
   }, [activeTableId, clearCart, addToast]);
 
   const handlePayment = useCallback(() => {
     if (!cart?.items?.length) {
-      addToast('warning', 'Cart is empty. Please add items first.', 3000);
+      addToast('warning', 'Warenkorb ist leer. Bitte zuerst Artikel hinzufügen.', 3000);
       return;
     }
 
     if (!activeTableId) {
-      addToast('error', 'No table selected. Please select a table first.', 3000);
+      addToast('error', 'Bitte zuerst Tisch wählen.', 3000);
       return;
     }
     setIsPaymentModalVisible(true);
@@ -447,9 +453,9 @@ export default function CashRegisterScreen() {
               onClearAllTables={handleClearAllTables}
             />
 
-            {/* Category Filter */}
+            {/* Step 2: Category – flow: Tisch → Kategorie → Produkte → Zusammenfassung */}
             <View style={styles.categorySection}>
-              <Text style={styles.sectionTitle}>Categories</Text>
+              <SectionHeader step="2" title="Kategorie" />
               <CategoryFilter
                 categories={categories}
                 selectedCategoryId={selectedCategoryId}
@@ -459,47 +465,30 @@ export default function CashRegisterScreen() {
           </>
         }
         ListFooterComponent={
-          <>
-            {/* Cart Display */}
-            <CartDisplay
-              cart={cart}
-              selectedTable={activeTableId}
-              loading={cartLoading}
-              error={cartError}
-              onQuantityUpdate={handleQuantityUpdate}
-              onItemRemove={handleItemRemove}
-              onClearCart={handleClearCart}
-              onRemoveModifier={(itemId, m) => removeModifier(itemId, m.id)}
-              onIncrementModifier={incrementModifier}
-              onDecrementModifier={decrementModifier}
-            />
-
-            {/* Cart Summary & Payment Button */}
-            <CartSummary
-              cart={cart}
-              loading={cartLoading}
-              error={error}
-              paymentProcessing={paymentProcessing}
-              preventDoubleClick={preventDoubleClick}
-              onPayment={handlePayment}
-            />
-          </>
+          <POSSummaryBlock
+            activeTableId={activeTableId}
+            summaryTotals={summaryTotals}
+            cart={cart}
+            cartLoading={cartLoading}
+            cartError={cartError}
+            paymentError={error}
+            paymentProcessing={paymentProcessing}
+            preventDoubleClick={preventDoubleClick}
+            onQuantityUpdate={handleQuantityUpdate}
+            onItemRemove={handleItemRemove}
+            onClearCart={handleClearCart}
+            onRemoveModifier={(itemId, m) => removeModifier(itemId, m.id)}
+            incrementModifier={incrementModifier}
+            decrementModifier={decrementModifier}
+            onPayment={handlePayment}
+            paddingBottom={footerBottomPadding}
+          />
         } 
       />
 
     </SafeAreaView>
   );
 }
-
-// -----------------------------------------------------------------------------
-// REFACTOR SUMMARY
-// -----------------------------------------------------------------------------
-// New / updated: usePOSOrderFlow (in-file hook), lastCartItemIdByProductId (derived).
-// Components used: ProductList, ProductRow, ProductGridCard, ModifierOptionChips
-//   (inline Extras under product row), CartDisplay, CartSummary.
-// State: cart (context), pendingModifiersByProduct (local), lastCartItemIdByProductId (derived).
-// UX before: Tap product → Zutaten modal → Hinzufügen. After: Tap row → add instantly;
-//   Extras inline under row; no modal; no Add button.
 
 const styles = StyleSheet.create({
   container: {
@@ -509,15 +498,62 @@ const styles = StyleSheet.create({
 
   categorySection: {
     backgroundColor: SoftColors.bgCard,
-    paddingVertical: SoftSpacing.lg,
-    paddingHorizontal: SoftSpacing.lg,
+    paddingVertical: SoftSpacing.md,
+    paddingHorizontal: SoftSpacing.md,
     marginBottom: SoftSpacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: SoftColors.borderLight,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: SoftSpacing.xs,
+    marginBottom: Space8[1],
+  },
+  stepLabel: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    width: 14,
+  },
   sectionTitle: {
-    ...SoftTypography.h3,
+    ...SoftTypography.h2,
     color: SoftColors.textPrimary,
-    marginBottom: SoftSpacing.md,
+    flex: 1,
+  },
+  summaryBlock: {
+    backgroundColor: SoftColors.bgCard,
+    marginTop: SoftSpacing.md,
+    marginHorizontal: SoftSpacing.sm,
+    marginBottom: SoftSpacing.lg,
+    borderRadius: SoftRadius.md,
+    borderWidth: 1,
+    borderColor: SoftColors.borderLight,
+    overflow: 'hidden',
+    ...SoftShadows.sm,
+  },
+  summaryBlockHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: SoftSpacing.xs,
+    paddingHorizontal: SoftSpacing.md,
+    paddingTop: SoftSpacing.md,
+    paddingBottom: SoftSpacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: SoftColors.borderLight,
+  },
+  summaryBlockTitle: {
+    ...SoftTypography.h2,
+    color: SoftColors.textPrimary,
+    flex: 1,
+  },
+  criticalStrip: {
+    paddingHorizontal: SoftSpacing.md,
+    paddingBottom: SoftSpacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: SoftColors.borderLight,
+  },
+  criticalStripText: {
+    ...SoftTypography.label,
+    color: SoftColors.textSecondary,
   },
 }); 

@@ -25,7 +25,7 @@ import {
   isOptionDisabled,
   validateAllGroups,
 } from '../utils/modifierSelectionUtils';
-import { SoftColors, SoftSpacing, SoftRadius, SoftTypography } from '../constants/SoftTheme';
+import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 
 export interface SelectedModifier {
   id: string;
@@ -307,10 +307,22 @@ export function ModifierSelectionBottomSheet({
               </Text>
             ) : null}
             <View style={styles.buttons}>
-              <Pressable style={styles.cancelBtn} onPress={onClose}>
+              <Pressable
+                style={({ pressed, focused }) => [styles.cancelBtn, pressed && styles.cancelBtnPressed, focused && SoftState.focusVisible]}
+                onPress={onClose}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="Abbrechen"
+                accessibilityRole="button"
+              >
                 <Text style={styles.cancelBtnText}>Abbrechen</Text>
               </Pressable>
-              <Pressable style={styles.applyBtn} onPress={handleApply}>
+              <Pressable
+                style={({ pressed, focused }) => [styles.applyBtn, pressed && styles.applyBtnPressed, focused && SoftState.focusVisible]}
+                onPress={handleApply}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="Fertig"
+                accessibilityRole="button"
+              >
                 <Text style={styles.applyBtnText}>Fertig</Text>
               </Pressable>
             </View>
@@ -471,7 +483,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SoftSpacing.lg,
     paddingTop: SoftSpacing.md,
     borderTopWidth: 1,
-    borderTopColor: SoftColors.border,
+    borderTopColor: SoftColors.borderLight,
   },
   validationError: {
     ...SoftTypography.bodySmall,
@@ -485,29 +497,38 @@ const styles = StyleSheet.create({
   },
   buttons: {
     flexDirection: 'row',
-    gap: SoftSpacing.md,
+    gap: SoftSpacing.sm,
   },
   cancelBtn: {
     flex: 1,
+    minHeight: 48,
     paddingVertical: SoftSpacing.md,
     borderRadius: SoftRadius.md,
     backgroundColor: SoftColors.bgSecondary,
+    borderWidth: 1,
+    borderColor: SoftColors.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
+  cancelBtnPressed: SoftState.pressed,
   cancelBtnText: {
     ...SoftTypography.body,
-    color: SoftColors.textSecondary,
+    color: SoftColors.textPrimary,
   },
   applyBtn: {
     flex: 1,
+    minHeight: 48,
     paddingVertical: SoftSpacing.md,
     borderRadius: SoftRadius.md,
     backgroundColor: SoftColors.accent,
     alignItems: 'center',
+    justifyContent: 'center',
+    ...SoftShadows.sm,
   },
+  applyBtnPressed: SoftState.pressedScale,
   applyBtnText: {
     ...SoftTypography.body,
     color: SoftColors.textInverse,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

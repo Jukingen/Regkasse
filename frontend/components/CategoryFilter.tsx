@@ -1,9 +1,10 @@
 // Soft minimal category filter – backend'den gelen kategoriler; "Alle" sadece UI.
 import React from 'react';
 import { Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
+import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
 import type { CatalogCategory } from '../hooks/useProductsUnified';
 
 type CategoryFilterProps = {
@@ -38,29 +39,35 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
   onCategoryChange,
 }) => {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, { paddingRight: Math.max(SoftSpacing.md, insets.right) }]}
     >
       {/* "Alle" sadece UI konsepti – backend'de kategori yok */}
       <Pressable
         key="__all__"
-        style={({ pressed }) => [
+        style={({ pressed, focused }) => [
           styles.chip,
           selectedCategoryId === null && styles.chipSelected,
           pressed && styles.chipPressed,
+          focused && SoftState.focusVisible,
         ]}
         onPress={() => onCategoryChange(null)}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityLabel={selectedCategoryId === null ? t('categories.all') + ', ausgewählt' : t('categories.all')}
+        accessibilityRole="button"
+        accessibilityState={{ selected: selectedCategoryId === null }}
       >
         <Ionicons
           name="grid-outline"
           size={16}
-          color={selectedCategoryId === null ? SoftColors.textInverse : SoftColors.textSecondary}
+          color={selectedCategoryId === null ? SoftColors.textInverse : SoftColors.textPrimary}
         />
-        <Text style={[styles.chipText, selectedCategoryId === null && styles.chipTextSelected]}>
+        <Text style={[styles.chipText, selectedCategoryId === null && styles.chipTextSelected]} numberOfLines={1} ellipsizeMode="tail">
           {t('categories.all')}
         </Text>
       </Pressable>
@@ -69,19 +76,24 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
         return (
           <Pressable
             key={cat.id}
-            style={({ pressed }) => [
+            style={({ pressed, focused }) => [
               styles.chip,
               isSelected && styles.chipSelected,
               pressed && styles.chipPressed,
+              focused && SoftState.focusVisible,
             ]}
             onPress={() => onCategoryChange(cat.id)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel={isSelected ? `${cat.name}, ausgewählt` : cat.name}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isSelected }}
           >
             <Ionicons
               name={getIcon(cat.name)}
               size={16}
-              color={isSelected ? SoftColors.textInverse : SoftColors.textSecondary}
+              color={isSelected ? SoftColors.textInverse : SoftColors.textPrimary}
             />
-            <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+            <Text style={[styles.chipText, isSelected && styles.chipTextSelected]} numberOfLines={1} ellipsizeMode="tail">
               {cat.name}
             </Text>
           </Pressable>
@@ -93,34 +105,38 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: SoftSpacing.lg,
-    paddingVertical: SoftSpacing.md,
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.sm,
     gap: SoftSpacing.sm,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: SoftSpacing.lg,
-    paddingVertical: SoftSpacing.sm + 2,
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.sm,
+    minHeight: 44,
+    maxWidth: 160,
     borderRadius: SoftRadius.full,
     backgroundColor: SoftColors.bgCard,
     marginRight: SoftSpacing.sm,
     gap: SoftSpacing.xs,
+    borderWidth: 1,
+    borderColor: SoftColors.borderLight,
     ...SoftShadows.sm,
   },
   chipSelected: {
     backgroundColor: SoftColors.accent,
+    borderColor: SoftColors.accent,
   },
-  chipPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
-  },
+  chipPressed: SoftState.pressedScale,
   chipText: {
     ...SoftTypography.label,
-    color: SoftColors.textSecondary,
+    color: SoftColors.textPrimary,
+    flexShrink: 1,
   },
   chipTextSelected: {
     color: SoftColors.textInverse,
+    fontWeight: '600',
   },
 });
 

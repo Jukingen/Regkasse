@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../services/api/config';
 import type { AddItemToCartRequest } from '../services/api/cartService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
+import { getCartForTableNumber } from '../utils/tableCartUtils';
 
 // ============================================
 // TYPE DEFINITIONS
@@ -78,8 +79,10 @@ export interface CartsByTable {
 }
 
 interface CartContextType {
-    // State
+    // State: activeTableId is the single source of truth for "selected table"; currentCart is always that table's cart.
     activeTableId: number;
+    /** Derived: cart for activeTableId only. Use this for summary/checkout so UI never shows another table's cart. */
+    currentCart: Cart;
     cartsByTable: CartsByTable;
     loading: boolean;
     error: string | null;
@@ -172,13 +175,22 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Helpers
     const setLoading = useCallback((l: boolean) => setLoadingState(l), []);
     const setError = useCallback((e: string | null) => setErrorState(e), []);
-    // ✅ Helper: Get cart for specific table (or empty)
+    // ✅ Helper: Get cart for specific table (or empty). Uses shared util for table-switching contract.
     const getCartForTable = useCallback((tableNumber: number): Cart => {
-        return cartsByTable[tableNumber] || { items: [] };
+        return getCartForTableNumber(cartsByTable, tableNumber);
     }, [cartsByTable]);
+
+    // Single derived cart for active table – keeps summary/checkout in sync with selected table.
+    // Regression: never use another table's cart. See __tests__/tableSwitchingContract.test.ts
+    const currentCart = getCartForTableNumber(cartsByTable, activeTableId);
 
     // ✅ Ref to track last fetched table to prevent duplicate calls/loops
     const lastFetchedTableIdRef = React.useRef<number | null>(null);
+    // Ref for current table so switchTable never uses stale closure on rapid table change
+    const activeTableIdRef = React.useRef<number>(activeTableId);
+    React.useEffect(() => {
+        activeTableIdRef.current = activeTableId;
+    }, [activeTableId]);
 
     // ✅ Helper: Fetch fresh cart data from backend for a specific table
     const fetchTableCart = useCallback(async (tableNumber: number, forceRefresh = false) => {
@@ -286,27 +298,24 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, [activeTableId]);
 
-    // ✅ NEW: Imperative Table Switch Logic
+    // Table switch contract: Update activeTableId immediately so UI selected state and cart summary stay in sync; then fetch target table cart.
     const switchTable = useCallback(async (tableNumber: number) => {
-        if (tableNumber === activeTableId) {
-            // Optional: Allow refresh if clicked again? For now, simple return to avoid loop.
-            // If user explicitly clicks same table, maybe we SHOULD refresh?
-            // But for loop prevention, let's keep it safe.
+        const current = activeTableIdRef.current;
+        if (tableNumber === current) {
             console.log(`[CartContext] Already on table ${tableNumber}, skipping switch.`);
             return;
         }
 
-        console.log(`[CartContext] Switching active table: ${activeTableId} -> ${tableNumber}`);
+        console.log(`[CartContext] Switching active table: ${current} -> ${tableNumber}`);
         setActiveTableId(tableNumber);
+        activeTableIdRef.current = tableNumber;
 
-        // Reset fetch guard for the new table to ensure we definitely fetch
-        // (Use with caution if calling rapidly)
         if (lastFetchedTableIdRef.current === tableNumber) {
             lastFetchedTableIdRef.current = null;
         }
 
         await fetchTableCart(tableNumber);
-    }, [activeTableId, fetchTableCart]);
+    }, [fetchTableCart]);
 
     /** Aynı ürün + aynı modifier set (id:qty) = aynı satır; merge'de sadece ürün miktarı artar. */
     const getModifierKey = useCallback((modifiers: CartItemModifier[] | undefined) => {
@@ -997,6 +1006,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return (
         <CartContext.Provider value={{
             activeTableId,
+            currentCart,
             cartsByTable,
             loading,
             error,

@@ -7,7 +7,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Product } from '../services/api/productService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
 import { ModifierOptionChips } from './ModifierOptionChips';
-import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
+import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
 import type { OnAddAddOn } from './ProductRow';
 
 export interface ModifierChipItem {
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   priceText: { ...SoftTypography.price, color: SoftColors.accentDark },
-  cardPressed: { opacity: 0.92 },
+  cardPressed: SoftState.pressedScale,
 });
 
 export const ProductGridCard = memo(ProductGridCardInner, (prev, next) => {

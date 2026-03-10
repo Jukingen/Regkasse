@@ -7,7 +7,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Product } from '../services/api/productService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
 import { ModifierOptionChips } from './ModifierOptionChips';
-import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
+import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
 
 export interface ModifierChipItem {
   id: string;
@@ -148,12 +148,10 @@ const styles = StyleSheet.create({
     borderRadius: SoftRadius.sm,
   },
   priceText: {
-    ...SoftTypography.priceSmall,
+    ...SoftTypography.price,
     color: SoftColors.accentDark,
   },
-  cardPressed: {
-    opacity: 0.92,
-  },
+  cardPressed: SoftState.pressedScale,
 });
 
 export const ProductRow = memo(ProductRowInner, (prev, next) => {

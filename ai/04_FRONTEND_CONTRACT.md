@@ -15,6 +15,7 @@
   - services/api/productService
   - services/api/config
 - Yeni endpoint entegrasyonu eklerken aynı service layer yaklaşımını takip et (ekranda doğrudan fetch/axios yazma).
+- **POS:** Cart ve payment için mümkün olduğunca `/api/pos/...` rotaları kullanılmalı; deprecated Cart/Payment rotalarına geri dönülmemeli. Detay: `ai/POS_API_GUARDRAIL.md`.
 
 ## Component Structure
 - components altı modüler yapı:

@@ -152,7 +152,6 @@ const styles = StyleSheet.create({
   modifierRowLabel: {
     ...SoftTypography.caption,
     color: SoftColors.textPrimary,
-    fontSize: 11,
     flex: 1,
   },
   qtyGroup: {
@@ -197,7 +196,6 @@ const styles = StyleSheet.create({
   addChipText: {
     ...SoftTypography.caption,
     color: SoftColors.textPrimary,
-    fontSize: 11,
   },
   selectedChip: {
     alignSelf: 'flex-start',
@@ -211,6 +209,5 @@ const styles = StyleSheet.create({
   selectedChipText: {
     ...SoftTypography.caption,
     color: SoftColors.accentDark,
-    fontSize: 11,
   },
 });

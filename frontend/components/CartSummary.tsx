@@ -1,7 +1,7 @@
 // Professional POS cart summary with subtotal, tax, and grand total breakdown
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { SoftColors, SoftSpacing, SoftRadius, SoftShadows } from '../constants/SoftTheme';
+import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { formatPrice } from '../utils/formatPrice';
 import { getCartDisplayTotals } from '../contexts/CartContext';
 
@@ -68,13 +68,18 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
       {/* Payment Button (if onPayment provided) */}
       {onPayment && (
         <Pressable
-          style={({ pressed }) => [
+          style={({ pressed, focused }) => [
             styles.payButton,
             isDisabled && styles.payButtonDisabled,
             pressed && !isDisabled && styles.payButtonPressed,
+            focused && !isDisabled && SoftState.focusVisible,
           ]}
           onPress={onPayment}
           disabled={isDisabled}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityLabel={`Bezahlen ${formatPrice(totals.grandTotalGross)}`}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isDisabled }}
         >
           {isDisabled ? (
             <View style={styles.payContent}>
@@ -96,11 +101,11 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: SoftColors.bgSecondary,
     paddingHorizontal: SoftSpacing.md,
     paddingVertical: SoftSpacing.md,
-    borderTopWidth: 2,
-    borderTopColor: '#E5E7EB',
+    borderTopWidth: 1,
+    borderTopColor: SoftColors.borderLight,
   },
   breakdown: {
     marginBottom: SoftSpacing.md,
@@ -109,42 +114,42 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: SoftSpacing.sm,
   },
   label: {
-    fontSize: 13,
-    color: '#6B7280',
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textSecondary,
   },
   value: {
-    fontSize: 13,
+    ...SoftTypography.bodySmall,
     fontWeight: '600',
-    color: '#1F2937',
+    color: SoftColors.textPrimary,
   },
   divider: {
     height: 1,
-    backgroundColor: '#D1D5DB',
-    marginVertical: 12,
+    backgroundColor: SoftColors.borderLight,
+    marginVertical: SoftSpacing.sm,
   },
   totalRow: {
-    backgroundColor: '#ECFDF5', // Light green bg
-    padding: 12,
+    backgroundColor: SoftColors.successBg,
+    padding: SoftSpacing.sm,
     borderRadius: SoftRadius.md,
-    marginTop: 4,
+    marginTop: SoftSpacing.xs,
     marginBottom: 0,
   },
   totalLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#065F46',
+    ...SoftTypography.h3,
+    color: SoftColors.success,
   },
   totalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#059669',
+    ...SoftTypography.priceTotal,
+    color: SoftColors.success,
   },
   payButton: {
     backgroundColor: SoftColors.accent,
     paddingVertical: SoftSpacing.md,
+    minHeight: 48,
+    justifyContent: 'center',
     borderRadius: SoftRadius.md,
     alignItems: 'center',
     ...SoftShadows.sm,
@@ -152,16 +157,14 @@ const styles = StyleSheet.create({
   payButtonDisabled: {
     backgroundColor: SoftColors.textMuted,
   },
-  payButtonPressed: {
-    opacity: 0.9,
-  },
+  payButtonPressed: SoftState.pressedScale,
   payContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SoftSpacing.sm,
   },
   payText: {
-    fontSize: 15,
+    ...SoftTypography.body,
     fontWeight: '700',
     color: SoftColors.textInverse,
   },

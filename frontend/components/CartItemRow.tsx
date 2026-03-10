@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator } from 'react-native';
-import { SoftColors, SoftSpacing, SoftRadius, SoftShadows } from '../constants/SoftTheme';
+import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { formatPrice, formatPercent } from '../utils/formatPrice';
 
 export interface CartItemModifier {
@@ -65,8 +65,13 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                                             <View style={styles.modifierQtyGroup}>
                                                 <Pressable
                                                     onPress={() => (modQty <= 1 ? onRemoveModifier?.(m) : onDecrementModifier?.(m.id))}
-                                                    style={[styles.modifierQtyBtn, modQty <= 1 && styles.modifierQtyBtnRemove]}
-                                                    hitSlop={6}
+                                                    style={(state) => [
+                                                      styles.modifierQtyBtn,
+                                                      modQty <= 1 && styles.modifierQtyBtnRemove,
+                                                      state.pressed && SoftState.pressed,
+                                                      (state as { focused?: boolean }).focused && SoftState.focusVisible,
+                                                    ]}
+                                                    hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
                                                     accessibilityLabel={modQty <= 1 ? `${m.name} entfernen` : `${m.name} verringern`}
                                                     accessibilityRole="button"
                                                 >
@@ -75,8 +80,12 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                                                 <Text style={styles.modifierQtyValue}>{modQty}</Text>
                                                 <Pressable
                                                     onPress={() => onIncrementModifier?.(m.id)}
-                                                    style={styles.modifierQtyBtn}
-                                                    hitSlop={6}
+                                                    style={(state) => [
+                                                      styles.modifierQtyBtn,
+                                                      state.pressed && SoftState.pressed,
+                                                      (state as { focused?: boolean }).focused && SoftState.focusVisible,
+                                                    ]}
+                                                    hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
                                                     accessibilityLabel={`${m.name} erhöhen`}
                                                     accessibilityRole="button"
                                                 >
@@ -87,8 +96,12 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                                         {!canChange && onRemoveModifier && (
                                             <Pressable
                                                 onPress={() => onRemoveModifier(m)}
-                                                style={({ pressed }) => [styles.removeModifierBtn, pressed && styles.removeModifierBtnPressed]}
-                                                hitSlop={6}
+                                                style={(state) => [
+                                                  styles.removeModifierBtn,
+                                                  state.pressed && styles.removeModifierBtnPressed,
+                                                  (state as { focused?: boolean }).focused && SoftState.focusVisible,
+                                                ]}
+                                                hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
                                                 accessibilityLabel={`${m.name} entfernen`}
                                                 accessibilityRole="button"
                                             >
@@ -120,13 +133,14 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                             try { await onDecrease(); } finally { setUpdating(false); }
                         }}
                         disabled={!onDecrease || updating}
-                        style={({ pressed }) => [
+                        style={(state) => [
                             styles.qtyBtn,
                             (!onDecrease || updating) && styles.qtyBtnDisabled,
-                            pressed && styles.qtyBtnPressed
+                            state.pressed && styles.qtyBtnPressed,
+                            (state as { focused?: boolean }).focused && SoftState.focusVisible,
                         ]}
-                        hitSlop={8}
-                        accessibilityLabel="Decrease quantity"
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        accessibilityLabel="Menge verringern"
                         accessibilityRole="button"
                     >
                         <Text style={[styles.qtyBtnText, updating && styles.qtyBtnTextDisabled]}>-</Text>
@@ -147,13 +161,14 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                             try { await onIncrease(); } finally { setUpdating(false); }
                         }}
                         disabled={!onIncrease || updating}
-                        style={({ pressed }) => [
+                        style={(state) => [
                             styles.qtyBtn,
                             (!onIncrease || updating) && styles.qtyBtnDisabled,
-                            pressed && styles.qtyBtnPressed
+                            state.pressed && styles.qtyBtnPressed,
+                            (state as { focused?: boolean }).focused && SoftState.focusVisible,
                         ]}
-                        hitSlop={8}
-                        accessibilityLabel="Increase quantity"
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        accessibilityLabel="Menge erhöhen"
                         accessibilityRole="button"
                     >
                         <Text style={[styles.qtyBtnText, (!onIncrease || updating) && styles.qtyBtnTextDisabled]}>+</Text>
@@ -197,11 +212,11 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: 12,
     },
-    productName: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#1F2937',
-    },
+  productName: {
+    ...SoftTypography.bodySmall,
+    fontWeight: '600',
+    color: SoftColors.textPrimary,
+  },
     modifiersBlock: {
         marginTop: 2,
     },
@@ -267,16 +282,16 @@ const styles = StyleSheet.create({
         color: SoftColors.textPrimary,
     },
     extrasTotal: {
-        fontSize: 11,
+        ...SoftTypography.caption,
         fontWeight: '600',
         color: SoftColors.accentDark,
         marginTop: 2,
     },
-    totalPrice: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: '#059669', // Green accent
-    },
+  totalPrice: {
+    ...SoftTypography.priceTotal,
+    fontSize: 18,
+    color: SoftColors.success,
+  },
     detailsRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -291,23 +306,21 @@ const styles = StyleSheet.create({
         padding: 2,
     },
     qtyBtn: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        minWidth: 36,
+        minHeight: 36,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: SoftColors.bgCard,
         ...SoftShadows.sm,
     },
-    qtyBtnPressed: {
-        backgroundColor: SoftColors.borderLight,
-        transform: [{ scale: 0.95 }],
-    },
+    qtyBtnPressed: { ...SoftState.pressedScale, backgroundColor: SoftColors.borderLight },
     qtyBtnDisabled: {
-        opacity: 0.5,
+        ...SoftState.disabled,
         backgroundColor: 'transparent',
         elevation: 0,
-        shadowOpacity: 0,
     },
     qtyBtnText: {
         fontSize: 16,
@@ -342,7 +355,7 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
     notes: {
-        fontSize: 11,
+        ...SoftTypography.caption,
         color: SoftColors.textSecondary,
         marginTop: 6,
         fontStyle: 'italic',

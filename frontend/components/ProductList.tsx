@@ -9,17 +9,19 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
-  Dimensions,
+  useWindowDimensions,
+  Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Product } from '../services/api/productService';
 import { useProductsUnified } from '../hooks/useProductsUnified';
-import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
+import { SoftColors, SoftSpacing, SoftRadius, SoftState, SoftTypography, SoftShadows } from '../constants/SoftTheme';
+import { getContentPaddingHorizontal } from '../constants/breakpoints';
 import { ProductRow, type ModifierChipItem, type OnAddAddOn } from './ProductRow';
 import { ProductGridCard } from './ProductGridCard';
 
-const { width: screenWidth } = Dimensions.get('window');
-const isTablet = screenWidth > 768;
+/** Breakpoint: tablet = 768+ for grid columns. */
+const TABLET_MIN_WIDTH = 768;
 
 /** Ürün satırına tıklanınca (eski modal akışı – artık kullanılmıyor, onAddProduct tercih edilir) */
 export type OnProductSelect = (product: Product) => void;
@@ -61,6 +63,9 @@ export const ProductList: React.FC<ProductListProps> = ({
   ListFooterComponent
 }) => {
   const { t } = useTranslation();
+  const { width: screenWidth } = useWindowDimensions();
+  const isTablet = screenWidth >= TABLET_MIN_WIDTH;
+  const contentPaddingH = getContentPaddingHorizontal(screenWidth);
   const useInlineExtras = Boolean(onAddProduct);
 
   const {
@@ -229,21 +234,39 @@ export const ProductList: React.FC<ProductListProps> = ({
   // View mode toggle (soft pills)
   const renderViewModeToggle = () => (
     <View style={styles.viewToggleContainer}>
-      <View style={styles.viewToggle}>
+      <View style={styles.viewToggle} accessibilityRole="tablist">
         <Pressable
-          style={[styles.toggleBtn, viewMode === 'list' && styles.toggleBtnActive]}
+          style={({ pressed, focused }) => [
+            styles.toggleBtn,
+            viewMode === 'list' && styles.toggleBtnActive,
+            pressed && SoftState.pressedScale,
+            focused && SoftState.focusVisible,
+          ]}
           onPress={() => setViewMode('list')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: viewMode === 'list' }}
+          accessibilityLabel={viewMode === 'list' ? 'Listenansicht, ausgewählt' : 'Listenansicht'}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={[styles.toggleBtnText, viewMode === 'list' && styles.toggleBtnTextActive]}>
-            List
+            Liste
           </Text>
         </Pressable>
         <Pressable
-          style={[styles.toggleBtn, viewMode === 'grid' && styles.toggleBtnActive]}
+          style={({ pressed, focused }) => [
+            styles.toggleBtn,
+            viewMode === 'grid' && styles.toggleBtnActive,
+            pressed && SoftState.pressedScale,
+            focused && SoftState.focusVisible,
+          ]}
           onPress={() => setViewMode('grid')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: viewMode === 'grid' }}
+          accessibilityLabel={viewMode === 'grid' ? 'Rasteransicht, ausgewählt' : 'Rasteransicht'}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={[styles.toggleBtnText, viewMode === 'grid' && styles.toggleBtnTextActive]}>
-            Grid
+            Raster
           </Text>
         </Pressable>
       </View>
@@ -279,9 +302,11 @@ export const ProductList: React.FC<ProductListProps> = ({
         keyExtractor={(item) => item.id || Math.random().toString()}
         numColumns={viewMode === 'grid' ? getGridColumns() : 1}
         key={viewMode}
+        removeClippedSubviews={false}
         contentContainerStyle={[
           styles.listContainer,
-          viewMode === 'grid' && styles.gridContainer
+          viewMode === 'grid' && styles.gridContainer,
+          { paddingHorizontal: contentPaddingH },
         ]}
         refreshControl={
           <RefreshControl
@@ -292,10 +317,18 @@ export const ProductList: React.FC<ProductListProps> = ({
           />
         }
         ListHeaderComponent={
-          <>
+          <View
+            style={styles.listHeaderWrap}
+            pointerEvents="box-none"
+            collapsable={Platform.OS === 'android' ? false : undefined}
+          >
             {ListHeaderComponent}
+            <View style={styles.productsSectionHeader}>
+              <Text style={styles.stepLabel}>3</Text>
+              <Text style={styles.productsSectionTitle} accessibilityRole="header">Produkte</Text>
+            </View>
             {renderViewModeToggle()}
-          </>
+          </View>
         }
         ListFooterComponent={
           <>
@@ -342,6 +375,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: SoftColors.bgPrimary,
+  },
+  listHeaderWrap: {
+    zIndex: 1,
+    elevation: 1,
   },
   listContainer: {
     padding: SoftSpacing.md,
@@ -469,6 +506,23 @@ const styles = StyleSheet.create({
   },
 
   // View Toggle
+  productsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: SoftSpacing.xs,
+    marginTop: SoftSpacing.md,
+    marginBottom: SoftSpacing.sm,
+  },
+  stepLabel: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    width: 14,
+  },
+  productsSectionTitle: {
+    ...SoftTypography.h2,
+    color: SoftColors.textPrimary,
+    flex: 1,
+  },
   viewToggleContainer: {
     alignItems: 'center',
     paddingVertical: SoftSpacing.sm,
@@ -483,6 +537,8 @@ const styles = StyleSheet.create({
   toggleBtn: {
     paddingVertical: SoftSpacing.sm,
     paddingHorizontal: SoftSpacing.lg,
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: SoftRadius.full,
   },
   toggleBtnActive: {
@@ -494,6 +550,7 @@ const styles = StyleSheet.create({
   },
   toggleBtnTextActive: {
     color: SoftColors.textInverse,
+    fontWeight: '600',
   },
 
   // States

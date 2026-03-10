@@ -11,7 +11,11 @@ import {
   ActivityIndicator,
   TextInput,
   Switch,
+  Pressable,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
+import { formatPrice } from '../utils/formatPrice';
 import { useAuth } from '../contexts/AuthContext';
 import { usePayment } from '../hooks/usePayment';
 import { paymentService, PaymentRequest, PaymentItem } from '../services/api/paymentService';
@@ -96,7 +100,8 @@ function normalizeReceiptDto(r: any): ReceiptDTO {
 interface PaymentModalProps {
   visible: boolean;
   onClose: () => void;
-  onSuccess: (paymentId: string) => void;
+  /** Called after payment and print; pass tableNumber so caller can clear the paid table. */
+  onSuccess: (paymentId: string, tableNumber?: number) => void;
   cartItems: Array<{
     id: string;
     productId: string;
@@ -163,6 +168,8 @@ export default function PaymentModal({
   const totalAmount = grandTotalGross ?? calculatedCartItems.reduce((sum, item) => sum + item.lineTotal, 0);
 
   const changeAmount = parseFloat(amountReceived) - totalAmount;
+
+  const insets = useSafeAreaInsets();
 
   // Smart Cash Presets Logic
   const getCashPresets = (total: number): number[] => {
@@ -371,9 +378,9 @@ export default function PaymentModal({
     }
   };
 
-  // Helper to finish up
+  // Helper to finish up: pass tableNumber so layout can clear the paid table
   const handleSuccessAndClose = (paymentId: string) => {
-    onSuccess(paymentId);
+    onSuccess(paymentId, tableNumber);
     handleClose();
   };
 
@@ -419,124 +426,157 @@ export default function PaymentModal({
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
+      transparent
       onRequestClose={handleClose}
+      accessibilityRole="dialog"
+      accessibilityLabel="Ödeme"
     >
-      <View style={styles.overlay}>
-        <View style={styles.modal}>
-          {/* Header */}
+      <View style={styles.overlay} accessibilityViewIsModal>
+        <Pressable style={styles.modal} onPress={undefined}>
           <View style={styles.header}>
-            <Text style={styles.title}>Ödeme Al</Text>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#333" />
-            </TouchableOpacity>
+            <Text style={styles.title}>Ödeme</Text>
+            <Pressable
+              onPress={handleClose}
+              style={({ pressed, focused }) => [styles.closeButton, pressed && SoftState.pressed, focused && SoftState.focusVisible]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="Schließen"
+              accessibilityRole="button"
+            >
+              <Ionicons name="close" size={24} color={SoftColors.textPrimary} />
+            </Pressable>
           </View>
 
-          <ScrollView style={styles.content}>
-            {/* Sepet Özeti */}
+          <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+            {/* Step 1: Summe */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Sepet Özeti</Text>
+              <Text style={styles.stepLabel}>1</Text>
+              <Text style={styles.sectionTitle}>Summe</Text>
               {calculatedCartItems.map((item, index) => (
                 <View key={index} style={styles.cartItem}>
                   <Text style={styles.itemName}>{item.productName}</Text>
                   <Text style={styles.itemDetails}>
-                    {item.quantity} x €{item.unitPrice.toFixed(2)} = €{item.lineTotal.toFixed(2)}
+                    {item.quantity} × {formatPrice(item.unitPrice)} = {formatPrice(item.lineTotal)}
                   </Text>
                 </View>
               ))}
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Toplam:</Text>
-                <Text style={styles.totalAmount}>€{totalAmount.toFixed(2)}</Text>
+                <Text style={styles.totalLabel}>Gesamt</Text>
+                <Text style={styles.totalAmount}>{formatPrice(totalAmount)}</Text>
               </View>
             </View>
 
-            {/* Ödeme Yöntemleri */}
+            {/* Step 2: Zahlungsart */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Ödeme Yöntemi</Text>
+              <Text style={styles.stepLabel}>2</Text>
+              <Text style={styles.sectionTitle}>Zahlungsart</Text>
               <View style={styles.paymentMethodsContainer}>
                 {methodsLoading ? (
-                  <Text style={styles.loadingText}>Ödeme yöntemleri yükleniyor...</Text>
+                  <Text style={styles.loadingText}>Zahlungsarten werden geladen…</Text>
                 ) : paymentMethods && paymentMethods.length > 0 ? (
-                  paymentMethods.map((method) => (
-                    <TouchableOpacity
-                      key={method.id}
-                      style={[
-                        styles.paymentMethod,
-                        selectedPaymentMethod === method.type && styles.selectedPaymentMethod
-                      ]}
-                      onPress={() => setSelectedPaymentMethod(method.type as any)}
-                    >
-                      <Ionicons
-                        name={method.icon as any}
-                        size={24}
-                        color={selectedPaymentMethod === method.type ? '#007AFF' : '#666'}
-                      />
-                      <Text style={[
-                        styles.paymentMethodText,
-                        selectedPaymentMethod === method.type && styles.selectedPaymentMethodText
-                      ]}>
-                        {method.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))
+                  paymentMethods.map((method) => {
+                    const isSelected = selectedPaymentMethod === method.type;
+                    return (
+                      <Pressable
+                        key={method.id}
+                        style={({ pressed }) => [
+                          styles.paymentMethod,
+                          isSelected && styles.selectedPaymentMethod,
+                          pressed && SoftState.pressedScale,
+                        ]}
+                        onPress={() => setSelectedPaymentMethod(method.type as any)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isSelected }}
+                        accessibilityLabel={`${method.name}${isSelected ? ', ausgewählt' : ''}`}
+                      >
+                        <Ionicons
+                          name={method.icon as any}
+                          size={24}
+                          color={isSelected ? SoftColors.accent : SoftColors.textSecondary}
+                        />
+                        <Text style={[
+                          styles.paymentMethodText,
+                          isSelected && styles.selectedPaymentMethodText,
+                        ]}>
+                          {method.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })
                 ) : (
-                  <View style={{ width: '100%', alignItems: 'center' }}>
-                    <Text style={styles.errorText}>Yöntem bulunamadı</Text>
-                    <TouchableOpacity onPress={getPaymentMethods} style={{ marginTop: 10 }}>
-                      <Text style={{ color: '#007AFF' }}>Tekrar Dene</Text>
-                    </TouchableOpacity>
+                  <View style={styles.errorBlock}>
+                    <Text style={styles.errorText}>Keine Zahlungsart gefunden</Text>
+                    <Pressable onPress={getPaymentMethods} style={styles.retryLink}>
+                      <Text style={styles.retryLinkText}>Erneut versuchen</Text>
+                    </Pressable>
                   </View>
                 )}
               </View>
             </View>
 
-            {/* Nakit Ödeme Detayları */}
+            {/* Step 3: Nakit – Betrag & Rückgeld */}
             {selectedPaymentMethod === 'cash' && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Nakit Ödeme</Text>
+                <Text style={styles.stepLabel}>3</Text>
+                <Text style={styles.sectionTitle}>Barzahlung</Text>
 
-                {/* Smart Cash Presets */}
                 <View style={styles.presetsContainer}>
-                  {cashPresets.map((preset) => (
-                    <TouchableOpacity
-                      key={preset}
-                      style={styles.presetButton}
-                      onPress={() => handlePresetPress(preset)}
-                    >
-                      <Text style={styles.presetButtonText}>€{preset}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {cashPresets.map((preset) => {
+                    const isPresetSelected = amountReceived === preset.toString();
+                    return (
+                      <Pressable
+                        key={preset}
+                        style={({ pressed }) => [
+                          styles.presetButton,
+                          isPresetSelected && styles.presetButtonSelected,
+                          pressed && SoftState.pressedScale,
+                        ]}
+                        onPress={() => handlePresetPress(preset)}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isPresetSelected }}
+                        accessibilityLabel={`${formatPrice(preset)}${isPresetSelected ? ', ausgewählt' : ''}`}
+                      >
+                        <Text style={[
+                          styles.presetButtonText,
+                          isPresetSelected && styles.presetButtonTextSelected,
+                        ]}>
+                          {formatPrice(preset)}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
 
                 <View style={styles.inputRow}>
-                  <Text style={styles.label}>Alınan Tutar:</Text>
+                  <Text style={styles.label}>Erhaltener Betrag</Text>
                   <TextInput
                     style={styles.amountInput}
                     value={amountReceived}
                     onChangeText={setAmountReceived}
-                    placeholder="0.00"
-                    keyboardType="numeric"
+                    placeholder="0,00"
+                    keyboardType="decimal-pad"
+                    accessibilityLabel="Erhaltener Betrag in Euro"
+                    accessibilityHint="Mindestens den Gesamtbetrag eingeben"
                   />
                 </View>
-                {parseFloat(amountReceived) > 0 && (
+                {parseFloat(amountReceived) >= totalAmount && (
                   <View style={styles.changeRow}>
-                    <Text style={styles.changeLabel}>Para Üstü:</Text>
-                    <Text style={styles.changeAmount}>€{changeAmount.toFixed(2)}</Text>
+                    <Text style={styles.changeLabel}>Rückgeld</Text>
+                    <Text style={styles.changeAmount}>{formatPrice(changeAmount)}</Text>
                   </View>
                 )}
               </View>
             )}
 
-            {/* Notlar */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Notlar</Text>
+              <Text style={styles.sectionTitle}>Notizen</Text>
               <TextInput
                 style={styles.notesInput}
                 value={notes}
                 onChangeText={setNotes}
-                placeholder="Ödeme notları..."
+                placeholder="Optionale Notizen…"
                 multiline
-                numberOfLines={3}
+                numberOfLines={2}
+                accessibilityLabel="Optionale Notizen zur Zahlung"
               />
             </View>
 
@@ -567,46 +607,65 @@ export default function PaymentModal({
           </ScrollView>
 
           {purchaseState === 'input' || purchaseState === 'processing' ? (
-            <View style={styles.footer}>
-              <TouchableOpacity onPress={handleClose} style={styles.cancelButton} disabled={purchaseState === 'processing'}>
-                <Text style={styles.cancelButtonText}>İptal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handlePayment}
-                style={[styles.payButton, purchaseState === 'processing' && styles.payButtonDisabled]}
+            <View style={[styles.footer, { paddingBottom: Math.max(SoftSpacing.md, insets.bottom) }]}>
+              <Pressable
+                onPress={handleClose}
+                style={({ pressed, focused }) => [
+                  styles.cancelButton,
+                  pressed && SoftState.pressed,
+                  focused && SoftState.focusVisible,
+                ]}
                 disabled={purchaseState === 'processing'}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="Abbrechen"
+                accessibilityRole="button"
+              >
+                <Text style={styles.cancelButtonText}>Abbrechen</Text>
+              </Pressable>
+              <Pressable
+                onPress={handlePayment}
+                style={({ pressed, focused }) => [
+                  styles.payButton,
+                  purchaseState === 'processing' && styles.payButtonDisabled,
+                  pressed && purchaseState !== 'processing' && SoftState.pressedScale,
+                  focused && purchaseState !== 'processing' && SoftState.focusVisible,
+                ]}
+                disabled={purchaseState === 'processing'}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel={`Zahlen ${formatPrice(totalAmount)}`}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: purchaseState === 'processing' }}
               >
                 {purchaseState === 'processing' ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
-                    <Text style={styles.payButtonText}>İşleniyor...</Text>
+                  <View style={styles.payButtonContent}>
+                    <ActivityIndicator size="small" color={SoftColors.textInverse} />
+                    <Text style={styles.payButtonText}>Wird verarbeitet…</Text>
                   </View>
                 ) : (
                   <Text style={styles.payButtonText}>
-                    €{totalAmount.toFixed(2)} Öde
+                    {formatPrice(totalAmount)} zahlen
                   </Text>
                 )}
-              </TouchableOpacity>
+              </Pressable>
             </View>
           ) : (
-            // Printing / Success / Error Interaction Area
-            <View style={[styles.footer, { flexDirection: 'column', alignItems: 'center' }]}>
+            <View style={[styles.footerSecondary, { paddingBottom: Math.max(SoftSpacing.md, insets.bottom) }]}>
               {purchaseState === 'printing' && (
-                <View style={{ alignItems: 'center', padding: 10 }}>
-                  <ActivityIndicator size="large" color="#007AFF" />
-                  <Text style={{ marginTop: 10, fontSize: 16 }}>Fiş Yazdırılıyor...</Text>
+                <View style={styles.statusBlock}>
+                  <ActivityIndicator size="large" color={SoftColors.accent} />
+                  <Text style={styles.statusText}>Beleg wird gedruckt…</Text>
                 </View>
               )}
 
               {purchaseState === 'completed' && (
-                <View style={{ alignItems: 'center', padding: 10, width: '100%' }}>
-                  <Ionicons name="checkmark-circle" size={50} color="#4CAF50" />
-                  <Text style={{ marginTop: 10, fontSize: 18, fontWeight: 'bold' }}>İşlem Tamamlandı!</Text>
+                <View style={styles.statusBlock}>
+                  <Ionicons name="checkmark-circle" size={48} color={SoftColors.success} />
+                  <Text style={styles.successTitle}>Zahlung erfolgreich</Text>
                   {(() => {
                     // Receipt: GET /Payment/{id}/receipt. TODO: use payment response.receipt/totals/vatBreakdown when backend returns them.
                     const summaryReceipt = toSummaryReceipt(receiptData ?? null);
                     return summaryReceipt ? (
-                      <View style={{ width: '100%', marginTop: 12, maxHeight: 320 }}>
+                      <View style={[styles.receiptPreview, { marginTop: SoftSpacing.sm, maxHeight: 320 }]}>
                         <ReceiptSummary receipt={summaryReceipt} mode="cashier" />
                       </View>
                     ) : null;
@@ -616,45 +675,30 @@ export default function PaymentModal({
               )}
 
               {purchaseState === 'print_error' && (
-                <View style={{ width: '100%' }}>
-                  <Text style={{ textAlign: 'center', color: '#c62828', marginBottom: 10, fontWeight: 'bold' }}>
-                    Fiş Yazdırılamadı!
-                  </Text>
+                <View style={styles.printErrorBlock}>
+                  <Text style={styles.printErrorTitle}>Beleg konnte nicht gedruckt werden</Text>
                   {(() => {
                     const summaryReceipt = toSummaryReceipt(receiptData ?? null);
                     return summaryReceipt ? (
-                      <View style={{ width: '100%', marginBottom: 12, maxHeight: 280 }}>
+                      <View style={styles.receiptPreview}>
                         <ReceiptSummary receipt={summaryReceipt} mode="cashier" />
                       </View>
                     ) : null;
                   })()}
                   <PaymentSuccessQr tse={completedPaymentTse} size={140} />
-                  <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 12 }}>
-                    <TouchableOpacity onPress={handleSkipPrint} style={[styles.cancelButton, { backgroundColor: '#ffebee', borderColor: 'transparent', flex: 1 }]}>
-                      <Text style={{ color: '#c62828', textAlign: 'center' }}>Atla</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => {
-                        // Mocking PDF download as retry for now, or we could add a specific download method
-                        // For this patch, re-triggering print (which opens system dialog) is often synonymous with "Save as PDF" on mobile/web.
-                        // But to be distinct, we'll label it as PDF.
-                        handleRetryPrint();
-                      }}
-                      style={[styles.cancelButton, { backgroundColor: '#e3f2fd', borderColor: 'transparent', flex: 1 }]}
-                    >
-                      <Text style={{ color: '#1976d2', textAlign: 'center' }}>PDF İndir</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity onPress={handleRetryPrint} style={[styles.payButton, { flex: 1 }]}>
-                      <Text style={[styles.payButtonText, { textAlign: 'center' }]}>Tekrar Dene</Text>
-                    </TouchableOpacity>
+                  <View style={styles.printErrorActions}>
+                    <Pressable onPress={handleSkipPrint} style={styles.printErrorBtnSecondary}>
+                      <Text style={styles.printErrorBtnSecondaryText}>Überspringen</Text>
+                    </Pressable>
+                    <Pressable onPress={handleRetryPrint} style={styles.payButton}>
+                      <Text style={styles.payButtonText}>Erneut drucken</Text>
+                    </Pressable>
                   </View>
                 </View>
               )}
             </View>
           )}
-        </View>
+        </Pressable>
       </View>
     </Modal>
   );
@@ -663,221 +707,315 @@ export default function PaymentModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: SoftColors.overlay,
     justifyContent: 'flex-end',
   },
   modal: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: SoftColors.bgCard,
+    borderTopLeftRadius: SoftRadius.xl,
+    borderTopRightRadius: SoftRadius.xl,
     maxHeight: '90%',
+    ...SoftShadows.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: SoftSpacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: SoftColors.borderLight,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    ...SoftTypography.h2,
+    color: SoftColors.textPrimary,
   },
   closeButton: {
-    padding: 5,
+    padding: SoftSpacing.sm,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
-    padding: 20,
+    padding: SoftSpacing.md,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: SoftSpacing.lg,
+  },
+  stepLabel: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    marginBottom: SoftSpacing.xs,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 10,
+    ...SoftTypography.h3,
+    color: SoftColors.textPrimary,
+    marginBottom: SoftSpacing.sm,
   },
   cartItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: SoftSpacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: SoftColors.borderLight,
   },
   itemName: {
-    fontSize: 14,
-    color: '#333',
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textPrimary,
     flex: 1,
   },
   itemDetails: {
-    fontSize: 14,
-    color: '#666',
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textSecondary,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 15,
+    paddingTop: SoftSpacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: SoftColors.borderLight,
+    marginTop: SoftSpacing.xs,
   },
   totalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    ...SoftTypography.label,
+    color: SoftColors.textPrimary,
   },
   totalAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#007AFF',
+    ...SoftTypography.priceTotal,
+    color: SoftColors.accent,
   },
   paymentMethodsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
     flexWrap: 'wrap',
+    gap: SoftSpacing.sm,
   },
   paymentMethod: {
     alignItems: 'center',
-    padding: 15,
-    borderRadius: 10,
+    padding: SoftSpacing.sm,
+    borderRadius: SoftRadius.md,
     borderWidth: 2,
-    borderColor: '#eee',
+    borderColor: SoftColors.borderLight,
     minWidth: 80,
   },
   selectedPaymentMethod: {
-    borderColor: '#007AFF',
-    backgroundColor: '#f0f8ff',
+    borderColor: SoftColors.accent,
+    backgroundColor: SoftColors.accentLight,
   },
   paymentMethodText: {
-    marginTop: 5,
-    fontSize: 12,
-    color: '#666',
+    marginTop: SoftSpacing.xs,
+    ...SoftTypography.caption,
+    color: SoftColors.textSecondary,
   },
   selectedPaymentMethodText: {
-    color: '#007AFF',
+    color: SoftColors.accentDark,
     fontWeight: '600',
   },
   inputRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: SoftSpacing.sm,
+    gap: SoftSpacing.sm,
   },
   label: {
-    fontSize: 14,
-    color: '#333',
+    ...SoftTypography.label,
+    color: SoftColors.textPrimary,
   },
   amountInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
+    borderWidth: 2,
+    borderColor: SoftColors.accent,
+    borderRadius: SoftRadius.md,
+    padding: SoftSpacing.sm,
+    ...SoftTypography.priceTotal,
+    color: SoftColors.textPrimary,
     textAlign: 'right',
-    minWidth: 100,
+    minWidth: 120,
   },
   changeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 10,
+    paddingTop: SoftSpacing.sm,
+    marginTop: SoftSpacing.xs,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: SoftColors.borderLight,
   },
   changeLabel: {
-    fontSize: 14,
-    color: '#333',
+    ...SoftTypography.label,
+    color: SoftColors.textPrimary,
   },
   changeAmount: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#28a745',
+    ...SoftTypography.priceTotal,
+    color: SoftColors.success,
   },
   notesInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 14,
-    minHeight: 80,
+    borderColor: SoftColors.border,
+    borderRadius: SoftRadius.md,
+    padding: SoftSpacing.sm,
+    ...SoftTypography.bodySmall,
+    minHeight: 64,
     textAlignVertical: 'top',
   },
   errorContainer: {
-    backgroundColor: '#ffebee',
-    padding: 15,
-    borderRadius: 8,
-    marginTop: 10,
+    backgroundColor: SoftColors.errorBg,
+    padding: SoftSpacing.sm,
+    borderRadius: SoftRadius.md,
+    marginTop: SoftSpacing.sm,
   },
   errorText: {
-    color: '#c62828',
-    fontSize: 14,
+    ...SoftTypography.bodySmall,
+    color: SoftColors.error,
+  },
+  errorBlock: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  retryLink: {
+    marginTop: SoftSpacing.sm,
+    padding: SoftSpacing.sm,
+  },
+  retryLinkText: {
+    ...SoftTypography.label,
+    color: SoftColors.accent,
   },
   footer: {
     flexDirection: 'row',
-    padding: 20,
+    gap: SoftSpacing.sm,
+    padding: SoftSpacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: SoftColors.borderLight,
+    backgroundColor: SoftColors.bgCard,
   },
   cancelButton: {
     flex: 1,
-    padding: 15,
-    marginRight: 10,
-    borderRadius: 8,
+    minHeight: 48,
+    paddingVertical: SoftSpacing.sm,
+    borderRadius: SoftRadius.md,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: SoftColors.border,
+    backgroundColor: SoftColors.bgSecondary,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButtonText: {
-    fontSize: 16,
-    color: '#666',
+    ...SoftTypography.body,
+    color: SoftColors.textPrimary,
   },
   payButton: {
     flex: 2,
-    padding: 15,
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+    minHeight: 48,
+    paddingVertical: SoftSpacing.sm,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.accent,
     alignItems: 'center',
+    justifyContent: 'center',
+    ...SoftShadows.sm,
   },
   payButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: SoftColors.textMuted,
+  },
+  payButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SoftSpacing.sm,
   },
   payButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    ...SoftTypography.body,
+    fontWeight: '700',
+    color: SoftColors.textInverse,
   },
   loadingText: {
-    fontSize: 14,
-    color: '#666',
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textSecondary,
     textAlign: 'center',
-    paddingVertical: 10,
+    paddingVertical: SoftSpacing.sm,
   },
   presetsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15,
     flexWrap: 'wrap',
-    gap: 10,
+    gap: SoftSpacing.sm,
+    marginBottom: SoftSpacing.sm,
   },
   presetButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    backgroundColor: '#e3f2fd',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#90caf9',
-    minWidth: 60,
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.md,
+    backgroundColor: SoftColors.bgSecondary,
+    borderRadius: SoftRadius.md,
+    borderWidth: 2,
+    borderColor: SoftColors.borderLight,
+    minWidth: 72,
     alignItems: 'center',
     flex: 1,
-    marginHorizontal: 2,
+  },
+  presetButtonSelected: {
+    borderColor: SoftColors.accent,
+    backgroundColor: SoftColors.accentLight,
   },
   presetButtonText: {
-    color: '#1976d2',
+    ...SoftTypography.priceSmall,
+    color: SoftColors.textSecondary,
+  },
+  presetButtonTextSelected: {
+    color: SoftColors.accentDark,
+    fontWeight: '700',
+  },
+  footerSecondary: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: SoftSpacing.md,
+    borderTopWidth: 1,
+    borderTopColor: SoftColors.borderLight,
+    backgroundColor: SoftColors.bgCard,
+  },
+  statusBlock: {
+    alignItems: 'center',
+    padding: SoftSpacing.lg,
+    width: '100%',
+  },
+  statusText: {
+    marginTop: SoftSpacing.sm,
+    ...SoftTypography.body,
+    color: SoftColors.textSecondary,
+  },
+  successTitle: {
+    marginTop: SoftSpacing.sm,
+    ...SoftTypography.h3,
+    color: SoftColors.success,
+  },
+  printErrorBlock: {
+    width: '100%',
+  },
+  printErrorTitle: {
+    textAlign: 'center',
+    ...SoftTypography.body,
+    color: SoftColors.error,
+    marginBottom: SoftSpacing.sm,
     fontWeight: '600',
-    fontSize: 14,
+  },
+  receiptPreview: {
+    width: '100%',
+    marginBottom: SoftSpacing.sm,
+    maxHeight: 280,
+  },
+  printErrorActions: {
+    flexDirection: 'row',
+    gap: SoftSpacing.sm,
+    justifyContent: 'center',
+    marginTop: SoftSpacing.sm,
+  },
+  printErrorBtnSecondary: {
+    flex: 1,
+    paddingVertical: SoftSpacing.sm,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.errorBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  printErrorBtnSecondaryText: {
+    ...SoftTypography.body,
+    color: SoftColors.error,
   },
 }); 

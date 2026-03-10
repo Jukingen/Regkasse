@@ -1,7 +1,8 @@
 // Soft minimal table selector component
 import React from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Vibration, ActivityIndicator } from 'react-native';
-import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
 
 interface TableSelectorProps {
   selectedTable: number;
@@ -20,10 +21,10 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
   tableSelectionLoading,
   onClearAllTables,
 }) => {
+  const insets = useSafeAreaInsets();
   const tableNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   const handleTablePress = (tableNumber: number) => {
-    if (tableSelectionLoading !== null) return;
     if (selectedTable === tableNumber) return;
     Vibration.vibrate(30);
     onTableSelect(tableNumber);
@@ -42,13 +43,16 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
   };
 
   return (
-    <View style={styles.tableSection}>
-      <Text style={styles.sectionTitle}>Select Table</Text>
+    <View style={styles.tableSection} pointerEvents="box-none" accessibilityRole="none" collapsable={false}>
+      <View style={styles.sectionTitleRow}>
+        <Text style={styles.stepLabel}>1</Text>
+        <Text style={styles.sectionTitle} accessibilityRole="header">Tisch wählen</Text>
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.tableScroll}
-        contentContainerStyle={styles.tableScrollContent}
+        contentContainerStyle={[styles.tableScrollContent, { paddingRight: Math.max(SoftSpacing.lg, insets.right) }]}
       >
         {tableNumbers.map((tableNumber) => {
           const itemCount = getTableItemCount(tableNumber);
@@ -59,15 +63,20 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
           return (
             <Pressable
               key={tableNumber}
-              style={({ pressed }) => [
+              style={({ pressed, focused }) => [
                 styles.tableTab,
                 isSelected && styles.tableTabSelected,
                 hasItems && !isSelected && styles.tableTabWithItems,
                 isLoading && styles.tableTabLoading,
                 pressed && styles.tableTabPressed,
+                focused && SoftState.focusVisible,
               ]}
               onPress={() => handleTablePress(tableNumber)}
               disabled={isLoading}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel={isSelected ? `Tisch ${tableNumber} ausgewählt` : `Tisch ${tableNumber} wählen`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected, disabled: isLoading }}
             >
               <>
                 <Text style={[
@@ -80,15 +89,16 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
                 </Text>
 
                 {isLoading && (
-                  <ActivityIndicator
-                    size="small"
-                    color={isSelected ? SoftColors.textInverse : SoftColors.accent}
-                    style={styles.loadingOverlay}
-                  />
+                  <View style={styles.loadingOverlay} pointerEvents="none">
+                    <ActivityIndicator
+                      size="small"
+                      color={isSelected ? SoftColors.textInverse : SoftColors.accent}
+                    />
+                  </View>
                 )}
 
                 {hasItems && !isLoading && (
-                  <View style={styles.itemBadge}>
+                  <View style={styles.itemBadge} pointerEvents="none">
                     <Text style={styles.itemBadgeText}>{itemCount}</Text>
                   </View>
                 )}
@@ -99,14 +109,18 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
 
         {/* Clear All Button */}
         <Pressable
-          style={({ pressed }) => [
+          style={({ pressed, focused }) => [
             styles.clearAllButton,
             pressed && styles.tableTabPressed,
+            focused && SoftState.focusVisible,
           ]}
           onPress={onClearAllTables}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityLabel="Alle Tische leeren"
+          accessibilityRole="button"
         >
           <Text style={styles.clearAllEmoji}>🧹</Text>
-          <Text style={styles.clearAllText}>Clear All</Text>
+          <Text style={styles.clearAllText}>Alle leeren</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -116,16 +130,29 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
 const styles = StyleSheet.create({
   tableSection: {
     backgroundColor: SoftColors.bgCard,
-    paddingVertical: SoftSpacing.lg,
-    paddingHorizontal: SoftSpacing.lg,
+    paddingVertical: SoftSpacing.md,
+    paddingHorizontal: SoftSpacing.md,
     marginBottom: SoftSpacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: SoftColors.borderLight,
+    zIndex: 1,
+    elevation: 1,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: SoftSpacing.xs,
+    marginBottom: SoftSpacing.sm,
+  },
+  stepLabel: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    width: 14,
   },
   sectionTitle: {
-    ...SoftTypography.h3,
+    ...SoftTypography.h2,
     color: SoftColors.textPrimary,
-    marginBottom: SoftSpacing.md,
+    flex: 1,
   },
   tableScroll: {
     flexDirection: 'row',
@@ -136,7 +163,7 @@ const styles = StyleSheet.create({
   },
   tableTab: {
     width: 56,
-    height: 56,
+    minHeight: 56,
     borderRadius: SoftRadius.lg,
     backgroundColor: SoftColors.bgSecondary,
     marginRight: SoftSpacing.sm,
@@ -151,19 +178,14 @@ const styles = StyleSheet.create({
   },
   tableTabWithItems: {
     backgroundColor: SoftColors.bgCard,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: SoftColors.success,
   },
-  tableTabLoading: {
-    // opacity: 0.7, // ❌ Removed to keep text visible
-  },
-  tableTabPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.95 }],
-  },
+  tableTabLoading: {},
+  tableTabPressed: SoftState.pressedScale,
   tableTabText: {
     ...SoftTypography.h3,
-    color: SoftColors.textSecondary,
+    color: SoftColors.textPrimary,
   },
   tableTabTextSelected: {
     color: SoftColors.textInverse,
@@ -200,6 +222,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 56,
+    minWidth: 56,
   },
   clearAllEmoji: {
     fontSize: 18,
@@ -218,7 +241,6 @@ const styles = StyleSheet.create({
     right: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    // backgroundColor: 'rgba(255,255,255,0.2)', // Optional: subtle overlay back
     borderRadius: SoftRadius.lg,
   },
 });

@@ -2,6 +2,7 @@ import 'intl-pluralrules';
 import '../i18n';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import React from 'react';
 import { Text, View } from 'react-native';
@@ -26,23 +27,25 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <SystemProvider>
-          <ThemeProvider>
-            <AppStateProvider>
-              <CartProvider>
-                {/* ✅ FIX: headerShown: false - "index" header gizlendi */}
-                <Stack
+      <SafeAreaProvider>
+        <AuthProvider>
+          <SystemProvider>
+            <ThemeProvider>
+              <AppStateProvider>
+                <CartProvider>
+                  {/* ✅ FIX: headerShown: false - "index" header gizlendi */}
+                  <Stack
                   screenOptions={{
                     headerShown: false,
                   }}
-                />
-                <StatusBar style="auto" />
-              </CartProvider>
-            </AppStateProvider>
-          </ThemeProvider>
-        </SystemProvider>
-      </AuthProvider>
+                  />
+                  <StatusBar style="auto" />
+                </CartProvider>
+              </AppStateProvider>
+            </ThemeProvider>
+          </SystemProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 }

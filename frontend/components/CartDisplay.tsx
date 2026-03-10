@@ -1,7 +1,7 @@
 // Compact POS cart display - optimized for speed and minimal space
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { SoftColors, SoftSpacing, SoftRadius, SoftShadows } from '../constants/SoftTheme';
+import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { getCartDisplayTotals } from '../contexts/CartContext';
 import { CartItemRow } from './CartItemRow';
 import { formatPrice } from '../utils/formatPrice';
@@ -79,11 +79,18 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   return (
     <View style={styles.container}>
       {/* Compact header with summary */}
-      <View style={styles.header}>
+        <View style={styles.header}>
         <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
         <View style={styles.headerRight}>
           <Text style={styles.itemCount}>{itemCount} Artikel</Text>
-          <Pressable onPress={onClearCart} style={styles.clearBtn}>
+          <Pressable
+            onPress={onClearCart}
+            style={({ pressed, focused }) => [styles.clearBtn, pressed && SoftState.pressed, focused && SoftState.focusVisible]}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Warenkorb leeren"
+            accessibilityRole="button"
+          >
+            <Text style={styles.clearBtnLabel}>Leeren</Text>
             <Text style={styles.clearBtnText}>×</Text>
           </Pressable>
         </View>
@@ -126,6 +133,8 @@ const styles = StyleSheet.create({
     borderRadius: SoftRadius.md,
     ...SoftShadows.sm,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: SoftColors.borderLight,
   },
   header: {
     flexDirection: 'row',
@@ -137,8 +146,7 @@ const styles = StyleSheet.create({
     borderBottomColor: SoftColors.borderLight,
   },
   headerTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...SoftTypography.h3,
     color: SoftColors.textPrimary,
   },
   headerRight: {
@@ -147,24 +155,32 @@ const styles = StyleSheet.create({
     gap: SoftSpacing.sm,
   },
   itemCount: {
-    fontSize: 12,
-    color: SoftColors.textMuted,
+    ...SoftTypography.caption,
+    color: SoftColors.textSecondary,
   },
   clearBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: SoftColors.errorBg,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: SoftSpacing.xs,
+    paddingHorizontal: SoftSpacing.sm,
+    minHeight: 44,
+    minWidth: 44,
+    borderRadius: SoftRadius.sm,
+    backgroundColor: SoftColors.bgSecondary,
+    borderWidth: 1,
+    borderColor: SoftColors.borderLight,
+  },
+  clearBtnLabel: {
+    ...SoftTypography.caption,
+    color: SoftColors.textSecondary,
   },
   clearBtnText: {
-    fontSize: 16,
-    color: SoftColors.error,
-    fontWeight: '600',
+    ...SoftTypography.h3,
+    fontSize: 18,
+    color: SoftColors.textSecondary,
   },
   emptyBadge: {
-    fontSize: 11,
+    ...SoftTypography.caption,
     color: SoftColors.textMuted,
     backgroundColor: SoftColors.bgSecondary,
     paddingHorizontal: SoftSpacing.sm,
@@ -233,13 +249,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     padding: SoftSpacing.md,
-    fontSize: 13,
+    ...SoftTypography.bodySmall,
     color: SoftColors.textMuted,
     textAlign: 'center',
   },
   errorText: {
     padding: SoftSpacing.md,
-    fontSize: 13,
+    ...SoftTypography.bodySmall,
     color: SoftColors.error,
   },
 });
