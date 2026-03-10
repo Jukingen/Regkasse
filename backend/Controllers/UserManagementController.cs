@@ -416,10 +416,26 @@ namespace KasseAPI_Final.Controllers
                 user.EmployeeNumber = request.EmployeeNumber.Trim();
                 user.TaxNumber = request.TaxNumber;
                 user.Notes = request.Notes;
-                // Demo flag is separate from role after RemoveDemoRoleUseIsDemoFlag; role change alone does not clear IsDemo.
-                // Allow explicit update so Cashier + IsDemo drift can be resolved without raw SQL.
                 if (request.IsDemo.HasValue)
                     user.IsDemo = request.IsDemo.Value;
+
+                // Role is required and already validated; update if changed
+                var roleChanged = request.Role != user.Role;
+                if (roleChanged)
+                {
+                    user.Role = request.Role;
+                }
+
+                // Auto-clear IsDemo when role is not Demo and caller did not explicitly keep it true.
+                // Covers both "role just changed" and "role was already changed before this fix".
+                if (!request.IsDemo.HasValue
+                    && user.IsDemo
+                    && !string.Equals(user.Role, "Demo", StringComparison.OrdinalIgnoreCase))
+                {
+                    user.IsDemo = false;
+                    _logger.LogInformation("IsDemo auto-cleared for user {UserId}: role is {Role}, not Demo", id, user.Role);
+                }
+
                 user.UpdatedAt = DateTime.UtcNow;
 
                 var result = await _userManager.UpdateAsync(user);
@@ -428,8 +444,7 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Failed to update user", errors = result.Errors });
                 }
 
-                // Role is required and already validated; update if changed
-                if (request.Role != user.Role)
+                if (roleChanged)
                 {
                     var currentRoles = await _userManager.GetRolesAsync(user);
                     if (currentRoles.Any())
@@ -437,7 +452,6 @@ namespace KasseAPI_Final.Controllers
                         await _userManager.RemoveFromRolesAsync(user, currentRoles);
                     }
                     await _userManager.AddToRoleAsync(user, request.Role);
-                    user.Role = request.Role;
                 }
 
                 await _context.SaveChangesAsync();

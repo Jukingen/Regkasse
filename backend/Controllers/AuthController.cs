@@ -93,7 +93,8 @@ namespace KasseAPI_Final.Controllers
                         lastName = user.LastName,
                         role = canonicalRole,
                         roles = roles,
-                        permissions = permissions
+                        permissions = permissions,
+                        isDemo = user.IsDemo
                     }
                 };
 
@@ -196,7 +197,8 @@ namespace KasseAPI_Final.Controllers
                     lastName = user.LastName,
                     role = canonicalRole,
                     roles = roles,
-                    permissions = permissions
+                    permissions = permissions,
+                    isDemo = user.IsDemo
                 };
 
                 _logger.LogInformation("GetCurrentUser: Successfully retrieved user {Email} with role {Role}", user.Email, user.Role);
