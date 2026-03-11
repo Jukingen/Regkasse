@@ -1,4 +1,5 @@
 import { storage } from '../utils/storage';
+import { isPosAllowedRole } from '../utils/posRoleGuard';
 import { router } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -587,6 +588,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!token || !loggedInUser) {
                 console.error('Invalid login response:', response); // Debug log
                 throw new Error('Invalid login response');
+            }
+
+            // POS rol kontrolü: sadece Cashier ve SuperAdmin (+ legacy Admin alias) girebilir
+            if (!isPosAllowedRole(loggedInUser.role, loggedInUser.roles)) {
+                console.warn('POS role denied for user:', loggedInUser.email, 'role:', loggedInUser.role);
+                setJustLoggedIn(false);
+                throw new Error('Bu kullanıcı POS uygulamasına yetkili değil.');
             }
 
             console.log('Storing token and user data...'); // Debug log

@@ -40,11 +40,33 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                _logger.LogInformation("Login attempt for user: {Email}", model.Email);
+                _logger.LogInformation("Login attempt for user: {Email}, clientApp: {ClientApp}", model.Email, model.ClientApp ?? "(none)");
 
                 if (string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Password))
                 {
                     return BadRequest(new { message = "Email ve şifre gerekli" });
+                }
+
+                // --- clientApp validation (fail-closed) ---
+                var allowLegacy = string.Equals(
+                    _configuration["Auth:AllowLegacyLoginWithoutClientApp"], "true",
+                    StringComparison.OrdinalIgnoreCase);
+
+                string? resolvedClientApp = model.ClientApp?.Trim().ToLowerInvariant();
+
+                if (string.IsNullOrEmpty(resolvedClientApp))
+                {
+                    if (!allowLegacy)
+                    {
+                        return BadRequest(new { message = "clientApp field is required (\"pos\" or \"admin\")." });
+                    }
+
+                    _logger.LogWarning("Login without clientApp from {Email}. AllowLegacyLoginWithoutClientApp is ON — legacy mode.", model.Email);
+                    resolvedClientApp = null;
+                }
+                else if (!ClientAppPolicy.IsKnownApp(resolvedClientApp))
+                {
+                    return BadRequest(new { message = $"Unknown clientApp value: \"{model.ClientApp}\". Allowed: pos, admin." });
                 }
 
                 var user = await _userManager.FindByEmailAsync(model.Email);
@@ -64,6 +86,20 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Geçersiz şifre" });
                 }
 
+                // --- Role-level app policy check ---
+                var roles = await _userManager.GetRolesAsync(user);
+                var primaryRole = roles.FirstOrDefault() ?? user.Role ?? Roles.FallbackUnknown;
+                var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
+
+                if (resolvedClientApp != null && !ClientAppPolicy.IsRoleAllowedForApp(resolvedClientApp, roles.Append(primaryRole)))
+                {
+                    _logger.LogWarning(
+                        "Login denied: user {Email} (role {Role}) is not allowed for clientApp {ClientApp}",
+                        model.Email, canonicalRole, resolvedClientApp);
+
+                    return StatusCode(403, new { message = "Bu kullanıcı bu uygulama için yetkili değil." });
+                }
+
                 // Persist last login for audit and UI (Users list / detail).
                 user.LastLoginAt = DateTime.UtcNow;
                 user.LoginCount++;
@@ -74,12 +110,9 @@ namespace KasseAPI_Final.Controllers
                         user.Id, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
                 }
 
-                var roles = await _userManager.GetRolesAsync(user);
-                var primaryRole = roles.FirstOrDefault() ?? user.Role ?? Roles.FallbackUnknown;
-                var claims = await _tokenClaimsService.BuildClaimsAsync(user, roles);
+                var claims = await _tokenClaimsService.BuildClaimsAsync(user, roles, appContext: resolvedClientApp);
                 var token = GenerateJwtToken(claims);
                 var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles).ToList();
-                var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
 
                 var response = new
                 {
@@ -95,10 +128,11 @@ namespace KasseAPI_Final.Controllers
                         roles = roles,
                         permissions = permissions,
                         isDemo = user.IsDemo
-                    }
+                    },
+                    appContext = resolvedClientApp
                 };
 
-                _logger.LogInformation("Login successful for user: {Email}", model.Email);
+                _logger.LogInformation("Login successful for user: {Email}, clientApp: {ClientApp}", model.Email, resolvedClientApp ?? "legacy");
                 return Ok(response);
             }
             catch (Exception ex)
@@ -189,6 +223,8 @@ namespace KasseAPI_Final.Controllers
                 var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles).ToList();
                 var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
 
+                var appContext = User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value;
+
                 var userResponse = new
                 {
                     id = user.Id,
@@ -198,10 +234,11 @@ namespace KasseAPI_Final.Controllers
                     role = canonicalRole,
                     roles = roles,
                     permissions = permissions,
-                    isDemo = user.IsDemo
+                    isDemo = user.IsDemo,
+                    appContext = appContext
                 };
 
-                _logger.LogInformation("GetCurrentUser: Successfully retrieved user {Email} with role {Role}", user.Email, user.Role);
+                _logger.LogInformation("GetCurrentUser: Successfully retrieved user {Email} with role {Role}, appContext {AppContext}", user.Email, user.Role, appContext ?? "none");
                 return Ok(userResponse);
             }
             catch (Exception ex)
@@ -294,6 +331,12 @@ namespace KasseAPI_Final.Controllers
     {
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Target client application: "pos" or "admin".
+        /// When AllowLegacyLoginWithoutClientApp is false (default), this field is required.
+        /// </summary>
+        public string? ClientApp { get; set; }
     }
 
     public class RegisterModel

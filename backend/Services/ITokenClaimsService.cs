@@ -10,15 +10,18 @@ namespace KasseAPI_Final.Services;
 public interface ITokenClaimsService
 {
     /// <summary>
-    /// Builds the full claim list: sub, email, name, user_id, role, roles, permission (one per permission), optional tenant_id, branch_id.
+    /// Builds the full claim list: sub, email, name, user_id, role, roles, permission (one per permission),
+    /// optional tenant_id, branch_id, and app_context.
     /// Uses role normalization (trim) and RolePermissionMatrix for permissions.
     /// </summary>
     /// <param name="tenantId">Optional; when set, adds tenant_id claim for scope checks.</param>
     /// <param name="branchId">Optional; when set, adds branch_id claim for scope checks.</param>
+    /// <param name="appContext">Optional; when set, adds app_context claim ("pos" | "admin").</param>
     Task<IReadOnlyList<Claim>> BuildClaimsAsync(
         ApplicationUser user,
         IList<string> roles,
         string? tenantId = null,
         string? branchId = null,
+        string? appContext = null,
         CancellationToken cancellationToken = default);
 }

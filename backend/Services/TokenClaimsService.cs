@@ -23,6 +23,7 @@ public sealed class TokenClaimsService : ITokenClaimsService
         IList<string> roles,
         string? tenantId = null,
         string? branchId = null,
+        string? appContext = null,
         CancellationToken cancellationToken = default)
     {
         var list = new List<Claim>();
@@ -55,6 +56,9 @@ public sealed class TokenClaimsService : ITokenClaimsService
             list.Add(new Claim(ScopeCheckService.TenantIdClaim, tenantId));
         if (!string.IsNullOrEmpty(branchId))
             list.Add(new Claim(ScopeCheckService.BranchIdClaim, branchId));
+
+        if (!string.IsNullOrEmpty(appContext))
+            list.Add(new Claim(Authorization.ClientAppPolicy.AppContextClaimType, appContext));
 
         return list;
     }

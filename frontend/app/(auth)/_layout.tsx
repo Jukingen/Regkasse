@@ -1,10 +1,11 @@
 import { Slot, Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { isPosAllowedRole } from '../../utils/posRoleGuard';
 import React from 'react';
 
 export default function AuthLayout() {
-    const { isAuthenticated, isLoading, user } = useAuth();
+    const { isAuthenticated, isLoading, user, logout } = useAuth();
 
     console.log('🔐 AUTH LAYOUT: Checking auth state:', { isAuthenticated, isLoading });
 
@@ -16,9 +17,16 @@ export default function AuthLayout() {
         );
     }
 
-    // Eğer kullanıcı giriş yapmışsa ana sayfaya yönlendir
+    // Kullanıcı giriş yapmış ama POS'a yetkisiz rolle girmeye çalışıyorsa: logout yap, login'de tut
+    if (isAuthenticated && user && !isPosAllowedRole(user.role, user.roles)) {
+        console.warn('AuthLayout: authenticated user has no POS access, logging out. role:', user.role);
+        logout();
+        return <Slot />;
+    }
+
+    // Kullanıcı giriş yapmış ve POS yetkisi var → tabs'a yönlendir
     if (isAuthenticated && user) {
-        console.log('AuthLayout: User authenticated, redirecting to tabs');
+        console.log('AuthLayout: User authenticated with POS role, redirecting to tabs');
         return <Redirect href="/(tabs)/cash-register" />;
     }
 

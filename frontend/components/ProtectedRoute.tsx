@@ -3,9 +3,16 @@ import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 
 import { useAuth } from '../contexts/AuthContext';
+import { isPosAllowedRole } from '../utils/posRoleGuard';
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated, isLoading } = useAuth();
+interface ProtectedRouteProps {
+    children: React.ReactNode;
+    /** Opsiyonel: izin verilen roller. Verilmezse sadece authentication kontrolü yapılır. */
+    allowedRoles?: string[];
+}
+
+export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+    const { isAuthenticated, isLoading, user, logout } = useAuth();
     const segments = useSegments();
     const router = useRouter();
 
@@ -13,14 +20,31 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         if (isLoading) return;
 
         const inAuthGroup = segments[0] === '(auth)';
-        const inTabsGroup = segments[0] === '(tabs)';
 
         if (!isAuthenticated && !inAuthGroup) {
-            // Kullanıcı giriş yapmamış ve auth grubu dışında bir sayfaya erişmeye çalışıyor
             router.replace('/(auth)/login');
-        } else if (isAuthenticated && inAuthGroup) {
-            // Kullanıcı giriş yapmış ve auth grubuna erişmeye çalışıyor
-            router.replace('/(tabs)');
+            return;
+        }
+
+        // Rol whitelist kontrolü: allowedRoles verilmişse kontrol et
+        if (isAuthenticated && allowedRoles && user) {
+            const hasAllowedRole = allowedRoles.some(
+                (r) => r === user.role || user.roles?.includes(r)
+            );
+            if (!hasAllowedRole) {
+                console.warn('ProtectedRoute: role not in allowedRoles, logging out. role:', user.role);
+                logout();
+                return;
+            }
+        }
+
+        if (isAuthenticated && inAuthGroup) {
+            // POS rol kontrolü: yetkisiz roller tabs'a yönlendirilmez
+            if (!isPosAllowedRole(user?.role, user?.roles)) {
+                logout();
+                return;
+            }
+            router.replace('/(tabs)/cash-register');
         }
     }, [isAuthenticated, segments, isLoading]);
 
@@ -33,4 +57,4 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
 
     return <>{children}</>;
-} 
+}

@@ -10,11 +10,12 @@ import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { SoftColors, SoftShadows } from '../../constants/SoftTheme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
+import { isPosAllowedRole } from '../../utils/posRoleGuard';
 
 export default function TabLayout() {
     const { t } = useTranslation(['navigation']);
     const insets = useSafeAreaInsets();
-    const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus } = useAuth();
+    const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
 
     // Context usage
     const {
@@ -58,6 +59,13 @@ export default function TabLayout() {
     }
 
     if (!isAuthenticated || !user) {
+        return <Redirect href="/(auth)/login" />;
+    }
+
+    // POS rol guard: yetkisiz rol tabs'a erişemez, login'e geri gönderilir
+    if (!isPosAllowedRole(user.role, user.roles)) {
+        console.warn('[TabLayout] POS role denied, redirecting to login. role:', user.role);
+        logout();
         return <Redirect href="/(auth)/login" />;
     }
 
