@@ -11,4 +11,6 @@ export interface ReceiptTaxLineDTO {
   netAmount?: number;
   rate?: number;
   taxAmount?: number;
+  taxType?: number;
+  vatRate?: number;
 }

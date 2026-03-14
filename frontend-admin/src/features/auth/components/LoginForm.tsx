@@ -61,10 +61,10 @@ export const LoginForm: FC = () => {
     });
 
     const onFinish = (values: any) => {
-        // Explicitly construct the payload matching LoginModel
         const payload: LoginModel = {
-            email: values.username, // UI says 'Username' but backend expects 'email'
-            password: values.password
+            email: values.username,
+            password: values.password,
+            clientApp: 'admin',
         };
 
         if (process.env.NODE_ENV === 'development') {

@@ -40,6 +40,11 @@ export interface Invoice {
    * @maxLength 20
    */
   companyTaxNumber: string;
+  /**
+   * @maxLength 100
+   * @nullable
+   */
+  correlationId?: string | null;
   createdAt: string;
   /**
    * @maxLength 450
@@ -89,6 +94,21 @@ export interface Invoice {
   invoiceNumber: string;
   isActive?: boolean;
   /**
+   * @maxLength 1000
+   * @nullable
+   */
+  jwsHeader?: string | null;
+  /**
+   * @maxLength 4000
+   * @nullable
+   */
+  jwsPayload?: string | null;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  jwsSignature?: string | null;
+  /**
    * @minLength 0
    * @maxLength 50
    */
@@ -105,7 +125,17 @@ export interface Invoice {
    * @nullable
    */
   paymentReference?: string | null;
+  /**
+   * @maxLength 50
+   * @nullable
+   */
+  provider?: string | null;
   remainingAmount: number;
+  /**
+   * @maxLength 50
+   * @nullable
+   */
+  signatureFormat?: string | null;
   /** @nullable */
   sourcePaymentId?: string | null;
   status: InvoiceStatus;

@@ -28,4 +28,9 @@ export interface UpdateCategoryRequest {
    */
   name: string;
   sortOrder?: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  vatRate?: number;
 }

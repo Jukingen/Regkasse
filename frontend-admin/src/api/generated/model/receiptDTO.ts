@@ -11,6 +11,7 @@ import type { ReceiptItemDTO } from './receiptItemDTO';
 import type { ReceiptPaymentDTO } from './receiptPaymentDTO';
 import type { ReceiptSignatureDTO } from './receiptSignatureDTO';
 import type { ReceiptTaxLineDTO } from './receiptTaxLineDTO';
+import type { ReceiptTotalsDTO } from './receiptTotalsDTO';
 
 export interface ReceiptDTO {
   /** @nullable */
@@ -37,4 +38,5 @@ export interface ReceiptDTO {
   taxAmount?: number;
   /** @nullable */
   taxRates?: ReceiptTaxLineDTO[] | null;
+  totals?: ReceiptTotalsDTO;
 }

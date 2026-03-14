@@ -5,12 +5,18 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { SelectedModifierInputDto } from './selectedModifierInputDto';
 
 export interface AddItemToCartRequest {
   /** @nullable */
   notes?: string | null;
   productId?: string;
   quantity?: number;
+  /**
+   * @deprecated
+   * @nullable
+   */
+  selectedModifiers?: SelectedModifierInputDto[] | null;
   /** @nullable */
   tableNumber?: number | null;
   /** @nullable */

@@ -9,22 +9,26 @@ export interface APIError {
 export const handleAPIError = (error: any): APIError => {
     console.error('API Error:', error);
 
-    // Network errors
-    if (!error.response) {
+    // Axios: error.response; config interceptor: error.status, error.data
+    const status = error.response?.status ?? error.status;
+    const data = error.response?.data ?? error.data;
+
+    // Gerçek network hatası (response yok ve status yok)
+    if (status == null && error.response == null) {
         return {
             message: 'Network error. Please check your connection and try again.'
         };
     }
 
-    const { status, data } = error.response;
+    const backendMessage = typeof data?.message === 'string' ? data.message : undefined;
 
-    // HTTP status code based errors
+    // HTTP status code based errors; 400 için öncelik: backend message
     switch (status) {
         case 400:
             return {
                 status,
                 data,
-                message: data?.message || 'Invalid request. Please check your input and try again.'
+                message: backendMessage ?? 'Invalid request. Please check your input and try again.'
             };
         case 401:
             return {
@@ -48,13 +52,13 @@ export const handleAPIError = (error: any): APIError => {
             return {
                 status,
                 data,
-                message: data?.message || 'Conflict occurred. The resource already exists.'
+                message: backendMessage ?? 'Conflict occurred. The resource already exists.'
             };
         case 422:
             return {
                 status,
                 data,
-                message: data?.message || 'Validation failed. Please check your input.'
+                message: backendMessage ?? 'Validation failed. Please check your input.'
             };
         case 500:
             return {
@@ -78,7 +82,7 @@ export const handleAPIError = (error: any): APIError => {
             return {
                 status,
                 data,
-                message: data?.message || 'An unexpected error occurred. Please try again.'
+                message: backendMessage ?? 'An unexpected error occurred. Please try again.'
             };
     }
 };

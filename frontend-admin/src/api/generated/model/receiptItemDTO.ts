@@ -8,9 +8,20 @@
 
 export interface ReceiptItemDTO {
   /** @nullable */
+  categoryName?: string | null;
+  isModifierLine?: boolean;
+  /** @nullable */
+  itemId?: string | null;
+  lineTotalGross?: number;
+  lineTotalNet?: number;
+  /** @nullable */
   name?: string | null;
+  /** @nullable */
+  parentItemId?: string | null;
   quantity?: number;
   taxRate?: number;
   totalPrice?: number;
   unitPrice?: number;
+  vatAmount?: number;
+  vatRate?: number;
 }

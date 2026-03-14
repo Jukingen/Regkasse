@@ -64,7 +64,9 @@
   "errors": {
     "paymentFailed": "Ödeme işlemi başarısız",
     "paymentError": "Ödeme işlemi sırasında hata oluştu",
-    "generalError": "Bir hata oluştu"
+    "generalError": "Bir hata oluştu",
+    "demoRestricted": "Demo kullanıcılar gerçek ödeme oluşturamaz. Lütfen yetkili bir kullanıcı ile devam edin.",
+    "unknown": "Ödeme işlemi başarısız. Lütfen tekrar deneyin."
   },
   "cancellation": {
     "title": "Ödeme İptali",

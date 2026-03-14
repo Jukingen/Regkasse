@@ -93,7 +93,8 @@ public class AuthControllerTests
         var config = CreateConfig(allowLegacy);
         var logger = new Mock<ILogger<AuthController>>().Object;
         var tokenClaims = CreateTokenClaimsMock();
-        return new AuthController(userManager, config, logger, tokenClaims.Object);
+        var authOptions = Options.Create(new AuthOptions { AllowLegacyLoginWithoutClientApp = allowLegacy });
+        return new AuthController(userManager, config, logger, tokenClaims.Object, authOptions);
     }
 
     private static ApplicationUser ActiveUser(string role = "Cashier") => new()

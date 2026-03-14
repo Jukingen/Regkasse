@@ -130,6 +130,32 @@ export interface UpdateCompanySettingsRequest {
    */
   defaultTimeZone: string;
   /**
+   * @maxLength 100
+   * @nullable
+   */
+  defaultTseDeviceId?: string | null;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  finanzOnlineApiUrl?: string | null;
+  /** @nullable */
+  finanzOnlineAutoSubmit?: boolean | null;
+  /** @nullable */
+  finanzOnlineEnabled?: boolean | null;
+  /**
+   * @maxLength 100
+   * @nullable
+   */
+  finanzOnlinePassword?: string | null;
+  /** @nullable */
+  finanzOnlineSubmitInterval?: number | null;
+  /**
+   * @maxLength 100
+   * @nullable
+   */
+  finanzOnlineUsername?: string | null;
+  /**
    * @minLength 1
    * @maxLength 50
    */
@@ -149,4 +175,8 @@ export interface UpdateCompanySettingsRequest {
    * @maxLength 50
    */
   taxCalculationMethod: string;
+  /** @nullable */
+  tseAutoConnect?: boolean | null;
+  /** @nullable */
+  tseConnectionTimeout?: number | null;
 }

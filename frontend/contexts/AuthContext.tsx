@@ -6,8 +6,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 
 import i18n from '../i18n';
 import * as authService from '../services/api/authService';
-import { getUserSettings } from '../services/api/userSettingsService';
 import { handleAPIError } from '../services/errorService';
+import { isAuthError, AuthAppError } from '../features/auth/authErrors';
+import { getUserSettings } from '../services/api/userSettingsService';
 // CRITICAL FIX: useTranslation hook'unu kaldırdık - infinite loop'a neden oluyordu
 
 // Cart cache temizleme için event listener
@@ -229,11 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsAuthenticated(false);
             setJustLoggedIn(false);
 
-            // Storage'dan tüm auth verilerini temizle (Universal)
-            await storage.multiRemove(['token', 'refreshToken', 'user']);
-
-            // Web-specific or deep cleanup via partials
-            await storage.clearByPartialKey(['token', 'user', 'auth']);
+            await storage.multiRemove(['token', 'refreshToken', 'user', 'tokenExpiry']);
 
             // Cart cache temizle
             await clearCartCache();
@@ -578,8 +575,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setJustLoggedIn(true); // Login başladığında flag'i set et
             console.log('Making login API request...'); // Debug log
 
-            // Backend Email ve Password bekliyor
-            const response = await authService.login({ email: username, password });
+            const response = await authService.login({ email: username, password, clientApp: 'pos' });
             console.log('Login API response:', response); // Debug log
 
             // API client response interceptor'ı response.data döndürüyor
@@ -594,7 +590,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!isPosAllowedRole(loggedInUser.role, loggedInUser.roles)) {
                 console.warn('POS role denied for user:', loggedInUser.email, 'role:', loggedInUser.role);
                 setJustLoggedIn(false);
-                throw new Error('Bu kullanıcı POS uygulamasına yetkili değil.');
+                throw new AuthAppError('POS_UNAUTHORIZED_USER');
             }
 
             console.log('Storing token and user data...'); // Debug log
@@ -712,11 +708,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('State set, checking...'); // Debug log
             console.log('Current state values:', { isAuthenticated, user }); // Debug log
             console.log('Login process completed, navigation will be handled by useEffect'); // Debug log
-        } catch (error) {
-            console.error('Login failed:', error); // Debug log
-            setJustLoggedIn(false); // Hata durumunda flag'i temizle
+        } catch (error: unknown) {
+            console.error('Login failed:', error);
+            setJustLoggedIn(false);
+
+            if (isAuthError(error)) {
+                throw error;
+            }
+
             const apiError = handleAPIError(error);
-            throw new Error(apiError.message);
+            throw new AuthAppError('UNKNOWN_AUTH_ERROR', apiError.status, apiError.message);
         } finally {
             setIsLoading(false);
         }
@@ -729,47 +730,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 🧹 ÖNCE CART CACHE'İ TEMİZLE
             await clearCartCache();
 
-            // Backend logout API çağrısı yap
-            const token = await storage.getItem('token');
-            if (token) {
-                try {
-                    await authService.logout();
-                    console.log('Logout API request successful'); // Debug log
-
-                    // 🧹 BACKEND LOGOUT API - Kullanıcı sepetlerini temizle
-                    try {
-                        console.log('🧹 Backend logout API çağrılıyor...');
-
-                        // Token'ı kullan (zaten Bearer prefix ile saklanıyor)
-                        const logoutResponse = await fetch('http://localhost:5183/api/auth/logout', {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': token,
-                                'Content-Type': 'application/json'
-                            }
-                        });
-
-                        if (logoutResponse.ok) {
-                            const result = await logoutResponse.json();
-                            console.log('✅ Backend logout başarılı:', result.message);
-                        } else {
-                            // Backend'den hata mesajını al
-                            let errorMessage = 'Backend logout failed';
-                            try {
-                                const errorData = await logoutResponse.json();
-                                errorMessage = errorData.message || errorMessage;
-                            } catch {
-                                errorMessage = `Backend logout failed: ${logoutResponse.status} ${logoutResponse.statusText}`;
-                            }
-                            console.warn('⚠️ Backend logout warning:', errorMessage);
-                        }
-                    } catch (backendError) {
-                        console.warn('⚠️ Backend logout API hatası (non-critical):', backendError);
-                    }
-                } catch (apiError) {
-                    console.warn('⚠️ Auth service logout hatası (non-critical):', apiError);
-                }
-            }
+            // Backend logout + storage cleanup via authService
+            await authService.logout();
 
             // 🧹 LOCAL STATE VE STORAGE TEMİZLİĞİ
             console.log('🧹 Local state ve storage temizleniyor...');
@@ -779,18 +741,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsAuthenticated(false);
             setJustLoggedIn(false);
 
-            // Storage'dan tüm auth verilerini temizle (Universal)
             await storage.multiRemove([
                 'token',
                 'refreshToken',
                 'user',
-                'tokenExpiry'
+                'tokenExpiry',
             ]);
-
-            // Web-specific or deep cleanup via partials
-            await storage.clearByPartialKey(['token', 'user', 'auth']);
-
-            console.log('✅ Local state ve storage temizlendi');
 
             // 🧹 CART CACHE TEMİZLİĞİ - Event ile
             if (typeof window !== 'undefined' && window.dispatchEvent) {

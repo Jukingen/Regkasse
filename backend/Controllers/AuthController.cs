@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Models;
@@ -22,17 +23,20 @@ namespace KasseAPI_Final.Controllers
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
         private readonly ITokenClaimsService _tokenClaimsService;
+        private readonly AuthOptions _authOptions;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
             ILogger<AuthController> logger,
-            ITokenClaimsService tokenClaimsService)
+            ITokenClaimsService tokenClaimsService,
+            IOptions<AuthOptions> authOptions)
         {
             _userManager = userManager;
             _configuration = configuration;
             _logger = logger;
             _tokenClaimsService = tokenClaimsService;
+            _authOptions = authOptions.Value;
         }
 
         [HttpPost("login")]
@@ -48,9 +52,7 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // --- clientApp validation (fail-closed) ---
-                var allowLegacy = string.Equals(
-                    _configuration["Auth:AllowLegacyLoginWithoutClientApp"], "true",
-                    StringComparison.OrdinalIgnoreCase);
+                var allowLegacy = _authOptions.AllowLegacyLoginWithoutClientApp;
 
                 string? resolvedClientApp = model.ClientApp?.Trim().ToLowerInvariant();
 
@@ -311,9 +313,12 @@ namespace KasseAPI_Final.Controllers
 
         private string GenerateJwtToken(IReadOnlyList<Claim> claims)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"] ?? "default-secret-key-32-chars-long"));
+            var secretKey = _configuration["JwtSettings:SecretKey"]!;
+            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expires = DateTime.Now.AddHours(1);
+
+            var expirationHours = double.TryParse(_configuration["JwtSettings:ExpirationHours"], out var h) ? h : 24;
+            var expires = DateTime.UtcNow.AddHours(expirationHours);
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["JwtSettings:Issuer"],

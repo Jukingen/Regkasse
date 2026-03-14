@@ -1,6 +1,7 @@
 import { Buffer } from 'buffer';
 import { storage } from '../../utils/storage';
 import { apiClient, API_BASE_URL } from './config';
+import { normalizePaymentError } from '../../features/payment/paymentErrors';
 
 export interface PaymentMethod {
   id: string;
@@ -98,8 +99,12 @@ class PaymentService {
 
   // Payment processing - Backend endpoint compatible
   async processPayment(paymentRequest: PaymentRequest): Promise<PaymentResponse> {
-    const response = await apiClient.post<any>(`${this.baseUrl}`, paymentRequest);
-    return this.normalizePaymentResponse(response);
+    try {
+      const response = await apiClient.post<any>(`${this.baseUrl}`, paymentRequest);
+      return this.normalizePaymentResponse(response);
+    } catch (error: unknown) {
+      throw normalizePaymentError(error);
+    }
   }
 
   // Helper to handle inconsistent backend responses (e.g. nested Value object)

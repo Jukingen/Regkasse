@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { paymentService, PaymentRequest, PaymentResponse, PaymentMethod } from '../services/api/paymentService';
 import { useAuth } from '../contexts/AuthContext';
+import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
 
 // Türkçe Açıklama: Ödeme işlemleri için hook - Backend API ile entegre çalışır
 export const usePayment = () => {
@@ -56,7 +57,9 @@ export const usePayment = () => {
 
       return response;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Ödeme işlemi başarısız';
+      const errorMessage = isPaymentError(err)
+        ? getPaymentErrorMessage(err.code)
+        : (err instanceof Error ? err.message : 'Ödeme işlemi başarısız');
       setError(errorMessage);
       throw err;
     } finally {

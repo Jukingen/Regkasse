@@ -19,6 +19,7 @@ import { formatPrice } from '../utils/formatPrice';
 import { useAuth } from '../contexts/AuthContext';
 import { usePayment } from '../hooks/usePayment';
 import { paymentService, PaymentRequest, PaymentItem } from '../services/api/paymentService';
+import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
 import { cartService } from '../services/api/cartService';
 import { customerService, GUEST_CUSTOMER_ID } from '../services/api/customerService';
 import { validateSteuernummer, validateKassenId, validateAmount } from '../utils/validation';
@@ -373,8 +374,11 @@ export default function PaymentModal({
 
     } catch (err) {
       console.error('Handle Payment Error:', err);
-      Alert.alert('Hata', err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu');
       setPurchaseState('input');
+      const message = isPaymentError(err)
+        ? getPaymentErrorMessage(err.code)
+        : (err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu');
+      Alert.alert(isPaymentError(err) && err.code === 'DEMO_PAYMENT_RESTRICTED' ? 'Uyarı' : 'Hata', message);
     }
   };
 

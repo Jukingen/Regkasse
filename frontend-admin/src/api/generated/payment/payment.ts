@@ -25,7 +25,11 @@ import type {
   GetApiPaymentDateRangeParams,
   GetApiPaymentMethodPaymentMethodParams,
   GetApiPaymentStatisticsParams,
-  RefundPaymentRequest
+  ProblemDetails,
+  RefundPaymentRequest,
+  SignatureDiagnosticStep,
+  VerifySignatureRequest,
+  VerifySignatureResponse
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -33,6 +37,10 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const getApiPaymentMethods = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -72,6 +80,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPaymentMethodsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentMethods>>>
 export type GetApiPaymentMethodsQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiPaymentMethods = <TData = Awaited<ReturnType<typeof getApiPaymentMethods>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentMethods>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -88,12 +99,16 @@ export const useGetApiPaymentMethods = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const postApiPayment = (
     createPaymentRequest: CreatePaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<void>(
+      return customInstance<unknown>(
       {url: `/api/Payment`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: createPaymentRequest
@@ -126,7 +141,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPaymentMutationBody = CreatePaymentRequest
     export type PostApiPaymentMutationError = unknown
 
-    export const usePostApiPayment = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiPayment = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPayment>>, TError,{data: CreatePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPayment>>,
@@ -139,7 +157,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPaymentId = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const getApiPaymentId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -178,6 +200,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPaymentIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentId>>>
 export type GetApiPaymentIdQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiPaymentId = <TData = Awaited<ReturnType<typeof getApiPaymentId>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -194,6 +219,10 @@ export const useGetApiPaymentId = <TData = Awaited<ReturnType<typeof getApiPayme
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const getApiPaymentCustomerCustomerId = (
     customerId: string,
     params?: GetApiPaymentCustomerCustomerIdParams,
@@ -237,6 +266,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPaymentCustomerCustomerIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentCustomerCustomerId>>>
 export type GetApiPaymentCustomerCustomerIdQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiPaymentCustomerCustomerId = <TData = Awaited<ReturnType<typeof getApiPaymentCustomerCustomerId>>, TError = unknown>(
  customerId: string,
     params?: GetApiPaymentCustomerCustomerIdParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentCustomerCustomerId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -254,6 +286,10 @@ export const useGetApiPaymentCustomerCustomerId = <TData = Awaited<ReturnType<ty
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const getApiPaymentMethodPaymentMethod = (
     paymentMethod: string,
     params?: GetApiPaymentMethodPaymentMethodParams,
@@ -297,6 +333,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPaymentMethodPaymentMethodQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentMethodPaymentMethod>>>
 export type GetApiPaymentMethodPaymentMethodQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiPaymentMethodPaymentMethod = <TData = Awaited<ReturnType<typeof getApiPaymentMethodPaymentMethod>>, TError = unknown>(
  paymentMethod: string,
     params?: GetApiPaymentMethodPaymentMethodParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentMethodPaymentMethod>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
@@ -314,6 +353,10 @@ export const useGetApiPaymentMethodPaymentMethod = <TData = Awaited<ReturnType<t
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const getApiPaymentDateRange = (
     params?: GetApiPaymentDateRangeParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -354,6 +397,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPaymentDateRangeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentDateRange>>>
 export type GetApiPaymentDateRangeQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiPaymentDateRange = <TData = Awaited<ReturnType<typeof getApiPaymentDateRange>>, TError = unknown>(
  params?: GetApiPaymentDateRangeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentDateRange>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -370,13 +416,17 @@ export const useGetApiPaymentDateRange = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const postApiPaymentIdCancel = (
     id: string,
     cancelPaymentRequest: CancelPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<void>(
+      return customInstance<unknown>(
       {url: `/api/Payment/${id}/cancel`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: cancelPaymentRequest
@@ -409,7 +459,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPaymentIdCancelMutationBody = CancelPaymentRequest
     export type PostApiPaymentIdCancelMutationError = unknown
 
-    export const usePostApiPaymentIdCancel = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiPaymentIdCancel = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPaymentIdCancel>>, TError,{id: string;data: CancelPaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPaymentIdCancel>>,
@@ -422,13 +475,17 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiPaymentIdRefund = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiPaymentIdRefund = (
     id: string,
     refundPaymentRequest: RefundPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<void>(
+      return customInstance<unknown>(
       {url: `/api/Payment/${id}/refund`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: refundPaymentRequest
@@ -461,7 +518,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiPaymentIdRefundMutationBody = RefundPaymentRequest
     export type PostApiPaymentIdRefundMutationError = unknown
 
-    export const usePostApiPaymentIdRefund = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiPaymentIdRefund = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPaymentIdRefund>>, TError,{id: string;data: RefundPaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPaymentIdRefund>>,
@@ -474,7 +534,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPaymentStatistics = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const getApiPaymentStatistics = (
     params?: GetApiPaymentStatisticsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -514,6 +578,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPaymentStatisticsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentStatistics>>>
 export type GetApiPaymentStatisticsQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiPaymentStatistics = <TData = Awaited<ReturnType<typeof getApiPaymentStatistics>>, TError = unknown>(
  params?: GetApiPaymentStatisticsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentStatistics>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -530,6 +597,136 @@ export const useGetApiPaymentStatistics = <TData = Awaited<ReturnType<typeof get
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const getApiPaymentIdQrPng = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/Payment/${id}/qr.png`, method: 'GET',
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPaymentIdQrPngQueryKey = (id: string,) => {
+    return [`/api/Payment/${id}/qr.png`] as const;
+    }
+
+    
+export const getGetApiPaymentIdQrPngQueryOptions = <TData = Awaited<ReturnType<typeof getApiPaymentIdQrPng>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdQrPng>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPaymentIdQrPngQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPaymentIdQrPng>>> = ({ signal }) => getApiPaymentIdQrPng(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdQrPng>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPaymentIdQrPngQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentIdQrPng>>>
+export type GetApiPaymentIdQrPngQueryError = ProblemDetails
+
+/**
+ * @deprecated
+ */
+export const useGetApiPaymentIdQrPng = <TData = Awaited<ReturnType<typeof getApiPaymentIdQrPng>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdQrPng>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPaymentIdQrPngQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const getApiPaymentIdQrSvg = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/Payment/${id}/qr.svg`, method: 'GET',
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPaymentIdQrSvgQueryKey = (id: string,) => {
+    return [`/api/Payment/${id}/qr.svg`] as const;
+    }
+
+    
+export const getGetApiPaymentIdQrSvgQueryOptions = <TData = Awaited<ReturnType<typeof getApiPaymentIdQrSvg>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdQrSvg>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPaymentIdQrSvgQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPaymentIdQrSvg>>> = ({ signal }) => getApiPaymentIdQrSvg(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdQrSvg>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPaymentIdQrSvgQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentIdQrSvg>>>
+export type GetApiPaymentIdQrSvgQueryError = ProblemDetails
+
+/**
+ * @deprecated
+ */
+export const useGetApiPaymentIdQrSvg = <TData = Awaited<ReturnType<typeof getApiPaymentIdQrSvg>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdQrSvg>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPaymentIdQrSvgQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const getApiPaymentIdReceipt = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -569,6 +766,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiPaymentIdReceiptQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentIdReceipt>>>
 export type GetApiPaymentIdReceiptQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiPaymentIdReceipt = <TData = Awaited<ReturnType<typeof getApiPaymentIdReceipt>>, TError = unknown>(
  id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdReceipt>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -585,6 +785,10 @@ export const useGetApiPaymentIdReceipt = <TData = Awaited<ReturnType<typeof getA
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const postApiPaymentIdTseSignature = (
     id: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -621,7 +825,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     
     export type PostApiPaymentIdTseSignatureMutationError = unknown
 
-    export const usePostApiPaymentIdTseSignature = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiPaymentIdTseSignature = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPaymentIdTseSignature>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPaymentIdTseSignature>>,
@@ -631,6 +838,126 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiPaymentIdTseSignatureMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const getApiPaymentIdSignatureDebug = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<SignatureDiagnosticStep[]>(
+      {url: `/api/Payment/${id}/signature-debug`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPaymentIdSignatureDebugQueryKey = (id: string,) => {
+    return [`/api/Payment/${id}/signature-debug`] as const;
+    }
+
+    
+export const getGetApiPaymentIdSignatureDebugQueryOptions = <TData = Awaited<ReturnType<typeof getApiPaymentIdSignatureDebug>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdSignatureDebug>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPaymentIdSignatureDebugQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPaymentIdSignatureDebug>>> = ({ signal }) => getApiPaymentIdSignatureDebug(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdSignatureDebug>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPaymentIdSignatureDebugQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPaymentIdSignatureDebug>>>
+export type GetApiPaymentIdSignatureDebugQueryError = ProblemDetails
+
+/**
+ * @deprecated
+ */
+export const useGetApiPaymentIdSignatureDebug = <TData = Awaited<ReturnType<typeof getApiPaymentIdSignatureDebug>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPaymentIdSignatureDebug>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPaymentIdSignatureDebugQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiPaymentVerifySignature = (
+    verifySignatureRequest: VerifySignatureRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<VerifySignatureResponse>(
+      {url: `/api/Payment/verify-signature`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: verifySignatureRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPaymentVerifySignatureMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPaymentVerifySignature>>, TError,{data: VerifySignatureRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPaymentVerifySignature>>, TError,{data: VerifySignatureRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPaymentVerifySignature>>, {data: VerifySignatureRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiPaymentVerifySignature(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPaymentVerifySignatureMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPaymentVerifySignature>>>
+    export type PostApiPaymentVerifySignatureMutationBody = VerifySignatureRequest
+    export type PostApiPaymentVerifySignatureMutationError = ProblemDetails
+
+    /**
+ * @deprecated
+ */
+export const usePostApiPaymentVerifySignature = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPaymentVerifySignature>>, TError,{data: VerifySignatureRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPaymentVerifySignature>>,
+        TError,
+        {data: VerifySignatureRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPaymentVerifySignatureMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

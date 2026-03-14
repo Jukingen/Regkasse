@@ -28,4 +28,9 @@ export interface CreateCategoryRequest {
    */
   name: string;
   sortOrder?: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  vatRate?: number;
 }

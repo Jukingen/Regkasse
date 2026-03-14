@@ -7,6 +7,6 @@
  */
 
 export interface ResetPasswordRequest {
-  /** @minLength 6 */
+  /** @minLength 8 */
   newPassword: string;
 }

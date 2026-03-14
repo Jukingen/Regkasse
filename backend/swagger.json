@@ -13252,6 +13252,11 @@
           "password": {
             "type": "string",
             "nullable": true
+          },
+          "clientApp": {
+            "type": "string",
+            "description": "Target client application: \"pos\" or \"admin\". Required when AllowLegacyLoginWithoutClientApp is false.",
+            "nullable": true
           }
         },
         "additionalProperties": false

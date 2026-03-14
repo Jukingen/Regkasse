@@ -32,7 +32,7 @@ export interface CreateUserRequest {
    * @nullable
    */
   notes?: string | null;
-  /** @minLength 6 */
+  /** @minLength 8 */
   password: string;
   /**
    * @minLength 1

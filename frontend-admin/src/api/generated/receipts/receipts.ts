@@ -131,4 +131,58 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const getApiReceiptsReceiptIdSignatureDebug = (
+    receiptId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<unknown>(
+      {url: `/api/Receipts/${receiptId}/signature-debug`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiReceiptsReceiptIdSignatureDebugQueryKey = (receiptId: string,) => {
+    return [`/api/Receipts/${receiptId}/signature-debug`] as const;
+    }
+
     
+export const getGetApiReceiptsReceiptIdSignatureDebugQueryOptions = <TData = Awaited<ReturnType<typeof getApiReceiptsReceiptIdSignatureDebug>>, TError = unknown>(receiptId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsReceiptIdSignatureDebug>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReceiptsReceiptIdSignatureDebugQueryKey(receiptId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReceiptsReceiptIdSignatureDebug>>> = ({ signal }) => getApiReceiptsReceiptIdSignatureDebug(receiptId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(receiptId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsReceiptIdSignatureDebug>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiReceiptsReceiptIdSignatureDebugQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReceiptsReceiptIdSignatureDebug>>>
+export type GetApiReceiptsReceiptIdSignatureDebugQueryError = unknown
+
+export const useGetApiReceiptsReceiptIdSignatureDebug = <TData = Awaited<ReturnType<typeof getApiReceiptsReceiptIdSignatureDebug>>, TError = unknown>(
+ receiptId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsReceiptIdSignatureDebug>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiReceiptsReceiptIdSignatureDebugQueryOptions(receiptId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+

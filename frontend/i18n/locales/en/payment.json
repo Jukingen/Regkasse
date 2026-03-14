@@ -64,7 +64,9 @@
   "errors": {
     "paymentFailed": "Payment process failed",
     "paymentError": "Error during payment process",
-    "generalError": "An error occurred"
+    "generalError": "An error occurred",
+    "demoRestricted": "Demo users cannot create real payments. Please continue with an authorized user.",
+    "unknown": "Payment process failed. Please try again."
   },
   "cancellation": {
     "title": "Cancel Payment",

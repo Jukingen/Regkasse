@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { Cart } from './cart';
+import type { CartItemModifier } from './cartItemModifier';
 
 export interface CartItem {
   cart?: Cart;
@@ -22,6 +23,8 @@ export interface CartItem {
   createdBy?: string | null;
   id?: string;
   isActive?: boolean;
+  /** @nullable */
+  modifiers?: CartItemModifier[] | null;
   /**
    * @maxLength 500
    * @nullable

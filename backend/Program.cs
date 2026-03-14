@@ -24,6 +24,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configuration Binding
 builder.Services.Configure<CompanyProfileOptions>(builder.Configuration.GetSection(CompanyProfileOptions.SectionName));
 builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptions.SectionName));
+builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 
 // Development ortamında tüm IP'lerden erişime izin ver - Force host binding
 builder.WebHost.ConfigureKestrel(serverOptions =>

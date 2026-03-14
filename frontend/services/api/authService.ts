@@ -1,10 +1,12 @@
 import { storage } from '../../utils/storage';
 
 import { apiClient } from './config';
+import { normalizeLoginError } from '../../features/auth/authErrors';
 
 export interface LoginRequest {
   email: string;
   password: string;
+  clientApp?: string;
 }
 
 export interface LoginResponse {
@@ -50,21 +52,21 @@ export const login = async (credentials: LoginRequest): Promise<LoginResponse> =
     }
 
     return response;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Login error:', error);
-    throw new Error('Login başarısız');
+    throw normalizeLoginError(error);
   }
 };
 
-// Logout işlemi
 export const logout = async (): Promise<void> => {
   try {
+    await apiClient.post('/auth/logout');
+  } catch (error) {
+    console.warn('Backend logout call failed (non-critical):', error);
+  } finally {
     await storage.removeItem('token');
     await storage.removeItem('user');
-    // refreshToken varsa onu da temizle
     await storage.removeItem('refreshToken');
-  } catch (error) {
-    console.error('Logout error:', error);
   }
 };
 

@@ -5,13 +5,22 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { Category } from './category';
+import type { ProductModifierGroupAssignment } from './productModifierGroupAssignment';
 
 export interface Product {
+  /**
+   * @minLength 1
+   * @maxLength 50
+   */
+  barcode: string;
   /**
    * @minLength 1
    * @maxLength 100
    */
   category: string;
+  categoryId?: string;
+  categoryNavigation?: Category;
   /** @minimum 0 */
   cost?: number;
   createdAt: string;
@@ -32,12 +41,15 @@ export interface Product {
   imageUrl?: string | null;
   isActive?: boolean;
   isFiscalCompliant?: boolean;
+  isSellableAddOn?: boolean;
   isTaxable?: boolean;
   /**
    * @minimum 0
    * @maximum 2147483647
    */
   minStockLevel: number;
+  /** @nullable */
+  modifierGroupAssignments?: ProductModifierGroupAssignment[] | null;
   /**
    * @minLength 1
    * @maxLength 200
@@ -65,11 +77,7 @@ export interface Product {
    * @maximum 100
    */
   taxRate?: number;
-  /**
-   * @minLength 1
-   * @maxLength 20
-   */
-  taxType: string;
+  taxType: number;
   /**
    * @minLength 1
    * @maxLength 20

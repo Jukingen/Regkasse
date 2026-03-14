@@ -35,6 +35,10 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const getApiCartCurrent = (
     params?: GetApiCartCurrentParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -75,6 +79,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCartCurrentQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCartCurrent>>>
 export type GetApiCartCurrentQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiCartCurrent = <TData = Awaited<ReturnType<typeof getApiCartCurrent>>, TError = unknown>(
  params?: GetApiCartCurrentParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCartCurrent>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -91,6 +98,10 @@ export const useGetApiCartCurrent = <TData = Awaited<ReturnType<typeof getApiCar
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const getApiCartCartId = (
     cartId: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -130,6 +141,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCartCartIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCartCartId>>>
 export type GetApiCartCartIdQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiCartCartId = <TData = Awaited<ReturnType<typeof getApiCartCartId>>, TError = unknown>(
  cartId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCartCartId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -146,6 +160,10 @@ export const useGetApiCartCartId = <TData = Awaited<ReturnType<typeof getApiCart
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const deleteApiCartCartId = (
     cartId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -182,7 +200,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     
     export type DeleteApiCartCartIdMutationError = unknown
 
-    export const useDeleteApiCartCartId = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const useDeleteApiCartCartId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCartCartId>>, TError,{cartId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiCartCartId>>,
@@ -195,7 +216,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiCart = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiCart = (
     createCartRequest: CreateCartRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
@@ -233,7 +258,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCartMutationBody = CreateCartRequest
     export type PostApiCartMutationError = unknown
 
-    export const usePostApiCart = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCart = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCart>>, TError,{data: CreateCartRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCart>>,
@@ -246,7 +274,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiCartAddItem = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiCartAddItem = (
     addItemToCartRequest: AddItemToCartRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
@@ -284,7 +316,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCartAddItemMutationBody = AddItemToCartRequest
     export type PostApiCartAddItemMutationError = unknown
 
-    export const usePostApiCartAddItem = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCartAddItem = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartAddItem>>, TError,{data: AddItemToCartRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCartAddItem>>,
@@ -297,7 +332,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiCartCartIdItems = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiCartCartIdItems = (
     cartId: string,
     addCartItemRequest: AddCartItemRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -336,7 +375,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCartCartIdItemsMutationBody = AddCartItemRequest
     export type PostApiCartCartIdItemsMutationError = unknown
 
-    export const usePostApiCartCartIdItems = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCartCartIdItems = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartCartIdItems>>, TError,{cartId: string;data: AddCartItemRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCartCartIdItems>>,
@@ -349,7 +391,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const putApiCartItemsItemId = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const putApiCartItemsItemId = (
     itemId: string,
     updateCartItemRequest: UpdateCartItemRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -388,7 +434,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiCartItemsItemIdMutationBody = UpdateCartItemRequest
     export type PutApiCartItemsItemIdMutationError = unknown
 
-    export const usePutApiCartItemsItemId = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePutApiCartItemsItemId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCartItemsItemId>>, TError,{itemId: string;data: UpdateCartItemRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiCartItemsItemId>>,
@@ -401,7 +450,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiCartItemsItemId = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const deleteApiCartItemsItemId = (
     itemId: string,
  options?: SecondParameter<typeof customInstance>,) => {
       
@@ -437,7 +490,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     
     export type DeleteApiCartItemsItemIdMutationError = unknown
 
-    export const useDeleteApiCartItemsItemId = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const useDeleteApiCartItemsItemId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCartItemsItemId>>, TError,{itemId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiCartItemsItemId>>,
@@ -450,7 +506,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const putApiCartCartIdItemsItemId = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const putApiCartCartIdItemsItemId = (
     cartId: string,
     itemId: string,
     updateCartItemRequest: UpdateCartItemRequest,
@@ -490,7 +550,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutApiCartCartIdItemsItemIdMutationBody = UpdateCartItemRequest
     export type PutApiCartCartIdItemsItemIdMutationError = unknown
 
-    export const usePutApiCartCartIdItemsItemId = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePutApiCartCartIdItemsItemId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCartCartIdItemsItemId>>, TError,{cartId: string;itemId: string;data: UpdateCartItemRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiCartCartIdItemsItemId>>,
@@ -503,7 +566,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiCartCartIdItemsItemId = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const deleteApiCartCartIdItemsItemId = (
     cartId: string,
     itemId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -540,7 +607,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     
     export type DeleteApiCartCartIdItemsItemIdMutationError = unknown
 
-    export const useDeleteApiCartCartIdItemsItemId = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const useDeleteApiCartCartIdItemsItemId = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCartCartIdItemsItemId>>, TError,{cartId: string;itemId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiCartCartIdItemsItemId>>,
@@ -553,7 +623,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiCartCartIdClearItems = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiCartCartIdClearItems = (
     cartId: string,
  options?: SecondParameter<typeof customInstance>,) => {
       
@@ -589,7 +663,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     
     export type PostApiCartCartIdClearItemsMutationError = unknown
 
-    export const usePostApiCartCartIdClearItems = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCartCartIdClearItems = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartCartIdClearItems>>, TError,{cartId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCartCartIdClearItems>>,
@@ -602,7 +679,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiCartClear = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiCartClear = (
     params?: PostApiCartClearParams,
  options?: SecondParameter<typeof customInstance>,) => {
       
@@ -639,7 +720,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     
     export type PostApiCartClearMutationError = unknown
 
-    export const usePostApiCartClear = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCartClear = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartClear>>, TError,{params?: PostApiCartClearParams}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCartClear>>,
@@ -652,7 +736,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiCartClearAll = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiCartClearAll = (
     
  options?: SecondParameter<typeof customInstance>,) => {
       
@@ -688,7 +776,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     
     export type PostApiCartClearAllMutationError = unknown
 
-    export const usePostApiCartClearAll = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCartClearAll = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartClearAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCartClearAll>>,
@@ -701,7 +792,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiCartCartIdResetAfterPayment = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiCartCartIdResetAfterPayment = (
     cartId: string,
     resetCartAfterPaymentRequest: ResetCartAfterPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -740,7 +835,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCartCartIdResetAfterPaymentMutationBody = ResetCartAfterPaymentRequest
     export type PostApiCartCartIdResetAfterPaymentMutationError = unknown
 
-    export const usePostApiCartCartIdResetAfterPayment = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCartCartIdResetAfterPayment = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartCartIdResetAfterPayment>>, TError,{cartId: string;data: ResetCartAfterPaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCartCartIdResetAfterPayment>>,
@@ -753,7 +851,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiCartCartIdComplete = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiCartCartIdComplete = (
     cartId: string,
     completeCartRequest: CompleteCartRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -792,7 +894,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCartCartIdCompleteMutationBody = CompleteCartRequest
     export type PostApiCartCartIdCompleteMutationError = unknown
 
-    export const usePostApiCartCartIdComplete = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCartCartIdComplete = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartCartIdComplete>>, TError,{cartId: string;data: CompleteCartRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCartCartIdComplete>>,
@@ -805,7 +910,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiCartHistory = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const getApiCartHistory = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -844,6 +953,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCartHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCartHistory>>>
 export type GetApiCartHistoryQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiCartHistory = <TData = Awaited<ReturnType<typeof getApiCartHistory>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCartHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -860,6 +972,10 @@ export const useGetApiCartHistory = <TData = Awaited<ReturnType<typeof getApiCar
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const postApiCartForceCleanup = (
     forceCleanupRequest: ForceCleanupRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -898,7 +1014,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiCartForceCleanupMutationBody = ForceCleanupRequest
     export type PostApiCartForceCleanupMutationError = unknown
 
-    export const usePostApiCartForceCleanup = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCartForceCleanup = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartForceCleanup>>, TError,{data: ForceCleanupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCartForceCleanup>>,
@@ -911,7 +1030,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiCartTableOrdersRecovery = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const getApiCartTableOrdersRecovery = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -950,6 +1073,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 export type GetApiCartTableOrdersRecoveryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCartTableOrdersRecovery>>>
 export type GetApiCartTableOrdersRecoveryQueryError = unknown
 
+/**
+ * @deprecated
+ */
 export const useGetApiCartTableOrdersRecovery = <TData = Awaited<ReturnType<typeof getApiCartTableOrdersRecovery>>, TError = unknown>(
   options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCartTableOrdersRecovery>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
@@ -966,6 +1092,10 @@ export const useGetApiCartTableOrdersRecovery = <TData = Awaited<ReturnType<type
 
 
 
+/**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
 export const postApiCartItemsItemIdIncrement = (
     itemId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -1002,7 +1132,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     
     export type PostApiCartItemsItemIdIncrementMutationError = unknown
 
-    export const usePostApiCartItemsItemIdIncrement = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCartItemsItemIdIncrement = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartItemsItemIdIncrement>>, TError,{itemId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCartItemsItemIdIncrement>>,
@@ -1015,7 +1148,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiCartItemsItemIdDecrement = (
+    /**
+ * Deprecated. Use /api/pos/... for POS or /api/admin/... for Admin.
+ * @deprecated
+ */
+export const postApiCartItemsItemIdDecrement = (
     itemId: string,
  options?: SecondParameter<typeof customInstance>,) => {
       
@@ -1051,7 +1188,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     
     export type PostApiCartItemsItemIdDecrementMutationError = unknown
 
-    export const usePostApiCartItemsItemIdDecrement = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiCartItemsItemIdDecrement = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCartItemsItemIdDecrement>>, TError,{itemId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCartItemsItemIdDecrement>>,

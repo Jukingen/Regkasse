@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { storage } from '../../utils/storage';
 import { useAuth } from '../../contexts/AuthContext';
+import { isAuthError, getAuthErrorMessage } from '../../features/auth/authErrors';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,26 +29,24 @@ export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const { login } = useAuth();
 
-  // Load saved credentials on mount
   useEffect(() => {
-    loadSavedCredentials();
+    loadSavedUsername();
   }, []);
 
-  const loadSavedCredentials = async () => {
+  const loadSavedUsername = async () => {
     try {
       const savedUsername = await storage.getItem('savedUsername');
-      const savedPassword = await storage.getItem('savedPassword');
-
       if (savedUsername) setUsername(savedUsername);
-      if (savedPassword) setPassword(savedPassword);
 
-      console.log('✅ Loaded saved credentials from AsyncStorage');
+      // One-shot cleanup: remove legacy plaintext password from storage
+      await storage.removeItem('savedPassword');
     } catch (error) {
-      console.log('ℹ️ No saved credentials found');
+      // no-op
     }
   };
 
@@ -78,17 +77,29 @@ export default function LoginScreen() {
     try {
       setIsLoading(true);
       setErrors({});
+      setLoginError(null);
       await login(username, password);
 
-      // Save credentials after successful login
       await storage.setItem('savedUsername', username);
-      await storage.setItem('savedPassword', password);
-      console.log('✅ Saved credentials to AsyncStorage');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Login failed:', error);
-      setErrors({
-        username: 'Invalid username or password',
-      });
+
+      if (isAuthError(error)) {
+        const msg = getAuthErrorMessage(error);
+
+        if (error.code === 'INVALID_CREDENTIALS') {
+          setErrors({ username: msg });
+          setLoginError(msg);
+        } else {
+          setLoginError(msg);
+        }
+
+        if (error.code === 'POS_UNAUTHORIZED_USER' || error.code === 'INVALID_CREDENTIALS') {
+          setPassword('');
+        }
+      } else {
+        setLoginError(error instanceof Error ? error.message : getAuthErrorMessage('UNKNOWN_AUTH_ERROR'));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +137,12 @@ export default function LoginScreen() {
             <View style={styles.formContainer}>
               <Text style={styles.loginTitle}>LOGIN</Text>
 
+              {loginError && (
+                <View style={styles.errorBanner}>
+                  <Text style={styles.errorBannerText}>{loginError}</Text>
+                </View>
+              )}
+
               {/* Username Input */}
               <View style={styles.inputContainer}>
                 <TextInput
@@ -133,7 +150,7 @@ export default function LoginScreen() {
                   placeholder="USERNAME"
                   placeholderTextColor="#999"
                   value={username}
-                  onChangeText={setUsername}
+                  onChangeText={(text) => { setUsername(text); setLoginError(null); setErrors((prev) => ({ ...prev, username: undefined })); }}
                   autoCapitalize="none"
                   autoCorrect={false}
                   editable={!isLoading}
@@ -153,7 +170,7 @@ export default function LoginScreen() {
                   placeholder="PASSWORD"
                   placeholderTextColor="#999"
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(text) => { setPassword(text); setLoginError(null); setErrors((prev) => ({ ...prev, username: undefined })); }}
                   secureTextEntry
                   editable={!isLoading}
                   onSubmitEditing={handleLogin}
@@ -242,6 +259,22 @@ const styles = StyleSheet.create({
   inputLine: {
     height: 1,
     backgroundColor: '#DDD',
+  },
+  errorBanner: {
+    width: '100%',
+    backgroundColor: '#FDF2F2',
+    borderWidth: 1,
+    borderColor: '#E74C3C',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  errorBannerText: {
+    fontSize: 13,
+    color: '#C0392B',
+    textAlign: 'center',
+    lineHeight: 18,
   },
   errorText: {
     fontSize: 12,

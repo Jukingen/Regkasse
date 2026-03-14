@@ -5,14 +5,25 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { PaymentItemModifierRequest } from './paymentItemModifierRequest';
+import type { TaxType } from './taxType';
 
 export interface PaymentItemRequest {
+  /**
+   * @deprecated
+   * @nullable
+   */
+  modifierIds?: string[] | null;
+  /**
+   * @deprecated
+   * @nullable
+   */
+  modifiers?: PaymentItemModifierRequest[] | null;
   productId: string;
   /**
    * @minimum 1
    * @maximum 2147483647
    */
   quantity: number;
-  /** @minLength 1 */
-  taxType: string;
+  taxType: TaxType;
 }

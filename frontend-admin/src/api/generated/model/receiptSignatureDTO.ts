@@ -10,11 +10,13 @@ export interface ReceiptSignatureDTO {
   /** @nullable */
   algorithm?: string | null;
   /** @nullable */
+  prevSignatureValue?: string | null;
+  /** @nullable */
   qrData?: string | null;
   /** @nullable */
   serialNumber?: string | null;
   /** @nullable */
-  timestamp?: string | null;
+  signatureValue?: string | null;
   /** @nullable */
-  value?: string | null;
+  timestamp?: string | null;
 }
