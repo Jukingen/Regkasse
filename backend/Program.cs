@@ -264,50 +264,12 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// Veritabanı seed işlemleri
+// Startup bootstrap: migration, migration gate, roles, users, demo data, product seed, guest customer
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
     try
     {
-         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-    
-        var context = services.GetRequiredService<AppDbContext>();
-        
-        // 🚨 Startup Migration Check Gate
-        var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-        if (pendingMigrations.Any())
-        {
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogCritical("🚨 Application startup halted: {Count} pending migrations detected. Please run 'dotnet ef database update'. Pending: {Migrations}", 
-                pendingMigrations.Count(), string.Join(", ", pendingMigrations));
-            
-            throw new InvalidOperationException($"Database schema drift detected. Application cannot start with {pendingMigrations.Count()} pending migrations.");
-        }
-
-        // audit_logs table is created/updated by EF migrations (AlignAuditLogsTableWithEntity). Single source of truth.
-
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        
-        // Rolleri oluştur
-        await RoleSeedData.SeedRolesAsync(roleManager);
-        
-        // Kullanıcıları oluştur
-        await UserSeedData.SeedUsersAsync(userManager);
-        
-        // Demo verileri ekle
-        await AddDemoData.AddDemoDataAsync();
-        
-        // Test ürünlerini ekle
-        context = services.GetRequiredService<AppDbContext>();
-        await SeedData.SeedProductsAsync(context);
-        
-        // Seed guest customer for walk-in sales
-        await CustomerSeedData.SeedGuestCustomerAsync(context);
-        
-        Console.WriteLine("Database seeding completed successfully");
+        await StartupBootstrapRunner.RunAsync(scope.ServiceProvider);
     }
     catch (Exception ex)
     {
