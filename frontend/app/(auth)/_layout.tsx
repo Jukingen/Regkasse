@@ -1,15 +1,21 @@
-import { Slot, Redirect } from 'expo-router';
+import { Slot, Redirect, useSegments } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
 import React from 'react';
 
 export default function AuthLayout() {
+    const segments = useSegments();
     const { isAuthenticated, isLoading, user, logout } = useAuth();
 
-    console.log('🔐 AUTH LAYOUT: Checking auth state:', { isAuthenticated, isLoading });
+    const isOnLoginScreen = Array.isArray(segments) && segments.includes('login');
 
-    if (isLoading) {
+    console.log('🔐 AUTH LAYOUT: Checking auth state:', { isAuthenticated, isLoading, isOnLoginScreen });
+
+    // Show full-screen loader only when loading AND not on login screen. When user is on login
+    // and taps "Log In", context isLoading becomes true; we must keep Slot mounted so the
+    // login screen can show its own loading/error state instead of unmounting and losing it.
+    if (isLoading && !isOnLoginScreen) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#007AFF" />

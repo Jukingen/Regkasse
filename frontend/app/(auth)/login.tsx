@@ -98,7 +98,9 @@ export default function LoginScreen() {
           setPassword('');
         }
       } else {
-        setLoginError(error instanceof Error ? error.message : getAuthErrorMessage('UNKNOWN_AUTH_ERROR'));
+        const msg = error instanceof Error ? error.message : 'Login failed';
+        setLoginError(msg);
+        setErrors({ username: msg });
       }
     } finally {
       setIsLoading(false);

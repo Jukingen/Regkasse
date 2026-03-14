@@ -20,15 +20,25 @@ export const handleAPIError = (error: any): APIError => {
         };
     }
 
-    const backendMessage = typeof data?.message === 'string' ? data.message : undefined;
+    // 400: data?.message -> error?.message -> fallback (net sıra)
+    const msg400 =
+        (typeof data?.message === 'string' ? data.message : undefined) ??
+        (typeof error?.message === 'string' ? error.message : undefined) ??
+        'Invalid request. Please check your input and try again.';
 
-    // HTTP status code based errors; 400 için öncelik: backend message
+    // default: data?.message -> error?.message -> generic
+    const msgDefault =
+        (typeof data?.message === 'string' ? data.message : undefined) ??
+        (typeof error?.message === 'string' ? error.message : undefined) ??
+        'An unexpected error occurred. Please try again.';
+
+    // HTTP status code based errors
     switch (status) {
         case 400:
             return {
                 status,
                 data,
-                message: backendMessage ?? 'Invalid request. Please check your input and try again.'
+                message: msg400
             };
         case 401:
             return {
@@ -52,13 +62,13 @@ export const handleAPIError = (error: any): APIError => {
             return {
                 status,
                 data,
-                message: backendMessage ?? 'Conflict occurred. The resource already exists.'
+                message: (typeof data?.message === 'string' ? data.message : undefined) ?? 'Conflict occurred. The resource already exists.'
             };
         case 422:
             return {
                 status,
                 data,
-                message: backendMessage ?? 'Validation failed. Please check your input.'
+                message: (typeof data?.message === 'string' ? data.message : undefined) ?? 'Validation failed. Please check your input.'
             };
         case 500:
             return {
@@ -82,7 +92,7 @@ export const handleAPIError = (error: any): APIError => {
             return {
                 status,
                 data,
-                message: backendMessage ?? 'An unexpected error occurred. Please try again.'
+                message: msgDefault
             };
     }
 };

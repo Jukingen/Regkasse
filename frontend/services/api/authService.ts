@@ -6,7 +6,8 @@ import { normalizeLoginError } from '../../features/auth/authErrors';
 export interface LoginRequest {
   email: string;
   password: string;
-  clientApp?: string;
+  /** Future-proof: backend policy (e.g. strict mode) may use this; POS sends 'pos'. */
+  clientApp?: 'pos' | 'admin';
 }
 
 export interface LoginResponse {
@@ -54,6 +55,7 @@ export const login = async (credentials: LoginRequest): Promise<LoginResponse> =
     return response;
   } catch (error: unknown) {
     console.error('Login error:', error);
+    // Propagate original error (response/data/message preserved via normalizeLoginError); no generic overwrite.
     throw normalizeLoginError(error);
   }
 };
@@ -185,7 +187,8 @@ export const refreshToken = async (): Promise<string | null> => {
 // Demo kullanıcı ile otomatik login
 export const loginWithDemoUser = async (): Promise<LoginResponse> => {
   return await login({
-    email: 'cashier@demo.com',  // ✅ Email field'ı kullan
-    password: 'Cashier123!'
+    email: 'cashier@demo.com',
+    password: 'Cashier123!',
+    clientApp: 'pos'
   });
 }; 

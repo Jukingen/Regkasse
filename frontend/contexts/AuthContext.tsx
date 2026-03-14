@@ -717,7 +717,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             const apiError = handleAPIError(error);
-            throw new AuthAppError('UNKNOWN_AUTH_ERROR', apiError.status, apiError.message);
+            throw new Error(apiError.message);
         } finally {
             setIsLoading(false);
         }
