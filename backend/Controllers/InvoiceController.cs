@@ -878,8 +878,8 @@ namespace KasseAPI_Final.Controllers
         // POST: api/Invoice/backfill-from-payments
         // One-time (idempotent) backfill: create Invoice rows for PaymentDetails that have no matching Invoice yet.
         // Safe to call repeatedly — already-backfilled payments are skipped via SourcePaymentId lookup.
-        // Required role: Admin
-        // Responses: 200 OK (success + counts), 401 Unauthorized (no token), 403 Forbidden (non-Admin role)
+        // Required: permission system.critical (typically SuperAdmin).
+        // Responses: 200 OK (success + counts), 401 Unauthorized (no token), 403 Forbidden (insufficient permission)
         [HttpPost("backfill-from-payments")]
         [HasPermission(AppPermissions.SystemCritical)]
         public async Task<IActionResult> BackfillInvoicesFromPayments()

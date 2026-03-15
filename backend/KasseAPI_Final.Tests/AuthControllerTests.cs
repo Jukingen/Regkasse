@@ -228,6 +228,7 @@ public class AuthControllerTests
         Assert.Equal(403, obj.StatusCode);
     }
 
+    /// <summary>Admin is not a canonical role; POS login with role "Admin" returns 403. Canonical top admin is SuperAdmin only.</summary>
     [Fact]
     public async Task Login_Pos_AdminRole_NoLongerNormalized_Returns403()
     {

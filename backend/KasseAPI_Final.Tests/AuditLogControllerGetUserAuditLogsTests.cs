@@ -17,7 +17,7 @@ public class AuditLogControllerGetUserAuditLogsTests
     private static AuditLogController CreateController(
         IAuditLogService auditLogService,
         string? userId = "actor-1",
-        string role = "Admin")
+        string role = "SuperAdmin")
     {
         var logger = new Mock<ILogger<AuditLogController>>().Object;
         var controller = new AuditLogController(auditLogService, logger);
@@ -87,7 +87,7 @@ public class AuditLogControllerGetUserAuditLogsTests
             Id = Guid.NewGuid(),
             SessionId = "s1",
             UserId = "admin-1",
-            UserRole = "Admin",
+            UserRole = "SuperAdmin",
             Action = AuditLogActions.USER_UPDATE,
             EntityType = AuditLogEntityTypes.USER,
             EntityName = "user-1",

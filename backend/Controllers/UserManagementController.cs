@@ -200,7 +200,7 @@ namespace KasseAPI_Final.Controllers
 
         /// <summary>
         /// Single user detail for view/edit. Returns JSON with camelCase (e.g. firstName, lastName, role).
-        /// Example response: { "id": "...", "userName": "...", "firstName": "...", "lastName": "...", "email": "...", "employeeNumber": "...", "role": "Admin", "taxNumber": "...", "notes": "...", "isActive": true, "createdAt": "...", "lastLoginAt": "..." }.
+        /// Example response: { "id": "...", "userName": "...", "firstName": "...", "lastName": "...", "email": "...", "employeeNumber": "...", "role": "SuperAdmin", "taxNumber": "...", "notes": "...", "isActive": true, "createdAt": "...", "lastLoginAt": "..." }.
         /// Route: GET /api/UserManagement/{id}
         /// </summary>
         [HttpGet("{id}")]
@@ -520,7 +520,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     await TryLogUserLifecycleAsync(
                         AuditLogActions.USER_UPDATE, currentUserId!, actorRole, id, null, null,
-                        AuditLogStatus.Success, "Admin changed user password (with current password)");
+                        AuditLogStatus.Success, "Password changed (with current password)");
                 }
 
                 return Ok(new { message = "Password changed successfully" });
@@ -1025,7 +1025,7 @@ namespace KasseAPI_Final.Controllers
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string? EmployeeNumber { get; set; }
-        /// <summary>Role name for display and form select (e.g. Admin, Manager).</summary>
+        /// <summary>Role name for display and form select (e.g. SuperAdmin, Manager).</summary>
         public string? Role { get; set; }
         public string? TaxNumber { get; set; }
         public string? Notes { get; set; }

@@ -1026,7 +1026,7 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogInformation("🧹 Force cart cleanup requested by UserId: {UserId}, Role: {UserRole}, Reason: {Reason}", 
                     userId, userRole, request.Reason);
 
-                // Authorization: SuperAdmin, Manager, Cashier may run force cleanup (Admin role removed).
+                // Authorization: SuperAdmin, Manager, Cashier may run force cleanup.
                 var allowedForCleanup = new[] { Roles.SuperAdmin, Roles.Manager, Roles.Cashier };
                 if (string.IsNullOrEmpty(userRole) || !Array.Exists(allowedForCleanup, r => string.Equals(r, userRole, StringComparison.OrdinalIgnoreCase)))
                 {

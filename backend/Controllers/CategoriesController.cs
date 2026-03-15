@@ -70,7 +70,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/categories – create; token may have "Admin" (canonical) or "SuperAdmin", "Manager"
+        // POST: api/categories – create; requires CategoryManage (e.g. SuperAdmin, Manager)
         [HttpPost]
         [HasPermission(AppPermissions.CategoryManage)]
         public async Task<ActionResult<Category>> CreateCategory([FromBody] CreateCategoryRequest request)
