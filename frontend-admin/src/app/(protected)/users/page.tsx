@@ -154,6 +154,7 @@ export default function UsersPage() {
     });
     const modalRules = useMemo(() => createUsersFormRules(modalFormRulesContext), []);
 
+    // Role list for form + filter: always from full catalog (useRoles). Never from selected user or assigned subset.
     const roleOptions = useMemo(
         () => (roles?.map((r) => ({ value: r, label: r })) ?? ROLE_OPTIONS),
         [roles]
