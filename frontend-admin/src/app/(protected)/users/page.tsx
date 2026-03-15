@@ -142,7 +142,7 @@ export default function UsersPage() {
     useEffect(() => {
         setPage(DEFAULT_PAGE);
     }, [roleFilter, statusFilter, searchTerm]);
-    const { data: roles } = useRoles({ enabled: policy.canView });
+    const { data: roles, isLoading: rolesLoading } = useRoles({ enabled: policy.canView || !!editUserId });
     const canManageRoles = policy.canCreateRole || policy.canDeleteRole || policy.canEditRolePermissions;
     const { data: rolesWithPermissions, isLoading: rolesWithPermsLoading, isError: rolesWithPermsError, refetch: refetchRolesWithPerms } = useRolesWithPermissions({ enabled: roleManagementDrawerOpen });
     const { data: permissionsCatalog, isLoading: catalogLoading, isError: catalogError, refetch: refetchCatalog } = usePermissionsCatalog({ enabled: roleManagementDrawerOpen });
@@ -176,8 +176,9 @@ export default function UsersPage() {
     });
     const updateMutation = useMutation({
         mutationFn: ({ id, data }: { id: string; data: UpdateUserRequest }) => gatewayUpdateUser(id, data),
-        onSuccess: () => {
+        onSuccess: (_data, { id }) => {
             message.success(usersCopy.successUpdate);
+            queryClient.invalidateQueries({ queryKey: getUserByIdQueryKey(id) });
             queryClient.invalidateQueries({ queryKey: listQueryKey });
             setEditUserId(null);
         },
@@ -496,7 +497,7 @@ export default function UsersPage() {
                         style={{ width: 140 }}
                         value={roleFilter}
                         onChange={setRoleFilter}
-                        options={ROLE_OPTIONS}
+                        options={roleOptions}
                     />
                     <Select
                         placeholder={usersCopy.filterStatus}
@@ -568,6 +569,7 @@ export default function UsersPage() {
                 onClose={() => setCreateOpen(false)}
                 mode="create"
                 roleOptions={roleOptions}
+                rolesLoading={rolesLoading}
                 onSubmit={handleCreate}
                 loading={createMutation.isPending}
             />
@@ -581,6 +583,7 @@ export default function UsersPage() {
                 fetchError={editUserError ? (editUserFetchError ?? null) : null}
                 onRetryFetch={refetchEditUser}
                 roleOptions={roleOptions}
+                rolesLoading={rolesLoading}
                 onSubmit={handleEdit}
                 loading={updateMutation.isPending}
             />

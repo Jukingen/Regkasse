@@ -155,6 +155,8 @@ export const usersCopy = {
     'Berechtigungen bearbeitbar; löschbar nur ohne zugewiesene Benutzer.',
   /** Display label for known system roles (POS terminology). */
   roleDisplayName: (roleName: string) => ROLE_DISPLAY_NAMES[roleName] ?? roleName,
+  /** Shown in user form when role catalog is still loading. */
+  rolesLoading: 'Rollen werden geladen…',
   confirmCloseWithDirty: 'Ungespeicherte Änderungen verwerfen?',
   successPermissionsSaved: 'Berechtigungen gespeichert.',
   successRoleDeleted: 'Rolle gelöscht.',

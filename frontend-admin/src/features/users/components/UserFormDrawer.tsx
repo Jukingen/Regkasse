@@ -4,9 +4,15 @@
  * Create/Edit user form in a Drawer – merkezi validasyon, backend contract uyumlu.
  * Edit: form is filled only from detail API response (user prop). Never use list row data.
  * When open in edit mode: show loading until user is loaded, then setFieldsValue(user); on close parent clears selectedUserId.
+ *
+ * Role assignment (catalog-driven, assigned-only for checked):
+ * - fullRoleCatalog = roleOptions (from parent; GET /api/UserManagement/roles). Source of truth for visible list.
+ * - assignedRoleIds = user?.role ? [user.role] : [] (single-role model). Source of truth for checked state.
+ * - Render: full catalog as options; checked = assignedRoleIds.includes(role) → form field "role" holds the single selected value.
+ * - User switch: form key edit-${user.id} resets component; sync effect sets values from new user (no stale selection).
  */
 import React, { useEffect, useMemo } from 'react';
-import { Drawer, Form, Input, Select, Button, Space, Spin, Alert } from 'antd';
+import { Drawer, Form, Input, Radio, Button, Space, Spin, Alert } from 'antd';
 import type { UserInfo } from '@/api/generated/model';
 import type { CreateUserRequest, UpdateUserRequest } from '@/api/generated/model';
 import { usersCopy } from '../constants/copy';
@@ -27,6 +33,8 @@ type Props = {
   /** Retry callback for detail fetch (edit mode). */
   onRetryFetch?: () => void;
   roleOptions: { value: string; label: string }[];
+  /** When true and roleOptions empty, role field shows loading (catalog-driven; never show subset). */
+  rolesLoading?: boolean;
   onSubmit: (values: CreateUserRequest | UpdateUserRequest) => void;
   loading?: boolean;
 };
@@ -75,6 +83,7 @@ export function UserFormDrawer({
   fetchError = null,
   onRetryFetch,
   roleOptions,
+  rolesLoading = false,
   onSubmit,
   loading = false,
 }: Props) {
@@ -181,7 +190,11 @@ export function UserFormDrawer({
             <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
           </Form.Item>
           <Form.Item name="role" label={usersCopy.role} rules={rules.role}>
-            <Select options={roleOptions} placeholder={usersCopy.filterRole} />
+            {rolesLoading && roleOptions.length === 0 ? (
+              <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>{usersCopy.rolesLoading}</span>
+            ) : (
+              <Radio.Group options={roleOptions.map((opt) => ({ value: opt.value, label: usersCopy.roleDisplayName(opt.value) }))} />
+            )}
           </Form.Item>
           <Form.Item name="taxNumber" label={usersCopy.taxNumber} rules={rules.taxNumber}>
             <Input maxLength={SHORT_FIELD_MAX_LENGTH} />

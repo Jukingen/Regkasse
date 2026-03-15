@@ -86,7 +86,10 @@ vi.mock('@/shared/auth/usersPolicy', () => ({
 }));
 
 vi.mock('@/features/users/hooks/useRoles', () => ({
-  useRoles: () => ({ data: ['SuperAdmin', 'Manager', 'Cashier', 'Waiter', 'Kitchen', 'ReportViewer', 'Accountant'] }),
+  useRoles: () => ({
+    data: ['SuperAdmin', 'Manager', 'Cashier', 'Waiter', 'Kitchen', 'ReportViewer', 'Accountant'],
+    isLoading: false,
+  }),
 }));
 
 vi.mock('@/features/users/components/UserDetailDrawer', () => ({
@@ -306,6 +309,7 @@ describe('Users page', () => {
   describe('edit user', () => {
     it('calls updateUser when edit drawer is submitted', async () => {
       mockUpdateUser.mockResolvedValue(undefined);
+      mockGetUserById.mockResolvedValue(sampleUser);
       mockGetUsersList.mockResolvedValue(listResponse([sampleUser]));
       renderPage();
       await waitFor(() => {
@@ -321,6 +325,25 @@ describe('Users page', () => {
         expect(mockUpdateUser).toHaveBeenCalledWith('user-1', expect.objectContaining({ employeeNumber: 'EMP001', firstName: 'New', lastName: 'User', role: 'Manager' }));
       });
       expect(message.success).toHaveBeenCalledWith('Benutzer aktualisiert.');
+    });
+
+    it('invalidates user detail query on update success so UI rehydrates from backend', async () => {
+      mockUpdateUser.mockResolvedValue(undefined);
+      mockGetUserById.mockResolvedValue(sampleUser);
+      mockGetUsersList.mockResolvedValue(listResponse([sampleUser]));
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+      render(
+        <QueryClientProvider client={queryClient}>
+          <UsersPage />
+        </QueryClientProvider>
+      );
+      await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByRole('button', { name: /Bearbeiten/ })[0]);
+      await waitFor(() => expect(screen.getByText('Edit user')).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+      await waitFor(() => expect(mockUpdateUser).toHaveBeenCalled());
+      expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['/api/UserManagement', 'user-1'] }));
     });
   });
 
