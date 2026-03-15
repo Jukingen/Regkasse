@@ -46,18 +46,25 @@ public sealed class RoleManagementService : IRoleManagementService
             var count = userCount?.Count ?? 0;
             // All system roles are immutable at runtime: permissions come from RolePermissionMatrix only.
             var canEdit = !isSystem;
+            var permissionList = permissions.ToList();
             result.Add(new RoleWithPermissionsDto
             {
                 RoleName = name,
                 RoleKey = RoleMetadata.GetRoleKey(name),
                 DisplayName = RoleMetadata.GetDisplayName(name),
                 Description = RoleMetadata.GetDescription(name),
-                Permissions = permissions.ToList(),
+                Permissions = permissionList,
                 IsSystemRole = isSystem,
                 IsImmutable = isSystem,
                 UserCount = count,
                 CanDelete = !isSystem && count == 0,
                 CanEditPermissions = canEdit,
+                UiCapabilities = new UiCapabilitiesDto
+                {
+                    PosLogin = ClientAppPolicy.CanLoginToPos(name),
+                    AdminLogin = ClientAppPolicy.CanLoginToAdmin(name),
+                },
+                PermissionGroups = BuildPermissionGroups(permissionList),
             });
         }
 
@@ -135,4 +142,30 @@ public sealed class RoleManagementService : IRoleManagementService
         return Roles.Canonical.Contains(roleName, StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Groups permission keys by catalog group (groupKey slug) for Role Capability Matrix response.
+    /// </summary>
+    private static IReadOnlyList<PermissionGroupDto> BuildPermissionGroups(IReadOnlyList<string> permissionKeys)
+    {
+        if (permissionKeys == null || permissionKeys.Count == 0)
+            return Array.Empty<PermissionGroupDto>();
+
+        var byGroup = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var key in permissionKeys)
+        {
+            if (string.IsNullOrWhiteSpace(key)) continue;
+            var groupKey = PermissionCatalogMetadata.GetGroupKeyForPermission(key);
+            if (!byGroup.TryGetValue(groupKey, out var list))
+            {
+                list = new List<string>();
+                byGroup[groupKey] = list;
+            }
+            list.Add(key);
+        }
+
+        return byGroup
+            .OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(kv => new PermissionGroupDto { GroupKey = kv.Key, Permissions = kv.Value })
+            .ToList();
+    }
 }

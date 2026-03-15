@@ -111,22 +111,48 @@ export const usersCopy = {
   roleDeleteBlockedReassignFirst: 'Diese Rolle kann nicht gelöscht werden, weil noch Benutzer zugewiesen sind. Weisen Sie diese Benutzer zuerst einer anderen Rolle zu.',
   badgeSystemRole: 'System',
   badgeCustomRole: 'Benutzerdefiniert',
-  /** Role drawer left column section headings (information architecture; behavior unchanged). */
+  /** UI access badges (Role Capability Matrix). */
+  badgePosUi: 'POS UI',
+  badgeAdminUi: 'Admin UI',
+  badgePosAndAdmin: 'POS + Admin',
+  /** Access / login section in role detail. */
+  accessSection: 'Anmeldung',
+  posLogin: 'POS-Login',
+  adminLogin: 'Admin-Login',
+  loginYes: 'Ja',
+  loginNo: 'Nein',
+  /** Permission groups section. */
+  permissionGroupsSection: 'Berechtigungen nach Gruppe',
+  /** Compact summary e.g. "3 Gruppen" or group names. */
+  permissionGroupCount: (n: number) => (n === 1 ? '1 Gruppe' : `${n} Gruppen`),
+  /** Capability hints for role list (short). */
+  capabilityHintPosCash: 'POS-Login, Kasse',
+  capabilityHintPosOnly: 'POS-Login',
+  capabilityHintAdminReports: 'Admin-Login, Berichte',
+  capabilityHintAdminFull: 'Admin-Login, Vollzugriff',
+  capabilityHintAdminCatalog: 'Admin-Login, Katalog & Berichte',
+  capabilityHintBoth: 'POS + Admin',
+  /** Summary row labels for role detail. */
+  summaryPosLogin: 'POS-Login',
+  summaryAdminLogin: 'Admin-Login',
+  summaryReports: 'Berichte',
+  summaryCashShift: 'Kasse & Schicht',
+  summaryCustomer: 'Kunden',
+  summaryCatalog: 'Katalog',
+  summarySettingsAdmin: 'Einstellungen / Admin',
+  summaryNone: '—',
+  /** Empty states. */
+  noRoleSelectedTitle: 'Rolle wählen',
+  noRoleSelectedDescription: 'Wählen Sie links eine Rolle, um Berechtigungen und Anmeldung anzuzeigen.',
+  noPermissionsInGroup: 'Keine Berechtigungen in dieser Gruppe',
+  /** Role drawer left column section headings. */
   systemRolesSection: 'System Roles',
   customRolesSection: 'Custom Roles',
-  legacyRolesSection: 'Legacy / Deprecated',
   /** Short helper text under each section heading. */
   systemRolesSectionHint:
     'Zuweisbar, hier nicht änderbar (fest im Backend).',
   customRolesSectionHint:
     'Berechtigungen bearbeitbar; löschbar nur ohne zugewiesene Benutzer.',
-  legacyRolesSectionHint:
-    'Migration oder Entfernung empfohlen; siehe Legacy-Migrationsplan.',
-  badgeLegacyRole: 'Legacy',
-  /** Warning when a legacy-named role is selected (English for audit trail clarity). */
-  legacyRoleWarningMessage: 'Legacy role',
-  legacyRoleWarningDescription:
-    'This role is legacy and should be reviewed for migration or removal.',
   /** Display label for known system roles (POS terminology). */
   roleDisplayName: (roleName: string) => ROLE_DISPLAY_NAMES[roleName] ?? roleName,
   confirmCloseWithDirty: 'Ungespeicherte Änderungen verwerfen?',
@@ -155,6 +181,26 @@ export const usersCopy = {
   resetPasswordErrorNonAlphanumeric: 'Das Passwort muss mindestens ein Sonderzeichen enthalten.',
   resetPasswordErrorGeneric: 'Das Passwort erfüllt die Anforderungen nicht.',
 } as const;
+
+/** Maps permission groupKey (slug from API) to display label for Role Capability Matrix. */
+export const GROUP_KEY_LABELS: Record<string, string> = {
+  user_role: 'User & Role',
+  product: 'Product',
+  order_sale: 'Order & Sale',
+  payment: 'Payment',
+  cash_shift: 'Cash & Shift',
+  inventory: 'Inventory',
+  customer: 'Customer',
+  invoice: 'Invoice',
+  settings: 'Settings',
+  audit_report: 'Audit & Report',
+  finanzonline: 'FinanzOnline',
+  kitchen: 'Kitchen',
+  tse: 'TSE',
+  system: 'System',
+  legacy: 'Legacy',
+  other: 'Sonstige',
+};
 
 /** Maps backend/Identity English password error message to German for modal display. */
 export function mapBackendPasswordErrorToGerman(backendMessage: string, copy: typeof usersCopy): string {

@@ -32,6 +32,20 @@ public interface IRoleManagementService
     Task<DeleteRoleResult> DeleteRoleAsync(string roleName, CancellationToken cancellationToken = default);
 }
 
+/// <summary>POS/Admin login capability per role. For Role Capability Matrix UI only; does not change authorization.</summary>
+public sealed class UiCapabilitiesDto
+{
+    public bool PosLogin { get; init; }
+    public bool AdminLogin { get; init; }
+}
+
+/// <summary>Permission group for Role Capability Matrix: groupKey (slug) and permission keys in that group.</summary>
+public sealed class PermissionGroupDto
+{
+    public string GroupKey { get; init; } = string.Empty;
+    public IReadOnlyList<string> Permissions { get; init; } = Array.Empty<string>();
+}
+
 public sealed class RoleWithPermissionsDto
 {
     public string RoleName { get; init; } = string.Empty;
@@ -50,6 +64,10 @@ public sealed class RoleWithPermissionsDto
     public bool CanDelete { get; init; }
     /// <summary>False for any system role (matrix-only). True for custom roles only.</summary>
     public bool CanEditPermissions { get; init; }
+    /// <summary>Whether this role can log into POS/Admin UI. For Role Capability Matrix; authorization unchanged.</summary>
+    public UiCapabilitiesDto? UiCapabilities { get; init; }
+    /// <summary>Permissions grouped by catalog group (groupKey slug). For Role Capability Matrix UI.</summary>
+    public IReadOnlyList<PermissionGroupDto> PermissionGroups { get; init; } = Array.Empty<PermissionGroupDto>();
 }
 
 public enum SetRolePermissionsResult

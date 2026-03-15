@@ -355,6 +355,66 @@ public class RoleManagementTests
     }
 
     [Fact]
+    public void ClientAppPolicy_CanLoginToPos_Cashier_ReturnsTrue()
+    {
+        Assert.True(ClientAppPolicy.CanLoginToPos(Roles.Cashier));
+        Assert.True(ClientAppPolicy.CanLoginToPos(Roles.SuperAdmin));
+        Assert.False(ClientAppPolicy.CanLoginToPos(Roles.Manager));
+    }
+
+    [Fact]
+    public void ClientAppPolicy_CanLoginToAdmin_SuperAdmin_ReturnsTrue()
+    {
+        Assert.True(ClientAppPolicy.CanLoginToAdmin(Roles.SuperAdmin));
+        Assert.True(ClientAppPolicy.CanLoginToAdmin(Roles.Manager));
+        Assert.False(ClientAppPolicy.CanLoginToAdmin(Roles.Cashier));
+    }
+
+    [Fact]
+    public void PermissionCatalogMetadata_GetGroupKey_ReturnsSlug()
+    {
+        Assert.Equal("cash_shift", PermissionCatalogMetadata.GetGroupKey("Cash & Shift"));
+        Assert.Equal("user_role", PermissionCatalogMetadata.GetGroupKey("User & Role"));
+        Assert.Equal("other", PermissionCatalogMetadata.GetGroupKey(""));
+    }
+
+    [Fact]
+    public void PermissionCatalogMetadata_GetGroupKeyForPermission_ReturnsConsistentGroupKey()
+    {
+        Assert.Equal("cash_shift", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.CashRegisterView));
+        Assert.Equal("user_role", PermissionCatalogMetadata.GetGroupKeyForPermission(AppPermissions.UserView));
+    }
+
+    [Fact]
+    public async Task GetRolesWithPermissions_ReturnsUiCapabilitiesAndPermissionGroups()
+    {
+        var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
+        await roleManager.CreateAsync(new IdentityRole(Roles.SuperAdmin));
+        await roleManager.CreateAsync(new IdentityRole(Roles.Cashier));
+        var resolver = new RolePermissionResolver(roleManager);
+        var roleMgmt = new RoleManagementService(roleManager, userManager, resolver);
+
+        var list = await roleMgmt.GetRolesWithPermissionsAsync(CancellationToken.None);
+
+        Assert.NotEmpty(list);
+        var superAdmin = list.FirstOrDefault(r => string.Equals(r.RoleName, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase));
+        var cashier = list.FirstOrDefault(r => string.Equals(r.RoleName, Roles.Cashier, StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(superAdmin);
+        Assert.NotNull(superAdmin.UiCapabilities);
+        Assert.True(superAdmin.UiCapabilities.AdminLogin, "SuperAdmin must have adminLogin true");
+        Assert.NotNull(cashier);
+        Assert.NotNull(cashier.UiCapabilities);
+        Assert.True(cashier.UiCapabilities.PosLogin, "Cashier must have posLogin true");
+        Assert.NotNull(superAdmin.PermissionGroups);
+        Assert.NotEmpty(superAdmin.PermissionGroups);
+        Assert.All(superAdmin.PermissionGroups, g =>
+        {
+            Assert.False(string.IsNullOrEmpty(g.GroupKey));
+            Assert.NotNull(g.Permissions);
+        });
+    }
+
+    [Fact]
     public async Task GetPermissionsCatalog_ReturnsOkWithItems()
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();

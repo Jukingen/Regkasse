@@ -12,6 +12,18 @@ export interface PermissionCatalogItemDto {
   description?: string | null;
 }
 
+/** POS/Admin login capability per role (Role Capability Matrix). */
+export interface UiCapabilitiesDto {
+  posLogin: boolean;
+  adminLogin: boolean;
+}
+
+/** Permission group for matrix display: groupKey (slug) + permission keys. */
+export interface PermissionGroupDto {
+  groupKey: string;
+  permissions: string[];
+}
+
 export interface RoleWithPermissionsDto {
   roleName: string;
   /** Stable key for clients; mirrors backend RoleKey. */
@@ -27,6 +39,10 @@ export interface RoleWithPermissionsDto {
   canDelete?: boolean;
   /** False for any system role (matrix-only). True for custom roles only. */
   canEditPermissions?: boolean;
+  /** Where this role can log in (POS/Admin). For Role Capability Matrix UI. */
+  uiCapabilities?: UiCapabilitiesDto | null;
+  /** Permissions grouped by catalog group (groupKey slug). For matrix display. */
+  permissionGroups?: PermissionGroupDto[] | null;
 }
 
 export async function getPermissionsCatalog(): Promise<PermissionCatalogItemDto[]> {

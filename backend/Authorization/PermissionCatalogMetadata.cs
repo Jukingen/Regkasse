@@ -45,6 +45,42 @@ public static class PermissionCatalogMetadata
         ["receipt"] = "Legacy",
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Converts display group name to a stable slug for API (e.g. "Cash & Shift" -> "cash_shift").
+    /// Used by role capability matrix permission grouping.
+    /// </summary>
+    public static string GetGroupKey(string groupDisplayName)
+    {
+        if (string.IsNullOrWhiteSpace(groupDisplayName)) return "other";
+        var s = groupDisplayName.Trim()
+            .Replace(" & ", "_", StringComparison.Ordinal)
+            .Replace(" ", "_", StringComparison.Ordinal);
+        return string.IsNullOrEmpty(s) ? "other" : s.ToLowerInvariant();
+    }
+
+    private static readonly Lazy<FrozenDictionary<string, string>> PermissionKeyToGroupKey = new(BuildPermissionToGroupKey);
+
+    private static FrozenDictionary<string, string> BuildPermissionToGroupKey()
+    {
+        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in GetAll())
+        {
+            var groupKey = GetGroupKey(item.Group);
+            dict.TryAdd(item.Key, groupKey);
+        }
+        return dict.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Returns the group key (slug) for a permission key, or "other" if unknown.
+    /// Used to build permissionGroups in role capability matrix response.
+    /// </summary>
+    public static string GetGroupKeyForPermission(string permissionKey)
+    {
+        if (string.IsNullOrWhiteSpace(permissionKey)) return "other";
+        return PermissionKeyToGroupKey.Value.TryGetValue(permissionKey, out var key) ? key : "other";
+    }
+
     public sealed record Item(string Key, string Group, string Resource, string Action, string? Description);
 
     /// <summary>

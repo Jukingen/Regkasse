@@ -25,7 +25,7 @@ import {
   updateRolePermissions as updateRolePermissionsFromApi,
   deleteRole as deleteRoleFromApi,
 } from './roleManagementApi';
-export type { PermissionCatalogItemDto, RoleWithPermissionsDto } from './roleManagementApi';
+export type { PermissionCatalogItemDto, RoleWithPermissionsDto, UiCapabilitiesDto, PermissionGroupDto } from './roleManagementApi';
 
 // --- Query keys (invalidation tek yerden) ---
 export const listQueryKey = ['/api/UserManagement'] as const;

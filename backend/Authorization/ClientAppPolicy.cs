@@ -64,4 +64,26 @@ public static class ClientAppPolicy
     /// <summary>Single-role convenience overload.</summary>
     public static bool IsRoleAllowedForApp(string clientApp, string role)
         => IsRoleAllowedForApp(clientApp, new[] { role });
+
+    /// <summary>
+    /// Returns whether the role can log into POS. Uses canonical role for lookup.
+    /// Used by role capability matrix API only; does not change login authorization.
+    /// </summary>
+    public static bool CanLoginToPos(string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName)) return false;
+        var canonical = Auth.RoleCanonicalization.GetCanonicalRole(roleName);
+        return PosAllowedRoles.Contains(canonical);
+    }
+
+    /// <summary>
+    /// Returns whether the role can log into Admin. Uses canonical role for lookup.
+    /// Used by role capability matrix API only; does not change login authorization.
+    /// </summary>
+    public static bool CanLoginToAdmin(string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName)) return false;
+        var canonical = Auth.RoleCanonicalization.GetCanonicalRole(roleName);
+        return AdminAllowedRoles.Contains(canonical);
+    }
 }
