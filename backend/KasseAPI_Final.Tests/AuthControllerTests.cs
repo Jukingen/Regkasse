@@ -228,16 +228,15 @@ public class AuthControllerTests
         Assert.Equal(403, obj.StatusCode);
     }
 
-    // -------- Legacy Admin alias test --------
-
     [Fact]
-    public async Task Login_Pos_LegacyAdminRole_MapsToSuperAdmin_Succeeds()
+    public async Task Login_Pos_AdminRole_NoLongerNormalized_Returns403()
     {
         var controller = CreateController(ActiveUser("Admin"), roles: new List<string> { "Admin" }, allowLegacy: false);
 
         var result = await controller.Login(new LoginModel { Email = "test@test.com", Password = "pass", ClientApp = "pos" });
 
-        Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, ((ObjectResult)result).StatusCode);
     }
 }
 
@@ -268,7 +267,7 @@ public class ClientAppPolicyTests
     [Theory]
     [InlineData("pos", "Cashier", true)]
     [InlineData("pos", "SuperAdmin", true)]
-    [InlineData("pos", "Admin", true)]       // Legacy alias → SuperAdmin
+    [InlineData("pos", "Admin", false)]
     [InlineData("pos", "Manager", false)]
     [InlineData("pos", "ReportViewer", false)]
     [InlineData("pos", "Accountant", false)]
@@ -276,6 +275,7 @@ public class ClientAppPolicyTests
     [InlineData("admin", "Manager", true)]
     [InlineData("admin", "Accountant", true)]
     [InlineData("admin", "ReportViewer", true)]
+    [InlineData("admin", "Admin", false)]
     [InlineData("admin", "Cashier", false)]
     [InlineData("admin", "Waiter", false)]
     public void IsRoleAllowedForApp_ReturnsExpected(string app, string role, bool expected)

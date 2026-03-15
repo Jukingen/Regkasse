@@ -480,14 +480,11 @@ export function RoleManagementDrawer({
                             <div style={{ width: '100%' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                 <span>{usersCopy.roleDisplayName(r.roleName)}</span>
-                                {uiBadge && (
-                                  <Tag color={uiBadge.color} style={{ margin: 0, fontSize: 10 }}>
+                                {uiBadge ? (
+                                  <Tag color={uiBadge.color} style={{ margin: 0, fontSize: 11 }}>
                                     {uiBadge.label}
                                   </Tag>
-                                )}
-                                <Tag color="blue" style={{ margin: 0, fontSize: 10 }}>
-                                  {usersCopy.badgeSystemRole}
-                                </Tag>
+                                ) : null}
                               </div>
                               <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 2 }}>
                                 {usersCopy.userCount(r.userCount)}
@@ -540,14 +537,15 @@ export function RoleManagementDrawer({
                             <div style={{ width: '100%' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                 <span>{usersCopy.roleDisplayName(r.roleName)}</span>
-                                {uiBadge && (
-                                  <Tag color={uiBadge.color} style={{ margin: 0, fontSize: 10 }}>
+                                {uiBadge ? (
+                                  <Tag color={uiBadge.color} style={{ margin: 0, fontSize: 11 }}>
                                     {uiBadge.label}
                                   </Tag>
+                                ) : (
+                                  <Tag color="default" style={{ margin: 0, fontSize: 10 }}>
+                                    {usersCopy.badgeCustomRole}
+                                  </Tag>
                                 )}
-                                <Tag color="default" style={{ margin: 0, fontSize: 10 }}>
-                                  {usersCopy.badgeCustomRole}
-                                </Tag>
                               </div>
                               <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 2 }}>
                                 {usersCopy.userCount(r.userCount)}

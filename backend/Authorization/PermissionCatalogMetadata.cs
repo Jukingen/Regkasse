@@ -41,8 +41,8 @@ public static class PermissionCatalogMetadata
         ["kitchen"] = "Kitchen",
         ["tse"] = "TSE",
         ["system"] = "System",
-        ["price"] = "Legacy",
-        ["receipt"] = "Legacy",
+        ["price"] = "Sonstige",
+        ["receipt"] = "Sonstige",
     }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>

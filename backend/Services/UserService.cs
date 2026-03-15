@@ -117,7 +117,7 @@ namespace KasseAPI_Final.Services
                     return false;
                 }
 
-                // Demo kullanıcılar: IsDemo flag (legacy Role == Demo until migration applied everywhere)
+                // Demo kullanıcılar: IsDemo flag
                 var isDemoUser = DemoUserHelper.IsDemoUser(user);
                 if (isDemoUser)
                 {
@@ -135,8 +135,7 @@ namespace KasseAPI_Final.Services
                 // Rol bazlı yetki kontrolü (canonical roller)
                 var roleHasPermission = user.Role switch
                 {
-                    "SuperAdmin" => true, // SuperAdmin full access in legacy path
-                    "Admin" => true, // Legacy token/DB until migration applied everywhere
+                    "SuperAdmin" => true,
                     "Cashier" => permission switch
                     {
                         "payment.create" => true,

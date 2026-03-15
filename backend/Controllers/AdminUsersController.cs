@@ -204,13 +204,13 @@ public class AdminUsersController : ControllerBase
             roleChanged = true;
         }
 
-        // Auto-clear IsDemo when role is not Demo and caller did not explicitly keep it true.
+        // Auto-clear IsDemo when role is not allowed for demo and caller did not explicitly keep it true.
         if (!request.IsDemo.HasValue
             && user.IsDemo
-            && !string.Equals(user.Role, "Demo", StringComparison.OrdinalIgnoreCase))
+            && !DemoUserHelper.IsRoleAllowedForDemo(user.Role))
         {
             user.IsDemo = false;
-            _logger.LogInformation("IsDemo auto-cleared for user {UserId}: role is {Role}, not Demo", id, user.Role);
+            _logger.LogInformation("IsDemo auto-cleared for user {UserId}: role {Role} is not allowed for demo", id, user.Role);
         }
 
         user.UpdatedAt = DateTime.UtcNow;

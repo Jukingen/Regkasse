@@ -198,7 +198,7 @@ export const GROUP_KEY_LABELS: Record<string, string> = {
   kitchen: 'Kitchen',
   tse: 'TSE',
   system: 'System',
-  legacy: 'Legacy',
+  sonstige: 'Sonstige',
   other: 'Sonstige',
 };
 

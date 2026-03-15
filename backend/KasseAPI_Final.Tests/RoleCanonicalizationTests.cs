@@ -8,21 +8,17 @@ namespace KasseAPI_Final.Tests;
 public class RoleCanonicalizationTests
 {
     [Fact]
-    public void GetCanonicalRole_Leaves_Admin_Unchanged()
+    public void GetCanonicalRole_Returns_Trimmed_AsIs()
     {
-        Assert.Equal(Roles.SuperAdmin, RoleCanonicalization.GetCanonicalRole("Admin"));
-    }
-
-    [Fact]
-    public void GetCanonicalRole_Leaves_SuperAdmin_Unchanged()
-    {
-        Assert.Equal(Roles.SuperAdmin, RoleCanonicalization.GetCanonicalRole("SuperAdmin"));
+        Assert.Equal("Admin", RoleCanonicalization.GetCanonicalRole("Admin"));
+        Assert.Equal("SuperAdmin", RoleCanonicalization.GetCanonicalRole("SuperAdmin"));
     }
 
     [Fact]
     public void GetCanonicalRole_Trims_Whitespace()
     {
-        Assert.Equal(Roles.SuperAdmin, RoleCanonicalization.GetCanonicalRole("  Admin  "));
+        Assert.Equal("Admin", RoleCanonicalization.GetCanonicalRole("  Admin  "));
+        Assert.Equal("SuperAdmin", RoleCanonicalization.GetCanonicalRole("  SuperAdmin  "));
     }
 
     [Fact]
