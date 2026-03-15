@@ -1,9 +1,8 @@
-// Canonical roles – aligned with backend Roles.cs. Use ROLES.* instead of string literals.
-export type UserRole = 'SuperAdmin' | 'Admin' | 'Manager' | 'Cashier' | 'Waiter' | 'Kitchen' | 'ReportViewer' | 'Accountant';
+// Canonical roles – aligned with backend Roles.cs. SuperAdmin is sole top admin.
+export type UserRole = 'SuperAdmin' | 'Manager' | 'Cashier' | 'Waiter' | 'Kitchen' | 'ReportViewer' | 'Accountant';
 
 export const ROLES = {
   SuperAdmin: 'SuperAdmin',
-  Admin: 'Admin',
   Manager: 'Manager',
   Cashier: 'Cashier',
   Waiter: 'Waiter',

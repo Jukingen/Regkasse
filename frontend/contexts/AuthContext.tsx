@@ -67,6 +67,8 @@ interface User {
     roles?: string[];
     /** Backend permission claims (resource.action). Used for permission-first UI. */
     permissions?: string[];
+    /** Demo user flag from backend ApplicationUser.IsDemo. Use this for restrictions; do not infer from role. */
+    isDemo?: boolean;
     token?: string;
 }
 
@@ -586,7 +588,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw new Error('Invalid login response');
             }
 
-            // POS rol kontrolü: sadece Cashier ve SuperAdmin (+ legacy Admin alias) girebilir
+            // POS rol kontrolü: sadece Cashier ve SuperAdmin girebilir
             if (!isPosAllowedRole(loggedInUser.role, loggedInUser.roles)) {
                 console.warn('POS role denied for user:', loggedInUser.email, 'role:', loggedInUser.role);
                 setJustLoggedIn(false);

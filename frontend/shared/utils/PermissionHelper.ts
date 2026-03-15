@@ -1,9 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/** Canonical roles – aligned with backend Roles.cs. */
+/** Canonical roles – aligned with backend Roles.cs. SuperAdmin is sole top admin. */
 export enum UserRole {
   SuperAdmin = 'SuperAdmin',
-  Admin = 'Admin',
   Manager = 'Manager',
   Cashier = 'Cashier',
   Waiter = 'Waiter',
@@ -19,30 +18,28 @@ export interface Permission {
 }
 
 export const PERMISSIONS: Permission[] = [
-  // POS – Cashier, Manager, Admin, SuperAdmin
-  { resource: 'sales', action: 'create', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'sales', action: 'view', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'products', action: 'view', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'cart', action: 'manage', roles: [UserRole.Cashier, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'cart', action: 'view', roles: [UserRole.Waiter, UserRole.Cashier, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'payment', action: 'process', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'invoice', action: 'create', roles: [UserRole.Cashier, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'customers', action: 'view', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'barcode', action: 'scan', roles: [UserRole.Cashier, UserRole.Manager, UserRole.Admin, UserRole.SuperAdmin] },
-  
-  // Admin / SuperAdmin
-  { resource: 'users', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'roles', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'system', action: 'settings', roles: [UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'reports', action: 'view', roles: [UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager] },
-  { resource: 'audit', action: 'view', roles: [UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager] },
-  { resource: 'demo', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'hardware', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'inventory', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'finanzonline', action: 'manage', roles: [UserRole.Admin, UserRole.SuperAdmin] },
-  { resource: 'backup', action: 'create', roles: [UserRole.Admin, UserRole.SuperAdmin] },
-  
-  // Manager yetkileri
+  // POS – Cashier, Manager, SuperAdmin
+  { resource: 'sales', action: 'create', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.SuperAdmin] },
+  { resource: 'sales', action: 'view', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.SuperAdmin] },
+  { resource: 'products', action: 'view', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.SuperAdmin] },
+  { resource: 'cart', action: 'manage', roles: [UserRole.Cashier, UserRole.Manager, UserRole.SuperAdmin] },
+  { resource: 'cart', action: 'view', roles: [UserRole.Waiter, UserRole.Cashier, UserRole.Manager, UserRole.SuperAdmin] },
+  { resource: 'payment', action: 'process', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.SuperAdmin] },
+  { resource: 'invoice', action: 'create', roles: [UserRole.Cashier, UserRole.Manager, UserRole.SuperAdmin] },
+  { resource: 'customers', action: 'view', roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Manager, UserRole.SuperAdmin] },
+  { resource: 'barcode', action: 'scan', roles: [UserRole.Cashier, UserRole.Manager, UserRole.SuperAdmin] },
+  // SuperAdmin only (top admin)
+  { resource: 'users', action: 'manage', roles: [UserRole.SuperAdmin] },
+  { resource: 'roles', action: 'manage', roles: [UserRole.SuperAdmin] },
+  { resource: 'system', action: 'settings', roles: [UserRole.SuperAdmin] },
+  { resource: 'reports', action: 'view', roles: [UserRole.SuperAdmin, UserRole.Manager] },
+  { resource: 'audit', action: 'view', roles: [UserRole.SuperAdmin, UserRole.Manager] },
+  { resource: 'demo', action: 'manage', roles: [UserRole.SuperAdmin] },
+  { resource: 'hardware', action: 'manage', roles: [UserRole.SuperAdmin] },
+  { resource: 'inventory', action: 'manage', roles: [UserRole.SuperAdmin] },
+  { resource: 'finanzonline', action: 'manage', roles: [UserRole.SuperAdmin] },
+  { resource: 'backup', action: 'create', roles: [UserRole.SuperAdmin] },
+  // Manager
   { resource: 'staff', action: 'manage', roles: [UserRole.Manager] },
   { resource: 'schedule', action: 'view', roles: [UserRole.Manager] },
   { resource: 'schedule', action: 'update', roles: [UserRole.Manager] }
@@ -76,18 +73,11 @@ export const SCREEN_REQUIRED_PERMISSION: Partial<Record<string, string>> = {
   ScheduleScreen: 'report.view',
 };
 
-/** Screen access by role – aligned with backend RolePermissionMatrix. Fallback when permissions not in token. */
+/** Screen access by role – aligned with backend. Fallback when permissions not in token. */
 export const SCREEN_ACCESS: Partial<Record<UserRole, string[]>> = {
   [UserRole.Cashier]: [
     'SalesScreen', 'ProductListScreen', 'CartScreen', 'PaymentScreen',
     'InvoiceScreen', 'CustomerScreen', 'BarcodeScannerScreen', 'TableSelectionScreen',
-  ],
-  [UserRole.Admin]: [
-    'SalesScreen', 'ProductListScreen', 'CartScreen', 'PaymentScreen',
-    'InvoiceScreen', 'CustomerScreen', 'BarcodeScannerScreen', 'TableSelectionScreen',
-    'UserManagementScreen', 'RoleManagementScreen', 'SystemSettingsScreen',
-    'ReportsScreen', 'AuditLogsScreen', 'DemoUserManagementScreen',
-    'HardwareManagementScreen', 'InventoryManagementScreen', 'FinanzOnlineScreen', 'BackupRestoreScreen',
   ],
   [UserRole.SuperAdmin]: [
     'SalesScreen', 'ProductListScreen', 'CartScreen', 'PaymentScreen',
@@ -180,7 +170,7 @@ export class PermissionHelper {
   }
 
   static isDemoUser(): boolean {
-    // Demo is not a role — backend uses IsDemo flag only. Do not treat Cashier/Admin as demo.
+    // Demo is not a role — backend uses IsDemo flag only.
     return this.isDemoUserFlag;
   }
 
@@ -188,7 +178,6 @@ export class PermissionHelper {
     switch (role) {
       case UserRole.SuperAdmin: return 'SuperAdmin';
       case UserRole.Cashier: return 'Kasiyer';
-      case UserRole.Admin: return 'Admin';
       case UserRole.Manager: return 'Müdür';
       case UserRole.Waiter: return 'Kellner';
       case UserRole.Kitchen: return 'Küche';
@@ -202,7 +191,6 @@ export class PermissionHelper {
     switch (role) {
       case UserRole.SuperAdmin: return 'Voller Systemzugriff inkl. systemkritischer Aktionen';
       case UserRole.Cashier: return 'Verkauf, Zahlung, Warenkorb, Katalog';
-      case UserRole.Admin: return 'Backoffice, Benutzer, Katalog, Einstellungen, Berichte';
       case UserRole.Manager: return 'Betrieb, Berichte, Audit, Lager';
       case UserRole.Waiter: return 'Bestellung, Tische, Verkauf';
       case UserRole.Kitchen: return 'Küchenanzeige, Bestellstatus';

@@ -342,7 +342,7 @@ const OrderManager: React.FC<OrderManagerProps> = ({
         {/* Sipariş Listesi */}
         <FlatList
           data={orders.filter(order => {
-            // Admin tüm siparişleri görebilir
+            // SuperAdmin tüm siparişleri görebilir
             if (currentUserRole === 'admin') {
               return order.status !== 'served';
             }

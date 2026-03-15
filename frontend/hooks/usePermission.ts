@@ -101,8 +101,7 @@ export const usePermission = (): UsePermissionReturn => {
   };
 
   /**
-   * Kullanıcının demo kullanıcı olup olmadığını kontrol eder
-   * Türkçe açıklama: Demo kullanıcı kontrolü
+   * Demo kullanıcı: backend ApplicationUser.IsDemo flag. Rol adından çıkarılmaz.
    */
   const isDemoUser = user?.isDemo || false;
 
@@ -119,7 +118,7 @@ export const usePermission = (): UsePermissionReturn => {
   const isActiveUser = user?.isActive || false;
 
   // Role shortcuts – use ROLES.* constants; prefer permission when available.
-  const isAdmin = hasRole(ROLES.Admin) || hasRole(ROLES.SuperAdmin);
+  const isAdmin = hasRole(ROLES.SuperAdmin);
   const isCashier = hasRole(ROLES.Cashier);
   const isManager = hasRole(ROLES.Manager);
   const isSuperAdmin = hasRole(ROLES.SuperAdmin);

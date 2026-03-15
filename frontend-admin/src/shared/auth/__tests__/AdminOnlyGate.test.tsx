@@ -1,5 +1,5 @@
 /**
- * AdminOnlyGate: permission-first; fallback isSuperAdmin (SuperAdmin + legacy Admin). Redirects to /403 when not allowed.
+ * AdminOnlyGate: permission-first; fallback isSuperAdmin. Redirects to /403 when not allowed.
  */
 import '@testing-library/jest-dom';
 import React from 'react';
@@ -28,7 +28,7 @@ describe('AdminOnlyGate', () => {
     vi.clearAllMocks();
   });
 
-  it('redirects to /403 when user has no admin permission and not SuperAdmin (or legacy Admin) role', () => {
+  it('redirects to /403 when user has no admin permission and not SuperAdmin role', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Cashier', permissions: ['product.view'] },
       authStatus: AuthStatus.Authenticated,
@@ -42,19 +42,18 @@ describe('AdminOnlyGate', () => {
     expect(mockReplace).toHaveBeenCalledWith('/403');
   });
 
-  it('renders children when user has legacy Admin role (treated as SuperAdmin)', () => {
+  it('redirects to /403 when user has Admin role (no longer treated as SuperAdmin)', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Admin', permissions: [] },
       authStatus: AuthStatus.Authenticated,
       isInitialized: true,
     });
-    const { getByText } = render(
+    render(
       <AdminOnlyGate>
         <div>Protected content</div>
       </AdminOnlyGate>
     );
-    expect(getByText('Protected content')).toBeInTheDocument();
-    expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/403');
   });
 
   it('renders children when user has admin permission (user.manage)', () => {

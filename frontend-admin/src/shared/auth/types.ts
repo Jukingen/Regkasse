@@ -1,6 +1,6 @@
 /**
  * Auth user model with permissions – backend /me and login response.
- * Keep in sync with API; role from Identity (e.g. SuperAdmin, Manager). Legacy Admin may appear until re-login.
+ * Keep in sync with API; role from Identity (e.g. SuperAdmin, Manager).
  */
 export interface AuthUser {
   id: string | null;

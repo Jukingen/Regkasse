@@ -23,7 +23,7 @@ interface ReportDisplayProps {
   onGenerateReport: (filters: ReportFilter) => void;
   onSaveReport: (report: ReportData) => void;
   onExportReport: (format: 'pdf' | 'excel' | 'csv') => void;
-  userRole: 'Cashier' | 'Manager' | 'Admin' | 'SuperAdmin';
+  userRole: 'Cashier' | 'Manager' | 'SuperAdmin';
 }
 
 const ReportDisplay: React.FC<ReportDisplayProps> = ({

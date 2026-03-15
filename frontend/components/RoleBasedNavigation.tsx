@@ -16,13 +16,13 @@ interface NavigationItem {
 }
 
 const NAVIGATION_ITEMS: NavigationItem[] = [
-  // POS – Cashier, Waiter, Manager, Admin, SuperAdmin
+  // POS – Cashier, Waiter, Manager, SuperAdmin
   {
     id: 'sales',
     title: 'navigation.sales',
     icon: 'point-of-sale',
     screen: 'SalesScreen',
-    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
+    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.sales'
   },
   {
@@ -30,7 +30,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.products',
     icon: 'inventory',
     screen: 'ProductListScreen',
-    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
+    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.products'
   },
   {
@@ -38,7 +38,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.cart',
     icon: 'shopping-cart',
     screen: 'CartScreen',
-    roles: [UserRole.Cashier, UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
+    roles: [UserRole.Cashier, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.cart'
   },
   {
@@ -46,7 +46,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.customers',
     icon: 'people',
     screen: 'CustomerScreen',
-    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
+    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.customers'
   },
   {
@@ -54,17 +54,17 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.tables',
     icon: 'table-restaurant',
     screen: 'TableSelectionScreen',
-    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
+    roles: [UserRole.Cashier, UserRole.Waiter, UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.tables'
   },
 
-  // Admin / SuperAdmin
+  // SuperAdmin only (top admin)
   {
     id: 'users',
     title: 'navigation.users',
     icon: 'admin-panel-settings',
     screen: 'UserManagementScreen',
-    roles: [UserRole.Admin, UserRole.SuperAdmin],
+    roles: [UserRole.SuperAdmin],
     description: 'navigation.users'
   },
   {
@@ -72,7 +72,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.roles',
     icon: 'security',
     screen: 'RoleManagementScreen',
-    roles: [UserRole.Admin, UserRole.SuperAdmin],
+    roles: [UserRole.SuperAdmin],
     description: 'navigation.roles'
   },
   {
@@ -80,7 +80,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.system',
     icon: 'settings',
     screen: 'SystemSettingsScreen',
-    roles: [UserRole.Admin, UserRole.SuperAdmin],
+    roles: [UserRole.SuperAdmin],
     description: 'navigation.system'
   },
   {
@@ -88,7 +88,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.demo',
     icon: 'person-add',
     screen: 'DemoUserManagementScreen',
-    roles: [UserRole.Admin, UserRole.SuperAdmin],
+    roles: [UserRole.SuperAdmin],
     description: 'navigation.demo'
   },
   {
@@ -96,7 +96,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.hardware',
     icon: 'devices',
     screen: 'HardwareManagementScreen',
-    roles: [UserRole.Admin, UserRole.SuperAdmin],
+    roles: [UserRole.SuperAdmin],
     description: 'navigation.hardware'
   },
   {
@@ -104,7 +104,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.inventory',
     icon: 'inventory-2',
     screen: 'InventoryManagementScreen',
-    roles: [UserRole.Admin, UserRole.SuperAdmin],
+    roles: [UserRole.SuperAdmin],
     description: 'navigation.inventory'
   },
   {
@@ -112,7 +112,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.finanzonline',
     icon: 'account-balance',
     screen: 'FinanzOnlineScreen',
-    roles: [UserRole.Admin, UserRole.SuperAdmin],
+    roles: [UserRole.SuperAdmin],
     description: 'navigation.finanzonline'
   },
   {
@@ -120,7 +120,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.backup',
     icon: 'backup',
     screen: 'BackupRestoreScreen',
-    roles: [UserRole.Admin, UserRole.SuperAdmin],
+    roles: [UserRole.SuperAdmin],
     description: 'navigation.backup'
   },
 
@@ -130,7 +130,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.reports',
     icon: 'assessment',
     screen: 'ReportsScreen',
-    roles: [UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
+    roles: [UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.reports'
   },
   {
@@ -138,7 +138,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     title: 'navigation.audit',
     icon: 'history',
     screen: 'AuditLogsScreen',
-    roles: [UserRole.Admin, UserRole.SuperAdmin, UserRole.Manager],
+    roles: [UserRole.SuperAdmin, UserRole.Manager],
     description: 'navigation.audit'
   },
   {
@@ -282,7 +282,7 @@ export default function RoleBasedNavigation({ onNavigate, currentScreen }: RoleB
         <Text style={styles.title}>{t('navigation.menu')}</Text>
         <View style={styles.roleInfo}>
           <MaterialIcons 
-            name={userRole === UserRole.Admin ? 'admin-panel-settings' : 'person'} 
+            name={userRole === UserRole.SuperAdmin ? 'admin-panel-settings' : 'person'} 
             size={20} 
             color="#666" 
           />

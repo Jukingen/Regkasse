@@ -33,8 +33,8 @@ export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => voi
           { username: "demo.cashier2", password: "Demo123!", role: "Cashier", description: "Demo Kasiyer 2", permissions: ["Satış", "Sepet", "Ödeme", "Fatura"] }
         ],
         Admins: [
-          { username: "demo.admin1", password: "Admin123!", role: "Admin", description: "Demo Admin 1", permissions: ["Tüm özellikler"] },
-          { username: "demo.admin2", password: "Admin123!", role: "Admin", description: "Demo Admin 2", permissions: ["Tüm özellikler"] }
+          { username: "demo.admin1", password: "Admin123!", role: "SuperAdmin", description: "Demo SuperAdmin 1", permissions: ["Tüm özellikler"] },
+          { username: "demo.admin2", password: "Admin123!", role: "SuperAdmin", description: "Demo SuperAdmin 2", permissions: ["Tüm özellikler"] }
         ]
       });
     }
@@ -82,16 +82,16 @@ export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => voi
       key={index}
       style={[
         styles.userCard,
-        { backgroundColor: user.role === 'Admin' ? '#e3f2fd' : '#f3e5f5' }
+        { backgroundColor: user.role === 'SuperAdmin' ? '#e3f2fd' : '#f3e5f5' }
       ]}
       onPress={() => handleDemoLogin(user)}
       disabled={loading}
     >
       <View style={styles.userInfo}>
         <MaterialIcons 
-          name={user.role === 'Admin' ? 'admin-panel-settings' : 'person'} 
+          name={user.role === 'SuperAdmin' ? 'admin-panel-settings' : 'person'} 
           size={32} 
-          color={user.role === 'Admin' ? '#1976d2' : '#7b1fa2'} 
+          color={user.role === 'SuperAdmin' ? '#1976d2' : '#7b1fa2'} 
         />
         <View style={styles.userDetails}>
           <Text style={styles.userName}>{user.username}</Text>

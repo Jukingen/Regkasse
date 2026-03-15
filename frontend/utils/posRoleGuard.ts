@@ -1,16 +1,10 @@
 /**
  * POS uygulamasına giriş yetkisi olan roller.
  * Sadece Cashier ve SuperAdmin POS'a erişebilir.
- * Manager şimdilik POS'a giremez; Accountant ve ReportViewer kesinlikle giremez.
- *
- * "Admin" backend'de SuperAdmin'e normalize edilmiş legacy alias'tır
- * (bkz. backend/Auth/RoleLegacyMapping.cs — ["Admin"] = Roles.SuperAdmin).
- * Geçiş dönemi uyumluluğu için burada da kabul edilir.
  */
 const POS_ALLOWED_ROLES: ReadonlySet<string> = new Set([
   'Cashier',
   'SuperAdmin',
-  'Admin', // Legacy alias → SuperAdmin. Backend migration tamamlanınca kaldırılabilir.
 ]);
 
 /**

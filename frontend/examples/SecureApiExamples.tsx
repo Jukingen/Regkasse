@@ -47,7 +47,7 @@ export const SecureApiExamples: React.FC = () => {
       const result = await secureGet(
         '/api/users',
         { resource: 'users', action: 'read' }, // Gerekli yetki
-        'Admin' // Gerekli rol
+        'SuperAdmin' // Gerekli rol
       );
       setData(result);
       Alert.alert('Başarılı', 'Kullanıcılar başarıyla getirildi');
@@ -149,11 +149,11 @@ export const SecureApiExamples: React.FC = () => {
         </Text>
       </TouchableOpacity>
 
-      {/* Örnek 2: Admin Only GET */}
-      <RoleGuard role="Admin" fallback={
+      {/* Örnek 2: SuperAdmin Only GET */}
+      <RoleGuard role="SuperAdmin" fallback={
         <View style={{ padding: 16, backgroundColor: '#FFE5E5', marginBottom: 10, borderRadius: 8 }}>
           <Text style={{ color: '#D32F2F', textAlign: 'center' }}>
-            Bu işlem için Admin rolü gereklidir
+            Bu işlem için SuperAdmin rolü gereklidir
           </Text>
         </View>
       }>
@@ -163,7 +163,7 @@ export const SecureApiExamples: React.FC = () => {
           disabled={loading}
         >
           <Text style={{ color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
-            {loading ? 'Yükleniyor...' : '2. Admin Only GET - Kullanıcıları Getir'}
+            {loading ? 'Yükleniyor...' : '2. SuperAdmin GET - Kullanıcıları Getir'}
           </Text>
         </TouchableOpacity>
       </RoleGuard>
@@ -180,10 +180,10 @@ export const SecureApiExamples: React.FC = () => {
       </TouchableOpacity>
 
       {/* Örnek 4: Kritik İşlem */}
-      <RoleGuard role="Admin" fallback={
+      <RoleGuard role="SuperAdmin" fallback={
         <View style={{ padding: 16, backgroundColor: '#FFF3E0', marginBottom: 10, borderRadius: 8 }}>
           <Text style={{ color: '#F57C00', textAlign: 'center' }}>
-            Kritik işlemler için Admin rolü gereklidir
+            Kritik işlemler için SuperAdmin rolü gereklidir
           </Text>
         </View>
       }>

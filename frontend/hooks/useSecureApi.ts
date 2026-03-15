@@ -81,8 +81,7 @@ export const useSecureApi = () => {
   };
 
   /**
-   * Demo kullanıcı kısıtlaması kontrolü
-   * Türkçe açıklama: Demo kullanıcılar için kısıtlama
+   * Demo kullanıcı kısıtlaması: IsDemo flag (user.isDemo) ile uyumlu.
    */
   const checkDemoRestriction = (operationName: string): boolean => {
     return secureApi.checkDemoUserRestriction(operationName);

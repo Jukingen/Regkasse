@@ -103,7 +103,7 @@ const ReportsScreen = () => {
   // Yetki mesajı (canonical role names from backend)
   const role = user?.role ?? '';
   const isCashierLike = role === 'Cashier' || role === 'Waiter';
-  const isAdminLike = role === 'SuperAdmin' || role === 'Admin' || role === 'Manager';
+  const isAdminLike = role === 'SuperAdmin' || role === 'Manager';
   let infoMsg = '';
   if (isDemo) infoMsg = t('reports.demoInfo', 'Demo kullanıcılar sadece örnek raporları görebilir.');
   else if (isCashierLike) infoMsg = t('reports.cashierInfo', 'Sadece kendi gün sonu raporlarınızı görebilirsiniz.');

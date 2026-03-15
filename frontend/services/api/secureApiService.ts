@@ -181,8 +181,7 @@ export class SecureApiService {
   }
 
   /**
-   * Demo kullanıcı kontrolü
-   * Türkçe açıklama: Demo kullanıcılar için kısıtlama
+   * Restricts operations for demo users. Uses IsDemo flag from auth (permissionHook.isDemoUser), not role.
    */
   public checkDemoUserRestriction(operationName: string): boolean {
     if (this.permissionHook?.isDemoUser) {

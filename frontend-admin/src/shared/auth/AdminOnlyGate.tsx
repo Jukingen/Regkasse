@@ -14,8 +14,8 @@ interface AdminOnlyGateProps {
 }
 
 /**
- * Admin-only access: permission-first (user.manage or settings.manage); fallback SuperAdmin (legacy Admin token treated as SuperAdmin).
- * Redirects to /403 if user lacks admin permission/role. No legacy role names.
+ * Admin-only access: permission-first (user.manage or settings.manage); fallback SuperAdmin.
+ * Redirects to /403 if user lacks admin permission/role.
  */
 export const AdminOnlyGate: FC<AdminOnlyGateProps> = ({ children }) => {
     const { user, authStatus, isInitialized } = useAuth();

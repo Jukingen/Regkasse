@@ -57,19 +57,19 @@ export const PermissionGuard: React.FC<{
 };
 
 /**
- * Admin-only access: content visible for Admin or SuperAdmin (backend canonical admin roles).
+ * Admin-only access: content visible for SuperAdmin (canonical top admin role).
  */
 export const AdminOnly: React.FC<{ children: React.ReactNode; fallback?: React.ReactNode }> = ({
   children,
   fallback,
 }) => {
   const { hasRole } = usePermission();
-  const isAdmin = hasRole(ROLES.Admin) || hasRole(ROLES.SuperAdmin);
+  const isAdmin = hasRole(ROLES.SuperAdmin);
   if (!isAdmin) {
     return fallback ? <>{fallback}</> : (
       <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
         <p className="text-red-800 font-medium">Sie haben keine Berechtigung für diese Aktion.</p>
-        <p className="text-red-600 text-sm mt-1">Erforderliche Rolle: Admin oder SuperAdmin</p>
+        <p className="text-red-600 text-sm mt-1">Erforderliche Rolle: SuperAdmin</p>
       </div>
     );
   }
