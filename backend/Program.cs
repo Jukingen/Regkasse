@@ -140,8 +140,8 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Authorization: legacy role policies + permission-based policies. Use AddAppAuthorization() (AuthorizationExtensions).
-// Legacy: [Authorize(Policy = "PosSales")] etc. remain. New endpoints: [HasPermission(AppPermissions.X)].
+// Authorization: role-based policies (e.g. PosSales) and permission-based policies. Use AddAppAuthorization() (AuthorizationExtensions).
+// New endpoints prefer [HasPermission(AppPermissions.X)].
 // Admin/SuperAdmin permission set in RolePermissionMatrix.
 builder.Services.AddAppAuthorization();
 

@@ -51,7 +51,8 @@ public static class Roles
     };
 
     /// <summary>
-    /// Names that must not be used for custom roles (merged/removed or legacy). Demo reserved: use IsDemo flag only.
+    /// Names that must not be used for custom roles (merged/removed or reserved). Demo reserved: use IsDemo flag only.
+    /// Used only for validation: rejecting custom-role creation with these names; not used for authorization.
     /// </summary>
     public static readonly IReadOnlyList<string> ReservedRoleNames = new[]
     {

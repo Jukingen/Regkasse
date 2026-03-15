@@ -8,7 +8,7 @@ namespace KasseAPI_Final.Tests;
 
 /// <summary>
 /// Representative permission checks for key areas: Users, Catalog, Inventory, Reports, Settings, POS (Cart/Payment), TSE.
-/// Uses AddAppAuthorization and PermissionAuthorizationHandler; no legacy role policies.
+/// Uses AddAppAuthorization and PermissionAuthorizationHandler; authorization is permission/canonical-role based.
 /// </summary>
 public class EndpointAuthorizationRepresentativeTests
 {

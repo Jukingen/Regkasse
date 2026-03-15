@@ -1,9 +1,8 @@
 namespace KasseAPI_Final.Authorization;
 
 /// <summary>
-/// Reusable role groups for legacy policy definitions.
-/// Use in AuthorizationExtensions to reduce repeated RequireRole lists.
-/// Admin role removed; SuperAdmin is sole top-level admin.
+/// Reusable role groups for policy definitions (e.g. AuthorizationExtensions RequireRole lists).
+/// SuperAdmin is sole top-level admin.
 /// </summary>
 public static class RoleGroups
 {

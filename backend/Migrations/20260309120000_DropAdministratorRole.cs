@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace KasseAPI_Final.Migrations
 {
     /// <summary>
-    /// Authorization: remove legacy admin role from AspNetRoles (single admin role is Admin).
+    /// Authorization: remove legacy Administrator role row from AspNetRoles (single top admin is SuperAdmin).
     /// Run after CanonicalizeLegacyRoleNames. SQL uses DB value for legacy role name; not an active constant.
     /// </summary>
     public partial class DropAdministratorRole : Migration
