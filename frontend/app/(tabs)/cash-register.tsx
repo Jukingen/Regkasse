@@ -9,12 +9,13 @@
 // =============================================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
+import EmployeeIdentificationSheet from '../../components/EmployeeIdentificationSheet';
 import CategoryFilter from '../../components/CategoryFilter';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
 import { ProductList } from '../../components/ProductList';
@@ -90,10 +91,36 @@ function POSSummaryBlock({
   decrementModifier: (itemId: string, modifierId: string) => void;
   onPayment: () => void;
   paddingBottom: number;
+  saleCustomer?: { id: string; name: string; customerNumber?: string } | null;
+  onOpenEmployeeSheet?: () => void;
+  onClearEmployee?: () => void;
 }) {
   return (
     <View style={[styles.summaryBlock, { paddingBottom }]}>
       <SectionHeader step="4" title="Zusammenfassung" rowStyle={styles.summaryBlockHeader} titleStyle={styles.summaryBlockTitle} />
+      {onOpenEmployeeSheet && (
+        <View style={styles.personalStrip}>
+          <Text style={styles.personalLabel}>Personal:</Text>
+          {saleCustomer ? (
+            <>
+              <Text style={styles.personalValue} numberOfLines={1}>{saleCustomer.name}</Text>
+              <Pressable style={styles.personalBtn} onPress={onOpenEmployeeSheet}>
+                <Text style={styles.personalBtnText}>Ändern</Text>
+              </Pressable>
+              <Pressable style={styles.personalBtn} onPress={onClearEmployee}>
+                <Text style={styles.personalBtnText}>Entfernen</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.personalValue}>Keiner</Text>
+              <Pressable style={styles.personalSetzenBtn} onPress={onOpenEmployeeSheet}>
+                <Text style={styles.personalSetzenText}>Setzen</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      )}
       <View style={styles.criticalStrip}>
         <Text style={styles.criticalStripText} numberOfLines={1} ellipsizeMode="tail">
           Tisch {activeTableId} · {summaryTotals.itemCount} Artikel · GESAMT {formatPrice(summaryTotals.grandTotalGross)}
@@ -215,9 +242,12 @@ export default function CashRegisterScreen() {
     decrementModifier,
     removeModifier,
     setIsPaymentModalVisible,
+    saleCustomer,
+    setSaleCustomer,
   } = useCart();
 
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
+  const [employeeSheetVisible, setEmployeeSheetVisible] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
   const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
@@ -411,6 +441,16 @@ export default function CashRegisterScreen() {
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
+      {/* Employee identification sheet for Personal/benefit attachment */}
+      <EmployeeIdentificationSheet
+        visible={employeeSheetVisible}
+        onClose={() => setEmployeeSheetVisible(false)}
+        onSelect={(c) => {
+          setSaleCustomer(c);
+          setEmployeeSheetVisible(false);
+        }}
+      />
+
       {/* Add-on selection bottom sheet: base + add-ons as flat cart lines */}
       {modifierSheetProduct && (
         <ModifierSelectionBottomSheet
@@ -482,6 +522,9 @@ export default function CashRegisterScreen() {
             decrementModifier={decrementModifier}
             onPayment={handlePayment}
             paddingBottom={footerBottomPadding}
+            saleCustomer={saleCustomer}
+            onOpenEmployeeSheet={() => setEmployeeSheetVisible(true)}
+            onClearEmployee={() => setSaleCustomer(null)}
           />
         } 
       />
@@ -555,5 +598,44 @@ const styles = StyleSheet.create({
   criticalStripText: {
     ...SoftTypography.label,
     color: SoftColors.textSecondary,
+  },
+  personalStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: SoftColors.borderLight,
+  },
+  personalLabel: {
+    ...SoftTypography.label,
+    color: SoftColors.textSecondary,
+  },
+  personalValue: {
+    flex: 1,
+    minWidth: 60,
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textPrimary,
+  },
+  personalBtn: {
+    paddingHorizontal: SoftSpacing.sm,
+    paddingVertical: 4,
+  },
+  personalBtnText: {
+    ...SoftTypography.label,
+    color: SoftColors.accent,
+  },
+  personalSetzenBtn: {
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.xs,
+    borderWidth: 1,
+    borderColor: SoftColors.accent,
+    borderRadius: SoftRadius.sm,
+  },
+  personalSetzenText: {
+    ...SoftTypography.label,
+    color: SoftColors.accent,
   },
 }); 

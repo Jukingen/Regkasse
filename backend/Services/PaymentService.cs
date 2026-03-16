@@ -169,6 +169,7 @@ namespace KasseAPI_Final.Services
 
                 // Ürün kontrolü ve stok güncelleme. Tek hesap motoru: CartMoneyHelper (gross model).
                 var paymentItems = new List<PaymentItem>();
+                var productIdToCategoryId = new Dictionary<Guid, Guid>();
                 decimal totalAmount = 0;
                 decimal totalTaxAmount = 0;
                 var taxDetails = new Dictionary<string, decimal>();
@@ -236,12 +237,143 @@ namespace KasseAPI_Final.Services
 
                     // Add-ons are separate payment items (productId). ModifierIds/Modifiers in request are not used for new writes.
                     paymentItems.Add(paymentItem);
+                    productIdToCategoryId[product.Id] = product.CategoryId;
 
                     var taxKey = line.TaxType.ToString().ToLowerInvariant();
                     if (!taxDetails.ContainsKey(taxKey))
                         taxDetails[taxKey] = 0;
                     taxDetails[taxKey] += line.LineTax;
                 }
+
+                // Resolve effective percentage discount: assigned benefit (Priority then highest %) first, else Customer.DiscountPercentage fallback. Single discount only.
+                decimal effectivePct = 0;
+                var now = DateTime.UtcNow;
+                var assignedPercentage = await _context.BenefitAssignments
+                    .Where(ba => ba.CustomerId == customer.Id && ba.IsActive
+                        && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now))
+                    .Include(ba => ba.BenefitDefinition)
+                    .Where(ba => ba.BenefitDefinition.BenefitKind == AppliedBenefitKind.PercentageDiscount
+                        && ba.BenefitDefinition.IsActive
+                        && ba.BenefitDefinition.PercentageValue.HasValue
+                        && ba.BenefitDefinition.PercentageValue > 0)
+                    .OrderByDescending(ba => ba.Priority)
+                    .ThenByDescending(ba => ba.BenefitDefinition.PercentageValue)
+                    .Select(ba => ba.BenefitDefinition.PercentageValue!.Value)
+                    .FirstOrDefaultAsync();
+                if (assignedPercentage > 0)
+                    effectivePct = assignedPercentage;
+                else
+                    effectivePct = customer.DiscountPercentage;
+
+                JsonDocument? appliedBenefitsSnapshot = null;
+                if (totalAmount > 0 && effectivePct > 0)
+                {
+                    effectivePct = Math.Clamp(effectivePct, 0, 100);
+                    var discountAmount = CartMoneyHelper.Round(totalAmount * effectivePct / 100m);
+                    if (discountAmount > 0)
+                    {
+                        var totalBeforeDiscount = totalAmount;
+                        totalAmount -= discountAmount;
+                        var ratio = totalBeforeDiscount > 0 ? totalAmount / totalBeforeDiscount : 1m;
+                        totalTaxAmount = CartMoneyHelper.Round(totalTaxAmount * ratio);
+                        var keys = taxDetails.Keys.ToList();
+                        foreach (var key in keys)
+                            taxDetails[key] = CartMoneyHelper.Round(taxDetails[key] * ratio);
+                        var snapshotItem = new AppliedBenefitSnapshotItem
+                        {
+                            Kind = AppliedBenefitKind.PercentageDiscount,
+                            Description = $"Customer discount {effectivePct}%",
+                            Amount = -discountAmount,
+                            Quantity = null
+                        };
+                        appliedBenefitsSnapshot = JsonDocument.Parse(JsonSerializer.Serialize(new[] { snapshotItem }));
+                    }
+                }
+
+                // Daily free allowance: resolve assigned FreeAllowance benefits (per_day, AllowanceCategoryId set), apply within daily limit, merge into snapshot.
+                var todayUtc = now.Date;
+                var freeAllowanceAssignments = await _context.BenefitAssignments
+                    .Where(ba => ba.CustomerId == customer.Id && ba.IsActive
+                        && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now))
+                    .Include(ba => ba.BenefitDefinition)
+                    .Where(ba => ba.BenefitDefinition.BenefitKind == AppliedBenefitKind.FreeAllowance
+                        && ba.BenefitDefinition.IsActive
+                        && ba.BenefitDefinition.AllowanceQuantity.HasValue
+                        && ba.BenefitDefinition.AllowanceQuantity > 0
+                        && ba.BenefitDefinition.AllowanceCategoryId.HasValue
+                        && (ba.BenefitDefinition.AllowanceScope == null || string.Equals(ba.BenefitDefinition.AllowanceScope, "per_day", StringComparison.OrdinalIgnoreCase)))
+                    .OrderByDescending(ba => ba.Priority)
+                    .ToListAsync();
+
+                var snapshotList = appliedBenefitsSnapshot != null
+                    ? JsonSerializer.Deserialize<List<AppliedBenefitSnapshotItem>>(appliedBenefitsSnapshot.RootElement.GetRawText()) ?? new List<AppliedBenefitSnapshotItem>()
+                    : new List<AppliedBenefitSnapshotItem>();
+
+                foreach (var assignment in freeAllowanceAssignments)
+                {
+                    var def = assignment.BenefitDefinition;
+                    var allowanceQty = def.AllowanceQuantity!.Value;
+                    var categoryId = def.AllowanceCategoryId!.Value;
+
+                    var usageRow = await _context.BenefitDailyUsages
+                        .FirstOrDefaultAsync(u => u.CustomerId == customer.Id && u.BenefitDefinitionId == def.Id && u.UsageDate == todayUtc);
+                    if (usageRow == null)
+                    {
+                        usageRow = new BenefitDailyUsage
+                        {
+                            CustomerId = customer.Id,
+                            BenefitDefinitionId = def.Id,
+                            UsageDate = todayUtc,
+                            QuantityUsed = 0,
+                            Version = 0
+                        };
+                        _context.BenefitDailyUsages.Add(usageRow);
+                    }
+
+                    var remaining = allowanceQty - usageRow.QuantityUsed;
+                    if (remaining <= 0) continue;
+
+                    var eligibleItems = paymentItems
+                        .Where(pi => productIdToCategoryId.GetValueOrDefault(pi.ProductId) == categoryId)
+                        .ToList();
+                    var eligibleQuantity = eligibleItems.Sum(i => i.Quantity);
+                    var claimed = Math.Min(remaining, eligibleQuantity);
+                    if (claimed <= 0) continue;
+
+                    var remainingToClaim = claimed;
+                    decimal discountAmount = 0;
+                    foreach (var item in eligibleItems)
+                    {
+                        if (remainingToClaim <= 0) break;
+                        var n = Math.Min(item.Quantity, remainingToClaim);
+                        discountAmount += item.UnitPrice * n;
+                        remainingToClaim -= n;
+                    }
+                    discountAmount = CartMoneyHelper.Round(discountAmount);
+                    if (discountAmount <= 0) continue;
+
+                    var totalBeforeAllowance = totalAmount;
+                    totalAmount -= discountAmount;
+                    var ratio = totalBeforeAllowance > 0 ? totalAmount / totalBeforeAllowance : 1m;
+                    totalTaxAmount = CartMoneyHelper.Round(totalTaxAmount * ratio);
+                    var keys = taxDetails.Keys.ToList();
+                    foreach (var key in keys)
+                        taxDetails[key] = CartMoneyHelper.Round(taxDetails[key] * ratio);
+
+                    snapshotList.Add(new AppliedBenefitSnapshotItem
+                    {
+                        Kind = AppliedBenefitKind.FreeAllowance,
+                        Description = $"Free allowance ({claimed} items)",
+                        Amount = -discountAmount,
+                        Quantity = claimed
+                    });
+
+                    usageRow.QuantityUsed += claimed;
+                    usageRow.Version++;
+                }
+
+                if (snapshotList.Count > 0)
+                    appliedBenefitsSnapshot = JsonDocument.Parse(JsonSerializer.Serialize(snapshotList));
 
                 // CashRegisterId çözümle (TSE imzası için)
                 Guid resolvedCashRegisterId = Guid.Empty;
@@ -262,7 +394,7 @@ namespace KasseAPI_Final.Services
                 var seq = Guid.NewGuid().ToString("N")[..8];
                 var preReceiptNumber = $"AT-{request.KassenId}-{DateTime.UtcNow:yyyyMMdd}-{seq}";
 
-                // Ödeme detayları oluştur (totals = CartMoneyHelper toplamları; fiş ile sepet tutarlı)
+                // Ödeme detayları oluştur (totals = CartMoneyHelper toplamları; optional customer % discount already applied above)
                 var payment = new PaymentDetails
                 {
                     CustomerId = customer.Id,
@@ -283,7 +415,8 @@ namespace KasseAPI_Final.Services
                     KassenId = request.KassenId,
                     TseTimestamp = DateTime.UtcNow,
                     IsPrinted = false,
-                    ReceiptNumber = preReceiptNumber
+                    ReceiptNumber = preReceiptNumber,
+                    AppliedBenefitsSnapshot = appliedBenefitsSnapshot
                 };
 
                 // TSE imzası oluştur (eğer gerekliyse) - RKSV Checklist 1-5 uyumlu COMPACT JWS
@@ -313,8 +446,23 @@ namespace KasseAPI_Final.Services
                     }
                 }
 
-                // Ödemeyi kaydet
-                var createdPayment = await _paymentRepository.AddAsync(payment);
+                // Persist payment and any tracked changes (e.g. BenefitDailyUsage). Concurrency conflict possible when daily allowance is consumed at another terminal.
+                PaymentDetails createdPayment;
+                try
+                {
+                    createdPayment = await _paymentRepository.AddAsync(payment);
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    _logger.LogWarning(ex, "Daily allowance concurrency conflict for customer {CustomerId} during payment creation", request.CustomerId);
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Daily allowance was used at another terminal. Please try again.",
+                        DiagnosticCode = "BENEFIT_DAILY_ALLOWANCE_CONFLICT",
+                        Errors = { "Benefit daily allowance concurrency conflict" }
+                    };
+                }
 
                 // Persist a canonical Invoice row so that list / detail / PDF all share the same domain and ID
                 try
@@ -1191,15 +1339,60 @@ namespace KasseAPI_Final.Services
                 if (legacySnapshotItemCount > 0)
                     _logger.LogInformation("Phase2.LegacyModifier.ReceiptRenderedFromLegacyModifierSnapshots PaymentId={PaymentId} ItemsWithLegacyModifiersCount={ItemsWithLegacyModifiersCount}", payment.Id, legacySnapshotItemCount);
 
+                // Applied benefits: add synthetic receipt lines from snapshot so Items sum matches payment.TotalAmount (discounted).
+                List<AppliedBenefitSnapshotItem>? snapshotItems = null;
+                if (payment.AppliedBenefitsSnapshot != null)
+                {
+                    try
+                    {
+                        snapshotItems = JsonSerializer.Deserialize<List<AppliedBenefitSnapshotItem>>(payment.AppliedBenefitsSnapshot.RootElement.GetRawText());
+                    }
+                    catch
+                    {
+                        _logger.LogWarning("Failed to parse AppliedBenefitsSnapshot for payment {PaymentId}; receipt will not include benefit lines.", paymentId);
+                    }
+                }
+                decimal benefitTaxAmount = 0;
+                decimal totalBenefitAmount = 0;
+                if (snapshotItems != null && snapshotItems.Count > 0)
+                {
+                    var productTaxTotal = paymentItems.Sum(i => i.TaxAmount);
+                    benefitTaxAmount = payment.TaxAmount - productTaxTotal;
+                    totalBenefitAmount = snapshotItems.Sum(x => x.Amount);
+                    var first = true;
+                    foreach (var item in snapshotItems)
+                    {
+                        var vatAmount = first ? benefitTaxAmount : 0m;
+                        var lineNet = first ? item.Amount - benefitTaxAmount : item.Amount;
+                        first = false;
+                        receiptItems.Add(new ReceiptItemDTO
+                        {
+                            ItemId = Guid.NewGuid(),
+                            Name = item.Description,
+                            Quantity = 1,
+                            UnitPrice = item.Amount,
+                            TotalPrice = item.Amount,
+                            LineTotalNet = lineNet,
+                            LineTotalGross = item.Amount,
+                            TaxRate = 0,
+                            VatRate = 0,
+                            VatAmount = vatAmount,
+                            CategoryName = null,
+                            ParentItemId = null,
+                            IsModifierLine = false
+                        });
+                    }
+                }
+
                 var subtotal = paymentItems.Sum(i => i.LineNet);
 
-                // Receipt totals = payment totals (payment built with CartMoneyHelper; no recalculation)
-                if (Math.Abs(payment.TaxAmount - paymentItems.Sum(i => i.TaxAmount)) > 0.01m)
-                    _logger.LogWarning("Receipt VAT mismatch: payment.TaxAmount={PaymentTax}, sum(items.TaxAmount)={SumTax}", payment.TaxAmount, paymentItems.Sum(i => i.TaxAmount));
-                if (Math.Abs(payment.TotalAmount - paymentItems.Sum(i => i.TotalPrice)) > 0.01m)
-                    _logger.LogWarning("Receipt gross mismatch: payment.TotalAmount={Total}, sum(items.TotalPrice)={SumGross}", payment.TotalAmount, paymentItems.Sum(i => i.TotalPrice));
+                // Receipt totals = payment totals; when AppliedBenefitsSnapshot exists, receiptItems include synthetic lines so sum matches.
+                if (Math.Abs(payment.TaxAmount - receiptItems.Sum(i => i.VatAmount)) > 0.01m)
+                    _logger.LogWarning("Receipt VAT mismatch: payment.TaxAmount={PaymentTax}, sum(receiptItems.VatAmount)={SumTax}", payment.TaxAmount, receiptItems.Sum(i => i.VatAmount));
+                if (Math.Abs(payment.TotalAmount - receiptItems.Sum(i => i.TotalPrice)) > 0.01m)
+                    _logger.LogWarning("Receipt gross mismatch: payment.TotalAmount={Total}, sum(receiptItems.TotalPrice)={SumGross}", payment.TotalAmount, receiptItems.Sum(i => i.TotalPrice));
 
-                // Tax breakdown: group by (TaxType, TaxRate); NetAmount from LineNet (fallback for legacy: TotalPrice - TaxAmount)
+                // Tax breakdown: group by (TaxType, TaxRate); then append benefit line if snapshot present so header sums match payment totals.
                 var taxRates = paymentItems
                     .GroupBy(i => new { i.TaxType, i.TaxRate })
                     .Select(g =>
@@ -1224,6 +1417,19 @@ namespace KasseAPI_Final.Services
                     .OrderBy(t => t.Rate)
                     .ThenBy(t => t.TaxType)
                     .ToList();
+
+                if (snapshotItems != null && snapshotItems.Count > 0)
+                {
+                    taxRates.Add(new ReceiptTaxLineDTO
+                    {
+                        TaxType = 0,
+                        Rate = 0,
+                        VatRate = 0,
+                        NetAmount = totalBenefitAmount - benefitTaxAmount,
+                        TaxAmount = benefitTaxAmount,
+                        GrossAmount = totalBenefitAmount
+                    });
+                }
 
                 var headerNet = taxRates.Sum(t => t.NetAmount);
                 var headerTax = taxRates.Sum(t => t.TaxAmount);

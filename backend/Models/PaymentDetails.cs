@@ -115,6 +115,10 @@ namespace KasseAPI_Final.Models
         public string ReceiptNumber { get; set; } = string.Empty; // Format: AT-{TSE_ID}-{YYYYMMDD}-{SEQ}
         
         public bool IsPrinted { get; set; } = false;
+
+        /// <summary>Immutable snapshot of customer benefits applied at payment time (e.g. percentage discount, free allowance). Null when no benefits applied.</summary>
+        [Column(TypeName = "jsonb")]
+        public JsonDocument? AppliedBenefitsSnapshot { get; set; }
         
         // Navigation properties
         public virtual Customer? Customer { get; set; }

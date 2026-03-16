@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../services/api/config';
 import type { AddItemToCartRequest } from '../services/api/cartService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
+import type { Customer } from '../services/api/customerService';
 import { getCartForTableNumber } from '../utils/tableCartUtils';
 
 // ============================================
@@ -87,6 +88,9 @@ interface CartContextType {
     loading: boolean;
     error: string | null;
     isPaymentModalVisible: boolean;
+    /** Employee/customer attached to current sale for benefit application (separate from table customer). */
+    saleCustomer: Customer | null;
+    setSaleCustomer: (customer: Customer | null) => void;
 
     // Actions
     setActiveTable: (tableNumber: number) => void;
@@ -133,6 +137,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [loading, setLoadingState] = useState<boolean>(false);
     const [error, setErrorState] = useState<string | null>(null);
     const [isPaymentModalVisible, setIsPaymentModalVisible] = useState<boolean>(false);
+    const [saleCustomer, setSaleCustomer] = useState<Customer | null>(null);
 
     // Load from AsyncStorage on mount
     useEffect(() => {
@@ -1011,6 +1016,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             loading,
             error,
             isPaymentModalVisible,
+            saleCustomer,
+            setSaleCustomer,
             setActiveTable,
             setIsPaymentModalVisible,
             switchTable, // ✅ Exposed

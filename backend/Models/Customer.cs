@@ -68,7 +68,7 @@ namespace KasseAPI_Final.Models
         public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
         public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
-        // public virtual ICollection<CustomerDiscount> CustomerDiscounts { get; set; } = new List<CustomerDiscount>();
+        public virtual ICollection<BenefitAssignment> BenefitAssignments { get; set; } = new List<BenefitAssignment>();
     }
 
     public enum CustomerCategory

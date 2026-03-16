@@ -30,6 +30,7 @@ public static class PermissionCatalogMetadata
         ["shift"] = "Cash & Shift",
         ["inventory"] = "Inventory",
         ["customer"] = "Customer",
+        ["benefit"] = "Customer",
         ["invoice"] = "Invoice",
         ["creditnote"] = "Invoice",
         ["settings"] = "Settings",

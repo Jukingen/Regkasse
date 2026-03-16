@@ -60,6 +60,8 @@ export default function DashboardLayout({
         { key: '/modifier-groups', icon: <FileTextOutlined />, label: <Link href="/modifier-groups">Add-on-Gruppen</Link> },
         { key: '/categories', icon: <FileTextOutlined />, label: <Link href="/categories">Categories</Link> },
         { key: '/customers', icon: <UserOutlined />, label: <Link href="/customers">Customers</Link> },
+        { key: '/benefit-definitions', icon: <FileTextOutlined />, label: <Link href="/benefit-definitions">Vorteile (Definitionen)</Link> },
+        { key: '/benefit-assignments', icon: <FileTextOutlined />, label: <Link href="/benefit-assignments">Vorteile (Zuweisungen)</Link> },
         { key: '/receipts', icon: <FileTextOutlined />, label: <Link href="/receipts">Receipts</Link> },
         { key: '/receipt-templates', icon: <FileTextOutlined />, label: <Link href="/receipt-templates">Receipt Templates</Link> },
         { key: '/receipt-generate', icon: <FileTextOutlined />, label: <Link href="/receipt-generate">Generate Receipt</Link> },

@@ -1,6 +1,6 @@
 import i18n from '../../i18n';
 
-export type PaymentErrorCode = 'DEMO_PAYMENT_RESTRICTED' | 'UNKNOWN_PAYMENT_ERROR';
+export type PaymentErrorCode = 'DEMO_PAYMENT_RESTRICTED' | 'BENEFIT_DAILY_ALLOWANCE_CONFLICT' | 'UNKNOWN_PAYMENT_ERROR';
 
 export class PaymentAppError extends Error {
   readonly code: PaymentErrorCode;
@@ -47,11 +47,17 @@ export function normalizePaymentError(error: unknown): PaymentAppError {
     return new PaymentAppError('DEMO_PAYMENT_RESTRICTED', 400, DEMO_BY_ROLE);
   }
 
+  const code = (data?.code ?? (data?.details as Record<string, unknown>)?.code) as string | undefined;
+  if (status === 409 && code === 'BENEFIT_DAILY_ALLOWANCE_CONFLICT') {
+    return new PaymentAppError('BENEFIT_DAILY_ALLOWANCE_CONFLICT', 409, code);
+  }
+
   return new PaymentAppError('UNKNOWN_PAYMENT_ERROR', status);
 }
 
 const PAYMENT_ERROR_I18N_KEYS: Record<PaymentErrorCode, string> = {
   DEMO_PAYMENT_RESTRICTED: 'payment:errors.demoRestricted',
+  BENEFIT_DAILY_ALLOWANCE_CONFLICT: 'payment:errors.benefitDailyAllowanceConflict',
   UNKNOWN_PAYMENT_ERROR: 'payment:errors.unknown',
 };
 

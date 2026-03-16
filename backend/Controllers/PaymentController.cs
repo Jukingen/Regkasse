@@ -142,6 +142,8 @@ namespace KasseAPI_Final.Controllers
                 // CashierId mismatch is identity violation — 403; other failures stay 400.
                 if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == "CASHIER_ID_MISMATCH")
                     return ErrorResponse(result.Message, 403, new { code = "CASHIER_ID_MISMATCH", errors = result.Errors, diagnosticCode = result.DiagnosticCode });
+                if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == "BENEFIT_DAILY_ALLOWANCE_CONFLICT")
+                    return ErrorResponse(result.Message, 409, new { code = "BENEFIT_DAILY_ALLOWANCE_CONFLICT", errors = result.Errors });
                 if (!string.IsNullOrEmpty(result.DiagnosticCode))
                     return ErrorResponse(result.Message, 400, new { errors = result.Errors, diagnosticCode = result.DiagnosticCode });
                 return ErrorResponse(result.Message, 400, result.Errors);

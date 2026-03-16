@@ -25,6 +25,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/rksv/cmc-certificate': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/verifications': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/finanz-online-queue': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/benefit-definitions': PERMISSIONS.BENEFIT_VIEW,
+  '/benefit-assignments': PERMISSIONS.BENEFIT_VIEW,
 };
 
 /** Sorted route prefixes for longest-match lookup (e.g. /receipt-templates/123 → /receipt-templates). */

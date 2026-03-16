@@ -67,6 +67,8 @@ public static class PermissionCatalog
         AppPermissions.InventoryDelete,
         AppPermissions.CustomerView,
         AppPermissions.CustomerManage,
+        AppPermissions.BenefitView,
+        AppPermissions.BenefitManage,
         // Invoice, CreditNote
         AppPermissions.InvoiceView,
         AppPermissions.InvoiceManage,

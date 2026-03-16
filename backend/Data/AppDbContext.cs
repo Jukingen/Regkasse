@@ -14,6 +14,9 @@ namespace KasseAPI_Final.Data
         // DbSet properties
         public DbSet<Product> Products { get; set; }
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<BenefitDefinition> BenefitDefinitions { get; set; }
+        public DbSet<BenefitAssignment> BenefitAssignments { get; set; }
+        public DbSet<BenefitDailyUsage> BenefitDailyUsages { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
@@ -146,6 +149,63 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.CustomerNumber).IsUnique();
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.HasIndex(e => e.TaxNumber).IsUnique();
+            });
+
+            // BenefitDefinition configuration
+            builder.Entity<BenefitDefinition>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Code).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.BenefitKind).IsRequired();
+                entity.Property(e => e.PercentageValue).HasColumnType("decimal(5,2)");
+                entity.Property(e => e.AllowanceScope).HasMaxLength(50);
+                entity.Property(e => e.AllowanceCategoryId);
+                entity.HasOne(e => e.AllowanceCategory)
+                    .WithMany()
+                    .HasForeignKey(e => e.AllowanceCategoryId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                entity.HasIndex(e => e.Code).IsUnique();
+            });
+
+            // BenefitDailyUsage configuration
+            builder.Entity<BenefitDailyUsage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CustomerId).IsRequired();
+                entity.Property(e => e.BenefitDefinitionId).IsRequired();
+                entity.Property(e => e.UsageDate).IsRequired();
+                entity.Property(e => e.QuantityUsed).IsRequired();
+                entity.Property(e => e.Version).IsConcurrencyToken();
+                entity.HasOne(e => e.Customer)
+                    .WithMany()
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.BenefitDefinition)
+                    .WithMany()
+                    .HasForeignKey(e => e.BenefitDefinitionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => new { e.CustomerId, e.BenefitDefinitionId, e.UsageDate }).IsUnique();
+            });
+
+            // BenefitAssignment configuration
+            builder.Entity<BenefitAssignment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.BenefitDefinitionId).IsRequired();
+                entity.Property(e => e.CustomerId).IsRequired();
+                entity.Property(e => e.ValidFrom).IsRequired();
+                entity.HasOne(e => e.BenefitDefinition)
+                    .WithMany(b => b.Assignments)
+                    .HasForeignKey(e => e.BenefitDefinitionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Customer)
+                    .WithMany(c => c.BenefitAssignments)
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.BenefitDefinitionId);
+                entity.HasIndex(e => e.CustomerId);
+                entity.HasIndex(e => new { e.CustomerId, e.ValidFrom, e.ValidTo });
             });
 
             // Invoice configuration - Sadece mevcut sütunlar
@@ -334,6 +394,11 @@ namespace KasseAPI_Final.Data
                     .HasConversion(
                         v => v.RootElement.GetRawText(),
                         v => string.IsNullOrEmpty(v) ? JsonDocument.Parse("[]") : JsonDocument.Parse(v));
+                entity.Property(e => e.AppliedBenefitsSnapshot)
+                    .HasColumnType("jsonb")
+                    .HasConversion(
+                        v => v == null ? (string?)null : v.RootElement.GetRawText(),
+                        v => string.IsNullOrEmpty(v) ? null : JsonDocument.Parse(v));
                 
                 entity.HasIndex(e => e.CustomerId);
                 entity.HasIndex(e => e.PaymentMethodRaw); // Index on raw property

@@ -66,6 +66,7 @@
     "paymentError": "Ödeme işlemi sırasında hata oluştu",
     "generalError": "Bir hata oluştu",
     "demoRestricted": "Demo kullanıcılar gerçek ödeme oluşturamaz. Lütfen yetkili bir kullanıcı ile devam edin.",
+    "benefitDailyAllowanceConflict": "Tageskontingent wurde gerade an einer anderen Kasse genutzt. Bitte erneut versuchen.",
     "unknown": "Ödeme işlemi başarısız. Lütfen tekrar deneyin."
   },
   "cancellation": {

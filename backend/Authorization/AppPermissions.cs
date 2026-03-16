@@ -53,6 +53,10 @@ public static class AppPermissions
     /// <summary>Combined shift management (open/close/config). Use when action spans both open and close.</summary>
     public const string ShiftManage = "shift.manage";
 
+    // --- Customer benefits (definitions and assignments) ---
+    public const string BenefitView = "benefit.view";
+    public const string BenefitManage = "benefit.manage";
+
     // --- Inventory, Customer ---
     public const string InventoryView = "inventory.view";
     public const string InventoryManage = "inventory.manage";

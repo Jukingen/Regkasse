@@ -55,6 +55,8 @@ export const PERMISSIONS = {
   SYSTEM_CRITICAL: 'system.critical',
   PRICE_OVERRIDE: 'price.override',
   RECEIPT_REPRINT: 'receipt.reprint',
+  BENEFIT_VIEW: 'benefit.view',
+  BENEFIT_MANAGE: 'benefit.manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

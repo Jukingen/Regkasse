@@ -23,13 +23,16 @@ export default function TabLayout() {
         currentCart,
         isPaymentModalVisible,
         setIsPaymentModalVisible,
-        clearCart
+        clearCart,
+        saleCustomer,
+        setSaleCustomer,
     } = useCart();
 
     const totals = getCartDisplayTotals(currentCart);
     const cartCount = totals.itemCount;
 
     const handlePaymentSuccess = async (paymentId: string, paidTableNumber?: number) => {
+        setSaleCustomer(null);
         await clearCart(paidTableNumber ?? activeTableId);
     };
 
@@ -145,7 +148,7 @@ export default function TabLayout() {
                     modifiers: item.modifiers?.map(m => ({ modifierId: m.id, name: m.name, priceDelta: m.price }))
                 }))}
                 grandTotalGross={totals.grandTotalGross}
-                customerId="00000000-0000-0000-0000-000000000000"
+                customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
                 tableNumber={activeTableId}
             />
         </View>

@@ -51,6 +51,24 @@ class CustomerService {
     return response;
   }
 
+  /**
+   * Get customer by customer number (e.g. for employee identification).
+   * Returns null if not found or inactive (backend returns 404).
+   */
+  async getByCustomerNumber(customerNumber: string): Promise<Customer | null> {
+    const trimmed = String(customerNumber ?? '').trim();
+    if (!trimmed) return null;
+    try {
+      const response = await apiClient.get<any>(`${this.baseUrl}/number/${encodeURIComponent(trimmed)}`);
+      // Backend SuccessResponse returns { success, message, data }; interceptor returns response.data
+      const customer = (response as any)?.data ?? response;
+      return customer as Customer;
+    } catch (e: any) {
+      if (e?.response?.status === 404) return null;
+      throw e;
+    }
+  }
+
   // Get guest customer (walk-in)
   async getGuestCustomer(): Promise<string> {
     try {

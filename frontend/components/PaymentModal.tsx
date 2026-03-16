@@ -378,7 +378,8 @@ export default function PaymentModal({
       const message = isPaymentError(err)
         ? getPaymentErrorMessage(err.code)
         : (err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu');
-      Alert.alert(isPaymentError(err) && err.code === 'DEMO_PAYMENT_RESTRICTED' ? 'Uyarı' : 'Hata', message);
+      const title = isPaymentError(err) && err.code === 'BENEFIT_DAILY_ALLOWANCE_CONFLICT' ? 'Hinweis' : isPaymentError(err) && err.code === 'DEMO_PAYMENT_RESTRICTED' ? 'Uyarı' : 'Hata';
+      Alert.alert(title, message);
     }
   };
 
