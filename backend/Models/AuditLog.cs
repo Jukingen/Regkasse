@@ -3,7 +3,14 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KasseAPI_Final.Models
 {
-    // English Description: Comprehensive audit log for all payment operations and system activities
+    /// <summary>
+    /// Audit log entity – immutable event stream. Compliance invariants:
+    /// 1. Append-only: records are only inserted; updates to existing rows are rejected (see AppDbContext.SaveChanges).
+    /// 2. No audit record may be modified after write; deletion only via dedicated retention (DeleteAuditLogsOlderThanAsync).
+    /// 3. Every event must contain actor (UserId), timestamp (Timestamp), and actionType (Action/ActionType).
+    /// 4. Sensitive data must never be logged (password, tokens, credentials, taxNumber, security stamps); use UserAuditDiffHelper whitelist.
+    /// 5. Consumers (e.g. UI) must gracefully handle incomplete historical records (null/legacy fields).
+    /// </summary>
     public class AuditLog : BaseEntity
     {
         [Required]
@@ -89,12 +96,47 @@ namespace KasseAPI_Final.Models
         [MaxLength(500)]
         public string? TseSignature { get; set; } // TSE signature if applicable
 
+        // Enterprise audit event fields (nullable for backward compatibility)
+        /// <summary>Resolved actor display name at write time (e.g. FirstName LastName).</summary>
+        [MaxLength(200)]
+        public string? ActorDisplayName { get; set; }
+        /// <summary>Structured diff: [{ "field", "oldValue", "newValue" }]. Whitelist fields only; never password, tokens, taxNumber.</summary>
+        public string? Changes { get; set; }
+        /// <summary>Additional metadata as JSON (e.g. reason, targetUserId). Never contains credentials.</summary>
+        public string? Metadata { get; set; }
+        /// <summary>Typed action for user-lifecycle and role events; null for legacy rows.</summary>
+        public AuditEventType? ActionType { get; set; }
+
         // Navigation properties
         [ForeignKey("UserId")]
         public virtual ApplicationUser? User { get; set; }
 
         // Entity navigation property removed - EF Core doesn't support object type for navigation
         // Use EntityId and EntityType for entity identification instead
+    }
+
+    /// <summary>
+    /// Standardized audit event types. Every event includes: actor, target, timestamp, actionType.
+    /// USER_UPDATED must include structured changes; USER_ROLE_CHANGED must include role diff in changes.
+    /// Backing values preserved for existing logs (safe migration).
+    /// </summary>
+    public enum AuditEventType
+    {
+        UserCreated = 0,
+        UserUpdated = 1,
+        UserRoleChanged = 2,
+        UserDeactivated = 3,
+        UserReactivated = 4,
+        PasswordResetForced = 5,
+        ChangeOwnPassword = 6,
+        UserPasswordReset = 7,
+        RolePermissionsUpdated = 8,
+        RoleDeleted = 9,
+        LoginSuccess = 10,
+        UserLogout = 11,
+        UserDeleted = 12,
+        LoginFailed = 14,  // New; 11–12 preserved for existing logs
+        Other = 99
     }
 
     // Audit log statuses

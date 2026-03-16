@@ -200,7 +200,9 @@ public class UserManagementControllerUserLifecycleTests
                 "Left company",
                 null,
                 AuditLogStatus.Success,
-                It.IsAny<string>()),
+                It.IsAny<string>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>()),
             Times.Once);
         sessionMock.Verify(x => x.InvalidateSessionsForUserAsync("u1", It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -256,7 +258,9 @@ public class UserManagementControllerUserLifecycleTests
                 null,
                 null,
                 AuditLogStatus.Success,
-                It.IsAny<string>()),
+                It.IsAny<string>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>()),
             Times.Once);
     }
 
@@ -389,7 +393,7 @@ public class UserManagementControllerUserLifecycleTests
         var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", IsActive = true };
         var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
         var auditMock = new Mock<IAuditLogService>();
-        auditMock.Setup(x => x.LogUserLifecycleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>()))
+        auditMock.Setup(x => x.LogUserLifecycleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>()))
             .ThrowsAsync(new InvalidOperationException("audit_logs insert failed"));
         var sessionMock = new Mock<IUserSessionInvalidation>();
         using var context = CreateContext();
@@ -477,7 +481,7 @@ public class UserManagementControllerUserLifecycleTests
         var message = value.GetType().GetProperty("message")?.GetValue(value) as string;
         Assert.Equal("User updated successfully", message);
         auditMock.Verify(
-            x => x.LogUserLifecycleAsync(AuditLogActions.USER_UPDATE, It.IsAny<string>(), It.IsAny<string>(), "u1", null, null, AuditLogStatus.Success, It.IsAny<string>()),
+            x => x.LogUserLifecycleAsync(AuditLogActions.USER_UPDATE, It.IsAny<string>(), It.IsAny<string>(), "u1", null, null, AuditLogStatus.Success, It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<object?>()),
             Times.Once);
     }
 
@@ -488,7 +492,7 @@ public class UserManagementControllerUserLifecycleTests
         var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", EmployeeNumber = "E1", Role = "SuperAdmin", IsActive = true };
         var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
         var auditMock = new Mock<IAuditLogService>();
-        auditMock.Setup(x => x.LogUserLifecycleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>()))
+        auditMock.Setup(x => x.LogUserLifecycleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>()))
             .ThrowsAsync(new InvalidOperationException("audit_logs insert failed"));
         using var context = CreateContext();
         var controller = CreateController(context, userManager, roleManager, auditMock.Object, new Mock<IUserSessionInvalidation>().Object);

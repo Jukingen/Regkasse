@@ -29,7 +29,9 @@ public class UserLifecycleAuditIntegrationTests
         await context.Database.EnsureCreatedAsync();
         var httpContextAccessor = new Mock<IHttpContextAccessor>();
         httpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null);
-        var auditService = new AuditLogService(context, new Mock<ILogger<AuditLogService>>().Object, httpContextAccessor.Object);
+        var actorResolver = new Mock<IActorDisplayNameResolver>();
+        actorResolver.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>())).ReturnsAsync(new Dictionary<string, string>());
+        var auditService = new AuditLogService(context, new Mock<ILogger<AuditLogService>>().Object, httpContextAccessor.Object, actorResolver.Object);
 
         await auditService.LogUserLifecycleAsync(
             AuditLogActions.USER_DEACTIVATE,
@@ -52,7 +54,9 @@ public class UserLifecycleAuditIntegrationTests
         await context.Database.EnsureCreatedAsync();
         var httpContextAccessor = new Mock<IHttpContextAccessor>();
         httpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null);
-        var auditService = new AuditLogService(context, new Mock<ILogger<AuditLogService>>().Object, httpContextAccessor.Object);
+        var actorResolver = new Mock<IActorDisplayNameResolver>();
+        actorResolver.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>())).ReturnsAsync(new Dictionary<string, string>());
+        var auditService = new AuditLogService(context, new Mock<ILogger<AuditLogService>>().Object, httpContextAccessor.Object, actorResolver.Object);
 
         await auditService.LogUserLifecycleAsync(AuditLogActions.USER_DEACTIVATE, "admin-1", "SuperAdmin", "u1", "Urlaub", null, AuditLogStatus.Success, "Deactivated");
         await auditService.LogUserLifecycleAsync(AuditLogActions.USER_REACTIVATE, "admin-1", "SuperAdmin", "u1", null, null, AuditLogStatus.Success, "Reactivated");

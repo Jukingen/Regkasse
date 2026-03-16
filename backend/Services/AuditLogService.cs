@@ -10,8 +10,9 @@ using System.Text.Json;
 namespace KasseAPI_Final.Services
 {
     /// <summary>
-    /// Comprehensive audit logging service for tracking all payment operations and system activities
-    /// This service provides detailed audit trails for compliance and security monitoring
+    /// Audit logging service – audit logs are an immutable event stream.
+    /// Invariants: (1) Append-only – only inserts; (2) No record may be modified; (3) Every event has actor, timestamp, actionType;
+    /// (4) Sensitive data must never be logged (use UserAuditDiffHelper whitelist for diff data).
     /// </summary>
     public interface IAuditLogService
     {
@@ -37,11 +38,19 @@ namespace KasseAPI_Final.Services
             string? errorDetails = null, object? requestData = null, object? responseData = null);
 
         /// <summary>
-        /// User lifecycle audit: actor (who), target user, action, reason. For RKSV/DSGVO traceability.
+        /// User lifecycle audit (centralized). Every event has actor, target, timestamp, actionType.
+        /// USER_UPDATED must include structured changes; USER_ROLE_CHANGED must include role diff. Only changed values are logged.
         /// </summary>
+        Task<AuditLog> LogUserLifecycleAsync(AuditEventType actionType, string actorUserId, string actorRole,
+            string targetUserId, string? reason = null, string? correlationId = null,
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null,
+            object? oldValues = null, object? newValues = null);
+
+        /// <summary>Legacy overload: maps action string to AuditEventType and delegates. Prefer LogUserLifecycleAsync(AuditEventType, ...).</summary>
         Task<AuditLog> LogUserLifecycleAsync(string action, string actorUserId, string actorRole,
             string targetUserId, string? reason = null, string? correlationId = null,
-            AuditLogStatus status = AuditLogStatus.Success, string? description = null);
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null,
+            object? oldValues = null, object? newValues = null);
 
         Task<IEnumerable<AuditLog>> GetAuditLogsAsync(DateTime? startDate = null, DateTime? endDate = null,
             string? userId = null, string? userRole = null, string? action = null, string? entityType = null,
@@ -79,13 +88,15 @@ namespace KasseAPI_Final.Services
         private readonly AppDbContext _context;
         private readonly ILogger<AuditLogService> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IActorDisplayNameResolver _actorDisplayNameResolver;
 
-        public AuditLogService(AppDbContext context, ILogger<AuditLogService> logger, 
-            IHttpContextAccessor httpContextAccessor)
+        public AuditLogService(AppDbContext context, ILogger<AuditLogService> logger,
+            IHttpContextAccessor httpContextAccessor, IActorDisplayNameResolver actorDisplayNameResolver)
         {
             _context = context;
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
+            _actorDisplayNameResolver = actorDisplayNameResolver;
         }
 
         /// <summary>
@@ -330,57 +341,143 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
-        /// User lifecycle audit: actor performs action on target user (e.g. deactivate, reactivate, role change).
+        /// User lifecycle audit (centralized). Invariant 3: every event includes actor (actorUserId), target (targetUserId), timestamp (UtcNow), actionType.
+        /// USER_UPDATED must include structured changes; USER_ROLE_CHANGED must include role diff. Unchanged values are not logged.
+        /// Invariant 4: callers must pass only whitelisted diff data (UserAuditDiffHelper); sensitive data must never be logged.
         /// </summary>
+        public async Task<AuditLog> LogUserLifecycleAsync(AuditEventType actionType, string actorUserId, string actorRole,
+            string targetUserId, string? reason = null, string? correlationId = null,
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null,
+            object? oldValues = null, object? newValues = null)
+        {
+            var action = GetActionString(actionType);
+            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, reason, correlationId, status, description, oldValues, newValues);
+        }
+
+        /// <summary>Legacy overload: maps action string to AuditEventType and delegates.</summary>
         public async Task<AuditLog> LogUserLifecycleAsync(string action, string actorUserId, string actorRole,
             string targetUserId, string? reason = null, string? correlationId = null,
-            AuditLogStatus status = AuditLogStatus.Success, string? description = null)
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null,
+            object? oldValues = null, object? newValues = null)
         {
+            var actionType = MapActionToEventType(action);
+            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, reason, correlationId, status, description, oldValues, newValues);
+        }
+
+        private async Task<AuditLog> LogUserLifecycleAsyncCore(AuditEventType actionType, string action,
+            string actorUserId, string actorRole, string targetUserId, string? reason, string? correlationId,
+            AuditLogStatus status, string? description, object? oldValues, object? newValues)
+        {
+            var httpContext = _httpContextAccessor.HttpContext;
+            var sessionId = Guid.NewGuid().ToString();
+            var requestData = new { targetUserId, reason };
+
+            string? actorDisplayName = null;
             try
             {
-                var httpContext = _httpContextAccessor.HttpContext;
-                var sessionId = Guid.NewGuid().ToString();
-                var requestData = new { targetUserId, reason };
-
-                var auditLog = new AuditLog
-                {
-                    Id = Guid.NewGuid(),
-                    SessionId = sessionId,
-                    UserId = actorUserId,
-                    UserRole = actorRole,
-                    Action = action,
-                    EntityType = AuditLogEntityTypes.USER,
-                    EntityId = null,
-                    EntityName = targetUserId,
-                    OldValues = null,
-                    NewValues = null,
-                    RequestData = JsonSerializer.Serialize(requestData),
-                    ResponseData = null,
-                    Status = status,
-                    Timestamp = DateTime.UtcNow,
-                    Description = description ?? $"User lifecycle: {action} on user {targetUserId}",
-                    Notes = reason,
-                    IpAddress = GetClientIpAddress(httpContext),
-                    UserAgent = GetUserAgentMinimized(httpContext),
-                    Endpoint = httpContext?.Request.Path,
-                    HttpMethod = httpContext?.Request.Method,
-                    HttpStatusCode = httpContext?.Response.StatusCode,
-                    CorrelationId = correlationId ?? GetRequestCorrelationId() ?? Guid.NewGuid().ToString()
-                };
-
-                _context.AuditLogs.Add(auditLog);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("User lifecycle audit: {Action} on user {TargetUserId} by {ActorUserId}",
-                    action, targetUserId, actorUserId);
-
-                return auditLog;
+                var names = await _actorDisplayNameResolver.ResolveAsync(new List<string> { actorUserId });
+                names.TryGetValue(actorUserId, out actorDisplayName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create user lifecycle audit for {Action} on {TargetUserId}", action, targetUserId);
-                throw;
+                _logger.LogWarning(ex, "Could not resolve actor display name for {UserId}", actorUserId);
             }
+
+            // Structured diff: only changed fields (whitelist). Do not log unchanged values.
+            var changeList = UserAuditDiffHelper.BuildStructuredChanges(oldValues, newValues);
+            var changesJson = changeList.Count > 0 ? JsonSerializer.Serialize(changeList) : null;
+
+            var metadata = new Dictionary<string, object?>
+            {
+                ["targetUserId"] = targetUserId
+            };
+            if (!string.IsNullOrEmpty(reason))
+                metadata["reason"] = reason;
+            var metadataJson = JsonSerializer.Serialize(metadata);
+
+            var auditLog = new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                SessionId = sessionId,
+                UserId = actorUserId,
+                UserRole = actorRole,
+                Action = action,
+                EntityType = AuditLogEntityTypes.USER,
+                EntityId = null,
+                EntityName = targetUserId,
+                OldValues = oldValues != null ? JsonSerializer.Serialize(oldValues) : null,
+                NewValues = newValues != null ? JsonSerializer.Serialize(newValues) : null,
+                RequestData = JsonSerializer.Serialize(requestData),
+                ResponseData = null,
+                Status = status,
+                Timestamp = DateTime.UtcNow,
+                Description = description ?? $"User lifecycle: {action} on user {targetUserId}",
+                Notes = reason,
+                IpAddress = GetClientIpAddress(httpContext),
+                UserAgent = GetUserAgentMinimized(httpContext),
+                Endpoint = httpContext?.Request.Path,
+                HttpMethod = httpContext?.Request.Method,
+                HttpStatusCode = httpContext?.Response.StatusCode,
+                CorrelationId = correlationId ?? GetRequestCorrelationId() ?? Guid.NewGuid().ToString(),
+                ActorDisplayName = actorDisplayName,
+                Changes = changesJson,
+                Metadata = metadataJson,
+                ActionType = actionType
+            };
+
+            _context.AuditLogs.Add(auditLog);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("User lifecycle audit: {ActionType} on user {TargetUserId} by {ActorUserId}",
+                actionType, targetUserId, actorUserId);
+
+            return auditLog;
+        }
+
+        /// <summary>Maps AuditEventType to legacy Action string for backward compatibility (existing queries/reports).</summary>
+        private static string GetActionString(AuditEventType actionType)
+        {
+            return actionType switch
+            {
+                AuditEventType.UserCreated => AuditLogActions.USER_CREATE,
+                AuditEventType.UserUpdated => AuditLogActions.USER_UPDATE,
+                AuditEventType.UserRoleChanged => AuditLogActions.USER_ROLE_CHANGE,
+                AuditEventType.UserDeactivated => AuditLogActions.USER_DEACTIVATE,
+                AuditEventType.UserReactivated => AuditLogActions.USER_REACTIVATE,
+                AuditEventType.PasswordResetForced => AuditLogActions.FORCE_RESET_PASSWORD,
+                AuditEventType.ChangeOwnPassword => AuditLogActions.CHANGE_OWN_PASSWORD,
+                AuditEventType.UserPasswordReset => AuditLogActions.USER_PASSWORD_RESET,
+                AuditEventType.RolePermissionsUpdated => AuditLogActions.ROLE_PERMISSIONS_UPDATE,
+                AuditEventType.RoleDeleted => AuditLogActions.ROLE_DELETE,
+                AuditEventType.LoginSuccess => AuditLogActions.USER_LOGIN,
+                AuditEventType.LoginFailed => AuditLogActions.USER_LOGIN,
+                AuditEventType.UserLogout => AuditLogActions.USER_LOGOUT,
+                AuditEventType.UserDeleted => AuditLogActions.USER_DELETE,
+                _ => AuditLogActions.USER_UPDATE
+            };
+        }
+
+        /// <summary>Maps legacy action string to AuditEventType. Used when reading old logs or from legacy callers.</summary>
+        private static AuditEventType MapActionToEventType(string action)
+        {
+            if (string.IsNullOrEmpty(action)) return AuditEventType.Other;
+            return action switch
+            {
+                AuditLogActions.USER_CREATE => AuditEventType.UserCreated,
+                AuditLogActions.USER_UPDATE => AuditEventType.UserUpdated,
+                AuditLogActions.USER_ROLE_CHANGE => AuditEventType.UserRoleChanged,
+                AuditLogActions.USER_DEACTIVATE => AuditEventType.UserDeactivated,
+                AuditLogActions.USER_REACTIVATE => AuditEventType.UserReactivated,
+                AuditLogActions.FORCE_RESET_PASSWORD => AuditEventType.PasswordResetForced,
+                AuditLogActions.CHANGE_OWN_PASSWORD => AuditEventType.ChangeOwnPassword,
+                AuditLogActions.USER_PASSWORD_RESET => AuditEventType.UserPasswordReset,
+                AuditLogActions.ROLE_PERMISSIONS_UPDATE => AuditEventType.RolePermissionsUpdated,
+                AuditLogActions.ROLE_DELETE => AuditEventType.RoleDeleted,
+                AuditLogActions.USER_LOGIN => AuditEventType.LoginSuccess,
+                AuditLogActions.USER_LOGOUT => AuditEventType.UserLogout,
+                AuditLogActions.USER_DELETE => AuditEventType.UserDeleted,
+                _ => AuditEventType.Other
+            };
         }
 
         /// <summary>

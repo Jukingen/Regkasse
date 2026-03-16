@@ -34,7 +34,7 @@ export function UserDetailDrawer({ open, onClose, user }: Props) {
     <Drawer
       title={fullName(user)}
       placement="right"
-      width={640}
+      width={840}
       onClose={onClose}
       open={open}
       destroyOnHidden

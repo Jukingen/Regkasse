@@ -157,7 +157,7 @@ public class AdminUsersController : ControllerBase
             await _userManager.AddToRoleAsync(user, request.Role);
 
         if (ActorId != null)
-            await _auditLogService.LogUserLifecycleAsync(AuditLogActions.USER_CREATE, ActorId, ActorRole, user.Id, null, null, AuditLogStatus.Success, $"User created: {user.UserName}");
+            await _auditLogService.LogUserLifecycleAsync(AuditEventType.UserCreated, ActorId, ActorRole, user.Id, null, null, AuditLogStatus.Success, $"User created: {user.UserName}");
 
         return CreatedAtAction(nameof(GetById), new { id = user.Id }, ToDto(user));
     }
@@ -190,6 +190,7 @@ public class AdminUsersController : ControllerBase
 
         var roleChanged = false;
         var previousRole = user.Role;
+        var oldSnapshot = UserAuditDiffHelper.CreateSafeSnapshot(user);
 
         if (request.FirstName != null) user.FirstName = request.FirstName;
         if (request.LastName != null) user.LastName = request.LastName;
@@ -235,10 +236,11 @@ public class AdminUsersController : ControllerBase
 
         if (ActorId != null)
         {
-            await _auditLogService.LogUserLifecycleAsync(AuditLogActions.USER_UPDATE, ActorId, ActorRole, id, null, null, AuditLogStatus.Success, $"User updated: {user.UserName}");
+            var newSnapshot = UserAuditDiffHelper.CreateSafeSnapshot(user);
+            await _auditLogService.LogUserLifecycleAsync(AuditEventType.UserUpdated, ActorId, ActorRole, id, null, null, AuditLogStatus.Success, $"User updated: {user.UserName}", oldSnapshot, newSnapshot);
             if (roleChanged)
             {
-                await _auditLogService.LogUserLifecycleAsync(AuditLogActions.USER_ROLE_CHANGE, ActorId, ActorRole, id, $"Role changed from {previousRole} to {request.Role}", null, AuditLogStatus.Success);
+                await _auditLogService.LogUserLifecycleAsync(AuditEventType.UserRoleChanged, ActorId, ActorRole, id, $"Role changed from {previousRole} to {request.Role}", null, AuditLogStatus.Success, $"Role change: {previousRole} -> {request.Role}", oldValues: new { Role = previousRole }, newValues: new { Role = request.Role });
                 await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
             }
         }
@@ -278,7 +280,7 @@ public class AdminUsersController : ControllerBase
         if (ActorId != null)
         {
             var desc = "User deactivated: " + user.UserName + ". Reason: " + request.Reason;
-            await _auditLogService.LogUserLifecycleAsync(AuditLogActions.USER_DEACTIVATE, ActorId, ActorRole, id, request.Reason.Trim(), null, AuditLogStatus.Success, desc);
+            await _auditLogService.LogUserLifecycleAsync(AuditEventType.UserDeactivated, ActorId, ActorRole, id, request.Reason.Trim(), null, AuditLogStatus.Success, desc);
         }
 
         await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
@@ -310,7 +312,7 @@ public class AdminUsersController : ControllerBase
 
         var reason = request?.Reason?.Trim();
         if (ActorId != null)
-            await _auditLogService.LogUserLifecycleAsync(AuditLogActions.USER_REACTIVATE, ActorId, ActorRole, id, reason, null, AuditLogStatus.Success, $"User reactivated: {user.UserName}" + (string.IsNullOrEmpty(reason) ? "" : $". Note: {reason}"));
+            await _auditLogService.LogUserLifecycleAsync(AuditEventType.UserReactivated, ActorId, ActorRole, id, reason, null, AuditLogStatus.Success, $"User reactivated: {user.UserName}" + (string.IsNullOrEmpty(reason) ? "" : $". Note: {reason}"));
 
         return Ok(ToDto(user));
     }
@@ -335,7 +337,7 @@ public class AdminUsersController : ControllerBase
             return BadRequest(ApiError.Validation("Password reset failed", result.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray())));
 
         if (ActorId != null)
-            await _auditLogService.LogUserLifecycleAsync(AuditLogActions.USER_PASSWORD_RESET, ActorId, ActorRole, id, null, null, AuditLogStatus.Success, "Admin force password reset");
+            await _auditLogService.LogUserLifecycleAsync(AuditEventType.PasswordResetForced, ActorId, ActorRole, id, null, null, AuditLogStatus.Success, "Admin force password reset");
 
         await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
         return NoContent();

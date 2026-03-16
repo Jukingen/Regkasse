@@ -27,7 +27,6 @@ import {
     EditOutlined,
     StopOutlined,
     CheckCircleOutlined,
-    HistoryOutlined,
     EyeOutlined,
     SearchOutlined,
     KeyOutlined,
@@ -181,6 +180,7 @@ export default function UsersPage() {
             message.success(usersCopy.successUpdate);
             queryClient.invalidateQueries({ queryKey: getUserByIdQueryKey(id) });
             queryClient.invalidateQueries({ queryKey: listQueryKey });
+            queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setEditUserId(null);
         },
         onError: (e: unknown) => {
@@ -189,9 +189,10 @@ export default function UsersPage() {
     });
     const resetPasswordMutation = useMutation({
         mutationFn: ({ id, data }: { id: string; data: { newPassword: string } }) => gatewayResetPassword(id, data),
-        onSuccess: () => {
+        onSuccess: (_data, { id }) => {
             message.success(usersCopy.successResetPassword);
             queryClient.invalidateQueries({ queryKey: listQueryKey });
+            queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setResetPasswordUser(null);
             resetPasswordForm.resetFields();
         },
@@ -224,9 +225,10 @@ export default function UsersPage() {
     });
     const deactivateMutation = useMutation({
         mutationFn: ({ id, reason }: { id: string; reason: string }) => gatewayDeactivateUser(id, { reason }),
-        onSuccess: () => {
+        onSuccess: (_data, { id }) => {
             message.success(usersCopy.successDeactivate);
             queryClient.invalidateQueries({ queryKey: listQueryKey });
+            queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setDeactivateUserRecord(null);
             deactivateForm.resetFields();
         },
@@ -236,9 +238,10 @@ export default function UsersPage() {
     });
     const reactivateMutation = useMutation({
         mutationFn: (id: string) => gatewayReactivateUser(id),
-        onSuccess: () => {
+        onSuccess: (_data, id) => {
             message.success(usersCopy.successReactivate);
             queryClient.invalidateQueries({ queryKey: listQueryKey });
+            queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setReactivateUserRecord(null);
         },
         onError: (e: unknown) => {
@@ -425,13 +428,6 @@ export default function UsersPage() {
                             {usersCopy.edit}
                         </Button>
                     )}
-                    <Button
-                        size="small"
-                        icon={<HistoryOutlined />}
-                        onClick={() => setDetailUser(record)}
-                    >
-                        {usersCopy.activity}
-                    </Button>
                     {policy.canDeactivate && record.isActive && (
                         <Button
                             size="small"

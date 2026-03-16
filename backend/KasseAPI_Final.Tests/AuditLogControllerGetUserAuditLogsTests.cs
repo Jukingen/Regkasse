@@ -16,11 +16,13 @@ public class AuditLogControllerGetUserAuditLogsTests
 {
     private static AuditLogController CreateController(
         IAuditLogService auditLogService,
+        IActorDisplayNameResolver? actorDisplayNameResolver = null,
         string? userId = "actor-1",
         string role = "SuperAdmin")
     {
         var logger = new Mock<ILogger<AuditLogController>>().Object;
-        var controller = new AuditLogController(auditLogService, logger);
+        var resolver = actorDisplayNameResolver ?? CreateDefaultResolver();
+        var controller = new AuditLogController(auditLogService, resolver, logger);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, userId ?? ""),
@@ -31,6 +33,14 @@ public class AuditLogControllerGetUserAuditLogsTests
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test")) }
         };
         return controller;
+    }
+
+    private static IActorDisplayNameResolver CreateDefaultResolver()
+    {
+        var mock = new Mock<IActorDisplayNameResolver>();
+        mock.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+        return mock.Object;
     }
 
     [Fact]

@@ -59,22 +59,23 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Runs user lifecycle audit without failing the primary operation. If audit write fails (e.g. schema/DB),
-        /// logs the error and continues so that user update/create/deactivate etc. still return success.
+        /// Runs user lifecycle audit without failing the primary operation. Uses standardized AuditEventType.
+        /// oldValues/newValues: safe field-level diff only; USER_UPDATED and USER_ROLE_CHANGED must include structured changes.
         /// </summary>
-        private async Task TryLogUserLifecycleAsync(string action, string actorUserId, string actorRole,
+        private async Task TryLogUserLifecycleAsync(AuditEventType actionType, string actorUserId, string actorRole,
             string targetUserId, string? reason = null, string? correlationId = null,
-            AuditLogStatus status = AuditLogStatus.Success, string? description = null)
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null,
+            object? oldValues = null, object? newValues = null)
         {
             try
             {
-                await _auditLogService.LogUserLifecycleAsync(action, actorUserId, actorRole, targetUserId, reason, correlationId, status, description);
+                await _auditLogService.LogUserLifecycleAsync(actionType, actorUserId, actorRole, targetUserId, reason, correlationId, status, description, oldValues, newValues);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "User lifecycle audit failed (primary operation succeeded). Action: {Action}, TargetUserId: {TargetUserId}, ActorUserId: {ActorUserId}",
-                    action, targetUserId, actorUserId);
+                    "User lifecycle audit failed (primary operation succeeded). ActionType: {ActionType}, TargetUserId: {TargetUserId}, ActorUserId: {ActorUserId}",
+                    actionType, targetUserId, actorUserId);
             }
         }
 
@@ -109,9 +110,9 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var actorRole = GetCurrentUserRole();
-                await _auditLogService.LogUserActivityAsync(
-                    AuditLogActions.CHANGE_OWN_PASSWORD, currentUserId, actorRole,
-                    description: "User changed own password", status: AuditLogStatus.Success);
+                await TryLogUserLifecycleAsync(
+                    AuditEventType.ChangeOwnPassword, currentUserId, actorRole, currentUserId,
+                    null, null, AuditLogStatus.Success, "User changed own password");
 
                 return Ok(new { message = "Password changed successfully" });
             }
@@ -336,7 +337,7 @@ namespace KasseAPI_Final.Controllers
                 if (!string.IsNullOrEmpty(actorId))
                 {
                     await TryLogUserLifecycleAsync(
-                        AuditLogActions.USER_CREATE, actorId, actorRole, user.Id, null, null,
+                        AuditEventType.UserCreated, actorId, actorRole, user.Id, null, null,
                         AuditLogStatus.Success, $"User created: {user.UserName}");
                 }
 
@@ -390,6 +391,9 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var previousRole = user.Role;
+
+                // Audit diff: only whitelisted safe fields (UserAuditDiffHelper). No credentials, no Notes/TaxNumber/EmployeeNumber.
+                object? oldSnapshot = UserAuditDiffHelper.CreateSafeSnapshot(user);
 
                 // Uniqueness: exclude current user by loaded entity Id (user.Id), never by route id, so self-update with same employeeNumber/email does not false-conflict.
                 var (hasConflict, conflictMessage) = await _uniquenessValidation.ValidateUniquenessForUpdateAsync(
@@ -459,15 +463,18 @@ namespace KasseAPI_Final.Controllers
                 var actorRole = GetCurrentUserRole();
                 if (!string.IsNullOrEmpty(actorId))
                 {
+                    object newSnapshot = UserAuditDiffHelper.CreateSafeSnapshot(user);
                     await TryLogUserLifecycleAsync(
-                        AuditLogActions.USER_UPDATE, actorId, actorRole, id, null, null,
-                        AuditLogStatus.Success, $"User updated: {user.UserName}");
+                        AuditEventType.UserUpdated, actorId, actorRole, id, null, null,
+                        AuditLogStatus.Success, $"User updated: {user.UserName}", oldSnapshot, newSnapshot);
                     if (!string.IsNullOrEmpty(request.Role) && request.Role != previousRole)
                     {
                         await TryLogUserLifecycleAsync(
-                            AuditLogActions.USER_ROLE_CHANGE, actorId, actorRole, id,
+                            AuditEventType.UserRoleChanged, actorId, actorRole, id,
                             $"Role changed from {previousRole} to {request.Role}", null,
-                            AuditLogStatus.Success, $"Role change: {previousRole} -> {request.Role}");
+                            AuditLogStatus.Success, $"Role change: {previousRole} -> {request.Role}",
+                            oldValues: new { Role = previousRole },
+                            newValues: new { Role = request.Role });
                         await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
                     }
                 }
@@ -519,7 +526,7 @@ namespace KasseAPI_Final.Controllers
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
                     await TryLogUserLifecycleAsync(
-                        AuditLogActions.USER_UPDATE, currentUserId!, actorRole, id, null, null,
+                        AuditEventType.ChangeOwnPassword, currentUserId!, actorRole, id, null, null,
                         AuditLogStatus.Success, "Password changed (with current password)");
                 }
 
@@ -607,7 +614,7 @@ namespace KasseAPI_Final.Controllers
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
                     await TryLogUserLifecycleAsync(
-                        AuditLogActions.FORCE_RESET_PASSWORD, currentUserId, actorRole, id, null, null,
+                        AuditEventType.PasswordResetForced, currentUserId, actorRole, id, null, null,
                         AuditLogStatus.Success, "Force password reset by administrator");
                 }
 
@@ -670,7 +677,7 @@ namespace KasseAPI_Final.Controllers
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
                     await TryLogUserLifecycleAsync(
-                        AuditLogActions.USER_DEACTIVATE, currentUserId, actorRole, id,
+                        AuditEventType.UserDeactivated, currentUserId, actorRole, id,
                         request.Reason.Trim(), null, AuditLogStatus.Success,
                         $"User deactivated: {user.UserName}. Reason: {request.Reason}");
                 }
@@ -725,7 +732,7 @@ namespace KasseAPI_Final.Controllers
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
                     await TryLogUserLifecycleAsync(
-                        AuditLogActions.USER_REACTIVATE, currentUserId, actorRole, id,
+                        AuditEventType.UserReactivated, currentUserId, actorRole, id,
                         reason, null, AuditLogStatus.Success,
                         $"User reactivated: {user.UserName}" + (string.IsNullOrEmpty(reason) ? "" : $". Note: {reason}"));
                 }
@@ -777,7 +784,7 @@ namespace KasseAPI_Final.Controllers
                 if (!string.IsNullOrEmpty(currentUserId))
                 {
                     await TryLogUserLifecycleAsync(
-                        AuditLogActions.USER_DEACTIVATE, currentUserId, actorRole, id,
+                        AuditEventType.UserDeactivated, currentUserId, actorRole, id,
                         "Legacy DELETE (no reason)", null, AuditLogStatus.Success,
                         $"User deactivated via DELETE: {user.UserName}");
                 }

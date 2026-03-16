@@ -462,6 +462,10 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.UserAgent).HasMaxLength(500).HasColumnName("user_agent");
                 entity.Property(e => e.UserId).IsRequired().HasMaxLength(450).HasColumnName("user_id");
                 entity.Property(e => e.UserRole).IsRequired().HasMaxLength(50).HasColumnName("user_role");
+                entity.Property(e => e.ActorDisplayName).HasMaxLength(200).HasColumnName("actor_display_name");
+                entity.Property(e => e.Changes).HasColumnType("jsonb").HasColumnName("changes");
+                entity.Property(e => e.Metadata).HasColumnType("jsonb").HasColumnName("metadata");
+                entity.Property(e => e.ActionType).HasColumnName("action_type");
 
                 entity.HasIndex(e => e.Timestamp);
                 entity.HasIndex(e => e.Action);
@@ -904,8 +908,8 @@ namespace KasseAPI_Final.Data
         }
 
         /// <summary>
-        /// Compliance: Audit log is append-only. Any attempt to UPDATE existing AuditLog rows is rejected (anti-tamper).
-        /// DELETE is only allowed via the dedicated retention method DeleteAuditLogsOlderThanAsync.
+        /// Invariant 1–2: Audit log is append-only. Any attempt to UPDATE existing AuditLog rows is rejected (anti-tamper).
+        /// No audit record may be modified. DELETE is only allowed via the dedicated retention method DeleteAuditLogsOlderThanAsync.
         /// </summary>
         public override int SaveChanges()
         {
@@ -914,7 +918,7 @@ namespace KasseAPI_Final.Data
         }
 
         /// <summary>
-        /// Async variant: enforces audit log append-only (no updates to existing audit rows).
+        /// Invariant 1–2: Async variant – enforces audit log append-only (no updates to existing audit rows).
         /// </summary>
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
@@ -922,6 +926,7 @@ namespace KasseAPI_Final.Data
             return await base.SaveChangesAsync(cancellationToken);
         }
 
+        /// <summary>Invariant 1–2: Reject any UPDATE to AuditLog; records are immutable after insert.</summary>
         private void EnforceAuditLogAppendOnly()
         {
             var modifiedAuditLogs = ChangeTracker.Entries<AuditLog>()

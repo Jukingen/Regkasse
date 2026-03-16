@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Authorization;
 using System.ComponentModel.DataAnnotations;
 
@@ -17,11 +18,16 @@ namespace KasseAPI_Final.Controllers
     public class AuditLogController : ControllerBase
     {
         private readonly IAuditLogService _auditLogService;
+        private readonly IActorDisplayNameResolver _actorDisplayNameResolver;
         private readonly ILogger<AuditLogController> _logger;
 
-        public AuditLogController(IAuditLogService auditLogService, ILogger<AuditLogController> logger)
+        public AuditLogController(
+            IAuditLogService auditLogService,
+            IActorDisplayNameResolver actorDisplayNameResolver,
+            ILogger<AuditLogController> logger)
         {
             _auditLogService = auditLogService;
+            _actorDisplayNameResolver = actorDisplayNameResolver;
             _logger = logger;
         }
 
@@ -49,6 +55,7 @@ namespace KasseAPI_Final.Controllers
 
                 var auditLogs = await _auditLogService.GetAuditLogsAsync(
                     startDate, endDate, userId, userRole, action, entityType, entityId, status, page, pageSize);
+                var list = auditLogs.ToList();
 
                 var totalCount = await _auditLogService.GetAuditLogsCountAsync(
                     startDate, endDate, userId, userRole, action, entityType, entityId, status);
@@ -56,7 +63,7 @@ namespace KasseAPI_Final.Controllers
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = auditLogs.ToList(),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(list),
                     TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize,
@@ -65,7 +72,7 @@ namespace KasseAPI_Final.Controllers
                 };
 
                 _logger.LogInformation("Retrieved {Count} audit logs (page {Page} of {TotalPages})", 
-                    auditLogs.Count(), page, response.TotalPages);
+                    list.Count, page, response.TotalPages);
 
                 return Ok(response);
             }
@@ -127,12 +134,13 @@ namespace KasseAPI_Final.Controllers
 
                 var auditLogs = await _auditLogService.GetPaymentAuditLogsAsync(
                     paymentId, startDate, endDate, page, pageSize);
+                var paymentList = auditLogs.ToList();
 
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = auditLogs.ToList(),
-                    TotalCount = auditLogs.Count(),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(paymentList),
+                    TotalCount = paymentList.Count,
                     Page = page,
                     PageSize = pageSize,
                     TotalPages = 1, // For payment-specific logs, we don't need pagination
@@ -140,7 +148,7 @@ namespace KasseAPI_Final.Controllers
                 };
 
                 _logger.LogInformation("Retrieved {Count} payment audit logs for payment {PaymentId}", 
-                    auditLogs.Count(), paymentId);
+                    paymentList.Count, paymentId);
 
                 return Ok(response);
             }
@@ -174,14 +182,17 @@ namespace KasseAPI_Final.Controllers
 
                 var auditLogs = await _auditLogService.GetUserAuditLogsAsync(
                     userId, startDate, endDate, page, pageSize);
+                var list = auditLogs?.ToList() ?? new List<AuditLog>();
 
                 var totalCount = await _auditLogService.GetUserLifecycleAuditLogsCountAsync(
                     userId, startDate, endDate);
 
+                var actorDisplayNames = await _actorDisplayNameResolver.ResolveAsync(list.Select(l => l.UserId).Distinct().ToList());
+
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = auditLogs?.ToList() ?? new List<AuditLog>(),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(list, actorDisplayNames),
                     TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize,
@@ -190,7 +201,7 @@ namespace KasseAPI_Final.Controllers
                 };
 
                 _logger.LogInformation("Retrieved {Count} user audit logs for user {UserId} (page {Page} of {TotalPages})", 
-                    auditLogs.Count(), userId, page, response.TotalPages);
+                    list.Count, userId, page, response.TotalPages);
 
                 return Ok(response);
             }
@@ -211,20 +222,21 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var auditLogs = await _auditLogService.GetAuditLogsByCorrelationIdAsync(correlationId);
+                var corrList = auditLogs.ToList();
 
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = auditLogs.ToList(),
-                    TotalCount = auditLogs.Count(),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(corrList),
+                    TotalCount = corrList.Count,
                     Page = 1,
-                    PageSize = auditLogs.Count(),
+                    PageSize = corrList.Count,
                     TotalPages = 1,
                     Message = $"Audit logs for correlation ID {correlationId} retrieved successfully"
                 };
 
                 _logger.LogInformation("Retrieved {Count} audit logs for correlation ID {CorrelationId}", 
-                    auditLogs.Count(), correlationId);
+                    corrList.Count, correlationId);
 
                 return Ok(response);
             }
@@ -251,7 +263,7 @@ namespace KasseAPI_Final.Controllers
                 return Ok(new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = list,
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(list),
                     TotalCount = list.Count,
                     Page = 1,
                     PageSize = list.Count,
@@ -276,20 +288,21 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var auditLogs = await _auditLogService.GetAuditLogsByTransactionIdAsync(transactionId);
+                var txList = auditLogs.ToList();
 
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = auditLogs.ToList(),
-                    TotalCount = auditLogs.Count(),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(txList),
+                    TotalCount = txList.Count,
                     Page = 1,
-                    PageSize = auditLogs.Count(),
+                    PageSize = txList.Count,
                     TotalPages = 1,
                     Message = $"Audit logs for transaction ID {transactionId} retrieved successfully"
                 };
 
                 _logger.LogInformation("Retrieved {Count} audit logs for transaction ID {TransactionId}", 
-                    auditLogs.Count(), transactionId);
+                    txList.Count, transactionId);
 
                 return Ok(response);
             }
@@ -442,7 +455,7 @@ namespace KasseAPI_Final.Controllers
     public class AuditLogsResponse
     {
         public bool Success { get; set; }
-        public List<AuditLog> AuditLogs { get; set; } = new();
+        public List<AuditLogEntryDto> AuditLogs { get; set; } = new();
         public int TotalCount { get; set; }
         public int Page { get; set; }
         public int PageSize { get; set; }

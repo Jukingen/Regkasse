@@ -257,6 +257,7 @@ builder.Services.AddScoped<CartLifecycleService>();
 
 // Audit log service
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IActorDisplayNameResolver, ActorDisplayNameResolver>();
 builder.Services.AddScoped<IUserUniquenessValidationService, UserUniquenessValidationService>();
 
 // HttpContext accessor for audit logging

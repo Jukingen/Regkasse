@@ -674,11 +674,16 @@ export function RoleManagementDrawer({
                   />
                 )}
 
+                {/* Always render from full permission catalog; assigned state (draftPermissions) only drives checked. Never use selectedRole.permissionGroups for the list. */}
                 <div style={{ marginTop: 8, maxHeight: 360, overflow: 'auto' }}>
-                  {selectedRole?.permissionGroups && selectedRole.permissionGroups.length > 0 ? (
-                    selectedRole.permissionGroups.map((pg) => (
+                  {groupedCatalogEntries.length === 0 ? (
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      {usersCopy.noPermissionsInGroup}
+                    </Typography.Text>
+                  ) : (
+                    groupedCatalogEntries.map(([groupName, items]) => (
                       <div
-                        key={pg.groupKey}
+                        key={groupName}
                         style={{
                           marginBottom: 16,
                           padding: '10px 12px',
@@ -687,33 +692,7 @@ export function RoleManagementDrawer({
                           border: '1px solid #f0f0f0',
                         }}
                       >
-                        <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                          {getGroupLabel(pg.groupKey)}
-                        </Typography.Text>
-                        {pg.permissions.length > 0 ? (
-                          <Space direction="vertical" size={2} style={{ width: '100%' }}>
-                            {pg.permissions.map((key) => (
-                              <Checkbox
-                                key={key}
-                                checked={draftPermissions.has(key)}
-                                onChange={(e) => handleTogglePermission(key, e.target.checked)}
-                                disabled={!canEditRole}
-                              >
-                                <Typography.Text style={{ fontSize: 13 }}>{key}</Typography.Text>
-                              </Checkbox>
-                            ))}
-                          </Space>
-                        ) : (
-                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                            {usersCopy.noPermissionsInGroup}
-                          </Typography.Text>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    groupedCatalogEntries.map(([groupName, items]) => (
-                      <div key={groupName} style={{ marginBottom: 16 }}>
-                        <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>
+                        <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 6, fontWeight: 500 }}>
                           {groupName}
                         </Typography.Text>
                         <Space direction="vertical" size={2} style={{ width: '100%' }}>
