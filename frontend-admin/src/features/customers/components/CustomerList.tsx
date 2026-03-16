@@ -11,6 +11,7 @@ interface CustomerListProps {
 }
 
 export default function CustomerList({ data, loading, onEdit, onDelete }: CustomerListProps) {
+    const dataSource = Array.isArray(data) ? data : [];
     const columns = [
         {
             title: 'Name',
@@ -81,7 +82,7 @@ export default function CustomerList({ data, loading, onEdit, onDelete }: Custom
 
     return (
         <Table
-            dataSource={data}
+            dataSource={dataSource}
             columns={columns}
             rowKey="id"
             loading={loading}

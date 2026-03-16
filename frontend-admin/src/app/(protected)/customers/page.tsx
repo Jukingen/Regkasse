@@ -23,11 +23,16 @@ export default function CustomersPage() {
         invalidateList
     } = useCustomers();
 
-    // Queries
-    const { data: customers, isLoading, error } = useList({
+    // Queries: API returns { data: { items, pagination } } or similar; ensure we always pass an array to the table
+    const { data: customersResponse, isLoading, error } = useList({
         page: Number(filters.page) || 1,
         pageSize: Number(filters.pageSize) || 10,
     });
+    const customers: Customer[] = Array.isArray(customersResponse)
+        ? customersResponse
+        : (customersResponse as unknown as { data?: { items?: Customer[] }; items?: Customer[] })?.data?.items
+            ?? (customersResponse as unknown as { items?: Customer[] })?.items
+            ?? [];
 
     // Mutations
     const createMutation = useCreate();
@@ -101,10 +106,10 @@ export default function CustomersPage() {
                 isLoading={isLoading}
                 isError={!!error}
                 error={error as Error}
-                isEmpty={!customers || customers.length === 0}
+                isEmpty={customers.length === 0}
             >
                 <CustomerList
-                    data={customers || []}
+                    data={customers}
                     loading={isLoading}
                     onEdit={openEditModal}
                     onDelete={handleDelete}
