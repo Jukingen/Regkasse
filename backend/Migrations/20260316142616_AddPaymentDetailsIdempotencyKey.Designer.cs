@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260316142616_AddPaymentDetailsIdempotencyKey")]
+    partial class AddPaymentDetailsIdempotencyKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1157,11 +1160,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("address");
 
-                    b.Property<string>("ApplicationUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
-                        .HasColumnName("application_user_id");
-
                     b.Property<DateTime?>("BirthDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("birth_date");
@@ -1257,8 +1255,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("visit_count");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ApplicationUserId");
 
                     b.HasIndex("CustomerNumber")
                         .IsUnique();
@@ -4091,16 +4087,6 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("CashRegister");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.Customer", b =>
-                {
-                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", "ApplicationUser")
-                        .WithMany()
-                        .HasForeignKey("ApplicationUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ApplicationUser");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.DailyClosing", b =>

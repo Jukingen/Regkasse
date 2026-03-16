@@ -38,6 +38,9 @@ export interface PaymentRequest {
   kassenId: string; // Kasa ID
 
   notes?: string;
+
+  /** Optional idempotency key for this payment attempt. Same key on retry returns existing payment. */
+  idempotencyKey?: string;
 }
 
 /** Backend'den gelen TSE/QR bilgisi - payment.tse */

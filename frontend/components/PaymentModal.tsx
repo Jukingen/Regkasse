@@ -300,6 +300,12 @@ export default function PaymentModal({
       // In PROD, always true
       const shouldRequireTse = __DEV__ ? !isTseSimulationEnabled : true;
 
+      // One idempotency key per submit; retries with same key return existing payment
+      const idempotencyKey =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 15)}`;
+
       const paymentRequest: PaymentRequest = {
         customerId: finalCustomerId, // Always send valid customer ID (guest or registered)
         items: paymentItems,
@@ -313,7 +319,8 @@ export default function PaymentModal({
         totalAmount: totalAmount,
         steuernummer: steuernummer,
         kassenId: kassenId,
-        notes: notes || `Masa ${tableNumber} - ${new Date().toLocaleString('de-DE')}`
+        notes: notes || `Masa ${tableNumber} - ${new Date().toLocaleString('de-DE')}`,
+        idempotencyKey
       };
 
       // 5. PAYMENT REQUEST (STRICT: error handling)

@@ -119,6 +119,11 @@ namespace KasseAPI_Final.Models
         /// <summary>Immutable snapshot of customer benefits applied at payment time (e.g. percentage discount, free allowance). Null when no benefits applied.</summary>
         [Column(TypeName = "jsonb")]
         public JsonDocument? AppliedBenefitsSnapshot { get; set; }
+
+        /// <summary>Client-provided idempotency key for this payment attempt. Unique per key; used to avoid duplicate payments on retry.</summary>
+        [MaxLength(64)]
+        [Column("idempotency_key")]
+        public string? IdempotencyKey { get; set; }
         
         // Navigation properties
         public virtual Customer? Customer { get; set; }

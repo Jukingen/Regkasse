@@ -1,7 +1,7 @@
 /**
  * POS: Dedicated employee identification flow for attaching a customer (employee)
  * to the current sale. Separate from normal customer selection; used for staff benefits.
- * Supports lookup by employee/customer number and fallback list selection.
+ * Lookup by EmployeeNumber and list from GET /api/Employee/list (explicit employee/customer mapping).
  */
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -17,7 +17,8 @@ import {
   Alert,
   Pressable,
 } from 'react-native';
-import { customerService, type Customer } from '../services/api/customerService';
+import { type Customer } from '../services/api/customerService';
+import { employeeService, type EmployeeSummary } from '../services/api/employeeService';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 
 interface EmployeeIdentificationSheetProps {
@@ -34,37 +35,36 @@ export default function EmployeeIdentificationSheet({
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
   const [showList, setShowList] = useState(false);
-  const [listCustomers, setListCustomers] = useState<Customer[]>([]);
+  const [listEmployees, setListEmployees] = useState<EmployeeSummary[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [listFilter, setListFilter] = useState('');
 
   const loadList = useCallback(async () => {
     setListLoading(true);
     try {
-      const raw = await customerService.getAll();
-      const arr = Array.isArray((raw as any)?.data) ? (raw as any).data : Array.isArray(raw) ? raw : [];
-      setListCustomers(arr);
+      const arr = await employeeService.getAllEmployees();
+      setListEmployees(arr);
     } catch (e) {
-      console.warn('[EmployeeIdentificationSheet] Failed to load customers:', e);
-      Alert.alert('Hinweis', 'Kundenliste konnte nicht geladen werden.');
-      setListCustomers([]);
+      console.warn('[EmployeeIdentificationSheet] Failed to load employee list:', e);
+      Alert.alert('Hinweis', 'Mitarbeiterliste konnte nicht geladen werden.');
+      setListEmployees([]);
     } finally {
       setListLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (visible && showList && listCustomers.length === 0 && !listLoading) {
+    if (visible && showList && listEmployees.length === 0 && !listLoading) {
       loadList();
     }
-  }, [visible, showList, listLoading, listCustomers.length, loadList]);
+  }, [visible, showList, listLoading, listEmployees.length, loadList]);
 
   const handleSearchByNumber = useCallback(async () => {
     const trimmed = employeeNumber.trim();
     if (!trimmed) return;
     setLookupLoading(true);
     try {
-      const customer = await customerService.getByCustomerNumber(trimmed);
+      const customer = await employeeService.getByEmployeeNumber(trimmed);
       if (customer) {
         onSelect(customer);
         onClose();
@@ -80,16 +80,20 @@ export default function EmployeeIdentificationSheet({
   }, [employeeNumber, onSelect, onClose]);
 
   const filteredList = listFilter.trim()
-    ? listCustomers.filter(
-        (c) =>
-          c.name.toLowerCase().includes(listFilter.toLowerCase()) ||
-          (c.customerNumber && c.customerNumber.includes(listFilter))
+    ? listEmployees.filter(
+        (e) =>
+          e.name.toLowerCase().includes(listFilter.toLowerCase()) ||
+          (e.employeeNumber && e.employeeNumber.includes(listFilter))
       )
-    : listCustomers;
+    : listEmployees;
 
-  const handleSelectCustomer = useCallback(
-    (customer: Customer) => {
-      onSelect(customer);
+  const handleSelectEmployee = useCallback(
+    (employee: EmployeeSummary) => {
+      onSelect({
+        id: employee.customerId,
+        name: employee.name,
+        customerNumber: employee.employeeNumber,
+      } as Customer);
       onClose();
     },
     [onSelect, onClose]
@@ -172,16 +176,16 @@ export default function EmployeeIdentificationSheet({
             ) : (
               <FlatList
                 data={filteredList}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => item.userId}
                 style={styles.flatList}
                 renderItem={({ item }) => (
                   <Pressable
                     style={styles.listItem}
-                    onPress={() => handleSelectCustomer(item)}
+                    onPress={() => handleSelectEmployee(item)}
                   >
                     <Text style={styles.listItemName}>{item.name}</Text>
-                    {item.customerNumber ? (
-                      <Text style={styles.listItemNumber}>Nr. {item.customerNumber}</Text>
+                    {item.employeeNumber ? (
+                      <Text style={styles.listItemNumber}>Nr. {item.employeeNumber}</Text>
                     ) : null}
                   </Pressable>
                 )}

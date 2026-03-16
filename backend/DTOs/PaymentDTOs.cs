@@ -40,6 +40,10 @@ namespace KasseAPI_Final.DTOs
         public string KassenId { get; set; } = string.Empty; // Kasa ID
         
         public string? Notes { get; set; }
+
+        /// <summary>Optional idempotency key for this payment attempt. When retried with the same key, the existing payment result is returned.</summary>
+        [MaxLength(64)]
+        public string? IdempotencyKey { get; set; }
     }
     
     /// <summary>

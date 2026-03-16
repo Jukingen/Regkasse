@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
@@ -126,6 +127,30 @@ namespace KasseAPI_Final.Services
                         Message = "Customer not found",
                         Errors = { "Customer not found" }
                     };
+                }
+
+                // Idempotency: if client sent a key and we already have a payment for it, return that result (no duplicate creation)
+                if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
+                {
+                    var existing = await _context.PaymentDetails
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.IdempotencyKey == request.IdempotencyKey);
+                    if (existing != null)
+                    {
+                        _logger.LogInformation("Idempotent payment request: returning existing payment {PaymentId} for key {Key}", existing.Id, request.IdempotencyKey);
+                        var (qr, demo, provider) = await BuildQrPayloadAndFlagsAsync(existing, !string.IsNullOrEmpty(existing.TseSignature));
+                        return new PaymentResult
+                        {
+                            Success = true,
+                            Message = "Payment created successfully",
+                            Payment = existing,
+                            PaymentId = existing.Id,
+                            TseSignature = existing.TseSignature,
+                            QrPayload = qr,
+                            IsDemoFiscal = demo,
+                            TseProvider = provider
+                        };
+                    }
                 }
 
                 // Steuernummer (request) kontrolü - ATU formatı
@@ -416,7 +441,8 @@ namespace KasseAPI_Final.Services
                     TseTimestamp = DateTime.UtcNow,
                     IsPrinted = false,
                     ReceiptNumber = preReceiptNumber,
-                    AppliedBenefitsSnapshot = appliedBenefitsSnapshot
+                    AppliedBenefitsSnapshot = appliedBenefitsSnapshot,
+                    IdempotencyKey = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim()
                 };
 
                 // TSE imzası oluştur (eğer gerekliyse) - RKSV Checklist 1-5 uyumlu COMPACT JWS
@@ -455,13 +481,37 @@ namespace KasseAPI_Final.Services
                 catch (DbUpdateConcurrencyException ex)
                 {
                     _logger.LogWarning(ex, "Daily allowance concurrency conflict for customer {CustomerId} during payment creation", request.CustomerId);
-                    return new PaymentResult
+                    return ToDailyAllowanceConflictResult();
+                }
+                catch (DbUpdateException ex) when (IsIdempotencyKeyViolation(ex))
+                {
+                    if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
                     {
-                        Success = false,
-                        Message = "Daily allowance was used at another terminal. Please try again.",
-                        DiagnosticCode = "BENEFIT_DAILY_ALLOWANCE_CONFLICT",
-                        Errors = { "Benefit daily allowance concurrency conflict" }
-                    };
+                        var existing = await _context.PaymentDetails.AsNoTracking()
+                            .FirstOrDefaultAsync(p => p.IdempotencyKey == request.IdempotencyKey);
+                        if (existing != null)
+                        {
+                            _logger.LogInformation("Idempotency key race: returning existing payment {PaymentId} for key {Key}", existing.Id, request.IdempotencyKey);
+                            var (qr, demo, provider) = await BuildQrPayloadAndFlagsAsync(existing, !string.IsNullOrEmpty(existing.TseSignature));
+                            return new PaymentResult
+                            {
+                                Success = true,
+                                Message = "Payment created successfully",
+                                Payment = existing,
+                                PaymentId = existing.Id,
+                                TseSignature = existing.TseSignature,
+                                QrPayload = qr,
+                                IsDemoFiscal = demo,
+                                TseProvider = provider
+                            };
+                        }
+                    }
+                    throw;
+                }
+                catch (DbUpdateException ex) when (IsBenefitDailyUsageConflict(ex))
+                {
+                    _logger.LogWarning(ex, "Daily allowance unique constraint race for customer {CustomerId} during payment creation", request.CustomerId);
+                    return ToDailyAllowanceConflictResult();
                 }
 
                 // Persist a canonical Invoice row so that list / detail / PDF all share the same domain and ID
@@ -1540,6 +1590,51 @@ namespace KasseAPI_Final.Services
             // ATU formatı: ATU + 8 haneli sayı
             var pattern = @"^ATU\d{8}$";
             return Regex.IsMatch(taxNumber, pattern);
+        }
+
+        /// <summary>
+        /// Returns the standard PaymentResult for daily allowance conflict (concurrency or unique-index race).
+        /// Keeps contract stable for mobile POS.
+        /// </summary>
+        private static PaymentResult ToDailyAllowanceConflictResult()
+        {
+            return new PaymentResult
+            {
+                Success = false,
+                Message = "Daily allowance was used at another terminal. Please try again.",
+                DiagnosticCode = "BENEFIT_DAILY_ALLOWANCE_CONFLICT",
+                Errors = { "Benefit daily allowance concurrency conflict" }
+            };
+        }
+
+        /// <summary>
+        /// True when the exception is a PostgreSQL unique constraint violation (23505) on the idempotency_key column.
+        /// Used to return existing payment on concurrent duplicate key insert.
+        /// </summary>
+        private static bool IsIdempotencyKeyViolation(DbUpdateException ex)
+        {
+            for (Exception? e = ex; e != null; e = e.InnerException)
+            {
+                if (e is PostgresException pg && pg.SqlState == "23505" &&
+                    (pg.ConstraintName?.Contains("idempotency", StringComparison.OrdinalIgnoreCase) ?? false))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// True when the exception is a PostgreSQL unique constraint violation (23505) on BenefitDailyUsage
+        /// (CustomerId, BenefitDefinitionId, UsageDate) create-if-missing race. Excludes idempotency_key violations.
+        /// </summary>
+        private static bool IsBenefitDailyUsageConflict(DbUpdateException ex)
+        {
+            for (Exception? e = ex; e != null; e = e.InnerException)
+            {
+                if (e is PostgresException pg && pg.SqlState == "23505" &&
+                    (pg.ConstraintName?.Contains("benefit", StringComparison.OrdinalIgnoreCase) ?? false))
+                    return true;
+            }
+            return false;
         }
 
         #endregion

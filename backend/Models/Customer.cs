@@ -64,6 +64,13 @@ namespace KasseAPI_Final.Models
         [Column("preferred_payment_method")]
         public CustomerPaymentMethod PreferredPaymentMethod { get; set; } = CustomerPaymentMethod.Cash;
 
+        /// <summary>Optional FK to AspNetUsers. When set, this customer is the benefit identity for that employee (POS staff benefits).</summary>
+        [Column("application_user_id")]
+        [MaxLength(450)]
+        public string? ApplicationUserId { get; set; }
+
+        public virtual ApplicationUser? ApplicationUser { get; set; }
+
         // Navigation properties
         public virtual ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();

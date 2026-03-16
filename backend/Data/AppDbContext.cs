@@ -145,10 +145,17 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Address).HasMaxLength(200);
                 entity.Property(e => e.TaxNumber).HasMaxLength(20);
                 entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.ApplicationUserId).HasMaxLength(450).IsRequired(false);
                 
                 entity.HasIndex(e => e.CustomerNumber).IsUnique();
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.HasIndex(e => e.TaxNumber).IsUnique();
+                entity.HasIndex(e => e.ApplicationUserId);
+                
+                entity.HasOne(c => c.ApplicationUser)
+                    .WithMany()
+                    .HasForeignKey(c => c.ApplicationUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // BenefitDefinition configuration
@@ -404,6 +411,8 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.PaymentMethodRaw); // Index on raw property
                 entity.HasIndex(e => e.CreatedAt);
                 entity.HasIndex(e => e.TseSignature);
+                entity.Property(e => e.IdempotencyKey).HasMaxLength(64);
+                entity.HasIndex(e => e.IdempotencyKey).IsUnique().HasFilter("\"idempotency_key\" IS NOT NULL");
             });
 
             // PaymentItem: not mapped; single source of truth is payment_details.PaymentItems (JSON).
