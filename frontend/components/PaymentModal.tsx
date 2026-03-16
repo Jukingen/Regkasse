@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,13 +21,29 @@ import { usePayment } from '../hooks/usePayment';
 import { paymentService, PaymentRequest, PaymentItem } from '../services/api/paymentService';
 import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
 import { cartService } from '../services/api/cartService';
-import { customerService, GUEST_CUSTOMER_ID } from '../services/api/customerService';
+import { customerService, GUEST_CUSTOMER_ID, type BenefitEligibilityPreviewResponse } from '../services/api/customerService';
 import { validateSteuernummer, validateKassenId, validateAmount } from '../utils/validation';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
+
+/** Map backend blocked reason to short German text for UI. */
+function formatBlockedReason(b: { blockedReasonCode: string; message?: string; requiredMoreQuantity?: number }): string {
+  switch (b.blockedReasonCode) {
+    case 'DailyLimitReached':
+      return 'Tageslimit erreicht';
+    case 'NoEligibleItems':
+      return 'Keine passenden Artikel im Warenkorb';
+    case 'QuantityNotReached':
+      return b.requiredMoreQuantity != null
+        ? `Noch ${b.requiredMoreQuantity} Artikel für Aktion nötig`
+        : b.message ?? 'Mindestmenge nicht erreicht';
+    default:
+      return b.message ?? 'Nicht anwendbar';
+  }
+}
 
 /** ReceiptDTO veya payment response'taki receipt → ReceiptSummary formatı. */
 function toSummaryReceipt(receipt: ReceiptDTO | null): ReceiptSummaryReceipt | null {
@@ -144,6 +160,11 @@ export default function PaymentModal({
   /** Ödeme sonrası fiş verisi – GET /Payment/{id}/receipt */
   const [receiptData, setReceiptData] = useState<ReceiptDTO | null>(null);
 
+  /** Eligibility preview: read-only UI info. Only when customer selected (not guest) and cart has items. */
+  const [eligibilityPreview, setEligibilityPreview] = useState<BenefitEligibilityPreviewResponse | null>(null);
+  const [eligibilityPreviewLoading, setEligibilityPreviewLoading] = useState(false);
+  const eligibilityPreviewRequestIdRef = useRef(0);
+
   // DEV: TSE Simulation Toggle
   // Default: AÇIK (Bypass) in Development
   const [isTseSimulationEnabled, setIsTseSimulationEnabled] = useState<boolean>(__DEV__);
@@ -200,6 +221,50 @@ export default function PaymentModal({
         .catch(err => console.warn('[PaymentModal] Failed to load guest customer:', err));
     }
   }, [visible, getPaymentMethods]);
+
+  // Eligibility preview: only when customer selected (not guest), cart has items, and modal visible. Race-safe.
+  const shouldFetchEligibility =
+    visible &&
+    !!customerId &&
+    customerId !== '00000000-0000-0000-0000-000000000000' &&
+    customerId !== GUEST_CUSTOMER_ID &&
+    Array.isArray(cartItems) &&
+    cartItems.length > 0;
+
+  const cartSignature = useMemo(
+    () =>
+      cartItems.map((i) => `${i.productId}:${(i as any).qty ?? i.quantity}`).sort().join(','),
+    [cartItems]
+  );
+
+  useEffect(() => {
+    if (!shouldFetchEligibility) {
+      setEligibilityPreview(null);
+      setEligibilityPreviewLoading(false);
+      return;
+    }
+    const requestId = ++eligibilityPreviewRequestIdRef.current;
+    setEligibilityPreviewLoading(true);
+    setEligibilityPreview(null);
+    const items = cartItems.map((item) => ({
+      productId: item.productId,
+      quantity: (item as any).qty ?? item.quantity,
+    }));
+    customerService
+      .getBenefitEligibilityPreview(customerId!, items)
+      .then((data) => {
+        if (requestId !== eligibilityPreviewRequestIdRef.current) return;
+        setEligibilityPreview(data ?? null);
+      })
+      .catch(() => {
+        if (requestId !== eligibilityPreviewRequestIdRef.current) return;
+        setEligibilityPreview(null);
+      })
+      .finally(() => {
+        if (requestId !== eligibilityPreviewRequestIdRef.current) return;
+        setEligibilityPreviewLoading(false);
+      });
+  }, [visible, shouldFetchEligibility, customerId, cartSignature]);
 
   // Ödeme başarılı olunca fiş verisini çek (ReceiptSummary için)
   useEffect(() => {
@@ -431,6 +496,8 @@ export default function PaymentModal({
     setCompletedPaymentId(null);
     setCompletedPaymentTse(null);
     setReceiptData(null);
+    setEligibilityPreview(null);
+    setEligibilityPreviewLoading(false);
     onClose();
   };
 
@@ -476,6 +543,42 @@ export default function PaymentModal({
                 <Text style={styles.totalAmount}>{formatPrice(totalAmount)}</Text>
               </View>
             </View>
+
+            {/* Benefit eligibility preview: read-only info when customer selected (not guest) and cart has items */}
+            {shouldFetchEligibility && (
+              <View style={styles.benefitPreviewSection}>
+                <Text style={styles.benefitPreviewTitle}>Vorteile (Vorschau)</Text>
+                {eligibilityPreviewLoading ? (
+                  <Text style={styles.benefitPreviewMuted}>Vorteile werden geladen…</Text>
+                ) : eligibilityPreview ? (
+                  <>
+                    {eligibilityPreview.applicableBenefits.length > 0 && (
+                      <View style={styles.benefitList}>
+                        {eligibilityPreview.applicableBenefits.map((b, idx) => (
+                          <Text key={idx} style={styles.benefitApplicable}>
+                            • {b.description} {b.amount < 0 ? formatPrice(Math.abs(b.amount)) : ''}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                    {eligibilityPreview.blockedBenefits.length > 0 && (
+                      <View style={styles.benefitList}>
+                        {eligibilityPreview.blockedBenefits.map((b, idx) => (
+                          <Text key={idx} style={styles.benefitBlocked}>
+                            • {formatBlockedReason(b)}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                    {(eligibilityPreview.applicableBenefits.length > 0 || eligibilityPreview.blockedBenefits.length > 0) && (
+                      <Text style={styles.benefitPreviewDisclaimer}>
+                        Vorschau – maßgeblich ist die Abrechnung beim Bezahlen.
+                      </Text>
+                    )}
+                  </>
+                ) : null}
+              </View>
+            )}
 
             {/* Step 2: Zahlungsart */}
             <View style={styles.section}>
@@ -797,6 +900,42 @@ const styles = StyleSheet.create({
   totalAmount: {
     ...SoftTypography.priceTotal,
     color: SoftColors.accent,
+  },
+  benefitPreviewSection: {
+    marginBottom: SoftSpacing.lg,
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.sm,
+    backgroundColor: SoftColors.bgSecondary,
+    borderRadius: SoftRadius.md,
+  },
+  benefitPreviewTitle: {
+    ...SoftTypography.caption,
+    color: SoftColors.textSecondary,
+    marginBottom: SoftSpacing.xs,
+    fontWeight: '600',
+  },
+  benefitPreviewMuted: {
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textMuted,
+  },
+  benefitList: {
+    marginTop: SoftSpacing.xs,
+  },
+  benefitApplicable: {
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textPrimary,
+    marginBottom: 2,
+  },
+  benefitBlocked: {
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textMuted,
+    marginBottom: 2,
+  },
+  benefitPreviewDisclaimer: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    marginTop: SoftSpacing.xs,
+    fontStyle: 'italic',
   },
   paymentMethodsContainer: {
     flexDirection: 'row',

@@ -35,6 +35,37 @@ export interface BenefitSummaryPreview {
 /** Alias for POS use; assignment-level summary only. */
 export type PosBenefitPreview = BenefitSummaryPreview;
 
+/** Eligibility preview: cart/customer-based applicability. Distinct from assignment summary. Backend DTO shape. */
+export interface BenefitEligibilityPreviewResponse {
+  subtotalBeforeBenefits: number;
+  totalDiscountAmount: number;
+  subtotalAfterBenefits: number;
+  applicableBenefits: ApplicableBenefitPreviewDto[];
+  blockedBenefits: BlockedBenefitPreviewDto[];
+}
+
+export interface ApplicableBenefitPreviewDto {
+  kind: number;
+  description: string;
+  amount: number;
+  quantity?: number;
+  benefitDefinitionCode?: string;
+}
+
+export interface BlockedBenefitPreviewDto {
+  kind: number;
+  benefitDefinitionCode?: string;
+  blockedReasonCode: string;
+  message?: string;
+  requiredMoreQuantity?: number;
+}
+
+/** Request body for eligibility preview: items only (customerId from route). */
+export interface BenefitEligibilityPreviewItemRequest {
+  productId: string;
+  quantity: number;
+}
+
 // Well-known guest customer ID (must match backend CustomerSeedData)
 export const GUEST_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -114,6 +145,37 @@ class CustomerService {
     } catch (e: any) {
       if (e?.response?.status === 404) return null;
       throw e;
+    }
+  }
+
+  /**
+   * Eligibility preview for POS: which benefits would apply for this customer and cart, and which are blocked.
+   * Read-only; does not create payment. Call only when customer is selected (not guest) and cart has items.
+   */
+  async getBenefitEligibilityPreview(
+    customerId: string,
+    items: BenefitEligibilityPreviewItemRequest[]
+  ): Promise<BenefitEligibilityPreviewResponse | null> {
+    const trimmed = String(customerId ?? '').trim();
+    if (!trimmed || !Array.isArray(items) || items.length === 0) return null;
+    try {
+      const response = await apiClient.post<any>(
+        `${this.baseUrl}/${encodeURIComponent(trimmed)}/benefit-eligibility-preview`,
+        { items }
+      );
+      const data = (response as any)?.data ?? response;
+      if (!data || typeof data.subtotalBeforeBenefits !== 'number') return null;
+      return {
+        subtotalBeforeBenefits: data.subtotalBeforeBenefits ?? 0,
+        totalDiscountAmount: data.totalDiscountAmount ?? 0,
+        subtotalAfterBenefits: data.subtotalAfterBenefits ?? 0,
+        applicableBenefits: Array.isArray(data.applicableBenefits) ? data.applicableBenefits : [],
+        blockedBenefits: Array.isArray(data.blockedBenefits) ? data.blockedBenefits : [],
+      };
+    } catch (e: any) {
+      if (e?.response?.status === 404) return null;
+      console.warn('[CustomerService] Benefit eligibility preview failed:', e?.message ?? e);
+      return null;
     }
   }
 }
