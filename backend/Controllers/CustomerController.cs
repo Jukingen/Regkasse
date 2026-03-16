@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data.Repositories;
@@ -19,14 +21,17 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IGenericRepository<Customer> _customerRepository;
+        private readonly IPaymentService _paymentService;
 
         public CustomerController(
-            AppDbContext context, 
+            AppDbContext context,
             IGenericRepository<Customer> customerRepository,
+            IPaymentService paymentService,
             ILogger<CustomerController> logger) : base(customerRepository, logger)
         {
             _context = context;
             _customerRepository = customerRepository;
+            _paymentService = paymentService;
         }
 
         /// <summary>
@@ -263,6 +268,33 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 return HandleException(ex, $"GetBenefitSummary for customer {id}");
+            }
+        }
+
+        /// <summary>
+        /// Eligibility preview for POS: which benefits would apply for this customer and cart, and which are blocked (reasons).
+        /// Read-only; does not create payment or update BenefitDailyUsage. Distinct from GET benefit-summary (assignment count only).
+        /// </summary>
+        [HttpPost("{id}/benefit-eligibility-preview")]
+        public async Task<IActionResult> BenefitEligibilityPreview(Guid id, [FromBody] BenefitEligibilityPreviewRequest? body)
+        {
+            try
+            {
+                if (body == null)
+                    return ErrorResponse("Request body is required", 400);
+                body.CustomerId = id;
+                if (body.Items == null)
+                    body.Items = new List<BenefitEligibilityPreviewItemRequest>();
+
+                var result = await _paymentService.ComputeBenefitEligibilityPreviewAsync(body);
+                if (result == null)
+                    return ErrorResponse("Customer not found or inactive", 404);
+
+                return SuccessResponse(result, "Eligibility preview computed");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"BenefitEligibilityPreview for customer {id}");
             }
         }
 

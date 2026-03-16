@@ -67,5 +67,11 @@ namespace KasseAPI_Final.Services
         /// Ödeme için QR payload (RKSV/NON_FISCAL) üretir. DB'de saklanmaz, her çağrıda hesaplanır.
         /// </summary>
         Task<(string? QrPayload, DateTime? UpdatedAt)?> GetQrPayloadForPaymentAsync(Guid paymentId);
+
+        /// <summary>
+        /// Read-only eligibility preview for POS: which benefits would apply for this customer and cart, and which are blocked and why.
+        /// Does not persist anything (no BenefitDailyUsage write, no payment). Distinct from assignment summary (count only).
+        /// </summary>
+        Task<BenefitEligibilityPreviewResponse?> ComputeBenefitEligibilityPreviewAsync(BenefitEligibilityPreviewRequest request);
     }
 }

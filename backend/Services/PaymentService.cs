@@ -682,6 +682,252 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
+        /// Read-only eligibility preview: which benefits would apply for this customer and cart. No persistence (no BenefitDailyUsage write, no payment).
+        /// </summary>
+        public async Task<BenefitEligibilityPreviewResponse?> ComputeBenefitEligibilityPreviewAsync(BenefitEligibilityPreviewRequest request)
+        {
+            if (request == null || request.CustomerId == Guid.Empty)
+                return null;
+
+            var customer = await _customerRepository.GetByIdAsync(request.CustomerId);
+            if (customer == null || !customer.IsActive)
+                return null;
+
+            var paymentItems = new List<PaymentItem>();
+            var productIdToCategoryId = new Dictionary<Guid, Guid>();
+            decimal totalAmount = 0;
+
+            foreach (var item in request.Items ?? new List<BenefitEligibilityPreviewItemRequest>())
+            {
+                if (item.Quantity < 1) continue;
+                var product = await _context.Products
+                    .Include(p => p.CategoryNavigation)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                if (product?.CategoryNavigation == null) continue;
+
+                var vatRatePercent = product.CategoryNavigation.VatRate;
+                var line = CartMoneyHelper.ComputeLine(product.Price, item.Quantity, vatRatePercent);
+                totalAmount += line.LineGross;
+                paymentItems.Add(new PaymentItem
+                {
+                    ProductId = product.Id,
+                    ProductName = product.Name,
+                    Quantity = item.Quantity,
+                    UnitPrice = line.UnitPriceGross,
+                    TotalPrice = line.LineGross,
+                    TaxType = line.TaxType,
+                    TaxRate = line.TaxRate,
+                    TaxAmount = line.LineTax,
+                    LineNet = line.LineNet
+                });
+                productIdToCategoryId[product.Id] = product.CategoryId;
+            }
+
+            var subtotalBeforeBenefits = totalAmount;
+            var applicableList = new List<ApplicableBenefitPreviewDto>();
+            var blockedList = new List<BlockedBenefitPreviewDto>();
+            decimal totalDiscount = 0;
+            var now = DateTime.UtcNow;
+
+            // Percentage discount: single highest-priority assignment or customer fallback
+            decimal effectivePct = 0;
+            var assignedPercentage = await _context.BenefitAssignments
+                .AsNoTracking()
+                .Where(ba => ba.CustomerId == customer.Id && ba.IsActive
+                    && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now))
+                .Include(ba => ba.BenefitDefinition)
+                .Where(ba => ba.BenefitDefinition.BenefitKind == AppliedBenefitKind.PercentageDiscount
+                    && ba.BenefitDefinition.IsActive
+                    && ba.BenefitDefinition.PercentageValue.HasValue
+                    && ba.BenefitDefinition.PercentageValue > 0)
+                .OrderByDescending(ba => ba.Priority)
+                .ThenByDescending(ba => ba.BenefitDefinition.PercentageValue)
+                .Select(ba => new { ba.BenefitDefinition.PercentageValue, ba.BenefitDefinition.Code })
+                .FirstOrDefaultAsync();
+            if (assignedPercentage != null && assignedPercentage.PercentageValue.HasValue && assignedPercentage.PercentageValue.Value > 0)
+                effectivePct = assignedPercentage.PercentageValue.Value;
+            else
+                effectivePct = customer.DiscountPercentage;
+
+            if (totalAmount > 0 && effectivePct > 0)
+            {
+                effectivePct = Math.Clamp(effectivePct, 0, 100);
+                var discountAmount = CartMoneyHelper.Round(totalAmount * effectivePct / 100m);
+                if (discountAmount > 0)
+                {
+                    totalAmount -= discountAmount;
+                    totalDiscount += discountAmount;
+                    applicableList.Add(new ApplicableBenefitPreviewDto
+                    {
+                        Kind = AppliedBenefitKind.PercentageDiscount,
+                        Description = $"Customer discount {effectivePct}%",
+                        Amount = -discountAmount,
+                        Quantity = null,
+                        BenefitDefinitionCode = assignedPercentage?.Code
+                    });
+                }
+            }
+
+            // FreeAllowance: read existing usage only (no insert/update)
+            var todayUtc = now.Date;
+            var freeAllowanceAssignments = await _context.BenefitAssignments
+                .AsNoTracking()
+                .Where(ba => ba.CustomerId == customer.Id && ba.IsActive
+                    && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now))
+                .Include(ba => ba.BenefitDefinition)
+                .Where(ba => ba.BenefitDefinition.BenefitKind == AppliedBenefitKind.FreeAllowance
+                    && ba.BenefitDefinition.IsActive
+                    && ba.BenefitDefinition.AllowanceQuantity.HasValue
+                    && ba.BenefitDefinition.AllowanceQuantity > 0
+                    && ba.BenefitDefinition.AllowanceCategoryId.HasValue
+                    && (ba.BenefitDefinition.AllowanceScope == null || string.Equals(ba.BenefitDefinition.AllowanceScope, "per_day", StringComparison.OrdinalIgnoreCase)))
+                .OrderByDescending(ba => ba.Priority)
+                .ToListAsync();
+
+            foreach (var assignment in freeAllowanceAssignments)
+            {
+                var def = assignment.BenefitDefinition;
+                var allowanceQty = def.AllowanceQuantity!.Value;
+                var categoryId = def.AllowanceCategoryId!.Value;
+
+                var usageRow = await _context.BenefitDailyUsages
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.CustomerId == customer.Id && u.BenefitDefinitionId == def.Id && u.UsageDate == todayUtc);
+                var quantityUsed = usageRow?.QuantityUsed ?? 0;
+                var remaining = allowanceQty - quantityUsed;
+
+                if (remaining <= 0)
+                {
+                    blockedList.Add(new BlockedBenefitPreviewDto
+                    {
+                        Kind = AppliedBenefitKind.FreeAllowance,
+                        BenefitDefinitionCode = def.Code,
+                        BlockedReasonCode = BenefitBlockedReasonCodes.DailyLimitReached,
+                        Message = "Daily allowance limit reached"
+                    });
+                    continue;
+                }
+
+                var eligibleItems = paymentItems.Where(pi => productIdToCategoryId.GetValueOrDefault(pi.ProductId) == categoryId).ToList();
+                var eligibleQuantity = eligibleItems.Sum(i => i.Quantity);
+                if (eligibleQuantity <= 0)
+                {
+                    blockedList.Add(new BlockedBenefitPreviewDto
+                    {
+                        Kind = AppliedBenefitKind.FreeAllowance,
+                        BenefitDefinitionCode = def.Code,
+                        BlockedReasonCode = BenefitBlockedReasonCodes.NoEligibleItems,
+                        Message = "No cart items in allowance category"
+                    });
+                    continue;
+                }
+
+                var claimed = Math.Min(remaining, eligibleQuantity);
+                var remainingToClaim = claimed;
+                decimal discountAmount = 0;
+                foreach (var pi in eligibleItems)
+                {
+                    if (remainingToClaim <= 0) break;
+                    var n = Math.Min(pi.Quantity, remainingToClaim);
+                    discountAmount += pi.UnitPrice * n;
+                    remainingToClaim -= n;
+                }
+                discountAmount = CartMoneyHelper.Round(discountAmount);
+                if (discountAmount > 0)
+                {
+                    totalAmount -= discountAmount;
+                    totalDiscount += discountAmount;
+                    applicableList.Add(new ApplicableBenefitPreviewDto
+                    {
+                        Kind = AppliedBenefitKind.FreeAllowance,
+                        Description = $"Free allowance ({claimed} items)",
+                        Amount = -discountAmount,
+                        Quantity = claimed,
+                        BenefitDefinitionCode = def.Code
+                    });
+                }
+            }
+
+            // BuyXGetY: single highest-priority; fail-safe: if quantity not reached, report blocked with RequiredMoreQuantity
+            var buyXGetYAssignment = await _context.BenefitAssignments
+                .AsNoTracking()
+                .Where(ba => ba.CustomerId == customer.Id && ba.IsActive
+                    && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now))
+                .Include(ba => ba.BenefitDefinition)
+                .Where(ba => ba.BenefitDefinition.BenefitKind == AppliedBenefitKind.BuyXGetY
+                    && ba.BenefitDefinition.IsActive
+                    && ba.BenefitDefinition.BuyXQuantity.HasValue
+                    && ba.BenefitDefinition.BuyXQuantity > 0
+                    && ba.BenefitDefinition.GetYQuantity.HasValue
+                    && ba.BenefitDefinition.GetYQuantity > 0)
+                .OrderByDescending(ba => ba.Priority)
+                .FirstOrDefaultAsync();
+
+            if (buyXGetYAssignment?.BenefitDefinition != null)
+            {
+                var def = buyXGetYAssignment.BenefitDefinition;
+                var buyX = def.BuyXQuantity!.Value;
+                var getY = def.GetYQuantity!.Value;
+                var totalQuantity = paymentItems.Sum(pi => pi.Quantity);
+
+                if (totalQuantity < buyX)
+                {
+                    blockedList.Add(new BlockedBenefitPreviewDto
+                    {
+                        Kind = AppliedBenefitKind.BuyXGetY,
+                        BenefitDefinitionCode = def.Code,
+                        BlockedReasonCode = BenefitBlockedReasonCodes.QuantityNotReached,
+                        Message = $"Buy {buyX} get {getY} free: add {buyX - totalQuantity} more item(s) to qualify",
+                        RequiredMoreQuantity = buyX - totalQuantity
+                    });
+                }
+                else
+                {
+                    var sets = totalQuantity / buyX;
+                    var freeQty = Math.Min(sets * getY, totalQuantity);
+                    if (freeQty > 0)
+                    {
+                        var unitPrices = new List<decimal>();
+                        foreach (var pi in paymentItems)
+                        {
+                            for (var i = 0; i < pi.Quantity; i++)
+                                unitPrices.Add(pi.UnitPrice);
+                        }
+                        unitPrices.Sort();
+                        var take = Math.Min(freeQty, unitPrices.Count);
+                        var discountAmount = 0m;
+                        for (var i = 0; i < take; i++)
+                            discountAmount += unitPrices[i];
+                        discountAmount = CartMoneyHelper.Round(discountAmount);
+                        if (discountAmount > 0)
+                        {
+                            totalAmount -= discountAmount;
+                            totalDiscount += discountAmount;
+                            applicableList.Add(new ApplicableBenefitPreviewDto
+                            {
+                                Kind = AppliedBenefitKind.BuyXGetY,
+                                Description = $"Buy {buyX} get {getY} free ({freeQty} items)",
+                                Amount = -discountAmount,
+                                Quantity = (int)freeQty,
+                                BenefitDefinitionCode = def.Code
+                            });
+                        }
+                    }
+                }
+            }
+
+            return new BenefitEligibilityPreviewResponse
+            {
+                SubtotalBeforeBenefits = subtotalBeforeBenefits,
+                TotalDiscountAmount = -totalDiscount,
+                SubtotalAfterBenefits = totalAmount,
+                ApplicableBenefits = applicableList,
+                BlockedBenefits = blockedList
+            };
+        }
+
+        /// <summary>
         /// QR payload (RKSV belegdaten veya NON_FISCAL_DEMO) ve demo/fiscal flag'leri üretir.
         /// tseRequired=false: Açık NON_FISCAL marker ile UI yanlışlıkla fiskal sanmasın.
         /// </summary>
