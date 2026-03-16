@@ -27,12 +27,12 @@ export interface CreateCustomerRequest {
   notes?: string;
 }
 
-/** POS preview context: assignment count from same API as admin. Distinct from admin assignment visibility; may carry eligibility semantics separately. */
+/** Assignment-level summary only. Not eligibility or payment applicability (PaymentService applies additional rules). */
 export interface BenefitSummaryPreview {
   assignedBenefitCount: number;
 }
 
-/** Alias for POS use; clarifies intent vs admin assignment visibility. */
+/** Alias for POS use; assignment-level summary only. */
 export type PosBenefitPreview = BenefitSummaryPreview;
 
 // Well-known guest customer ID (must match backend CustomerSeedData)
@@ -100,8 +100,8 @@ class CustomerService {
   }
 
   /**
-   * POS preview only: get assignment count from benefit-summary. Distinct from admin assignment visibility;
-   * may reflect eligibility/applicability semantics in future.
+   * Assignment-level summary only: count of active assignments in validity window.
+   * Does not indicate eligibility or payment-time applicability (PaymentService applies additional rules).
    */
   async getBenefitSummary(customerId: string): Promise<PosBenefitPreview | null> {
     const trimmed = String(customerId ?? '').trim();

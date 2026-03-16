@@ -146,7 +146,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                     <Row>
                         <Col span={24}>
                             <div style={{ fontSize: 12, color: '#666' }}>
-                                Aktive Zuweisungen: {assignedBenefitCount}
+                                Aktive Benefit-Zuweisungen: {assignedBenefitCount}
                             </div>
                         </Col>
                     </Row>

@@ -258,7 +258,7 @@ namespace KasseAPI_Final.Controllers
                     .CountAsync(ba => ba.CustomerId == id && ba.IsActive
                         && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now));
 
-                return SuccessResponse(new { assignedBenefitCount = count }, "Benefit assignment count (active, in validity window) retrieved");
+                return SuccessResponse(new { assignedBenefitCount = count, activeAssignmentCount = count }, "Benefit assignment count (active, in validity window) retrieved");
             }
             catch (Exception ex)
             {
