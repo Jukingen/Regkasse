@@ -27,10 +27,13 @@ export interface CreateCustomerRequest {
   notes?: string;
 }
 
-/** Minimal benefit summary for POS eligibility/preview preparation (read-only, no eligibility logic). */
+/** POS preview context: assignment count from same API as admin. Distinct from admin assignment visibility; may carry eligibility semantics separately. */
 export interface BenefitSummaryPreview {
   assignedBenefitCount: number;
 }
+
+/** Alias for POS use; clarifies intent vs admin assignment visibility. */
+export type PosBenefitPreview = BenefitSummaryPreview;
 
 // Well-known guest customer ID (must match backend CustomerSeedData)
 export const GUEST_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
@@ -97,10 +100,10 @@ class CustomerService {
   }
 
   /**
-   * Get benefit summary for a customer (assigned active count).
-   * For POS: call when customer is selected to prepare for future eligibility/preview UI.
+   * POS preview only: get assignment count from benefit-summary. Distinct from admin assignment visibility;
+   * may reflect eligibility/applicability semantics in future.
    */
-  async getBenefitSummary(customerId: string): Promise<BenefitSummaryPreview | null> {
+  async getBenefitSummary(customerId: string): Promise<PosBenefitPreview | null> {
     const trimmed = String(customerId ?? '').trim();
     if (!trimmed) return null;
     try {

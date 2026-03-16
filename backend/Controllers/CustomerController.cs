@@ -239,8 +239,10 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Returns a minimal benefit summary for the customer (assigned active benefit count).
-        /// For POS eligibility/preview preparation; no eligibility logic, read-only.
+        /// Returns the count of benefit assignments that are active and within their validity window (ValidFrom/ValidTo).
+        /// Assignment-level only; does not reflect payment-time applicability. Consumed by two distinct intents:
+        /// admin = assignment visibility for display; POS = preview (POS may attach eligibility semantics separately).
+        /// Read-only.
         /// </summary>
         [HttpGet("{id}/benefit-summary")]
         public async Task<IActionResult> GetBenefitSummary(Guid id)
@@ -256,7 +258,7 @@ namespace KasseAPI_Final.Controllers
                     .CountAsync(ba => ba.CustomerId == id && ba.IsActive
                         && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now));
 
-                return SuccessResponse(new { assignedBenefitCount = count }, "Benefit summary retrieved");
+                return SuccessResponse(new { assignedBenefitCount = count }, "Benefit assignment count (active, in validity window) retrieved");
             }
             catch (Exception ex)
             {

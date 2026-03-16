@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button, message, Space, Input } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -10,6 +11,23 @@ import CustomerForm from '@/features/customers/components/CustomerForm';
 import { useCustomers, useCustomerFilters } from '@/features/customers/hooks/useCustomers';
 import { Customer } from '@/api/generated/model';
 import { useAdminBenefitAssignmentsList } from '@/api/admin/benefit-assignments';
+import { customInstance } from '@/lib/axios';
+
+/** Admin-only: fetches assignment count for display (assignment visibility). Same API as POS preview but distinct intent. */
+async function getAdminCustomerAssignmentCount(customerId: string): Promise<number | null> {
+    try {
+        const body = await customInstance<{ data?: { assignedBenefitCount?: number } }>({
+            url: `/api/Customer/${customerId}/benefit-summary`,
+            method: 'GET',
+        });
+        const count = body?.data?.assignedBenefitCount;
+        return typeof count === 'number' ? count : null;
+    } catch (e: unknown) {
+        const status = (e as { response?: { status?: number } })?.response?.status;
+        if (status === 404) return null;
+        throw e;
+    }
+}
 
 export default function CustomersPage() {
     const { filters, setParam } = useCustomerFilters();
@@ -35,6 +53,12 @@ export default function CustomersPage() {
     });
 
     const { data: benefitAssignments } = useAdminBenefitAssignmentsList();
+
+    const { data: assignmentCountForAdmin } = useQuery({
+        queryKey: ['customer', editingCustomer?.id, 'admin-assignment-count'],
+        queryFn: () => getAdminCustomerAssignmentCount(editingCustomer!.id),
+        enabled: !!editingCustomer?.id,
+    });
 
     // Mutations
     const createMutation = useCreate();
@@ -131,11 +155,7 @@ export default function CustomersPage() {
                 onCancel={() => setIsFormVisible(false)}
                 onSubmit={editingCustomer ? handleUpdate : handleCreate}
                 loading={createMutation.isPending || updateMutation.isPending}
-                assignedBenefitCount={
-                    editingCustomer?.id && Array.isArray(benefitAssignments)
-                        ? benefitAssignments.filter((ba) => ba.customerId === editingCustomer.id && ba.isActive).length
-                        : undefined
-                }
+                assignedBenefitCount={assignmentCountForAdmin ?? undefined}
             />
         </Space>
     );

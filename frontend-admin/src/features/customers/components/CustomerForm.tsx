@@ -8,7 +8,7 @@ interface CustomerFormProps {
     onCancel: () => void;
     onSubmit: (values: Customer) => void;
     loading: boolean;
-    /** Optional: for POS/preview prep; show active benefit count when editing. */
+    /** Admin assignment visibility only: count from benefit-summary. Same API as POS preview but distinct intent. Shown only when editing. */
     assignedBenefitCount?: number | null;
 }
 
@@ -146,7 +146,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                     <Row>
                         <Col span={24}>
                             <div style={{ fontSize: 12, color: '#666' }}>
-                                Aktive Vorteile: {assignedBenefitCount}
+                                Aktive Zuweisungen: {assignedBenefitCount}
                             </div>
                         </Col>
                     </Row>
