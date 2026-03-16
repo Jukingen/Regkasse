@@ -254,10 +254,40 @@ export default function BenefitDefinitionsPage() {
               options={(categoriesQuery.data ?? []).map((c) => ({ value: c.id, label: c.name }))}
             />
           </Form.Item>
-          <Form.Item name="buyXQuantity" label="Buy X (für X kaufen Y gratis)">
+          <Form.Item
+            name="buyXQuantity"
+            label="Buy X (für X kaufen Y gratis)"
+            dependencies={['benefitKind']}
+            rules={[
+              {
+                validator(_, value) {
+                  if (form.getFieldValue('benefitKind') !== AppliedBenefitKind.BuyXGetY) return Promise.resolve();
+                  if (value == null || value === '' || Number(value) < 1) {
+                    return Promise.reject(new Error('Buy X ist bei „X kaufen, Y gratis“ erforderlich (mind. 1).'));
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+          >
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="getYQuantity" label="Get Y (für X kaufen Y gratis)">
+          <Form.Item
+            name="getYQuantity"
+            label="Get Y (für X kaufen Y gratis)"
+            dependencies={['benefitKind']}
+            rules={[
+              {
+                validator(_, value) {
+                  if (form.getFieldValue('benefitKind') !== AppliedBenefitKind.BuyXGetY) return Promise.resolve();
+                  if (value == null || value === '' || Number(value) < 1) {
+                    return Promise.reject(new Error('Get Y ist bei „X kaufen, Y gratis“ erforderlich (mind. 1).'));
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+          >
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="isActive" label="Aktiv" valuePropName="checked">

@@ -29,20 +29,34 @@ import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
 
-/** Map backend blocked reason to short German text for UI. */
-function formatBlockedReason(b: { blockedReasonCode: string; message?: string; requiredMoreQuantity?: number }): string {
-  switch (b.blockedReasonCode) {
-    case 'DailyLimitReached':
-      return 'Tageslimit erreicht';
-    case 'NoEligibleItems':
-      return 'Keine passenden Artikel im Warenkorb';
-    case 'QuantityNotReached':
-      return b.requiredMoreQuantity != null
-        ? `Noch ${b.requiredMoreQuantity} Artikel für Aktion nötig`
-        : b.message ?? 'Mindestmenge nicht erreicht';
-    default:
-      return b.message ?? 'Nicht anwendbar';
+/** Known blocked reason codes (must match backend BenefitBlockedReasonCodes). Used for stable German UI text only. */
+const BLOCKED_REASON_DE: Record<string, string> = {
+  DailyLimitReached: 'Tageslimit erreicht',
+  NoEligibleItems: 'Keine passenden Artikel im Warenkorb',
+  QuantityNotReached: 'Mindestmenge nicht erreicht',
+};
+
+/** Neutral German fallback when code is unknown or invalid. Never show raw code or empty. */
+const BLOCKED_REASON_FALLBACK_DE = 'Vorteil derzeit nicht anwendbar';
+
+/**
+ * Map backend blocked reason to short German text for UI. Fail-safe: unknown codes and invalid input
+ * return a neutral German message; backend message is not used for display (may be English).
+ */
+function formatBlockedReason(b: {
+  blockedReasonCode?: string | null;
+  message?: string | null;
+  requiredMoreQuantity?: number | null;
+}): string {
+  const code = typeof b?.blockedReasonCode === 'string' ? b.blockedReasonCode.trim() : '';
+  if (!code) return BLOCKED_REASON_FALLBACK_DE;
+
+  if (code === 'QuantityNotReached' && typeof b?.requiredMoreQuantity === 'number' && b.requiredMoreQuantity > 0) {
+    return `Noch ${b.requiredMoreQuantity} Artikel für Aktion nötig`;
   }
+
+  const known = BLOCKED_REASON_DE[code];
+  return known ?? BLOCKED_REASON_FALLBACK_DE;
 }
 
 /** ReceiptDTO veya payment response'taki receipt → ReceiptSummary formatı. */
