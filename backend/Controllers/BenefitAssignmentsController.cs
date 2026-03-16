@@ -72,6 +72,9 @@ namespace KasseAPI_Final.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
+                if (request.ValidTo.HasValue && request.ValidTo.Value < request.ValidFrom)
+                    return BadRequest(new { message = "ValidTo must not be earlier than ValidFrom." });
+
                 var definitionExists = await _context.BenefitDefinitions.AnyAsync(b => b.Id == request.BenefitDefinitionId && b.IsActive);
                 if (!definitionExists)
                     return BadRequest(new { message = "Benefit definition not found or inactive" });
@@ -111,6 +114,9 @@ namespace KasseAPI_Final.Controllers
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                if (request.ValidTo.HasValue && request.ValidTo.Value < request.ValidFrom)
+                    return BadRequest(new { message = "ValidTo must not be earlier than ValidFrom." });
 
                 var entity = await _context.BenefitAssignments.FindAsync(id);
                 if (entity == null)

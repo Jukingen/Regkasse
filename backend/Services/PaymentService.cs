@@ -397,6 +397,65 @@ namespace KasseAPI_Final.Services
                     usageRow.Version++;
                 }
 
+                // BuyXGetY: single highest-priority assignment; for every BuyXQuantity items, grant GetYQuantity free (discount cheapest units first).
+                var buyXGetYAssignment = await _context.BenefitAssignments
+                    .Where(ba => ba.CustomerId == customer.Id && ba.IsActive
+                        && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now))
+                    .Include(ba => ba.BenefitDefinition)
+                    .Where(ba => ba.BenefitDefinition.BenefitKind == AppliedBenefitKind.BuyXGetY
+                        && ba.BenefitDefinition.IsActive
+                        && ba.BenefitDefinition.BuyXQuantity.HasValue
+                        && ba.BenefitDefinition.BuyXQuantity > 0
+                        && ba.BenefitDefinition.GetYQuantity.HasValue
+                        && ba.BenefitDefinition.GetYQuantity > 0)
+                    .OrderByDescending(ba => ba.Priority)
+                    .FirstOrDefaultAsync();
+
+                if (buyXGetYAssignment?.BenefitDefinition != null)
+                {
+                    var def = buyXGetYAssignment.BenefitDefinition;
+                    var buyX = def.BuyXQuantity!.Value;
+                    var getY = def.GetYQuantity!.Value;
+                    var totalQuantity = paymentItems.Sum(pi => pi.Quantity);
+                    if (totalQuantity >= buyX)
+                    {
+                        var sets = totalQuantity / buyX;
+                        var freeQty = Math.Min(sets * getY, totalQuantity);
+                        if (freeQty > 0)
+                        {
+                            var unitPrices = new List<decimal>();
+                            foreach (var pi in paymentItems)
+                            {
+                                for (var i = 0; i < pi.Quantity; i++)
+                                    unitPrices.Add(pi.UnitPrice);
+                            }
+                            unitPrices.Sort();
+                            var take = Math.Min(freeQty, unitPrices.Count);
+                            var discountAmount = 0m;
+                            for (var i = 0; i < take; i++)
+                                discountAmount += unitPrices[i];
+                            discountAmount = CartMoneyHelper.Round(discountAmount);
+                            if (discountAmount > 0)
+                            {
+                                var totalBeforeBuyXGetY = totalAmount;
+                                totalAmount -= discountAmount;
+                                var ratio = totalBeforeBuyXGetY > 0 ? totalAmount / totalBeforeBuyXGetY : 1m;
+                                totalTaxAmount = CartMoneyHelper.Round(totalTaxAmount * ratio);
+                                var keysBxg = taxDetails.Keys.ToList();
+                                foreach (var key in keysBxg)
+                                    taxDetails[key] = CartMoneyHelper.Round(taxDetails[key] * ratio);
+                                snapshotList.Add(new AppliedBenefitSnapshotItem
+                                {
+                                    Kind = AppliedBenefitKind.BuyXGetY,
+                                    Description = $"Buy {buyX} get {getY} free ({freeQty} items)",
+                                    Amount = -discountAmount,
+                                    Quantity = freeQty
+                                });
+                            }
+                        }
+                    }
+                }
+
                 if (snapshotList.Count > 0)
                     appliedBenefitsSnapshot = JsonDocument.Parse(JsonSerializer.Serialize(snapshotList));
 

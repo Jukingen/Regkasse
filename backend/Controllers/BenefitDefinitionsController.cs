@@ -58,6 +58,46 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>
+        /// Validates required fields per benefit kind. Returns null when valid, otherwise an English error message.
+        /// </summary>
+        private static string? ValidateBenefitDefinitionByKind(
+            AppliedBenefitKind benefitKind,
+            decimal? percentageValue,
+            int? allowanceQuantity,
+            int? buyXQuantity,
+            int? getYQuantity)
+        {
+            switch (benefitKind)
+            {
+                case AppliedBenefitKind.PercentageDiscount:
+                    if (!percentageValue.HasValue)
+                        return "PercentageDiscount requires PercentageValue.";
+                    if (percentageValue.Value <= 0 || percentageValue.Value > 100)
+                        return "PercentageDiscount PercentageValue must be greater than 0 and at most 100.";
+                    break;
+                case AppliedBenefitKind.FreeAllowance:
+                    if (!allowanceQuantity.HasValue)
+                        return "FreeAllowance requires AllowanceQuantity.";
+                    if (allowanceQuantity.Value <= 0)
+                        return "FreeAllowance AllowanceQuantity must be greater than 0.";
+                    break;
+                case AppliedBenefitKind.BuyXGetY:
+                    if (!buyXQuantity.HasValue)
+                        return "BuyXGetY requires BuyXQuantity.";
+                    if (buyXQuantity.Value <= 0)
+                        return "BuyXGetY BuyXQuantity must be greater than 0.";
+                    if (!getYQuantity.HasValue)
+                        return "BuyXGetY requires GetYQuantity.";
+                    if (getYQuantity.Value <= 0)
+                        return "BuyXGetY GetYQuantity must be greater than 0.";
+                    break;
+                default:
+                    return "Unknown benefit kind.";
+            }
+            return null;
+        }
+
         [HttpPost]
         [HasPermission(AppPermissions.BenefitManage)]
         public async Task<ActionResult<BenefitDefinition>> Create([FromBody] CreateBenefitDefinitionRequest request)
@@ -66,6 +106,10 @@ namespace KasseAPI_Final.Controllers
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                var kindError = ValidateBenefitDefinitionByKind(request.BenefitKind, request.PercentageValue, request.AllowanceQuantity, request.BuyXQuantity, request.GetYQuantity);
+                if (kindError != null)
+                    return BadRequest(new { message = kindError });
 
                 var existing = await _context.BenefitDefinitions.FirstOrDefaultAsync(b => b.Code == request.Code && b.IsActive);
                 if (existing != null)
@@ -103,6 +147,10 @@ namespace KasseAPI_Final.Controllers
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                var kindError = ValidateBenefitDefinitionByKind(request.BenefitKind, request.PercentageValue, request.AllowanceQuantity, request.BuyXQuantity, request.GetYQuantity);
+                if (kindError != null)
+                    return BadRequest(new { message = kindError });
 
                 var entity = await _context.BenefitDefinitions.FindAsync(id);
                 if (entity == null)

@@ -57,6 +57,8 @@ export const PERMISSIONS = {
   RECEIPT_REPRINT: 'receipt.reprint',
   BENEFIT_VIEW: 'benefit.view',
   BENEFIT_MANAGE: 'benefit.manage',
+  CUSTOMER_VIEW: 'customer.view',
+  CUSTOMER_MANAGE: 'customer.manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

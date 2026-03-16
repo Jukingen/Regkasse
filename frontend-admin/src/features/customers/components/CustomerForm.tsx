@@ -8,9 +8,11 @@ interface CustomerFormProps {
     onCancel: () => void;
     onSubmit: (values: Customer) => void;
     loading: boolean;
+    /** Optional: for POS/preview prep; show active benefit count when editing. */
+    assignedBenefitCount?: number | null;
 }
 
-export default function CustomerForm({ visible, initialValues, onCancel, onSubmit, loading }: CustomerFormProps) {
+export default function CustomerForm({ visible, initialValues, onCancel, onSubmit, loading, assignedBenefitCount }: CustomerFormProps) {
     const [form] = Form.useForm();
 
     useEffect(() => {
@@ -140,6 +142,15 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                         </Form.Item>
                     </Col>
                 </Row>
+                {initialValues && assignedBenefitCount != null && (
+                    <Row>
+                        <Col span={24}>
+                            <div style={{ fontSize: 12, color: '#666' }}>
+                                Aktive Vorteile: {assignedBenefitCount}
+                            </div>
+                        </Col>
+                    </Row>
+                )}
             </Form>
         </Modal>
     );

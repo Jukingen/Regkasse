@@ -27,6 +27,11 @@ export interface CreateCustomerRequest {
   notes?: string;
 }
 
+/** Minimal benefit summary for POS eligibility/preview preparation (read-only, no eligibility logic). */
+export interface BenefitSummaryPreview {
+  assignedBenefitCount: number;
+}
+
 // Well-known guest customer ID (must match backend CustomerSeedData)
 export const GUEST_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -89,6 +94,24 @@ class CustomerService {
   async create(data: CreateCustomerRequest): Promise<Customer> {
     const response = await apiClient.post<Customer>(`${this.baseUrl}`, data);
     return response;
+  }
+
+  /**
+   * Get benefit summary for a customer (assigned active count).
+   * For POS: call when customer is selected to prepare for future eligibility/preview UI.
+   */
+  async getBenefitSummary(customerId: string): Promise<BenefitSummaryPreview | null> {
+    const trimmed = String(customerId ?? '').trim();
+    if (!trimmed) return null;
+    try {
+      const response = await apiClient.get<any>(`${this.baseUrl}/${trimmed}/benefit-summary`);
+      const data = (response as any)?.data ?? response;
+      const count = data?.assignedBenefitCount;
+      return typeof count === 'number' ? { assignedBenefitCount: count } : null;
+    } catch (e: any) {
+      if (e?.response?.status === 404) return null;
+      throw e;
+    }
   }
 }
 

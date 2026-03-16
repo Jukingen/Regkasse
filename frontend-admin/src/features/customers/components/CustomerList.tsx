@@ -1,16 +1,34 @@
 import React from 'react';
-import { Table, Space, Button, Popconfirm, Tag } from 'antd';
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Space, Button, Popconfirm, Tag, Tooltip } from 'antd';
+import { EditOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
 import { Customer } from '@/api/generated/model';
+import type { BenefitAssignment } from '@/api/admin/benefit-assignments';
 
 interface CustomerListProps {
     data: Customer[];
     loading: boolean;
     onEdit: (customer: Customer) => void;
     onDelete: (id: string) => void;
+    /** Optional: show benefit summary per customer. Fail-safe when undefined or empty. */
+    benefitAssignments?: BenefitAssignment[] | null;
 }
 
-export default function CustomerList({ data, loading, onEdit, onDelete }: CustomerListProps) {
+/** Active assignments for a customer; safe labels from benefit definition. */
+function getBenefitSummaryForCustomer(
+    customerId: string | undefined,
+    assignments: BenefitAssignment[] | undefined | null
+): { label: string; code?: string }[] {
+    if (!customerId || !Array.isArray(assignments)) return [];
+    return assignments
+        .filter((a) => a.customerId === customerId && a.isActive)
+        .map((a) => ({
+            label: a.benefitDefinition?.name ?? a.benefitDefinition?.code ?? 'Benefit',
+            code: a.benefitDefinition?.code,
+        }))
+        .filter((x) => x.label);
+}
+
+export default function CustomerList({ data, loading, onEdit, onDelete, benefitAssignments }: CustomerListProps) {
     const dataSource = Array.isArray(data) ? data : [];
     const columns = [
         {
@@ -46,6 +64,29 @@ export default function CustomerList({ data, loading, onEdit, onDelete }: Custom
             dataIndex: 'visitCount',
             key: 'visitCount',
             render: (val: number) => val || 0,
+        },
+        {
+            title: 'Benefits',
+            key: 'benefits',
+            render: (_: unknown, record: Customer) => {
+                const items = getBenefitSummaryForCustomer(record.id, benefitAssignments);
+                if (items.length === 0) return <span style={{ color: '#999' }}>—</span>;
+                const content = (
+                    <Space size={4} wrap>
+                        {items.slice(0, 3).map((item, i) => (
+                            <Tag key={i} icon={<GiftOutlined />}>
+                                {item.label}
+                            </Tag>
+                        ))}
+                        {items.length > 3 && <Tag>+{items.length - 3}</Tag>}
+                    </Space>
+                );
+                return items.length > 2 ? (
+                    <Tooltip title={items.map((x) => x.label).join(', ')}>{content}</Tooltip>
+                ) : (
+                    content
+                );
+            },
         },
         {
             title: 'Status',

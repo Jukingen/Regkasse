@@ -10,11 +10,11 @@ using KasseAPI_Final.Data.Repositories;
 namespace KasseAPI_Final.Controllers
 {
     /// <summary>
-    /// Müşteri yönetimi için controller
+    /// Customer management API. Access controlled by customer.view (read) and customer.manage (write).
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    [HasPermission(AppPermissions.OrderCreate)]
+    [HasPermission(AppPermissions.CustomerView)]
     public class CustomerController : EntityController<Customer>
     {
         private readonly AppDbContext _context;
@@ -30,7 +30,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Müşteri numarasına göre müşteri getir
+        /// Get customer by customer number.
         /// </summary>
         [HttpGet("number/{customerNumber}")]
         public async Task<IActionResult> GetByCustomerNumber(string customerNumber)
@@ -54,7 +54,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Email'e göre müşteri getir
+        /// Get customer by email.
         /// </summary>
         [HttpGet("email/{email}")]
         public async Task<IActionResult> GetByEmail(string email)
@@ -78,7 +78,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Vergi numarasına göre müşteri getir
+        /// Get customer by tax number.
         /// </summary>
         [HttpGet("tax/{taxNumber}")]
         public async Task<IActionResult> GetByTaxNumber(string taxNumber)
@@ -102,9 +102,10 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Müşteri oluştur (özel validation ile)
+        /// Create customer (with custom validation).
         /// </summary>
         [HttpPost]
+        [HasPermission(AppPermissions.CustomerManage)]
         public override async Task<IActionResult> Create([FromBody] Customer customer)
         {
             try
@@ -115,7 +116,7 @@ namespace KasseAPI_Final.Controllers
                     return validationResult;
                 }
 
-                // Özel validation
+                // Custom validation
                 var validationErrors = await ValidateCustomerAsync(customer);
                 if (validationErrors.Any())
                 {
@@ -134,9 +135,10 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Müşteri güncelle (özel validation ile)
+        /// Update customer (with custom validation).
         /// </summary>
         [HttpPut("{id}")]
+        [HasPermission(AppPermissions.CustomerManage)]
         public override async Task<IActionResult> Update(Guid id, [FromBody] Customer customer)
         {
             try
@@ -152,7 +154,7 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("ID mismatch between URL and request body", 400);
                 }
 
-                // Özel validation
+                // Custom validation
                 var validationErrors = await ValidateCustomerAsync(customer, id);
                 if (validationErrors.Any())
                 {
@@ -170,19 +172,18 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Müşteri validation
+        /// Validates customer (name required, unique customer number/email/tax number).
         /// </summary>
         private async Task<List<string>> ValidateCustomerAsync(Customer customer, Guid? excludeId = null)
         {
             var errors = new List<string>();
 
-            // Müşteri adı kontrolü
             if (string.IsNullOrWhiteSpace(customer.Name))
             {
                 errors.Add("Customer name is required");
             }
 
-            // Müşteri numarası benzersizlik kontrolü
+            // Unique customer number
             if (!string.IsNullOrEmpty(customer.CustomerNumber))
             {
                 var existingCustomer = await _context.Customers
@@ -196,7 +197,7 @@ namespace KasseAPI_Final.Controllers
                 }
             }
 
-            // Email benzersizlik kontrolü
+            // Unique email
             if (!string.IsNullOrEmpty(customer.Email))
             {
                 var existingCustomer = await _context.Customers
@@ -210,7 +211,7 @@ namespace KasseAPI_Final.Controllers
                 }
             }
 
-            // Vergi numarası benzersizlik kontrolü
+            // Unique tax number
             if (!string.IsNullOrEmpty(customer.TaxNumber))
             {
                 var existingCustomer = await _context.Customers
@@ -228,7 +229,43 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Müşteri arama
+        /// Soft-delete customer. Requires customer.manage.
+        /// </summary>
+        [HttpDelete("{id}")]
+        [HasPermission(AppPermissions.CustomerManage)]
+        public override async Task<IActionResult> Delete(Guid id)
+        {
+            return await base.Delete(id);
+        }
+
+        /// <summary>
+        /// Returns a minimal benefit summary for the customer (assigned active benefit count).
+        /// For POS eligibility/preview preparation; no eligibility logic, read-only.
+        /// </summary>
+        [HttpGet("{id}/benefit-summary")]
+        public async Task<IActionResult> GetBenefitSummary(Guid id)
+        {
+            try
+            {
+                var customerExists = await _context.Customers.AnyAsync(c => c.Id == id && c.IsActive);
+                if (!customerExists)
+                    return ErrorResponse("Customer not found or inactive", 404);
+
+                var now = DateTime.UtcNow;
+                var count = await _context.BenefitAssignments
+                    .CountAsync(ba => ba.CustomerId == id && ba.IsActive
+                        && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now));
+
+                return SuccessResponse(new { assignedBenefitCount = count }, "Benefit summary retrieved");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"GetBenefitSummary for customer {id}");
+            }
+        }
+
+        /// <summary>
+        /// Search customers by name, email, or phone.
         /// </summary>
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string? name, [FromQuery] string? email, [FromQuery] string? phone)

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, message, Space, Input } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -9,11 +9,16 @@ import CustomerList from '@/features/customers/components/CustomerList';
 import CustomerForm from '@/features/customers/components/CustomerForm';
 import { useCustomers, useCustomerFilters } from '@/features/customers/hooks/useCustomers';
 import { Customer } from '@/api/generated/model';
+import { useAdminBenefitAssignmentsList } from '@/api/admin/benefit-assignments';
 
 export default function CustomersPage() {
     const { filters, setParam } = useCustomerFilters();
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+    const [searchInput, setSearchInput] = useState('');
+    useEffect(() => {
+        setSearchInput(filters.search ?? '');
+    }, [filters.search]);
 
     const {
         useList,
@@ -23,16 +28,13 @@ export default function CustomersPage() {
         invalidateList
     } = useCustomers();
 
-    // Queries: API returns { data: { items, pagination } } or similar; ensure we always pass an array to the table
-    const { data: customersResponse, isLoading, error } = useList({
+    const { data: customers, isLoading, error } = useList({
         page: Number(filters.page) || 1,
         pageSize: Number(filters.pageSize) || 10,
+        search: filters.search,
     });
-    const customers: Customer[] = Array.isArray(customersResponse)
-        ? customersResponse
-        : (customersResponse as unknown as { data?: { items?: Customer[] }; items?: Customer[] })?.data?.items
-            ?? (customersResponse as unknown as { items?: Customer[] })?.items
-            ?? [];
+
+    const { data: benefitAssignments } = useAdminBenefitAssignmentsList();
 
     // Mutations
     const createMutation = useCreate();
@@ -96,7 +98,13 @@ export default function CustomersPage() {
             >
                 <Input.Search
                     placeholder="Search customers..."
-                    onSearch={(val) => setParam('search', val)}
+                    value={searchInput}
+                    onChange={(e) => {
+                        const v = e.target.value;
+                        setSearchInput(v);
+                        if (!v) setParam('search', undefined);
+                    }}
+                    onSearch={(val) => setParam('search', val || undefined)}
                     style={{ width: 300 }}
                     allowClear
                 />
@@ -106,13 +114,14 @@ export default function CustomersPage() {
                 isLoading={isLoading}
                 isError={!!error}
                 error={error as Error}
-                isEmpty={customers.length === 0}
+                isEmpty={(customers ?? []).length === 0}
             >
                 <CustomerList
-                    data={customers}
+                    data={customers ?? []}
                     loading={isLoading}
                     onEdit={openEditModal}
                     onDelete={handleDelete}
+                    benefitAssignments={benefitAssignments ?? undefined}
                 />
             </AdminDataList>
 
@@ -122,6 +131,11 @@ export default function CustomersPage() {
                 onCancel={() => setIsFormVisible(false)}
                 onSubmit={editingCustomer ? handleUpdate : handleCreate}
                 loading={createMutation.isPending || updateMutation.isPending}
+                assignedBenefitCount={
+                    editingCustomer?.id && Array.isArray(benefitAssignments)
+                        ? benefitAssignments.filter((ba) => ba.customerId === editingCustomer.id && ba.isActive).length
+                        : undefined
+                }
             />
         </Space>
     );
