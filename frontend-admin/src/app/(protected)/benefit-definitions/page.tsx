@@ -49,6 +49,7 @@ export default function BenefitDefinitionsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<BenefitDefinition | null>(null);
   const [form] = Form.useForm();
+  const benefitKindWatch = Form.useWatch('benefitKind', form);
 
   const definitions = listQuery.data ?? [];
   const invalidateList = () => queryClient.invalidateQueries({ queryKey: adminBenefitDefinitionsQueryKeys.lists() });
@@ -257,6 +258,7 @@ export default function BenefitDefinitionsPage() {
           <Form.Item
             name="buyXQuantity"
             label="Buy X (für X kaufen Y gratis)"
+            required={benefitKindWatch === AppliedBenefitKind.BuyXGetY}
             dependencies={['benefitKind']}
             rules={[
               {
@@ -270,11 +272,12 @@ export default function BenefitDefinitionsPage() {
               },
             ]}
           >
-            <InputNumber min={0} style={{ width: '100%' }} />
+            <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item
             name="getYQuantity"
             label="Get Y (für X kaufen Y gratis)"
+            required={benefitKindWatch === AppliedBenefitKind.BuyXGetY}
             dependencies={['benefitKind']}
             rules={[
               {
@@ -288,7 +291,7 @@ export default function BenefitDefinitionsPage() {
               },
             ]}
           >
-            <InputNumber min={0} style={{ width: '100%' }} />
+            <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="isActive" label="Aktiv" valuePropName="checked">
             <Switch />

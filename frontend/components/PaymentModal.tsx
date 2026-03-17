@@ -562,6 +562,12 @@ export default function PaymentModal({
             {shouldFetchEligibility && (
               <View style={styles.benefitPreviewSection}>
                 <Text style={styles.benefitPreviewTitle}>Vorteile (Vorschau)</Text>
+                {/* Preview-only savings indicator: do not imply final discount; for cashier awareness only */}
+                {!eligibilityPreviewLoading && eligibilityPreview && typeof eligibilityPreview.totalDiscountAmount === 'number' && eligibilityPreview.totalDiscountAmount > 0 && (
+                  <Text style={styles.savingsIndicatorText}>
+                    Möglicher Vorteil: ca. {formatPrice(eligibilityPreview.totalDiscountAmount)}
+                  </Text>
+                )}
                 {eligibilityPreviewLoading ? (
                   <Text style={styles.benefitPreviewMuted}>Vorteile werden geladen…</Text>
                 ) : eligibilityPreview ? (
@@ -927,6 +933,11 @@ const styles = StyleSheet.create({
     color: SoftColors.textSecondary,
     marginBottom: SoftSpacing.xs,
     fontWeight: '600',
+  },
+  savingsIndicatorText: {
+    ...SoftTypography.caption,
+    color: SoftColors.accent,
+    marginBottom: SoftSpacing.xs,
   },
   benefitPreviewMuted: {
     ...SoftTypography.bodySmall,

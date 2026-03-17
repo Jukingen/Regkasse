@@ -8,11 +8,12 @@
 //     pendingModifiersByProduct (legacy chip state).
 // =============================================================================
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CartDisplay } from '../../components/CartDisplay';
+import { customerService, GUEST_CUSTOMER_ID } from '../../services/api/customerService';
 import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
 import EmployeeIdentificationSheet from '../../components/EmployeeIdentificationSheet';
@@ -94,7 +95,16 @@ function POSSummaryBlock({
   saleCustomer?: { id: string; name: string; customerNumber?: string } | null;
   onOpenEmployeeSheet?: () => void;
   onClearEmployee?: () => void;
+  /** Assignment count from benefit-summary; show badge when > 0. */
+  benefitSummaryCount?: number | null;
 }) {
+  const showBenefitBadge = (benefitSummaryCount ?? 0) > 0;
+  const benefitBadgeText =
+    (benefitSummaryCount ?? 0) === 1
+      ? '🎁 Vorteil aktiv'
+      : (benefitSummaryCount ?? 0) > 1
+        ? `🎁 ${benefitSummaryCount} Vorteile aktiv`
+        : '';
   return (
     <View style={[styles.summaryBlock, { paddingBottom }]}>
       <SectionHeader step="4" title="Zusammenfassung" rowStyle={styles.summaryBlockHeader} titleStyle={styles.summaryBlockTitle} />
@@ -104,6 +114,9 @@ function POSSummaryBlock({
           {saleCustomer ? (
             <>
               <Text style={styles.personalValue} numberOfLines={1}>{saleCustomer.name}</Text>
+              {showBenefitBadge && benefitBadgeText ? (
+                <Text style={styles.benefitBadge} numberOfLines={1}>{benefitBadgeText}</Text>
+              ) : null}
               <Pressable style={styles.personalBtn} onPress={onOpenEmployeeSheet}>
                 <Text style={styles.personalBtnText}>Ändern</Text>
               </Pressable>
@@ -251,6 +264,34 @@ export default function CashRegisterScreen() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
   const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
+  /** Assignment-level benefit count for current sale customer; null when not loaded or guest. */
+  const [benefitSummaryCount, setBenefitSummaryCount] = useState<number | null>(null);
+  const benefitFetchRef = useRef<string | null>(null);
+
+  // Fetch benefit-summary when sale customer changes (skip guest); request guard to avoid race.
+  useEffect(() => {
+    const customerId = saleCustomer?.id ?? null;
+    if (!customerId || customerId === GUEST_CUSTOMER_ID) {
+      setBenefitSummaryCount(null);
+      benefitFetchRef.current = null;
+      return;
+    }
+    benefitFetchRef.current = customerId;
+    let cancelled = false;
+    (async () => {
+      try {
+        const summary = await customerService.getBenefitSummary(customerId);
+        if (cancelled || benefitFetchRef.current !== customerId) return;
+        setBenefitSummaryCount(summary?.assignedBenefitCount ?? 0);
+      } catch (_e) {
+        if (cancelled || benefitFetchRef.current !== customerId) return;
+        setBenefitSummaryCount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [saleCustomer?.id]);
 
   // Use context's currentCart so summary/checkout always follow active table (no stale table cart)
   const cart = currentCart;
@@ -525,6 +566,7 @@ export default function CashRegisterScreen() {
             saleCustomer={saleCustomer}
             onOpenEmployeeSheet={() => setEmployeeSheetVisible(true)}
             onClearEmployee={() => setSaleCustomer(null)}
+            benefitSummaryCount={benefitSummaryCount}
           />
         } 
       />
@@ -637,5 +679,9 @@ const styles = StyleSheet.create({
   personalSetzenText: {
     ...SoftTypography.label,
     color: SoftColors.accent,
+  },
+  benefitBadge: {
+    ...SoftTypography.caption,
+    color: SoftColors.textSecondary,
   },
 }); 
