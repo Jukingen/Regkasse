@@ -105,6 +105,26 @@ namespace KasseAPI_Final.Services
 
                 await _context.SaveChangesAsync();
 
+                // Visibility: count today's payments for this register that have no matching invoice (payment-invoice gap).
+                var registerNumber = await _context.CashRegisters
+                    .AsNoTracking()
+                    .Where(cr => cr.Id == cashRegisterId)
+                    .Select(cr => cr.RegisterNumber)
+                    .FirstOrDefaultAsync();
+                var paymentsWithoutInvoiceCount = 0;
+                if (!string.IsNullOrWhiteSpace(registerNumber))
+                {
+                    paymentsWithoutInvoiceCount = await _context.PaymentDetails
+                        .AsNoTracking()
+                        .Where(p => p.CreatedAt.Date == today && p.IsActive && p.KassenId == registerNumber
+                            && !_context.Invoices.Any(i => i.SourcePaymentId == p.Id))
+                        .CountAsync();
+                }
+
+                var warning = paymentsWithoutInvoiceCount > 0
+                    ? $"There are {paymentsWithoutInvoiceCount} payment(s) from today without a matching invoice. Consider running backfill."
+                    : null;
+
                 return new TagesabschlussResult
                 {
                     Success = true,
@@ -114,7 +134,9 @@ namespace KasseAPI_Final.Services
                     TotalTaxAmount = totalTaxAmount,
                     TransactionCount = transactionCount,
                     TseSignature = tseSignature,
-                    FinanzOnlineStatus = dailyClosing.FinanzOnlineStatus
+                    FinanzOnlineStatus = dailyClosing.FinanzOnlineStatus,
+                    PaymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,
+                    Warning = warning
                 };
             }
             catch (Exception ex)
@@ -321,5 +343,9 @@ namespace KasseAPI_Final.Services
         public string? TseSignature { get; set; }
         public string? Status { get; set; }
         public string? FinanzOnlineStatus { get; set; }
+        /// <summary>Number of today's payments (this register) that have no matching Invoice. Non-zero indicates a payment-invoice gap; consider backfill.</summary>
+        public int PaymentsWithoutInvoiceCount { get; set; }
+        /// <summary>When PaymentsWithoutInvoiceCount &gt; 0, suggests running backfill. Closing still succeeded.</summary>
+        public string? Warning { get; set; }
     }
 }

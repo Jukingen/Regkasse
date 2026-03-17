@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Form, Input, InputNumber, Button, Card, message, Select, Typography } from 'antd';
+import { Form, Input, InputNumber, Button, Card, message, Select, Typography, Alert } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 import type { GenerateReceiptRequest, ReceiptItem } from '@/api/generated/model';
 import { useReceiptTemplates } from '../hooks/useReceiptTemplates';
@@ -219,7 +219,7 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
 
             {generatedContent && (
                 <Card
-                    title="Vorschau (nicht fiskal)"
+                    title="Nur Vorschau – kein gültiger fiskaler Beleg"
                     style={{ marginTop: 24 }}
                     extra={
                         <Button icon={<CopyOutlined />} onClick={copyToClipboard}>
@@ -227,9 +227,13 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
                         </Button>
                     }
                 >
-                    <Paragraph type="secondary" style={{ marginBottom: 8 }}>
-                        Dieser Inhalt ist keine fiskale Quittung. Nur zur Vorschau der Vorlage.
-                    </Paragraph>
+                    <Alert
+                        type="warning"
+                        showIcon
+                        message="Kein rechtlicher oder fiskaler Beleg"
+                        description="Dieser Inhalt ist ausschließlich Vorlagen-Mustertext zur Vorschau. Er ist kein gültiger Kassenbeleg, keine Zahlung wurde erfasst, keine TSE-Signatur erstellt. Nicht für fiskale oder rechtliche Zwecke verwenden."
+                        style={{ marginBottom: 16 }}
+                    />
                     <Paragraph>
                         <pre style={{ background: '#f5f5f5', padding: 16, whiteSpace: 'pre-wrap' }}>
                             {generatedContent}

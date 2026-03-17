@@ -78,6 +78,19 @@ namespace KasseAPI_Final.Models
         [Required]
         public DateTime TseTimestamp { get; set; } // TSE zaman damgası
 
+        // --- Audit/Fiscal metadata (optional, backward compatible) ---
+        // Added for better traceability of refund/cancel operations.
+        public Guid? OriginalPaymentId { get; set; }
+        public bool IsRefund { get; set; } = false;
+        [MaxLength(200)]
+        public string? RefundReason { get; set; }
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? RefundAmount { get; set; }
+        public DateTime? RefundedAt { get; set; }
+        [MaxLength(200)]
+        public string? CancellationReason { get; set; }
+        public DateTime? CancelledAt { get; set; }
+
         // RKSV verification normalization (Phase 1) - nullable, eski kayıtlarla uyumlu
         [MaxLength(50)]
         [Column("signature_format")]

@@ -93,11 +93,6 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
     return /^\d{8}$/.test(id);
   };
 
-  // Steuernummer validation (ATU format)
-  const validateSteuernummer = (steuer: string) => {
-    return /^ATU\d{8}$/.test(steuer);
-  };
-
   // Bir sonraki adıma geç
   const nextStep = () => {
     if (currentStep < PaymentStep.RECEIPT) {
@@ -177,6 +172,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
     setLoading(true);
     try {
       // Ödeme işlemi API'si
+      // Fiscal fields (Steuernummer, KassenId) are resolved on the backend from config when not sent.
       const paymentRequest = {
         items: cartItems.map(item => ({
           productId: item.product.id,
@@ -192,9 +188,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         customerId: customerId,
         tableNumber: tableNumber,
         cashierId: user?.id || 'UNKNOWN',
-        totalAmount: totalAmount,
-        steuernummer: 'ATU12345678', // Hardcoded for compliance as per PaymentModal
-        kassenId: 'KASSE-001'
+        totalAmount: totalAmount
       };
 
       const response = await paymentService.processPayment(paymentRequest);

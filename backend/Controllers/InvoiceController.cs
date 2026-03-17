@@ -487,7 +487,7 @@ namespace KasseAPI_Final.Controllers
                     existingInvoice.Status == InvoiceStatus.CreditNote || existingInvoice.Status == InvoiceStatus.Cancelled)
                 {
                     _logger.LogWarning("Update rejected: invoice {InvoiceId} is finalized (Status={Status}). Finalized invoices cannot be updated.", id, existingInvoice.Status);
-                    return BadRequest(new { message = "Invoice is finalized and cannot be updated." });
+                    return BadRequest(new { message = "Invoice cannot be modified after finalization." });
                 }
 
                 existingInvoice.InvoiceDate = request.InvoiceDate;
@@ -531,6 +531,19 @@ namespace KasseAPI_Final.Controllers
             {
                 var invoice = await _context.Invoices.FindAsync(id);
                 if (invoice == null || !invoice.IsActive) return NotFound("Fatura bulunamadı");
+
+                // Fiscal immutability: POS-originated and finalized invoices must not be soft-deleted (audit integrity).
+                if (invoice.SourcePaymentId.HasValue)
+                {
+                    _logger.LogWarning("Delete rejected: invoice {InvoiceId} originated from POS payment {PaymentId}. Fiscal records are immutable.", id, invoice.SourcePaymentId.Value);
+                    return BadRequest(new { message = "Invoice originated from POS payment and cannot be deleted for fiscal compliance." });
+                }
+                if (invoice.Status == InvoiceStatus.Paid || invoice.Status == InvoiceStatus.Sent ||
+                    invoice.Status == InvoiceStatus.CreditNote || invoice.Status == InvoiceStatus.Cancelled)
+                {
+                    _logger.LogWarning("Delete rejected: invoice {InvoiceId} is finalized (Status={Status}).", id, invoice.Status);
+                    return BadRequest(new { message = "Invoice cannot be deleted after finalization." });
+                }
 
                 invoice.IsActive = false;
                 invoice.UpdatedAt = DateTime.UtcNow;

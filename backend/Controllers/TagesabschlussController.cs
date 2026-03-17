@@ -14,10 +14,12 @@ namespace KasseAPI_Final.Controllers
     public class TagesabschlussController : ControllerBase
     {
         private readonly ITagesabschlussService _tagesabschlussService;
+        private readonly ILogger<TagesabschlussController> _logger;
 
-        public TagesabschlussController(ITagesabschlussService tagesabschlussService)
+        public TagesabschlussController(ITagesabschlussService tagesabschlussService, ILogger<TagesabschlussController> logger)
         {
             _tagesabschlussService = tagesabschlussService;
+            _logger = logger;
         }
 
         /// <summary>
@@ -38,6 +40,8 @@ namespace KasseAPI_Final.Controllers
 
                 if (result.Success)
                 {
+                    if (!string.IsNullOrEmpty(result.Warning))
+                        _logger.LogWarning("Daily closing completed with payment-invoice gap: {Warning}", result.Warning);
                     return Ok(result);
                 }
                 else

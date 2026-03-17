@@ -413,6 +413,12 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TseSignature);
                 entity.Property(e => e.IdempotencyKey).HasMaxLength(64);
                 entity.HasIndex(e => e.IdempotencyKey).IsUnique().HasFilter("\"idempotency_key\" IS NOT NULL");
+                
+                // Strengthen data integrity for POS/receipt numbering.
+                // Unique over real receipt numbers only (ignore empty/draft values).
+                entity.HasIndex(e => e.ReceiptNumber)
+                    .IsUnique()
+                    .HasFilter("\"receipt_number\" IS NOT NULL AND \"receipt_number\" <> ''");
             });
 
             // PaymentItem: not mapped; single source of truth is payment_details.PaymentItems (JSON).

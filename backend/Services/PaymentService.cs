@@ -486,8 +486,8 @@ namespace KasseAPI_Final.Services
                     return new PaymentResult
                     {
                         Success = false,
-                        Message = "Total amount does not match calculated total from items and discounts.",
-                        Errors = { "TotalAmount must match the sum of line items and applied discounts (tolerance 0.01)." }
+                        Message = "Total amount mismatch between client and server calculation.",
+                        Errors = { "Total amount mismatch between client and server calculation." }
                     };
                 }
 
@@ -1259,7 +1259,9 @@ namespace KasseAPI_Final.Services
                 payment.IsActive = false;
                 payment.UpdatedAt = DateTime.UtcNow;
                 payment.UpdatedBy = userId;
-                // TODO: CancellationReason ve CancelledAt alanları eklenecek
+                // Audit fields (optional, backward compatible)
+                payment.CancellationReason = reason;
+                payment.CancelledAt = DateTime.UtcNow;
 
                 await _paymentRepository.UpdateAsync(payment);
 
@@ -1377,6 +1379,11 @@ namespace KasseAPI_Final.Services
                     CustomerId = payment.CustomerId,
                     CustomerName = payment.CustomerName,
                     PaymentItems = payment.PaymentItems, // JSON olarak kopyala
+                    OriginalPaymentId = paymentId,
+                    IsRefund = true,
+                    RefundReason = reason,
+                    RefundAmount = amount,
+                    RefundedAt = DateTime.UtcNow,
                     TotalAmount = -amount, // Negatif tutar
                     TaxAmount = -payment.TaxAmount * (amount / payment.TotalAmount),
                     PaymentMethod = payment.PaymentMethod,
@@ -1384,7 +1391,6 @@ namespace KasseAPI_Final.Services
                     CreatedBy = userId,
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
-                    // TODO: IsRefund, OriginalPaymentId, RefundReason, RefundAmount alanları eklenecek
                 };
 
                 await _paymentRepository.AddAsync(refund);

@@ -36,10 +36,10 @@ export default function GenerateReceiptPage() {
             />
 
             <Alert
-                type="info"
+                type="warning"
                 showIcon
-                message="Nur Vorschau – keine fiskale Quittung"
-                description="Hier wird ausschließlich Mustertext aus Vorlagen erzeugt. Es entstehen keine Zahlungen, keine TSE-Signatur und keine fiskalrelevanten Belege."
+                message="Nur Vorschau – kein rechtlicher oder fiskaler Beleg"
+                description="Hier wird ausschließlich Mustertext aus Vorlagen erzeugt. Es entstehen keine Zahlungen, keine TSE-Signatur und keine fiskalrelevanten Belege. Die Ausgabe ist kein gültiger Kassenbeleg und darf nicht als solcher verwendet werden."
                 style={{ marginBottom: 16 }}
             />
 
