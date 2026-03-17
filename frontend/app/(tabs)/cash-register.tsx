@@ -75,6 +75,10 @@ function POSSummaryBlock({
   decrementModifier,
   onPayment,
   paddingBottom,
+  saleCustomer,
+  onOpenEmployeeSheet,
+  onClearEmployee,
+  benefitSummaryCount,
 }: {
   activeTableId: number;
   summaryTotals: { itemCount: number; grandTotalGross: number };

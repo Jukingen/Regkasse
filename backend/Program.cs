@@ -265,6 +265,18 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
+// Diagnostic: log which database the API actually uses (runtime resolution; env vars can override appsettings)
+var connStr = app.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrEmpty(connStr))
+{
+    var masked = System.Text.RegularExpressions.Regex.Replace(connStr, @"Password=[^;]*", "Password=***");
+    Console.WriteLine($"[DbDiagnostic] Resolved DefaultConnection (masked): {masked}");
+}
+else
+{
+    Console.WriteLine("[DbDiagnostic] DefaultConnection is null or empty.");
+}
+
 // Startup bootstrap: migration, migration gate, roles, users, demo data, product seed, guest customer
 using (var scope = app.Services.CreateScope())
 {
