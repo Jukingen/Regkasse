@@ -326,7 +326,7 @@ namespace KasseAPI_Final.Services
                         && ba.BenefitDefinition.AllowanceQuantity.HasValue
                         && ba.BenefitDefinition.AllowanceQuantity > 0
                         && ba.BenefitDefinition.AllowanceCategoryId.HasValue
-                        && (ba.BenefitDefinition.AllowanceScope == null || string.Equals(ba.BenefitDefinition.AllowanceScope, "per_day", StringComparison.OrdinalIgnoreCase)))
+                        && (ba.BenefitDefinition.AllowanceScope == null || ba.BenefitDefinition.AllowanceScope.ToLower() == "per_day"))
                     .OrderByDescending(ba => ba.Priority)
                     .ToListAsync();
 
@@ -781,7 +781,7 @@ namespace KasseAPI_Final.Services
                     && ba.BenefitDefinition.AllowanceQuantity.HasValue
                     && ba.BenefitDefinition.AllowanceQuantity > 0
                     && ba.BenefitDefinition.AllowanceCategoryId.HasValue
-                    && (ba.BenefitDefinition.AllowanceScope == null || string.Equals(ba.BenefitDefinition.AllowanceScope, "per_day", StringComparison.OrdinalIgnoreCase)))
+                    && (ba.BenefitDefinition.AllowanceScope == null || ba.BenefitDefinition.AllowanceScope.ToLower() == "per_day"))
                 .OrderByDescending(ba => ba.Priority)
                 .ToListAsync();
 
