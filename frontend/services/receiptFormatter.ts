@@ -59,18 +59,18 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
       `).join('');
 
   const paymentsHtml = payments.map(p => `
-        <div class="total-row">
+        <div class="total-row optional-totals">
             <span>${p.method}:</span>
-            <span>${safeCurrency(p.amount)}</span>
+            <span class="total-value">${safeCurrency(p.amount)}</span>
         </div>
         ${p.method === 'cash' ? `
-          <div class="total-row">
+          <div class="total-row optional-totals">
              <span>Gegeben:</span>
-             <span>${safeCurrency(p.tendered)}</span>
+             <span class="total-value">${safeCurrency(p.tendered)}</span>
           </div>
-          <div class="total-row">
+          <div class="total-row optional-totals">
              <span>Rückgeld:</span>
-             <span>${safeCurrency(p.change)}</span>
+             <span class="total-value">${safeCurrency(p.change)}</span>
           </div>
         ` : ''}
     `).join('');
@@ -109,8 +109,9 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
           th { text-align: left; border-bottom: 1px solid #000; padding: 2px 0; }
           td { padding: 2px 0; vertical-align: top; }
           .totals { border-top: 1px dashed #000; margin-top: 5px; padding-top: 5px; font-size: 12px; }
-          .total-row { display: flex; justify-content: space-between; margin: 2px 0; }
-          .grand-total { font-weight: bold; font-size: 16px; border-top: 1px double #000; border-bottom: 1px double #000; padding: 5px 0; margin: 5px 0; }
+          .total-row { display: flex; justify-content: space-between; align-items: baseline; margin: 2px 0; }
+          .total-row .total-value { width: 12ch; text-align: right; flex-shrink: 0; }
+          .grand-total { font-weight: bold; font-size: 16px; border-top: 1px double #000; border-bottom: 1px double #000; padding: 5px 0; margin: 5px 0 10px 0; }
           .footer { text-align: center; margin-top: 15px; font-size: 10px; border-top: 1px dashed #000; padding-top: 10px; }
           .signature-block { margin-top: 10px; font-size: 10px; word-break: break-all; text-align: center; }
           .qr-block { text-align: center; margin: 12px 0; margin-top: 15px; }
@@ -118,7 +119,8 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
           .qr-demo-label { font-weight: bold; color: #c62828; font-size: 11px; margin-bottom: 6px; }
           .qr-fallback { font-size: 10px; color: #666; text-align: center; margin: 8px 0; }
           .total-sep { text-align: center; font-size: 11px; margin: 4px 0; letter-spacing: 1px; }
-          .mwst-section { margin-top: 8px; font-size: 11px; }
+          .mwst-section { margin-top: 12px; font-size: 11px; }
+          .payment-section { margin-top: 6px; }
           .mwst-title { font-weight: bold; margin-bottom: 4px; }
           .mwst-table { width: 100%; border-collapse: collapse; font-size: 11px; }
           .mwst-table th, .mwst-table td { padding: 2px 4px; border-bottom: 1px solid #ccc; }
@@ -152,9 +154,9 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
         <div class="totals">
           <div class="total-row grand-total">
             <span>SUMME / Gesamtbetrag:</span>
-            <span>EUR ${safeCurrency(grandTotalGross)}</span>
+            <span class="total-value">EUR ${safeCurrency(grandTotalGross)}</span>
           </div>
-          <div class="total-sep">==========</div>
+          <div class="total-sep">----------------</div>
           <div class="mwst-section">
             <div class="mwst-title">MwSt (MwSt% | Netto | MwSt | Brutto)</div>
             <table class="mwst-table">
@@ -171,13 +173,13 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
           </div>
           <div class="total-row optional-totals">
             <span>Netto:</span>
-            <span>${safeCurrency(subtotalNet)}</span>
+            <span class="total-value">${safeCurrency(subtotalNet)}</span>
           </div>
           <div class="total-row optional-totals">
             <span>MwSt gesamt:</span>
-            <span>${safeCurrency(includedTaxTotal)}</span>
+            <span class="total-value">${safeCurrency(includedTaxTotal)}</span>
           </div>
-          <div style="margin-top: 10px;">${paymentsHtml}</div>
+          <div class="payment-section">${paymentsHtml}</div>
         </div>
         <div class="signature-block">
           <div style="font-weight: bold; margin-bottom: 5px;">Registrierkassensicherheitsverordnung</div>
