@@ -1834,7 +1834,7 @@ namespace KasseAPI_Final.Services
                     {
                         new ReceiptPaymentDTO
                         {
-                            Method = payment.PaymentMethodRaw.ToString(),
+                            Method = ParsePaymentMethodName(payment.PaymentMethodRaw),
                             Amount = payment.TotalAmount,
                             Tendered = payment.TotalAmount, // Assuming exact amount for now
                             Change = 0
