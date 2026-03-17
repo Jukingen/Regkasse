@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Button, Space, Spin, Alert, Divider, Typography } from 'antd';
+import { Card, Button, Space, Spin, Alert, Typography } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useReceiptDetailQuery } from '@/features/receipts/hooks/useReceiptDetailQuery';
 import ReceiptDetailCard from '@/features/receipts/components/ReceiptDetailCard';
@@ -12,14 +12,27 @@ import SignatureStatusPanel from '@/features/receipts/components/SignatureStatus
 
 const { Title } = Typography;
 
+/** True when the error is a 404 Not Found (receipt does not exist). */
+function isNotFoundError(error: unknown): boolean {
+    const status = (error as { response?: { status?: number }; normalized?: { status?: number } })?.response?.status
+        ?? (error as { normalized?: { status?: number } })?.normalized?.status;
+    return status === 404;
+}
+
+/** User-facing message for receipt detail error. */
+function getReceiptDetailErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    const norm = (error as { normalized?: { message?: string } })?.normalized;
+    if (norm?.message) return norm.message;
+    return 'An unexpected error occurred.';
+}
+
 export default function ReceiptDetailPage() {
     const { receiptId } = useParams<{ receiptId: string }>();
     const router = useRouter();
     const { data: receipt, isLoading, isError, error } = useReceiptDetailQuery(receiptId);
 
     const handleBack = () => {
-        // Use browser back if history exists (preserves list URL state),
-        // otherwise navigate to the list page.
         if (window.history.length > 1) {
             router.back();
         } else {
@@ -28,7 +41,21 @@ export default function ReceiptDetailPage() {
     };
 
     if (isLoading) {
-        return <Spin style={{ display: 'block', margin: '80px auto' }} />;
+        return <Spin style={{ display: 'block', margin: '80px auto' }} tip="Loading receipt..." />;
+    }
+
+    if (isError && isNotFoundError(error)) {
+        return (
+            <Alert
+                type="warning"
+                message="Receipt not found"
+                description="The requested receipt does not exist or you do not have access to it."
+                showIcon
+                action={
+                    <Button onClick={handleBack}>Back to Receipts</Button>
+                }
+            />
+        );
     }
 
     if (isError) {
@@ -36,7 +63,7 @@ export default function ReceiptDetailPage() {
             <Alert
                 type="error"
                 message="Failed to load receipt"
-                description={(error as Error)?.message || 'An unexpected error occurred.'}
+                description={getReceiptDetailErrorMessage(error)}
                 showIcon
                 action={
                     <Button onClick={handleBack}>Back to Receipts</Button>
@@ -50,6 +77,7 @@ export default function ReceiptDetailPage() {
             <Alert
                 type="warning"
                 message="Receipt not found"
+                description="No receipt data returned."
                 showIcon
                 action={
                     <Button onClick={handleBack}>Back to Receipts</Button>

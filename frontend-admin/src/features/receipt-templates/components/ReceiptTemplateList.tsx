@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 interface ReceiptTemplateListProps {
     data: ReceiptTemplate[];
     loading: boolean;
+    canManage?: boolean;
     onDelete: (id: string) => void;
     onPreview: (id: string) => void;
 }
@@ -18,6 +19,7 @@ interface ReceiptTemplateListProps {
 export default function ReceiptTemplateList({
     data,
     loading,
+    canManage = false,
     onDelete,
     onPreview,
 }: ReceiptTemplateListProps) {
@@ -64,11 +66,13 @@ export default function ReceiptTemplateList({
             width: 180,
             render: (_: unknown, record: ReceiptTemplate) => (
                 <Space>
-                    <Link href={`/receipt-templates/${record.id}`}>
-                        <Button size="small" icon={<EditOutlined />}>
-                            Edit
-                        </Button>
-                    </Link>
+                    {canManage && (
+                        <Link href={`/receipt-templates/${record.id}`}>
+                            <Button size="small" icon={<EditOutlined />}>
+                                Edit
+                            </Button>
+                        </Link>
+                    )}
                     <Button
                         size="small"
                         icon={<EyeOutlined />}
@@ -76,14 +80,16 @@ export default function ReceiptTemplateList({
                     >
                         Preview
                     </Button>
-                    <Popconfirm
-                        title="Delete this template?"
-                        onConfirm={() => onDelete(record.id!)}
-                        okText="Yes"
-                        cancelText="No"
-                    >
-                        <Button size="small" danger icon={<DeleteOutlined />} />
-                    </Popconfirm>
+                    {canManage && (
+                        <Popconfirm
+                            title="Delete this template?"
+                            onConfirm={() => onDelete(record.id!)}
+                            okText="Yes"
+                            cancelText="No"
+                        >
+                            <Button size="small" danger icon={<DeleteOutlined />} />
+                        </Popconfirm>
+                    )}
                 </Space>
             ),
         },

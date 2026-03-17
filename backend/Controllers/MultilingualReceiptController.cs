@@ -44,7 +44,8 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // GET: api/multilingualreceipt/{id}
+        // GET: api/multilingualreceipt/{id} (read; requires ReceiptTemplateView)
+        [HasPermission(AppPermissions.ReceiptTemplateView)]
         [HttpGet("{id}")]
         public async Task<ActionResult<ReceiptTemplate>> GetReceiptTemplate(Guid id)
         {

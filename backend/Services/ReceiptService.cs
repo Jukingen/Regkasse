@@ -15,6 +15,7 @@ namespace KasseAPI_Final.Services
     {
         Task<ReceiptDTO?> GetReceiptAsync(Guid receiptId);
         Task<ReceiptDTO> CreateReceiptFromPaymentAsync(Guid paymentId);
+        Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo);
     }
 
     public class ReceiptService : IReceiptService
@@ -212,6 +213,75 @@ namespace KasseAPI_Final.Services
                 QrData = qrPayload
             };
             return MapToDTO(newReceipt, signatureDto);
+        }
+
+        public async Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 25;
+            if (pageSize > 100) pageSize = 100;
+
+            var queryable = _context.Receipts.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(receiptNumber))
+                queryable = queryable.Where(r => r.ReceiptNumber != null && EF.Functions.ILike(r.ReceiptNumber, $"%{receiptNumber.Trim()}%"));
+            if (!string.IsNullOrWhiteSpace(cashRegisterId))
+            {
+                if (Guid.TryParse(cashRegisterId.Trim(), out var crId))
+                    queryable = queryable.Where(r => r.CashRegisterId == crId);
+            }
+            if (!string.IsNullOrWhiteSpace(cashierId))
+                queryable = queryable.Where(r => r.CashierId != null && EF.Functions.ILike(r.CashierId, $"%{cashierId.Trim()}%"));
+            if (issuedFrom.HasValue)
+                queryable = queryable.Where(r => r.IssuedAt >= issuedFrom.Value.ToUniversalTime());
+            if (issuedTo.HasValue)
+                queryable = queryable.Where(r => r.IssuedAt < issuedTo.Value.ToUniversalTime().AddDays(1));
+
+            var totalCount = await queryable.CountAsync();
+
+            var sortField = "issuedAt";
+            var sortDir = "desc";
+            if (!string.IsNullOrWhiteSpace(sort))
+            {
+                var parts = sort.Trim().Split(':');
+                if (parts.Length >= 1 && !string.IsNullOrEmpty(parts[0])) sortField = parts[0].ToLowerInvariant();
+                if (parts.Length >= 2 && !string.IsNullOrEmpty(parts[1])) sortDir = parts[1].ToLowerInvariant();
+            }
+
+            var isAsc = sortDir == "asc";
+            queryable = sortField switch
+            {
+                "grandtotal" => isAsc ? queryable.OrderBy(r => r.GrandTotal) : queryable.OrderByDescending(r => r.GrandTotal),
+                "receiptnumber" => isAsc ? queryable.OrderBy(r => r.ReceiptNumber) : queryable.OrderByDescending(r => r.ReceiptNumber),
+                "createdat" => isAsc ? queryable.OrderBy(r => r.CreatedAt) : queryable.OrderByDescending(r => r.CreatedAt),
+                _ => isAsc ? queryable.OrderBy(r => r.IssuedAt) : queryable.OrderByDescending(r => r.IssuedAt)
+            };
+
+            var items = await queryable
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(r => new ReceiptListItemDto
+                {
+                    ReceiptId = r.ReceiptId,
+                    ReceiptNumber = r.ReceiptNumber,
+                    IssuedAt = r.IssuedAt,
+                    CashierId = r.CashierId,
+                    CashRegisterId = r.CashRegisterId.ToString(),
+                    SubTotal = r.SubTotal,
+                    TaxTotal = r.TaxTotal,
+                    GrandTotal = r.GrandTotal,
+                    CreatedAt = r.CreatedAt
+                })
+                .ToListAsync();
+
+            return new PagedResult<ReceiptListItemDto>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
         }
 
         private async Task<string> GetLastSignatureValueForKassenIdAsync(string kassenId)

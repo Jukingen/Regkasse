@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Controllers
 {
-    [HasPermission(AppPermissions.SaleCreate)]
     [ApiController]
     [Route("api/[controller]")]
     public class ReceiptsController : ControllerBase
@@ -27,7 +26,33 @@ namespace KasseAPI_Final.Controllers
             _logger = logger;
         }
 
-        // GET: api/receipts/{receiptId}
+        // GET: api/Receipts/list (read-only; requires SaleView)
+        [HasPermission(AppPermissions.SaleView)]
+        [HttpGet("list")]
+        public async Task<ActionResult<PagedResult<ReceiptListItemDto>>> GetReceiptList(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 25,
+            [FromQuery] string? sort = null,
+            [FromQuery] string? receiptNumber = null,
+            [FromQuery] string? cashRegisterId = null,
+            [FromQuery] string? cashierId = null,
+            [FromQuery] DateTime? issuedFrom = null,
+            [FromQuery] DateTime? issuedTo = null)
+        {
+            try
+            {
+                var result = await _receiptService.GetReceiptListAsync(page, pageSize, sort, receiptNumber, cashRegisterId, cashierId, issuedFrom, issuedTo);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error listing receipts");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        // GET: api/receipts/{receiptId} (read-only; requires SaleView)
+        [HasPermission(AppPermissions.SaleView)]
         [HttpGet("{receiptId}")]
         public async Task<ActionResult<ReceiptDTO>> GetReceipt(Guid receiptId)
         {
@@ -47,8 +72,8 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // POST: api/receipts/create-from-payment/{paymentId}
-        // Useful if the frontend has a payment ID but implementation details differ
+        // POST: api/receipts/create-from-payment/{paymentId} (write; requires SaleCreate)
+        [HasPermission(AppPermissions.SaleCreate)]
         [HttpPost("create-from-payment/{paymentId}")]
         public async Task<ActionResult<ReceiptDTO>> CreateFromPayment(Guid paymentId)
         {
@@ -69,9 +94,10 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// GET: api/receipts/{receiptId}/signature-debug
+        /// GET: api/receipts/{receiptId}/signature-debug (read-only; requires SaleView)
         /// Integration test: payment create → receipt fetch → signature-debug → Verify PASS
         /// </summary>
+        [HasPermission(AppPermissions.SaleView)]
         [HttpGet("{receiptId}/signature-debug")]
         public async Task<ActionResult<object>> GetSignatureDebug(Guid receiptId)
         {

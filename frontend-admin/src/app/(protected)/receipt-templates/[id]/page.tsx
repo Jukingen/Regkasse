@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Button, message } from 'antd';
+import { Card, Button, message, Spin } from 'antd';
 import { ArrowLeftOutlined, EyeOutlined } from '@ant-design/icons';
 
 import ReceiptTemplateForm from '@/features/receipt-templates/components/ReceiptTemplateForm';
 import ReceiptPreviewModal from '@/features/receipt-templates/components/ReceiptPreviewModal';
 import { useReceiptTemplates } from '@/features/receipt-templates/hooks/useReceiptTemplates';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { hasPermission } from '@/shared/auth/permissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 
@@ -17,6 +20,14 @@ export default function EditReceiptTemplatePage() {
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
     const [showPreview, setShowPreview] = useState(false);
+    const { user, isInitialized } = useAuth();
+    const canManage = hasPermission(user, PERMISSIONS.RECEIPT_TEMPLATE_MANAGE);
+
+    useEffect(() => {
+        if (isInitialized && !canManage) {
+            router.replace('/receipt-templates');
+        }
+    }, [isInitialized, canManage, router]);
 
     // Use new hook
     const { useDetail, useUpdate, invalidateList } = useReceiptTemplates();
@@ -41,6 +52,14 @@ export default function EditReceiptTemplatePage() {
     const handleSubmit = (values: UpdateReceiptTemplateRequest) => {
         updateTemplate({ id, data: values });
     };
+
+    if (!isInitialized || !canManage) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
+                <Spin size="large" tip="Checking access..." />
+            </div>
+        );
+    }
 
     return (
         <React.Fragment>

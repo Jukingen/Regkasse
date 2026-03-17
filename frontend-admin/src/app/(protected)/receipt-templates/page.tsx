@@ -9,6 +9,9 @@ import ReceiptTemplateList from '@/features/receipt-templates/components/Receipt
 import ReceiptPreviewModal from '@/features/receipt-templates/components/ReceiptPreviewModal';
 import ReceiptFilters from '@/features/receipt-templates/components/ReceiptFilters';
 import { useReceiptTemplates, useReceiptTemplateFilters } from '@/features/receipt-templates/hooks/useReceiptTemplates';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { hasPermission } from '@/shared/auth/permissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
@@ -48,6 +51,9 @@ export default function ReceiptTemplatesPage() {
     const isLoading = loadingAll || loadingLang || loadingType;
     const error = errorAll || errorLang || errorType;
 
+    const { user } = useAuth();
+    const canManage = hasPermission(user, PERMISSIONS.RECEIPT_TEMPLATE_MANAGE);
+
     // 4. Mutations
     const { mutate: deleteTemplate } = useDelete({
         mutation: {
@@ -68,11 +74,13 @@ export default function ReceiptTemplatesPage() {
                 title="Receipt Templates"
                 breadcrumbs={[{ title: 'Dashboard', href: '/' }, { title: 'Receipt Templates' }]}
                 actions={
-                    <Link href="/receipt-templates/new">
-                        <Button type="primary" icon={<PlusOutlined />}>
-                            New Template
-                        </Button>
-                    </Link>
+                    canManage ? (
+                        <Link href="/receipt-templates/new">
+                            <Button type="primary" icon={<PlusOutlined />}>
+                                New Template
+                            </Button>
+                        </Link>
+                    ) : undefined
                 }
             >
                 <ReceiptFilters />
@@ -87,6 +95,7 @@ export default function ReceiptTemplatesPage() {
                 <ReceiptTemplateList
                     data={data || []}
                     loading={isLoading}
+                    canManage={canManage}
                     onDelete={(id) => deleteTemplate({ id })}
                     onPreview={setPreviewId}
                 />

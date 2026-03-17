@@ -37,7 +37,7 @@ function buildQuery(params: ReceiptListParams): string {
 
 async function fetchReceiptList(params: ReceiptListParams): Promise<ReceiptListResponse> {
     return customInstance<ReceiptListResponse>({
-        url: `/admin/receipts?${buildQuery(params)}`,
+        url: `/api/Receipts/list?${buildQuery(params)}`,
         method: 'GET',
     });
 }

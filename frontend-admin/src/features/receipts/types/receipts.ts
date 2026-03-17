@@ -1,13 +1,13 @@
 /**
  * Receipt DTOs — manual types matching the API contract.
- * Replace with orval-generated types once /admin/receipts endpoints are in swagger.json.
+ * List: GET /api/Receipts/list. Detail: GET /api/Receipts/{id} (mapped from ReceiptDTO in hook).
  */
 
 // ---------------------------------------------------------------------------
 // Query Params
 // ---------------------------------------------------------------------------
 
-/** Query params for GET /admin/receipts */
+/** Query params for GET /api/Receipts/list */
 export interface ReceiptListParams {
     page: number;
     pageSize: number;

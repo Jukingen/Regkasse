@@ -13,7 +13,7 @@ export const MENU_PERMISSION: Record<string, string | string[] | undefined> = {
   '/customers': PERMISSIONS.CUSTOMER_VIEW,
   '/receipts': PERMISSIONS.SALE_VIEW,
   '/receipt-templates': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
-  '/receipt-generate': PERMISSIONS.SALE_VIEW,
+  '/receipt-generate': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/audit-logs': PERMISSIONS.AUDIT_VIEW,
   '/payments': PERMISSIONS.PAYMENT_VIEW,
   '/users': PERMISSIONS.USER_VIEW,

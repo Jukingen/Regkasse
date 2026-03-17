@@ -21,6 +21,8 @@ interface ReceiptsTableProps {
     };
     sortField?: string;
     sortOrder?: 'ascend' | 'descend';
+    /** Optional text when table has no data (e.g. "No receipts found. Try adjusting filters.") */
+    emptyText?: string;
     onTableChange: (
         pagination: TablePaginationConfig,
         filters: Record<string, any>,
@@ -87,6 +89,7 @@ export default function ReceiptsTable({
     pagination,
     sortField,
     sortOrder,
+    emptyText,
     onTableChange,
 }: ReceiptsTableProps) {
     // Apply current sort indicator to the matching column
@@ -112,6 +115,7 @@ export default function ReceiptsTable({
                 pageSizeOptions: ['10', '25', '50', '100'],
                 showTotal: (total, range) => `${range[0]}–${range[1]} of ${total} receipts`,
             }}
+            locale={emptyText ? { emptyText } : undefined}
             style={{
                 opacity: isPlaceholderData ? 0.6 : 1,
                 transition: 'opacity 0.2s',

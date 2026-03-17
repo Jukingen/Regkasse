@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Suspense } from 'react';
-import { Card, Typography, Spin } from 'antd';
+import { Card, Typography, Spin, Alert, Button } from 'antd';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import { useReceiptSearchParams } from '@/features/receipts/hooks/useReceiptSearchParams';
@@ -12,9 +12,17 @@ import type { ReceiptListItemDto, ReceiptListParams } from '@/features/receipts/
 
 const { Title } = Typography;
 
+/** Extract user-facing error message from API/network error */
+function getReceiptListErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    const norm = (error as { normalized?: { message?: string } })?.normalized;
+    if (norm?.message) return norm.message;
+    return 'Failed to load receipts. Please try again.';
+}
+
 function ReceiptsPageContent() {
     const { params, setParams, resetFilters } = useReceiptSearchParams();
-    const { data, isLoading, isPlaceholderData } = useReceiptListQuery(params);
+    const { data, isLoading, isPlaceholderData, isError, error, refetch } = useReceiptListQuery(params);
 
     /** Parse sort string "field:order" into Ant Design's sortField/sortOrder */
     const parsedSort = params.sort?.split(':') ?? [];
@@ -46,9 +54,27 @@ function ReceiptsPageContent() {
         setParams(values);
     };
 
+    const isEmpty = !isLoading && !isError && (!data?.items?.length);
+    const emptyText = isEmpty ? 'No receipts found. Try adjusting filters.' : undefined;
+
     return (
         <Card>
             <Title level={3} style={{ marginBottom: 16 }}>Receipts</Title>
+
+            {isError && (
+                <Alert
+                    type="error"
+                    message="Failed to load receipts"
+                    description={getReceiptListErrorMessage(error)}
+                    showIcon
+                    action={
+                        <Button size="small" onClick={() => refetch()}>
+                            Try again
+                        </Button>
+                    }
+                    style={{ marginBottom: 16 }}
+                />
+            )}
 
             <ReceiptsFilterBar
                 initialValues={params}
@@ -57,19 +83,22 @@ function ReceiptsPageContent() {
                 loading={isLoading}
             />
 
-            <ReceiptsTable
-                data={data?.items ?? []}
-                loading={isLoading}
-                isPlaceholderData={isPlaceholderData}
-                pagination={{
-                    current: data?.page ?? params.page,
-                    pageSize: data?.pageSize ?? params.pageSize,
-                    total: data?.totalCount ?? 0,
-                }}
-                sortField={sortField}
-                sortOrder={sortOrder}
-                onTableChange={handleTableChange}
-            />
+            {!isError && (
+                <ReceiptsTable
+                    data={data?.items ?? []}
+                    loading={isLoading}
+                    isPlaceholderData={isPlaceholderData}
+                    pagination={{
+                        current: data?.page ?? params.page,
+                        pageSize: data?.pageSize ?? params.pageSize,
+                        total: data?.totalCount ?? 0,
+                    }}
+                    sortField={sortField}
+                    sortOrder={sortOrder}
+                    onTableChange={handleTableChange}
+                    emptyText={emptyText}
+                />
+            )}
         </Card>
     );
 }
