@@ -64,7 +64,7 @@ export default function DashboardLayout({
         { key: '/benefit-assignments', icon: <FileTextOutlined />, label: <Link href="/benefit-assignments">Vorteile (Zuweisungen)</Link> },
         { key: '/receipts', icon: <FileTextOutlined />, label: <Link href="/receipts">Receipts</Link> },
         { key: '/receipt-templates', icon: <FileTextOutlined />, label: <Link href="/receipt-templates">Receipt Templates</Link> },
-        { key: '/receipt-generate', icon: <FileTextOutlined />, label: <Link href="/receipt-generate">Generate Receipt</Link> },
+        { key: '/receipt-generate', icon: <FileTextOutlined />, label: <Link href="/receipt-generate">Belegvorschau</Link> },
         { key: '/audit-logs', icon: <SafetyCertificateOutlined />, label: <Link href="/audit-logs">Audit Logs</Link> },
         { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">Payments</Link> },
         { key: '/users', icon: <UserOutlined />, label: <Link href="/users">Users</Link> },

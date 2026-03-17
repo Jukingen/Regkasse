@@ -33,9 +33,9 @@ export interface PaymentRequest {
   cashierId: string; // Kasiyer ID
   totalAmount: number; // Toplam tutar
 
-  // Avusturya yasal gereksinimleri
-  steuernummer: string; // Vergi numarası (ATU12345678)
-  kassenId: string; // Kasa ID
+  /** Austrian fiscal fields. When omitted or empty, backend fills from CompanyProfile / DefaultKassenId. */
+  steuernummer?: string;
+  kassenId?: string;
 
   notes?: string;
 
@@ -59,6 +59,8 @@ export interface PaymentResponse {
   tseSignature?: string;
   /** TSE imza/QR bilgisi - POST /Payment response'unda */
   tse?: PaymentTseInfo;
+  /** When false, payment succeeded but invoice was not persisted — operator attention required. */
+  invoicePersisted?: boolean;
 }
 
 export interface Receipt {
@@ -157,12 +159,15 @@ class PaymentService {
         }
       : undefined;
 
+    const invoicePersisted = raw?.invoicePersisted !== false;
+
     return {
       success: !!success, // Ensure boolean
       paymentId,
       message,
       tseSignature,
       tse,
+      invoicePersisted,
       error: success ? undefined : message
     };
   }

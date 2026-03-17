@@ -126,6 +126,7 @@ namespace KasseAPI_Final.Controllers
                         paymentId = result.PaymentId,
                         message = result.Message,
                         payment = paymentSafe,
+                        invoicePersisted = result.InvoicePersisted,
                         tse = new
                         {
                             provider = result.TseProvider,

@@ -153,15 +153,32 @@ namespace KasseAPI_Final.Services
                     }
                 }
 
-                // Steuernummer (request) kontrolü - ATU formatı
-                if (!IsValidAustrianTaxNumber(request.Steuernummer))
+                // Resolve fiscal fields from request or config (source of truth: backend config / first register)
+                var effectiveSteuernummer = !string.IsNullOrWhiteSpace(request.Steuernummer) && IsValidAustrianTaxNumber(request.Steuernummer!)
+                    ? request.Steuernummer!.Trim()
+                    : _companyProfile.TaxNumber;
+                var effectiveKassenId = !string.IsNullOrWhiteSpace(request.KassenId) && request.KassenId!.Trim().Length >= 3 && request.KassenId!.Trim().Length <= 50
+                    ? request.KassenId!.Trim()
+                    : await ResolveDefaultKassenIdAsync();
+
+                if (!IsValidAustrianTaxNumber(effectiveSteuernummer))
                 {
-                    _logger.LogWarning("Invalid Austrian tax number in request: {TaxNumber}", request.Steuernummer);
+                    _logger.LogWarning("Resolved Steuernummer invalid (check CompanyProfile:TaxNumber): {TaxNumber}", effectiveSteuernummer);
                     return new PaymentResult
                     {
                         Success = false,
                         Message = "Invalid Austrian tax number format",
-                        Errors = { "Steuernummer must be in ATU format (e.g., ATU12345678)" }
+                        Errors = { "Steuernummer must be in ATU format (e.g., ATU12345678). Configure CompanyProfile:TaxNumber." }
+                    };
+                }
+                if (string.IsNullOrWhiteSpace(effectiveKassenId) || effectiveKassenId.Length < 3 || effectiveKassenId.Length > 50)
+                {
+                    _logger.LogWarning("Resolved KassenId invalid or missing. Set CompanyProfile:DefaultKassenId or create a CashRegister.");
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "KassenId missing or invalid",
+                        Errors = { "KassenId must be 3–50 characters. Configure CompanyProfile:DefaultKassenId or register a cash register." }
                     };
                 }
 
@@ -459,24 +476,39 @@ namespace KasseAPI_Final.Services
                 if (snapshotList.Count > 0)
                     appliedBenefitsSnapshot = JsonDocument.Parse(JsonSerializer.Serialize(snapshotList));
 
+                // Authoritative total check: reject if client total differs from backend-calculated total (prevents drift and manipulation).
+                const decimal amountTolerance = 0.01m;
+                if (Math.Abs(totalAmount - request.TotalAmount) > amountTolerance)
+                {
+                    _logger.LogWarning(
+                        "Payment total mismatch: calculated={Calculated}, request={Request}. Rejecting for fiscal integrity.",
+                        totalAmount, request.TotalAmount);
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Total amount does not match calculated total from items and discounts.",
+                        Errors = { "TotalAmount must match the sum of line items and applied discounts (tolerance 0.01)." }
+                    };
+                }
+
                 // CashRegisterId çözümle (TSE imzası için)
                 Guid resolvedCashRegisterId = Guid.Empty;
-                if (!string.IsNullOrWhiteSpace(request.KassenId))
+                if (!string.IsNullOrWhiteSpace(effectiveKassenId))
                 {
-                    if (Guid.TryParse(request.KassenId, out var parsedRegId))
+                    if (Guid.TryParse(effectiveKassenId, out var parsedRegId))
                     {
                         var crExists = await _context.CashRegisters.AnyAsync(cr => cr.Id == parsedRegId);
                         if (crExists) resolvedCashRegisterId = parsedRegId;
                     }
                     if (resolvedCashRegisterId == Guid.Empty)
                     {
-                        var register = await _context.CashRegisters.FirstOrDefaultAsync(cr => cr.RegisterNumber == request.KassenId);
+                        var register = await _context.CashRegisters.FirstOrDefaultAsync(cr => cr.RegisterNumber == effectiveKassenId);
                         resolvedCashRegisterId = register?.Id ?? Guid.Empty;
                     }
                 }
 
                 var seq = Guid.NewGuid().ToString("N")[..8];
-                var preReceiptNumber = $"AT-{request.KassenId}-{DateTime.UtcNow:yyyyMMdd}-{seq}";
+                var preReceiptNumber = $"AT-{effectiveKassenId}-{DateTime.UtcNow:yyyyMMdd}-{seq}";
 
                 // Ödeme detayları oluştur (totals = CartMoneyHelper toplamları; optional customer % discount already applied above)
                 var payment = new PaymentDetails
@@ -495,8 +527,8 @@ namespace KasseAPI_Final.Services
                     TableNumber = request.TableNumber,
                     // Single source: authenticated user only (validated above; placeholders rejected or normalized).
                     CashierId = userId,
-                    Steuernummer = request.Steuernummer,
-                    KassenId = request.KassenId,
+                    Steuernummer = effectiveSteuernummer,
+                    KassenId = effectiveKassenId,
                     TseTimestamp = DateTime.UtcNow,
                     IsPrinted = false,
                     ReceiptNumber = preReceiptNumber,
@@ -513,7 +545,7 @@ namespace KasseAPI_Final.Services
                             resolvedCashRegisterId != Guid.Empty ? resolvedCashRegisterId : payment.Id,
                             preReceiptNumber,
                             payment.TotalAmount,
-                            kassenId: request.KassenId,
+                            kassenId: effectiveKassenId,
                             taxDetailsJson: JsonSerializer.Serialize(taxDetails));
                         payment.TseSignature = sigResult.CompactJws;
                         payment.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
@@ -574,6 +606,7 @@ namespace KasseAPI_Final.Services
                 }
 
                 // Persist a canonical Invoice row so that list / detail / PDF all share the same domain and ID
+                bool invoicePersisted = true;
                 try
                 {
                     // Idempotency check: skip if an invoice already exists for this payment
@@ -648,6 +681,7 @@ namespace KasseAPI_Final.Services
                 catch (Exception ex)
                 {
                     // Invoice persist hatası ödeme oluşturmayı engellemez — PaymentDetails kaydı zaten var
+                    invoicePersisted = false;
                     _logger.LogError(ex, "Failed to persist Invoice for payment {PaymentId}", createdPayment.Id);
                 }
 
@@ -666,7 +700,8 @@ namespace KasseAPI_Final.Services
                     TseSignature = createdPayment.TseSignature,
                     QrPayload = qrPayload,
                     IsDemoFiscal = isDemoFiscal,
-                    TseProvider = tseProvider
+                    TseProvider = tseProvider,
+                    InvoicePersisted = invoicePersisted
                 };
             }
             catch (Exception ex)
@@ -1573,13 +1608,13 @@ namespace KasseAPI_Final.Services
                     PaidAmount = payment.TotalAmount,
                     RemainingAmount = 0,
                     CustomerName = payment.CustomerName,
-                    CompanyName = "Company Name", // Gerçek implementasyonda config'den alınmalı
-                    CompanyTaxNumber = "ATU12345678", // Gerçek implementasyonda config'den alınmalı
-                    CompanyAddress = "Company Address", // Gerçek implementasyonda config'den alınmalı
+                    CompanyName = _companyProfile.CompanyName,
+                    CompanyTaxNumber = _companyProfile.TaxNumber,
+                    CompanyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}",
                     TseSignature = payment.TseSignature,
-                    KassenId = "KASSE001", // Gerçek implementasyonda config'den alınmalı
+                    KassenId = payment.KassenId ?? _companyProfile.DefaultKassenId,
                     TseTimestamp = payment.CreatedAt,
-                    CashRegisterId = Guid.NewGuid(), // Gerçek implementasyonda config'den alınmalı
+                    CashRegisterId = await ResolveCashRegisterIdFromPaymentAsync(payment),
                     PaymentMethod = payment.PaymentMethod,
                     PaymentReference = payment.TransactionId,
                     PaymentDate = payment.CreatedAt
@@ -1801,7 +1836,7 @@ namespace KasseAPI_Final.Services
                     Date = payment.CreatedAt,
                     CashierName = cashierName,
                     TableNumber = payment.TableNumber,
-                    KassenID = payment.KassenId ?? "KASSE01",
+                    KassenID = payment.KassenId ?? _companyProfile.DefaultKassenId,
                     
                     Company = new ReceiptCompanyDTO
                     {
@@ -1892,9 +1927,34 @@ namespace KasseAPI_Final.Services
 
         private bool IsValidAustrianTaxNumber(string taxNumber)
         {
-            // ATU formatı: ATU + 8 haneli sayı
             var pattern = @"^ATU\d{8}$";
             return Regex.IsMatch(taxNumber, pattern);
+        }
+
+        /// <summary>Resolves default KassenId from CompanyProfile:DefaultKassenId or first CashRegister.RegisterNumber.</summary>
+        private async Task<string> ResolveDefaultKassenIdAsync()
+        {
+            if (!string.IsNullOrWhiteSpace(_companyProfile.DefaultKassenId))
+                return _companyProfile.DefaultKassenId.Trim();
+            var first = await _context.CashRegisters.AsNoTracking()
+                .OrderBy(cr => cr.RegisterNumber)
+                .Select(cr => cr.RegisterNumber)
+                .FirstOrDefaultAsync();
+            return first ?? "";
+        }
+
+        /// <summary>Resolves CashRegister Guid from payment.KassenId (by Id or RegisterNumber). Returns Guid.Empty if not found.</summary>
+        private async Task<Guid> ResolveCashRegisterIdFromPaymentAsync(PaymentDetails payment)
+        {
+            var kassenId = payment.KassenId ?? "";
+            if (string.IsNullOrWhiteSpace(kassenId)) return Guid.Empty;
+            if (Guid.TryParse(kassenId, out var id))
+            {
+                var exists = await _context.CashRegisters.AnyAsync(cr => cr.Id == id);
+                return exists ? id : Guid.Empty;
+            }
+            var reg = await _context.CashRegisters.FirstOrDefaultAsync(cr => cr.RegisterNumber == kassenId);
+            return reg?.Id ?? Guid.Empty;
         }
 
         /// <summary>

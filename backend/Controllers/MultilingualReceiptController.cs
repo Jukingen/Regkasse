@@ -269,6 +269,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // POST: api/multilingualreceipt/generate
+        // Non-fiscal: produces template-only sample content. Does not create Payment, Receipt, or TSE records.
         [HasPermission(AppPermissions.ReceiptTemplateView)]
         [HttpPost("generate")]
         public async Task<ActionResult<GeneratedReceipt>> GenerateReceipt([FromBody] GenerateReceiptRequest request)

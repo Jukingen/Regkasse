@@ -17,5 +17,7 @@ namespace KasseAPI_Final.Models
         public string Website { get; set; } = "";
         public string FooterText { get; set; } = "Thank you for your visit!";
         public string LogoUrl { get; set; } = "";
+        /// <summary>Default KassenId when client does not send one. Used for single-register deployments. If empty, backend may resolve from first CashRegister.</summary>
+        public string DefaultKassenId { get; set; } = "";
     }
 }

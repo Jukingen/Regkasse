@@ -22,7 +22,7 @@ import { paymentService, PaymentRequest, PaymentItem } from '../services/api/pay
 import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
 import { cartService } from '../services/api/cartService';
 import { customerService, GUEST_CUSTOMER_ID, type BenefitEligibilityPreviewResponse } from '../services/api/customerService';
-import { validateSteuernummer, validateKassenId, validateAmount } from '../utils/validation';
+import { validateAmount } from '../utils/validation';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
@@ -326,18 +326,7 @@ export default function PaymentModal({
         }
       }
 
-      // Avusturya yasal gereksinimleri validasyonu
-      const steuernummer = 'ATU12345678';
-      const kassenId = 'KASSE-001';
-
-      if (!validateSteuernummer(steuernummer)) {
-        Alert.alert('Hata', 'Geçersiz Steuernummer formatı (ATU12345678)');
-        return;
-      }
-      if (!validateKassenId(kassenId)) {
-        Alert.alert('Hata', 'Geçersiz KassenId (3-50 karakter)');
-        return;
-      }
+      // Fiscal fields (Steuernummer, KassenId) are resolved on the backend from config when not sent.
       if (!validateAmount(totalAmount)) {
         Alert.alert('Hata', 'Geçersiz tutar (0.01\'den büyük olmalı)');
         return;
@@ -394,10 +383,8 @@ export default function PaymentModal({
           amount: selectedPaymentMethod === 'cash' ? parseFloat(amountReceived) : undefined
         },
         tableNumber: tableNumber || 1,
-        cashierId: user?.id || 'UNKNOWN', // Use logged-in user ID
+        cashierId: user?.id || 'UNKNOWN',
         totalAmount: totalAmount,
-        steuernummer: steuernummer,
-        kassenId: kassenId,
         notes: notes || `Masa ${tableNumber} - ${new Date().toLocaleString('de-DE')}`,
         idempotencyKey
       };
@@ -420,6 +407,13 @@ export default function PaymentModal({
       setCompletedPaymentId(response.paymentId);
       setCompletedPaymentTse(response.tse ?? null);
 
+      if (response.invoicePersisted === false) {
+        Alert.alert(
+          'Hinweis',
+          'Zahlung erfolgreich. Die Belegabstimmung erfordert jedoch Ihre Aufmerksamkeit. Bitte prüfen Sie die Belege bzw. wenden Sie sich an den Administrator.'
+        );
+      }
+
       // 7. CART COMPLETE
       try {
         await cartService.completeCart(currentCartId, notes || '');
@@ -439,6 +433,10 @@ export default function PaymentModal({
         console.log('[CART] Reset complete');
       } catch (resetErr) {
         console.warn('[CART] Reset warning:', resetErr);
+        Alert.alert(
+          'Warnung',
+          'Zahlung abgeschlossen. Der Warenkorb konnte nicht zurückgesetzt werden. Bitte informieren Sie den Administrator.'
+        );
       }
 
       // 9. START PRINTING (QR backend /api/Payment/{id}/qr.png'den base64 embed)

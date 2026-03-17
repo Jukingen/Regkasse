@@ -213,13 +213,13 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
                 </Card>
 
                 <Button type="primary" htmlType="submit" loading={loading} size="large">
-                    Generate Receipt
+                    Vorschau erzeugen
                 </Button>
             </Form>
 
             {generatedContent && (
                 <Card
-                    title="Generated Receipt"
+                    title="Vorschau (nicht fiskal)"
                     style={{ marginTop: 24 }}
                     extra={
                         <Button icon={<CopyOutlined />} onClick={copyToClipboard}>
@@ -227,6 +227,9 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
                         </Button>
                     }
                 >
+                    <Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                        Dieser Inhalt ist keine fiskale Quittung. Nur zur Vorschau der Vorlage.
+                    </Paragraph>
                     <Paragraph>
                         <pre style={{ background: '#f5f5f5', padding: 16, whiteSpace: 'pre-wrap' }}>
                             {generatedContent}

@@ -475,6 +475,21 @@ namespace KasseAPI_Final.Controllers
                 var existingInvoice = await _context.Invoices.FindAsync(id);
                 if (existingInvoice == null || !existingInvoice.IsActive) return NotFound("Fatura bulunamadı");
 
+                // Fiscal immutability: POS-originated invoices must not be updated (TSE/receipt chain integrity).
+                if (existingInvoice.SourcePaymentId.HasValue)
+                {
+                    _logger.LogWarning("Update rejected: invoice {InvoiceId} originated from POS payment {PaymentId}. Fiscal records are immutable.", id, existingInvoice.SourcePaymentId.Value);
+                    return BadRequest(new { message = "Invoice originated from POS payment and cannot be updated for fiscal compliance." });
+                }
+
+                // Finalized invoices (Paid, Sent, CreditNote, Cancelled) are immutable.
+                if (existingInvoice.Status == InvoiceStatus.Paid || existingInvoice.Status == InvoiceStatus.Sent ||
+                    existingInvoice.Status == InvoiceStatus.CreditNote || existingInvoice.Status == InvoiceStatus.Cancelled)
+                {
+                    _logger.LogWarning("Update rejected: invoice {InvoiceId} is finalized (Status={Status}). Finalized invoices cannot be updated.", id, existingInvoice.Status);
+                    return BadRequest(new { message = "Invoice is finalized and cannot be updated." });
+                }
+
                 existingInvoice.InvoiceDate = request.InvoiceDate;
                 existingInvoice.DueDate = request.DueDate;
                 existingInvoice.Status = request.Status;

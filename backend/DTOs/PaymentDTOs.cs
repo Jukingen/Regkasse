@@ -30,14 +30,12 @@ namespace KasseAPI_Final.DTOs
         [Range(0.01, double.MaxValue, ErrorMessage = "Total amount must be greater than 0")]
         public decimal TotalAmount { get; set; } // Toplam tutar
         
-        // Avusturya yasal gereksinimleri
-        [Required]
+        // Austrian fiscal fields. When empty, backend fills from CompanyProfile / DefaultKassenId.
         [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer must be in format ATU12345678")]
-        public string Steuernummer { get; set; } = string.Empty; // Vergi numarası (ATU12345678)
+        public string? Steuernummer { get; set; }
         
-        [Required]
         [StringLength(50, MinimumLength = 3, ErrorMessage = "KassenId must be between 3 and 50 characters")]
-        public string KassenId { get; set; } = string.Empty; // Kasa ID
+        public string? KassenId { get; set; }
         
         public string? Notes { get; set; }
 
@@ -128,6 +126,9 @@ namespace KasseAPI_Final.DTOs
         /// Non-sensitive diagnostic code when Success is false (e.g. DEMO_BY_FLAG, DEMO_BY_ROLE). For ops/debug only.
         /// </summary>
         public string? DiagnosticCode { get; set; }
+
+        /// <summary>When true (default), invoice was persisted for this payment. When false, payment succeeded but invoice sync failed — operator attention required.</summary>
+        public bool InvoicePersisted { get; set; } = true;
     }
     
     /// <summary>
