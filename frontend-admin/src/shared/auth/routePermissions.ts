@@ -20,7 +20,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/receipt-generate': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/customers': PERMISSIONS.CUSTOMER_VIEW,
   '/receipts': PERMISSIONS.SALE_VIEW,
-  '/rksv': PERMISSIONS.SETTINGS_VIEW,
+  '/rksv': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/status': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/cmc-certificate': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/verifications': PERMISSIONS.SETTINGS_VIEW,

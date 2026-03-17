@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Table, Button, Space, Tag, Popconfirm } from 'antd';
-import { EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { ReceiptTemplate } from '@/api/generated/model';
 import Link from 'next/link';
@@ -80,6 +80,11 @@ export default function ReceiptTemplateList({
                     >
                         Preview
                     </Button>
+                    <Link href={`/receipt-generate?templateId=${record.id ?? ''}`}>
+                        <Button size="small" icon={<FileTextOutlined />}>
+                            Generate
+                        </Button>
+                    </Link>
                     {canManage && (
                         <Popconfirm
                             title="Delete this template?"

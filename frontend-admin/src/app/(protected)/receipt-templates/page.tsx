@@ -91,6 +91,7 @@ export default function ReceiptTemplatesPage() {
                 isError={!!error}
                 error={error as Error}
                 isEmpty={!data || data.length === 0}
+                emptyText="No receipt templates found. Try changing filters or create a new template."
             >
                 <ReceiptTemplateList
                     data={data || []}

@@ -36,7 +36,7 @@ export function AdminDataList({
                 <Alert
                     type="error"
                     message="Error loading data"
-                    description={error?.message || 'Unknown error occurred'}
+                    description={error?.message ?? 'Unknown error occurred'}
                     showIcon
                 />
             </Card>

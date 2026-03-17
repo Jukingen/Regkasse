@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, message } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 
@@ -9,6 +10,8 @@ import { useReceiptTemplates } from '@/features/receipt-templates/hooks/useRecei
 import type { GenerateReceiptRequest } from '@/api/generated/model';
 
 export default function GenerateReceiptPage() {
+    const searchParams = useSearchParams();
+    const templateIdFromUrl = searchParams.get('templateId') ?? undefined;
     const { useGenerate } = useReceiptTemplates();
 
     const { mutateAsync: generateReceipt, isPending } = useGenerate({
@@ -32,7 +35,11 @@ export default function GenerateReceiptPage() {
             />
 
             <Card>
-                <GenerateReceiptForm onGenerate={handleGenerate} loading={isPending} />
+                <GenerateReceiptForm
+                onGenerate={handleGenerate}
+                loading={isPending}
+                initialTemplateId={templateIdFromUrl}
+            />
             </Card>
         </React.Fragment>
     );

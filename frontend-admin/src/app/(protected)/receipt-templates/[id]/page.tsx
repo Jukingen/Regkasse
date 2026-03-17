@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Button, message, Spin } from 'antd';
+import { Card, Button, message, Spin, Alert } from 'antd';
 import { ArrowLeftOutlined, EyeOutlined } from '@ant-design/icons';
 
 import ReceiptTemplateForm from '@/features/receipt-templates/components/ReceiptTemplateForm';
@@ -15,6 +15,13 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 
 import type { UpdateReceiptTemplateRequest } from '@/api/generated/model';
+
+function isNotFoundError(err: unknown): boolean {
+    const status =
+        (err as { response?: { status?: number } })?.response?.status ??
+        (err as { normalized?: { status?: number } })?.normalized?.status;
+    return status === 404;
+}
 
 export default function EditReceiptTemplatePage() {
     const { id } = useParams<{ id: string }>();
@@ -58,6 +65,36 @@ export default function EditReceiptTemplatePage() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
                 <Spin size="large" tip="Checking access..." />
             </div>
+        );
+    }
+
+    if (isError && isNotFoundError(error)) {
+        return (
+            <React.Fragment>
+                <AdminPageHeader
+                    title="Edit Template"
+                    breadcrumbs={[
+                        { title: 'Receipt Templates', href: '/receipt-templates' },
+                        { title: 'Edit' },
+                    ]}
+                    actions={
+                        <Button icon={<ArrowLeftOutlined />} onClick={() => router.push('/receipt-templates')}>
+                            Back to list
+                        </Button>
+                    }
+                />
+                <Card>
+                    <Alert
+                        type="warning"
+                        message="Template not found"
+                        description="The template may have been deleted or you do not have access to it."
+                        showIcon
+                        action={
+                            <Button onClick={() => router.push('/receipt-templates')}>Back to list</Button>
+                        }
+                    />
+                </Card>
+            </React.Fragment>
         );
     }
 

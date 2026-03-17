@@ -1,31 +1,89 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Form, Input, InputNumber, Button, Card, Space, message, Typography } from 'antd';
+import React, { useState, useEffect, useRef } from 'react';
+import { Form, Input, InputNumber, Button, Card, message, Select, Typography } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 import type { GenerateReceiptRequest, ReceiptItem } from '@/api/generated/model';
+import { useReceiptTemplates } from '../hooks/useReceiptTemplates';
 
 const { TextArea } = Input;
 const { Paragraph } = Typography;
 
+const ITEMS_JSON_ERROR =
+    'Invalid JSON. Use an array of objects, e.g. [{"name":"Product","quantity":1,"unitPrice":10,"totalPrice":10}]';
+
 interface GenerateReceiptFormProps {
     onGenerate: (request: GenerateReceiptRequest) => Promise<string>;
     loading: boolean;
+    /** When set (e.g. from URL query), pre-select this template once templates are loaded. */
+    initialTemplateId?: string;
 }
 
-export default function GenerateReceiptForm({ onGenerate, loading }: GenerateReceiptFormProps) {
+export default function GenerateReceiptForm({ onGenerate, loading, initialTemplateId }: GenerateReceiptFormProps) {
     const [form] = Form.useForm();
     const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+    const appliedInitialRef = useRef(false);
+
+    const { useList } = useReceiptTemplates();
+    const { data: templates = [], isLoading: templatesLoading } = useList();
+
+    // Pre-select template from URL when list is loaded and template exists
+    useEffect(() => {
+        if (templatesLoading || !initialTemplateId || appliedInitialRef.current || templates.length === 0) {
+            return;
+        }
+        const template = templates.find((t) => t.id === initialTemplateId);
+        if (template) {
+            form.setFieldsValue({
+                templateId: template.id,
+                language: template.language,
+                templateType: template.templateType,
+            });
+            appliedInitialRef.current = true;
+        }
+    }, [templates, templatesLoading, initialTemplateId, form]);
+
+    const handleTemplateChange = (templateId: string | undefined) => {
+        if (!templateId) {
+            form.setFieldsValue({ language: undefined, templateType: undefined });
+            return;
+        }
+        const template = templates.find((t) => t.id === templateId);
+        if (template) {
+            form.setFieldsValue({
+                language: template.language,
+                templateType: template.templateType,
+            });
+        }
+    };
 
     const handleFinish = async (values: Record<string, unknown>) => {
-        const items: ReceiptItem[] = values.items
-            ? JSON.parse(values.items as string)
-            : [];
+        const language = values.language as string | undefined;
+        const templateType = values.templateType as string | undefined;
+        if (!language || !templateType) {
+            form.setFields([{ name: 'templateId', errors: ['Select a template to set language and type'] }]);
+            return;
+        }
 
-        // Strict construction of GenerateReceiptRequest
+        let items: ReceiptItem[] = [];
+        const rawItems = values.items;
+        if (rawItems && typeof rawItems === 'string' && rawItems.trim() !== '') {
+            try {
+                const parsed = JSON.parse(rawItems as string);
+                if (!Array.isArray(parsed)) {
+                    form.setFields([{ name: 'items', errors: [ITEMS_JSON_ERROR] }]);
+                    return;
+                }
+                items = parsed as ReceiptItem[];
+            } catch {
+                form.setFields([{ name: 'items', errors: [ITEMS_JSON_ERROR] }]);
+                return;
+            }
+        }
+
         const request: GenerateReceiptRequest = {
-            language: values.language as string,
-            templateType: values.templateType as string,
+            language,
+            templateType,
             companyInfo: (values.companyName || values.companyAddress)
                 ? {
                     name: values.companyName as string,
@@ -42,14 +100,18 @@ export default function GenerateReceiptForm({ onGenerate, loading }: GenerateRec
                     phone: values.customerPhone as string,
                 }
                 : undefined,
-            items: items, // already typed as ReceiptItem[]
+            items,
             taxAmount: Number(values.taxAmount) || 0,
             totalAmount: Number(values.totalAmount) || 0,
             paymentMethod: values.paymentMethod as string,
         };
 
-        const content = await onGenerate(request);
-        setGeneratedContent(content);
+        try {
+            const content = await onGenerate(request);
+            setGeneratedContent(content ?? '');
+        } catch {
+            // Error already shown by mutation onError in page; keep previous result if any
+        }
     };
 
     const copyToClipboard = () => {
@@ -61,27 +123,43 @@ export default function GenerateReceiptForm({ onGenerate, loading }: GenerateRec
 
     return (
         <div>
-            <Form form={form} layout="vertical" onFinish={handleFinish}>
+            <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleFinish}
+                onValuesChange={() => setGeneratedContent(null)}
+            >
                 <Card title="Template Selection" style={{ marginBottom: 16 }}>
                     <Form.Item
-                        label="Language"
-                        name="language"
-                        rules={[
-                            { required: true, message: 'Required' },
-                            { min: 1, max: 10, message: '1-10 chars' },
-                        ]}
+                        label="Template"
+                        name="templateId"
+                        rules={[{ required: true, message: 'Select a template' }]}
                     >
-                        <Input placeholder="en, de, tr" maxLength={10} />
+                        <Select
+                            placeholder="Select a template"
+                            loading={templatesLoading}
+                            notFoundContent={
+                                !templatesLoading && (!templates || templates.length === 0)
+                                    ? 'No templates available'
+                                    : null
+                            }
+                            allowClear
+                            showSearch
+                            optionFilterProp="label"
+                            onChange={handleTemplateChange}
+                            options={templates
+                                .filter((t): t is typeof t & { id: string } => !!t.id)
+                                .map((t) => ({
+                                    value: t.id,
+                                    label: `${t.templateName} (${t.language} / ${t.templateType})`,
+                                }))}
+                        />
                     </Form.Item>
-                    <Form.Item
-                        label="Template Type"
-                        name="templateType"
-                        rules={[
-                            { required: true, message: 'Required' },
-                            { min: 1, max: 50, message: '1-50 chars' },
-                        ]}
-                    >
-                        <Input placeholder="sale, refund, invoice" maxLength={50} />
+                    <Form.Item label="Language" name="language">
+                        <Input readOnly placeholder="Set by template selection" />
+                    </Form.Item>
+                    <Form.Item label="Template Type" name="templateType">
+                        <Input readOnly placeholder="Set by template selection" />
                     </Form.Item>
                 </Card>
 
