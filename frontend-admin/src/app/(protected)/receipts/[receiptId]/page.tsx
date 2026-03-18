@@ -98,7 +98,20 @@ export default function ReceiptDetailPage() {
 
             <ReceiptDetailCard receipt={receipt} />
 
-            <SignatureStatusPanel paymentId={receipt.paymentId} />
+            <SignatureStatusPanel
+                paymentId={receipt.paymentId}
+                offlineTrace={
+                    receipt.hasOfflineOrigin
+                        ? {
+                              hasOfflineOrigin: true,
+                              offlineTransactionId: receipt.offlineTransactionId,
+                              offlineCreatedAtUtc: receipt.offlineCreatedAtUtc ?? undefined,
+                              fiscalizedAtUtc: receipt.fiscalizedAtUtc ?? undefined,
+                              issuedAt: receipt.issuedAt,
+                          }
+                        : undefined
+                }
+            />
 
             <Card>
                 <Title level={5} style={{ marginBottom: 12 }}>Line Items</Title>

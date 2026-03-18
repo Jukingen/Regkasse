@@ -78,7 +78,7 @@ export default function ProductsPage() {
     const handleCreate = async (values: ProductFormSubmitValues) => {
         try {
             const apiData = mapUiProductToApi(values);
-            const result = await createMutation.mutateAsync({ data: apiData }) as { id?: string };
+            const result = await createMutation.mutateAsync({ data: apiData as unknown as Product });
             const createdId = result?.id;
             if (createdId && values.modifierGroupIds?.length) {
                 await setModifierGroupsMutation.mutateAsync({ productId: createdId, modifierGroupIds: values.modifierGroupIds });
@@ -97,7 +97,10 @@ export default function ProductsPage() {
         try {
             const apiData = mapUiProductToApi(values);
             (apiData as Record<string, unknown>).id = editingProduct.id;
-            const result = await updateMutation.mutateAsync({ id: editingProduct.id, data: apiData as Product });
+            const result = await updateMutation.mutateAsync({
+                id: editingProduct.id,
+                data: apiData as unknown as Product,
+            });
             if (values.modifierGroupIds !== undefined) {
                 await setModifierGroupsMutation.mutateAsync({ productId: editingProduct.id, modifierGroupIds: values.modifierGroupIds });
             }

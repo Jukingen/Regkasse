@@ -1,11 +1,14 @@
 /**
- * Local queue for payment attempts that never reached the server (transport failure).
- * Entries are NON-FISCAL until POST /Payment succeeds and isSynced becomes true.
+ * Controlled offline transaction queue (NON_FISCAL_PENDING -> Synced/Failed).
+ * Invariant: offline entries never contain any receipt number / signature.
  */
 import { apiClient } from '../api/config';
 import { storage } from '../../utils/storage';
 
-const STORAGE_KEY = '@regkasse/pending_payments_v1';
+const STORAGE_KEY = '@regkasse/offline_transactions_v1';
+const LEGACY_STORAGE_KEY = '@regkasse/pending_payments_v1';
+const DEVICE_ID_KEY = '@regkasse/device_id_v1';
+const SEQUENCE_MAP_KEY = '@regkasse/client_sequence_map_v1';
 
 /** Same payload as POST /Payment (avoids circular import with paymentService). */
 export interface PendingPaymentPayload {
@@ -21,23 +24,75 @@ export interface PendingPaymentPayload {
   idempotencyKey?: string;
 }
 
+export type OfflineTransactionStatus = 'Pending' | 'Synced' | 'Failed';
+
 export interface PendingPaymentEntry {
-  /** Client-side queue row id */
+  /**
+   * Client-side OfflineTransaction id.
+   * Must be a UUID so backend can persist it as OfflineTransaction.Id.
+   */
   queueId: string;
-  paymentRequest: PendingPaymentPayload;
+
   createdAt: string;
-  /** false until server accepted POST /Payment */
+  cashRegisterId: string;
+
+  /** Device identifier for monotonic client sequence tracking (optional for legacy entries). */
+  deviceId?: string | null;
+
+  /** Monotonic increasing client sequence number for (deviceId + cashRegisterId). */
+  clientSequenceNumber?: number | null;
+
+  /** Original request payload used for replay. */
+  paymentRequest: PendingPaymentPayload;
+
+  /** Non-fiscal queue state. */
+  status: OfflineTransactionStatus;
+
+  /** Populated only after replay. */
+  syncedPaymentId?: string | null;
+
+  /** Legacy flag (kept for backward compatibility with old code). */
   isSynced: boolean;
+
   lastAttemptAt?: string;
   lastError?: string;
 }
 
 async function readQueue(): Promise<PendingPaymentEntry[]> {
-  const raw = await storage.getItem(STORAGE_KEY);
-  if (!raw) return [];
+  // 1) New format
+  const rawNew = await storage.getItem(STORAGE_KEY);
+  if (rawNew) {
+    try {
+      const parsed = JSON.parse(rawNew) as unknown;
+      return Array.isArray(parsed) ? (parsed as PendingPaymentEntry[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  // 2) Legacy format migration
+  const rawLegacy = await storage.getItem(LEGACY_STORAGE_KEY);
+  if (!rawLegacy) return [];
   try {
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(rawLegacy) as unknown;
+    if (!Array.isArray(parsed)) return [];
+
+    // Legacy entries are only "unsynced pending" in practice.
+    return (parsed as any[]).map((e) => ({
+      queueId: String(e.queueId ?? ''),
+      createdAt: String(e.createdAt ?? new Date().toISOString()),
+      cashRegisterId: String(
+        e.paymentRequest?.cashRegisterId ?? e.cashRegisterId ?? ''
+      ),
+      paymentRequest: e.paymentRequest as PendingPaymentPayload,
+      status: 'Pending' as OfflineTransactionStatus,
+      syncedPaymentId: null,
+      isSynced: false,
+      deviceId: undefined,
+      clientSequenceNumber: undefined,
+      lastAttemptAt: e.lastAttemptAt,
+      lastError: e.lastError,
+    }));
   } catch {
     return [];
   }
@@ -54,97 +109,220 @@ function newQueueId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
+function normalizeEntry(e: PendingPaymentEntry): PendingPaymentEntry {
+  return {
+    ...e,
+    status: e.status ?? (e.isSynced ? 'Synced' : 'Pending'),
+    isSynced: e.isSynced ?? (e.status === 'Synced'),
+    syncedPaymentId: e.syncedPaymentId ?? null,
+    cashRegisterId: e.cashRegisterId ?? e.paymentRequest.cashRegisterId,
+    deviceId: e.deviceId ?? null,
+    clientSequenceNumber: e.clientSequenceNumber ?? null,
+  };
+}
+
+async function getOrCreateDeviceId(): Promise<string> {
+  const existing = await storage.getItem(DEVICE_ID_KEY);
+  if (existing) return existing;
+  const id =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  await storage.setItem(DEVICE_ID_KEY, id);
+  return id;
+}
+
+async function nextClientSequenceNumber(cashRegisterId: string): Promise<number> {
+  const raw = await storage.getItem(SEQUENCE_MAP_KEY);
+  let map: Record<string, number> = {};
+  if (raw) {
+    try {
+      map = JSON.parse(raw) as Record<string, number>;
+    } catch {
+      map = {};
+    }
+  }
+  const current = map[cashRegisterId] ?? 0;
+  const next = current + 1;
+  map[cashRegisterId] = next;
+  await storage.setItem(SEQUENCE_MAP_KEY, JSON.stringify(map));
+  return next;
+}
+
 /**
- * Append payment to pending queue (or return existing queue id for same idempotency key).
+ * Append payment to offline queue (or return existing queue id for same idempotency key).
  */
 export async function enqueuePendingPayment(
   paymentRequest: PendingPaymentPayload
 ): Promise<string> {
-  const q = await readQueue();
+  const qRaw = await readQueue();
+  const q = qRaw.map(normalizeEntry);
   const idem = paymentRequest.idempotencyKey?.trim();
+
   if (idem) {
     const existing = q.find(
-      (e) => !e.isSynced && e.paymentRequest.idempotencyKey === idem
+      (e) =>
+        e.status === 'Pending' && e.paymentRequest.idempotencyKey === idem
     );
     if (existing) return existing.queueId;
   }
+
   const entry: PendingPaymentEntry = {
     queueId: newQueueId(),
     paymentRequest: { ...paymentRequest },
     createdAt: new Date().toISOString(),
+    cashRegisterId: paymentRequest.cashRegisterId,
+    status: 'Pending',
+    syncedPaymentId: null,
     isSynced: false,
+    deviceId: await getOrCreateDeviceId(),
+    clientSequenceNumber: await nextClientSequenceNumber(paymentRequest.cashRegisterId),
   };
+
   q.push(entry);
   await writeQueue(q);
   return entry.queueId;
 }
 
 export async function getPendingPaymentQueue(): Promise<PendingPaymentEntry[]> {
-  const q = await readQueue();
-  return q.filter((e) => !e.isSynced);
+  const q = (await readQueue()).map(normalizeEntry);
+  return q
+    .filter((e) => e.status === 'Pending')
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
 export async function removePendingByQueueId(queueId: string): Promise<void> {
-  const q = await readQueue();
+  const q = (await readQueue()).map(normalizeEntry);
   await writeQueue(q.filter((e) => e.queueId !== queueId));
 }
 
 export async function removePendingByIdempotencyKey(key: string): Promise<void> {
   if (!key?.trim()) return;
-  const q = await readQueue();
-  await writeQueue(q.filter((e) => e.paymentRequest.idempotencyKey !== key));
+  const q = (await readQueue()).map(normalizeEntry);
+  await writeQueue(
+    q.filter((e) => e.paymentRequest.idempotencyKey !== key)
+  );
 }
 
-async function touchAttempt(queueId: string, err: string): Promise<void> {
-  const q = await readQueue();
+async function touchAttempt(queueId: string, err: string, status?: OfflineTransactionStatus): Promise<void> {
+  const q = (await readQueue()).map(normalizeEntry);
   const e = q.find((x) => x.queueId === queueId);
   if (e) {
     e.lastAttemptAt = new Date().toISOString();
     e.lastError = err;
+    if (status) {
+      e.status = status;
+      e.isSynced = status === 'Synced';
+      if (status !== 'Synced') e.syncedPaymentId = null;
+    }
     await writeQueue(q);
   }
 }
 
-function isPostPaymentSuccess(raw: unknown): boolean {
-  if (!raw || typeof raw !== 'object') return false;
-  const r = raw as Record<string, unknown>;
-  const inner = (r.Value ?? r) as Record<string, unknown>;
-  return (
-    inner.success === true ||
-    inner.Success === true ||
-    (inner.data as Record<string, unknown>)?.success === true ||
-    (inner.data as Record<string, unknown>)?.Success === true
-  );
-}
+type ReplayOfflineTransactionsResponseItem = {
+  requestedOfflineTransactionId: string;
+  offlineTransactionId: string;
+  status: string;
+  syncedPaymentId?: string | null;
+  error?: string | null;
+  errorCode?: string | null;
+  retryCount?: number;
+  lastErrorMessageSafe?: string | null;
+  exponentialBackoffHintSeconds?: number | null;
+};
+
+type ReplayOfflineTransactionsResponse = {
+  success: boolean;
+  data?: ReplayOfflineTransactionsResponseItem[]; // controller wraps in "data"
+};
 
 /**
- * Retry POST /Payment for each unsynced entry. Removes row on server success.
+ * Replay all pending offline transactions against backend in original order.
+ * Updates local status; never generates fiscal receipt/signature on offline entries.
  */
 export async function syncPendingPaymentQueue(): Promise<{
   processed: number;
   failed: number;
 }> {
   const pending = await getPendingPaymentQueue();
+  if (pending.length === 0) return { processed: 0, failed: 0 };
+
   let processed = 0;
   let failed = 0;
 
-  for (const entry of pending) {
-    try {
-      const raw = await apiClient.post<unknown>('/Payment', entry.paymentRequest);
-      if (isPostPaymentSuccess(raw)) {
-        await removePendingByQueueId(entry.queueId);
-        processed++;
-      } else {
-        failed++;
-        await touchAttempt(entry.queueId, 'Server rejected payment');
+  try {
+    const req = {
+      transactions: pending.map((entry) => ({
+        offlineTransactionId: entry.queueId,
+        createdAtUtc: entry.createdAt,
+        cashRegisterId: entry.cashRegisterId,
+        payload: entry.paymentRequest,
+        deviceId: entry.deviceId ?? undefined,
+        clientSequenceNumber: entry.clientSequenceNumber ?? undefined,
+      })),
+    };
+
+    const raw = await apiClient.post<ReplayOfflineTransactionsResponse>(
+      '/offline-transactions/replay',
+      req
+    );
+
+    const items =
+      (raw as any)?.data ??
+      (raw as any)?.Value?.data ??
+      [];
+
+    const q = (await readQueue()).map(normalizeEntry);
+    const byId = new Map<string, ReplayOfflineTransactionsResponseItem>();
+    for (const it of items ?? []) {
+      if (it?.requestedOfflineTransactionId) {
+        byId.set(String(it.requestedOfflineTransactionId), it);
       }
-    } catch (e) {
-      failed++;
-      await touchAttempt(
-        entry.queueId,
-        e instanceof Error ? e.message : 'sync_failed'
-      );
     }
+
+    for (const entry of pending) {
+      const it = byId.get(entry.queueId);
+      const e = q.find((x) => x.queueId === entry.queueId);
+      if (!e) continue;
+      e.lastAttemptAt = new Date().toISOString();
+
+      if (it?.status === 'Synced' || it?.status === 'synced') {
+        e.status = 'Synced';
+        e.isSynced = true;
+        e.syncedPaymentId = it?.syncedPaymentId ?? null;
+        e.lastError = undefined;
+        processed++;
+      } else if (it?.status === 'Pending' || it?.status === 'pending') {
+        e.status = 'Pending';
+        e.isSynced = false;
+        e.syncedPaymentId = null;
+        const code = it?.errorCode ? String(it.errorCode) : '';
+        const msg =
+          it?.lastErrorMessageSafe ?? it?.error ?? 'offline_sync_failed';
+        const hint = it?.exponentialBackoffHintSeconds
+          ? ` (Retry hint: ${it.exponentialBackoffHintSeconds}s)`
+          : '';
+        e.lastError = code ? `[${code}] ${msg}${hint}` : `${msg}${hint}`;
+      } else {
+        e.status = 'Failed';
+        e.isSynced = false;
+        e.syncedPaymentId = null;
+        const code = it?.errorCode ? String(it.errorCode) : '';
+        const msg =
+          it?.lastErrorMessageSafe ?? it?.error ?? 'offline_sync_failed';
+        e.lastError = code ? `[${code}] ${msg}` : msg;
+        failed++;
+      }
+    }
+
+    await writeQueue(q);
+  } catch (e) {
+    // Transport-level failure: keep entries Pending; just update lastError for operator visibility.
+    const msg = e instanceof Error ? e.message : 'sync_transport_failed';
+    for (const entry of pending) {
+      await touchAttempt(entry.queueId, msg);
+    }
+    failed = pending.length;
   }
 
   return { processed, failed };

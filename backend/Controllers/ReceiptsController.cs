@@ -51,6 +51,25 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>Persisted fiscal receipt for a payment (canonical; no lazy generation).</summary>
+        [HasPermission(AppPermissions.SaleView)]
+        [HttpGet("by-payment/{paymentId}")]
+        public async Task<ActionResult<ReceiptDTO>> GetReceiptByPaymentId(Guid paymentId)
+        {
+            try
+            {
+                var receipt = await _receiptService.GetReceiptByPaymentIdAsync(paymentId);
+                if (receipt == null)
+                    return NotFound(new { message = "No persisted receipt for this payment" });
+                return Ok(receipt);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving receipt for payment {PaymentId}", paymentId);
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
         // GET: api/receipts/{receiptId} (read-only; requires SaleView)
         [HasPermission(AppPermissions.SaleView)]
         [HttpGet("{receiptId}")]

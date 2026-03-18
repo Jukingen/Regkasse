@@ -60,11 +60,11 @@ export interface PaymentTseInfo {
   receiptNumber?: string;
 }
 
-/** FISCAL_COMPLETE = server confirmed; NON_FISCAL_PENDING = only queued locally; FISCAL_FAILED = server error response. */
+/** FISCAL_COMPLETE = server confirmed; NON_FISCAL_PENDING = queued locally; FAILED = server error response or replay failure. */
 export type FiscalPaymentStatus =
   | 'FISCAL_COMPLETE'
   | 'NON_FISCAL_PENDING'
-  | 'FISCAL_FAILED';
+  | 'FAILED';
 
 export interface PaymentResponse {
   success: boolean;
@@ -225,7 +225,7 @@ class PaymentService {
     return {
       success: !!success,
       isSynced: !!success,
-      fiscalStatus: success ? 'FISCAL_COMPLETE' : 'FISCAL_FAILED',
+      fiscalStatus: success ? 'FISCAL_COMPLETE' : 'FAILED',
       paymentId,
       message,
       tseSignature,
@@ -235,34 +235,51 @@ class PaymentService {
     };
   }
 
-  // Fiş oluştur - Backend'de bu endpoint yok, TSE signature endpoint'ini kullan
+  /** Loads persisted fiscal receipt from GET /Receipts/by-payment/{paymentId}. */
   async createReceipt(paymentId: string): Promise<Receipt> {
     try {
-      // Önce TSE signature oluştur
-      const tseResponse = await apiClient.post<{ tseSignature: string }>(`${this.baseUrl}/${paymentId}/tse-signature`);
+      const d = await apiClient.get<{
+        receiptId?: string;
+        receiptNumber?: string;
+        paymentId?: string;
+        items?: Array<{ name?: string; quantity?: number; unitPrice?: number; taxType?: string; totalPrice?: number }>;
+        subTotal?: number;
+        taxAmount?: number;
+        grandTotal?: number;
+        payments?: Array<{ method?: string }>;
+        date?: string;
+        cashierName?: string;
+        taxRates?: Array<{ taxAmount?: number; rate?: number }>;
+      }>(`/Receipts/by-payment/${paymentId}`);
 
-      // Sonra ödeme detaylarını al
-      const paymentResponse = await apiClient.get<PaymentResponse>(`${this.baseUrl}/${paymentId}`);
+      const std = d.taxRates?.find((t) => t.rate === 20 || t.rate === 20.0)?.taxAmount ?? 0;
+      const red = d.taxRates?.find((t) => t.rate === 10 || t.rate === 10.0)?.taxAmount ?? 0;
+      const spec = d.taxRates?.find((t) => t.rate === 13 || t.rate === 13.0)?.taxAmount ?? 0;
 
-      // Receipt objesini oluştur (backend'den gelen verilerle)
-      const receipt: Receipt = {
-        id: paymentId,
-        receiptNumber: `AT-${Date.now()}-${paymentId.slice(0, 8)}`,
-        items: [], // Backend'den items bilgisi gelmeli
-        subtotal: 0,
-        taxStandard: 0,
-        taxReduced: 0,
-        taxSpecial: 0,
-        total: 0,
-        paymentMethod: 'cash',
-        timestamp: new Date().toISOString(),
-        cashierId: 'current-user'
+      return {
+        id: d.receiptId ?? paymentId,
+        receiptNumber: d.receiptNumber ?? paymentId,
+        items: (d.items ?? []).map((i) => ({
+          productName: i.name ?? '',
+          quantity: i.quantity ?? 0,
+          price: i.unitPrice ?? 0,
+          taxType: String(i.taxType ?? ''),
+          totalPrice: i.totalPrice ?? 0
+        })),
+        subtotal: d.subTotal ?? 0,
+        taxStandard: std,
+        taxReduced: red,
+        taxSpecial: spec,
+        total: d.grandTotal ?? 0,
+        paymentMethod: d.payments?.[0]?.method ?? 'cash',
+        timestamp: d.date ?? new Date().toISOString(),
+        cashierId: d.cashierName ?? ''
       };
-
-      return receipt;
-    } catch (error) {
-      console.error('Receipt creation failed:', error);
-      throw error;
+    } catch (e) {
+      console.error('[Receipt] Persisted receipt not available:', e);
+      throw new Error(
+        'Kein fiscal hinterlegter Beleg (Server). Bitte Verbindung prüfen oder Zahlung erneut abrufen.'
+      );
     }
   }
 
@@ -326,7 +343,7 @@ class PaymentService {
       return {
         success: false,
         isSynced: false,
-        fiscalStatus: 'FISCAL_FAILED',
+        fiscalStatus: 'FAILED',
         paymentId: '',
         error: 'Payment not found',
       };
@@ -381,14 +398,9 @@ class PaymentService {
       };
     } catch (error) {
       console.error('Daily payment report failed:', error);
-
-      // Basit offline response
-      return {
-        totalPayments: 0,
-        totalAmount: 0,
-        paymentMethodBreakdown: {},
-        payments: []
-      };
+      throw new Error(
+        'Tagesbericht nicht verfügbar (keine Serververbindung oder Fehler). Keine Platzhalterdaten.'
+      );
     }
   }
 

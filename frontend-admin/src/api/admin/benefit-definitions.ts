@@ -51,20 +51,37 @@ function unwrapData<T>(res: any): T {
   return res as T;
 }
 
-export function getAdminBenefitDefinitions(options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) {
-  return customInstance<BenefitDefinition[]>({ url: BASE, method: 'GET', signal }, options).then(unwrapData);
+export function getAdminBenefitDefinitions(
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<BenefitDefinition[]> {
+  return customInstance<BenefitDefinition[]>({ url: BASE, method: 'GET', signal }, options).then((res) =>
+    unwrapData<BenefitDefinition[]>(res)
+  );
 }
 
-export function getAdminBenefitDefinitionById(id: string, options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) {
-  return customInstance<BenefitDefinition>({ url: `${BASE}/${id}`, method: 'GET', signal }, options).then(unwrapData);
+export function getAdminBenefitDefinitionById(
+  id: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<BenefitDefinition> {
+  return customInstance<BenefitDefinition>({ url: `${BASE}/${id}`, method: 'GET', signal }, options).then((res) =>
+    unwrapData<BenefitDefinition>(res)
+  );
 }
 
 export function createAdminBenefitDefinition(data: CreateBenefitDefinitionRequest, options?: SecondParameter<typeof customInstance>) {
-  return customInstance<BenefitDefinition>({ url: BASE, method: 'POST', headers: { 'Content-Type': 'application/json' }, data }, options).then(unwrapData);
+  return customInstance<BenefitDefinition>(
+    { url: BASE, method: 'POST', headers: { 'Content-Type': 'application/json' }, data },
+    options
+  ).then((res) => unwrapData<BenefitDefinition>(res));
 }
 
 export function updateAdminBenefitDefinition(id: string, data: UpdateBenefitDefinitionRequest, options?: SecondParameter<typeof customInstance>) {
-  return customInstance<BenefitDefinition>({ url: `${BASE}/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data }, options).then(unwrapData);
+  return customInstance<BenefitDefinition>(
+    { url: `${BASE}/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data },
+    options
+  ).then((res) => unwrapData<BenefitDefinition>(res));
 }
 
 export function deleteAdminBenefitDefinition(id: string, options?: SecondParameter<typeof customInstance>) {

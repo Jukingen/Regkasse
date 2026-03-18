@@ -11,7 +11,7 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// Yeni ödeme oluştur
         /// </summary>
-        Task<PaymentResult> CreatePaymentAsync(CreatePaymentRequest request, string userId);
+        Task<PaymentResult> CreatePaymentAsync(CreatePaymentRequest request, string userId, Guid? offlineTransactionId = null);
         
         /// <summary>
         /// Ödeme detaylarını getir

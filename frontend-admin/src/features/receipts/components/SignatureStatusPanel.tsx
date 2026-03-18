@@ -8,13 +8,24 @@ import {
     WarningOutlined,
     WifiOutlined,
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useSignatureDebugQuery } from '../hooks/useSignatureDebugQuery';
 import type { SignatureDiagnosticStepDto } from '../types/signature-debug';
 
 const { Text } = Typography;
 
+export interface ReceiptOfflineTraceProps {
+    hasOfflineOrigin: boolean;
+    offlineTransactionId?: string | null;
+    offlineCreatedAtUtc?: string | null;
+    fiscalizedAtUtc?: string | null;
+    issuedAt?: string | null;
+}
+
 interface SignatureStatusPanelProps {
     paymentId: string | null;
+    /** RKSV trace: offline queue → replay → fiscal receipt timeline. */
+    offlineTrace?: ReceiptOfflineTraceProps | null;
 }
 
 function StatusTag({ status }: { status: string }) {
@@ -42,7 +53,7 @@ function StatusTag({ status }: { status: string }) {
     return <Tag>{status}</Tag>;
 }
 
-export default function SignatureStatusPanel({ paymentId }: SignatureStatusPanelProps) {
+export default function SignatureStatusPanel({ paymentId, offlineTrace }: SignatureStatusPanelProps) {
     const { data, isLoading, isError, error } = useSignatureDebugQuery(paymentId);
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
@@ -57,6 +68,10 @@ export default function SignatureStatusPanel({ paymentId }: SignatureStatusPanel
             </Card>
         );
     }
+
+    const showOfflineTimeline =
+        offlineTrace?.hasOfflineOrigin &&
+        (offlineTrace.offlineCreatedAtUtc || offlineTrace.fiscalizedAtUtc || offlineTrace.issuedAt);
 
     if (isOffline) {
         return (
@@ -99,6 +114,36 @@ export default function SignatureStatusPanel({ paymentId }: SignatureStatusPanel
 
     return (
         <Card title="Signature Status">
+            {showOfflineTimeline ? (
+                <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                    message="Offline → Replay → fiskaler Beleg"
+                    description={
+                        <div style={{ fontSize: 12 }}>
+                            {offlineTrace?.offlineCreatedAtUtc ? (
+                                <div>
+                                    <strong>Offline erfasst (UTC):</strong>{' '}
+                                    {dayjs(offlineTrace.offlineCreatedAtUtc).format('DD.MM.YYYY HH:mm:ss')}
+                                </div>
+                            ) : null}
+                            {offlineTrace?.fiscalizedAtUtc ? (
+                                <div style={{ marginTop: 4 }}>
+                                    <strong>Nach Replay fiskalisiert (UTC):</strong>{' '}
+                                    {dayjs(offlineTrace.fiscalizedAtUtc).format('DD.MM.YYYY HH:mm:ss')}
+                                </div>
+                            ) : null}
+                            {offlineTrace?.issuedAt ? (
+                                <div style={{ marginTop: 4 }}>
+                                    <strong>Belegzeit (fiskal):</strong>{' '}
+                                    {dayjs(offlineTrace.issuedAt).format('DD.MM.YYYY HH:mm:ss')}
+                                </div>
+                            ) : null}
+                        </div>
+                    }
+                />
+            ) : null}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {steps.map((step: SignatureDiagnosticStepDto) => (
                     <div

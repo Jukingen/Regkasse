@@ -19,6 +19,19 @@ type MeResponse = UserInfo & {
     Permissions?: string[];
     roles?: string[];
     Roles?: string[];
+    /** Legacy JSON casing fallbacks */
+    Id?: string | null;
+    UserName?: string | null;
+    Email?: string | null;
+    FirstName?: string | null;
+    LastName?: string | null;
+    Role?: string | null;
+    EmployeeNumber?: string | null;
+    TaxNumber?: string | null;
+    Notes?: string | null;
+    IsActive?: boolean;
+    CreatedAt?: string;
+    LastLoginAt?: string;
 };
 
 const fetchUser = async (): Promise<AuthUser> => {

@@ -38,11 +38,13 @@ export function validateCatalogAlignment(
   const catalogSet = catalogKeys instanceof Set ? catalogKeys : new Set(catalogKeys);
   const menuKeys = collectKeysFromMap(MENU_PERMISSION);
   const routeKeys = collectKeysFromMap(ROUTE_PERMISSIONS as Record<string, string | string[] | undefined>);
-  const usedKeys = new Set<string>([...menuKeys, ...routeKeys]);
+  const usedKeys = new Set<string>();
+  menuKeys.forEach((k) => usedKeys.add(k));
+  routeKeys.forEach((k) => usedKeys.add(k));
   const unknownKeys: string[] = [];
-  for (const key of usedKeys) {
+  usedKeys.forEach((key) => {
     if (!catalogSet.has(key)) unknownKeys.push(key);
-  }
+  });
   const { warnUnknown = true } = options;
   if (warnUnknown && unknownKeys.length > 0) {
     console.warn(

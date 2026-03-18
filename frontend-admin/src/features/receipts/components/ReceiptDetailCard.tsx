@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Descriptions, Tag, Typography } from 'antd';
 import type { ReceiptDetailDto } from '@/features/receipts/types/receipts';
 import { formatEUR } from '@/shared/utils/currency';
@@ -26,11 +27,13 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
             <Descriptions.Item label="Receipt Number">
                 <Text strong>{receipt.receiptNumber}</Text>
             </Descriptions.Item>
-            <Descriptions.Item label="Issued At">
+            <Descriptions.Item label="Belegzeit (fiskal)">
                 {dayjs(receipt.issuedAt).format('DD.MM.YYYY HH:mm:ss')}
             </Descriptions.Item>
-            <Descriptions.Item label="Created At">
-                {dayjs(receipt.createdAt).format('DD.MM.YYYY HH:mm:ss')}
+            <Descriptions.Item label="Quittung gespeichert (UTC)">
+                {receipt.receiptPersistedAtUtc
+                    ? dayjs(receipt.receiptPersistedAtUtc).format('DD.MM.YYYY HH:mm:ss')
+                    : dayjs(receipt.createdAt).format('DD.MM.YYYY HH:mm:ss')}
             </Descriptions.Item>
             <Descriptions.Item label="Cash Register">
                 <Tag>{receipt.cashRegisterId}</Tag>
@@ -43,6 +46,60 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                     <Text copyable style={{ fontSize: 12 }}>{receipt.paymentId}</Text>
                 ) : '—'}
             </Descriptions.Item>
+            {receipt.hasOfflineOrigin ? (
+                <Descriptions.Item label="Offline-Ursprung" span={3}>
+                    <Tag color="purple">Nachgestellt (Replay)</Tag>
+                    {receipt.clockDriftWarning ? (
+                        <Tag color="red" style={{ marginLeft: 8 }}>
+                            Uhrzeit-Drift
+                        </Tag>
+                    ) : null}
+                    {receipt.sequenceGapDetected ? (
+                        <Tag color="orange" style={{ marginLeft: 8 }}>
+                            Sequenz-Lücke
+                        </Tag>
+                    ) : null}
+                    {receipt.sequenceDuplicateDetected ? (
+                        <Tag color="red" style={{ marginLeft: 8 }}>
+                            Sequenz-Duplikat
+                        </Tag>
+                    ) : null}
+                    {receipt.offlineTransactionId ? (
+                        <Text type="secondary" copyable style={{ fontSize: 11, display: 'block', marginTop: 4 }}>
+                            Offline-ID: {receipt.offlineTransactionId}
+                        </Text>
+                    ) : null}
+                    {receipt.offlineCreatedAtUtc ? (
+                        <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                            Offline erfasst (Gerät, UTC):{' '}
+                            {dayjs(receipt.offlineCreatedAtUtc).format('DD.MM.YYYY HH:mm:ss')}
+                        </Text>
+                    ) : null}
+                    {receipt.fiscalizedAtUtc ? (
+                        <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                            Fiskalisiert nach Replay (Server, UTC):{' '}
+                            {dayjs(receipt.fiscalizedAtUtc).format('DD.MM.YYYY HH:mm:ss')}
+                        </Text>
+                    ) : null}
+                </Descriptions.Item>
+            ) : null}
+            {receipt.fiscalTraceKind && (
+                <Descriptions.Item label="Fiscal trace (reversal)">
+                    <Tag color="orange">{receipt.fiscalTraceKind}</Tag>
+                    {receipt.originalPaymentId ? (
+                        <Text type="secondary" copyable style={{ fontSize: 11, display: 'block', marginTop: 4 }}>
+                            Original payment: {receipt.originalPaymentId}
+                        </Text>
+                    ) : null}
+                    {receipt.originalSaleReceiptId ? (
+                        <div style={{ marginTop: 8 }}>
+                            <Link href={`/receipts/${receipt.originalSaleReceiptId}`}>
+                                Open original sale receipt
+                            </Link>
+                        </div>
+                    ) : null}
+                </Descriptions.Item>
+            )}
             <Descriptions.Item label="Sub Total">
                 {formatEUR(receipt.subTotal)}
             </Descriptions.Item>

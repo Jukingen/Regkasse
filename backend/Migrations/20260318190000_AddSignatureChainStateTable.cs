@@ -14,26 +14,25 @@ namespace KasseAPI_Final.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "signature_chain_state",
-                columns: table => new
-                {
-                    id = table.Column<Guid>(type: "uuid", nullable: false),
-                    register_id = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    last_signature = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                    last_counter = table.Column<int>(type: "integer", nullable: false),
-                    updated_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_signature_chain_state", x => x.id);
-                });
+            // Production-readiness fix: table may already exist (created by earlier migration ordering drift).
+            migrationBuilder.Sql(@"
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'signature_chain_state') THEN
+                        CREATE TABLE signature_chain_state (
+                            id uuid NOT NULL,
+                            register_id character varying(50) NOT NULL,
+                            last_signature character varying(4000),
+                            last_counter integer NOT NULL,
+                            updated_at timestamp with time zone NOT NULL,
+                            CONSTRAINT PK_signature_chain_state PRIMARY KEY (id)
+                        );
 
-            migrationBuilder.CreateIndex(
-                name: "IX_signature_chain_state_register_id",
-                table: "signature_chain_state",
-                column: "register_id",
-                unique: true);
+                        CREATE UNIQUE INDEX ""IX_signature_chain_state_register_id""
+                            ON signature_chain_state (register_id);
+                    END IF;
+                END $$;
+            ");
         }
 
         /// <inheritdoc />

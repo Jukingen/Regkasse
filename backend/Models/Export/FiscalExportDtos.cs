@@ -3,7 +3,7 @@ namespace KasseAPI_Final.Models.Export;
 /// <summary>Root payload for fiscal / RKSV export (JSON; CSV fragments optional).</summary>
 public sealed class FiscalExportPackageDto
 {
-    public string SchemaVersion { get; set; } = "1.0";
+    public string SchemaVersion { get; set; } = "1.1";
     public DateTime GeneratedAtUtc { get; set; }
     public Guid CashRegisterId { get; set; }
     public string RegisterNumber { get; set; } = string.Empty;
@@ -19,6 +19,21 @@ public sealed class FiscalExportPackageDto
     public string? ClosingsCsv { get; set; }
     public int ReceiptCount { get; set; }
     public int ClosingCount { get; set; }
+    /// <summary>Prev/current signature mismatches within exported receipt order (best-effort RKSV chain check).</summary>
+    public IReadOnlyList<string> ChainContinuityWarnings { get; set; } = Array.Empty<string>();
+
+    /// <summary>Best-effort integrity metrics for export consumers (non-fiscal; diagnostics only).</summary>
+    public FiscalExportIntegrityDto Integrity { get; set; } = new();
+}
+
+public sealed class FiscalExportIntegrityDto
+{
+    public bool SignatureChainValid { get; set; }
+    public bool SequenceContinuous { get; set; }
+    public int OfflineReplayGaps { get; set; }
+    public int TotalOfflineTransactions { get; set; }
+    public int SyncedOfflineTransactions { get; set; }
+    public int FailedOfflineTransactions { get; set; }
 }
 
 public sealed class FiscalExportPeriodDto
@@ -67,6 +82,21 @@ public sealed class FiscalReceiptExportDto
     public DateTime CreatedAtUtc { get; set; }
     public IReadOnlyList<FiscalReceiptItemExportDto> Items { get; set; } = Array.Empty<FiscalReceiptItemExportDto>();
     public IReadOnlyList<FiscalReceiptTaxLineExportDto> TaxLines { get; set; } = Array.Empty<FiscalReceiptTaxLineExportDto>();
+    public bool IsStorno { get; set; }
+    public bool IsRefund { get; set; }
+    public Guid? OriginalPaymentId { get; set; }
+    public Guid? OriginalReceiptId { get; set; }
+    /// <summary>Unified reversal reason (storno text or refund reason).</summary>
+    public string? ReversalReason { get; set; }
+
+    /// <summary>True when this fiscal receipt originates from a controlled offline intent replay.</summary>
+    public bool HasOfflineOrigin { get; set; }
+
+    /// <summary>Device/client UTC when the offline intent was created (only when HasOfflineOrigin=true).</summary>
+    public DateTime? OfflineCreatedAtUtc { get; set; }
+
+    /// <summary>Server UTC when replay completed and fiscal payment was created (only when HasOfflineOrigin=true).</summary>
+    public DateTime? FiscalizedAtUtc { get; set; }
 }
 
 public sealed class FiscalReceiptItemExportDto

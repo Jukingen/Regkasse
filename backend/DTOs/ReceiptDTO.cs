@@ -10,8 +10,36 @@ namespace KasseAPI_Final.DTOs
     {
         // --- Header ---
         public Guid ReceiptId { get; set; } // UUID
+        /// <summary>Source payment row for this fiscal receipt (navigation / forensic).</summary>
+        public Guid PaymentId { get; set; }
+        public Guid CashRegisterId { get; set; }
+        /// <summary>When this receipt is a reversal: original sale payment id.</summary>
+        public Guid? OriginalPaymentId { get; set; }
+        /// <summary>When this receipt is a reversal: original sale receipt id.</summary>
+        public Guid? OriginalSaleReceiptId { get; set; }
+        /// <summary>null = normal sale; Storno; Refund.</summary>
+        public string? FiscalTraceKind { get; set; }
+        /// <summary>True when payment is linked to a controlled offline intent replay.</summary>
+        public bool HasOfflineOrigin { get; set; }
+        public Guid? OfflineTransactionId { get; set; }
+        /// <summary>Device-time UTC when offline queue entry was created (if HasOfflineOrigin).</summary>
+        public DateTime? OfflineCreatedAtUtc { get; set; }
+        /// <summary>Server UTC when offline replay produced the fiscal payment (if HasOfflineOrigin).</summary>
+        public DateTime? FiscalizedAtUtc { get; set; }
+
+        /// <summary>Clock drift warning flag raised during offline intent creation (if provided by client).</summary>
+        public bool ClockDriftWarning { get; set; }
+
+        /// <summary>Client sequence gap detected during offline intent creation (missing sequence numbers).</summary>
+        public bool SequenceGapDetected { get; set; }
+
+        /// <summary>Client sequence duplicate/non-monotonic detected during offline intent creation.</summary>
+        public bool SequenceDuplicateDetected { get; set; }
         public string ReceiptNumber { get; set; } = string.Empty; // Belegnummer (e.g. 12345)
-        public DateTime Date { get; set; } // Issued At
+        /// <summary>Receipt issued-at (Belegzeit, fiscal).</summary>
+        public DateTime Date { get; set; }
+        /// <summary>When the receipt row was persisted (may differ slightly from issued-at).</summary>
+        public DateTime ReceiptPersistedAtUtc { get; set; }
         public string CashierName { get; set; } = string.Empty;
         public int? TableNumber { get; set; } // Optional
         public string KassenID { get; set; } = string.Empty; // Cash Register ID

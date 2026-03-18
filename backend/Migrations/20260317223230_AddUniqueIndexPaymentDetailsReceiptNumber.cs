@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -15,7 +15,7 @@ namespace KasseAPI_Final.Migrations
                 table: "payment_details",
                 column: "ReceiptNumber",
                 unique: true,
-                filter: "\"receipt_number\" IS NOT NULL AND \"receipt_number\" <> ''");
+                filter: "\"ReceiptNumber\" IS NOT NULL AND \"ReceiptNumber\" <> ''");
         }
 
         /// <inheritdoc />

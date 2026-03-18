@@ -259,6 +259,7 @@ builder.Services.AddScoped<CartLifecycleService>();
 
 // Audit log service
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IOfflineTransactionService, OfflineTransactionService>();
 builder.Services.AddScoped<ILegalHoldService, LegalHoldService>();
 builder.Services.AddScoped<IIntegrityCheckService, IntegrityCheckService>();
 builder.Services.AddScoped<IFiscalExportService, FiscalExportService>();

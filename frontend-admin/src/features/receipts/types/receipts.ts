@@ -91,4 +91,17 @@ export interface ReceiptDetailDto {
     createdAt: string;
     items: ReceiptItemDto[];
     taxLines: ReceiptTaxLineDto[];
+    /** Storno | Refund when reversal receipt */
+    fiscalTraceKind?: string | null;
+    originalPaymentId?: string | null;
+    originalSaleReceiptId?: string | null;
+    /** DB persist time of receipt row. */
+    receiptPersistedAtUtc?: string | null;
+    hasOfflineOrigin?: boolean;
+    offlineTransactionId?: string | null;
+    offlineCreatedAtUtc?: string | null;
+    fiscalizedAtUtc?: string | null;
+    clockDriftWarning?: boolean;
+    sequenceGapDetected?: boolean;
+    sequenceDuplicateDetected?: boolean;
 }

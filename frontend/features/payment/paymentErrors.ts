@@ -25,7 +25,19 @@ const DEMO_BY_ROLE = 'DEMO_BY_ROLE';
 function getData(obj: unknown): Record<string, unknown> | undefined {
   if (!obj || typeof obj !== 'object') return undefined;
   const e = obj as Record<string, unknown>;
-  return (e.data ?? e.response?.data) as Record<string, unknown> | undefined;
+  const direct = e['data'];
+  if (direct && typeof direct === 'object') return direct as Record<string, unknown>;
+
+  const response = e['response'];
+  if (response && typeof response === 'object') {
+    const r = response as Record<string, unknown>;
+    const responseData = r['data'];
+    if (responseData && typeof responseData === 'object') {
+      return responseData as Record<string, unknown>;
+    }
+  }
+
+  return undefined;
 }
 
 function getStatus(obj: unknown): number | undefined {

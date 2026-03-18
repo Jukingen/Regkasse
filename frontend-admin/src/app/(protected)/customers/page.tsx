@@ -56,7 +56,11 @@ export default function CustomersPage() {
 
     const { data: assignmentCountForAdmin } = useQuery({
         queryKey: ['customer', editingCustomer?.id, 'admin-assignment-count'],
-        queryFn: () => getAdminCustomerAssignmentCount(editingCustomer!.id),
+        queryFn: async () => {
+            const id = editingCustomer?.id;
+            if (!id) return 0;
+            return getAdminCustomerAssignmentCount(id);
+        },
         enabled: !!editingCustomer?.id,
     });
 

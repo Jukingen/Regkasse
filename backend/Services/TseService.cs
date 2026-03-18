@@ -103,7 +103,7 @@ namespace KasseAPI_Final.Services
             catch { return false; }
         }
 
-        public async Task<TseSignatureResult> CreateInvoiceSignatureAsync(Guid cashRegisterId, string invoiceNumber, decimal totalAmount, string registerNumber, string? prevSignatureValue = null, DateTime? timestamp = null, string? taxDetailsJson = null)
+        public async Task<TseSignatureResult> CreateInvoiceSignatureAsync(Guid cashRegisterId, string invoiceNumber, decimal totalAmount, string registerNumber, string? prevSignatureValue = null, DateTime? timestamp = null, string? taxDetailsJson = null, IDbContextTransaction? dbTransaction = null)
         {
             if (cashRegisterId == Guid.Empty)
                 throw new ArgumentException("cashRegisterId must not be empty.", nameof(cashRegisterId));
@@ -111,17 +111,19 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("registerNumber (fiscal Kassen-ID) is required.", nameof(registerNumber));
 
             var correlationId = Guid.NewGuid().ToString("N")[..12];
-            _logger.LogInformation("CreateInvoiceSignatureAsync started, correlationId={CorrelationId}, invoiceNumber={InvoiceNumber}", correlationId, invoiceNumber);
+            _logger.LogInformation("CreateInvoiceSignatureAsync started, correlationId={CorrelationId}, invoiceNumber={InvoiceNumber}, enlisted={Enlisted}", correlationId, invoiceNumber, dbTransaction != null);
 
             var ts = timestamp ?? DateTime.UtcNow;
             var kId = registerNumber.Trim();
             string compactJws = string.Empty;
             string prevSig = string.Empty;
 
-            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var ownTransaction = dbTransaction == null;
+            if (ownTransaction)
+                dbTransaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var (prevSigLocked, _) = await EnsureChainRowAndLockAsync(transaction, cashRegisterId);
+                var (prevSigLocked, _) = await EnsureChainRowAndLockAsync(dbTransaction!, cashRegisterId);
                 prevSig = prevSignatureValue ?? prevSigLocked;
 
                 var payload = new BelegdatenPayload
@@ -150,14 +152,21 @@ namespace KasseAPI_Final.Services
                 };
 
                 _context.TseSignatures.Add(tseSignature);
-                await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws);
+                await UpdateChainWithNewSignatureAsync(dbTransaction!, cashRegisterId, compactJws);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownTransaction)
+                    await dbTransaction!.CommitAsync();
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownTransaction)
+                    await dbTransaction!.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                if (ownTransaction)
+                    await dbTransaction!.DisposeAsync();
             }
 
             _logger.LogInformation("CreateInvoiceSignatureAsync completed, correlationId={CorrelationId}", correlationId);

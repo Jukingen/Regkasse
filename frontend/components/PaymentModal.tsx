@@ -426,13 +426,20 @@ export default function PaymentModal({
         return;
       }
 
-      // 6. STRICT SUCCESS CHECK (Do NOT proceed if payment failed)
-      if (!response.success) {
-        console.error('[PAYMENT] Failed:', response);
-        const errorMsg = response.message || response.error || 'Ödeme işlemi başarısız';
+      // 6. STRICT: only FISCAL_COMPLETE + paymentId counts as paid sale
+      if (
+        !response.success ||
+        response.fiscalStatus !== 'FISCAL_COMPLETE' ||
+        !response.paymentId
+      ) {
+        console.error('[PAYMENT] Failed or not fiscally confirmed:', response);
+        const errorMsg =
+          response.fiscalStatus === 'FAILED'
+            ? (response.message || response.error || 'Zahlung nicht fiscal bestätigt')
+            : response.message || response.error || 'Ödeme işlemi başarısız';
         Alert.alert('Ödeme Başarısız', errorMsg);
-        setPurchaseState('input'); // Reset to input on failure
-        return; // CRITICAL: Do NOT proceed to complete/reset
+        setPurchaseState('input');
+        return;
       }
 
       console.log('[PAYMENT] Success, paymentId:', response.paymentId);

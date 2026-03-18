@@ -1,0 +1,12 @@
+﻿{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "strict": true
+  },
+  "include": [
+    "services/payment/pendingPaymentQueue.ts",
+    "services/api/paymentService.ts",
+    "components/PaymentModal.tsx"
+  ]
+}

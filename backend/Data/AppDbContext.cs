@@ -27,6 +27,7 @@ namespace KasseAPI_Final.Data
         public DbSet<CashRegisterTransaction> CashRegisterTransactions { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<PaymentDetails> PaymentDetails { get; set; }
+        public DbSet<OfflineTransaction> OfflineTransactions { get; set; }
         public DbSet<InventoryItem> Inventory { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
         public DbSet<SystemSettings> SystemSettings { get; set; }
@@ -434,6 +435,52 @@ namespace KasseAPI_Final.Data
                     .HasForeignKey(e => e.CashRegisterId)
                     .OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(e => e.CashRegisterId);
+                entity.Property(e => e.OriginalReceiptId).HasColumnName("original_receipt_id");
+                entity.HasOne<Receipt>()
+                    .WithMany()
+                    .HasForeignKey(e => e.OriginalReceiptId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.Property(e => e.OfflineTransactionId).HasColumnName("offline_transaction_id");
+                entity.HasOne(e => e.OfflineTransaction)
+                    .WithMany()
+                    .HasForeignKey(e => e.OfflineTransactionId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => e.OfflineTransactionId);
+            });
+
+            // OfflineTransaction configuration (non-fiscal intent; replay creates the canonical Payment + Receipt)
+            builder.Entity<OfflineTransaction>(entity =>
+            {
+                entity.ToTable("offline_transactions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CashRegisterId).IsRequired();
+                entity.Property(e => e.PayloadJson).IsRequired().HasColumnType("jsonb");
+                entity.Property(e => e.PayloadHash).HasMaxLength(64).HasColumnName("payload_hash");
+                entity.Property(e => e.ServerReceivedAtUtc).IsRequired().HasColumnName("server_received_at_utc");
+                entity.Property(e => e.DeviceId).HasMaxLength(128).HasColumnName("device_id");
+                entity.Property(e => e.ClientSequenceNumber).HasColumnName("client_sequence_number");
+                entity.Property(e => e.ClockDriftWarning).IsRequired().HasColumnName("clock_drift_warning");
+                entity.Property(e => e.SequenceGapDetected).IsRequired().HasColumnName("sequence_gap_detected");
+                entity.Property(e => e.SequenceDuplicateDetected).IsRequired().HasColumnName("sequence_duplicate_detected");
+                entity.Property(e => e.Status)
+                    .IsRequired()
+                    .HasConversion<string>()
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.SyncedPaymentId);
+                entity.HasIndex(e => e.CashRegisterId);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.SyncedPaymentId);
+
+                // Dedup across offline IDs by content hash (for new inserts where PayloadHash is set)
+                entity.HasIndex(e => new { e.CashRegisterId, e.PayloadHash })
+                    .IsUnique();
+
+                // Enforce monotonic sequence identity per device (nulls are allowed multiple times by Postgres)
+                entity.HasIndex(e => new { e.CashRegisterId, e.DeviceId, e.ClientSequenceNumber })
+                    .IsUnique();
             });
 
             // PaymentItem: not mapped; single source of truth is payment_details.PaymentItems (JSON).

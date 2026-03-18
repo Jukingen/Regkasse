@@ -69,7 +69,31 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                await _auditLogService.LogUserLifecycleAsync(actionType, actorUserId, actorRole, targetUserId, reason, correlationId, status, description, oldValues, newValues);
+                // Keep backward compatibility with legacy audit action strings.
+                // Several integration tests mock the string-based overload.
+                var action = actionType switch
+                {
+                    AuditEventType.UserCreated => AuditLogActions.USER_CREATE,
+                    AuditEventType.UserUpdated => AuditLogActions.USER_UPDATE,
+                    AuditEventType.UserRoleChanged => AuditLogActions.USER_ROLE_CHANGE,
+                    AuditEventType.UserDeactivated => AuditLogActions.USER_DEACTIVATE,
+                    AuditEventType.UserReactivated => AuditLogActions.USER_REACTIVATE,
+                    AuditEventType.ChangeOwnPassword => AuditLogActions.CHANGE_OWN_PASSWORD,
+                    AuditEventType.UserPasswordReset => AuditLogActions.USER_PASSWORD_RESET,
+                    _ => actionType.ToString()
+                };
+
+                await _auditLogService.LogUserLifecycleAsync(
+                    action,
+                    actorUserId,
+                    actorRole,
+                    targetUserId,
+                    reason,
+                    correlationId,
+                    status,
+                    description,
+                    oldValues,
+                    newValues);
             }
             catch (Exception ex)
             {

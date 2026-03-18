@@ -43,7 +43,7 @@ namespace KasseAPI_Final.Services
             var receipt = await _context.Receipts
                 .Include(r => r.Items)
                 .Include(r => r.TaxLines)
-                .Include(r => r.Payment)
+                .Include(r => r.Payment)!.ThenInclude(p => p!.OfflineTransaction)
                 .FirstOrDefaultAsync(r => r.ReceiptId == receiptId || r.PaymentId == receiptId);
 
             return receipt != null ? MapToDTO(receipt) : null;
@@ -451,11 +451,28 @@ namespace KasseAPI_Final.Services
                 QrData = receipt.QrCodePayload ?? ""
             };
 
+            var pay = receipt.Payment;
+            var traceKind = pay?.IsStorno == true ? "Storno" : pay?.IsRefund == true ? "Refund" : null;
+
+            var off = pay?.OfflineTransaction;
             return new ReceiptDTO
             {
                 ReceiptId = receipt.ReceiptId,
+                PaymentId = receipt.PaymentId,
+                CashRegisterId = receipt.CashRegisterId,
+                OriginalPaymentId = pay?.OriginalPaymentId,
+                OriginalSaleReceiptId = pay?.OriginalReceiptId,
+                FiscalTraceKind = traceKind,
+                HasOfflineOrigin = pay?.OfflineTransactionId != null,
+                OfflineTransactionId = pay?.OfflineTransactionId,
+                OfflineCreatedAtUtc = off?.OfflineCreatedAtUtc,
+                FiscalizedAtUtc = off?.FiscalizedAtUtc,
+                ClockDriftWarning = off?.ClockDriftWarning ?? false,
+                SequenceGapDetected = off?.SequenceGapDetected ?? false,
+                SequenceDuplicateDetected = off?.SequenceDuplicateDetected ?? false,
                 ReceiptNumber = receipt.ReceiptNumber,
                 Date = receipt.IssuedAt,
+                ReceiptPersistedAtUtc = receipt.CreatedAt,
                 CashierName = receipt.CashierId ?? "Unknown",
                 KassenID = _context.CashRegisters.AsNoTracking()
                     .Where(r => r.Id == receipt.CashRegisterId)

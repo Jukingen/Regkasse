@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
@@ -51,6 +53,8 @@ public class FiscalExportService : IFiscalExportService
             .OrderBy(r => r.IssuedAt)
             .ThenBy(r => r.ReceiptNumber)
             .Take(MaxReceiptRows + 1)
+            .Include(r => r.Payment)
+            .ThenInclude(p => p.OfflineTransaction)
             .Include(r => r.Items)
             .Include(r => r.TaxLines)
             .ToListAsync(cancellationToken);
@@ -82,6 +86,21 @@ public class FiscalExportService : IFiscalExportService
             PrevSignatureValue = r.PrevSignatureValue
         }).ToList();
 
+        var chainWarnings = FiscalExportChainContinuity.BuildWarnings(chainLinks).ToList();
+        var signatureChainValid = chainWarnings.Count == 0;
+        var sequenceContinuous = BuildReceiptSequenceContinuity(receipts.Select(r => r.ReceiptNumber).ToList());
+
+        // Offline integrity metrics (diagnostics only).
+        var offlineTransactionsInPeriod = await _context.OfflineTransactions
+            .AsNoTracking()
+            .Where(o => o.CashRegisterId == cashRegisterId && o.OfflineCreatedAtUtc >= from && o.OfflineCreatedAtUtc <= to)
+            .ToListAsync(cancellationToken);
+
+        var totalOfflineTransactions = offlineTransactionsInPeriod.Count;
+        var syncedOfflineTransactions = offlineTransactionsInPeriod.Count(o => o.Status == OfflineTransactionStatus.Synced);
+        var failedOfflineTransactions = offlineTransactionsInPeriod.Count(o => o.Status == OfflineTransactionStatus.Failed);
+        var offlineReplayGaps = offlineTransactionsInPeriod.Count(o => o.Status == OfflineTransactionStatus.Pending);
+
         var closingDtos = closings.Select(MapClosing).ToList();
 
         var package = new FiscalExportPackageDto
@@ -104,7 +123,17 @@ public class FiscalExportService : IFiscalExportService
             Receipts = receiptDtos,
             Closings = closingDtos,
             ReceiptCount = receiptDtos.Count,
-            ClosingCount = closingDtos.Count
+            ClosingCount = closingDtos.Count,
+            ChainContinuityWarnings = chainWarnings,
+            Integrity = new FiscalExportIntegrityDto
+            {
+                SignatureChainValid = signatureChainValid,
+                SequenceContinuous = sequenceContinuous,
+                OfflineReplayGaps = offlineReplayGaps,
+                TotalOfflineTransactions = totalOfflineTransactions,
+                SyncedOfflineTransactions = syncedOfflineTransactions,
+                FailedOfflineTransactions = failedOfflineTransactions
+            }
         };
 
         if (includeCsv)
@@ -120,6 +149,60 @@ public class FiscalExportService : IFiscalExportService
         return package;
     }
 
+    private static bool BuildReceiptSequenceContinuity(IReadOnlyList<string> receiptNumbersInOrder)
+    {
+        // Best-effort: validates that per-day receipt SEQ increments by 1 in the export order.
+        string? currentDateSegment = null;
+        int? prevSeq = null;
+
+        foreach (var rn in receiptNumbersInOrder)
+        {
+            if (!TryParseReceiptNumber(rn, out var dateSegment, out var seq))
+                continue;
+
+            if (currentDateSegment == null)
+            {
+                currentDateSegment = dateSegment;
+                prevSeq = seq;
+                continue;
+            }
+
+            if (!string.Equals(currentDateSegment, dateSegment, StringComparison.Ordinal))
+            {
+                currentDateSegment = dateSegment;
+                prevSeq = seq;
+                continue;
+            }
+
+            if (prevSeq.HasValue && seq != prevSeq.Value + 1)
+                return false;
+
+            prevSeq = seq;
+        }
+
+        return true;
+    }
+
+    private static bool TryParseReceiptNumber(string receiptNumber, out string dateSegment, out int seq)
+    {
+        // Format: AT-{TSE_ID or register}-{YYYYMMDD}-{SEQ}
+        dateSegment = string.Empty;
+        seq = 0;
+        if (string.IsNullOrWhiteSpace(receiptNumber))
+            return false;
+
+        var parts = receiptNumber.Split('-');
+        if (parts.Length < 4)
+            return false;
+
+        dateSegment = parts[^2];
+        var seqPart = parts[^1];
+        if (!int.TryParse(seqPart, out seq))
+            return false;
+
+        return !string.IsNullOrWhiteSpace(dateSegment);
+    }
+
     private static DateTime NormalizeUtc(DateTime dt)
     {
         return dt.Kind == DateTimeKind.Unspecified
@@ -129,6 +212,7 @@ public class FiscalExportService : IFiscalExportService
 
     private static FiscalReceiptExportDto MapReceipt(Receipt r)
     {
+        var p = r.Payment;
         return new FiscalReceiptExportDto
         {
             ReceiptId = r.ReceiptId,
@@ -150,6 +234,14 @@ public class FiscalExportService : IFiscalExportService
             Provider = r.Provider,
             CorrelationId = r.CorrelationId,
             CreatedAtUtc = r.CreatedAt,
+            IsStorno = p?.IsStorno ?? false,
+            IsRefund = p?.IsRefund ?? false,
+            OriginalPaymentId = p?.OriginalPaymentId,
+            OriginalReceiptId = p?.OriginalReceiptId,
+            ReversalReason = p?.IsStorno == true ? p.CancellationReason : p?.IsRefund == true ? p.RefundReason : null,
+            HasOfflineOrigin = p?.OfflineTransactionId != null,
+            OfflineCreatedAtUtc = p?.OfflineTransaction?.OfflineCreatedAtUtc,
+            FiscalizedAtUtc = p?.OfflineTransaction?.FiscalizedAtUtc,
             Items = r.Items.OrderBy(i => i.ItemId).Select(i => new FiscalReceiptItemExportDto
             {
                 ItemId = i.ItemId,
@@ -207,7 +299,8 @@ public class FiscalExportService : IFiscalExportService
         sb.AppendLine(
             "receipt_id,payment_id,receipt_number,issued_at_utc,cashier_id,cash_register_id," +
             "sub_total,tax_total,grand_total,signature_value,prev_signature_value,signature_format," +
-            "provider,correlation_id,created_at_utc");
+            "provider,correlation_id,created_at_utc,is_storno,is_refund,original_payment_id,original_receipt_id,reversal_reason," +
+            "has_offline_origin,offline_created_at_utc,fiscalized_at_utc");
         var inv = CultureInfo.InvariantCulture;
         foreach (var r in receipts)
         {
@@ -225,7 +318,15 @@ public class FiscalExportService : IFiscalExportService
                 .Append(Csv(r.SignatureFormat)).Append(',')
                 .Append(Csv(r.Provider)).Append(',')
                 .Append(Csv(r.CorrelationId)).Append(',')
-                .Append(Csv(r.CreatedAtUtc.ToString("o", inv)))
+                .Append(Csv(r.CreatedAtUtc.ToString("o", inv))).Append(',')
+                .Append(r.IsStorno ? "1" : "0").Append(',')
+                .Append(r.IsRefund ? "1" : "0").Append(',')
+                .Append(Csv(r.OriginalPaymentId?.ToString("D", inv))).Append(',')
+                .Append(Csv(r.OriginalReceiptId?.ToString("D", inv))).Append(',')
+                .Append(Csv(r.ReversalReason)).Append(',')
+                .Append(r.HasOfflineOrigin ? "1" : "0").Append(',')
+                .Append(Csv(r.OfflineCreatedAtUtc?.ToString("o", inv))).Append(',')
+                .Append(Csv(r.FiscalizedAtUtc?.ToString("o", inv)))
                 .AppendLine();
         }
 

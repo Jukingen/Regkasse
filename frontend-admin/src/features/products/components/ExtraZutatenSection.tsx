@@ -126,7 +126,7 @@ export default function ExtraZutatenSection({
             <>
               {emptySelectedGroups.map((g) => (
                 <div key={getGroupId(g)} style={{ marginBottom: 4 }}>
-                  Die Gruppe „{g.name}" enthält keine Add-on-Produkte. Im POS erscheinen keine Extras für diese Gruppe. Fügen Sie unter „Add-on-Gruppen" Produkte hinzu.
+                  Die Gruppe „{g.name}“ enthält keine Add-on-Produkte. Im POS erscheinen keine Extras für diese Gruppe. Fügen Sie unter „Add-on-Gruppen“ Produkte hinzu.
                 </div>
               ))}
             </>

@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { Table, Card, Typography, Tag, Space, Button, Select, DatePicker } from 'antd';
 import { useGetApiAuditLog } from '@/api/generated/audit-log/audit-log';
-import type { AuditLogEntry } from '@/api/generated/model';
+import type { AuditLog } from '@/api/generated/model';
+import { AuditLogStatus } from '@/api/generated/model';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -27,8 +28,9 @@ export default function AuditLogsPage() {
         },
         {
             title: 'User',
-            dataIndex: 'userName',
             key: 'userName',
+            render: (_: unknown, record: AuditLog) =>
+                record.user?.userName ?? record.createdBy ?? record.userId ?? '—',
         },
         {
             title: 'Action',
@@ -74,7 +76,7 @@ export default function AuditLogsPage() {
 
             <Table
                 columns={columns}
-                dataSource={data?.items || []}
+                dataSource={data?.auditLogs ?? []}
                 loading={isLoading}
                 rowKey="id"
                 pagination={{

@@ -9,11 +9,28 @@ import { RECEIPT_KEYS } from './useReceiptListQuery';
 // ---------------------------------------------------------------------------
 
 function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
+    const ext = d as ReceiptDTO & {
+        paymentId?: string;
+        fiscalTraceKind?: string | null;
+        originalPaymentId?: string | null;
+        originalSaleReceiptId?: string | null;
+        cashRegisterId?: string | null;
+        receiptPersistedAtUtc?: string;
+        hasOfflineOrigin?: boolean;
+        offlineTransactionId?: string | null;
+        offlineCreatedAtUtc?: string | null;
+        fiscalizedAtUtc?: string | null;
+        clockDriftWarning?: boolean;
+        sequenceGapDetected?: boolean;
+        sequenceDuplicateDetected?: boolean;
+    };
+    const issued = d.date ?? '';
+    const persisted = ext.receiptPersistedAtUtc ?? issued;
     return {
         receiptId: d.receiptId ?? '',
-        paymentId: null,
+        paymentId: ext.paymentId ?? null,
         receiptNumber: d.receiptNumber ?? '',
-        issuedAt: d.date ?? '',
+        issuedAt: issued,
         cashierId: d.cashierName ?? null,
         cashRegisterId: d.kassenID ?? '',
         subTotal: d.subTotal ?? 0,
@@ -22,7 +39,15 @@ function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
         qrCodePayload: d.signature?.qrData ?? null,
         signatureValue: d.signature?.signatureValue ?? null,
         prevSignatureValue: d.signature?.prevSignatureValue ?? null,
-        createdAt: d.date ?? '',
+        createdAt: persisted,
+        receiptPersistedAtUtc: persisted,
+        hasOfflineOrigin: ext.hasOfflineOrigin ?? false,
+        offlineTransactionId: ext.offlineTransactionId ?? null,
+        offlineCreatedAtUtc: ext.offlineCreatedAtUtc ?? null,
+        fiscalizedAtUtc: ext.fiscalizedAtUtc ?? null,
+        clockDriftWarning: ext.clockDriftWarning ?? false,
+        sequenceGapDetected: ext.sequenceGapDetected ?? false,
+        sequenceDuplicateDetected: ext.sequenceDuplicateDetected ?? false,
         items: (d.items ?? []).map((i) => ({
             itemId: i.itemId ?? '',
             productName: i.name ?? '',
@@ -38,6 +63,9 @@ function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
             taxAmount: t.taxAmount ?? 0,
             grossAmount: t.grossAmount ?? 0,
         })),
+        fiscalTraceKind: ext.fiscalTraceKind ?? null,
+        originalPaymentId: ext.originalPaymentId ?? null,
+        originalSaleReceiptId: ext.originalSaleReceiptId ?? null,
     };
 }
 

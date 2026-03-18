@@ -68,7 +68,7 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
         unit: apiProduct.Unit || apiProduct.unit,
         category: apiProduct.Category || apiProduct.category,
         categoryId: apiProduct.CategoryId || apiProduct.categoryId,
-        taxType: taxType as unknown as string, // Generated Product type is string; backend expects int; we send number in payload
+        taxType,
         taxRate,
         isActive: apiProduct.IsActive ?? apiProduct.isActive ?? true,
         barcode: apiProduct.Barcode || apiProduct.barcode,

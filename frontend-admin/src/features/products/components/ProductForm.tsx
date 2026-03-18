@@ -88,11 +88,15 @@ export default function ProductForm({
                     (o: { label: string }) => o.label === (product.category ?? '')
                 ) as { value: string } | undefined)?.value;
 
-                const taxType = Number((initialValues as any).taxType ?? TAX_TYPE_ENUM.Standard);
+                const allowedTax = [TAX_TYPE_ENUM.Standard, TAX_TYPE_ENUM.Reduced, TAX_TYPE_ENUM.Special] as const;
+                const rawTax = Number((initialValues as any).taxType ?? TAX_TYPE_ENUM.Standard);
+                const taxTypeNorm = (allowedTax as readonly number[]).includes(rawTax)
+                    ? (rawTax as (typeof allowedTax)[number])
+                    : TAX_TYPE_ENUM.Standard;
                 form.setFieldsValue({
                     ...initialValues,
                     isActive: initialValues.isActive ?? true,
-                    taxType: [TAX_TYPE_ENUM.Standard, TAX_TYPE_ENUM.Reduced, TAX_TYPE_ENUM.Special].includes(taxType) ? taxType : TAX_TYPE_ENUM.Standard,
+                    taxType: taxTypeNorm,
                     unit: initialValues.unit || 'pcs',
                     stockQuantity: initialValues.stockQuantity ?? 0,
                     minStockLevel: initialValues.minStockLevel ?? 0,

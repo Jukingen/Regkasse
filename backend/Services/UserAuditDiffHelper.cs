@@ -7,8 +7,8 @@ namespace KasseAPI_Final.Services
 {
     /// <summary>
     /// Whitelist and builder for user lifecycle audit diff. Invariant 4: Sensitive data must never be logged.
-    /// AllowedKeys include all editable user fields (name, email, role, TaxNumber, Notes, EmployeeNumber, etc.) for "Änderungen ansehen".
-    /// Never log: password, tokens, credentials, security stamps (see ForbiddenKeys).
+    /// AllowedKeys include only non-sensitive editable user fields (name, email, role, active/demo flags).
+    /// Never log: password, tokens, credentials, security stamps, and sensitive profile fields.
     /// </summary>
     public static class UserAuditDiffHelper
     {
@@ -18,13 +18,11 @@ namespace KasseAPI_Final.Services
         /// </summary>
         public static readonly IReadOnlySet<string> AllowedKeys = new HashSet<string>(new[]
         {
-            "FirstName", "LastName", "Email", "UserName", "Role", "IsActive", "IsDemo",
-            "TaxNumber", "Notes", "EmployeeNumber"
+            "FirstName", "LastName", "Email", "UserName", "Role", "IsActive", "IsDemo"
         }, System.StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// Field names that must never appear in audit logs (credentials, tokens, security stamps only).
-        /// TaxNumber, Notes, EmployeeNumber are allowed in diff for audit trail of user edits.
+        /// Field names that must never appear in audit logs (credentials, tokens, security stamps).
         /// </summary>
         public static readonly IReadOnlySet<string> ForbiddenKeys = new HashSet<string>(new[]
         {
@@ -48,10 +46,7 @@ namespace KasseAPI_Final.Services
                 user.UserName,
                 user.Role,
                 user.IsActive,
-                user.IsDemo,
-                user.TaxNumber,
-                user.Notes,
-                user.EmployeeNumber
+                user.IsDemo
             };
         }
 

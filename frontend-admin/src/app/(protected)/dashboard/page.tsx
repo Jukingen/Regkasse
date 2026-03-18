@@ -34,7 +34,6 @@ export default function DashboardPage() {
     const { data: productsReport } = useGetApiReportsProducts({
         startDate,
         endDate,
-        topCount: 5
     });
 
     // 3. Payment Methods
@@ -47,7 +46,6 @@ export default function DashboardPage() {
     const { data: customersReport } = useGetApiReportsCustomers({
         startDate,
         endDate,
-        topCount: 5
     });
 
     const loading = loadingSales;
@@ -83,7 +81,7 @@ export default function DashboardPage() {
                     <Card bordered={false}>
                         <Statistic
                             title="Total Revenue"
-                            value={salesReport?.totalRevenue}
+                            value={salesReport?.totalSales}
                             precision={2}
                             valueStyle={{ color: '#3f8600' }}
                             prefix={<DollarOutlined />}
@@ -95,7 +93,7 @@ export default function DashboardPage() {
                     <Card bordered={false}>
                         <Statistic
                             title="Total Sales Count"
-                            value={salesReport?.totalSalesCount}
+                            value={salesReport?.totalInvoices}
                             prefix={<ShoppingOutlined />}
                         />
                     </Card>
@@ -104,7 +102,7 @@ export default function DashboardPage() {
                     <Card bordered={false}>
                         <Statistic
                             title="Average Sale"
-                            value={salesReport?.averageSaleValue}
+                            value={salesReport?.averageOrderValue}
                             precision={2}
                             suffix="€"
                         />
@@ -126,13 +124,13 @@ export default function DashboardPage() {
                 <Col span={12}>
                     <Card title="Top Selling Products" bordered={false} style={{ height: '100%' }}>
                         <Table
-                            dataSource={productsReport?.topSellingProducts || []}
+                            dataSource={(productsReport?.topSellingProducts ?? []).slice(0, 5)}
                             pagination={false}
                             rowKey="productId"
                             columns={[
                                 { title: 'Product', dataIndex: 'productName' },
                                 { title: 'Quantity', dataIndex: 'quantitySold' },
-                                { title: 'Revenue', dataIndex: 'totalRevenue', render: (val) => `€${val?.toFixed(2)}` },
+                                { title: 'Revenue', dataIndex: 'revenue', render: (val) => `€${Number(val ?? 0).toFixed(2)}` },
                             ]}
                         />
                     </Card>
@@ -148,7 +146,7 @@ export default function DashboardPage() {
                             columns={[
                                 { title: 'Method', dataIndex: 'method' },
                                 { title: 'Count', dataIndex: 'count' },
-                                { title: 'Total', dataIndex: 'totalAmount', render: (val) => `€${val?.toFixed(2)}` },
+                                { title: 'Total', dataIndex: 'total', render: (val) => `€${Number(val ?? 0).toFixed(2)}` },
                             ]}
                         />
                     </Card>
@@ -162,13 +160,13 @@ export default function DashboardPage() {
                 <Col span={12}>
                     <Card title="Top Customers" bordered={false} style={{ height: '100%' }}>
                         <Table
-                            dataSource={customersReport?.topCustomers || []}
+                            dataSource={(customersReport?.topCustomers ?? []).slice(0, 5)}
                             pagination={false}
                             rowKey="customerId"
                             columns={[
                                 { title: 'Customer', dataIndex: 'customerName' },
-                                { title: 'Visits', dataIndex: 'visitCount' },
-                                { title: 'Spent', dataIndex: 'totalSpent', render: (val) => `€${val?.toFixed(2)}` },
+                                { title: 'Orders', dataIndex: 'orderCount' },
+                                { title: 'Spent', dataIndex: 'totalSpent', render: (val) => `€${Number(val ?? 0).toFixed(2)}` },
                             ]}
                         />
                     </Card>

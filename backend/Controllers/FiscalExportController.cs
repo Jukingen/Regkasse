@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
@@ -25,11 +26,16 @@ public class FiscalExportController : ControllerBase
     };
 
     private readonly IFiscalExportService _exportService;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<FiscalExportController> _logger;
 
-    public FiscalExportController(IFiscalExportService exportService, ILogger<FiscalExportController> logger)
+    public FiscalExportController(
+        IFiscalExportService exportService,
+        IAuditLogService auditLogService,
+        ILogger<FiscalExportController> logger)
     {
         _exportService = exportService;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -55,6 +61,29 @@ public class FiscalExportController : ControllerBase
         {
             var package = await _exportService.BuildExportAsync(
                 cashRegisterId, fromUtc, toUtc, includeCsv, cancellationToken);
+
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "unknown";
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
+                await _auditLogService.LogSystemOperationAsync(
+                    "FiscalExportRequested",
+                    "FiscalExport",
+                    userId,
+                    userRole,
+                    description: $"Fiscal export register {cashRegisterId}",
+                    requestData: new { cashRegisterId, fromUtc, toUtc, includeCsv },
+                    responseData: new
+                    {
+                        package.ReceiptCount,
+                        package.ClosingCount,
+                        chainWarningCount = package.ChainContinuityWarnings?.Count ?? 0
+                    });
+            }
+            catch (Exception auditEx)
+            {
+                _logger.LogWarning(auditEx, "Fiscal export audit log failed (export succeeded)");
+            }
 
             if (string.Equals(format, "jsonDownload", StringComparison.OrdinalIgnoreCase))
             {

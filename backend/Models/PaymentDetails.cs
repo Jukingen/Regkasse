@@ -88,6 +88,16 @@ namespace KasseAPI_Final.Models
         public bool IsRefund { get; set; } = false;
         /// <summary>True when this row is a storno (cancellation reversal). Original payment is never modified; this reversal references it via OriginalPaymentId.</summary>
         public bool IsStorno { get; set; } = false;
+
+        /// <summary>For storno/refund rows: canonical receipt id of the original sale (forensic link).</summary>
+        public Guid? OriginalReceiptId { get; set; }
+
+        /// <summary>
+        /// When the payment was created from a controlled offline intent,
+        /// this links the canonical fiscal PaymentDetails to the original OfflineTransaction.
+        /// </summary>
+        public Guid? OfflineTransactionId { get; set; }
+        public virtual OfflineTransaction? OfflineTransaction { get; set; }
         [MaxLength(200)]
         public string? RefundReason { get; set; }
         [Column(TypeName = "decimal(18,2)")]

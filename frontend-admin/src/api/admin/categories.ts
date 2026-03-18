@@ -15,16 +15,33 @@ function unwrapData<T>(res: any): T {
   return res as T;
 }
 
-export function getAdminCategories(options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) {
-  return customInstance<Category[]>({ url: ADMIN_CATEGORIES, method: 'GET', signal }, options).then(unwrapData);
+export function getAdminCategories(
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<Category[]> {
+  return customInstance<Category[]>({ url: ADMIN_CATEGORIES, method: 'GET', signal }, options).then((res) =>
+    unwrapData<Category[]>(res)
+  );
 }
 
-export function getAdminCategoryById(id: string, options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) {
-  return customInstance<Category>({ url: `${ADMIN_CATEGORIES}/${id}`, method: 'GET', signal }, options).then(unwrapData);
+export function getAdminCategoryById(
+  id: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<Category> {
+  return customInstance<Category>({ url: `${ADMIN_CATEGORIES}/${id}`, method: 'GET', signal }, options).then((res) =>
+    unwrapData<Category>(res)
+  );
 }
 
-export function createAdminCategory(data: CreateCategoryRequest, options?: SecondParameter<typeof customInstance>) {
-  return customInstance<Category>({ url: ADMIN_CATEGORIES, method: 'POST', headers: { 'Content-Type': 'application/json' }, data }, options).then(unwrapData);
+export function createAdminCategory(
+  data: CreateCategoryRequest,
+  options?: SecondParameter<typeof customInstance>
+): Promise<Category> {
+  return customInstance<Category>(
+    { url: ADMIN_CATEGORIES, method: 'POST', headers: { 'Content-Type': 'application/json' }, data },
+    options
+  ).then((res) => unwrapData<Category>(res));
 }
 
 export function updateAdminCategory(id: string, data: UpdateCategoryRequest, options?: SecondParameter<typeof customInstance>) {
@@ -35,12 +52,24 @@ export function deleteAdminCategory(id: string, options?: SecondParameter<typeof
   return customInstance<void>({ url: `${ADMIN_CATEGORIES}/${id}`, method: 'DELETE' }, options);
 }
 
-export function getAdminCategoryProducts(id: string, options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) {
-  return customInstance<Product[]>({ url: `${ADMIN_CATEGORIES}/${id}/products`, method: 'GET', signal }, options).then(unwrapData);
+export function getAdminCategoryProducts(
+  id: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<Product[]> {
+  return customInstance<Product[]>({ url: `${ADMIN_CATEGORIES}/${id}/products`, method: 'GET', signal }, options).then((res) =>
+    unwrapData<Product[]>(res)
+  );
 }
 
-export function searchAdminCategories(query: string, options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) {
-  return customInstance<Category[]>({ url: `${ADMIN_CATEGORIES}/search`, method: 'GET', params: { query }, signal }, options).then(unwrapData);
+export function searchAdminCategories(
+  query: string,
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal
+): Promise<Category[]> {
+  return customInstance<Category[]>({ url: `${ADMIN_CATEGORIES}/search`, method: 'GET', params: { query }, signal }, options).then((res) =>
+    unwrapData<Category[]>(res)
+  );
 }
 
 export const adminCategoriesQueryKeys = {

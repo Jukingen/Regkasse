@@ -72,7 +72,7 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// Yeni ödeme oluştur
         /// </summary>
-        public async Task<PaymentResult> CreatePaymentAsync(CreatePaymentRequest request, string userId)
+        public async Task<PaymentResult> CreatePaymentAsync(CreatePaymentRequest request, string userId, Guid? offlineTransactionId = null)
         {
             try
             {
@@ -147,6 +147,20 @@ namespace KasseAPI_Final.Services
                         .FirstOrDefaultAsync(p => p.IdempotencyKey == idempotencyKey);
                     if (existing != null)
                     {
+                        // If this payment is linked to a controlled offline intent and the record was previously created
+                        // without that link (idempotent replay), attach the forensic link without touching fiscal fields.
+                        if (offlineTransactionId != null && existing.OfflineTransactionId == null)
+                        {
+                            var tracked = await _context.PaymentDetails
+                                .FirstOrDefaultAsync(p => p.Id == existing.Id);
+                            if (tracked != null && tracked.OfflineTransactionId == null)
+                            {
+                                tracked.OfflineTransactionId = offlineTransactionId;
+                                await _context.SaveChangesAsync();
+                                existing = tracked;
+                            }
+                        }
+
                         var invoiceExists = await _context.Invoices.AsNoTracking()
                             .AnyAsync(i => i.SourcePaymentId == existing.Id);
                         _logger.LogInformation("Idempotent payment request: returning existing payment {PaymentId} for key {Key}", existing.Id, idempotencyKey);
@@ -573,7 +587,8 @@ namespace KasseAPI_Final.Services
                         IsPrinted = false,
                         ReceiptNumber = preReceiptNumber,
                         AppliedBenefitsSnapshot = appliedBenefitsSnapshot,
-                        IdempotencyKey = idempotencyKey
+                        IdempotencyKey = idempotencyKey,
+                        OfflineTransactionId = offlineTransactionId
                     };
 
                     // TSE imzası oluştur (eğer gerekliyse). External call; if it fails we rollback the transaction (no DB changes committed yet).
@@ -586,7 +601,8 @@ namespace KasseAPI_Final.Services
                                 preReceiptNumber,
                                 payment.TotalAmount,
                                 registerNumber,
-                                taxDetailsJson: JsonSerializer.Serialize(taxDetails));
+                                taxDetailsJson: JsonSerializer.Serialize(taxDetails),
+                                dbTransaction: transaction);
                             payment.TseSignature = sigResult.CompactJws;
                             payment.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
                             _logger.LogInformation("TSE signature generated for payment {PaymentId}", payment.Id);
@@ -704,6 +720,17 @@ namespace KasseAPI_Final.Services
                     paymentMethod: createdPayment.PaymentMethodRaw,
                     tseSignature: createdPayment.TseSignature,
                     responseData: new { createdPayment.Id, createdPayment.ReceiptNumber, createdPayment.TotalAmount, createdPayment.CashRegisterId, CreatedAt = createdPayment.CreatedAt });
+
+                var persistedReceipt = await _context.Receipts.AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.PaymentId == createdPayment.Id);
+                if (persistedReceipt != null)
+                {
+                    await LogPaymentAuditAsync("ReceiptPersisted", "Receipt", persistedReceipt.ReceiptId, userId,
+                        amount: createdPayment.TotalAmount,
+                        tseSignature: createdPayment.TseSignature,
+                        description: "Canonical fiscal receipt persisted with payment",
+                        responseData: new { persistedReceipt.ReceiptId, persistedReceipt.ReceiptNumber, PaymentId = createdPayment.Id, createdPayment.CashRegisterId });
+                }
 
                 // FinanzOnline: best-effort after commit; failure does not roll back DB.
                 if (effectiveTseRequired)
@@ -1323,7 +1350,10 @@ namespace KasseAPI_Final.Services
 
             var cashRegisterId = payment.CashRegisterId;
             var registerNumber = reg.RegisterNumber;
-            var stornoBelegNr = await _receiptSequenceService.AllocateNextBelegNrAsync(cashRegisterId, registerNumber, DateTime.UtcNow);
+            var originalReceipt = await _context.Receipts.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.PaymentId == paymentId);
+            var originalInvoice = await _context.Invoices.AsNoTracking()
+                .FirstOrDefaultAsync(i => i.SourcePaymentId == paymentId);
 
             var originalItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();
             var stornoItems = originalItems.Select(i => new PaymentItem
@@ -1360,117 +1390,128 @@ namespace KasseAPI_Final.Services
             var stornoTaxDetails = originalTaxDetails.ToDictionary(kv => kv.Key, kv => -kv.Value);
 
             var stornoId = Guid.NewGuid();
-            var storno = new PaymentDetails
-            {
-                Id = stornoId,
-                CustomerId = payment.CustomerId,
-                CustomerName = payment.CustomerName,
-                PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(stornoItems)),
-                TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(stornoTaxDetails)),
-                OriginalPaymentId = paymentId,
-                IsRefund = false,
-                IsStorno = true,
-                CancellationReason = reason,
-                CancelledAt = DateTime.UtcNow,
-                TotalAmount = -payment.TotalAmount,
-                TaxAmount = -payment.TaxAmount,
-                PaymentMethod = payment.PaymentMethod,
-                Notes = $"Storno: {reason}",
-                CreatedBy = userId,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true,
-                Steuernummer = payment.Steuernummer ?? string.Empty,
-                CashRegisterId = cashRegisterId,
-                CashierId = userId,
-                TableNumber = payment.TableNumber,
-                TseTimestamp = DateTime.UtcNow,
-                ReceiptNumber = stornoBelegNr,
-                CancelIdempotencyKey = cancelIdempotencyKey
-            };
+            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            string stornoBelegNr = string.Empty;
+            Guid stornoInvoiceId = Guid.Empty;
 
+            await using var dbTx = await _context.Database.BeginTransactionAsync();
             try
             {
-                var sigResult = await _tseService.CreateInvoiceSignatureAsync(
-                    cashRegisterId,
-                    stornoBelegNr,
-                    storno.TotalAmount,
-                    registerNumber,
-                    taxDetailsJson: JsonSerializer.Serialize(stornoTaxDetails));
+                stornoBelegNr = await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(dbTx, cashRegisterId, registerNumber, DateTime.UtcNow);
+
+                var storno = new PaymentDetails
+                {
+                    Id = stornoId,
+                    CustomerId = payment.CustomerId,
+                    CustomerName = payment.CustomerName,
+                    PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(stornoItems)),
+                    TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(stornoTaxDetails)),
+                    OriginalPaymentId = paymentId,
+                    OriginalReceiptId = originalReceipt?.ReceiptId,
+                    IsRefund = false,
+                    IsStorno = true,
+                    CancellationReason = reason,
+                    CancelledAt = DateTime.UtcNow,
+                    TotalAmount = -payment.TotalAmount,
+                    TaxAmount = -payment.TaxAmount,
+                    PaymentMethod = payment.PaymentMethod,
+                    Notes = $"Storno: {reason}",
+                    CreatedBy = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true,
+                    Steuernummer = payment.Steuernummer ?? string.Empty,
+                    CashRegisterId = cashRegisterId,
+                    CashierId = userId,
+                    TableNumber = payment.TableNumber,
+                    TseTimestamp = DateTime.UtcNow,
+                    ReceiptNumber = stornoBelegNr,
+                    CancelIdempotencyKey = cancelIdempotencyKey
+                };
+
+                TseSignatureResult sigResult;
+                try
+                {
+                    sigResult = await _tseService.CreateInvoiceSignatureAsync(
+                        cashRegisterId,
+                        stornoBelegNr,
+                        storno.TotalAmount,
+                        registerNumber,
+                        taxDetailsJson: JsonSerializer.Serialize(stornoTaxDetails),
+                        dbTransaction: dbTx);
+                }
+                catch (Exception ex)
+                {
+                    await dbTx.RollbackAsync();
+                    _logger.LogError(ex, "Failed to generate TSE signature for storno {StornoId}", stornoId);
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Failed to generate TSE signature for reversal",
+                        Errors = { "TSE signature generation failed" }
+                    };
+                }
+
                 storno.TseSignature = sigResult.CompactJws;
                 storno.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
                 _logger.LogInformation("TSE signature generated for storno {StornoId} BelegNr {BelegNr}", stornoId, stornoBelegNr);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to generate TSE signature for storno {StornoId}", stornoId);
-                return new PaymentResult
+
+                stornoInvoiceId = Guid.NewGuid();
+                var stornoInvoice = new Invoice
                 {
-                    Success = false,
-                    Message = "Failed to generate TSE signature for reversal",
-                    Errors = { "TSE signature generation failed" }
+                    Id = stornoInvoiceId,
+                    SourcePaymentId = storno.Id,
+                    InvoiceNumber = storno.ReceiptNumber,
+                    InvoiceDate = storno.CreatedAt,
+                    DueDate = storno.CreatedAt,
+                    Status = InvoiceStatus.Paid,
+                    Subtotal = storno.TotalAmount - storno.TaxAmount,
+                    TaxAmount = storno.TaxAmount,
+                    TotalAmount = storno.TotalAmount,
+                    PaidAmount = storno.TotalAmount,
+                    RemainingAmount = 0,
+                    CustomerName = storno.CustomerName,
+                    CustomerTaxNumber = payment.Steuernummer,
+                    CompanyName = _companyProfile.CompanyName,
+                    CompanyTaxNumber = _companyProfile.TaxNumber,
+                    CompanyAddress = companyAddress,
+                    TseSignature = storno.TseSignature ?? string.Empty,
+                    KassenId = registerNumber,
+                    TseTimestamp = storno.TseTimestamp,
+                    CashRegisterId = cashRegisterId,
+                    PaymentMethod = payment.PaymentMethod,
+                    PaymentReference = null,
+                    PaymentDate = storno.CreatedAt,
+                    InvoiceItems = storno.PaymentItems,
+                    TaxDetails = storno.TaxDetails,
+                    DocumentType = DocumentType.CreditNote,
+                    OriginalInvoiceId = originalInvoice?.Id,
+                    StornoReasonCode = null,
+                    StornoReasonText = reason,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId,
+                    IsActive = true
                 };
-            }
 
-            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
-            var originalInvoice = await _context.Invoices.AsNoTracking()
-                .FirstOrDefaultAsync(i => i.SourcePaymentId == paymentId);
+                _context.PaymentDetails.Add(storno);
+                _context.Invoices.Add(stornoInvoice);
+                await _receiptService.AddReceiptFromPaymentToContextAsync(storno);
 
-            var stornoInvoice = new Invoice
-            {
-                Id = Guid.NewGuid(),
-                SourcePaymentId = storno.Id,
-                InvoiceNumber = storno.ReceiptNumber,
-                InvoiceDate = storno.CreatedAt,
-                DueDate = storno.CreatedAt,
-                Status = InvoiceStatus.Paid,
-                Subtotal = storno.TotalAmount - storno.TaxAmount,
-                TaxAmount = storno.TaxAmount,
-                TotalAmount = storno.TotalAmount,
-                PaidAmount = storno.TotalAmount,
-                RemainingAmount = 0,
-                CustomerName = storno.CustomerName,
-                CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = _companyProfile.CompanyName,
-                CompanyTaxNumber = _companyProfile.TaxNumber,
-                CompanyAddress = companyAddress,
-                TseSignature = storno.TseSignature ?? string.Empty,
-                KassenId = registerNumber,
-                TseTimestamp = storno.TseTimestamp,
-                CashRegisterId = cashRegisterId,
-                PaymentMethod = payment.PaymentMethod,
-                PaymentReference = null,
-                PaymentDate = storno.CreatedAt,
-                InvoiceItems = storno.PaymentItems,
-                TaxDetails = storno.TaxDetails,
-                DocumentType = DocumentType.CreditNote,
-                OriginalInvoiceId = originalInvoice?.Id,
-                StornoReasonCode = null,
-                StornoReasonText = reason,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = userId,
-                IsActive = true
-            };
-
-            _context.PaymentDetails.Add(storno);
-            _context.Invoices.Add(stornoInvoice);
-            await _receiptService.AddReceiptFromPaymentToContextAsync(storno);
-
-            foreach (var item in originalItems)
-            {
-                var product = await _context.Products.FindAsync(item.ProductId);
-                if (product != null)
+                foreach (var item in originalItems)
                 {
-                    product.StockQuantity += item.Quantity;
-                    product.UpdatedAt = DateTime.UtcNow;
+                    var product = await _context.Products.FindAsync(item.ProductId);
+                    if (product != null)
+                    {
+                        product.StockQuantity += item.Quantity;
+                        product.UpdatedAt = DateTime.UtcNow;
+                    }
                 }
-            }
 
-            try
-            {
                 await _context.SaveChangesAsync();
+                await dbTx.CommitAsync();
             }
             catch (DbUpdateException ex) when (IsCancelIdempotencyKeyViolation(ex))
             {
+                await dbTx.RollbackAsync();
                 if (cancelIdempotencyKey != null)
                 {
                     var existing = await _context.PaymentDetails.AsNoTracking()
@@ -1488,23 +1529,44 @@ namespace KasseAPI_Final.Services
                 }
                 throw;
             }
+            catch (Exception ex)
+            {
+                await dbTx.RollbackAsync();
+                _logger.LogError(ex, "Storno fiscal transaction failed for payment {PaymentId}", paymentId);
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = "Storno transaction failed",
+                    Errors = { ex.Message }
+                };
+            }
+
+            var stornoRow = await _context.PaymentDetails.AsNoTracking()
+                .FirstAsync(p => p.Id == stornoId);
 
             _logger.LogInformation("Storno created for payment {PaymentId} by user {UserId} (BelegNr {BelegNr}, Invoice {InvoiceId}). Original payment unchanged.",
-                paymentId, userId, stornoBelegNr, stornoInvoice.Id);
+                paymentId, userId, stornoBelegNr, stornoInvoiceId);
 
-            // Audit: append-only, after successful commit. Best-effort.
-            await LogPaymentAuditAsync("PaymentReversal", "Payment", storno.Id, userId,
-                amount: storno.TotalAmount,
-                paymentMethod: storno.PaymentMethodRaw,
-                tseSignature: storno.TseSignature,
+            await LogPaymentAuditAsync("PaymentReversal", "Payment", stornoRow.Id, userId,
+                amount: stornoRow.TotalAmount,
+                paymentMethod: stornoRow.PaymentMethodRaw,
+                tseSignature: stornoRow.TseSignature,
                 description: reason,
-                responseData: new { storno.Id, storno.ReceiptNumber, OriginalPaymentId = storno.OriginalPaymentId, storno.CancellationReason, CreatedAt = storno.CreatedAt });
+                responseData: new
+                {
+                    stornoRow.Id,
+                    stornoRow.ReceiptNumber,
+                    stornoRow.OriginalPaymentId,
+                    stornoRow.OriginalReceiptId,
+                    stornoRow.CancellationReason,
+                    CreatedAt = stornoRow.CreatedAt
+                });
 
             return new PaymentResult
             {
                 Success = true,
                 Message = "Payment cancelled successfully",
-                Payment = storno
+                Payment = stornoRow
             };
         }
 
@@ -1620,7 +1682,10 @@ namespace KasseAPI_Final.Services
 
                 var refundCashRegisterId = payment.CashRegisterId;
                 var refundRegisterNumber = refundReg.RegisterNumber;
-                var refundBelegNr = await _receiptSequenceService.AllocateNextBelegNrAsync(refundCashRegisterId, refundRegisterNumber, DateTime.UtcNow);
+                var originalSaleReceipt = await _context.Receipts.AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.PaymentId == paymentId);
+                var originalInvoiceForRefund = await _context.Invoices.AsNoTracking()
+                    .FirstOrDefaultAsync(i => i.SourcePaymentId == paymentId);
 
                 // Build negated PaymentItems so Receipt totals match (full or partial refund)
                 var originalItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();
@@ -1663,119 +1728,131 @@ namespace KasseAPI_Final.Services
                 var refundTaxDetails = originalTaxDetails.ToDictionary(kv => kv.Key, kv => -kv.Value * refundRatio);
 
                 var refundId = Guid.NewGuid();
-                var refund = new PaymentDetails
-                {
-                    Id = refundId,
-                    CustomerId = payment.CustomerId,
-                    CustomerName = payment.CustomerName,
-                    PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(refundItems)),
-                    TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(refundTaxDetails)),
-                    OriginalPaymentId = paymentId,
-                    IsRefund = true,
-                    RefundReason = reason,
-                    RefundAmount = amount,
-                    RefundedAt = DateTime.UtcNow,
-                    TotalAmount = -amount,
-                    TaxAmount = refundTaxAmount,
-                    PaymentMethod = payment.PaymentMethod,
-                    Notes = $"Refund: {reason}",
-                    CreatedBy = userId,
-                    CreatedAt = DateTime.UtcNow,
-                    IsActive = true,
-                    Steuernummer = payment.Steuernummer ?? string.Empty,
-                    CashRegisterId = refundCashRegisterId,
-                    CashierId = userId,
-                    TableNumber = payment.TableNumber,
-                    TseTimestamp = DateTime.UtcNow,
-                    ReceiptNumber = refundBelegNr,
-                    IdempotencyKey = refundKey
-                };
+                var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+                string refundBelegNr = string.Empty;
+                Guid refundInvoiceId = Guid.Empty;
 
-                // TSE signature for refund Beleg (negative amount)
+                await using var refundTx = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    var sigResult = await _tseService.CreateInvoiceSignatureAsync(
-                        refundCashRegisterId,
-                        refundBelegNr,
-                        refund.TotalAmount,
-                        refundRegisterNumber,
-                        taxDetailsJson: JsonSerializer.Serialize(refundTaxDetails));
+                    refundBelegNr = await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(refundTx, refundCashRegisterId, refundRegisterNumber, DateTime.UtcNow);
+
+                    var refund = new PaymentDetails
+                    {
+                        Id = refundId,
+                        CustomerId = payment.CustomerId,
+                        CustomerName = payment.CustomerName,
+                        PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(refundItems)),
+                        TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(refundTaxDetails)),
+                        OriginalPaymentId = paymentId,
+                        OriginalReceiptId = originalSaleReceipt?.ReceiptId,
+                        IsRefund = true,
+                        RefundReason = reason,
+                        RefundAmount = amount,
+                        RefundedAt = DateTime.UtcNow,
+                        TotalAmount = -amount,
+                        TaxAmount = refundTaxAmount,
+                        PaymentMethod = payment.PaymentMethod,
+                        Notes = $"Refund: {reason}",
+                        CreatedBy = userId,
+                        CreatedAt = DateTime.UtcNow,
+                        IsActive = true,
+                        Steuernummer = payment.Steuernummer ?? string.Empty,
+                        CashRegisterId = refundCashRegisterId,
+                        CashierId = userId,
+                        TableNumber = payment.TableNumber,
+                        TseTimestamp = DateTime.UtcNow,
+                        ReceiptNumber = refundBelegNr,
+                        IdempotencyKey = refundKey
+                    };
+
+                    TseSignatureResult sigResult;
+                    try
+                    {
+                        sigResult = await _tseService.CreateInvoiceSignatureAsync(
+                            refundCashRegisterId,
+                            refundBelegNr,
+                            refund.TotalAmount,
+                            refundRegisterNumber,
+                            taxDetailsJson: JsonSerializer.Serialize(refundTaxDetails),
+                            dbTransaction: refundTx);
+                    }
+                    catch (Exception ex)
+                    {
+                        await refundTx.RollbackAsync();
+                        _logger.LogError(ex, "Failed to generate TSE signature for refund {RefundId}", refundId);
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Failed to generate TSE signature for refund",
+                            Errors = { "TSE signature generation failed" }
+                        };
+                    }
+
                     refund.TseSignature = sigResult.CompactJws;
                     refund.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
                     _logger.LogInformation("TSE signature generated for refund {RefundId} BelegNr {BelegNr}", refundId, refundBelegNr);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to generate TSE signature for refund {RefundId}", refundId);
-                    return new PaymentResult
+
+                    refundInvoiceId = Guid.NewGuid();
+                    var refundInvoice = new Invoice
                     {
-                        Success = false,
-                        Message = "Failed to generate TSE signature for refund",
-                        Errors = { "TSE signature generation failed" }
+                        Id = refundInvoiceId,
+                        SourcePaymentId = refund.Id,
+                        InvoiceNumber = refund.ReceiptNumber,
+                        InvoiceDate = refund.CreatedAt,
+                        DueDate = refund.CreatedAt,
+                        Status = InvoiceStatus.Paid,
+                        Subtotal = refund.TotalAmount - refund.TaxAmount,
+                        TaxAmount = refund.TaxAmount,
+                        TotalAmount = refund.TotalAmount,
+                        PaidAmount = refund.TotalAmount,
+                        RemainingAmount = 0,
+                        CustomerName = refund.CustomerName,
+                        CustomerTaxNumber = payment.Steuernummer,
+                        CompanyName = _companyProfile.CompanyName,
+                        CompanyTaxNumber = _companyProfile.TaxNumber,
+                        CompanyAddress = companyAddress,
+                        TseSignature = refund.TseSignature ?? string.Empty,
+                        KassenId = refundRegisterNumber,
+                        TseTimestamp = refund.TseTimestamp,
+                        CashRegisterId = refundCashRegisterId,
+                        PaymentMethod = payment.PaymentMethod,
+                        PaymentReference = null,
+                        PaymentDate = refund.CreatedAt,
+                        InvoiceItems = refund.PaymentItems,
+                        TaxDetails = refund.TaxDetails,
+                        DocumentType = DocumentType.CreditNote,
+                        OriginalInvoiceId = originalInvoiceForRefund?.Id,
+                        StornoReasonText = reason,
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userId,
+                        IsActive = true
                     };
-                }
 
-                // Sprint 3: Single fiscal transaction — Refund Payment + Invoice + Receipt; then stock revert
-                var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+                    _context.PaymentDetails.Add(refund);
+                    _context.Invoices.Add(refundInvoice);
+                    await _receiptService.AddReceiptFromPaymentToContextAsync(refund);
 
-                var refundInvoice = new Invoice
-                {
-                    Id = Guid.NewGuid(),
-                    SourcePaymentId = refund.Id,
-                    InvoiceNumber = refund.ReceiptNumber,
-                    InvoiceDate = refund.CreatedAt,
-                    DueDate = refund.CreatedAt,
-                    Status = InvoiceStatus.Paid,
-                    Subtotal = refund.TotalAmount - refund.TaxAmount,
-                    TaxAmount = refund.TaxAmount,
-                    TotalAmount = refund.TotalAmount,
-                    PaidAmount = refund.TotalAmount,
-                    RemainingAmount = 0,
-                    CustomerName = refund.CustomerName,
-                    CustomerTaxNumber = payment.Steuernummer,
-                    CompanyName = _companyProfile.CompanyName,
-                    CompanyTaxNumber = _companyProfile.TaxNumber,
-                    CompanyAddress = companyAddress,
-                    TseSignature = refund.TseSignature ?? string.Empty,
-                    KassenId = refundRegisterNumber,
-                    TseTimestamp = refund.TseTimestamp,
-                    CashRegisterId = refundCashRegisterId,
-                    PaymentMethod = payment.PaymentMethod,
-                    PaymentReference = null,
-                    PaymentDate = refund.CreatedAt,
-                    InvoiceItems = refund.PaymentItems,
-                    TaxDetails = refund.TaxDetails,
-                    DocumentType = DocumentType.Invoice,
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = userId,
-                    IsActive = true
-                };
-
-                _context.PaymentDetails.Add(refund);
-                _context.Invoices.Add(refundInvoice);
-                await _receiptService.AddReceiptFromPaymentToContextAsync(refund);
-
-                // Stock revert in same transaction (partial or full)
-                foreach (var item in originalItems)
-                {
-                    var product = await _context.Products.FindAsync(item.ProductId);
-                    if (product != null)
+                    foreach (var item in originalItems)
                     {
-                        var refundQuantity = (int)Math.Round(item.Quantity * refundRatio);
-                        if (refundQuantity > 0)
+                        var product = await _context.Products.FindAsync(item.ProductId);
+                        if (product != null)
                         {
-                            product.StockQuantity += refundQuantity;
-                            product.UpdatedAt = DateTime.UtcNow;
+                            var refundQuantity = (int)Math.Round(item.Quantity * refundRatio);
+                            if (refundQuantity > 0)
+                            {
+                                product.StockQuantity += refundQuantity;
+                                product.UpdatedAt = DateTime.UtcNow;
+                            }
                         }
                     }
-                }
 
-                try
-                {
                     await _context.SaveChangesAsync();
+                    await refundTx.CommitAsync();
                 }
                 catch (DbUpdateException ex) when (IsIdempotencyKeyViolation(ex))
                 {
+                    await refundTx.RollbackAsync();
                     if (refundKey != null)
                     {
                         var existing = await _context.PaymentDetails.AsNoTracking()
@@ -1793,23 +1870,44 @@ namespace KasseAPI_Final.Services
                     }
                     throw;
                 }
+                catch (Exception ex)
+                {
+                    await refundTx.RollbackAsync();
+                    _logger.LogError(ex, "Refund fiscal transaction failed for payment {PaymentId}", paymentId);
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Refund transaction failed",
+                        Errors = { ex.Message }
+                    };
+                }
+
+                var refundRow = await _context.PaymentDetails.AsNoTracking()
+                    .FirstAsync(p => p.Id == refundId);
 
                 _logger.LogInformation("Refund created for payment {PaymentId} by user {UserId} for amount {Amount} (BelegNr {BelegNr}, Invoice {InvoiceId})",
-                    paymentId, userId, amount, refundBelegNr, refundInvoice.Id);
+                    paymentId, userId, amount, refundBelegNr, refundInvoiceId);
 
-                // Audit: append-only, after successful commit. Best-effort.
-                await LogPaymentAuditAsync("PaymentRefunded", "Payment", refund.Id, userId,
-                    amount: refund.TotalAmount,
-                    paymentMethod: refund.PaymentMethodRaw,
-                    tseSignature: refund.TseSignature,
+                await LogPaymentAuditAsync("PaymentRefunded", "Payment", refundRow.Id, userId,
+                    amount: refundRow.TotalAmount,
+                    paymentMethod: refundRow.PaymentMethodRaw,
+                    tseSignature: refundRow.TseSignature,
                     description: reason,
-                    responseData: new { refund.Id, refund.ReceiptNumber, OriginalPaymentId = refund.OriginalPaymentId, RefundAmount = amount, CreatedAt = refund.CreatedAt });
+                    responseData: new
+                    {
+                        refundRow.Id,
+                        refundRow.ReceiptNumber,
+                        refundRow.OriginalPaymentId,
+                        refundRow.OriginalReceiptId,
+                        RefundAmount = amount,
+                        CreatedAt = refundRow.CreatedAt
+                    });
 
                 return new PaymentResult
                 {
                     Success = true,
                     Message = "Refund processed successfully",
-                    Payment = refund
+                    Payment = refundRow
                 };
             }
             catch (Exception ex)

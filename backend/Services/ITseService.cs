@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tse;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace KasseAPI_Final.Services
 {
@@ -12,7 +13,8 @@ namespace KasseAPI_Final.Services
         Task<bool> ConnectTseDeviceAsync(string deviceId);
         Task<bool> DisconnectTseDeviceAsync(string deviceId);
         /// <param name="registerNumber">Fiscal Kassen-ID string (CashRegister.RegisterNumber), not the UUID.</param>
-        Task<TseSignatureResult> CreateInvoiceSignatureAsync(Guid cashRegisterId, string invoiceNumber, decimal totalAmount, string registerNumber, string? prevSignatureValue = null, DateTime? timestamp = null, string? taxDetailsJson = null);
+        /// <param name="dbTransaction">When set, signature + chain update participate in this transaction (caller commits). Required for atomic payment/reversal with receipt persistence.</param>
+        Task<TseSignatureResult> CreateInvoiceSignatureAsync(Guid cashRegisterId, string invoiceNumber, decimal totalAmount, string registerNumber, string? prevSignatureValue = null, DateTime? timestamp = null, string? taxDetailsJson = null, IDbContextTransaction? dbTransaction = null);
         Task<string> CreateDailyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount);
         Task<string> CreateMonthlyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount);
         Task<string> CreateYearlyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount);

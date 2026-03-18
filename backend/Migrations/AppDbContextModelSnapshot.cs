@@ -2009,6 +2009,117 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("localization_settings");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.OfflineTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("ClientSequenceNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("client_sequence_number");
+
+                    b.Property<bool>("ClockDriftWarning")
+                        .HasColumnType("boolean")
+                        .HasColumnName("clock_drift_warning");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("device_id");
+
+                    b.Property<DateTime?>("FiscalizedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("LastErrorMessageSafe")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime?>("LastReplayAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("OfflineCreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("payload_hash");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("SequenceDuplicateDetected")
+                        .HasColumnType("boolean")
+                        .HasColumnName("sequence_duplicate_detected");
+
+                    b.Property<bool>("SequenceGapDetected")
+                        .HasColumnType("boolean")
+                        .HasColumnName("sequence_gap_detected");
+
+                    b.Property<DateTime>("ServerReceivedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("server_received_at_utc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("SyncedPaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SyncedPaymentId");
+
+                    b.HasIndex("CashRegisterId", "PayloadHash")
+                        .IsUnique();
+
+                    b.HasIndex("CashRegisterId", "DeviceId", "ClientSequenceNumber")
+                        .IsUnique();
+
+                    b.ToTable("offline_transactions", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2273,8 +2384,16 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid?>("OfflineTransactionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offline_transaction_id");
+
                     b.Property<Guid?>("OriginalPaymentId")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OriginalReceiptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("original_receipt_id");
 
                     b.Property<string>("PaymentItems")
                         .IsRequired()
@@ -2368,6 +2487,10 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("IdempotencyKey")
                         .IsUnique()
                         .HasFilter("\"idempotency_key\" IS NOT NULL");
+
+                    b.HasIndex("OfflineTransactionId");
+
+                    b.HasIndex("OriginalReceiptId");
 
                     b.HasIndex("PaymentMethodRaw");
 
@@ -4353,9 +4476,21 @@ namespace KasseAPI_Final.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("KasseAPI_Final.Models.OfflineTransaction", "OfflineTransaction")
+                        .WithMany()
+                        .HasForeignKey("OfflineTransactionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Receipt", null)
+                        .WithMany()
+                        .HasForeignKey("OriginalReceiptId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("CashRegister");
 
                     b.Navigation("Customer");
+
+                    b.Navigation("OfflineTransaction");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.PaymentLogEntry", b =>

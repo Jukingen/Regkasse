@@ -38,7 +38,7 @@ public class Phase2ReceiptFlatTests
         var productRepo = new GenericRepository<Product>(context, loggerProd);
         var customerRepo = new GenericRepository<Customer>(context, loggerCust);
         var tseMock = new Mock<ITseService>();
-        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<DateTime?>(), It.IsAny<string?>()))
+        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<DateTime?>(), It.IsAny<string?>(), It.IsAny<IDbContextTransaction?>()))
             .ReturnsAsync(new TseSignatureResult("eyJ.eyJ.sign", "prev"));
         tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
             .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert123" });

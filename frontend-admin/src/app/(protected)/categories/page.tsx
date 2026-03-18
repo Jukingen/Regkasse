@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
-import type { Category } from '@/api/generated/model';
+import type { Category, CreateCategoryRequest, UpdateCategoryRequest } from '@/api/generated/model';
 import { Button, Table, Space, message, Popconfirm, Tooltip, Empty, Spin, Input, Alert } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useCategories } from '@/features/categories/hooks/useCategories';
@@ -12,8 +12,8 @@ import type { CategoryFormSubmitValues } from '@/features/categories/components/
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import type { ColumnType } from 'antd/es/table';
 
-type CategoryCreatePayload = Parameters<ReturnType<typeof useCategories>['useCreate']>['0']['data'] & { vatRate?: number };
-type CategoryUpdatePayload = Parameters<ReturnType<typeof useCategories>['useUpdate']>['0']['data'] & { vatRate?: number };
+type CategoryCreatePayload = CreateCategoryRequest & { vatRate?: number };
+type CategoryUpdatePayload = UpdateCategoryRequest & { vatRate?: number };
 
 const SEARCH_DEBOUNCE_MS = 400;
 

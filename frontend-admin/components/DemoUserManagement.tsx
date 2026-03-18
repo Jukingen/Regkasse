@@ -138,7 +138,9 @@ export default function DemoUserManagement() {
           <View style={styles.emptyState}>
             <MaterialIcons name="people" size={48} color="#ccc" />
             <Text style={styles.emptyText}>Henüz demo kullanıcı yok</Text>
-            <Text style={styles.emptySubtext}>Demo kullanıcıları oluşturmak için "Oluştur" butonuna tıklayın</Text>
+            <Text style={styles.emptySubtext}>
+              Demo kullanıcıları oluşturmak için {"\"Oluştur\""} butonuna tıklayın
+            </Text>
           </View>
         }
       />

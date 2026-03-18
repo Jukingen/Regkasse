@@ -138,8 +138,8 @@ export const storage = {
             }
         } else {
             try {
-                const allKeys = await AsyncStorage.getAllKeys();
-                const keysToRemove = allKeys.filter(key => partials.some(p => key.includes(p)));
+                const allKeys = (await AsyncStorage.getAllKeys()) as string[];
+                const keysToRemove = allKeys.filter((key: string) => partials.some(p => key.includes(p)));
                 if (keysToRemove.length > 0) {
                     await AsyncStorage.multiRemove(keysToRemove);
                 }
