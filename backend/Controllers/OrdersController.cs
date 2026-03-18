@@ -1,6 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Authorization;
@@ -78,6 +80,21 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
+                // Sprint 6: Idempotency — if key provided and we already have an order with this key, return it.
+                var key = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim();
+                if (key != null)
+                {
+                    var existingOrder = await _context.Orders
+                        .Include(o => o.Items)
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(o => o.IdempotencyKey == key);
+                    if (existingOrder != null)
+                    {
+                        _logger.LogInformation("Idempotent order create: returning existing order {OrderId} for key {Key}", existingOrder.Id, key);
+                        return Ok(existingOrder);
+                    }
+                }
+
                 // Benzersiz order_id oluştur
                 var orderId = GenerateOrderId();
                 
@@ -91,7 +108,8 @@ namespace KasseAPI_Final.Controllers
                     CustomerPhone = request.CustomerPhone,
                     Notes = request.Notes,
                     OrderDate = DateTime.UtcNow,
-                    Status = OrderStatus.Pending
+                    Status = OrderStatus.Pending,
+                    IdempotencyKey = key
                 };
 
                 // Order items oluştur ve hesaplamaları yap
@@ -150,12 +168,33 @@ namespace KasseAPI_Final.Controllers
                 // Order ve OrderItems'ları kaydet
                 _context.Orders.Add(order);
                 _context.OrderItems.AddRange(orderItems);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex) when (IsOrderIdempotencyKeyViolation(ex))
+                {
+                    if (key != null)
+                    {
+                        var existing = await _context.Orders
+                            .Include(o => o.Items)
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(o => o.IdempotencyKey == key);
+                        if (existing != null)
+                        {
+                            _logger.LogInformation("Idempotent order create (race): returning existing order {OrderId} for key {Key}", existing.Id, key);
+                            return Ok(existing);
+                        }
+                    }
+                    throw;
+                }
 
                 // Oluşturulan order'ı döndür
                 var createdOrder = await _context.Orders
                     .Include(o => o.Items)
                     .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                if (createdOrder == null)
+                    return StatusCode(500, new { message = "Order was saved but could not be retrieved" });
 
                 return CreatedAtAction(nameof(GetOrder), new { id = createdOrder.Id }, createdOrder);
             }
@@ -164,6 +203,17 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogError(ex, "Error creating order");
                 return StatusCode(500, new { message = "Internal server error" });
             }
+        }
+
+        private static bool IsOrderIdempotencyKeyViolation(DbUpdateException ex)
+        {
+            for (var e = ex.InnerException; e != null; e = e.InnerException)
+            {
+                if (e is PostgresException pg && pg.SqlState == "23505" &&
+                    (pg.ConstraintName?.Contains("idempotency", StringComparison.OrdinalIgnoreCase) ?? false))
+                    return true;
+            }
+            return false;
         }
 
         // PUT: api/orders/{id}/status
@@ -263,6 +313,9 @@ namespace KasseAPI_Final.Controllers
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
         public string? Notes { get; set; }
+        /// <summary>Sprint 6: Optional idempotency key; retries with same key return existing order.</summary>
+        [MaxLength(64)]
+        public string? IdempotencyKey { get; set; }
         public List<OrderItemRequest> Items { get; set; } = new();
     }
 

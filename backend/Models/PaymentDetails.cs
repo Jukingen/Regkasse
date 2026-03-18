@@ -137,6 +137,11 @@ namespace KasseAPI_Final.Models
         [MaxLength(64)]
         [Column("idempotency_key")]
         public string? IdempotencyKey { get; set; }
+
+        /// <summary>Sprint 6: Client-provided idempotency key for cancel operation. When set, retries with same key return this cancelled payment.</summary>
+        [MaxLength(64)]
+        [Column("cancel_idempotency_key")]
+        public string? CancelIdempotencyKey { get; set; }
         
         // Navigation properties
         public virtual Customer? Customer { get; set; }

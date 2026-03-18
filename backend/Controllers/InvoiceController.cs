@@ -5,6 +5,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
@@ -24,15 +25,21 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly ILogger<InvoiceController> _logger;
         private readonly CompanyProfileOptions _companyProfile;
+        private readonly IReceiptSequenceService _receiptSequenceService;
+        private readonly ITseService _tseService;
 
         public InvoiceController(
             AppDbContext context,
             ILogger<InvoiceController> logger,
-            IOptions<CompanyProfileOptions> companyProfile)
+            IOptions<CompanyProfileOptions> companyProfile,
+            IReceiptSequenceService receiptSequenceService,
+            ITseService tseService)
         {
             _context = context;
             _logger = logger;
             _companyProfile = companyProfile.Value;
+            _receiptSequenceService = receiptSequenceService;
+            _tseService = tseService;
             // License configuration for QuestPDF (Community)
             QuestPDF.Settings.License = LicenseType.Community;
         }
@@ -641,10 +648,42 @@ namespace KasseAPI_Final.Controllers
 
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
+                // Sprint 3: Allocate fiscal BelegNr for storno (credit note) and sign with TSE
+                var kassenId = original.KassenId ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(kassenId))
+                {
+                    _logger.LogWarning("Original invoice {InvoiceId} has no KassenId; storno BelegNr may be inconsistent", original.Id);
+                }
+                var stornoBelegNr = await _receiptSequenceService.AllocateNextBelegNrAsync(kassenId, DateTime.UtcNow);
+                var cashRegisterId = original.CashRegisterId ?? Guid.Empty;
+                var negatedTotal = -original.TotalAmount;
+                string tseSignature = string.Empty;
+                var tseTimestamp = DateTime.UtcNow;
+                try
+                {
+                    var taxDetailsJson = original.TaxDetails?.RootElement.ValueKind == JsonValueKind.Object
+                        ? original.TaxDetails.RootElement.GetRawText()
+                        : "{}";
+                    var sigResult = await _tseService.CreateInvoiceSignatureAsync(
+                        cashRegisterId,
+                        stornoBelegNr,
+                        negatedTotal,
+                        kassenId: kassenId,
+                        timestamp: tseTimestamp,
+                        taxDetailsJson: taxDetailsJson);
+                    tseSignature = sigResult.CompactJws;
+                    _logger.LogInformation("TSE signature generated for storno BelegNr {BelegNr}", stornoBelegNr);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to generate TSE signature for storno (invoice {OriginalId})", original.Id);
+                    return StatusCode(500, "TSE signature generation failed for credit note.");
+                }
+
                 var creditNote = new Invoice
                 {
                     Id = Guid.NewGuid(),
-                    InvoiceNumber = GenerateInvoiceNumber(),
+                    InvoiceNumber = stornoBelegNr,
                     InvoiceDate = DateTime.UtcNow,
                     DueDate = DateTime.UtcNow,
                     Status = InvoiceStatus.CreditNote,
@@ -653,14 +692,12 @@ namespace KasseAPI_Final.Controllers
                     StornoReasonCode = request.ReasonCode,
                     StornoReasonText = request.ReasonText,
 
-                    // Negate amounts for reversal
                     Subtotal = -original.Subtotal,
                     TaxAmount = -original.TaxAmount,
-                    TotalAmount = -original.TotalAmount,
-                    PaidAmount = -original.TotalAmount,
+                    TotalAmount = negatedTotal,
+                    PaidAmount = negatedTotal,
                     RemainingAmount = 0,
 
-                    // Copy customer & company info
                     CustomerName = original.CustomerName,
                     CustomerEmail = original.CustomerEmail,
                     CustomerPhone = original.CustomerPhone,
@@ -672,10 +709,9 @@ namespace KasseAPI_Final.Controllers
                     CompanyPhone = original.CompanyPhone,
                     CompanyEmail = original.CompanyEmail,
 
-                    // TSE placeholder — real signing to be plugged in later
-                    TseSignature = string.Empty,
-                    KassenId = original.KassenId,
-                    TseTimestamp = DateTime.UtcNow,
+                    TseSignature = tseSignature,
+                    KassenId = kassenId,
+                    TseTimestamp = tseTimestamp,
                     CashRegisterId = original.CashRegisterId,
 
                     InvoiceItems = original.InvoiceItems,

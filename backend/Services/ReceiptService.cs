@@ -15,6 +15,8 @@ namespace KasseAPI_Final.Services
     {
         Task<ReceiptDTO?> GetReceiptAsync(Guid receiptId);
         Task<ReceiptDTO> CreateReceiptFromPaymentAsync(Guid paymentId);
+        /// <summary>Sprint 2: Builds Receipt + Items + TaxLines from payment and adds to context without saving. Caller must SaveChanges.</summary>
+        Task AddReceiptFromPaymentToContextAsync(PaymentDetails payment);
         Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo);
     }
 
@@ -213,6 +215,112 @@ namespace KasseAPI_Final.Services
                 QrData = qrPayload
             };
             return MapToDTO(newReceipt, signatureDto);
+        }
+
+        /// <inheritdoc />
+        public async Task AddReceiptFromPaymentToContextAsync(PaymentDetails payment)
+        {
+            var items = new List<PaymentItem>();
+            try
+            {
+                if (payment.PaymentItems != null && payment.PaymentItems.RootElement.ValueKind != JsonValueKind.Undefined)
+                    items = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize items for payment {PaymentId}", payment.Id);
+            }
+
+            var signatureValue = payment.TseSignature ?? string.Empty;
+            var prevSignatureValue = payment.PrevSignatureValueUsed ?? await GetLastSignatureValueForKassenIdAsync(payment.KassenId ?? string.Empty);
+            var certInfo = await _tseService.GetTseCertificateInfoAsync(payment.KassenId ?? string.Empty);
+            var qrPayload = string.IsNullOrEmpty(signatureValue) ? string.Empty : $"_R1-AT1_{payment.KassenId}_{payment.ReceiptNumber}_{payment.CreatedAt:s}_{payment.TotalAmount:0.00}_0.00_{certInfo.CertificateNumber}_{signatureValue}";
+
+            var newReceipt = new Receipt
+            {
+                ReceiptId = Guid.NewGuid(),
+                PaymentId = payment.Id,
+                ReceiptNumber = payment.ReceiptNumber ?? $"TEMP-{payment.Id.ToString()[..8]}",
+                IssuedAt = payment.CreatedAt,
+                CashierId = payment.CashierId,
+                CashRegisterId = Guid.TryParse(payment.KassenId, out var parsedKassenId) ? parsedKassenId : Guid.Empty,
+                SubTotal = payment.TotalAmount - payment.TaxAmount,
+                TaxTotal = payment.TaxAmount,
+                GrandTotal = payment.TotalAmount,
+                QrCodePayload = qrPayload,
+                SignatureValue = signatureValue,
+                PrevSignatureValue = prevSignatureValue,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var receiptItems = new List<ReceiptItem>();
+            var taxLineInputs = new List<(int TaxType, decimal TaxRate, decimal LineNet, decimal LineTax, decimal LineGross)>();
+            foreach (var i in items)
+            {
+                var productItemId = Guid.NewGuid();
+                var hasLegacyModifiers = i.Modifiers != null && i.Modifiers.Count > 0;
+                var modifierNet = i.Modifiers?.Sum(m => m.LineNet) ?? 0;
+                var modifierTax = i.Modifiers?.Sum(m => m.TaxAmount) ?? 0;
+                var modifierGross = i.Modifiers?.Sum(m => m.TotalPrice) ?? 0;
+                receiptItems.Add(new ReceiptItem
+                {
+                    ItemId = productItemId,
+                    ReceiptId = newReceipt.ReceiptId,
+                    ProductName = i.ProductName,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    TotalPrice = hasLegacyModifiers ? i.TotalPrice - modifierGross : i.TotalPrice,
+                    LineNet = hasLegacyModifiers ? i.LineNet - modifierNet : i.LineNet,
+                    VatAmount = hasLegacyModifiers ? i.TaxAmount - modifierTax : i.TaxAmount,
+                    TaxRate = i.TaxRate * 100,
+                    ParentItemId = null,
+                    CategoryName = null
+                });
+                taxLineInputs.Add((i.TaxType, i.TaxRate, hasLegacyModifiers ? i.LineNet - modifierNet : i.LineNet, hasLegacyModifiers ? i.TaxAmount - modifierTax : i.TaxAmount, hasLegacyModifiers ? i.TotalPrice - modifierGross : i.TotalPrice));
+                if (hasLegacyModifiers)
+                {
+                    foreach (var m in i.Modifiers!)
+                    {
+                        receiptItems.Add(new ReceiptItem
+                        {
+                            ItemId = Guid.NewGuid(),
+                            ReceiptId = newReceipt.ReceiptId,
+                            ProductName = "+ " + m.Name,
+                            Quantity = i.Quantity,
+                            UnitPrice = m.UnitPrice,
+                            TotalPrice = m.TotalPrice,
+                            LineNet = m.LineNet,
+                            VatAmount = m.TaxAmount,
+                            TaxRate = m.TaxRate * 100,
+                            ParentItemId = productItemId,
+                            CategoryName = null
+                        });
+                        taxLineInputs.Add((m.TaxType, m.TaxRate, m.LineNet, m.TaxAmount, m.TotalPrice));
+                    }
+                }
+            }
+            newReceipt.Items = receiptItems;
+            newReceipt.SubTotal = receiptItems.Sum(x => x.LineNet);
+            newReceipt.TaxTotal = receiptItems.Sum(x => x.VatAmount);
+            newReceipt.GrandTotal = receiptItems.Sum(x => x.TotalPrice);
+
+            var taxGroups = taxLineInputs
+                .GroupBy(x => new { x.TaxType, x.TaxRate })
+                .Select(g => new ReceiptTaxLine
+                {
+                    LineId = Guid.NewGuid(),
+                    TaxType = g.Key.TaxType,
+                    TaxRate = g.Key.TaxRate * 100,
+                    NetAmount = g.Sum(x => x.LineNet),
+                    TaxAmount = g.Sum(x => x.LineTax),
+                    GrossAmount = g.Sum(x => x.LineGross)
+                })
+                .OrderBy(t => t.TaxRate)
+                .ThenBy(t => t.TaxType)
+                .ToList();
+            newReceipt.TaxLines = taxGroups;
+
+            _context.Receipts.Add(newReceipt);
         }
 
         public async Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo)

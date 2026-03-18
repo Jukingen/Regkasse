@@ -34,14 +34,14 @@ namespace KasseAPI_Final.Services
         Task<IEnumerable<PaymentDetails>> GetPaymentsByDateRangeAsync(DateTime startDate, DateTime endDate, int pageNumber = 1, int pageSize = 20);
         
         /// <summary>
-        /// Ödeme iptal et
+        /// Ödeme iptal et. Sprint 6: optional idempotencyKey for retry-safe cancel.
         /// </summary>
-        Task<PaymentResult> CancelPaymentAsync(Guid paymentId, string reason, string userId);
+        Task<PaymentResult> CancelPaymentAsync(Guid paymentId, string reason, string userId, string? idempotencyKey = null);
         
         /// <summary>
-        /// Ödeme iade et
+        /// Ödeme iade et. Sprint 6: optional idempotencyKey for retry-safe refund (no duplicate BelegNr/stock).
         /// </summary>
-        Task<PaymentResult> RefundPaymentAsync(Guid paymentId, decimal amount, string reason, string userId);
+        Task<PaymentResult> RefundPaymentAsync(Guid paymentId, decimal amount, string reason, string userId, string? idempotencyKey = null);
         
         /// <summary>
         /// Ödeme istatistiklerini getir

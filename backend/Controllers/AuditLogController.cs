@@ -348,11 +348,10 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// DELETE: api/auditlog/cleanup - Delete audit logs older than specified date
+        /// DELETE: api/auditlog/cleanup - Delete audit logs older than specified date. Sprint 5: respects 7-year retention and legal hold.
         /// </summary>
         [HttpDelete("cleanup")]
         [HasPermission(AppPermissions.AuditCleanup)]
-        // TODO: optional – manager approval or audit retention window; branch restriction if multi-tenant.
         public async Task<ActionResult<AuditLogCleanupResponse>> CleanupOldAuditLogs(
             [FromBody] AuditLogCleanupRequest request)
         {
@@ -363,17 +362,34 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Invalid request data", errors = ModelState });
                 }
 
-                var success = await _auditLogService.DeleteAuditLogsOlderThanAsync(request.CutoffDate);
+                var result = await _auditLogService.DeleteAuditLogsOlderThanAsync(request.CutoffDate);
+
+                if (!result.Success)
+                {
+                    _logger.LogWarning("Audit cleanup rejected: {Message}", result.ErrorMessage);
+                    return BadRequest(new AuditLogCleanupResponse
+                    {
+                        Success = false,
+                        CutoffDate = request.CutoffDate,
+                        Message = result.ErrorMessage ?? "Cleanup rejected.",
+                        DeletedCount = 0,
+                        SkippedDueToLegalHoldCount = 0,
+                        MinCutoffDate = result.MinCutoffDate
+                    });
+                }
 
                 var response = new AuditLogCleanupResponse
                 {
-                    Success = success,
+                    Success = true,
                     CutoffDate = request.CutoffDate,
-                    Message = success ? "Old audit logs cleaned up successfully" : "Failed to cleanup old audit logs"
+                    Message = "Old audit logs cleaned up successfully",
+                    DeletedCount = result.DeletedCount,
+                    SkippedDueToLegalHoldCount = result.SkippedDueToLegalHoldCount,
+                    MinCutoffDate = result.MinCutoffDate
                 };
 
-                _logger.LogInformation("Audit log cleanup completed for logs older than {CutoffDate}", 
-                    request.CutoffDate);
+                _logger.LogInformation("Audit log cleanup completed for logs older than {CutoffDate}: deleted {DeletedCount}, skipped {SkippedCount} due to legal hold",
+                    request.CutoffDate, result.DeletedCount, result.SkippedDueToLegalHoldCount);
 
                 return Ok(response);
             }
@@ -490,5 +506,11 @@ namespace KasseAPI_Final.Controllers
         public bool Success { get; set; }
         public DateTime CutoffDate { get; set; }
         public string Message { get; set; } = string.Empty;
+        /// <summary>Sprint 5: number of logs deleted.</summary>
+        public int DeletedCount { get; set; }
+        /// <summary>Sprint 5: number of logs skipped because they fall within an active legal hold.</summary>
+        public int SkippedDueToLegalHoldCount { get; set; }
+        /// <summary>Sprint 5: earliest allowed cutoff date (today minus retention years).</summary>
+        public DateTime? MinCutoffDate { get; set; }
     }
 }

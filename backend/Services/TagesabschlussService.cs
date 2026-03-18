@@ -16,6 +16,8 @@ namespace KasseAPI_Final.Services
         Task<List<TagesabschlussResult>> GetClosingHistoryAsync(string userId, DateTime? fromDate = null, DateTime? toDate = null);
         Task<bool> CanPerformClosingAsync(Guid cashRegisterId);
         Task<DateTime?> GetLastClosingDateAsync(Guid cashRegisterId);
+        /// <summary>Sprint 4: Count active payments in scope with no Invoice (SourcePaymentId). Used for blocking and readiness.</summary>
+        Task<int> GetPaymentsWithoutInvoiceCountAsync(Guid cashRegisterId, DateTime fromInclusive, DateTime toExclusive);
     }
 
     public class TagesabschlussService : ITagesabschlussService
@@ -34,6 +36,26 @@ namespace KasseAPI_Final.Services
             _finanzOnlineService = finanzOnlineService;
         }
 
+        /// <summary>Sprint 4: Count active payments in scope (register + date range) that have no Invoice with SourcePaymentId. Used to block closing when &gt; 0.</summary>
+        public async Task<int> GetPaymentsWithoutInvoiceCountAsync(Guid cashRegisterId, DateTime fromInclusive, DateTime toExclusive)
+        {
+            var registerNumber = await _context.CashRegisters
+                .AsNoTracking()
+                .Where(cr => cr.Id == cashRegisterId)
+                .Select(cr => cr.RegisterNumber)
+                .FirstOrDefaultAsync();
+            if (string.IsNullOrWhiteSpace(registerNumber))
+                return 0;
+
+            return await _context.PaymentDetails
+                .AsNoTracking()
+                .Where(p => p.CreatedAt >= fromInclusive && p.CreatedAt < toExclusive
+                    && p.IsActive
+                    && p.KassenId == registerNumber
+                    && !_context.Invoices.Any(i => i.SourcePaymentId == p.Id))
+                .CountAsync();
+        }
+
         public async Task<TagesabschlussResult> PerformDailyClosingAsync(string userId, Guid cashRegisterId)
         {
             try
@@ -45,8 +67,21 @@ namespace KasseAPI_Final.Services
                     throw new InvalidOperationException("TSE device is not connected. Daily closing cannot be performed.");
                 }
 
-                // Get today's transactions
                 var today = DateTime.Today;
+
+                // Sprint 4: Block closing when payment-without-invoice exists (reconciliation enforcement)
+                var paymentsWithoutInvoiceCount = await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, today, today.AddDays(1));
+                if (paymentsWithoutInvoiceCount > 0)
+                {
+                    return new TagesabschlussResult
+                    {
+                        Success = false,
+                        ErrorMessage = $"Closing blocked: {paymentsWithoutInvoiceCount} payment(s) without a matching invoice. Resolve gaps (e.g. run backfill) and try again.",
+                        PaymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount
+                    };
+                }
+
+                // Get today's transactions (Invoice-authoritative; no Payment totals)
                 var transactions = await _context.Invoices
                     .Where(i => i.CashRegisterId == cashRegisterId && 
                                i.CreatedAt.Date == today &&
@@ -105,26 +140,6 @@ namespace KasseAPI_Final.Services
 
                 await _context.SaveChangesAsync();
 
-                // Visibility: count today's payments for this register that have no matching invoice (payment-invoice gap).
-                var registerNumber = await _context.CashRegisters
-                    .AsNoTracking()
-                    .Where(cr => cr.Id == cashRegisterId)
-                    .Select(cr => cr.RegisterNumber)
-                    .FirstOrDefaultAsync();
-                var paymentsWithoutInvoiceCount = 0;
-                if (!string.IsNullOrWhiteSpace(registerNumber))
-                {
-                    paymentsWithoutInvoiceCount = await _context.PaymentDetails
-                        .AsNoTracking()
-                        .Where(p => p.CreatedAt.Date == today && p.IsActive && p.KassenId == registerNumber
-                            && !_context.Invoices.Any(i => i.SourcePaymentId == p.Id))
-                        .CountAsync();
-                }
-
-                var warning = paymentsWithoutInvoiceCount > 0
-                    ? $"There are {paymentsWithoutInvoiceCount} payment(s) from today without a matching invoice. Consider running backfill."
-                    : null;
-
                 return new TagesabschlussResult
                 {
                     Success = true,
@@ -135,8 +150,8 @@ namespace KasseAPI_Final.Services
                     TransactionCount = transactionCount,
                     TseSignature = tseSignature,
                     FinanzOnlineStatus = dailyClosing.FinanzOnlineStatus,
-                    PaymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,
-                    Warning = warning
+                    PaymentsWithoutInvoiceCount = 0,
+                    Warning = null
                 };
             }
             catch (Exception ex)
@@ -154,6 +169,20 @@ namespace KasseAPI_Final.Services
             try
             {
                 var currentMonth = DateTime.Today.AddDays(-DateTime.Today.Day + 1);
+                var periodEnd = DateTime.Today.AddDays(1);
+
+                // Sprint 4: Block when payment-without-invoice exists in period
+                var paymentsWithoutInvoiceCount = await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, currentMonth, periodEnd);
+                if (paymentsWithoutInvoiceCount > 0)
+                {
+                    return new TagesabschlussResult
+                    {
+                        Success = false,
+                        ErrorMessage = $"Closing blocked: {paymentsWithoutInvoiceCount} payment(s) without a matching invoice in the period. Resolve gaps (e.g. run backfill) and try again.",
+                        PaymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount
+                    };
+                }
+
                 var transactions = await _context.Invoices
                     .Where(i => i.CashRegisterId == cashRegisterId && 
                                i.CreatedAt >= currentMonth &&
@@ -219,6 +248,20 @@ namespace KasseAPI_Final.Services
             try
             {
                 var currentYear = new DateTime(DateTime.Today.Year, 1, 1);
+                var periodEnd = DateTime.Today.AddDays(1);
+
+                // Sprint 4: Block when payment-without-invoice exists in period
+                var paymentsWithoutInvoiceCount = await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, currentYear, periodEnd);
+                if (paymentsWithoutInvoiceCount > 0)
+                {
+                    return new TagesabschlussResult
+                    {
+                        Success = false,
+                        ErrorMessage = $"Closing blocked: {paymentsWithoutInvoiceCount} payment(s) without a matching invoice in the period. Resolve gaps (e.g. run backfill) and try again.",
+                        PaymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount
+                    };
+                }
+
                 var transactions = await _context.Invoices
                     .Where(i => i.CashRegisterId == cashRegisterId && 
                                i.CreatedAt >= currentYear &&
@@ -312,11 +355,13 @@ namespace KasseAPI_Final.Services
         public async Task<bool> CanPerformClosingAsync(Guid cashRegisterId)
         {
             var lastClosing = await GetLastClosingDateAsync(cashRegisterId);
-            if (!lastClosing.HasValue)
-                return true;
-
             var today = DateTime.Today;
-            return lastClosing.Value.Date < today;
+            if (lastClosing.HasValue && lastClosing.Value.Date >= today)
+                return false;
+
+            // Sprint 4: Cannot close if payment-without-invoice exists (reconciliation block)
+            var paymentsWithoutInvoiceCount = await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, today, today.AddDays(1));
+            return paymentsWithoutInvoiceCount == 0;
         }
 
         public async Task<DateTime?> GetLastClosingDateAsync(Guid cashRegisterId)
@@ -343,9 +388,9 @@ namespace KasseAPI_Final.Services
         public string? TseSignature { get; set; }
         public string? Status { get; set; }
         public string? FinanzOnlineStatus { get; set; }
-        /// <summary>Number of today's payments (this register) that have no matching Invoice. Non-zero indicates a payment-invoice gap; consider backfill.</summary>
+        /// <summary>When Success is false due to Sprint 4 enforcement: count of payments without Invoice that blocked closing. On success, 0.</summary>
         public int PaymentsWithoutInvoiceCount { get; set; }
-        /// <summary>When PaymentsWithoutInvoiceCount &gt; 0, suggests running backfill. Closing still succeeded.</summary>
+        /// <summary>Optional warning on success. Unused when closing is blocked (PaymentsWithoutInvoiceCount &gt; 0).</summary>
         public string? Warning { get; set; }
     }
 }

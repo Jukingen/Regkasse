@@ -40,13 +40,16 @@ namespace KasseAPI_Final.Controllers
 
                 if (result.Success)
                 {
-                    if (!string.IsNullOrEmpty(result.Warning))
-                        _logger.LogWarning("Daily closing completed with payment-invoice gap: {Warning}", result.Warning);
                     return Ok(result);
                 }
                 else
                 {
-                    return BadRequest(new { error = result.ErrorMessage });
+                    _logger.LogWarning("Daily closing blocked: {Reason}", result.ErrorMessage);
+                    return BadRequest(new
+                    {
+                        error = result.ErrorMessage,
+                        paymentsWithoutInvoiceCount = result.PaymentsWithoutInvoiceCount
+                    });
                 }
             }
             catch (Exception ex)
@@ -77,7 +80,12 @@ namespace KasseAPI_Final.Controllers
                 }
                 else
                 {
-                    return BadRequest(new { error = result.ErrorMessage });
+                    _logger.LogWarning("Monthly closing blocked: {Reason}", result.ErrorMessage);
+                    return BadRequest(new
+                    {
+                        error = result.ErrorMessage,
+                        paymentsWithoutInvoiceCount = result.PaymentsWithoutInvoiceCount
+                    });
                 }
             }
             catch (Exception ex)
@@ -108,7 +116,12 @@ namespace KasseAPI_Final.Controllers
                 }
                 else
                 {
-                    return BadRequest(new { error = result.ErrorMessage });
+                    _logger.LogWarning("Yearly closing blocked: {Reason}", result.ErrorMessage);
+                    return BadRequest(new
+                    {
+                        error = result.ErrorMessage,
+                        paymentsWithoutInvoiceCount = result.PaymentsWithoutInvoiceCount
+                    });
                 }
             }
             catch (Exception ex)
@@ -150,12 +163,21 @@ namespace KasseAPI_Final.Controllers
             {
                 var canClose = await _tagesabschlussService.CanPerformClosingAsync(cashRegisterId);
                 var lastClosingDate = await _tagesabschlussService.GetLastClosingDateAsync(cashRegisterId);
+                var today = DateTime.Today;
+                var paymentsWithoutInvoiceCount = await _tagesabschlussService.GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, today, today.AddDays(1));
+
+                string message = canClose
+                    ? "Daily closing can be performed"
+                    : (paymentsWithoutInvoiceCount > 0
+                        ? $"{paymentsWithoutInvoiceCount} payment(s) without invoice; resolve before closing."
+                        : "Daily closing already performed for today");
 
                 return Ok(new
                 {
                     canClose,
                     lastClosingDate,
-                    message = canClose ? "Daily closing can be performed" : "Daily closing already performed for today"
+                    paymentsWithoutInvoiceCount,
+                    message
                 });
             }
             catch (Exception ex)

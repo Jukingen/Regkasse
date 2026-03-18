@@ -303,7 +303,7 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // TODO: scope check – ensure user can cancel this payment (e.g. same branch/cash register or manager).
-                var result = await _paymentService.CancelPaymentAsync(id, request.Reason, userId);
+                var result = await _paymentService.CancelPaymentAsync(id, request.Reason, userId, request.IdempotencyKey?.Trim());
                 
                 if (result.Success)
                 {
@@ -341,7 +341,7 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("User not authenticated", 401);
                 }
 
-                var result = await _paymentService.RefundPaymentAsync(id, request.Amount, request.Reason, userId);
+                var result = await _paymentService.RefundPaymentAsync(id, request.Amount, request.Reason, userId, request.IdempotencyKey?.Trim());
                 
                 if (result.Success)
                 {
@@ -627,6 +627,10 @@ namespace KasseAPI_Final.Controllers
     {
         [Required]
         public string Reason { get; set; } = string.Empty;
+
+        /// <summary>Sprint 6: Optional idempotency key; retries with same key return the same cancel result.</summary>
+        [MaxLength(64)]
+        public string? IdempotencyKey { get; set; }
     }
 
     /// <summary>
@@ -640,6 +644,10 @@ namespace KasseAPI_Final.Controllers
         
         [Required]
         public string Reason { get; set; } = string.Empty;
+
+        /// <summary>Sprint 6: Optional idempotency key; retries with same key return the same refund (no duplicate BelegNr/stock).</summary>
+        [MaxLength(64)]
+        public string? IdempotencyKey { get; set; }
     }
 
     /// <summary>

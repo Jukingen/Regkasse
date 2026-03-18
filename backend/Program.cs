@@ -25,6 +25,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<CompanyProfileOptions>(builder.Configuration.GetSection(CompanyProfileOptions.SectionName));
 builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
+builder.Services.Configure<AuditRetentionOptions>(builder.Configuration.GetSection(AuditRetentionOptions.SectionName));
 
 // Development ortamında tüm IP'lerden erişime izin ver - Force host binding
 builder.WebHost.ConfigureKestrel(serverOptions =>
@@ -238,6 +239,7 @@ builder.Services.AddScoped<IReceiptService, ReceiptService>();
 // builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 // builder.Services.AddScoped<ITestService, TestService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 builder.Services.AddScoped<IProductModifierValidationService, NoOpProductModifierValidationService>();
+builder.Services.AddScoped<IReceiptSequenceService, ReceiptSequenceService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
@@ -257,6 +259,8 @@ builder.Services.AddScoped<CartLifecycleService>();
 
 // Audit log service
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<ILegalHoldService, LegalHoldService>();
+builder.Services.AddScoped<IIntegrityCheckService, IntegrityCheckService>();
 builder.Services.AddScoped<IActorDisplayNameResolver, ActorDisplayNameResolver>();
 builder.Services.AddScoped<IUserUniquenessValidationService, UserUniquenessValidationService>();
 

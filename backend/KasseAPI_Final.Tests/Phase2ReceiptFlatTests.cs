@@ -46,7 +46,13 @@ public class Phase2ReceiptFlatTests
         var tseOptions = new TseOptions { TseMode = "Demo" };
         var companyProfile = new CompanyProfileOptions { CompanyName = "Test", TaxNumber = "ATU12345678", Street = "S1", ZipCode = "1010", City = "Wien", FooterText = "" };
         var modifierValidation = new NoOpProductModifierValidationService();
-        return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment);
+        var receiptSeqMock = new Mock<IReceiptSequenceService>();
+        var seqCallCount = 0;
+        receiptSeqMock.Setup(x => x.AllocateNextBelegNrAsync(It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync((string k, DateTime d) => $"AT-{k}-{d:yyyyMMdd}-{++seqCallCount}");
+        var loggerReceipt = new Mock<ILogger<ReceiptService>>().Object;
+        var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, Options.Create(companyProfile));
+        return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, receiptSeqMock.Object, receiptService, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment);
     }
 
     [Fact]

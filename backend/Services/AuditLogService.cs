@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -75,12 +76,23 @@ namespace KasseAPI_Final.Services
 
         Task<IEnumerable<AuditLog>> GetAuditLogsByTransactionIdAsync(string transactionId);
 
-        Task<bool> DeleteAuditLogsOlderThanAsync(DateTime cutoffDate);
+        /// <summary>Sprint 5: Returns result with DeletedCount, SkippedDueToLegalHoldCount; Success false when retention or validation fails.</summary>
+        Task<AuditLogCleanupResult> DeleteAuditLogsOlderThanAsync(DateTime cutoffDate);
 
         Task<Dictionary<string, int>> GetAuditLogStatisticsAsync(DateTime? startDate = null, DateTime? endDate = null);
 
         /// <summary>Incident playbook: high-risk admin/user-lifecycle actions (deactivate, reactivate, password reset, role change, create).</summary>
         Task<IEnumerable<AuditLog>> GetSuspiciousAdminActionsAsync(DateTime? since = null, int limit = 100);
+    }
+
+    /// <summary>Sprint 5: Result of audit cleanup; includes counts and retention/hold enforcement.</summary>
+    public class AuditLogCleanupResult
+    {
+        public bool Success { get; set; }
+        public int DeletedCount { get; set; }
+        public int SkippedDueToLegalHoldCount { get; set; }
+        public DateTime? MinCutoffDate { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 
     public class AuditLogService : IAuditLogService
@@ -89,14 +101,17 @@ namespace KasseAPI_Final.Services
         private readonly ILogger<AuditLogService> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IActorDisplayNameResolver _actorDisplayNameResolver;
+        private readonly AuditRetentionOptions _retentionOptions;
 
         public AuditLogService(AppDbContext context, ILogger<AuditLogService> logger,
-            IHttpContextAccessor httpContextAccessor, IActorDisplayNameResolver actorDisplayNameResolver)
+            IHttpContextAccessor httpContextAccessor, IActorDisplayNameResolver actorDisplayNameResolver,
+            IOptions<AuditRetentionOptions> retentionOptions)
         {
             _context = context;
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
             _actorDisplayNameResolver = actorDisplayNameResolver;
+            _retentionOptions = retentionOptions?.Value ?? new AuditRetentionOptions();
         }
 
         /// <summary>
@@ -739,26 +754,56 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
-        /// Delete audit logs older than specified date
+        /// Sprint 5: Delete audit logs older than specified date. Enforces 7-year minimum retention and skips records under legal hold.
         /// </summary>
-        public async Task<bool> DeleteAuditLogsOlderThanAsync(DateTime cutoffDate)
+        public async Task<AuditLogCleanupResult> DeleteAuditLogsOlderThanAsync(DateTime cutoffDate)
         {
             try
             {
-                var oldLogs = await _context.AuditLogs
+                var retentionYears = _retentionOptions.RetentionYears > 0 ? _retentionOptions.RetentionYears : 7;
+                var minCutoff = DateTime.UtcNow.Date.AddYears(-retentionYears);
+                if (cutoffDate > minCutoff)
+                {
+                    _logger.LogWarning("Audit cleanup rejected: cutoff {CutoffDate} is within retention window. Min cutoff is {MinCutoff} (retention {Years} years).",
+                        cutoffDate, minCutoff, retentionYears);
+                    return new AuditLogCleanupResult
+                    {
+                        Success = false,
+                        DeletedCount = 0,
+                        SkippedDueToLegalHoldCount = 0,
+                        MinCutoffDate = minCutoff,
+                        ErrorMessage = $"Cutoff date must be on or before {minCutoff:yyyy-MM-dd} to comply with {retentionYears}-year audit retention. No records were deleted."
+                    };
+                }
+
+                var candidateLogs = await _context.AuditLogs
                     .Where(a => a.Timestamp < cutoffDate)
                     .ToListAsync();
 
-                if (oldLogs.Any())
-                {
-                    _context.AuditLogs.RemoveRange(oldLogs);
-                    await _context.SaveChangesAsync();
+                var activeHolds = await _context.LegalHolds
+                    .Where(h => h.IsActive)
+                    .ToListAsync();
 
-                    _logger.LogInformation("Deleted {Count} audit logs older than {CutoffDate}", 
-                        oldLogs.Count, cutoffDate);
+                var toDelete = candidateLogs
+                    .Where(a => !activeHolds.Any(h => a.Timestamp.Date >= h.FromDate && a.Timestamp.Date <= h.ToDate))
+                    .ToList();
+                var skippedCount = candidateLogs.Count - toDelete.Count;
+
+                if (toDelete.Any())
+                {
+                    _context.AuditLogs.RemoveRange(toDelete);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Audit cleanup: deleted {DeletedCount} logs older than {CutoffDate}; skipped {SkippedCount} due to legal hold.",
+                        toDelete.Count, cutoffDate, skippedCount);
                 }
 
-                return true;
+                return new AuditLogCleanupResult
+                {
+                    Success = true,
+                    DeletedCount = toDelete.Count,
+                    SkippedDueToLegalHoldCount = skippedCount,
+                    MinCutoffDate = minCutoff
+                };
             }
             catch (Exception ex)
             {

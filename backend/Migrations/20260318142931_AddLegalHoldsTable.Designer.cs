@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318142931_AddLegalHoldsTable")]
+    partial class AddLegalHoldsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2042,11 +2045,6 @@ namespace KasseAPI_Final.Migrations
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<string>("IdempotencyKey")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("idempotency_key");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
@@ -2096,10 +2094,6 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("ApplicationUserId");
 
                     b.HasIndex("CustomerId");
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique()
-                        .HasFilter("\"idempotency_key\" IS NOT NULL");
 
                     b.ToTable("orders");
                 });
@@ -2192,11 +2186,6 @@ namespace KasseAPI_Final.Migrations
 
                     b.Property<string>("AppliedBenefitsSnapshot")
                         .HasColumnType("jsonb");
-
-                    b.Property<string>("CancelIdempotencyKey")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("cancel_idempotency_key");
 
                     b.Property<string>("CancellationReason")
                         .HasMaxLength(200)
@@ -2352,10 +2341,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CancelIdempotencyKey")
-                        .IsUnique()
-                        .HasFilter("\"cancel_idempotency_key\" IS NOT NULL");
 
                     b.HasIndex("CreatedAt");
 

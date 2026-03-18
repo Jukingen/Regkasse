@@ -56,6 +56,10 @@ namespace KasseAPI_Final.Data
         public DbSet<Receipt> Receipts { get; set; }
         public DbSet<ReceiptItem> ReceiptItems { get; set; }
         public DbSet<ReceiptTaxLine> ReceiptTaxLines { get; set; }
+        /// <summary>Per-register per-day sequence for BelegNr allocation (Sprint 1).</summary>
+        public DbSet<ReceiptSequence> ReceiptSequences { get; set; }
+        /// <summary>Sprint 5: Legal hold on audit date ranges; cleanup skips records in active holds.</summary>
+        public DbSet<LegalHold> LegalHolds { get; set; }
 
         // Extra Zutaten (Add-on groups and assignments; add-on products in addon_group_products)
         public DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
@@ -413,6 +417,8 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TseSignature);
                 entity.Property(e => e.IdempotencyKey).HasMaxLength(64);
                 entity.HasIndex(e => e.IdempotencyKey).IsUnique().HasFilter("\"idempotency_key\" IS NOT NULL");
+                entity.Property(e => e.CancelIdempotencyKey).HasMaxLength(64);
+                entity.HasIndex(e => e.CancelIdempotencyKey).IsUnique().HasFilter("\"cancel_idempotency_key\" IS NOT NULL");
                 
                 // Strengthen data integrity for POS/receipt numbering.
                 // Unique over real receipt numbers only (ignore empty/draft values).
@@ -880,6 +886,8 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.DiscountAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.CustomerId);
+                entity.Property(e => e.IdempotencyKey).HasMaxLength(64);
+                entity.HasIndex(e => e.IdempotencyKey).IsUnique().HasFilter("\"idempotency_key\" IS NOT NULL");
             });
 
             // OrderItem configuration
@@ -982,6 +990,27 @@ namespace KasseAPI_Final.Data
             {
                entity.HasIndex(e => e.ReceiptNumber).IsUnique();
                entity.HasIndex(e => e.PaymentId);
+            });
+
+            // Receipt sequence: one row per (KassenId, date); unique constraint for allocation and daily reset.
+            builder.Entity<ReceiptSequence>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.KassenId, e.SequenceDate }).IsUnique();
+                entity.Property(e => e.KassenId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.SequenceDate).IsRequired();
+                entity.Property(e => e.NextSequence).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+            });
+
+            // Sprint 5: Legal hold – date range; audit cleanup must not delete logs whose date falls within an active hold.
+            builder.Entity<LegalHold>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.FromDate).IsRequired();
+                entity.Property(e => e.ToDate).IsRequired();
+                entity.Property(e => e.IsActive).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
             });
 
             Console.WriteLine("AppDbContext model configuration completed with TableOrder support");

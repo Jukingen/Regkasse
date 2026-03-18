@@ -33,6 +33,8 @@ namespace KasseAPI_Final.Services
         private readonly CompanyProfileOptions _companyProfile;
         private readonly TseOptions _tseOptions;
         private readonly IProductModifierValidationService _modifierValidation;
+        private readonly IReceiptSequenceService _receiptSequenceService;
+        private readonly IReceiptService _receiptService;
 
         public PaymentService(
             AppDbContext context,
@@ -43,6 +45,8 @@ namespace KasseAPI_Final.Services
             IFinanzOnlineService finanzOnlineService,
             IUserService userService,
             IProductModifierValidationService modifierValidation,
+            IReceiptSequenceService receiptSequenceService,
+            IReceiptService receiptService,
             Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile,
             Microsoft.Extensions.Options.IOptions<TseOptions> tseOptions,
             ILogger<PaymentService> logger)
@@ -55,6 +59,8 @@ namespace KasseAPI_Final.Services
             _finanzOnlineService = finanzOnlineService;
             _userService = userService;
             _modifierValidation = modifierValidation;
+            _receiptSequenceService = receiptSequenceService;
+            _receiptService = receiptService;
             _companyProfile = companyProfile.Value;
             _tseOptions = tseOptions.Value;
             _logger = logger;
@@ -507,8 +513,34 @@ namespace KasseAPI_Final.Services
                     }
                 }
 
-                var seq = Guid.NewGuid().ToString("N")[..8];
-                var preReceiptNumber = $"AT-{effectiveKassenId}-{DateTime.UtcNow:yyyyMMdd}-{seq}";
+                // Sprint 2: Idempotency check before starting fiscal transaction — return existing payment and do not create duplicate Invoice/Receipt.
+                if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
+                {
+                    var existingByKey = await _context.PaymentDetails.AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.IdempotencyKey == request.IdempotencyKey.Trim());
+                    if (existingByKey != null)
+                    {
+                        var invoiceExists = await _context.Invoices.AsNoTracking()
+                            .AnyAsync(i => i.SourcePaymentId == existingByKey.Id);
+                        _logger.LogInformation("Idempotency: returning existing payment {PaymentId} for key {Key}", existingByKey.Id, request.IdempotencyKey);
+                        var (qr, demo, provider) = await BuildQrPayloadAndFlagsAsync(existingByKey, !string.IsNullOrEmpty(existingByKey.TseSignature));
+                        return new PaymentResult
+                        {
+                            Success = true,
+                            Message = "Payment created successfully",
+                            Payment = existingByKey,
+                            PaymentId = existingByKey.Id,
+                            TseSignature = existingByKey.TseSignature,
+                            QrPayload = qr,
+                            IsDemoFiscal = demo,
+                            TseProvider = provider,
+                            InvoicePersisted = invoiceExists
+                        };
+                    }
+                }
+
+                // Sprint 1: sequential BelegNr from single allocation authority; legacy GUID-based numbers unchanged for existing records.
+                var preReceiptNumber = await _receiptSequenceService.AllocateNextBelegNrAsync(effectiveKassenId, DateTime.UtcNow);
 
                 // Ödeme detayları oluştur (totals = CartMoneyHelper toplamları; optional customer % discount already applied above)
                 var payment = new PaymentDetails
@@ -563,11 +595,50 @@ namespace KasseAPI_Final.Services
                     }
                 }
 
-                // Persist payment and any tracked changes (e.g. BenefitDailyUsage). Concurrency conflict possible when daily allowance is consumed at another terminal.
-                PaymentDetails createdPayment;
+                // Sprint 2: Single fiscal transaction — Payment, Invoice, and Receipt persist together; failure rolls back all.
+                var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+                Guid? invoiceCashRegisterId = resolvedCashRegisterId != Guid.Empty ? resolvedCashRegisterId : null;
+                if (invoiceCashRegisterId == null && !string.IsNullOrWhiteSpace(payment.KassenId))
+                    _logger.LogWarning("Could not resolve real CashRegisterId for KassenId '{KassenId}' during payment invoice creation. Saving without CashRegisterId, Tagesabschluss may miss this.", payment.KassenId);
+
+                var posInvoice = new Invoice
+                {
+                    Id = Guid.NewGuid(),
+                    SourcePaymentId = payment.Id,
+                    InvoiceNumber = payment.ReceiptNumber,
+                    InvoiceDate = payment.CreatedAt,
+                    DueDate = payment.CreatedAt,
+                    Status = InvoiceStatus.Paid,
+                    Subtotal = payment.TotalAmount - payment.TaxAmount,
+                    TaxAmount = payment.TaxAmount,
+                    TotalAmount = payment.TotalAmount,
+                    PaidAmount = payment.TotalAmount,
+                    RemainingAmount = 0,
+                    CustomerName = payment.CustomerName,
+                    CustomerTaxNumber = payment.Steuernummer,
+                    CompanyName = _companyProfile.CompanyName,
+                    CompanyTaxNumber = _companyProfile.TaxNumber,
+                    CompanyAddress = companyAddress,
+                    TseSignature = payment.TseSignature ?? string.Empty,
+                    KassenId = payment.KassenId,
+                    TseTimestamp = payment.TseTimestamp,
+                    CashRegisterId = invoiceCashRegisterId,
+                    PaymentMethod = payment.PaymentMethod,
+                    PaymentReference = payment.TransactionId,
+                    PaymentDate = payment.CreatedAt,
+                    InvoiceItems = payment.PaymentItems,
+                    TaxDetails = payment.TaxDetails,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+
+                _context.PaymentDetails.Add(payment);
+                _context.Invoices.Add(posInvoice);
+                await _receiptService.AddReceiptFromPaymentToContextAsync(payment);
+
                 try
                 {
-                    createdPayment = await _paymentRepository.AddAsync(payment);
+                    await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
@@ -582,6 +653,7 @@ namespace KasseAPI_Final.Services
                             .FirstOrDefaultAsync(p => p.IdempotencyKey == request.IdempotencyKey);
                         if (existing != null)
                         {
+                            var invoiceExists = await _context.Invoices.AsNoTracking().AnyAsync(i => i.SourcePaymentId == existing.Id);
                             _logger.LogInformation("Idempotency key race: returning existing payment {PaymentId} for key {Key}", existing.Id, request.IdempotencyKey);
                             var (qr, demo, provider) = await BuildQrPayloadAndFlagsAsync(existing, !string.IsNullOrEmpty(existing.TseSignature));
                             return new PaymentResult
@@ -593,10 +665,12 @@ namespace KasseAPI_Final.Services
                                 TseSignature = existing.TseSignature,
                                 QrPayload = qr,
                                 IsDemoFiscal = demo,
-                                TseProvider = provider
+                                TseProvider = provider,
+                                InvoicePersisted = invoiceExists
                             };
                         }
                     }
+                    _logger.LogError(ex, "Fiscal transaction failed (idempotency key violation) for payment {PaymentId}", payment.Id);
                     throw;
                 }
                 catch (DbUpdateException ex) when (IsBenefitDailyUsageConflict(ex))
@@ -604,93 +678,31 @@ namespace KasseAPI_Final.Services
                     _logger.LogWarning(ex, "Daily allowance unique constraint race for customer {CustomerId} during payment creation", request.CustomerId);
                     return ToDailyAllowanceConflictResult();
                 }
-
-                // Persist a canonical Invoice row so that list / detail / PDF all share the same domain and ID
-                bool invoicePersisted = true;
-                try
+                catch (DbUpdateException ex)
                 {
-                    // Idempotency check: skip if an invoice already exists for this payment
-                    var existingInvoice = await _context.Invoices
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(i => i.SourcePaymentId == createdPayment.Id);
-
-                    if (existingInvoice == null)
-                    {
-                        var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
-                        Guid? invoiceCashRegisterId = resolvedCashRegisterId != Guid.Empty ? resolvedCashRegisterId : null;
-                        if (invoiceCashRegisterId == null && !string.IsNullOrWhiteSpace(createdPayment.KassenId))
-                        {
-                            _logger.LogWarning("Could not resolve real CashRegisterId for KassenId '{KassenId}' during payment invoice creation. Saving without CashRegisterId, Tagesabschluss may miss this.", createdPayment.KassenId);
-                        }
-
-                        var posInvoice = new Invoice
-                        {
-                            Id = Guid.NewGuid(),
-                            SourcePaymentId = createdPayment.Id,
-                            InvoiceNumber = createdPayment.ReceiptNumber,
-                            InvoiceDate = createdPayment.CreatedAt,
-                            DueDate = createdPayment.CreatedAt,
-                            Status = InvoiceStatus.Paid,
-                            Subtotal = createdPayment.TotalAmount - createdPayment.TaxAmount,
-                            TaxAmount = createdPayment.TaxAmount,
-                            TotalAmount = createdPayment.TotalAmount,
-                            PaidAmount = createdPayment.TotalAmount,
-                            RemainingAmount = 0,
-                            CustomerName = createdPayment.CustomerName,
-                            CustomerTaxNumber = createdPayment.Steuernummer,
-                            CompanyName = _companyProfile.CompanyName,
-                            CompanyTaxNumber = _companyProfile.TaxNumber,
-                            CompanyAddress = companyAddress,
-                            TseSignature = createdPayment.TseSignature ?? string.Empty,
-                            KassenId = createdPayment.KassenId,
-                            TseTimestamp = createdPayment.TseTimestamp,
-                            CashRegisterId = invoiceCashRegisterId,
-                            PaymentMethod = createdPayment.PaymentMethod,
-                            PaymentReference = createdPayment.TransactionId,
-                            PaymentDate = createdPayment.CreatedAt,
-                            InvoiceItems = createdPayment.PaymentItems,
-                            TaxDetails = createdPayment.TaxDetails,
-                            CreatedAt = DateTime.UtcNow,
-                            IsActive = true
-                        };
-                        _context.Invoices.Add(posInvoice);
-                        await _context.SaveChangesAsync();
-                        _logger.LogInformation("Invoice persisted for payment {PaymentId}: InvoiceId={InvoiceId}, InvoiceNumber={InvoiceNumber}",
-                            createdPayment.Id, posInvoice.Id, posInvoice.InvoiceNumber);
-
-                        // FinanzOnline'a gönder (TSE gerekiyorsa)
-                        if (effectiveTseRequired)
-                        {
-                            try
-                            {
-                                await _finanzOnlineService.SubmitInvoiceAsync(posInvoice);
-                                _logger.LogInformation("Invoice sent to FinanzOnline: {InvoiceId}", posInvoice.Id);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, "Failed to send invoice to FinanzOnline: {InvoiceId}", posInvoice.Id);
-                                // FinanzOnline hatası ödeme oluşturmayı engellemez
-                            }
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogDebug("Invoice already exists for payment {PaymentId} — skipping duplicate insert", createdPayment.Id);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Invoice persist hatası ödeme oluşturmayı engellemez — PaymentDetails kaydı zaten var
-                    invoicePersisted = false;
-                    _logger.LogError(ex, "Failed to persist Invoice for payment {PaymentId}", createdPayment.Id);
+                    _logger.LogError(ex, "Fiscal transaction failed for payment {PaymentId}; Payment, Invoice, and Receipt rolled back", payment.Id);
+                    throw;
                 }
 
-                _logger.LogInformation("Payment created successfully: {PaymentId} for customer {CustomerId}", 
-                    createdPayment.Id, customer.Id);
+                var createdPayment = payment;
+                _logger.LogInformation("Payment created successfully: {PaymentId} for customer {CustomerId} (Invoice {InvoiceId}, Receipt in same transaction)",
+                    createdPayment.Id, customer.Id, posInvoice.Id);
 
-                // QR payload: RKSV belegdaten veya NON_FISCAL_DEMO
+                // FinanzOnline: best-effort after commit; failure does not roll back DB.
+                if (effectiveTseRequired)
+                {
+                    try
+                    {
+                        await _finanzOnlineService.SubmitInvoiceAsync(posInvoice);
+                        _logger.LogInformation("Invoice sent to FinanzOnline: {InvoiceId}", posInvoice.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send invoice to FinanzOnline: {InvoiceId}", posInvoice.Id);
+                    }
+                }
+
                 var (qrPayload, isDemoFiscal, tseProvider) = await BuildQrPayloadAndFlagsAsync(createdPayment, effectiveTseRequired);
-
                 return new PaymentResult
                 {
                     Success = true,
@@ -701,7 +713,7 @@ namespace KasseAPI_Final.Services
                     QrPayload = qrPayload,
                     IsDemoFiscal = isDemoFiscal,
                     TseProvider = tseProvider,
-                    InvoicePersisted = invoicePersisted
+                    InvoicePersisted = true
                 };
             }
             catch (Exception ex)
@@ -1171,9 +1183,9 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
-        /// Ödeme iptal et
+        /// Ödeme iptal et. Sprint 6: optional idempotencyKey — retries with same key return existing cancel result.
         /// </summary>
-        public async Task<PaymentResult> CancelPaymentAsync(Guid paymentId, string reason, string userId)
+        public async Task<PaymentResult> CancelPaymentAsync(Guid paymentId, string reason, string userId, string? idempotencyKey = null)
         {
             try
             {
@@ -1202,6 +1214,24 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
+                // Sprint 6: Idempotency — if key provided and we already have a cancel with this key, return that payment.
+                var key = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
+                if (key != null)
+                {
+                    var existingByKey = await _context.PaymentDetails.AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.CancelIdempotencyKey == key);
+                    if (existingByKey != null)
+                    {
+                        _logger.LogInformation("Idempotent cancel: returning existing cancelled payment {PaymentId} for key {Key}", existingByKey.Id, key);
+                        return new PaymentResult
+                        {
+                            Success = true,
+                            Message = "Payment cancelled successfully",
+                            Payment = existingByKey
+                        };
+                    }
+                }
+
                 var payment = await _paymentRepository.GetByIdAsync(paymentId);
                 if (payment == null)
                 {
@@ -1213,7 +1243,7 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                // Zaten iptal edilmiş ödeme kontrolü
+                // Zaten iptal edilmiş ödeme kontrolü (no idempotency key: return error; with key we would have returned above)
                 if (!payment.IsActive)
                 {
                     return new PaymentResult
@@ -1224,7 +1254,7 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                // TSE imzası varsa iptal et
+                // TSE imzası varsa iptal et (outside transaction; TseSignatures table update)
                 if (!string.IsNullOrEmpty(payment.TseSignature))
                 {
                     try
@@ -1239,31 +1269,62 @@ namespace KasseAPI_Final.Services
                     }
                 }
 
-                // Stok geri ekle - transaction içinde yapılmalı
+                // Sprint 3: Invalidate linked Invoice so Tagesabschluss excludes it (Status = Cancelled)
+                var linkedInvoice = await _context.Invoices
+                    .FirstOrDefaultAsync(i => i.SourcePaymentId == paymentId);
+                if (linkedInvoice != null)
+                {
+                    linkedInvoice.Status = InvoiceStatus.Cancelled;
+                    _logger.LogInformation("Invoice {InvoiceId} set to Cancelled for cancelled payment {PaymentId}", linkedInvoice.Id, paymentId);
+                }
+
+                // Stok geri ekle — same transaction (context updates, single SaveChanges)
                 var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText());
                 if (paymentItems != null)
                 {
                     foreach (var item in paymentItems)
                     {
-                        var product = await _productRepository.GetByIdAsync(item.ProductId);
+                        var product = await _context.Products.FindAsync(item.ProductId);
                         if (product != null)
                         {
                             product.StockQuantity += item.Quantity;
                             product.UpdatedAt = DateTime.UtcNow;
-                            await _productRepository.UpdateAsync(product);
                         }
                     }
                 }
 
-                // Ödemeyi iptal et
+                // Ödemeyi iptal et (payment already tracked from GetByIdAsync). Sprint 6: set cancel idempotency key in same transaction.
                 payment.IsActive = false;
                 payment.UpdatedAt = DateTime.UtcNow;
                 payment.UpdatedBy = userId;
-                // Audit fields (optional, backward compatible)
                 payment.CancellationReason = reason;
                 payment.CancelledAt = DateTime.UtcNow;
+                if (key != null)
+                    payment.CancelIdempotencyKey = key;
 
-                await _paymentRepository.UpdateAsync(payment);
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex) when (IsCancelIdempotencyKeyViolation(ex))
+                {
+                    if (key != null)
+                    {
+                        var existing = await _context.PaymentDetails.AsNoTracking()
+                            .FirstOrDefaultAsync(p => p.CancelIdempotencyKey == key);
+                        if (existing != null)
+                        {
+                            _logger.LogInformation("Idempotent cancel (race): returning existing cancelled payment {PaymentId} for key {Key}", existing.Id, key);
+                            return new PaymentResult
+                            {
+                                Success = true,
+                                Message = "Payment cancelled successfully",
+                                Payment = existing
+                            };
+                        }
+                    }
+                    throw;
+                }
 
                 _logger.LogInformation("Payment {PaymentId} cancelled by user {UserId} with reason: {Reason}", 
                     paymentId, userId, reason);
@@ -1288,9 +1349,9 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
-        /// Ödeme iade et
+        /// Ödeme iade et. Sprint 6: optional idempotencyKey — retries with same key return existing refund (no duplicate BelegNr/stock).
         /// </summary>
-        public async Task<PaymentResult> RefundPaymentAsync(Guid paymentId, decimal amount, string reason, string userId)
+        public async Task<PaymentResult> RefundPaymentAsync(Guid paymentId, decimal amount, string reason, string userId, string? idempotencyKey = null)
         {
             try
             {
@@ -1352,51 +1413,219 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                // Kısmi iade için stok güncelleme
-                if (amount < payment.TotalAmount)
+                decimal refundRatio = amount / payment.TotalAmount;
+                decimal refundTaxAmount = -payment.TaxAmount * refundRatio;
+
+                // Sprint 6: Idempotency — if key provided and we already have a refund for this payment with this key, return it.
+                var refundKey = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
+                if (refundKey != null)
                 {
-                    var refundRatio = amount / payment.TotalAmount;
-                    var paymentItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText());
-                    if (paymentItems != null)
+                    var existingRefund = await _context.PaymentDetails.AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.IdempotencyKey == refundKey && p.IsRefund && p.OriginalPaymentId == paymentId);
+                    if (existingRefund != null)
                     {
-                        foreach (var item in paymentItems)
+                        _logger.LogInformation("Idempotent refund: returning existing refund {RefundId} for payment {PaymentId} key {Key}", existingRefund.Id, paymentId, refundKey);
+                        return new PaymentResult
                         {
-                            var product = await _productRepository.GetByIdAsync(item.ProductId);
-                            if (product != null)
-                            {
-                                var refundQuantity = (int)(item.Quantity * refundRatio);
-                                product.StockQuantity += refundQuantity;
-                                product.UpdatedAt = DateTime.UtcNow;
-                                await _productRepository.UpdateAsync(product);
-                            }
-                        }
+                            Success = true,
+                            Message = "Refund processed successfully",
+                            Payment = existingRefund
+                        };
                     }
                 }
 
-                // İade kaydı oluştur
+                // Resolve CashRegisterId for TSE (same as CreatePayment)
+                Guid resolvedCashRegisterId = Guid.Empty;
+                var kassenId = payment.KassenId ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(kassenId))
+                {
+                    if (Guid.TryParse(kassenId, out var parsedRegId) && await _context.CashRegisters.AnyAsync(cr => cr.Id == parsedRegId))
+                        resolvedCashRegisterId = parsedRegId;
+                    if (resolvedCashRegisterId == Guid.Empty)
+                    {
+                        var register = await _context.CashRegisters.FirstOrDefaultAsync(cr => cr.RegisterNumber == kassenId);
+                        resolvedCashRegisterId = register?.Id ?? Guid.Empty;
+                    }
+                }
+
+                // Sprint 3: Allocate own BelegNr for refund (fiscal document)
+                var refundBelegNr = await _receiptSequenceService.AllocateNextBelegNrAsync(kassenId, DateTime.UtcNow);
+
+                // Build negated PaymentItems so Receipt totals match (full or partial refund)
+                var originalItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();
+                var refundItems = originalItems.Select(i =>
+                {
+                    var scale = refundRatio;
+                    return new PaymentItem
+                    {
+                        ProductId = i.ProductId,
+                        ProductName = i.ProductName,
+                        Quantity = i.Quantity,
+                        UnitPrice = -i.UnitPrice * scale,
+                        TotalPrice = -i.TotalPrice * scale,
+                        TaxType = i.TaxType,
+                        TaxRate = i.TaxRate,
+                        TaxAmount = -i.TaxAmount * scale,
+                        LineNet = -i.LineNet * scale,
+                        Modifiers = (i.Modifiers ?? new List<PaymentItemModifierSnapshot>()).Select(m => new PaymentItemModifierSnapshot
+                        {
+                            ModifierId = m.ModifierId,
+                            Name = m.Name,
+                            UnitPrice = -m.UnitPrice * scale,
+                            TotalPrice = -m.TotalPrice * scale,
+                            TaxType = m.TaxType,
+                            TaxRate = m.TaxRate,
+                            TaxAmount = -m.TaxAmount * scale,
+                            LineNet = -m.LineNet * scale
+                        }).ToList()
+                    };
+                }).ToList();
+
+                // Negated tax details for refund
+                var originalTaxDetails = new Dictionary<string, decimal>();
+                try
+                {
+                    if (payment.TaxDetails?.RootElement.ValueKind == JsonValueKind.Object)
+                        originalTaxDetails = JsonSerializer.Deserialize<Dictionary<string, decimal>>(payment.TaxDetails.RootElement.GetRawText()) ?? new Dictionary<string, decimal>();
+                }
+                catch { /* keep empty */ }
+                var refundTaxDetails = originalTaxDetails.ToDictionary(kv => kv.Key, kv => -kv.Value * refundRatio);
+
+                var refundId = Guid.NewGuid();
                 var refund = new PaymentDetails
                 {
+                    Id = refundId,
                     CustomerId = payment.CustomerId,
                     CustomerName = payment.CustomerName,
-                    PaymentItems = payment.PaymentItems, // JSON olarak kopyala
+                    PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(refundItems)),
+                    TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(refundTaxDetails)),
                     OriginalPaymentId = paymentId,
                     IsRefund = true,
                     RefundReason = reason,
                     RefundAmount = amount,
                     RefundedAt = DateTime.UtcNow,
-                    TotalAmount = -amount, // Negatif tutar
-                    TaxAmount = -payment.TaxAmount * (amount / payment.TotalAmount),
+                    TotalAmount = -amount,
+                    TaxAmount = refundTaxAmount,
                     PaymentMethod = payment.PaymentMethod,
                     Notes = $"Refund: {reason}",
                     CreatedBy = userId,
                     CreatedAt = DateTime.UtcNow,
+                    IsActive = true,
+                    Steuernummer = payment.Steuernummer ?? string.Empty,
+                    KassenId = kassenId,
+                    CashierId = userId,
+                    TableNumber = payment.TableNumber,
+                    TseTimestamp = DateTime.UtcNow,
+                    ReceiptNumber = refundBelegNr,
+                    IdempotencyKey = refundKey
+                };
+
+                // TSE signature for refund Beleg (negative amount)
+                try
+                {
+                    var sigResult = await _tseService.CreateInvoiceSignatureAsync(
+                        resolvedCashRegisterId != Guid.Empty ? resolvedCashRegisterId : refundId,
+                        refundBelegNr,
+                        refund.TotalAmount,
+                        kassenId: kassenId,
+                        taxDetailsJson: JsonSerializer.Serialize(refundTaxDetails));
+                    refund.TseSignature = sigResult.CompactJws;
+                    refund.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
+                    _logger.LogInformation("TSE signature generated for refund {RefundId} BelegNr {BelegNr}", refundId, refundBelegNr);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to generate TSE signature for refund {RefundId}", refundId);
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Failed to generate TSE signature for refund",
+                        Errors = { "TSE signature generation failed" }
+                    };
+                }
+
+                // Sprint 3: Single fiscal transaction — Refund Payment + Invoice + Receipt; then stock revert
+                var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+                Guid? invoiceCashRegisterId = resolvedCashRegisterId != Guid.Empty ? resolvedCashRegisterId : null;
+
+                var refundInvoice = new Invoice
+                {
+                    Id = Guid.NewGuid(),
+                    SourcePaymentId = refund.Id,
+                    InvoiceNumber = refund.ReceiptNumber,
+                    InvoiceDate = refund.CreatedAt,
+                    DueDate = refund.CreatedAt,
+                    Status = InvoiceStatus.Paid,
+                    Subtotal = refund.TotalAmount - refund.TaxAmount,
+                    TaxAmount = refund.TaxAmount,
+                    TotalAmount = refund.TotalAmount,
+                    PaidAmount = refund.TotalAmount,
+                    RemainingAmount = 0,
+                    CustomerName = refund.CustomerName,
+                    CustomerTaxNumber = payment.Steuernummer,
+                    CompanyName = _companyProfile.CompanyName,
+                    CompanyTaxNumber = _companyProfile.TaxNumber,
+                    CompanyAddress = companyAddress,
+                    TseSignature = refund.TseSignature ?? string.Empty,
+                    KassenId = refund.KassenId,
+                    TseTimestamp = refund.TseTimestamp,
+                    CashRegisterId = invoiceCashRegisterId,
+                    PaymentMethod = payment.PaymentMethod,
+                    PaymentReference = null,
+                    PaymentDate = refund.CreatedAt,
+                    InvoiceItems = refund.PaymentItems,
+                    TaxDetails = refund.TaxDetails,
+                    DocumentType = DocumentType.Invoice,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId,
                     IsActive = true
                 };
 
-                await _paymentRepository.AddAsync(refund);
+                _context.PaymentDetails.Add(refund);
+                _context.Invoices.Add(refundInvoice);
+                await _receiptService.AddReceiptFromPaymentToContextAsync(refund);
 
-                _logger.LogInformation("Refund created for payment {PaymentId} by user {UserId} for amount {Amount}", 
-                    paymentId, userId, amount);
+                // Stock revert in same transaction (partial or full)
+                foreach (var item in originalItems)
+                {
+                    var product = await _context.Products.FindAsync(item.ProductId);
+                    if (product != null)
+                    {
+                        var refundQuantity = (int)Math.Round(item.Quantity * refundRatio);
+                        if (refundQuantity > 0)
+                        {
+                            product.StockQuantity += refundQuantity;
+                            product.UpdatedAt = DateTime.UtcNow;
+                        }
+                    }
+                }
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex) when (IsIdempotencyKeyViolation(ex))
+                {
+                    if (refundKey != null)
+                    {
+                        var existing = await _context.PaymentDetails.AsNoTracking()
+                            .FirstOrDefaultAsync(p => p.IdempotencyKey == refundKey && p.IsRefund);
+                        if (existing != null)
+                        {
+                            _logger.LogInformation("Idempotent refund (race): returning existing refund {RefundId} for key {Key}", existing.Id, refundKey);
+                            return new PaymentResult
+                            {
+                                Success = true,
+                                Message = "Refund processed successfully",
+                                Payment = existing
+                            };
+                        }
+                    }
+                    throw;
+                }
+
+                _logger.LogInformation("Refund created for payment {PaymentId} by user {UserId} for amount {Amount} (BelegNr {BelegNr}, Invoice {InvoiceId})",
+                    paymentId, userId, amount, refundBelegNr, refundInvoice.Id);
 
                 return new PaymentResult
                 {
@@ -1989,6 +2218,21 @@ namespace KasseAPI_Final.Services
                 if (e is PostgresException pg && pg.SqlState == "23505" &&
                     (pg.ConstraintName?.Contains("idempotency", StringComparison.OrdinalIgnoreCase) ?? false))
                     return true;
+            }
+            return false;
+        }
+
+        /// <summary>Sprint 6: True when the exception is a unique constraint violation on cancel_idempotency_key.</summary>
+        private static bool IsCancelIdempotencyKeyViolation(DbUpdateException ex)
+        {
+            for (Exception? e = ex; e != null; e = e.InnerException)
+            {
+                if (e is PostgresException pg && pg.SqlState == "23505")
+                {
+                    var name = pg.ConstraintName ?? "";
+                    if (name.Contains("cancel", StringComparison.OrdinalIgnoreCase) && name.Contains("idempotency", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
             }
             return false;
         }

@@ -48,6 +48,11 @@ namespace KasseAPI_Final.Models
 
         public Guid? CustomerId { get; set; }
 
+        /// <summary>Sprint 6: Optional idempotency key for order creation; retries with same key return existing order.</summary>
+        [MaxLength(64)]
+        [Column("idempotency_key")]
+        public string? IdempotencyKey { get; set; }
+
         // Navigation properties
         public virtual Customer? Customer { get; set; }
         public virtual ICollection<OrderItem> Items { get; set; } = new List<OrderItem>();
