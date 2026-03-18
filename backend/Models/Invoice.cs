@@ -103,8 +103,9 @@ namespace KasseAPI_Final.Models
         [MaxLength(100)]
         public string? CorrelationId { get; set; }
 
-        // Cash Register ID for Tagesabschluss
-        public Guid? CashRegisterId { get; set; }
+        /// <summary>Required FK to cash_registers. KassenId string is RKSV display (RegisterNumber), not the primary key.</summary>
+        [Required]
+        public Guid CashRegisterId { get; set; }
 
         // Ödeme Bilgileri
         public PaymentMethod? PaymentMethod { get; set; }

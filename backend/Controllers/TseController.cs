@@ -154,12 +154,16 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "TSE cihazı bağlı değil veya fatura oluşturamıyor" });
                 }
 
-                // RKSV Checklist 1-5 uyumlu COMPACT JWS imza (ITseService)
+                var cashReg = await _context.CashRegisters.AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Id == tseDevice.KassenId);
+                if (cashReg == null)
+                    return BadRequest(new { message = "TSE device KassenId does not match a cash register" });
+
                 var sigResult = await _tseService.CreateInvoiceSignatureAsync(
                     tseDevice.KassenId,
                     request.InvoiceNumber,
                     request.TotalAmount,
-                    kassenId: tseDevice.KassenId.ToString(),
+                    cashReg.RegisterNumber,
                     taxDetailsJson: request.TaxDetails);
                 string tseSignature = sigResult.CompactJws;
                 

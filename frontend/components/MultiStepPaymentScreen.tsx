@@ -16,7 +16,9 @@ import {
   Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import paymentService from '../services/api/paymentService';
+import paymentService, { type PaymentRequest } from '../services/api/paymentService';
+import { getUserSettings } from '../services/api/userSettingsService';
+import { GUEST_CUSTOMER_ID } from '../services/api/customerService';
 import { PaymentCancelResponse } from '../types/cart';
 
 import { useTranslation } from 'react-i18next';
@@ -171,29 +173,61 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
   const handlePaymentConfirmation = async () => {
     setLoading(true);
     try {
-      // Ödeme işlemi API'si
-      // Fiscal fields (Steuernummer, KassenId) are resolved on the backend from config when not sent.
-      const paymentRequest = {
-        items: cartItems.map(item => ({
+      const settings = await getUserSettings();
+      const regId = settings.cashRegisterId?.trim();
+      if (
+        !regId ||
+        regId === '00000000-0000-0000-0000-000000000000'
+      ) {
+        setError(
+          t(
+            'payment:errors.noCashRegister',
+            'Keine Kasse zugewiesen. Bitte unter Einstellungen eine Kasse auswählen.'
+          )
+        );
+        setLoading(false);
+        return;
+      }
+
+      const idempotencyKey =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 15)}`;
+
+      const paymentRequest: PaymentRequest = {
+        items: cartItems.map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
-          price: item.unitPrice,
-          taxType: item.product.taxType.toLowerCase() as 'standard' | 'reduced' | 'special'
+          taxType: item.product.taxType.toLowerCase() as
+            | 'standard'
+            | 'reduced'
+            | 'special'
         })),
         payment: {
           method: selectedPaymentMethod!,
           amount: parseFloat(paymentAmount),
-          tseRequired: PAYMENT_METHODS.find(m => m.key === selectedPaymentMethod)?.requiresTSE || false
+          tseRequired:
+            PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)
+              ?.requiresTSE || false
         },
-        customerId: customerId,
+        customerId: customerId?.trim() ? customerId : GUEST_CUSTOMER_ID,
         tableNumber: tableNumber,
         cashierId: user?.id || 'UNKNOWN',
-        totalAmount: totalAmount
+        totalAmount: totalAmount,
+        cashRegisterId: regId,
+        idempotencyKey
       };
 
       const response = await paymentService.processPayment(paymentRequest);
 
-      if (response.success) {
+      if (response.fiscalStatus === 'NON_FISCAL_PENDING') {
+        setError(
+          t(
+            'payment:errors.nonFiscalQueued',
+            'Keine RKSV-Bestätigung: Zahlung nur lokal in Warteschlange. Bei Verbindung synchronisieren oder erneut bezahlen.'
+          )
+        );
+      } else if (response.success) {
         setPaymentSessionId(response.paymentId);
         nextStep();
       } else {

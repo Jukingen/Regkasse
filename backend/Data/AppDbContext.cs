@@ -58,6 +58,8 @@ namespace KasseAPI_Final.Data
         public DbSet<ReceiptTaxLine> ReceiptTaxLines { get; set; }
         /// <summary>Per-register per-day sequence for BelegNr allocation (Sprint 1).</summary>
         public DbSet<ReceiptSequence> ReceiptSequences { get; set; }
+        /// <summary>Per-register TSE signature chain state; locked (FOR UPDATE) when generating signatures to avoid races.</summary>
+        public DbSet<SignatureChainState> SignatureChainState { get; set; }
         /// <summary>Sprint 5: Legal hold on audit date ranges; cleanup skips records in active holds.</summary>
         public DbSet<LegalHold> LegalHolds { get; set; }
 
@@ -236,6 +238,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CompanyEmail).HasMaxLength(100);
                 entity.Property(e => e.TseSignature).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.KassenId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.CashRegisterId).IsRequired();
                 entity.Property(e => e.PaymentReference).HasMaxLength(50);
                 entity.Property(e => e.Subtotal).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TaxAmount).HasColumnType("decimal(18,2)");
@@ -425,6 +428,12 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.ReceiptNumber)
                     .IsUnique()
                     .HasFilter("\"receipt_number\" IS NOT NULL AND \"receipt_number\" <> ''");
+                entity.Property(e => e.CashRegisterId).IsRequired().HasColumnName("cash_register_id");
+                entity.HasOne(e => e.CashRegister)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.CashRegisterId);
             });
 
             // PaymentItem: not mapped; single source of truth is payment_details.PaymentItems (JSON).
@@ -992,14 +1001,25 @@ namespace KasseAPI_Final.Data
                entity.HasIndex(e => e.PaymentId);
             });
 
-            // Receipt sequence: one row per (KassenId, date); unique constraint for allocation and daily reset.
+            // Receipt sequence: one row per (CashRegisterId, date).
             builder.Entity<ReceiptSequence>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.HasIndex(e => new { e.KassenId, e.SequenceDate }).IsUnique();
-                entity.Property(e => e.KassenId).IsRequired().HasMaxLength(50);
+                entity.HasIndex(e => new { e.CashRegisterId, e.SequenceDate }).IsUnique();
+                entity.Property(e => e.CashRegisterId).IsRequired().HasColumnName("cash_register_id");
                 entity.Property(e => e.SequenceDate).IsRequired();
                 entity.Property(e => e.NextSequence).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+            });
+
+            // Signature chain state: one row per cash register (UUID); FOR UPDATE when signing.
+            builder.Entity<SignatureChainState>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.CashRegisterId).IsUnique();
+                entity.Property(e => e.CashRegisterId).IsRequired().HasColumnName("cash_register_id");
+                entity.Property(e => e.LastSignature).HasMaxLength(4000);
+                entity.Property(e => e.LastCounter).IsRequired();
                 entity.Property(e => e.UpdatedAt).IsRequired();
             });
 

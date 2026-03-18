@@ -5,6 +5,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -21,6 +22,7 @@ public class Phase2PaymentFlatItemsTests
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"PaymentFlat_{Guid.NewGuid()}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         return new AppDbContext(options);
     }
@@ -37,7 +39,7 @@ public class Phase2PaymentFlatItemsTests
         var customerRepo = new GenericRepository<Customer>(context, loggerCust);
 
         var tseMock = new Mock<ITseService>();
-        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<DateTime?>(), It.IsAny<string?>()))
+        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<DateTime?>(), It.IsAny<string?>()))
             .ReturnsAsync(new TseSignatureResult("eyJ.eyJ.sign", "prev"));
         tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
             .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert123" });
@@ -55,12 +57,16 @@ public class Phase2PaymentFlatItemsTests
 
         var receiptSeqMock = new Mock<IReceiptSequenceService>();
         var seqCallCount = 0;
-        receiptSeqMock.Setup(x => x.AllocateNextBelegNrAsync(It.IsAny<string>(), It.IsAny<DateTime>()))
-            .ReturnsAsync((string k, DateTime d) => $"AT-{k}-{d:yyyyMMdd}-{++seqCallCount}");
+        receiptSeqMock.Setup(x => x.AllocateNextBelegNrAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync((Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-{++seqCallCount}");
+        receiptSeqMock.Setup(x => x.AllocateNextBelegNrInTransactionAsync(It.IsAny<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync((Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction _, Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-{++seqCallCount}");
 
         var loggerReceipt = new Mock<ILogger<ReceiptService>>().Object;
         var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, Options.Create(companyProfile));
 
+        var auditMock = new Mock<IAuditLogService>();
+        auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
         return new PaymentService(
             context,
             paymentRepo,
@@ -72,6 +78,7 @@ public class Phase2PaymentFlatItemsTests
             modifierValidation,
             receiptSeqMock.Object,
             receiptService,
+            auditMock.Object,
             Options.Create(companyProfile),
             Options.Create(tseOptions),
             loggerPayment);
@@ -116,6 +123,19 @@ public class Phase2PaymentFlatItemsTests
             IsSellableAddOn = true
         });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
+        var regId = Guid.NewGuid();
+        context.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "KASSE-01",
+            Location = "Test",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
         await context.SaveChangesAsync();
 
         var paymentService = CreatePaymentService(context);
@@ -124,10 +144,10 @@ public class Phase2PaymentFlatItemsTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "c1",
+            CashierId = "u1",
             TotalAmount = 8.40m,
             Steuernummer = "ATU12345678",
-            KassenId = "KASSE-01",
+            CashRegisterId = regId,
             Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
             Items = new List<PaymentItemRequest>
             {

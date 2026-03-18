@@ -4,6 +4,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { API_BASE_URL } from '../services/api/config';
+import { paymentService } from '../services/api/paymentService';
 import { storage } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -127,6 +128,20 @@ export const useApiManager = () => {
 
         const ok = response.ok;
         updateState({ isOnline: ok });
+        if (ok) {
+          void paymentService
+            .syncPendingPaymentQueue()
+            .then(({ processed }) => {
+              if (processed > 0) {
+                console.log(
+                  `[PaymentQueue] Synced ${processed} pending payment(s) after reconnect`
+                );
+              }
+            })
+            .catch((e) =>
+              console.warn('[PaymentQueue] Background sync failed:', e)
+            );
+        }
         return ok;
       } catch (fetchError) {
         clearTimeout(timeoutId);

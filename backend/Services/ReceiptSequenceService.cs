@@ -1,15 +1,15 @@
 using System;
+using System.Data;
 using System.Threading.Tasks;
 using KasseAPI_Final.Data;
-using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace KasseAPI_Final.Services
 {
     /// <summary>
-    /// Centralized allocation of sequential BelegNr per (KassenId, date). Uses row-level locking for concurrency.
+    /// Centralized BelegNr allocation per cash register (UUID) per day; human-readable segment from RegisterNumber.
     /// </summary>
     public class ReceiptSequenceService : IReceiptSequenceService
     {
@@ -23,76 +23,80 @@ namespace KasseAPI_Final.Services
         }
 
         /// <inheritdoc />
-        public async Task<string> AllocateNextBelegNrAsync(string kassenId, DateTime sequenceDate)
+        public async Task<string> AllocateNextBelegNrAsync(Guid cashRegisterId, string registerNumber, DateTime sequenceDate)
         {
-            if (string.IsNullOrWhiteSpace(kassenId))
-                throw new ArgumentException("KassenId is required for receipt sequence allocation.", nameof(kassenId));
+            if (cashRegisterId == Guid.Empty)
+                throw new ArgumentException("CashRegisterId must not be empty.", nameof(cashRegisterId));
+            if (string.IsNullOrWhiteSpace(registerNumber))
+                throw new ArgumentException("RegisterNumber is required for BelegNr.", nameof(registerNumber));
 
             var dateOnly = sequenceDate.Date;
-            const int maxRetries = 3;
-            for (int attempt = 0; attempt < maxRetries; attempt++)
-            {
-                await using var transaction = await _context.Database.BeginTransactionAsync();
-                try
-                {
-                    // Lock existing row if present so only one allocator proceeds per (kassen_id, date).
-                    var row = await _context.ReceiptSequences
-                        .FromSqlRaw(
-                            "SELECT * FROM receipt_sequences WHERE kassen_id = {0} AND sequence_date = {1} FOR UPDATE",
-                            kassenId,
-                            dateOnly)
-                        .FirstOrDefaultAsync();
+            var conn = _context.Database.GetDbConnection();
+            if (conn.State != ConnectionState.Open)
+                await conn.OpenAsync();
 
-                    int allocated;
-                    if (row != null)
-                    {
-                        allocated = row.NextSequence;
-                        row.NextSequence++;
-                        row.UpdatedAt = DateTime.UtcNow;
-                        await _context.SaveChangesAsync();
-                        await transaction.CommitAsync();
-                        var belegNr = $"AT-{kassenId}-{dateOnly:yyyyMMdd}-{allocated}";
-                        return belegNr;
-                    }
+            await using var cmd = conn.CreateCommand();
+            SetAllocateCommand(cmd, cashRegisterId, dateOnly);
 
-                    // No row: insert first allocation (next_sequence = 2 so we hand out 1 and next caller gets 2).
-                    var newRow = new ReceiptSequence
-                    {
-                        Id = Guid.NewGuid(),
-                        KassenId = kassenId,
-                        SequenceDate = dateOnly,
-                        NextSequence = 2,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-                    _context.ReceiptSequences.Add(newRow);
-                    await _context.SaveChangesAsync();
-                    await transaction.CommitAsync();
-                    return $"AT-{kassenId}-{dateOnly:yyyyMMdd}-1";
-                }
-                catch (DbUpdateException ex) when (IsUniqueViolation(ex))
-                {
-                    // Concurrent insert: another request created the row. Rollback and retry; next attempt will SELECT FOR UPDATE and increment.
-                    await transaction.RollbackAsync();
-                    if (attempt == maxRetries - 1)
-                    {
-                        _logger.LogError(ex, "Receipt sequence allocation failed after {Attempts} attempts for KassenId={KassenId} Date={Date}", maxRetries, kassenId, dateOnly);
-                        throw;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    _logger.LogError(ex, "Receipt sequence allocation failed for KassenId={KassenId} Date={Date}", kassenId, dateOnly);
-                    throw;
-                }
-            }
-
-            throw new InvalidOperationException($"Receipt sequence allocation failed for KassenId={kassenId} Date={dateOnly:yyyyMMdd} after {maxRetries} attempts.");
+            var result = await cmd.ExecuteScalarAsync();
+            return ParseAllocatedResult(result, registerNumber, dateOnly, cashRegisterId);
         }
 
-        private static bool IsUniqueViolation(DbUpdateException ex)
+        /// <inheritdoc />
+        public async Task<string> AllocateNextBelegNrInTransactionAsync(IDbContextTransaction transaction, Guid cashRegisterId, string registerNumber, DateTime sequenceDate)
         {
-            return ex.InnerException is PostgresException pg && pg.SqlState == "23505";
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+            if (cashRegisterId == Guid.Empty)
+                throw new ArgumentException("CashRegisterId must not be empty.", nameof(cashRegisterId));
+            if (string.IsNullOrWhiteSpace(registerNumber))
+                throw new ArgumentException("RegisterNumber is required for BelegNr.", nameof(registerNumber));
+
+            var dateOnly = sequenceDate.Date;
+            var conn = _context.Database.GetDbConnection();
+            if (conn.State != ConnectionState.Open)
+                await conn.OpenAsync();
+
+            await using var cmd = conn.CreateCommand();
+            cmd.Transaction = transaction.GetDbTransaction();
+            SetAllocateCommand(cmd, cashRegisterId, dateOnly);
+
+            var result = await cmd.ExecuteScalarAsync();
+            return ParseAllocatedResult(result, registerNumber, dateOnly, cashRegisterId);
+        }
+
+        private static void SetAllocateCommand(System.Data.Common.DbCommand cmd, Guid cashRegisterId, DateTime dateOnly)
+        {
+            cmd.CommandText = """
+                INSERT INTO receipt_sequences (id, cash_register_id, sequence_date, next_sequence, updated_at)
+                VALUES (gen_random_uuid(), @p0, @p1, 2, NOW())
+                ON CONFLICT (cash_register_id, sequence_date) DO UPDATE SET
+                    next_sequence = receipt_sequences.next_sequence + 1,
+                    updated_at = NOW()
+                RETURNING (next_sequence - 1)
+                """;
+            var p0 = cmd.CreateParameter();
+            p0.ParameterName = "@p0";
+            p0.Value = cashRegisterId;
+            cmd.Parameters.Add(p0);
+            var p1 = cmd.CreateParameter();
+            p1.ParameterName = "@p1";
+            p1.Value = dateOnly;
+            p1.DbType = DbType.Date;
+            cmd.Parameters.Add(p1);
+        }
+
+        private string ParseAllocatedResult(object? result, string registerNumber, DateTime dateOnly, Guid cashRegisterId)
+        {
+            var allocated = result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+            if (allocated < 1)
+            {
+                _logger.LogError("Receipt sequence allocation returned invalid value for CashRegisterId={Id} Date={Date}", cashRegisterId, dateOnly);
+                throw new InvalidOperationException($"Receipt sequence allocation failed for CashRegisterId={cashRegisterId} Date={dateOnly:yyyyMMdd}.");
+            }
+            var belegNr = $"AT-{registerNumber}-{dateOnly:yyyyMMdd}-{allocated}";
+            _logger.LogDebug("Allocated BelegNr {BelegNr} for CashRegisterId={Id} Date={Date}", belegNr, cashRegisterId, dateOnly);
+            return belegNr;
         }
     }
 }

@@ -486,7 +486,7 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse($"Payment with ID {id} not found", 404);
                 }
 
-                var receiptData = await _paymentService.GetReceiptDataAsync(id);
+                var receiptData = await _paymentService.GetReceiptDataAsync(id, GetCurrentUserId());
                 if (receiptData == null)
                 {
                     return ErrorResponse($"Failed to generate receipt data for payment {id}", 500);

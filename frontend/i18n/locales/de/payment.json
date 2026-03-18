@@ -67,7 +67,8 @@
     "generalError": "Ein Fehler ist aufgetreten",
     "demoRestricted": "Demo-Benutzer können keine echten Zahlungen erstellen. Bitte fahren Sie mit einem autorisierten Benutzer fort.",
     "benefitDailyAllowanceConflict": "Tageskontingent wurde gerade an einer anderen Kasse genutzt. Bitte erneut versuchen.",
-    "unknown": "Zahlungsvorgang fehlgeschlagen. Bitte versuchen Sie es erneut."
+    "unknown": "Zahlungsvorgang fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "nonFiscalQueued": "Keine RKSV-Bestätigung: Zahlung nur lokal in Warteschlange. Bei Verbindung wird synchronisiert — bis dahin nicht als fiscal verbucht."
   },
   "cancellation": {
     "title": "Zahlung stornieren",

@@ -171,7 +171,13 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 if (!string.IsNullOrWhiteSpace(cashRegisterId))
-                    queryable = queryable.Where(p => p.KassenId == cashRegisterId);
+                {
+                    var crFilter = cashRegisterId.Trim();
+                    if (Guid.TryParse(crFilter, out var crGuid))
+                        queryable = queryable.Where(p => p.CashRegisterId == crGuid);
+                    else
+                        queryable = queryable.Where(p => _context.CashRegisters.Any(cr => cr.Id == p.CashRegisterId && cr.RegisterNumber == crFilter));
+                }
 
                 if (!string.IsNullOrWhiteSpace(query))
                 {
@@ -206,7 +212,7 @@ namespace KasseAPI_Final.Controllers
                         CompanyName = string.Empty,
                         TotalAmount = p.TotalAmount,
                         Status = InvoiceStatus.Paid, // POS transactions are always completed/paid
-                        KassenId = p.KassenId,
+                        KassenId = _context.CashRegisters.Where(cr => cr.Id == p.CashRegisterId).Select(cr => cr.RegisterNumber).FirstOrDefault() ?? "",
                         TseSignature = p.TseSignature
                     })
                     .ToListAsync();
@@ -370,7 +376,12 @@ namespace KasseAPI_Final.Controllers
                     {
                         return NotFound("Fatura bulunamadı");
                     }
-                    
+
+                    var kassenFromReg = await _context.CashRegisters.AsNoTracking()
+                        .Where(r => r.Id == posInvoice.CashRegisterId)
+                        .Select(r => r.RegisterNumber)
+                        .FirstOrDefaultAsync() ?? "";
+
                     invoice = new Invoice
                     {
                         Id = posInvoice.Id,
@@ -389,7 +400,8 @@ namespace KasseAPI_Final.Controllers
                         CompanyTaxNumber = _companyProfile.TaxNumber ?? string.Empty,
                         CompanyAddress = $"{_companyProfile.Street} {_companyProfile.ZipCode} {_companyProfile.City}".Trim(),
                         TseSignature = posInvoice.TseSignature,
-                        KassenId = posInvoice.KassenId,
+                        KassenId = kassenFromReg,
+                        CashRegisterId = posInvoice.CashRegisterId,
                         TseTimestamp = posInvoice.TseTimestamp,
                         PaymentMethod = posInvoice.PaymentMethod,
                         InvoiceItems = posInvoice.PaymentItems,
@@ -421,6 +433,11 @@ namespace KasseAPI_Final.Controllers
                 if (string.IsNullOrWhiteSpace(request.CompanyName)) return BadRequest("Firma adı gerekli");
                 if (string.IsNullOrWhiteSpace(request.CompanyTaxNumber)) return BadRequest("Firma vergi numarası gerekli");
                 if (!request.CompanyTaxNumber.StartsWith("ATU") || request.CompanyTaxNumber.Length != 11) return BadRequest("Firma vergi numarası ATU formatında olmalı");
+                if (request.CashRegisterId == Guid.Empty)
+                    return BadRequest("CashRegisterId is required.");
+                var cashRegCreate = await _context.CashRegisters.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.CashRegisterId);
+                if (cashRegCreate == null)
+                    return BadRequest("Cash register not found for CashRegisterId.");
 
                 var invoiceNumber = string.IsNullOrEmpty(request.InvoiceNumber) ? GenerateInvoiceNumber() : request.InvoiceNumber;
 
@@ -450,7 +467,8 @@ namespace KasseAPI_Final.Controllers
                     CompanyPhone = request.CompanyPhone,
                     CompanyEmail = request.CompanyEmail,
                     TseSignature = request.TseSignature,
-                    KassenId = request.KassenId,
+                    KassenId = cashRegCreate.RegisterNumber,
+                    CashRegisterId = request.CashRegisterId,
                     TseTimestamp = request.TseTimestamp,
                     PaymentMethod = request.PaymentMethod,
                     PaymentReference = request.PaymentReference,
@@ -601,6 +619,7 @@ namespace KasseAPI_Final.Controllers
                     // New TSE Signature (placeholder until finalized)
                     TseSignature = string.Empty,
                     KassenId = original.KassenId,
+                    CashRegisterId = original.CashRegisterId,
                     TseTimestamp = DateTime.Now,
 
                     InvoiceItems = original.InvoiceItems,
@@ -649,13 +668,13 @@ namespace KasseAPI_Final.Controllers
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
                 // Sprint 3: Allocate fiscal BelegNr for storno (credit note) and sign with TSE
+                if (original.CashRegisterId == Guid.Empty)
+                    return BadRequest("Invoice has no CashRegisterId; cannot create credit note.");
                 var kassenId = original.KassenId ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(kassenId))
-                {
-                    _logger.LogWarning("Original invoice {InvoiceId} has no KassenId; storno BelegNr may be inconsistent", original.Id);
-                }
-                var stornoBelegNr = await _receiptSequenceService.AllocateNextBelegNrAsync(kassenId, DateTime.UtcNow);
-                var cashRegisterId = original.CashRegisterId ?? Guid.Empty;
+                    return BadRequest("Invoice has no fiscal KassenId (register number); cannot sign storno.");
+                var stornoBelegNr = await _receiptSequenceService.AllocateNextBelegNrAsync(original.CashRegisterId, kassenId, DateTime.UtcNow);
+                var cashRegisterId = original.CashRegisterId;
                 var negatedTotal = -original.TotalAmount;
                 string tseSignature = string.Empty;
                 var tseTimestamp = DateTime.UtcNow;
@@ -668,7 +687,8 @@ namespace KasseAPI_Final.Controllers
                         cashRegisterId,
                         stornoBelegNr,
                         negatedTotal,
-                        kassenId: kassenId,
+                        kassenId,
+                        prevSignatureValue: null,
                         timestamp: tseTimestamp,
                         taxDetailsJson: taxDetailsJson);
                     tseSignature = sigResult.CompactJws;
@@ -752,7 +772,12 @@ namespace KasseAPI_Final.Controllers
                     {
                         return NotFound("Fatura bulunamadı");
                     }
-                    
+
+                    var kassenPdf = await _context.CashRegisters.AsNoTracking()
+                        .Where(r => r.Id == posInvoice.CashRegisterId)
+                        .Select(r => r.RegisterNumber)
+                        .FirstOrDefaultAsync() ?? "";
+
                     invoice = new Invoice
                     {
                         Id = posInvoice.Id,
@@ -771,7 +796,8 @@ namespace KasseAPI_Final.Controllers
                         CompanyTaxNumber = _companyProfile.TaxNumber ?? string.Empty,
                         CompanyAddress = $"{_companyProfile.Street} {_companyProfile.ZipCode} {_companyProfile.City}".Trim(),
                         TseSignature = posInvoice.TseSignature,
-                        KassenId = posInvoice.KassenId,
+                        KassenId = kassenPdf,
+                        CashRegisterId = posInvoice.CashRegisterId,
                         TseTimestamp = posInvoice.TseTimestamp,
                         PaymentMethod = posInvoice.PaymentMethod,
                         InvoiceItems = posInvoice.PaymentItems,
@@ -968,11 +994,6 @@ namespace KasseAPI_Final.Controllers
                     .Select(i => i.SourcePaymentId!.Value)
                     .ToHashSetAsync();
 
-                // Build a cash register mapping directory to resolve KassenId to Guid efficiently
-                var cashRegisters = await _context.CashRegisters.AsNoTracking().ToListAsync();
-                var crIdMap = cashRegisters.ToDictionary(cr => cr.Id.ToString(), cr => cr.Id);
-                var crNumMap = cashRegisters.ToDictionary(cr => cr.RegisterNumber, cr => cr.Id);
-
                 foreach (var payment in payments)
                 {
                     if (existingSourceIds.Contains(payment.Id))
@@ -983,22 +1004,22 @@ namespace KasseAPI_Final.Controllers
 
                     try
                     {
-                        Guid? resolvedCashRegisterId = null;
-                        if (!string.IsNullOrWhiteSpace(payment.KassenId))
+                        if (payment.CashRegisterId == Guid.Empty)
                         {
-                            if (crIdMap.TryGetValue(payment.KassenId, out var mappedId))
-                            {
-                                resolvedCashRegisterId = mappedId;
-                            }
-                            else if (crNumMap.TryGetValue(payment.KassenId, out var mappedIdByNum))
-                            {
-                                resolvedCashRegisterId = mappedIdByNum;
-                            }
+                            _logger.LogWarning("Backfill: Payment {PaymentId} has no CashRegisterId; skipping", payment.Id);
+                            skipped++;
+                            continue;
                         }
 
-                        if (resolvedCashRegisterId == null)
+                        var regNum = await _context.CashRegisters.AsNoTracking()
+                            .Where(r => r.Id == payment.CashRegisterId)
+                            .Select(r => r.RegisterNumber)
+                            .FirstOrDefaultAsync();
+                        if (string.IsNullOrEmpty(regNum))
                         {
-                            _logger.LogWarning("Backfill: Could not resolve valid CashRegisterId for KassenId {KassenId} on Payment {PaymentId}", payment.KassenId, payment.Id);
+                            _logger.LogWarning("Backfill: Cash register {Id} missing for Payment {PaymentId}", payment.CashRegisterId, payment.Id);
+                            skipped++;
+                            continue;
                         }
 
                         var invoice = new Invoice
@@ -1022,9 +1043,9 @@ namespace KasseAPI_Final.Controllers
                             CompanyTaxNumber = _companyProfile.TaxNumber,
                             CompanyAddress = companyAddress,
                             TseSignature = payment.TseSignature ?? string.Empty,
-                            KassenId = payment.KassenId,
+                            KassenId = regNum,
                             TseTimestamp = payment.TseTimestamp,
-                            CashRegisterId = resolvedCashRegisterId,
+                            CashRegisterId = payment.CashRegisterId,
                             PaymentMethod = payment.PaymentMethod,
                             PaymentReference = payment.TransactionId,
                             PaymentDate = payment.CreatedAt,
@@ -1095,7 +1116,9 @@ namespace KasseAPI_Final.Controllers
         public string? CompanyPhone { get; set; }
         public string? CompanyEmail { get; set; }
         public string TseSignature { get; set; } = string.Empty;
+        /// <summary>Fiscal Kassen-ID is taken from CashRegister.RegisterNumber when saving.</summary>
         public string KassenId { get; set; } = string.Empty;
+        public Guid CashRegisterId { get; set; }
         public DateTime TseTimestamp { get; set; } = DateTime.Now;
         public PaymentMethod? PaymentMethod { get; set; }
         public string? PaymentReference { get; set; }

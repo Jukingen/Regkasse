@@ -67,7 +67,8 @@
     "generalError": "Bir hata oluştu",
     "demoRestricted": "Demo kullanıcılar gerçek ödeme oluşturamaz. Lütfen yetkili bir kullanıcı ile devam edin.",
     "benefitDailyAllowanceConflict": "Tageskontingent wurde gerade an einer anderen Kasse genutzt. Bitte erneut versuchen.",
-    "unknown": "Ödeme işlemi başarısız. Lütfen tekrar deneyin."
+    "unknown": "Ödeme işlemi başarısız. Lütfen tekrar deneyin.",
+    "nonFiscalQueued": "Mali onay yok: ödeme yalnızca yerel kuyrukta. Bağlantı gelince senkronize edilir — o zamana kadar RKSV geçerli değil."
   },
   "cancellation": {
     "title": "Ödeme İptali",

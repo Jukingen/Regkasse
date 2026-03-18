@@ -51,6 +51,10 @@ export const usePayment = () => {
       // Ödeme işlemini gerçekleştir
       const response = await paymentService.processPayment(paymentRequest);
 
+      if (response.fiscalStatus === 'NON_FISCAL_PENDING') {
+        return response;
+      }
+
       if (!response.success) {
         throw new Error(response.error ?? 'Ödeme işlemi başarısız');
       }

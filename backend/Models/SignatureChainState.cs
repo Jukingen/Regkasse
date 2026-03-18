@@ -5,11 +5,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     /// <summary>
-    /// Per-register, per-day sequence for fiscal receipt numbers (BelegNr).
-    /// Format: AT-{RegisterNumber}-{yyyyMMdd}-{counter}. One row per CashRegisterId per day.
+    /// Per-register TSE signature chain state. One row per CashRegisterId.
     /// </summary>
-    [Table("receipt_sequences")]
-    public class ReceiptSequence
+    [Table("signature_chain_state")]
+    public class SignatureChainState
     {
         [Key]
         [Column("id")]
@@ -19,13 +18,13 @@ namespace KasseAPI_Final.Models
         [Column("cash_register_id")]
         public Guid CashRegisterId { get; set; }
 
-        [Required]
-        [Column("sequence_date", TypeName = "date")]
-        public DateTime SequenceDate { get; set; }
+        [MaxLength(4000)]
+        [Column("last_signature")]
+        public string? LastSignature { get; set; }
 
         [Required]
-        [Column("next_sequence")]
-        public int NextSequence { get; set; } = 1;
+        [Column("last_counter")]
+        public int LastCounter { get; set; }
 
         [Required]
         [Column("updated_at")]

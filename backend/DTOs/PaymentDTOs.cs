@@ -33,9 +33,10 @@ namespace KasseAPI_Final.DTOs
         // Austrian fiscal fields. When empty, backend fills from CompanyProfile / DefaultKassenId.
         [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer must be in format ATU12345678")]
         public string? Steuernummer { get; set; }
-        
-        [StringLength(50, MinimumLength = 3, ErrorMessage = "KassenId must be between 3 and 50 characters")]
-        public string? KassenId { get; set; }
+
+        /// <summary>Required: POS cash register row (FK). Must not be empty GUID.</summary>
+        [Required]
+        public Guid CashRegisterId { get; set; }
         
         public string? Notes { get; set; }
 

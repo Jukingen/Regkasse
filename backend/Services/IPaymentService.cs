@@ -49,9 +49,9 @@ namespace KasseAPI_Final.Services
         Task<PaymentStatistics> GetPaymentStatisticsAsync(DateTime startDate, DateTime endDate);
         
         /// <summary>
-        /// Get formatted receipt data for payment
+        /// Get formatted receipt data for payment. When userId is provided, audit is written for ReceiptGenerated or ReceiptReprinted.
         /// </summary>
-        Task<ReceiptDTO?> GetReceiptDataAsync(Guid paymentId);
+        Task<ReceiptDTO?> GetReceiptDataAsync(Guid paymentId, string? userId = null);
         
         /// <summary>
         /// TSE imzası oluştur

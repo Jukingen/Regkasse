@@ -11,10 +11,11 @@ namespace KasseAPI_Final.Services
         Task<TseDevice> GetTseDeviceAsync(string deviceId);
         Task<bool> ConnectTseDeviceAsync(string deviceId);
         Task<bool> DisconnectTseDeviceAsync(string deviceId);
-        Task<TseSignatureResult> CreateInvoiceSignatureAsync(Guid cashRegisterId, string invoiceNumber, decimal totalAmount, string? kassenId = null, string? prevSignatureValue = null, DateTime? timestamp = null, string? taxDetailsJson = null);
-        Task<string> CreateDailyClosingSignatureAsync(Guid cashRegisterId, DateTime closingDate, decimal totalAmount, int transactionCount);
-        Task<string> CreateMonthlyClosingSignatureAsync(Guid cashRegisterId, DateTime closingDate, decimal totalAmount, int transactionCount);
-        Task<string> CreateYearlyClosingSignatureAsync(Guid cashRegisterId, DateTime closingDate, decimal totalAmount, int transactionCount);
+        /// <param name="registerNumber">Fiscal Kassen-ID string (CashRegister.RegisterNumber), not the UUID.</param>
+        Task<TseSignatureResult> CreateInvoiceSignatureAsync(Guid cashRegisterId, string invoiceNumber, decimal totalAmount, string registerNumber, string? prevSignatureValue = null, DateTime? timestamp = null, string? taxDetailsJson = null);
+        Task<string> CreateDailyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount);
+        Task<string> CreateMonthlyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount);
+        Task<string> CreateYearlyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount);
         Task<bool> ValidateTseSignatureAsync(string signature);
         Task<TseCertificateInfo> GetTseCertificateInfoAsync(string deviceId);
         Task<bool> BackupTseDataAsync(string deviceId);

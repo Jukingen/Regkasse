@@ -261,6 +261,7 @@ builder.Services.AddScoped<CartLifecycleService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<ILegalHoldService, LegalHoldService>();
 builder.Services.AddScoped<IIntegrityCheckService, IntegrityCheckService>();
+builder.Services.AddScoped<IFiscalExportService, FiscalExportService>();
 builder.Services.AddScoped<IActorDisplayNameResolver, ActorDisplayNameResolver>();
 builder.Services.AddScoped<IUserUniquenessValidationService, UserUniquenessValidationService>();
 

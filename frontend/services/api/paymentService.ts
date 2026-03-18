@@ -2,6 +2,15 @@ import { Buffer } from 'buffer';
 import { storage } from '../../utils/storage';
 import { apiClient, API_BASE_URL } from './config';
 import { normalizePaymentError } from '../../features/payment/paymentErrors';
+import {
+  enqueuePendingPayment,
+  syncPendingPaymentQueue as flushPendingPaymentQueue,
+  removePendingByIdempotencyKey,
+  getPendingPaymentQueue,
+  type PendingPaymentPayload,
+} from '../payment/pendingPaymentQueue';
+
+export type { PendingPaymentEntry } from '../payment/pendingPaymentQueue';
 
 export interface PaymentMethod {
   id: string;
@@ -33,9 +42,9 @@ export interface PaymentRequest {
   cashierId: string; // Kasiyer ID
   totalAmount: number; // Toplam tutar
 
-  /** Austrian fiscal fields. When omitted or empty, backend fills from CompanyProfile / DefaultKassenId. */
   steuernummer?: string;
-  kassenId?: string;
+  /** Required: cash register row UUID from user settings (Kasse). */
+  cashRegisterId: string;
 
   notes?: string;
 
@@ -51,8 +60,19 @@ export interface PaymentTseInfo {
   receiptNumber?: string;
 }
 
+/** FISCAL_COMPLETE = server confirmed; NON_FISCAL_PENDING = only queued locally; FISCAL_FAILED = server error response. */
+export type FiscalPaymentStatus =
+  | 'FISCAL_COMPLETE'
+  | 'NON_FISCAL_PENDING'
+  | 'FISCAL_FAILED';
+
 export interface PaymentResponse {
   success: boolean;
+  /** True only after server accepted payment (fiscal path). */
+  isSynced: boolean;
+  fiscalStatus: FiscalPaymentStatus;
+  /** Set when fiscalStatus is NON_FISCAL_PENDING */
+  pendingQueueId?: string;
   paymentId: string;
   error?: string;
   message?: string;
@@ -61,6 +81,21 @@ export interface PaymentResponse {
   tse?: PaymentTseInfo;
   /** When false, payment succeeded but invoice was not persisted — operator attention required. */
   invoicePersisted?: boolean;
+}
+
+function isTransportFailure(error: unknown): boolean {
+  const err = error as {
+    response?: unknown;
+    message?: string;
+    code?: string;
+  };
+  const msg = typeof err?.message === 'string' ? err.message : '';
+  if (msg.includes('Token expired')) return false;
+  if (err?.response != null) return false;
+  if (err?.code === 'ECONNABORTED' || err?.code === 'ERR_NETWORK') return true;
+  if (msg === 'Network Error' || /network/i.test(msg)) return true;
+  if (/aborted|timeout/i.test(msg)) return true;
+  return false;
 }
 
 export interface Receipt {
@@ -104,10 +139,36 @@ class PaymentService {
 
   // Payment processing - Backend endpoint compatible
   async processPayment(paymentRequest: PaymentRequest): Promise<PaymentResponse> {
+    const idempotencyKey =
+      paymentRequest.idempotencyKey?.trim() ||
+      (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 15)}`);
+    const req: PaymentRequest = { ...paymentRequest, idempotencyKey };
+
     try {
-      const response = await apiClient.post<any>(`${this.baseUrl}`, paymentRequest);
-      return this.normalizePaymentResponse(response);
+      const response = await apiClient.post<any>(`${this.baseUrl}`, req);
+      const normalized = this.normalizePaymentResponse(response);
+      if (normalized.success) {
+        await removePendingByIdempotencyKey(idempotencyKey);
+      }
+      return normalized;
     } catch (error: unknown) {
+      if (isTransportFailure(error)) {
+        const payload = req as unknown as PendingPaymentPayload;
+        const pendingQueueId = await enqueuePendingPayment(payload);
+        return {
+          success: false,
+          isSynced: false,
+          fiscalStatus: 'NON_FISCAL_PENDING',
+          pendingQueueId,
+          paymentId: '',
+          error: 'NON_FISCAL_PENDING',
+          message:
+            'Not fiscal: no server confirmation. Payment stored in pending queue only.',
+          invoicePersisted: false,
+        };
+      }
       throw normalizePaymentError(error);
     }
   }
@@ -162,13 +223,15 @@ class PaymentService {
     const invoicePersisted = raw?.invoicePersisted !== false;
 
     return {
-      success: !!success, // Ensure boolean
+      success: !!success,
+      isSynced: !!success,
+      fiscalStatus: success ? 'FISCAL_COMPLETE' : 'FISCAL_FAILED',
       paymentId,
       message,
       tseSignature,
       tse,
       invoicePersisted,
-      error: success ? undefined : message
+      error: success ? undefined : message,
     };
   }
 
@@ -249,13 +312,7 @@ class PaymentService {
       return response;
     } catch (error) {
       console.error('Payment history fetch failed:', error);
-
-      // Basit offline response
-      return [{
-        success: true,
-        paymentId: 'offline-payment',
-        message: 'Offline payment'
-      }];
+      return [];
     }
   }
 
@@ -266,11 +323,12 @@ class PaymentService {
       return response;
     } catch (error) {
       console.error('Payment fetch failed:', error);
-
       return {
         success: false,
+        isSynced: false,
+        fiscalStatus: 'FISCAL_FAILED',
         paymentId: '',
-        error: 'Payment not found'
+        error: 'Payment not found',
       };
     }
   }
@@ -284,13 +342,9 @@ class PaymentService {
       return response;
     } catch (error) {
       console.error('Payment cancellation failed:', error);
-
-      // Basit offline response
-      return {
-        success: true,
-        paymentId: paymentId,
-        message: 'Payment cancelled offline'
-      };
+      throw new Error(
+        'Storno erfordert Serververbindung (RKSV). Bitte online erneut versuchen.'
+      );
     }
   }
 
@@ -304,12 +358,9 @@ class PaymentService {
       return response;
     } catch (error) {
       console.error('Payment refund failed:', error);
-
-      return {
-        success: true,
-        paymentId: `refund-${id}`,
-        message: 'Refund processed offline'
-      };
+      throw new Error(
+        'Erstattung erfordert Serververbindung (RKSV). Bitte online erneut versuchen.'
+      );
     }
   }
 
@@ -358,26 +409,34 @@ class PaymentService {
       };
     } catch (error) {
       console.error('Payment statistics failed:', error);
-
-      // Basit offline response
-      return {
-        totalPayments: 0,
-        totalAmount: 0,
-        averageAmount: 0,
-        topPaymentMethods: []
-      };
+      throw new Error(
+        'Statistik nicht verfügbar (keine Serververbindung oder Fehler).'
+      );
     }
   }
 
-  // Çevrimdışı ödemeleri senkronize et
+  /**
+   * Retry pending NON-FISCAL payment rows against POST /Payment.
+   * Returns count of successfully synced entries.
+   */
   async syncOfflinePayments(): Promise<number> {
     try {
-      console.log('Syncing offline payments...');
-      return 0; // Basit response
+      const { processed } = await flushPendingPaymentQueue();
+      return processed;
     } catch (error) {
       console.error('Payment sync failed:', error);
       return 0;
     }
+  }
+
+  /** Expose full sync result for UI/logging. */
+  async syncPendingPaymentQueue(): Promise<{ processed: number; failed: number }> {
+    return flushPendingPaymentQueue();
+  }
+
+  /** NON_FISCAL rows waiting for server POST /Payment (isSynced false). */
+  async listPendingNonFiscalPayments() {
+    return getPendingPaymentQueue();
   }
 }
 

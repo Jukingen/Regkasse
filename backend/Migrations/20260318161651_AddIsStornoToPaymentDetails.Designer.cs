@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318161651_AddIsStornoToPaymentDetails")]
+    partial class AddIsStornoToPaymentDetails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1668,7 +1671,7 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("CashRegisterId")
+                    b.Property<Guid?>("CashRegisterId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("CompanyAddress")
@@ -2205,10 +2208,6 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("CashRegisterId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("cash_register_id");
-
                     b.Property<string>("CashierId")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -2268,6 +2267,11 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("jws_signature");
+
+                    b.Property<string>("KassenId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -2358,8 +2362,6 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("CancelIdempotencyKey")
                         .IsUnique()
                         .HasFilter("\"cancel_idempotency_key\" IS NOT NULL");
-
-                    b.HasIndex("CashRegisterId");
 
                     b.HasIndex("CreatedAt");
 
@@ -3117,9 +3119,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("CashRegisterId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("cash_register_id");
+                    b.Property<string>("KassenId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("kassen_id");
 
                     b.Property<int>("NextSequence")
                         .HasColumnType("integer")
@@ -3135,7 +3139,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CashRegisterId", "SequenceDate")
+                    b.HasIndex("KassenId", "SequenceDate")
                         .IsUnique();
 
                     b.ToTable("receipt_sequences");
@@ -3272,38 +3276,6 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TemplateType");
 
                     b.ToTable("receipt_templates");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.SignatureChainState", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("CashRegisterId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("cash_register_id");
-
-                    b.Property<int>("LastCounter")
-                        .HasColumnType("integer")
-                        .HasColumnName("last_counter");
-
-                    b.Property<string>("LastSignature")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("last_signature");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CashRegisterId")
-                        .IsUnique();
-
-                    b.ToTable("signature_chain_state");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.SystemSettings", b =>
@@ -4341,19 +4313,11 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.PaymentDetails", b =>
                 {
-                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
-                        .WithMany()
-                        .HasForeignKey("CashRegisterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("KasseAPI_Final.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("CashRegister");
 
                     b.Navigation("Customer");
                 });

@@ -58,10 +58,14 @@ namespace KasseAPI_Final.Models
         [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer formatı ATU12345678 olmalıdır")]
         public string Steuernummer { get; set; } = string.Empty; // Vergi numarası (ATU12345678)
         
+        /// <summary>FK to cash_registers. Required; no Guid.Empty. Fiscal display id (Kassen-ID) comes from CashRegister.RegisterNumber.</summary>
         [Required]
-        [MaxLength(50)]
-        public string KassenId { get; set; } = string.Empty; // Kasa ID
-        
+        [Column("cash_register_id")]
+        public Guid CashRegisterId { get; set; }
+
+        [ForeignKey(nameof(CashRegisterId))]
+        public virtual CashRegister? CashRegister { get; set; }
+
         [MaxLength(500)]
         public string? Notes { get; set; }
         
@@ -82,6 +86,8 @@ namespace KasseAPI_Final.Models
         // Added for better traceability of refund/cancel operations.
         public Guid? OriginalPaymentId { get; set; }
         public bool IsRefund { get; set; } = false;
+        /// <summary>True when this row is a storno (cancellation reversal). Original payment is never modified; this reversal references it via OriginalPaymentId.</summary>
+        public bool IsStorno { get; set; } = false;
         [MaxLength(200)]
         public string? RefundReason { get; set; }
         [Column(TypeName = "decimal(18,2)")]

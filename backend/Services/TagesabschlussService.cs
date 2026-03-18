@@ -39,19 +39,16 @@ namespace KasseAPI_Final.Services
         /// <summary>Sprint 4: Count active payments in scope (register + date range) that have no Invoice with SourcePaymentId. Used to block closing when &gt; 0.</summary>
         public async Task<int> GetPaymentsWithoutInvoiceCountAsync(Guid cashRegisterId, DateTime fromInclusive, DateTime toExclusive)
         {
-            var registerNumber = await _context.CashRegisters
-                .AsNoTracking()
-                .Where(cr => cr.Id == cashRegisterId)
-                .Select(cr => cr.RegisterNumber)
-                .FirstOrDefaultAsync();
-            if (string.IsNullOrWhiteSpace(registerNumber))
+            if (cashRegisterId == Guid.Empty)
+                return 0;
+            if (!await _context.CashRegisters.AsNoTracking().AnyAsync(cr => cr.Id == cashRegisterId))
                 return 0;
 
             return await _context.PaymentDetails
                 .AsNoTracking()
                 .Where(p => p.CreatedAt >= fromInclusive && p.CreatedAt < toExclusive
                     && p.IsActive
-                    && p.KassenId == registerNumber
+                    && p.CashRegisterId == cashRegisterId
                     && !_context.Invoices.Any(i => i.SourcePaymentId == p.Id))
                 .CountAsync();
         }
@@ -98,11 +95,15 @@ namespace KasseAPI_Final.Services
                 var totalTaxAmount = transactions.Sum(t => t.TaxAmount);
                 var transactionCount = transactions.Count;
 
-                // Create TSE signature for daily closing
+                var register = await _context.CashRegisters.AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Id == cashRegisterId)
+                    ?? throw new InvalidOperationException($"Cash register {cashRegisterId} not found.");
+
                 var tseSignature = await _tseService.CreateDailyClosingSignatureAsync(
-                    cashRegisterId, 
-                    today, 
-                    totalAmount, 
+                    cashRegisterId,
+                    register.RegisterNumber,
+                    today,
+                    totalAmount,
                     transactionCount);
 
                 // Create daily closing record
@@ -198,10 +199,15 @@ namespace KasseAPI_Final.Services
                 var totalTaxAmount = transactions.Sum(t => t.TaxAmount);
                 var transactionCount = transactions.Count;
 
+                var registerM = await _context.CashRegisters.AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Id == cashRegisterId)
+                    ?? throw new InvalidOperationException($"Cash register {cashRegisterId} not found.");
+
                 var tseSignature = await _tseService.CreateMonthlyClosingSignatureAsync(
-                    cashRegisterId, 
-                    currentMonth, 
-                    totalAmount, 
+                    cashRegisterId,
+                    registerM.RegisterNumber,
+                    currentMonth,
+                    totalAmount,
                     transactionCount);
 
                 var monthlyClosing = new DailyClosing
@@ -277,10 +283,15 @@ namespace KasseAPI_Final.Services
                 var totalTaxAmount = transactions.Sum(t => t.TaxAmount);
                 var transactionCount = transactions.Count;
 
+                var registerY = await _context.CashRegisters.AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Id == cashRegisterId)
+                    ?? throw new InvalidOperationException($"Cash register {cashRegisterId} not found.");
+
                 var tseSignature = await _tseService.CreateYearlyClosingSignatureAsync(
-                    cashRegisterId, 
-                    currentYear, 
-                    totalAmount, 
+                    cashRegisterId,
+                    registerY.RegisterNumber,
+                    currentYear,
+                    totalAmount,
                     transactionCount);
 
                 var yearlyClosing = new DailyClosing

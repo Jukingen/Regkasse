@@ -23,6 +23,7 @@ import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paym
 import { cartService } from '../services/api/cartService';
 import { customerService, GUEST_CUSTOMER_ID, type BenefitEligibilityPreviewResponse } from '../services/api/customerService';
 import { validateAmount } from '../utils/validation';
+import { getUserSettings } from '../services/api/userSettingsService';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
@@ -179,6 +180,9 @@ export default function PaymentModal({
   const [eligibilityPreviewLoading, setEligibilityPreviewLoading] = useState(false);
   const eligibilityPreviewRequestIdRef = useRef(0);
 
+  /** Backend requires valid cash register UUID (no fallback). */
+  const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
+
   // DEV: TSE Simulation Toggle
   // Default: AÇIK (Bypass) in Development
   const [isTseSimulationEnabled, setIsTseSimulationEnabled] = useState<boolean>(__DEV__);
@@ -224,16 +228,27 @@ export default function PaymentModal({
 
   const cashPresets = getCashPresets(totalAmount);
 
-  // Load payment methods and guest customer
+  // Load payment methods, guest customer, and cash register (required for POST /Payment)
   useEffect(() => {
-    if (visible) {
-      getPaymentMethods();
-
-      // Load guest customer ID
-      customerService.getGuestCustomer()
-        .then(id => setGuestCustomerId(id))
-        .catch(err => console.warn('[PaymentModal] Failed to load guest customer:', err));
+    if (!visible) {
+      setCashRegisterId(null);
+      return;
     }
+    getPaymentMethods();
+
+    customerService.getGuestCustomer()
+      .then(id => setGuestCustomerId(id))
+      .catch(err => console.warn('[PaymentModal] Failed to load guest customer:', err));
+
+    getUserSettings()
+      .then((s) => {
+        const id = s.cashRegisterId?.trim();
+        const invalid =
+          !id ||
+          id === '00000000-0000-0000-0000-000000000000';
+        setCashRegisterId(invalid ? null : id);
+      })
+      .catch(() => setCashRegisterId(null));
   }, [visible, getPaymentMethods]);
 
   // Eligibility preview: only when customer selected (not guest), cart has items, and modal visible. Race-safe.
@@ -326,7 +341,14 @@ export default function PaymentModal({
         }
       }
 
-      // Fiscal fields (Steuernummer, KassenId) are resolved on the backend from config when not sent.
+      if (!cashRegisterId) {
+        Alert.alert(
+          'Fehler',
+          'Keine Kasse zugewiesen. Bitte unter Einstellungen eine Kasse auswählen.'
+        );
+        return;
+      }
+
       if (!validateAmount(totalAmount)) {
         Alert.alert('Hata', 'Geçersiz tutar (0.01\'den büyük olmalı)');
         return;
@@ -385,6 +407,7 @@ export default function PaymentModal({
         tableNumber: tableNumber || 1,
         cashierId: user?.id || 'UNKNOWN',
         totalAmount: totalAmount,
+        cashRegisterId,
         notes: notes || `Masa ${tableNumber} - ${new Date().toLocaleString('de-DE')}`,
         idempotencyKey
       };
@@ -393,6 +416,15 @@ export default function PaymentModal({
       setPurchaseState('processing');
       console.log('[PAYMENT] Request:', JSON.stringify(paymentRequest, null, 2));
       const response = await processPayment(paymentRequest);
+
+      if (response.fiscalStatus === 'NON_FISCAL_PENDING') {
+        setPurchaseState('input');
+        Alert.alert(
+          'Hinweis',
+          'Keine Verbindung zur Kasse. Die Zahlung ist nicht fiscal verbucht und steht in der Warteschlange. Bei Verbindung wird automatisch synchronisiert — bis dahin keinen Warenkorb als bezahlt werten.'
+        );
+        return;
+      }
 
       // 6. STRICT SUCCESS CHECK (Do NOT proceed if payment failed)
       if (!response.success) {

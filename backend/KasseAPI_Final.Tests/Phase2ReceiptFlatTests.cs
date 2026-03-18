@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
@@ -21,6 +23,7 @@ public class Phase2ReceiptFlatTests
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: $"ReceiptFlat_{Guid.NewGuid()}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         return new AppDbContext(options);
     }
@@ -35,7 +38,7 @@ public class Phase2ReceiptFlatTests
         var productRepo = new GenericRepository<Product>(context, loggerProd);
         var customerRepo = new GenericRepository<Customer>(context, loggerCust);
         var tseMock = new Mock<ITseService>();
-        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<DateTime?>(), It.IsAny<string?>()))
+        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<DateTime?>(), It.IsAny<string?>()))
             .ReturnsAsync(new TseSignatureResult("eyJ.eyJ.sign", "prev"));
         tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
             .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert123" });
@@ -48,11 +51,15 @@ public class Phase2ReceiptFlatTests
         var modifierValidation = new NoOpProductModifierValidationService();
         var receiptSeqMock = new Mock<IReceiptSequenceService>();
         var seqCallCount = 0;
-        receiptSeqMock.Setup(x => x.AllocateNextBelegNrAsync(It.IsAny<string>(), It.IsAny<DateTime>()))
-            .ReturnsAsync((string k, DateTime d) => $"AT-{k}-{d:yyyyMMdd}-{++seqCallCount}");
+        receiptSeqMock.Setup(x => x.AllocateNextBelegNrAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync((Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-{++seqCallCount}");
+        receiptSeqMock.Setup(x => x.AllocateNextBelegNrInTransactionAsync(It.IsAny<IDbContextTransaction>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync((IDbContextTransaction _, Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-{++seqCallCount}");
         var loggerReceipt = new Mock<ILogger<ReceiptService>>().Object;
         var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, Options.Create(companyProfile));
-        return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, receiptSeqMock.Object, receiptService, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment);
+        var auditMock = new Mock<IAuditLogService>();
+        auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
+        return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, receiptSeqMock.Object, receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment);
     }
 
     [Fact]
@@ -68,6 +75,8 @@ public class Phase2ReceiptFlatTests
         context.Products.Add(new Product { Id = product1Id, Name = "Döner", Price = 6.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 10, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true });
         context.Products.Add(new Product { Id = product2Id, Name = "Extra Käse", Price = 1.50m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 0, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true, IsSellableAddOn = true });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
+        var regA = Guid.NewGuid();
+        context.CashRegisters.Add(new CashRegister { Id = regA, RegisterNumber = "KASSE-01", Location = "T", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
         await context.SaveChangesAsync();
 
         var paymentService = CreatePaymentService(context);
@@ -75,10 +84,10 @@ public class Phase2ReceiptFlatTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "c1",
+            CashierId = "u1",
             TotalAmount = 8.40m,
             Steuernummer = "ATU12345678",
-            KassenId = "KASSE-01",
+            CashRegisterId = regA,
             Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
             Items = new List<PaymentItemRequest>
             {
@@ -116,6 +125,8 @@ public class Phase2ReceiptFlatTests
         context.Products.Add(new Product { Id = product1Id, Name = "Burger", Price = 9.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 10, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true });
         context.Products.Add(new Product { Id = product2Id, Name = "Ketchup", Price = 0.50m, CategoryId = categoryId, Category = "Extras", StockQuantity = 0, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true, IsSellableAddOn = true });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
+        var regB = Guid.NewGuid();
+        context.CashRegisters.Add(new CashRegister { Id = regB, RegisterNumber = "KASSE-01", Location = "T", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
         await context.SaveChangesAsync();
 
         var paymentService = CreatePaymentService(context);
@@ -123,10 +134,10 @@ public class Phase2ReceiptFlatTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "c1",
+            CashierId = "u1",
             TotalAmount = 10.90m, // 9.90 + 0.50*2 = 10.90 (gross, VAT included)
             Steuernummer = "ATU12345678",
-            KassenId = "KASSE-01",
+            CashRegisterId = regB,
             Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
             Items = new List<PaymentItemRequest>
             {
@@ -168,6 +179,8 @@ public class Phase2ReceiptFlatTests
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, Name = "Saucen", SortOrder = 0, IsActive = true });
         context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = productId, ModifierGroupId = groupId, SortOrder = 0 });
+        var regC = Guid.NewGuid();
+        context.CashRegisters.Add(new CashRegister { Id = regC, RegisterNumber = "KASSE-01", Location = "T", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
         await context.SaveChangesAsync();
 
         var paymentService = CreatePaymentService(context);
@@ -175,10 +188,10 @@ public class Phase2ReceiptFlatTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "c1",
+            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
-            KassenId = "KASSE-01",
+            CashRegisterId = regC,
             Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
             Items = new List<PaymentItemRequest>
             {

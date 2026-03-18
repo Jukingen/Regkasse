@@ -14,8 +14,10 @@ namespace KasseAPI_Final.Services
     public interface IReceiptService
     {
         Task<ReceiptDTO?> GetReceiptAsync(Guid receiptId);
+        /// <summary>Returns persisted receipt by payment id. No lazy generation; receipt must have been created at payment time.</summary>
+        Task<ReceiptDTO?> GetReceiptByPaymentIdAsync(Guid paymentId);
         Task<ReceiptDTO> CreateReceiptFromPaymentAsync(Guid paymentId);
-        /// <summary>Sprint 2: Builds Receipt + Items + TaxLines from payment and adds to context without saving. Caller must SaveChanges.</summary>
+        /// <summary>Sprint 2: Builds Receipt + Items + TaxLines from payment and adds to context without saving. Caller must SaveChanges. Receipt includes totals, tax breakdown, signature, QR payload.</summary>
         Task AddReceiptFromPaymentToContextAsync(PaymentDetails payment);
         Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo);
     }
@@ -35,30 +37,28 @@ namespace KasseAPI_Final.Services
             _companyProfile = companyProfile.Value;
         }
 
+        /// <summary>Returns persisted receipt by ReceiptId or PaymentId. No lazy generation.</summary>
         public async Task<ReceiptDTO?> GetReceiptAsync(Guid receiptId)
         {
-            // Try to find existing receipt by ReceiptId OR PaymentId
             var receipt = await _context.Receipts
                 .Include(r => r.Items)
                 .Include(r => r.TaxLines)
                 .Include(r => r.Payment)
                 .FirstOrDefaultAsync(r => r.ReceiptId == receiptId || r.PaymentId == receiptId);
 
-            if (receipt != null)
-            {
-                return MapToDTO(receipt);
-            }
+            return receipt != null ? MapToDTO(receipt) : null;
+        }
 
-            // Fallback: If receipt doesn't exist but payment does, creating it on the fly?
-            // Valid strategy if we want to generate receipts on demand for old payments.
-            // Check if payment exists
-            var paymentExists = await _context.PaymentDetails.AnyAsync(p => p.Id == receiptId);
-            if (paymentExists)
-            {
-                return await CreateReceiptFromPaymentAsync(receiptId);
-            }
+        /// <inheritdoc />
+        public async Task<ReceiptDTO?> GetReceiptByPaymentIdAsync(Guid paymentId)
+        {
+            var receipt = await _context.Receipts
+                .Include(r => r.Items)
+                .Include(r => r.TaxLines)
+                .Include(r => r.Payment)
+                .FirstOrDefaultAsync(r => r.PaymentId == paymentId);
 
-            return null;
+            return receipt != null ? MapToDTO(receipt) : null;
         }
 
         public async Task<ReceiptDTO> CreateReceiptFromPaymentAsync(Guid paymentId)
@@ -94,12 +94,13 @@ namespace KasseAPI_Final.Services
             }
 
             // 4. Signature: Payment.TseSignature = COMPACT JWS. PrevSignatureValue = imza zinciri (stateful)
+            var registerNumber = await ResolveRegisterNumberAsync(payment.CashRegisterId);
             var signatureValue = payment.TseSignature ?? string.Empty;
             var prevSignatureValue = payment.PrevSignatureValueUsed
-                ?? await GetLastSignatureValueForKassenIdAsync(payment.KassenId ?? string.Empty);
+                ?? await GetLastSignatureValueForCashRegisterAsync(payment.CashRegisterId);
 
-            var certInfo = await _tseService.GetTseCertificateInfoAsync(payment.KassenId ?? string.Empty);
-            var qrPayload = string.IsNullOrEmpty(signatureValue) ? string.Empty : $"_R1-AT1_{payment.KassenId}_{payment.ReceiptNumber}_{payment.CreatedAt:s}_{payment.TotalAmount:0.00}_0.00_{certInfo.CertificateNumber}_{signatureValue}";
+            var certInfo = await _tseService.GetTseCertificateInfoAsync(registerNumber);
+            var qrPayload = string.IsNullOrEmpty(signatureValue) ? string.Empty : $"_R1-AT1_{registerNumber}_{payment.ReceiptNumber}_{payment.CreatedAt:s}_{payment.TotalAmount:0.00}_0.00_{certInfo.CertificateNumber}_{signatureValue}";
 
             // 5. Create Entity
             var newReceipt = new Receipt
@@ -109,7 +110,7 @@ namespace KasseAPI_Final.Services
                 ReceiptNumber = payment.ReceiptNumber ?? $"TEMP-{payment.Id.ToString()[..8]}",
                 IssuedAt = payment.CreatedAt,
                 CashierId = payment.CashierId,
-                CashRegisterId = Guid.TryParse(payment.KassenId, out var parsedKassenId) ? parsedKassenId : Guid.Empty,
+                CashRegisterId = payment.CashRegisterId,
                 SubTotal = payment.TotalAmount - payment.TaxAmount,
                 TaxTotal = payment.TaxAmount,
                 GrandTotal = payment.TotalAmount,
@@ -231,10 +232,11 @@ namespace KasseAPI_Final.Services
                 _logger.LogError(ex, "Failed to deserialize items for payment {PaymentId}", payment.Id);
             }
 
+            var registerNumberCtx = await ResolveRegisterNumberAsync(payment.CashRegisterId);
             var signatureValue = payment.TseSignature ?? string.Empty;
-            var prevSignatureValue = payment.PrevSignatureValueUsed ?? await GetLastSignatureValueForKassenIdAsync(payment.KassenId ?? string.Empty);
-            var certInfo = await _tseService.GetTseCertificateInfoAsync(payment.KassenId ?? string.Empty);
-            var qrPayload = string.IsNullOrEmpty(signatureValue) ? string.Empty : $"_R1-AT1_{payment.KassenId}_{payment.ReceiptNumber}_{payment.CreatedAt:s}_{payment.TotalAmount:0.00}_0.00_{certInfo.CertificateNumber}_{signatureValue}";
+            var prevSignatureValue = payment.PrevSignatureValueUsed ?? await GetLastSignatureValueForCashRegisterAsync(payment.CashRegisterId);
+            var certInfo = await _tseService.GetTseCertificateInfoAsync(registerNumberCtx);
+            var qrPayload = string.IsNullOrEmpty(signatureValue) ? string.Empty : $"_R1-AT1_{registerNumberCtx}_{payment.ReceiptNumber}_{payment.CreatedAt:s}_{payment.TotalAmount:0.00}_0.00_{certInfo.CertificateNumber}_{signatureValue}";
 
             var newReceipt = new Receipt
             {
@@ -243,7 +245,7 @@ namespace KasseAPI_Final.Services
                 ReceiptNumber = payment.ReceiptNumber ?? $"TEMP-{payment.Id.ToString()[..8]}",
                 IssuedAt = payment.CreatedAt,
                 CashierId = payment.CashierId,
-                CashRegisterId = Guid.TryParse(payment.KassenId, out var parsedKassenId) ? parsedKassenId : Guid.Empty,
+                CashRegisterId = payment.CashRegisterId,
                 SubTotal = payment.TotalAmount - payment.TaxAmount,
                 TaxTotal = payment.TaxAmount,
                 GrandTotal = payment.TotalAmount,
@@ -392,12 +394,33 @@ namespace KasseAPI_Final.Services
             };
         }
 
-        private async Task<string> GetLastSignatureValueForKassenIdAsync(string kassenId)
+        private async Task<string> ResolveRegisterNumberAsync(Guid cashRegisterId)
         {
-            if (string.IsNullOrEmpty(kassenId)) return string.Empty;
+            if (cashRegisterId == Guid.Empty)
+                throw new InvalidOperationException("Payment has no CashRegisterId.");
+            var n = await _context.CashRegisters.AsNoTracking()
+                .Where(r => r.Id == cashRegisterId)
+                .Select(r => r.RegisterNumber)
+                .FirstOrDefaultAsync();
+            if (string.IsNullOrEmpty(n))
+                throw new InvalidOperationException($"Cash register {cashRegisterId} not found.");
+            return n;
+        }
+
+        /// <summary>Last signature for chain display: signature_chain_state then latest receipt for same register.</summary>
+        private async Task<string> GetLastSignatureValueForCashRegisterAsync(Guid cashRegisterId)
+        {
+            if (cashRegisterId == Guid.Empty) return string.Empty;
+            var fromChain = await _context.SignatureChainState
+                .AsNoTracking()
+                .Where(s => s.CashRegisterId == cashRegisterId)
+                .Select(s => s.LastSignature)
+                .FirstOrDefaultAsync();
+            if (!string.IsNullOrEmpty(fromChain))
+                return fromChain;
             var last = await _context.Receipts
                 .Include(r => r.Payment)
-                .Where(r => r.Payment != null && r.Payment.KassenId == kassenId && r.SignatureValue != null)
+                .Where(r => r.Payment != null && r.Payment.CashRegisterId == cashRegisterId && r.SignatureValue != null)
                 .OrderByDescending(r => r.CreatedAt)
                 .FirstOrDefaultAsync();
             return last?.SignatureValue ?? string.Empty;
@@ -434,7 +457,10 @@ namespace KasseAPI_Final.Services
                 ReceiptNumber = receipt.ReceiptNumber,
                 Date = receipt.IssuedAt,
                 CashierName = receipt.CashierId ?? "Unknown",
-                KassenID = receipt.CashRegisterId.ToString(),
+                KassenID = _context.CashRegisters.AsNoTracking()
+                    .Where(r => r.Id == receipt.CashRegisterId)
+                    .Select(r => r.RegisterNumber)
+                    .FirstOrDefault() ?? receipt.CashRegisterId.ToString(),
                 TableNumber = receipt.Payment?.TableNumber,
                 
                 Company = company,

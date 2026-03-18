@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Controllers.Base;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace KasseAPI_Final.Controllers
@@ -24,18 +26,21 @@ namespace KasseAPI_Final.Controllers
 		private readonly IGenericRepository<Product> _productRepository;
 		private readonly IPaymentService _paymentService;
 		private readonly UserManager<ApplicationUser> _userManager;
+		private readonly AppDbContext _db;
 
 		public TestController(
 			IGenericRepository<Customer> customerRepository,
 			IGenericRepository<Product> productRepository,
 			IPaymentService paymentService,
 			UserManager<ApplicationUser> userManager,
+			AppDbContext db,
 			ILogger<TestController> logger) : base(logger)
 		{
 			_customerRepository = customerRepository;
 			_productRepository = productRepository;
 			_paymentService = paymentService;
 			_userManager = userManager;
+			_db = db;
 		}
 
 		/// <summary>
@@ -91,7 +96,25 @@ namespace KasseAPI_Final.Controllers
 				};
 				product = await _productRepository.AddAsync(product);
 
-				// Türkçe Açıklama: Ödeme request'ini hazırla
+				var cashRegister = await _db.CashRegisters.FirstOrDefaultAsync(r => r.RegisterNumber == "KASSE-001");
+				if (cashRegister == null)
+				{
+					cashRegister = new CashRegister
+					{
+						Id = Guid.NewGuid(),
+						RegisterNumber = "KASSE-001",
+						Location = "Test",
+						StartingBalance = 0,
+						CurrentBalance = 0,
+						LastBalanceUpdate = DateTime.UtcNow,
+						Status = RegisterStatus.Open,
+						CreatedAt = DateTime.UtcNow,
+						IsActive = true
+					};
+					_db.CashRegisters.Add(cashRegister);
+					await _db.SaveChangesAsync();
+				}
+
 				var request = new CreatePaymentRequest
 				{
 					CustomerId = customer.Id,
@@ -113,7 +136,7 @@ namespace KasseAPI_Final.Controllers
 					CashierId = "test-controller",
 					TotalAmount = product.Price,
 					Steuernummer = steuernummer,
-					KassenId = "KASSE-001",
+					CashRegisterId = cashRegister.Id,
 					Notes = "TestController quick payment"
 				};
 
