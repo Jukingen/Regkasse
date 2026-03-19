@@ -25,8 +25,9 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/rksv/cmc-certificate': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/verifications': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/finanz-online-queue': PERMISSIONS.FINANZONLINE_MANAGE,
-  '/rksv/fiscal-export-diagnostics': PERMISSIONS.SETTINGS_VIEW,
+  '/rksv/fiscal-export-diagnostics': PERMISSIONS.REPORT_EXPORT,
   '/rksv/replay-batch': PERMISSIONS.SETTINGS_VIEW,
+  '/rksv/offline-intent-coverage': PERMISSIONS.REPORT_EXPORT,
   '/benefit-definitions': PERMISSIONS.BENEFIT_VIEW,
   '/benefit-assignments': PERMISSIONS.BENEFIT_VIEW,
 };

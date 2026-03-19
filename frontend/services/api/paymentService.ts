@@ -381,27 +381,19 @@ class PaymentService {
     }
   }
 
-  // Günlük ödeme raporu
-  async getDailyPaymentReport(date: string): Promise<{
+  /**
+   * @deprecated Backend has no GET /Payment/daily-report/:date. Use Tagesabschluss/statistics or
+   * date-range payments instead. This method throws; do not use in new code.
+   */
+  async getDailyPaymentReport(_date: string): Promise<{
     totalPayments: number;
     totalAmount: number;
     paymentMethodBreakdown: Record<string, number>;
     payments: PaymentResponse[];
   }> {
-    try {
-      const response = await apiClient.get(`${this.baseUrl}/daily-report/${date}`);
-      return response as {
-        totalPayments: number;
-        totalAmount: number;
-        paymentMethodBreakdown: Record<string, number>;
-        payments: PaymentResponse[];
-      };
-    } catch (error) {
-      console.error('Daily payment report failed:', error);
-      throw new Error(
-        'Tagesbericht nicht verfügbar (keine Serververbindung oder Fehler). Keine Platzhalterdaten.'
-      );
-    }
+    throw new Error(
+      'getDailyPaymentReport is unsupported: backend does not expose daily-report. Use Tagesabschluss statistics or payment date-range APIs.'
+    );
   }
 
   // Ödeme istatistikleri

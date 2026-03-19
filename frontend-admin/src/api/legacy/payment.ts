@@ -7,10 +7,12 @@
 import {
   useGetApiPaymentDateRange,
   useGetApiPaymentId,
+  useGetApiPaymentStatistics,
   getGetApiPaymentDateRangeQueryKey,
   getGetApiPaymentIdQueryKey,
 } from '@/api/generated/payment/payment';
 import type { GetApiPaymentDateRangeParams } from '@/api/generated/model';
+import { customInstance } from '@/lib/axios';
 
 /** Central query key namespace for legacy Payment. Use for invalidation and refetch. */
 export const legacyPaymentQueryKeys = {
@@ -42,6 +44,40 @@ export function useLegacyPaymentById(
   options?: Parameters<typeof useGetApiPaymentId>[1]
 ) {
   return useGetApiPaymentId(id, options);
+}
+
+/**
+ * Payment statistics in date range. Uses GET /api/Payment/statistics (legacy).
+ */
+export function useLegacyPaymentStatistics(
+  params?: { startDate?: string; endDate?: string },
+  options?: Parameters<typeof useGetApiPaymentStatistics>[0]
+) {
+  return useGetApiPaymentStatistics(params, options);
+}
+
+export interface LegacyPaymentActionRequest {
+  reason: string;
+}
+
+export interface LegacyPaymentRefundRequest extends LegacyPaymentActionRequest {
+  amount: number;
+}
+
+export async function cancelLegacyPayment(id: string, payload: LegacyPaymentActionRequest): Promise<unknown> {
+  return customInstance<unknown>({
+    url: `/api/Payment/${id}/cancel`,
+    method: 'POST',
+    data: payload,
+  });
+}
+
+export async function refundLegacyPayment(id: string, payload: LegacyPaymentRefundRequest): Promise<unknown> {
+  return customInstance<unknown>({
+    url: `/api/Payment/${id}/refund`,
+    method: 'POST',
+    data: payload,
+  });
 }
 
 /** Re-export for consumers that need the raw fetcher (e.g. prefetch). */

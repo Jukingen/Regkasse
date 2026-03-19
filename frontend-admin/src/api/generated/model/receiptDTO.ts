@@ -16,21 +16,40 @@ import type { ReceiptTotalsDTO } from './receiptTotalsDTO';
 export interface ReceiptDTO {
   /** @nullable */
   cashierName?: string | null;
+  cashRegisterId?: string;
+  clockDriftWarning?: boolean;
   company?: ReceiptCompanyDTO;
   date?: string;
   /** @nullable */
+  fiscalizedAtUtc?: string | null;
+  /** @nullable */
+  fiscalTraceKind?: string | null;
+  /** @nullable */
   footerText?: string | null;
   grandTotal?: number;
+  hasOfflineOrigin?: boolean;
   header?: ReceiptHeaderDTO;
   /** @nullable */
   items?: ReceiptItemDTO[] | null;
   /** @nullable */
   kassenID?: string | null;
   /** @nullable */
+  offlineCreatedAtUtc?: string | null;
+  /** @nullable */
+  offlineTransactionId?: string | null;
+  /** @nullable */
+  originalPaymentId?: string | null;
+  /** @nullable */
+  originalSaleReceiptId?: string | null;
+  paymentId?: string;
+  /** @nullable */
   payments?: ReceiptPaymentDTO[] | null;
   receiptId?: string;
   /** @nullable */
   receiptNumber?: string | null;
+  receiptPersistedAtUtc?: string;
+  sequenceDuplicateDetected?: boolean;
+  sequenceGapDetected?: boolean;
   signature?: ReceiptSignatureDTO;
   subTotal?: number;
   /** @nullable */

@@ -21,19 +21,24 @@ import {
   InputNumber,
   message,
   Typography,
+  Modal,
 } from 'antd';
-import { ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined, DownloadOutlined, ToolOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
   analyzeOfflinePayloadHash,
   downloadExportCsv,
+  repairOfflinePayloadHash,
   type PayloadHashConflictGroup,
   type PayloadHashRepairableItem,
   type OfflinePayloadHashAnalyzeResult,
+  type OfflinePayloadHashRepairResult,
 } from '@/api/offline-payload-hash';
 import { customInstance } from '@/lib/axios';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
 
 interface CashRegisterListResponse {
   registers?: { id: string; registerNumber?: string }[];
@@ -48,8 +53,11 @@ function severityColor(severity: string): string {
 }
 
 export default function PayloadHashConflictsPage() {
+  const { user } = useAuth();
+  const canRepair = hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
   const [maxRows, setMaxRows] = useState(10_000);
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
+  const [lastRepairResult, setLastRepairResult] = useState<OfflinePayloadHashRepairResult | null>(null);
 
   const analyzeParams = useMemo(
     () => ({ maxRows, cashRegisterId: cashRegisterId ?? undefined }),
@@ -81,6 +89,35 @@ export default function PayloadHashConflictsPage() {
       message.success('CSV heruntergeladen');
     },
     onError: (e: Error) => message.error(e?.message ?? 'Export fehlgeschlagen'),
+  });
+
+  const dryRunMutation = useMutation({
+    mutationFn: () =>
+      repairOfflinePayloadHash({
+        maxRows,
+        cashRegisterId: cashRegisterId ?? undefined,
+        dryRun: true,
+      }),
+    onSuccess: (res) => {
+      setLastRepairResult(res);
+      message.success('Dry-Run abgeschlossen');
+    },
+    onError: (e: Error) => message.error(e?.message ?? 'Dry-Run fehlgeschlagen'),
+  });
+
+  const applyMutation = useMutation({
+    mutationFn: () =>
+      repairOfflinePayloadHash({
+        maxRows,
+        cashRegisterId: cashRegisterId ?? undefined,
+        dryRun: false,
+      }),
+    onSuccess: async (res) => {
+      setLastRepairResult(res);
+      message.success(`Repair angewendet: ${res.updated} aktualisiert`);
+      await refetch();
+    },
+    onError: (e: Error) => message.error(e?.message ?? 'Repair fehlgeschlagen'),
   });
 
   const conflictColumns = [
@@ -203,6 +240,33 @@ export default function PayloadHashConflictsPage() {
             >
               CSV exportieren
             </Button>
+            <Button
+              icon={<ToolOutlined />}
+              onClick={() => dryRunMutation.mutate()}
+              loading={dryRunMutation.isPending}
+              disabled={!canRepair || applyMutation.isPending}
+            >
+              Repair Dry-Run
+            </Button>
+            <Button
+              danger
+              icon={<SafetyOutlined />}
+              loading={applyMutation.isPending}
+              disabled={!canRepair || dryRunMutation.isPending}
+              onClick={() => {
+                Modal.confirm({
+                  title: 'Repair wirklich anwenden?',
+                  content:
+                    'Diese Aktion schreibt payload_hash Werte in der Datenbank. Bitte erst Dry-Run prüfen. Fortfahren?',
+                  okText: 'Ja, Repair anwenden',
+                  okButtonProps: { danger: true },
+                  cancelText: 'Abbrechen',
+                  onOk: () => applyMutation.mutate(),
+                });
+              }}
+            >
+              Repair anwenden
+            </Button>
           </Space>
         }
       />
@@ -247,6 +311,45 @@ export default function PayloadHashConflictsPage() {
           </Button>
         </Space>
       </Card>
+
+      {!canRepair && (
+        <Alert
+          type="warning"
+          message="Repair-Aktionen gesperrt"
+          description="Für Dry-Run und Repair ist die Berechtigung system.critical erforderlich."
+          style={{ marginBottom: 16 }}
+          showIcon
+        />
+      )}
+
+      {lastRepairResult && (
+        <Card
+          size="small"
+          title={lastRepairResult.dryRun ? 'Letztes Repair-Ergebnis (Dry-Run)' : 'Letztes Repair-Ergebnis (Apply)'}
+          style={{ marginBottom: 16 }}
+        >
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12} md={4}>
+              <Statistic title="Gescannt" value={lastRepairResult.scanned} />
+            </Col>
+            <Col xs={24} sm={12} md={4}>
+              <Statistic title="Aktualisiert" value={lastRepairResult.updated} />
+            </Col>
+            <Col xs={24} sm={12} md={4}>
+              <Statistic title="Konflikt übersprungen" value={lastRepairResult.skippedConflict} />
+            </Col>
+            <Col xs={24} sm={12} md={4}>
+              <Statistic title="Bereits aligned" value={lastRepairResult.skippedAlreadyAligned} />
+            </Col>
+            <Col xs={24} sm={12} md={4}>
+              <Statistic title="Null Payload" value={lastRepairResult.skippedNullPayload} />
+            </Col>
+            <Col xs={24} sm={12} md={4}>
+              <Statistic title="Normalize-Fehler" value={lastRepairResult.skippedNormalizeError} />
+            </Col>
+          </Row>
+        </Card>
+      )}
 
       {isLoading && !result ? (
         <Card>
@@ -319,8 +422,8 @@ export default function PayloadHashConflictsPage() {
 
           <Alert
             type="info"
-            message="Nur Ansicht — keine Reparatur"
-            description="Reparatur erfolgt weiterhin manuell über API (DryRun zuerst, dann Repair mit SystemCritical). Diese Seite dient der Sichtbarkeit und Triage."
+            message="Analyse / Dry-Run / Apply"
+            description="Analyse und CSV bleiben read-only. Repair Dry-Run simuliert nur. Repair anwenden schreibt nur konfliktfreie payload_hash Aktualisierungen und erfordert system.critical."
             style={{ marginTop: 16 }}
             showIcon
           />

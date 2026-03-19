@@ -43,6 +43,22 @@ export interface AnalyzeRequest {
   cashRegisterId?: string | null;
 }
 
+export interface RepairRequest {
+  maxRows?: number;
+  cashRegisterId?: string | null;
+  dryRun: boolean;
+}
+
+export interface OfflinePayloadHashRepairResult {
+  scanned: number;
+  updated: number;
+  skippedConflict: number;
+  skippedAlreadyAligned: number;
+  skippedNullPayload: number;
+  skippedNormalizeError: number;
+  dryRun: boolean;
+}
+
 export async function analyzeOfflinePayloadHash(
   body: AnalyzeRequest = {}
 ): Promise<OfflinePayloadHashAnalyzeResult> {
@@ -52,6 +68,20 @@ export async function analyzeOfflinePayloadHash(
     data: {
       maxRows: body.maxRows ?? 10_000,
       cashRegisterId: body.cashRegisterId ?? undefined,
+    },
+  });
+}
+
+export async function repairOfflinePayloadHash(
+  body: RepairRequest
+): Promise<OfflinePayloadHashRepairResult> {
+  return customInstance<OfflinePayloadHashRepairResult>({
+    url: `${BASE}/repair`,
+    method: 'POST',
+    data: {
+      maxRows: body.maxRows ?? 10_000,
+      cashRegisterId: body.cashRegisterId ?? undefined,
+      dryRun: body.dryRun,
     },
   });
 }

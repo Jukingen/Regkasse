@@ -51,6 +51,9 @@ export interface PendingPaymentEntry {
   /** Populated only after replay. */
   syncedPaymentId?: string | null;
 
+  /** Replay batch correlation ID from last replay response; for support/incident correlation. */
+  replayBatchCorrelationId?: string | null;
+
   /** Legacy flag (kept for backward compatibility with old code). */
   isSynced: boolean;
 
@@ -118,6 +121,7 @@ function normalizeEntry(e: PendingPaymentEntry): PendingPaymentEntry {
     cashRegisterId: e.cashRegisterId ?? e.paymentRequest.cashRegisterId,
     deviceId: e.deviceId ?? null,
     clientSequenceNumber: e.clientSequenceNumber ?? null,
+    replayBatchCorrelationId: e.replayBatchCorrelationId ?? null,
   };
 }
 
@@ -230,7 +234,7 @@ async function touchAttempt(queueId: string, err: string, status?: OfflineTransa
   }
 }
 
-type ReplayOfflineTransactionsResponseItem = {
+export type ReplayOfflineTransactionsResponseItem = {
   requestedOfflineTransactionId: string;
   offlineTransactionId: string;
   status: string;
@@ -240,11 +244,15 @@ type ReplayOfflineTransactionsResponseItem = {
   retryCount?: number;
   lastErrorMessageSafe?: string | null;
   exponentialBackoffHintSeconds?: number | null;
+  /** Same for all items in one replay batch; for support/audit correlation. */
+  replayBatchCorrelationId?: string | null;
 };
 
-type ReplayOfflineTransactionsResponse = {
+export type ReplayOfflineTransactionsResponse = {
   success: boolean;
-  data?: ReplayOfflineTransactionsResponseItem[]; // controller wraps in "data"
+  /** Server-generated id for this replay batch; ties audits and payment rows together. */
+  replayBatchCorrelationId?: string | null;
+  data?: ReplayOfflineTransactionsResponseItem[];
 };
 
 /**
@@ -279,9 +287,14 @@ export async function syncPendingPaymentQueue(): Promise<{
     );
 
     const items =
-      (raw as any)?.data ??
+      (raw as ReplayOfflineTransactionsResponse)?.data ??
       (raw as any)?.Value?.data ??
       [];
+    const batchCorrelationId =
+      (raw as ReplayOfflineTransactionsResponse)?.replayBatchCorrelationId ??
+      (raw as any)?.replayBatchCorrelationId ??
+      null;
+    const batchIdStr = batchCorrelationId != null ? String(batchCorrelationId) : null;
 
     const q = (await readQueue()).map(normalizeEntry);
     const byId = new Map<string, ReplayOfflineTransactionsResponseItem>();
@@ -296,6 +309,7 @@ export async function syncPendingPaymentQueue(): Promise<{
       const e = q.find((x) => x.queueId === entry.queueId);
       if (!e) continue;
       e.lastAttemptAt = new Date().toISOString();
+      if (batchIdStr) e.replayBatchCorrelationId = batchIdStr;
 
       if (it?.status === 'Synced' || it?.status === 'synced') {
         e.status = 'Synced';
@@ -373,12 +387,17 @@ export async function retrySinglePending(queueId: string): Promise<{
       req
     );
     const items =
-      (raw as any)?.data ?? (raw as any)?.Value?.data ?? [];
+      (raw as ReplayOfflineTransactionsResponse)?.data ?? (raw as any)?.Value?.data ?? [];
     const it = items?.[0];
+    const batchCorrelationId =
+      (raw as ReplayOfflineTransactionsResponse)?.replayBatchCorrelationId ??
+      (raw as any)?.replayBatchCorrelationId ??
+      null;
     const q = (await readQueue()).map(normalizeEntry);
     const e = q.find((x) => x.queueId === queueId);
     if (!e) return { processed: 0, failed: 0 };
     e.lastAttemptAt = new Date().toISOString();
+    if (batchCorrelationId != null) e.replayBatchCorrelationId = String(batchCorrelationId);
     if (it?.status === 'Synced' || it?.status === 'synced') {
       e.status = 'Synced';
       e.isSynced = true;

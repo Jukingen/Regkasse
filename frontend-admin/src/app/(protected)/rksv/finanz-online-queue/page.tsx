@@ -27,6 +27,7 @@ import { ReloadOutlined, RetryOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
+import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
     getReconciliationList,
@@ -69,10 +70,31 @@ function statusBadgeColor(status: string | null): string {
 }
 
 export default function FinanzOnlineReconciliationPage() {
+    const searchParams = useSearchParams();
     const queryClient = useQueryClient();
-    const [statusFilter, setStatusFilter] = useState<string[]>(['Pending', 'Failed', 'NeedsReconciliation']);
-    const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
-    const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([null, null]);
+    const initialStatusFilter = useMemo(() => {
+        const raw = searchParams?.get('status');
+        if (!raw) return ['Pending', 'Failed', 'NeedsReconciliation'];
+        return raw
+            .split(',')
+            .map((x) => x.trim())
+            .filter((x) => x.length > 0);
+    }, [searchParams]);
+    const initialCashRegisterId = useMemo(() => {
+        const raw = searchParams?.get('cashRegisterId');
+        return raw || undefined;
+    }, [searchParams]);
+    const initialDateRange = useMemo<[Dayjs | null, Dayjs | null]>(() => {
+        const from = searchParams?.get('fromUtc');
+        const to = searchParams?.get('toUtc');
+        const fromDayjs = from && dayjs(from).isValid() ? dayjs(from) : null;
+        const toDayjs = to && dayjs(to).isValid() ? dayjs(to) : null;
+        return [fromDayjs, toDayjs];
+    }, [searchParams]);
+
+    const [statusFilter, setStatusFilter] = useState<string[]>(initialStatusFilter);
+    const [cashRegisterId, setCashRegisterId] = useState<string | undefined>(initialCashRegisterId);
+    const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>(initialDateRange);
     const [retryingId, setRetryingId] = useState<string | null>(null);
 
     const listParams: GetReconciliationListParams = useMemo(() => {
@@ -136,7 +158,7 @@ export default function FinanzOnlineReconciliationPage() {
             dataIndex: 'receiptNumber',
             key: 'receiptNumber',
             width: 160,
-            render: (val: string, r: FinanzOnlineReconciliationItemDto) => (
+            render: (val: string) => (
                 <Space direction="vertical" size={0}>
                     <Typography.Text code copyable>
                         {val || '—'}

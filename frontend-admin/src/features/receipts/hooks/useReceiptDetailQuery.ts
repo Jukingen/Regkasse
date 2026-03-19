@@ -5,34 +5,19 @@ import type { ReceiptDTO } from '@/api/generated/model';
 import { RECEIPT_KEYS } from './useReceiptListQuery';
 
 // ---------------------------------------------------------------------------
-// Map API ReceiptDTO to ReceiptDetailDto (backend uses different field names)
+// Map API ReceiptDTO to ReceiptDetailDto.
 // ---------------------------------------------------------------------------
 
 function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
-    const ext = d as ReceiptDTO & {
-        paymentId?: string;
-        fiscalTraceKind?: string | null;
-        originalPaymentId?: string | null;
-        originalSaleReceiptId?: string | null;
-        cashRegisterId?: string | null;
-        receiptPersistedAtUtc?: string;
-        hasOfflineOrigin?: boolean;
-        offlineTransactionId?: string | null;
-        offlineCreatedAtUtc?: string | null;
-        fiscalizedAtUtc?: string | null;
-        clockDriftWarning?: boolean;
-        sequenceGapDetected?: boolean;
-        sequenceDuplicateDetected?: boolean;
-    };
     const issued = d.date ?? '';
-    const persisted = ext.receiptPersistedAtUtc ?? issued;
+    const persisted = d.receiptPersistedAtUtc ?? issued;
     return {
         receiptId: d.receiptId ?? '',
-        paymentId: ext.paymentId ?? null,
+        paymentId: d.paymentId ?? null,
         receiptNumber: d.receiptNumber ?? '',
         issuedAt: issued,
         cashierId: d.cashierName ?? null,
-        cashRegisterId: d.kassenID ?? '',
+        cashRegisterId: d.cashRegisterId ?? d.kassenID ?? '',
         subTotal: d.subTotal ?? 0,
         taxTotal: d.taxAmount ?? 0,
         grandTotal: d.grandTotal ?? 0,
@@ -41,13 +26,13 @@ function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
         prevSignatureValue: d.signature?.prevSignatureValue ?? null,
         createdAt: persisted,
         receiptPersistedAtUtc: persisted,
-        hasOfflineOrigin: ext.hasOfflineOrigin ?? false,
-        offlineTransactionId: ext.offlineTransactionId ?? null,
-        offlineCreatedAtUtc: ext.offlineCreatedAtUtc ?? null,
-        fiscalizedAtUtc: ext.fiscalizedAtUtc ?? null,
-        clockDriftWarning: ext.clockDriftWarning ?? false,
-        sequenceGapDetected: ext.sequenceGapDetected ?? false,
-        sequenceDuplicateDetected: ext.sequenceDuplicateDetected ?? false,
+        hasOfflineOrigin: d.hasOfflineOrigin ?? false,
+        offlineTransactionId: d.offlineTransactionId ?? null,
+        offlineCreatedAtUtc: d.offlineCreatedAtUtc ?? null,
+        fiscalizedAtUtc: d.fiscalizedAtUtc ?? null,
+        clockDriftWarning: d.clockDriftWarning ?? false,
+        sequenceGapDetected: d.sequenceGapDetected ?? false,
+        sequenceDuplicateDetected: d.sequenceDuplicateDetected ?? false,
         items: (d.items ?? []).map((i) => ({
             itemId: i.itemId ?? '',
             productName: i.name ?? '',
@@ -63,9 +48,9 @@ function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
             taxAmount: t.taxAmount ?? 0,
             grossAmount: t.grossAmount ?? 0,
         })),
-        fiscalTraceKind: ext.fiscalTraceKind ?? null,
-        originalPaymentId: ext.originalPaymentId ?? null,
-        originalSaleReceiptId: ext.originalSaleReceiptId ?? null,
+        fiscalTraceKind: d.fiscalTraceKind ?? null,
+        originalPaymentId: d.originalPaymentId ?? null,
+        originalSaleReceiptId: d.originalSaleReceiptId ?? null,
     };
 }
 

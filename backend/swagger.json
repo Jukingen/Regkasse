@@ -14155,11 +14155,64 @@
             "type": "string",
             "format": "uuid"
           },
+          "paymentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "originalPaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "originalSaleReceiptId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fiscalTraceKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasOfflineOrigin": {
+            "type": "boolean"
+          },
+          "offlineTransactionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "offlineCreatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "fiscalizedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "clockDriftWarning": {
+            "type": "boolean"
+          },
+          "sequenceGapDetected": {
+            "type": "boolean"
+          },
+          "sequenceDuplicateDetected": {
+            "type": "boolean"
+          },
           "receiptNumber": {
             "type": "string",
             "nullable": true
           },
           "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receiptPersistedAtUtc": {
             "type": "string",
             "format": "date-time"
           },

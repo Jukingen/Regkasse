@@ -94,6 +94,10 @@ export default function DashboardLayout({
                     key: '/rksv/payload-hash-conflicts',
                     label: <Link href="/rksv/payload-hash-conflicts">Payload-Hash Konflikte</Link>,
                 },
+                {
+                    key: '/rksv/offline-intent-coverage',
+                    label: <Link href="/rksv/offline-intent-coverage">Offline Intent Coverage</Link>,
+                },
             ],
         },
     ];

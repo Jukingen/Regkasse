@@ -7,6 +7,8 @@ export interface DailyClosingRequest {
 export interface TagesabschlussResult {
   success: boolean;
   errorMessage?: string;
+  /** When closing is blocked: count of payments without a matching invoice (backend). */
+  paymentsWithoutInvoiceCount?: number;
   closingId?: string;
   closingDate: string;
   closingType?: string;
@@ -34,7 +36,10 @@ export interface ClosingHistoryItem {
 export interface CanCloseResponse {
   canClose: boolean;
   lastClosingDate?: string;
+  /** Backend message (e.g. why closing is blocked or already performed). */
   message: string;
+  /** Count of payments without invoice in scope; shown when canClose is false. */
+  paymentsWithoutInvoiceCount?: number;
 }
 
 export interface ClosingStatistics {
@@ -55,9 +60,11 @@ export const performDailyClosing = async (request: DailyClosingRequest): Promise
     return response.data;
   } catch (error: any) {
     console.error('Daily closing failed:', error);
+    const data = error.response?.data;
     return {
       success: false,
-      errorMessage: error.response?.data?.error || 'Daily closing failed',
+      errorMessage: (typeof data?.error === 'string' ? data.error : null) || 'Daily closing failed',
+      paymentsWithoutInvoiceCount: typeof data?.paymentsWithoutInvoiceCount === 'number' ? data.paymentsWithoutInvoiceCount : undefined,
       closingDate: new Date().toISOString(),
       totalAmount: 0,
       totalTaxAmount: 0,
@@ -75,9 +82,11 @@ export const performMonthlyClosing = async (request: DailyClosingRequest): Promi
     return response.data;
   } catch (error: any) {
     console.error('Monthly closing failed:', error);
+    const data = error.response?.data;
     return {
       success: false,
-      errorMessage: error.response?.data?.error || 'Monthly closing failed',
+      errorMessage: (typeof data?.error === 'string' ? data.error : null) || 'Monthly closing failed',
+      paymentsWithoutInvoiceCount: typeof data?.paymentsWithoutInvoiceCount === 'number' ? data.paymentsWithoutInvoiceCount : undefined,
       closingDate: new Date().toISOString(),
       totalAmount: 0,
       totalTaxAmount: 0,
@@ -95,9 +104,11 @@ export const performYearlyClosing = async (request: DailyClosingRequest): Promis
     return response.data;
   } catch (error: any) {
     console.error('Yearly closing failed:', error);
+    const data = error.response?.data;
     return {
       success: false,
-      errorMessage: error.response?.data?.error || 'Yearly closing failed',
+      errorMessage: (typeof data?.error === 'string' ? data.error : null) || 'Yearly closing failed',
+      paymentsWithoutInvoiceCount: typeof data?.paymentsWithoutInvoiceCount === 'number' ? data.paymentsWithoutInvoiceCount : undefined,
       closingDate: new Date().toISOString(),
       totalAmount: 0,
       totalTaxAmount: 0,
@@ -137,7 +148,8 @@ export const canPerformClosing = async (cashRegisterId: string): Promise<CanClos
     console.error('Failed to check if closing can be performed:', error);
     return {
       canClose: false,
-      message: 'Failed to check closing status'
+      message: 'Failed to check closing status',
+      paymentsWithoutInvoiceCount: undefined
     };
   }
 };

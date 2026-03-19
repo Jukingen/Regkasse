@@ -22,7 +22,7 @@ import {
   retrySinglePending,
   type PendingPaymentEntry,
   type OfflineTransactionStatus,
-} from '../services/payment/pendingPaymentQueue';
+} from '../../services/payment/pendingPaymentQueue';
 
 const FILTER_ALL = 'All';
 const FILTER_PENDING = 'Pending';
@@ -250,6 +250,20 @@ export default function OfflineQueueScreen() {
               {entry.lastError && (
                 <Text style={styles.errorText}>{getErrorSummary(entry.lastError)}</Text>
               )}
+              {entry.replayBatchCorrelationId ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>Replay-Batch-ID (Support):</Text>
+                  <TouchableOpacity
+                    onPress={() => handleCopyId(entry.replayBatchCorrelationId!)}
+                    style={styles.copyIdTouch}
+                  >
+                    <Text style={styles.metaId} numberOfLines={1}>
+                      {entry.replayBatchCorrelationId}
+                    </Text>
+                    <Text style={styles.copyIdHint}>Tippen zum Teilen</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
               <View style={styles.actions}>
                 {(entry.status === 'Pending' || entry.status === 'Failed') && (
                   <TouchableOpacity
@@ -409,6 +423,30 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#9ca3af',
     marginTop: 4,
+  },
+  metaRow: {
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+  },
+  metaLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    marginBottom: 2,
+  },
+  metaId: {
+    fontSize: 11,
+    color: '#374151',
+    fontFamily: 'monospace',
+  },
+  copyIdTouch: {
+    marginTop: 2,
+  },
+  copyIdHint: {
+    fontSize: 10,
+    color: '#9ca3af',
+    marginTop: 1,
   },
   errorText: {
     fontSize: 12,

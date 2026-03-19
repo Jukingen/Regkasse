@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty, Form, Checkbox } from 'antd';
+import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty, Form, Checkbox, Typography } from 'antd';
 import { SearchOutlined, DownloadOutlined, ReloadOutlined, EyeOutlined, PrinterOutlined, CloudUploadOutlined, RollbackOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -143,6 +143,58 @@ export const InvoiceList: React.FC = () => {
     // Mutations
     const submitFinanzOnlineMutation = usePostApiFinanzOnlineSubmitInvoice();
 
+    const buildReconciliationLink = (
+        cashRegisterId?: string,
+        fromUtc?: string,
+        toUtc?: string,
+        statusCsv: string = 'Pending,Failed,NeedsReconciliation,Submitted'
+    ) => {
+        const params = new URLSearchParams();
+        params.set('status', statusCsv);
+        if (cashRegisterId) params.set('cashRegisterId', cashRegisterId);
+        if (fromUtc) params.set('fromUtc', fromUtc);
+        if (toUtc) params.set('toUtc', toUtc);
+        return `/rksv/finanz-online-queue?${params.toString()}`;
+    };
+
+    const openReconciliationHandoffModal = (args: {
+        title: string;
+        messageText: string;
+        submissionId?: string | null;
+        submittedAt?: string | null;
+        cashRegisterId?: string;
+        fromUtc?: string;
+        toUtc?: string;
+        footerHint?: string;
+    }) => {
+        const link = buildReconciliationLink(args.cashRegisterId, args.fromUtc, args.toUtc);
+        Modal.success({
+            title: args.title,
+            okText: 'Zur Abgleichsseite',
+            onOk: () => {
+                window.open(link, '_blank', 'noopener,noreferrer');
+            },
+            content: (
+                <Space direction="vertical" size={8}>
+                    <Typography.Text>{args.messageText}</Typography.Text>
+                    {args.submissionId ? (
+                        <Typography.Text copyable={{ text: args.submissionId }}>
+                            SubmissionId: {args.submissionId}
+                        </Typography.Text>
+                    ) : null}
+                    {args.submittedAt ? (
+                        <Typography.Text>
+                            SubmittedAt: {dayjs(args.submittedAt).isValid() ? dayjs(args.submittedAt).format('DD.MM.YYYY HH:mm:ss') : args.submittedAt}
+                        </Typography.Text>
+                    ) : null}
+                    <Typography.Text type="secondary">
+                        {args.footerHint || 'Öffnet die FinanzOnline-Abgleichsansicht mit relevanten Filtern.'}
+                    </Typography.Text>
+                </Space>
+            ),
+        });
+    };
+
 
     // Handlers
     const handleTableChange: TableProps<ExtendedInvoiceListItem>['onChange'] = (
@@ -264,6 +316,7 @@ export const InvoiceList: React.FC = () => {
                 let success = 0;
                 let fail = 0;
                 let skipped = 0;
+                const successfulInvoices: Array<{ cashRegisterId?: string; invoiceDate?: string }> = [];
                 for (const key of selectedRowKeys) {
                     try {
                         const inv = await getApiInvoiceId(key.toString());
@@ -287,6 +340,10 @@ export const InvoiceList: React.FC = () => {
 
                         if (res.success) {
                             success++;
+                            successfulInvoices.push({
+                                cashRegisterId: inv.kassenId || undefined,
+                                invoiceDate: inv.invoiceDate,
+                            });
                         } else {
                             fail++;
                         }
@@ -296,6 +353,26 @@ export const InvoiceList: React.FC = () => {
                 }
                 setBatchLoading(false);
                 message.info(`Batch Submit: ${success} successful, ${fail} failed, ${skipped} skipped.`);
+                if (success > 0) {
+                    const firstRegister = successfulInvoices.find((x) => !!x.cashRegisterId)?.cashRegisterId;
+                    const dates = successfulInvoices
+                        .map((x) => x.invoiceDate)
+                        .filter((x): x is string => !!x && dayjs(x).isValid());
+                    const minDate = dates.length
+                        ? dates.map((d) => dayjs(d)).reduce((a, b) => (b.isBefore(a) ? b : a))
+                        : dayjs();
+                    const maxDate = dates.length
+                        ? dates.map((d) => dayjs(d)).reduce((a, b) => (b.isAfter(a) ? b : a))
+                        : dayjs();
+                    openReconciliationHandoffModal({
+                        title: 'Batch Submit abgeschlossen',
+                        messageText: `${success} Rechnung(en) wurden eingereicht. Abgleichsstatus kann direkt geprüft werden.`,
+                        cashRegisterId: firstRegister,
+                        fromUtc: minDate.startOf('day').toISOString(),
+                        toUtc: maxDate.endOf('day').toISOString(),
+                        footerHint: `Erfolg: ${success}, Fehlgeschlagen: ${fail}, Übersprungen: ${skipped}`,
+                    });
+                }
                 setSelectedRowKeys([]);
                 refetch();
             }
@@ -369,6 +446,16 @@ export const InvoiceList: React.FC = () => {
             onSuccess: (data) => {
                 if (data.success) {
                     message.success('Submitted to FinanzOnline successfully');
+                    const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
+                    openReconciliationHandoffModal({
+                        title: 'Submit erfolgreich',
+                        messageText: data.message || 'Rechnung wurde an FinanzOnline übergeben.',
+                        submissionId: data.submissionId || null,
+                        submittedAt: data.timestamp || null,
+                        cashRegisterId: invoice.kassenId || undefined,
+                        fromUtc: invoiceDate.startOf('day').toISOString(),
+                        toUtc: invoiceDate.endOf('day').toISOString(),
+                    });
                     refetch();
                     if (selectedInvoiceId) {
                         // re-fetch details if open
@@ -376,10 +463,56 @@ export const InvoiceList: React.FC = () => {
                     }
                 } else {
                     message.warning(`Submission failed: ${data.message}`);
+                    Modal.warning({
+                        title: 'Submit fehlgeschlagen',
+                        content: (
+                            <Space direction="vertical" size={8}>
+                                <Typography.Text>{data.message || 'Unbekannter Fehler beim Submit.'}</Typography.Text>
+                                <Typography.Text type="secondary">
+                                    Öffne den FinanzOnline-Abgleich, um Status/Retry-Zustand zu prüfen.
+                                </Typography.Text>
+                            </Space>
+                        ),
+                        okText: 'Zum Abgleich',
+                        onOk: () => {
+                            const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
+                            const link = buildReconciliationLink(
+                                invoice.kassenId || undefined,
+                                invoiceDate.startOf('day').toISOString(),
+                                invoiceDate.endOf('day').toISOString(),
+                                'Pending,Failed,NeedsReconciliation'
+                            );
+                            window.open(link, '_blank', 'noopener,noreferrer');
+                        },
+                    });
                 }
             },
-            onError: () => {
+            onError: (err: any) => {
                 message.error('Error submitting to FinanzOnline');
+                Modal.error({
+                    title: 'Submit Fehler',
+                    content: (
+                        <Space direction="vertical" size={8}>
+                            <Typography.Text>
+                                {err?.response?.data?.message || 'Fehler beim Übermitteln an FinanzOnline.'}
+                            </Typography.Text>
+                            <Typography.Text type="secondary">
+                                Du kannst direkt zur Abgleichsansicht wechseln, um den aktuellen Zustand zu prüfen.
+                            </Typography.Text>
+                        </Space>
+                    ),
+                    okText: 'Zum Abgleich',
+                    onOk: () => {
+                        const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
+                        const link = buildReconciliationLink(
+                            invoice.kassenId || undefined,
+                            invoiceDate.startOf('day').toISOString(),
+                            invoiceDate.endOf('day').toISOString(),
+                            'Pending,Failed,NeedsReconciliation'
+                        );
+                        window.open(link, '_blank', 'noopener,noreferrer');
+                    },
+                });
             }
         });
     };

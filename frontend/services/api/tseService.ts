@@ -155,13 +155,12 @@ export const testTseConnection = async (serialNumber: string): Promise<boolean> 
   }
 };
 
-// TSE cihazı durumunu güncelle
-export const updateTseStatus = async (deviceId: string, updates: Partial<TseDevice>): Promise<TseDevice> => {
-  try {
-    const response = await apiClient.put<TseDevice>(`/tse/devices/${deviceId}`, updates);
-    return response;
-  } catch (error) {
-    console.error('TSE device update failed:', error);
-    throw error;
-  }
+/**
+ * @deprecated Backend has no PUT /tse/devices/:id. TSE device state is read-only from API.
+ * This method throws; do not use in new code.
+ */
+export const updateTseStatus = async (_deviceId: string, _updates: Partial<TseDevice>): Promise<TseDevice> => {
+  throw new Error(
+    'updateTseStatus is unsupported: backend does not expose TSE device update. TSE state is read-only from API.'
+  );
 };

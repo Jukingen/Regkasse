@@ -44,6 +44,10 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [canClose, setCanClose] = useState(false);
   const [lastClosingDate, setLastClosingDate] = useState<string | null>(null);
+  /** Backend message (why closing is blocked or already performed). */
+  const [canCloseMessage, setCanCloseMessage] = useState<string>('');
+  /** Count of payments without invoice when canClose is false (from can-close or from close failure). */
+  const [paymentsWithoutInvoiceCount, setPaymentsWithoutInvoiceCount] = useState<number | null>(null);
   const [closingHistory, setClosingHistory] = useState<ClosingHistoryItem[]>([]);
   const [statistics, setStatistics] = useState<ClosingStatistics | null>(null);
   const [activeTab, setActiveTab] = useState<'closing' | 'history' | 'statistics'>('closing');
@@ -61,8 +65,14 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
       const response = await canPerformClosing(cashRegisterId);
       setCanClose(response.canClose);
       setLastClosingDate(response.lastClosingDate || null);
+      setCanCloseMessage(response.message || '');
+      setPaymentsWithoutInvoiceCount(
+        typeof response.paymentsWithoutInvoiceCount === 'number' ? response.paymentsWithoutInvoiceCount : null
+      );
     } catch (error) {
       console.error('Failed to check closing status:', error);
+      setCanCloseMessage('');
+      setPaymentsWithoutInvoiceCount(null);
     }
   };
 
@@ -109,9 +119,16 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
           }}]
         );
       } else {
+        if (typeof result.paymentsWithoutInvoiceCount === 'number') {
+          setPaymentsWithoutInvoiceCount(result.paymentsWithoutInvoiceCount);
+        }
+        setCanCloseMessage(result.errorMessage || '');
+        const detail = typeof result.paymentsWithoutInvoiceCount === 'number'
+          ? ` (${result.paymentsWithoutInvoiceCount} ${t('tagesabschluss.paymentsWithoutInvoice', 'payment(s) without invoice')})`
+          : '';
         Alert.alert(
           t('tagesabschluss.error', 'Error'),
-          result.errorMessage || t('tagesabschluss.dailyClosingFailed', 'Daily closing failed.')
+          (result.errorMessage || t('tagesabschluss.dailyClosingFailed', 'Daily closing failed.')) + detail
         );
       }
     } catch (error) {
@@ -135,14 +152,22 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
           t('tagesabschluss.success', 'Success'),
           t('tagesabschluss.monthlyClosingSuccess', 'Monthly closing completed successfully!'),
           [{ text: 'OK', onPress: () => {
+            checkClosingStatus();
             loadClosingHistory();
             loadStatistics();
           }}]
         );
       } else {
+        if (typeof result.paymentsWithoutInvoiceCount === 'number') {
+          setPaymentsWithoutInvoiceCount(result.paymentsWithoutInvoiceCount);
+        }
+        setCanCloseMessage(result.errorMessage || '');
+        const detail = typeof result.paymentsWithoutInvoiceCount === 'number'
+          ? ` (${result.paymentsWithoutInvoiceCount} ${t('tagesabschluss.paymentsWithoutInvoice', 'payment(s) without invoice')})`
+          : '';
         Alert.alert(
           t('tagesabschluss.error', 'Error'),
-          result.errorMessage || t('tagesabschluss.monthlyClosingFailed', 'Monthly closing failed.')
+          (result.errorMessage || t('tagesabschluss.monthlyClosingFailed', 'Monthly closing failed.')) + detail
         );
       }
     } catch (error) {
@@ -166,14 +191,22 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
           t('tagesabschluss.success', 'Success'),
           t('tagesabschluss.yearlyClosingSuccess', 'Yearly closing completed successfully!'),
           [{ text: 'OK', onPress: () => {
+            checkClosingStatus();
             loadClosingHistory();
             loadStatistics();
           }}]
         );
       } else {
+        if (typeof result.paymentsWithoutInvoiceCount === 'number') {
+          setPaymentsWithoutInvoiceCount(result.paymentsWithoutInvoiceCount);
+        }
+        setCanCloseMessage(result.errorMessage || '');
+        const detail = typeof result.paymentsWithoutInvoiceCount === 'number'
+          ? ` (${result.paymentsWithoutInvoiceCount} ${t('tagesabschluss.paymentsWithoutInvoice', 'payment(s) without invoice')})`
+          : '';
         Alert.alert(
           t('tagesabschluss.error', 'Error'),
-          result.errorMessage || t('tagesabschluss.yearlyClosingFailed', 'Yearly closing failed.')
+          (result.errorMessage || t('tagesabschluss.yearlyClosingFailed', 'Yearly closing failed.')) + detail
         );
       }
     } catch (error) {
@@ -207,6 +240,26 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
             </Text>
             <Text style={styles.statusValue}>
               {formatClosingDate(lastClosingDate)}
+            </Text>
+          </View>
+        )}
+        {canCloseMessage ? (
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>
+              {t('tagesabschluss.reason', 'Reason')}
+            </Text>
+            <Text style={[styles.statusValue, styles.statusMessage]} numberOfLines={3}>
+              {canCloseMessage}
+            </Text>
+          </View>
+        ) : null}
+        {paymentsWithoutInvoiceCount != null && paymentsWithoutInvoiceCount > 0 && (
+          <View style={[styles.statusRow, { marginTop: 4 }]}>
+            <Text style={[styles.statusLabel, { color: '#B71C1C' }]}>
+              {t('tagesabschluss.paymentsWithoutInvoiceCount', 'Payments without invoice:')}
+            </Text>
+            <Text style={[styles.statusValue, { color: '#B71C1C' }]}>
+              {paymentsWithoutInvoiceCount}
             </Text>
           </View>
         )}
@@ -503,6 +556,11 @@ const styles = StyleSheet.create({
   statusValue: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  statusMessage: {
+    flex: 1,
+    fontWeight: 'normal',
+    color: '#555',
   },
   actionsSection: {
     backgroundColor: '#fff',

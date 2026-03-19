@@ -43,6 +43,7 @@ namespace KasseAPI_Final.Controllers
                 return Ok(new
                 {
                     success = true,
+                    replayBatchCorrelationId = response.ReplayBatchCorrelationId,
                     data = response.Items,
                     timestamp = DateTime.UtcNow
                 });
