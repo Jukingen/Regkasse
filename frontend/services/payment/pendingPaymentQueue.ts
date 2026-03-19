@@ -191,6 +191,17 @@ export async function getPendingPaymentQueue(): Promise<PendingPaymentEntry[]> {
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
 
+/**
+ * Returns all queue entries (Pending, Synced, Failed) for operator visibility.
+ * Sorted by createdAt descending (newest first).
+ */
+export async function getAllQueueEntries(): Promise<PendingPaymentEntry[]> {
+  const q = (await readQueue()).map(normalizeEntry);
+  return q.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
 export async function removePendingByQueueId(queueId: string): Promise<void> {
   const q = (await readQueue()).map(normalizeEntry);
   await writeQueue(q.filter((e) => e.queueId !== queueId));
@@ -325,5 +336,79 @@ export async function syncPendingPaymentQueue(): Promise<{
     failed = pending.length;
   }
 
+  return { processed, failed };
+}
+
+/**
+ * Retry sync for a single queue entry. Sends one transaction to replay endpoint.
+ * Safe: only Pending/Failed entries should be retried; backend handles idempotency.
+ */
+export async function retrySinglePending(queueId: string): Promise<{
+  processed: number;
+  failed: number;
+}> {
+  const all = (await readQueue()).map(normalizeEntry);
+  const entry = all.find((e) => e.queueId === queueId);
+  if (!entry) return { processed: 0, failed: 0 };
+  if (entry.status !== 'Pending' && entry.status !== 'Failed') {
+    return { processed: 0, failed: 0 };
+  }
+  const req = {
+    transactions: [
+      {
+        offlineTransactionId: entry.queueId,
+        createdAtUtc: entry.createdAt,
+        cashRegisterId: entry.cashRegisterId,
+        payload: entry.paymentRequest,
+        deviceId: entry.deviceId ?? undefined,
+        clientSequenceNumber: entry.clientSequenceNumber ?? undefined,
+      },
+    ],
+  };
+  let processed = 0;
+  let failed = 0;
+  try {
+    const raw = await apiClient.post<ReplayOfflineTransactionsResponse>(
+      '/offline-transactions/replay',
+      req
+    );
+    const items =
+      (raw as any)?.data ?? (raw as any)?.Value?.data ?? [];
+    const it = items?.[0];
+    const q = (await readQueue()).map(normalizeEntry);
+    const e = q.find((x) => x.queueId === queueId);
+    if (!e) return { processed: 0, failed: 0 };
+    e.lastAttemptAt = new Date().toISOString();
+    if (it?.status === 'Synced' || it?.status === 'synced') {
+      e.status = 'Synced';
+      e.isSynced = true;
+      e.syncedPaymentId = it?.syncedPaymentId ?? null;
+      e.lastError = undefined;
+      processed = 1;
+    } else if (it?.status === 'Pending' || it?.status === 'pending') {
+      e.status = 'Pending';
+      e.isSynced = false;
+      e.syncedPaymentId = null;
+      const code = it?.errorCode ? String(it.errorCode) : '';
+      const msg = it?.lastErrorMessageSafe ?? it?.error ?? 'offline_sync_failed';
+      const hint = it?.exponentialBackoffHintSeconds
+        ? ` (Retry hint: ${it.exponentialBackoffHintSeconds}s)`
+        : '';
+      e.lastError = code ? `[${code}] ${msg}${hint}` : `${msg}${hint}`;
+    } else {
+      e.status = 'Failed';
+      e.isSynced = false;
+      e.syncedPaymentId = null;
+      const code = it?.errorCode ? String(it.errorCode) : '';
+      const msg = it?.lastErrorMessageSafe ?? it?.error ?? 'offline_sync_failed';
+      e.lastError = code ? `[${code}] ${msg}` : msg;
+      failed = 1;
+    }
+    await writeQueue(q);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'sync_transport_failed';
+    await touchAttempt(queueId, msg);
+    failed = 1;
+  }
   return { processed, failed };
 }

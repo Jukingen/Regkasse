@@ -19,8 +19,8 @@ export interface ReplayBatchDetailResponse {
 }
 
 export async function getReplayBatchDetail(correlationId: string): Promise<ReplayBatchDetailResponse> {
-  const { data } = await customInstance.get<ReplayBatchDetailResponse>(
-    `/api/admin/replay-batch/${encodeURIComponent(correlationId)}`
-  );
-  return data;
+  return customInstance<ReplayBatchDetailResponse>({
+    url: `/api/admin/replay-batch/${encodeURIComponent(correlationId)}`,
+    method: 'GET',
+  });
 }

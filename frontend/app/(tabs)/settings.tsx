@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import LanguageSelector from '../../components/LanguageSelector';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { t } = useTranslation(['settings', 'auth', 'common']);
   const { logout } = useAuth();
 
@@ -24,6 +26,18 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <LanguageSelector />
+      </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Offline-Warteschlange</Text>
+        <Text style={styles.description}>
+          Ausstehende Zahlungen anzeigen, erneut senden oder alle synchronisieren.
+        </Text>
+        <TouchableOpacity
+          style={styles.queueLinkButton}
+          onPress={() => router.push('/(screens)/offline-queue' as any)}
+        >
+          <Text style={styles.queueLinkText}>Warteschlange öffnen</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.otherSettings}</Text>
@@ -82,6 +96,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  queueLinkButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  queueLinkText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   logoutButton: {
     backgroundColor: '#e74c3c',

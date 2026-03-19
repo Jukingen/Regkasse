@@ -5,6 +5,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { API_BASE_URL } from '../services/api/config';
 import { paymentService } from '../services/api/paymentService';
+import { notifyOfflineSyncComplete } from '../services/payment/offlineQueueSyncNotifier';
 import { storage } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -131,11 +132,12 @@ export const useApiManager = () => {
         if (ok) {
           void paymentService
             .syncPendingPaymentQueue()
-            .then(({ processed }) => {
-              if (processed > 0) {
+            .then(({ processed, failed }) => {
+              if (processed > 0 || failed > 0) {
                 console.log(
-                  `[PaymentQueue] Synced ${processed} pending payment(s) after reconnect`
+                  `[PaymentQueue] Synced ${processed} pending payment(s) after reconnect, failed: ${failed}`
                 );
+                notifyOfflineSyncComplete(processed, failed);
               }
             })
             .catch((e) =>

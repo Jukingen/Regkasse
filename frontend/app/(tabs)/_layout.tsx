@@ -2,10 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs, Redirect } from 'expo-router';
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ActivityIndicator, Text, Pressable, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import PaymentModal from '../../components/PaymentModal';
+import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { SoftColors, SoftShadows } from '../../constants/SoftTheme';
 import { useAuth } from '../../contexts/AuthContext';
@@ -35,6 +36,19 @@ export default function TabLayout() {
         setSaleCustomer(null);
         await clearCart(paidTableNumber ?? activeTableId);
     };
+
+    // When background offline queue sync completes after reconnect, show short summary to user
+    useEffect(() => {
+        const unsub = subscribeOfflineSyncComplete((processed, failed) => {
+            if (processed > 0) {
+                const msg = failed > 0
+                    ? `${processed} Zahlung(en) synchronisiert. ${failed} fehlgeschlagen.`
+                    : `${processed} Zahlung(en) erfolgreich synchronisiert.`;
+                Alert.alert('Offline-Warteschlange', msg);
+            }
+        });
+        return unsub;
+    }, []);
 
     // OPTIMIZATION: Auth status kontrolünü daha az sıklıkta yap
     useEffect(() => {

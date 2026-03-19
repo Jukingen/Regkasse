@@ -30,6 +30,31 @@ public interface IOfflinePayloadHashMaintenanceService
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>Read-only conflict group for triage; no auto-fix.</summary>
+public sealed class PayloadHashConflictGroup
+{
+    public Guid CashRegisterId { get; init; }
+    public string CanonicalHash { get; init; } = string.Empty;
+    /// <summary>Row IDs that cannot be repaired (skipped).</summary>
+    public IReadOnlyList<Guid> MismatchRowIds { get; init; } = Array.Empty<Guid>();
+    /// <summary>Row IDs that already have this hash and block repair (when SkipReason is OccupantExists).</summary>
+    public IReadOnlyList<Guid> OccupantRowIds { get; init; } = Array.Empty<Guid>();
+    /// <summary>Why repair was skipped: OccupantExists | MultipleRowsForSameSlot.</summary>
+    public string SkipReason { get; init; } = string.Empty;
+    public DateTime? LatestCreatedAtUtc { get; init; }
+    /// <summary>Suggested priority for triage: High = real occupant block, Medium = multiple rows for same slot.</summary>
+    public string SeveritySuggestion { get; init; } = string.Empty;
+}
+
+/// <summary>Single row that can be repaired without conflict.</summary>
+public sealed class PayloadHashRepairableItem
+{
+    public Guid CashRegisterId { get; init; }
+    public string CanonicalHash { get; init; } = string.Empty;
+    public Guid RowId { get; init; }
+    public DateTime? CreatedAtUtc { get; init; }
+}
+
 public sealed class OfflinePayloadHashAnalyzeResult
 {
     public int Scanned { get; init; }
@@ -47,6 +72,12 @@ public sealed class OfflinePayloadHashAnalyzeResult
 
     /// <summary>Set when LegacyDataQualityRiskHigh is true; message for ops/UI.</summary>
     public string? WarningMessage { get; init; }
+
+    /// <summary>Conflict groups for triage (read-only); grouped by (CashRegisterId, CanonicalHash).</summary>
+    public IReadOnlyList<PayloadHashConflictGroup> ConflictGroups { get; init; } = Array.Empty<PayloadHashConflictGroup>();
+
+    /// <summary>Rows that can be repaired with no conflict (one per (Register, Canonical) slot).</summary>
+    public IReadOnlyList<PayloadHashRepairableItem> RepairableItems { get; init; } = Array.Empty<PayloadHashRepairableItem>();
 }
 
 public sealed class OfflinePayloadHashRepairResult
@@ -92,12 +123,12 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
         var rows = await query
             .OrderByDescending(x => x.CreatedAt)
             .Take(maxRows)
-            .Select(x => new { x.Id, x.CashRegisterId, x.PayloadJson, x.PayloadHash })
+            .Select(x => new { x.Id, x.CashRegisterId, x.PayloadJson, x.PayloadHash, x.CreatedAt })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
         var nullHash = 0;
-        var mismatchItems = new List<(Guid Id, Guid CashRegisterId, string Canonical)>();
+        var mismatchItems = new List<(Guid Id, Guid CashRegisterId, string Canonical, DateTime CreatedAt)>();
         var samples = new List<Guid>(20);
 
         foreach (var r in rows)
@@ -121,13 +152,16 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
             if (string.Equals(r.PayloadHash.Trim(), canonical, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            mismatchItems.Add((r.Id, r.CashRegisterId, canonical));
+            mismatchItems.Add((r.Id, r.CashRegisterId, canonical, r.CreatedAt));
             if (samples.Count < 20)
                 samples.Add(r.Id);
         }
 
         var repairable = 0;
         var conflict = 0;
+        var conflictGroups = new List<PayloadHashConflictGroup>();
+        var repairableItems = new List<PayloadHashRepairableItem>();
+
         if (mismatchItems.Count > 0)
         {
             var regIds = mismatchItems.Select(m => m.CashRegisterId).Distinct().ToList();
@@ -141,31 +175,66 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
             var byRegHash = occupants
-                .GroupBy(o => (o.CashRegisterId, Hash: o.PayloadHash))
+                .GroupBy(o => (o.CashRegisterId, Hash: o.PayloadHash!))
                 .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToHashSet());
 
-            var mismatchIdsByKey = mismatchItems
+            var mismatchByKey = mismatchItems
                 .GroupBy(m => (m.CashRegisterId, m.Canonical))
-                .ToDictionary(g => g.Key, g => g.Select(x => x.Id).ToHashSet());
+                .ToDictionary(g => g.Key, g => g.ToList());
 
-            foreach (var kv in mismatchIdsByKey)
+            foreach (var kv in mismatchByKey)
             {
                 var key = kv.Key;
-                var wantRepair = kv.Value;
-                var k = wantRepair.Count;
+                var list = kv.Value;
+                var wantRepair = list.Select(x => x.Id).ToHashSet();
+                var k = list.Count;
+                var latestCreated = list.Max(x => x.CreatedAt);
+
                 byRegHash.TryGetValue(key, out var alreadyCorrectIds);
                 alreadyCorrectIds ??= new HashSet<Guid>();
-                var externalOccupant = alreadyCorrectIds.Any(id => !wantRepair.Contains(id));
-                if (externalOccupant)
+                var externalOccupantIds = alreadyCorrectIds.Where(id => !wantRepair.Contains(id)).ToList();
+
+                if (externalOccupantIds.Count > 0)
                 {
                     conflict += k;
+                    conflictGroups.Add(new PayloadHashConflictGroup
+                    {
+                        CashRegisterId = key.CashRegisterId,
+                        CanonicalHash = key.Canonical,
+                        MismatchRowIds = list.Select(x => x.Id).ToList(),
+                        OccupantRowIds = externalOccupantIds,
+                        SkipReason = "OccupantExists",
+                        LatestCreatedAtUtc = latestCreated,
+                        SeveritySuggestion = "High"
+                    });
                     continue;
                 }
 
-                // Same register+canonical: unique index allows only one row with this hash.
+                // No external occupant: one can be repaired, (k-1) conflict (multiple rows for same slot).
+                var ordered = list.OrderBy(x => x.CreatedAt).ToList();
+                repairableItems.Add(new PayloadHashRepairableItem
+                {
+                    CashRegisterId = key.CashRegisterId,
+                    CanonicalHash = key.Canonical,
+                    RowId = ordered[0].Id,
+                    CreatedAtUtc = ordered[0].CreatedAt
+                });
                 repairable += 1;
+
                 if (k > 1)
+                {
                     conflict += k - 1;
+                    conflictGroups.Add(new PayloadHashConflictGroup
+                    {
+                        CashRegisterId = key.CashRegisterId,
+                        CanonicalHash = key.Canonical,
+                        MismatchRowIds = ordered.Skip(1).Select(x => x.Id).ToList(),
+                        OccupantRowIds = Array.Empty<Guid>(),
+                        SkipReason = "MultipleRowsForSameSlot",
+                        LatestCreatedAtUtc = latestCreated,
+                        SeveritySuggestion = "Medium"
+                    });
+                }
             }
         }
 
@@ -195,7 +264,9 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
             SampleMismatchIds = samples,
             MismatchRatioPercent = ratioPercent,
             LegacyDataQualityRiskHigh = riskHigh,
-            WarningMessage = warningMessage
+            WarningMessage = warningMessage,
+            ConflictGroups = conflictGroups,
+            RepairableItems = repairableItems
         };
     }
 

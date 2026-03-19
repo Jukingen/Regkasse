@@ -21,4 +21,4 @@ Focus: `receipt_sequences`, `signature_chain_state`, `offline_transactions`, `pa
 - **Dedup:** Receipt sequence and signature chain duplicates removed by migration — fiscal meaning of dropped rows should be understood in audits.
 - **Invoice register gap:** 71559 does not hard-fail on unresolved `CashRegisterId`; zero-UUID or wrong register possible until manual fix.
 
-See `scripts/sql/fiscal_go_live_validation.sql` for post-migrate checks.
+See `scripts/sql/fiscal_go_live_validation.sql` for post-migrate checks. CI/release gate: `scripts/run_fiscal_go_live_validation.sh` and `.github/workflows/fiscal-validation.yml`; details in `FISCAL_VALIDATION_CI.md`.

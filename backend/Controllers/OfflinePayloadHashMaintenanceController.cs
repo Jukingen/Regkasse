@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using KasseAPI_Final.Authorization;
@@ -89,6 +91,69 @@ public class OfflinePayloadHashMaintenanceController : ControllerBase
         if (result.LegacyDataQualityRiskHigh && result.WarningMessage != null)
             _logger.LogWarning("Offline payload_hash analyze: {WarningMessage}", result.WarningMessage);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// GET: Export analyze result as CSV (conflicts + repairable). Read-only; same filters as analyze (maxRows, cashRegisterId).
+    /// </summary>
+    [HttpGet("export")]
+    [HasPermission(AppPermissions.ReportExport)]
+    public async Task<IActionResult> ExportAnalyze(
+        [FromQuery] int maxRows = 10_000,
+        [FromQuery] Guid? cashRegisterId = null,
+        CancellationToken cancellationToken = default)
+    {
+        maxRows = Math.Clamp(maxRows, 1, 100_000);
+        var result = await _maintenance.AnalyzeAsync(maxRows, cashRegisterId, cancellationToken).ConfigureAwait(false);
+        var csv = BuildAnalyzeCsv(result);
+        return File(Encoding.UTF8.GetBytes(csv), "text/csv", "offline-payload-hash-analyze.csv");
+    }
+
+    private static string BuildAnalyzeCsv(OfflinePayloadHashAnalyzeResult result)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Type,CashRegisterId,CanonicalHash,RowId,CreatedAtUtc,SkipReason,SeveritySuggestion,MismatchRowIds,OccupantRowIds,LatestCreatedAtUtc");
+        foreach (var g in result.ConflictGroups)
+        {
+            sb.Append("Conflict,");
+            sb.Append(CsvEscape(g.CashRegisterId.ToString()));
+            sb.Append(',');
+            sb.Append(CsvEscape(g.CanonicalHash));
+            sb.Append(",,"); // RowId, CreatedAtUtc empty for conflict group
+            sb.Append(',');
+            sb.Append(CsvEscape(g.SkipReason));
+            sb.Append(',');
+            sb.Append(CsvEscape(g.SeveritySuggestion));
+            sb.Append(',');
+            sb.Append(CsvEscape(string.Join(";", g.MismatchRowIds)));
+            sb.Append(',');
+            sb.Append(CsvEscape(string.Join(";", g.OccupantRowIds)));
+            sb.Append(',');
+            sb.Append(g.LatestCreatedAtUtc.HasValue ? CsvEscape(g.LatestCreatedAtUtc.Value.ToString("O", CultureInfo.InvariantCulture)) : "");
+            sb.AppendLine();
+        }
+        foreach (var r in result.RepairableItems)
+        {
+            sb.Append("Repairable,");
+            sb.Append(CsvEscape(r.CashRegisterId.ToString()));
+            sb.Append(',');
+            sb.Append(CsvEscape(r.CanonicalHash));
+            sb.Append(',');
+            sb.Append(CsvEscape(r.RowId.ToString()));
+            sb.Append(',');
+            sb.Append(r.CreatedAtUtc.HasValue ? CsvEscape(r.CreatedAtUtc.Value.ToString("O", CultureInfo.InvariantCulture)) : "");
+            sb.Append(",,,,,"); // SkipReason, SeveritySuggestion, MismatchRowIds, OccupantRowIds, LatestCreatedAtUtc empty
+            sb.AppendLine();
+        }
+        return sb.ToString();
+    }
+
+    private static string CsvEscape(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.AsSpan().IndexOfAny("\",\r\n") >= 0)
+            return "\"" + value.Replace("\"", "\"\"") + "\"";
+        return value;
     }
 
     /// <summary>

@@ -1,0 +1,62 @@
+# Fiscal go-live validation gate: run after migrations; FAIL fails pipeline, WARN report saved as artifact.
+# Uses in-job Postgres + EF migration; for staging/prod-like DB use the wrapper locally with DATABASE_URL.
+name: Fiscal go-live validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: "10.0.x"
+
+jobs:
+  fiscal-validation:
+    name: Migrate & validate fiscal schema
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: regkasse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Install PostgreSQL client (psql)
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply migrations
+        working-directory: backend
+        env:
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=regkasse;Username=postgres;Password=postgres"
+        run: dotnet ef database update --connection "Host=localhost;Port=5432;Database=regkasse;Username=postgres;Password=postgres"
+
+      - name: Run fiscal go-live validation
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/regkasse"
+        run: bash scripts/run_fiscal_go_live_validation.sh
+
+      - name: Upload fiscal validation report (artifact)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fiscal-validation-report
+          path: fiscal_validation_report.txt

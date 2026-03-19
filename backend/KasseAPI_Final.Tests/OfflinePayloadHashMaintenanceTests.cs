@@ -70,4 +70,60 @@ public class OfflinePayloadHashMaintenanceTests
         Assert.Equal(0, second.Updated);
         Assert.Equal(1, second.SkippedAlreadyAligned);
     }
+
+    [Fact]
+    public async Task Analyze_ReturnsConflictGroups_AndRepairableItems()
+    {
+        await using var context = CreateContext();
+        var reg = Guid.NewGuid();
+        var payload = """{"a":1,"b":2}""";
+        var canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(payload);
+        var now = DateTime.UtcNow;
+
+        // Row A: already has correct hash (occupant)
+        var idA = Guid.NewGuid();
+        context.OfflineTransactions.Add(new OfflineTransaction
+        {
+            Id = idA,
+            CashRegisterId = reg,
+            PayloadJson = payload,
+            PayloadHash = canonical,
+            ServerReceivedAtUtc = now,
+            OfflineCreatedAtUtc = now,
+            Status = OfflineTransactionStatus.Pending,
+            CreatedAt = now
+        });
+        // Row B: mismatch, wants same canonical → conflict (OccupantExists)
+        var idB = Guid.NewGuid();
+        context.OfflineTransactions.Add(new OfflineTransaction
+        {
+            Id = idB,
+            CashRegisterId = reg,
+            PayloadJson = payload,
+            PayloadHash = "wrong_hash_value_64_chars_____________________________",
+            ServerReceivedAtUtc = now.AddSeconds(1),
+            OfflineCreatedAtUtc = now.AddSeconds(1),
+            Status = OfflineTransactionStatus.Pending,
+            CreatedAt = now.AddSeconds(1)
+        });
+        await context.SaveChangesAsync();
+
+        var svc = new OfflinePayloadHashMaintenanceService(
+            context,
+            new Mock<ILogger<OfflinePayloadHashMaintenanceService>>().Object);
+
+        var analyze = await svc.AnalyzeAsync(100, null);
+        Assert.Equal(1, analyze.RuntimeMismatchCount);
+        Assert.Equal(0, analyze.RepairableNoConflictCount);
+        Assert.Equal(1, analyze.SkippedWouldConflictCount);
+
+        var conflict = analyze.ConflictGroups.Single();
+        Assert.Equal(reg, conflict.CashRegisterId);
+        Assert.Equal(canonical, conflict.CanonicalHash);
+        Assert.Equal("OccupantExists", conflict.SkipReason);
+        Assert.Equal("High", conflict.SeveritySuggestion);
+        Assert.Contains(idB, conflict.MismatchRowIds);
+        Assert.Contains(idA, conflict.OccupantRowIds);
+        Assert.Empty(analyze.RepairableItems);
+    }
 }
