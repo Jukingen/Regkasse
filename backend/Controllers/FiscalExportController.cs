@@ -9,8 +9,9 @@ using KasseAPI_Final.Services;
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// DEP-like fiscal export: receipts, RKSV/TSE signatures, chain state, daily/monthly/yearly closings.
-/// JSON by default; optional CSV fragments when includeCsv=true.
+/// DEP-like fiscal export: receipts, RKSV/TSE signatures, chain state, closings.
+/// JSON by default; optional CSV when includeCsv=true.
+/// Integrity booleans and chainContinuityWarnings are best-effort, observed-within-scope diagnostics only—not a legal RKSV guarantee; always read exportScopeWarnings and integrity.integrityDiagnosticNotes on the payload.
 /// </summary>
 [Authorize]
 [ApiController]
@@ -40,7 +41,7 @@ public class FiscalExportController : ControllerBase
     }
 
     /// <summary>
-    /// Export fiscal package for one cash register and UTC time range.
+    /// Export fiscal package for one cash register and UTC time range. Receipts are filtered by IssuedAt in [fromUtc, toUtc]; may truncate at 50k rows. Chain/sequence flags apply only to included receipts.
     /// </summary>
     /// <param name="cashRegisterId">Target register.</param>
     /// <param name="fromUtc">Inclusive start (UTC).</param>

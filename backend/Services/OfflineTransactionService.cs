@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
@@ -18,21 +20,33 @@ public class OfflineTransactionService : IOfflineTransactionService
     private const int BackoffBaseSeconds = 10;
     private const int BackoffMaxSeconds = 300;
 
+    /// <summary>
+    /// Scan recent rows per register and match incoming replay hash to SHA256(runtime-canonical(PayloadJson)).
+    /// Covers legacy DB rows where payload_hash was backfilled as digest(PayloadJson::text) without key ordering.
+    /// </summary>
+    private const int RuntimeRecomputedHashCandidateLimit = 2000;
+
     private readonly AppDbContext _context;
     private readonly IPaymentService _paymentService;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<OfflineTransactionService> _logger;
+    private readonly OfflineReplayOptions _replayOptions;
+    private readonly ICoreMetrics? _metrics;
 
     public OfflineTransactionService(
         AppDbContext context,
         IPaymentService paymentService,
         IAuditLogService auditLogService,
-        ILogger<OfflineTransactionService> logger)
+        ILogger<OfflineTransactionService> logger,
+        IOptions<OfflineReplayOptions>? replayOptions = null,
+        ICoreMetrics? metrics = null)
     {
         _context = context;
         _paymentService = paymentService;
         _auditLogService = auditLogService;
         _logger = logger;
+        _replayOptions = replayOptions?.Value ?? new OfflineReplayOptions();
+        _metrics = metrics;
     }
 
     public async Task<ReplayOfflineTransactionsResponse> ReplayOfflineTransactionsAsync(
@@ -41,7 +55,10 @@ public class OfflineTransactionService : IOfflineTransactionService
         string userRole)
     {
         if (request == null || request.Transactions == null || request.Transactions.Count == 0)
-            return new ReplayOfflineTransactionsResponse();
+            return new ReplayOfflineTransactionsResponse { ReplayBatchCorrelationId = null };
+
+        var replayBatchCorrelationId = Guid.NewGuid();
+        var replayBatchAuditKey = replayBatchCorrelationId.ToString("N");
 
         // Replay order must be kept as provided by the client.
         var ordered = request.Transactions.ToList();
@@ -57,48 +74,103 @@ public class OfflineTransactionService : IOfflineTransactionService
         OfflineReplayRegisterLock.OfflineReplayRegisterLockScope? lockScope = null;
         if (isPostgres && _context.Database.IsRelational() && !string.IsNullOrWhiteSpace(connectionString))
         {
-            lockScope = await OfflineReplayRegisterLock.AcquireAsync(
-                ordered.Select(x => x.CashRegisterId),
-                connectionString!).ConfigureAwait(false);
+            try
+            {
+                lockScope = await OfflineReplayRegisterLock.AcquireAsync(
+                    ordered.Select(x => x.CashRegisterId),
+                    connectionString!,
+                    CancellationToken.None,
+                    _replayOptions.MaxLockWaitMs,
+                    _replayOptions.LockRetryIntervalMs).ConfigureAwait(false);
+                if (lockScope.WaitDurationMs > 0)
+                    _logger.LogInformation(
+                        "Offline replay advisory lock acquired after {WaitDurationMs}ms. ReplayBatchCorrelationId={ReplayBatchCorrelationId}",
+                        lockScope.WaitDurationMs, replayBatchCorrelationId);
+                _metrics?.RecordAdvisoryLockWaitSeconds(lockScope.WaitDurationMs / 1000.0);
+            }
+            catch (OfflineReplayLockTimeoutException ex)
+            {
+                _logger.LogWarning(ex,
+                    "Offline replay advisory lock timeout after {WaitDurationMs}ms for register(s) {RegisterIds}. ReplayBatchCorrelationId={ReplayBatchCorrelationId}",
+                    ex.WaitDurationMs, string.Join(", ", ex.CashRegisterIds), replayBatchCorrelationId);
+                await _auditLogService.LogSystemOperationAsync(
+                    "OfflineReplayLockTimeout",
+                    "OfflineReplay",
+                    userId,
+                    userRole,
+                    description: $"Advisory lock timeout after {ex.WaitDurationMs}ms; registers: {string.Join(", ", ex.CashRegisterIds)}",
+                    status: AuditLogStatus.Failed,
+                    errorDetails: ex.Message,
+                    requestData: new { ex.WaitDurationMs, RegisterIds = ex.CashRegisterIds, ReplayBatchCorrelationId = replayBatchCorrelationId },
+                    correlationIdOverride: replayBatchAuditKey).ConfigureAwait(false);
+                foreach (var item in ordered)
+                {
+                    _metrics?.RecordReplayTotal(1);
+                    _metrics?.RecordReplayFailed(1);
+                    results.Add(FailedLocalItem(item.OfflineTransactionId, item.OfflineTransactionId, "LOCK_TIMEOUT", "Advisory lock timeout; try again later.", 0, replayBatchCorrelationId));
+                }
+                return new ReplayOfflineTransactionsResponse { ReplayBatchCorrelationId = replayBatchCorrelationId, Items = results };
+            }
         }
 
         try
         {
+            using (_logger.BeginScope(new Dictionary<string, object>
+                   {
+                       ["ReplayBatchCorrelationId"] = replayBatchCorrelationId,
+                       ["ReplayBatchItemCount"] = ordered.Count
+                   }))
+            {
+                _logger.LogInformation(
+                    "Offline replay batch started: ReplayBatchCorrelationId={ReplayBatchCorrelationId}, itemCount={ItemCount}",
+                    replayBatchCorrelationId,
+                    ordered.Count);
+
             foreach (var item in ordered)
             {
+                _metrics?.RecordReplayTotal(1);
                 var payloadRaw = GetPayloadRaw(item.Payload);
                 var (normalizedPayloadJson, payloadHash) =
                     OfflinePayloadHashing.NormalizeAndHash(payloadRaw);
 
                 if (item.OfflineTransactionId == Guid.Empty)
                 {
+                    _metrics?.RecordReplayFailed(1);
                     results.Add(FailedLocalItem(
                         requestedId: item.OfflineTransactionId,
                         resolvedId: item.OfflineTransactionId,
                         errorCode: "INVALID_ID",
                         message: "OfflineTransactionId must not be empty.",
-                        retryCount: 0));
+                        retryCount: 0,
+                        replayBatchCorrelationId));
                     continue;
                 }
 
                 if (item.CashRegisterId == Guid.Empty)
                 {
+                    _metrics?.RecordReplayFailed(1);
                     results.Add(FailedLocalItem(
                         requestedId: item.OfflineTransactionId,
                         resolvedId: item.OfflineTransactionId,
                         errorCode: "INVALID_CASH_REGISTER",
                         message: "CashRegisterId must not be empty.",
-                        retryCount: 0));
+                        retryCount: 0,
+                        replayBatchCorrelationId));
                     continue;
                 }
+
+                await RecordOfflineIntentCoverageAsync(item.CashRegisterId, item.DeviceId, item.ClientSequenceNumber, replayBatchCorrelationId).ConfigureAwait(false);
 
                 OfflineTransaction? offline = null;
                 var createdThisCall = false;
 
                 // 1) Resolve OfflineTransaction (requested id first).
+                string? replayPath = null;
                 offline = await _context.OfflineTransactions
                     .FirstOrDefaultAsync(x => x.Id == item.OfflineTransactionId)
                     .ConfigureAwait(false);
+                if (offline != null)
+                    replayPath = "requested_id";
 
                 if (offline == null)
                 {
@@ -111,44 +183,80 @@ public class OfflineTransactionService : IOfflineTransactionService
 
                     if (offline != null)
                     {
+                        replayPath = "hash_match";
                         if (offline.Id != item.OfflineTransactionId)
                         {
                             await TryWriteOfflinePayloadDedupAuditAsync(
                                 offline,
                                 requestedOfflineId: item.OfflineTransactionId,
                                 userId,
-                                userRole).ConfigureAwait(false);
+                                userRole,
+                                replayBatchCorrelationId,
+                                replayBatchAuditKey,
+                                replayPath).ConfigureAwait(false);
                         }
                     }
                     else
                     {
-                        // 3) Legacy-safe dedup:
-                        // If payload_hash backfill/normalization differs, (CashRegisterId, PayloadHash) might not match.
-                        // Best-effort fallback compares PayloadJson structurally in-memory over recent candidates.
-                        offline = await TryResolveOfflineByStructuralPayloadAsync(
+                        // 3) Deterministic: same register, recompute runtime hash from stored PayloadJson.
+                        offline = await TryResolveOfflineByRuntimeRecomputedHashAsync(
                                 item.CashRegisterId,
-                                normalizedPayloadJson)
+                                payloadHash)
                             .ConfigureAwait(false);
 
-                        if (offline != null && offline.Id != item.OfflineTransactionId)
+                        if (offline != null)
                         {
-                            await TryWriteOfflinePayloadDedupAuditAsync(
-                                    offline,
-                                    requestedOfflineId: item.OfflineTransactionId,
-                                    userId,
-                                    userRole)
+                            replayPath = "recompute";
+                            if (offline.Id != item.OfflineTransactionId)
+                            {
+                                await TryWriteOfflinePayloadDedupAuditAsync(
+                                        offline,
+                                        requestedOfflineId: item.OfflineTransactionId,
+                                        userId,
+                                        userRole,
+                                        replayBatchCorrelationId,
+                                        replayBatchAuditKey,
+                                        replayPath).ConfigureAwait(false);
+                            }
+                        }
+
+                        if (offline == null && _replayOptions.AllowStructuralFallback)
+                        {
+                            // 4) Last-resort structural match (narrow window; kill-switch via OfflineReplay:AllowStructuralFallback).
+                            offline = await TryResolveOfflineByStructuralPayloadAsync(
+                                    item.CashRegisterId,
+                                    normalizedPayloadJson)
                                 .ConfigureAwait(false);
+
+                            if (offline != null)
+                            {
+                                replayPath = "structural";
+                                if (offline.Id != item.OfflineTransactionId)
+                                {
+                                    await TryWriteOfflinePayloadDedupAuditAsync(
+                                            offline,
+                                            requestedOfflineId: item.OfflineTransactionId,
+                                            userId,
+                                            userRole,
+                                            replayBatchCorrelationId,
+                                            replayBatchAuditKey,
+                                            replayPath)
+                                        .ConfigureAwait(false);
+                                }
+                            }
                         }
 
                         if (offline == null)
                         {
-                            // 4) Create new offline transaction row.
+                            // 5) Create new offline transaction row.
                             offline = await CreateOfflineTransactionRowAsync(
                                     item,
                                     normalizedPayloadJson,
                                     payloadHash,
                                     userId,
-                                    userRole)
+                                    userRole,
+                                    replayBatchCorrelationId,
+                                    replayBatchAuditKey)
                                 .ConfigureAwait(false);
 
                             createdThisCall = true;
@@ -158,12 +266,14 @@ public class OfflineTransactionService : IOfflineTransactionService
 
                 if (offline == null)
                 {
+                    _metrics?.RecordReplayFailed(1);
                     results.Add(FailedLocalItem(
                         requestedId: item.OfflineTransactionId,
                         resolvedId: item.OfflineTransactionId,
                         errorCode: "OFFLINE_RESOLVE_FAILED",
                         message: "Could not resolve offline transaction.",
-                        retryCount: 0));
+                        retryCount: 0,
+                        replayBatchCorrelationId));
                     continue;
                 }
 
@@ -187,16 +297,24 @@ public class OfflineTransactionService : IOfflineTransactionService
                         offline,
                         userId,
                         userRole,
-                        actionCode: "PAYLOAD_IMMUTABLE_MISMATCH").ConfigureAwait(false);
+                        actionCode: "PAYLOAD_IMMUTABLE_MISMATCH",
+                        replayBatchCorrelationId,
+                        replayBatchAuditKey,
+                        replayPath: replayPath ?? "unknown",
+                        payloadRepaired: false).ConfigureAwait(false);
 
+                    _metrics?.RecordReplayFailed(1);
                     results.Add(FailedLocalItem(
                         requestedId: item.OfflineTransactionId,
                         resolvedId: offline.Id,
                         errorCode: offline.LastErrorCode ?? "PAYLOAD_IMMUTABLE_MISMATCH",
                         message: offline.LastErrorMessageSafe ?? "Payload mismatch",
-                        retryCount: offline.RetryCount));
+                        retryCount: offline.RetryCount,
+                        replayBatchCorrelationId));
                     continue;
                 }
+
+                var payloadRepaired = await TryAlignStoredPayloadHashToRuntimeCanonicalAsync(offline.Id).ConfigureAwait(false);
 
                 // If record was resolved by payload hash dedup, we still want to ensure
                 // the requested id doesn't affect fiscalization (PaymentService uses offlineTransactionId).
@@ -208,20 +326,24 @@ public class OfflineTransactionService : IOfflineTransactionService
                 // 4) Replay into canonical fiscal payment for Pending only.
                 if (offline.Status == OfflineTransactionStatus.Synced && offline.SyncedPaymentId != null)
                 {
+                    _metrics?.RecordReplayDuplicate(1);
                     results.Add(SuccessSyncedItem(
                         requestedId: item.OfflineTransactionId,
                         resolvedId: offline.Id,
                         syncedPaymentId: offline.SyncedPaymentId.Value,
-                        retryCount: offline.RetryCount));
+                        retryCount: offline.RetryCount,
+                        replayBatchCorrelationId));
                     continue;
                 }
 
                 if (offline.Status == OfflineTransactionStatus.Failed)
                 {
+                    _metrics?.RecordReplayFailed(1);
                     results.Add(FailedFromRow(
                         requestedId: item.OfflineTransactionId,
                         resolvedId: offline.Id,
-                        row: offline));
+                        row: offline,
+                        replayBatchCorrelationId));
                     continue;
                 }
 
@@ -238,12 +360,18 @@ public class OfflineTransactionService : IOfflineTransactionService
                         offline,
                         userId,
                         userRole,
-                        actionCode: "MAX_RETRY_LIMIT_EXCEEDED").ConfigureAwait(false);
+                        actionCode: "MAX_RETRY_LIMIT_EXCEEDED",
+                        replayBatchCorrelationId,
+                        replayBatchAuditKey,
+                        replayPath: replayPath ?? "unknown",
+                        payloadRepaired).ConfigureAwait(false);
 
+                    _metrics?.RecordReplayFailed(1);
                     results.Add(FailedFromRow(
                         requestedId: item.OfflineTransactionId,
                         resolvedId: offline.Id,
-                        row: offline));
+                        row: offline,
+                        replayBatchCorrelationId));
                     continue;
                 }
 
@@ -271,7 +399,8 @@ public class OfflineTransactionService : IOfflineTransactionService
                     var paymentResult = await _paymentService.CreatePaymentAsync(
                         paymentRequest,
                         userId,
-                        offlineTransactionId: offline.Id).ConfigureAwait(false);
+                        offlineTransactionId: offline.Id,
+                        offlineReplayBatchCorrelationId: replayBatchCorrelationId).ConfigureAwait(false);
 
                     if (paymentResult.Success && paymentResult.PaymentId.HasValue)
                     {
@@ -288,13 +417,18 @@ public class OfflineTransactionService : IOfflineTransactionService
                             offline,
                             paymentResult.PaymentId.Value,
                             userId,
-                            userRole).ConfigureAwait(false);
+                            userRole,
+                            replayBatchCorrelationId,
+                            replayBatchAuditKey,
+                            replayPath: replayPath ?? "requested_id",
+                            payloadRepaired).ConfigureAwait(false);
 
                         results.Add(SuccessSyncedItem(
                             requestedId: item.OfflineTransactionId,
                             resolvedId: offline.Id,
                             syncedPaymentId: offline.SyncedPaymentId.Value,
-                            retryCount: offline.RetryCount));
+                            retryCount: offline.RetryCount,
+                            replayBatchCorrelationId));
                         continue;
                     }
 
@@ -313,20 +447,31 @@ public class OfflineTransactionService : IOfflineTransactionService
                             offline,
                             userId,
                             userRole,
-                            actionCode: "OFFLINE_REPLAY_FAILED_FINAL").ConfigureAwait(false);
+                            actionCode: "OFFLINE_REPLAY_FAILED_FINAL",
+                            replayBatchCorrelationId,
+                            replayBatchAuditKey,
+                            replayPath: replayPath ?? "unknown",
+                            payloadRepaired).ConfigureAwait(false);
                     }
 
+                    if (isFinalRetry)
+                        _metrics?.RecordReplayFailed(1);
                     results.Add(PendingOrFailedFromAttempt(
                         requestedId: item.OfflineTransactionId,
                         resolvedId: offline.Id,
                         row: offline,
                         errCode: errCode,
                         safeMsg: safeMsg,
-                        nextBackoffHintSeconds: isFinalRetry ? null : ComputeBackoffSeconds(offline.RetryCount)));
+                        nextBackoffHintSeconds: isFinalRetry ? null : ComputeBackoffSeconds(offline.RetryCount),
+                        replayBatchCorrelationId));
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Offline replay exception for OfflineTransactionId={OfflineId}", offline.Id);
+                    _logger.LogWarning(
+                        ex,
+                        "Offline replay exception for OfflineTransactionId={OfflineId}, ReplayBatchCorrelationId={ReplayBatchCorrelationId}",
+                        offline.Id,
+                        replayBatchCorrelationId);
                     var safeMsg = SanitizeExceptionMessage(ex);
 
                     var isFinalRetry = offline.RetryCount >= MaxRetryLimit;
@@ -342,17 +487,25 @@ public class OfflineTransactionService : IOfflineTransactionService
                             offline,
                             userId,
                             userRole,
-                            actionCode: "OFFLINE_REPLAY_EXCEPTION_FINAL").ConfigureAwait(false);
+                            actionCode: "OFFLINE_REPLAY_EXCEPTION_FINAL",
+                            replayBatchCorrelationId,
+                            replayBatchAuditKey,
+                            replayPath: replayPath ?? "unknown",
+                            payloadRepaired).ConfigureAwait(false);
                     }
 
+                    if (isFinalRetry)
+                        _metrics?.RecordReplayFailed(1);
                     results.Add(PendingOrFailedFromAttempt(
                         requestedId: item.OfflineTransactionId,
                         resolvedId: offline.Id,
                         row: offline,
                         errCode: offline.LastErrorCode,
                         safeMsg: offline.LastErrorMessageSafe,
-                        nextBackoffHintSeconds: isFinalRetry ? null : ComputeBackoffSeconds(offline.RetryCount)));
+                        nextBackoffHintSeconds: isFinalRetry ? null : ComputeBackoffSeconds(offline.RetryCount),
+                        replayBatchCorrelationId));
                 }
+            }
             }
         }
         finally
@@ -361,7 +514,11 @@ public class OfflineTransactionService : IOfflineTransactionService
                 await lockScope.DisposeAsync().ConfigureAwait(false);
         }
 
-        return new ReplayOfflineTransactionsResponse { Items = results };
+        return new ReplayOfflineTransactionsResponse
+        {
+            ReplayBatchCorrelationId = replayBatchCorrelationId,
+            Items = results
+        };
     }
 
     private static DateTime NormalizeUtc(DateTime dt)
@@ -376,7 +533,9 @@ public class OfflineTransactionService : IOfflineTransactionService
         string normalizedPayloadJson,
         string payloadHash,
         string userId,
-        string userRole)
+        string userRole,
+        Guid replayBatchCorrelationId,
+        string replayBatchAuditKey)
     {
         var now = DateTime.UtcNow;
         var offlineCreatedAtUtc = NormalizeUtc(item.CreatedAtUtc);
@@ -415,7 +574,9 @@ public class OfflineTransactionService : IOfflineTransactionService
                 offline,
                 drift,
                 userId,
-                userRole).ConfigureAwait(false);
+                userRole,
+                replayBatchCorrelationId,
+                replayBatchAuditKey).ConfigureAwait(false);
         }
 
         // Step 2: client sequence tracking (monotonic enforcement).
@@ -448,7 +609,9 @@ public class OfflineTransactionService : IOfflineTransactionService
                         seq,
                         lastSeq.Value,
                         userId,
-                        userRole).ConfigureAwait(false);
+                        userRole,
+                        replayBatchCorrelationId,
+                        replayBatchAuditKey).ConfigureAwait(false);
                 }
                 else if (seq > lastSeq.Value + 1)
                 {
@@ -458,7 +621,9 @@ public class OfflineTransactionService : IOfflineTransactionService
                         seq,
                         lastSeq.Value,
                         userId,
-                        userRole).ConfigureAwait(false);
+                        userRole,
+                        replayBatchCorrelationId,
+                        replayBatchAuditKey).ConfigureAwait(false);
                 }
             }
         }
@@ -489,7 +654,9 @@ public class OfflineTransactionService : IOfflineTransactionService
             offline,
             normalizedPayloadJson,
             userId,
-            userRole).ConfigureAwait(false);
+            userRole,
+            replayBatchCorrelationId,
+            replayBatchAuditKey).ConfigureAwait(false);
 
         return offline;
     }
@@ -502,25 +669,135 @@ public class OfflineTransactionService : IOfflineTransactionService
     }
 
     /// <summary>
-    /// Best-effort legacy-safe dedup:
-    /// If PayloadHash backfill differs from runtime normalization, we can still resolve
-    /// by comparing PayloadJson structurally across recent offline rows for the register.
+    /// Match replay hash to rows whose stored JSON normalizes to the same SHA-256 as the client.
     /// </summary>
-    private async Task<OfflineTransaction?> TryResolveOfflineByStructuralPayloadAsync(
+    private async Task<OfflineTransaction?> TryResolveOfflineByRuntimeRecomputedHashAsync(
         Guid cashRegisterId,
-        string normalizedPayloadJson)
+        string payloadHashHex)
     {
         var candidates = await _context.OfflineTransactions
             .AsNoTracking()
             .Where(x => x.CashRegisterId == cashRegisterId)
             .OrderByDescending(x => x.CreatedAt)
-            .Take(50)
+            .Take(RuntimeRecomputedHashCandidateLimit)
+            .Select(x => new { x.Id, x.PayloadJson })
             .ToListAsync()
             .ConfigureAwait(false);
 
-        return candidates.FirstOrDefault(x => OfflinePayloadComparer.EqualsNormalized(
-            x.PayloadJson,
-            normalizedPayloadJson));
+        foreach (var c in candidates)
+        {
+            if (string.IsNullOrWhiteSpace(c.PayloadJson))
+                continue;
+            string h;
+            try
+            {
+                h = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(c.PayloadJson);
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (!string.Equals(h, payloadHashHex, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            return await _context.OfflineTransactions
+                .FirstOrDefaultAsync(x => x.Id == c.Id)
+                .ConfigureAwait(false);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// After successful payload match, persist runtime-canonical hash when DB still has legacy digest.
+    /// Skips update if another row already owns the canonical (CashRegisterId, payload_hash).
+    /// Returns true if alignment was performed (for audit: PayloadRepaired).
+    /// </summary>
+    private async Task<bool> TryAlignStoredPayloadHashToRuntimeCanonicalAsync(Guid offlineTransactionId)
+    {
+        var row = await _context.OfflineTransactions
+            .FirstOrDefaultAsync(x => x.Id == offlineTransactionId)
+            .ConfigureAwait(false);
+        if (row == null || string.IsNullOrWhiteSpace(row.PayloadJson))
+            return false;
+
+        string canonical;
+        try
+        {
+            canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(row.PayloadJson);
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (string.Equals(row.PayloadHash, canonical, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var conflict = await _context.OfflineTransactions.AnyAsync(x =>
+                x.CashRegisterId == row.CashRegisterId &&
+                x.PayloadHash == canonical &&
+                x.Id != row.Id)
+            .ConfigureAwait(false);
+        if (conflict)
+        {
+            _logger.LogDebug(
+                "Skip payload_hash align for offline {Id}: canonical hash already used on this register",
+                offlineTransactionId);
+            return false;
+        }
+
+        row.PayloadHash = canonical;
+        row.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync().ConfigureAwait(false);
+        _metrics?.RecordPayloadHashMismatch(1);
+        _logger.LogInformation(
+            "Aligned OfflineTransaction {Id} payload_hash to runtime canonical (lazy repair on replay)",
+            row.Id);
+        return true;
+    }
+
+    /// <summary>
+    /// Last-resort: structural equality when hash recomputation did not match (e.g. numeric/format edge cases).
+    /// Only returns a match when it is unique in the window to avoid wrong intent resolution.
+    /// </summary>
+    private async Task<OfflineTransaction?> TryResolveOfflineByStructuralPayloadAsync(
+        Guid cashRegisterId,
+        string normalizedPayloadJson)
+    {
+        var limit = Math.Max(1, Math.Min(500, _replayOptions.StructuralPayloadFallbackLimit));
+        var candidates = await _context.OfflineTransactions
+            .AsNoTracking()
+            .Where(x => x.CashRegisterId == cashRegisterId)
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(limit)
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+        var matches = candidates
+            .Where(x => OfflinePayloadComparer.EqualsNormalized(x.PayloadJson, normalizedPayloadJson))
+            .ToList();
+        if (matches.Count != 1)
+        {
+            if (matches.Count > 1)
+            {
+                _metrics?.RecordStructuralFallbackAmbiguous(1);
+                _logger.LogDebug(
+                    "Offline structural fallback: ambiguous match for CashRegisterId={CashRegisterId}, {Count} rows match; skipping.",
+                    cashRegisterId, matches.Count);
+            }
+            return null;
+        }
+
+        _metrics?.RecordStructuralFallbackResolved(1);
+        var match = matches[0];
+        _logger.LogInformation(
+            "Offline resolved by structural fallback: CashRegisterId={CashRegisterId}, OfflineId={OfflineId} (hash path did not match).",
+            cashRegisterId, match.Id);
+        return await _context.OfflineTransactions
+            .FirstOrDefaultAsync(x => x.Id == match.Id)
+            .ConfigureAwait(false);
     }
 
     private static int ComputeBackoffSeconds(int retryCount)
@@ -559,11 +836,12 @@ public class OfflineTransactionService : IOfflineTransactionService
         return s.Length <= 500 ? s : s[..500];
     }
 
-    private ReplayOfflineTransactionsResponseItem SuccessSyncedItem(
+    private static ReplayOfflineTransactionsResponseItem SuccessSyncedItem(
         Guid requestedId,
         Guid resolvedId,
         Guid syncedPaymentId,
-        int retryCount) =>
+        int retryCount,
+        Guid replayBatchCorrelationId) =>
         new()
         {
             RequestedOfflineTransactionId = requestedId,
@@ -574,7 +852,8 @@ public class OfflineTransactionService : IOfflineTransactionService
             ErrorCode = null,
             RetryCount = retryCount,
             LastErrorMessageSafe = null,
-            ExponentialBackoffHintSeconds = null
+            ExponentialBackoffHintSeconds = null,
+            ReplayBatchCorrelationId = replayBatchCorrelationId
         };
 
     private static ReplayOfflineTransactionsResponseItem FailedLocalItem(
@@ -582,7 +861,8 @@ public class OfflineTransactionService : IOfflineTransactionService
         Guid resolvedId,
         string errorCode,
         string message,
-        int retryCount) =>
+        int retryCount,
+        Guid replayBatchCorrelationId) =>
         new()
         {
             RequestedOfflineTransactionId = requestedId,
@@ -593,13 +873,15 @@ public class OfflineTransactionService : IOfflineTransactionService
             ErrorCode = errorCode,
             RetryCount = retryCount,
             LastErrorMessageSafe = message,
-            ExponentialBackoffHintSeconds = null
+            ExponentialBackoffHintSeconds = null,
+            ReplayBatchCorrelationId = replayBatchCorrelationId
         };
 
-    private ReplayOfflineTransactionsResponseItem FailedFromRow(
+    private static ReplayOfflineTransactionsResponseItem FailedFromRow(
         Guid requestedId,
         Guid resolvedId,
-        OfflineTransaction row) =>
+        OfflineTransaction row,
+        Guid replayBatchCorrelationId) =>
         new()
         {
             RequestedOfflineTransactionId = requestedId,
@@ -610,16 +892,18 @@ public class OfflineTransactionService : IOfflineTransactionService
             ErrorCode = row.LastErrorCode,
             RetryCount = row.RetryCount,
             LastErrorMessageSafe = row.LastErrorMessageSafe,
-            ExponentialBackoffHintSeconds = null
+            ExponentialBackoffHintSeconds = null,
+            ReplayBatchCorrelationId = replayBatchCorrelationId
         };
 
-    private ReplayOfflineTransactionsResponseItem PendingOrFailedFromAttempt(
+    private static ReplayOfflineTransactionsResponseItem PendingOrFailedFromAttempt(
         Guid requestedId,
         Guid resolvedId,
         OfflineTransaction row,
         string? errCode,
         string? safeMsg,
-        int? nextBackoffHintSeconds) =>
+        int? nextBackoffHintSeconds,
+        Guid replayBatchCorrelationId) =>
         new()
         {
             RequestedOfflineTransactionId = requestedId,
@@ -632,14 +916,49 @@ public class OfflineTransactionService : IOfflineTransactionService
             LastErrorMessageSafe = row.LastErrorMessageSafe ?? safeMsg,
             ExponentialBackoffHintSeconds = row.Status == OfflineTransactionStatus.Pending
                 ? nextBackoffHintSeconds
-                : null
+                : null,
+            ReplayBatchCorrelationId = replayBatchCorrelationId
         };
+
+    /// <summary>
+    /// Observability: record DeviceId/ClientSequence coverage for this replayed intent.
+    /// Best-effort; replay never fails if this throws.
+    /// </summary>
+    private async Task RecordOfflineIntentCoverageAsync(
+        Guid cashRegisterId,
+        string? deviceId,
+        int? clientSequenceNumber,
+        Guid replayBatchCorrelationId)
+    {
+        try
+        {
+            var sample = new OfflineIntentCoverageSample
+            {
+                Id = Guid.NewGuid(),
+                CreatedAtUtc = DateTime.UtcNow,
+                CashRegisterId = cashRegisterId,
+                HasDeviceId = !string.IsNullOrWhiteSpace(deviceId),
+                HasClientSequence = clientSequenceNumber.HasValue,
+                ReplayBatchCorrelationId = replayBatchCorrelationId
+            };
+            _context.OfflineIntentCoverageSamples.Add(sample);
+            await _context.SaveChangesAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Offline intent coverage sample insert failed for CashRegisterId={CashRegisterId}; replay continues.",
+                cashRegisterId);
+        }
+    }
 
     private async Task TryWriteOfflineCreatedAuditAsync(
         OfflineTransaction offline,
         string payloadRawForAuditSafe,
         string userId,
-        string userRole)
+        string userRole,
+        Guid replayBatchCorrelationId,
+        string replayBatchAuditKey)
     {
         try
         {
@@ -663,8 +982,10 @@ public class OfflineTransactionService : IOfflineTransactionService
                         offline.ClientSequenceNumber,
                         offline.ClockDriftWarning,
                         offline.SequenceGapDetected,
-                        offline.SequenceDuplicateDetected
-                    })
+                        offline.SequenceDuplicateDetected,
+                        replayBatchCorrelationId
+                    },
+                    correlationIdOverride: replayBatchAuditKey)
                 .ConfigureAwait(false);
         }
         catch (Exception auditEx)
@@ -677,7 +998,9 @@ public class OfflineTransactionService : IOfflineTransactionService
         OfflineTransaction offline,
         TimeSpan drift,
         string userId,
-        string userRole)
+        string userRole,
+        Guid replayBatchCorrelationId,
+        string replayBatchAuditKey)
     {
         try
         {
@@ -688,13 +1011,15 @@ public class OfflineTransactionService : IOfflineTransactionService
                 userRole,
                 description:
                     $"Clock drift warning: OfflineCreatedAtUtc is {drift.TotalMinutes:F2} minutes ahead of server. OfflineId={offline.Id}",
-                requestData: new { offline.Id },
+                requestData: new { offline.Id, replayBatchCorrelationId },
                 responseData: new
                 {
                     offline.OfflineCreatedAtUtc,
                     offline.ServerReceivedAtUtc,
-                    driftSeconds = (long)drift.TotalSeconds
-                }).ConfigureAwait(false);
+                    driftSeconds = (long)drift.TotalSeconds,
+                    replayBatchCorrelationId
+                },
+                correlationIdOverride: replayBatchAuditKey).ConfigureAwait(false);
         }
         catch (Exception auditEx)
         {
@@ -707,7 +1032,9 @@ public class OfflineTransactionService : IOfflineTransactionService
         int seq,
         int lastSeq,
         string userId,
-        string userRole)
+        string userRole,
+        Guid replayBatchCorrelationId,
+        string replayBatchAuditKey)
     {
         try
         {
@@ -718,8 +1045,9 @@ public class OfflineTransactionService : IOfflineTransactionService
                 userRole,
                 description:
                     $"Client sequence gap detected for DeviceId={offline.DeviceId}, CashRegisterId={offline.CashRegisterId}. Last={lastSeq}, Incoming={seq}.",
-                requestData: new { deviceId = offline.DeviceId, cashRegisterId = offline.CashRegisterId },
-                responseData: new { offline.Id, lastSeq, seq, offline.DeviceId, offline.ClientSequenceNumber }
+                requestData: new { deviceId = offline.DeviceId, cashRegisterId = offline.CashRegisterId, replayBatchCorrelationId },
+                responseData: new { offline.Id, lastSeq, seq, offline.DeviceId, offline.ClientSequenceNumber, replayBatchCorrelationId },
+                correlationIdOverride: replayBatchAuditKey
             ).ConfigureAwait(false);
         }
         catch (Exception auditEx)
@@ -733,7 +1061,9 @@ public class OfflineTransactionService : IOfflineTransactionService
         int seq,
         int lastSeq,
         string userId,
-        string userRole)
+        string userRole,
+        Guid replayBatchCorrelationId,
+        string replayBatchAuditKey)
     {
         try
         {
@@ -744,8 +1074,9 @@ public class OfflineTransactionService : IOfflineTransactionService
                 userRole,
                 description:
                     $"Client sequence duplicate/non-monotonic detected for DeviceId={offline.DeviceId}, CashRegisterId={offline.CashRegisterId}. Last={lastSeq}, Incoming={seq}.",
-                requestData: new { deviceId = offline.DeviceId, cashRegisterId = offline.CashRegisterId },
-                responseData: new { offline.Id, lastSeq, seq, offline.DeviceId, offline.ClientSequenceNumber }
+                requestData: new { deviceId = offline.DeviceId, cashRegisterId = offline.CashRegisterId, replayBatchCorrelationId },
+                responseData: new { offline.Id, lastSeq, seq, offline.DeviceId, offline.ClientSequenceNumber, replayBatchCorrelationId },
+                correlationIdOverride: replayBatchAuditKey
             ).ConfigureAwait(false);
         }
         catch (Exception auditEx)
@@ -758,7 +1089,10 @@ public class OfflineTransactionService : IOfflineTransactionService
         OfflineTransaction canonical,
         Guid requestedOfflineId,
         string userId,
-        string userRole)
+        string userRole,
+        Guid replayBatchCorrelationId,
+        string replayBatchAuditKey,
+        string replayPath)
     {
         try
         {
@@ -768,9 +1102,10 @@ public class OfflineTransactionService : IOfflineTransactionService
                 userId,
                 userRole,
                 description:
-                    $"Payload hash conflict resolution: requested OfflineTransactionId={requestedOfflineId} resolved to canonical OfflineTransactionId={canonical.Id}.",
-                requestData: new { requestedOfflineId },
-                responseData: new { canonical.Id, canonical.CashRegisterId, canonical.PayloadHash })
+                    $"Payload hash conflict resolution: requested OfflineTransactionId={requestedOfflineId} resolved to canonical OfflineTransactionId={canonical.Id}. ReplayPath={replayPath}.",
+                requestData: new { requestedOfflineId, replayBatchCorrelationId, replayPath },
+                responseData: new { canonical.Id, canonical.CashRegisterId, canonical.PayloadHash, replayBatchCorrelationId, replayPath },
+                correlationIdOverride: replayBatchAuditKey)
                 .ConfigureAwait(false);
         }
         catch (Exception auditEx)
@@ -783,7 +1118,11 @@ public class OfflineTransactionService : IOfflineTransactionService
         OfflineTransaction offline,
         Guid syncedPaymentId,
         string userId,
-        string userRole)
+        string userRole,
+        Guid replayBatchCorrelationId,
+        string replayBatchAuditKey,
+        string replayPath,
+        bool payloadRepaired)
     {
         try
         {
@@ -792,8 +1131,8 @@ public class OfflineTransactionService : IOfflineTransactionService
                 "OfflineTransaction",
                 userId,
                 userRole,
-                description: $"OfflineTransaction replayed and synced to PaymentId={syncedPaymentId}",
-                requestData: new { offline.Id },
+                description: $"OfflineTransaction replayed and synced to PaymentId={syncedPaymentId}. ReplayPath={replayPath}, PayloadRepaired={payloadRepaired}.",
+                requestData: new { offline.Id, replayBatchCorrelationId, replayPath, payloadRepaired },
                 responseData: new
                 {
                     offline.Id,
@@ -801,8 +1140,12 @@ public class OfflineTransactionService : IOfflineTransactionService
                     offline.OfflineCreatedAtUtc,
                     offline.ServerReceivedAtUtc,
                     offline.Status,
-                    syncedPaymentId
-                }).ConfigureAwait(false);
+                    syncedPaymentId,
+                    replayBatchCorrelationId,
+                    replayPath,
+                    payloadRepaired
+                },
+                correlationIdOverride: replayBatchAuditKey).ConfigureAwait(false);
         }
         catch (Exception auditEx)
         {
@@ -814,7 +1157,11 @@ public class OfflineTransactionService : IOfflineTransactionService
         OfflineTransaction offline,
         string userId,
         string userRole,
-        string actionCode)
+        string actionCode,
+        Guid replayBatchCorrelationId,
+        string replayBatchAuditKey,
+        string replayPath,
+        bool payloadRepaired)
     {
         try
         {
@@ -824,8 +1171,8 @@ public class OfflineTransactionService : IOfflineTransactionService
                 userId,
                 userRole,
                 description:
-                    $"Offline replay failed. OfflineId={offline.Id}, ErrorCode={offline.LastErrorCode}",
-                requestData: new { offline.Id },
+                    $"Offline replay failed. OfflineId={offline.Id}, ErrorCode={offline.LastErrorCode}. ReplayPath={replayPath}, PayloadRepaired={payloadRepaired}.",
+                requestData: new { offline.Id, replayBatchCorrelationId, replayPath, payloadRepaired },
                 responseData: new
                 {
                     offline.Id,
@@ -834,8 +1181,12 @@ public class OfflineTransactionService : IOfflineTransactionService
                     offline.LastReplayAttemptAt,
                     offline.RetryCount,
                     offline.LastErrorCode,
-                    offline.LastErrorMessageSafe
-                }).ConfigureAwait(false);
+                    offline.LastErrorMessageSafe,
+                    replayBatchCorrelationId,
+                    replayPath,
+                    payloadRepaired
+                },
+                correlationIdOverride: replayBatchAuditKey).ConfigureAwait(false);
         }
         catch (Exception auditEx)
         {

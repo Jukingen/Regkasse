@@ -1,24 +1,36 @@
 'use client';
 
 import React from 'react';
-import { Card, Table, Tag, Typography, Switch, Space } from 'antd';
+import { Card, Table, Tag, Typography, Switch, Space, Alert } from 'antd';
+import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { useGetApiAuditLog } from '@/api/generated/audit-log/audit-log';
+import { useGetApiAuditLog, useGetApiAuditLogCorrelationCorrelationId } from '@/api/generated/audit-log/audit-log';
 import type { AuditLog } from '@/api/generated/model';
 import dayjs from 'dayjs';
 
 export default function RksvVerificationsPage() {
+    const searchParams = useSearchParams();
+    const correlationId = searchParams?.get('correlationId') ?? undefined;
+
     const { data, isLoading } = useGetApiAuditLog({ page: 1, pageSize: 100 });
+    const { data: correlationData, isLoading: correlationLoading } = useGetApiAuditLogCorrelationCorrelationId(
+        correlationId ?? '',
+        { query: { enabled: !!correlationId } }
+    );
+
+    const useCorrelation = !!correlationId;
+    const list = useCorrelation ? (correlationData?.auditLogs ?? []) : (data?.auditLogs ?? []);
+    const isLoadingList = useCorrelation ? correlationLoading : isLoading;
 
     const signatureEntries =
-        data?.auditLogs?.filter(
+        (useCorrelation ? list : data?.auditLogs)?.filter(
             (e: AuditLog) =>
                 e.action?.toLowerCase().includes('signature') ||
                 e.action?.toLowerCase().includes('offline') ||
                 e.entityType?.toLowerCase().includes('receipt') ||
                 e.entityType?.toLowerCase().includes('payment') ||
                 e.entityType?.toLowerCase().includes('offlinetransaction')
-        ) ?? [];
+        ) ?? (useCorrelation ? list : []);
 
     const [offlineOriginOnly, setOfflineOriginOnly] = React.useState(false);
     const [failedReplayOnly, setFailedReplayOnly] = React.useState(false);
@@ -104,8 +116,17 @@ export default function RksvVerificationsPage() {
             />
 
             <Card>
+                {correlationId && (
+                    <Alert
+                        type="info"
+                        message={`Log-Trace für Correlation-ID: ${correlationId}`}
+                        style={{ marginBottom: 16 }}
+                    />
+                )}
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-                    Signatur-, Zahlungs- und Offline-Replay-Audit (OFFLINE_CREATED / OFFLINE_SYNCED, max. 100).
+                    {useCorrelation
+                        ? `Audit-Logs für Replay-Batch-Correlation (${list.length} Einträge).`
+                        : 'Signatur-, Zahlungs- und Offline-Replay-Audit (OFFLINE_CREATED / OFFLINE_SYNCED, max. 100).'}
                 </Typography.Paragraph>
 
                 <Space direction="horizontal" wrap style={{ marginBottom: 12 }}>
@@ -124,8 +145,8 @@ export default function RksvVerificationsPage() {
                 </Space>
                 <Table
                     columns={columns}
-                    dataSource={filteredEntries}
-                    loading={isLoading}
+                    dataSource={useCorrelation ? list : filteredEntries}
+                    loading={isLoadingList}
                     rowKey={(r) => r.id ?? r.timestamp ?? r.createdAt ?? ''}
                     pagination={false}
                     size="small"

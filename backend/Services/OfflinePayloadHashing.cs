@@ -9,6 +9,25 @@ namespace KasseAPI_Final.Services;
 
 public static class OfflinePayloadHashing
 {
+    /// <summary>
+    /// True when stored hash equals SHA256(UTF8) of runtime-canonical JSON (sorted keys).
+    /// Migration backfill used digest(PayloadJson::text) without key sorting — often differs.
+    /// </summary>
+    public static bool StoredHashMatchesRuntimeCanonical(string? payloadJson, string? storedHashHex)
+    {
+        if (string.IsNullOrWhiteSpace(payloadJson) || string.IsNullOrWhiteSpace(storedHashHex))
+            return string.IsNullOrWhiteSpace(storedHashHex) && string.IsNullOrWhiteSpace(payloadJson);
+        var (_, h) = NormalizeAndHash(payloadJson);
+        return string.Equals(h, storedHashHex.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Runtime canonical hash only (for SQL-free comparison in maintenance).</summary>
+    public static string ComputeRuntimeCanonicalHashHex(string payloadJson)
+    {
+        var (_, h) = NormalizeAndHash(payloadJson);
+        return h;
+    }
+
     public static (string NormalizedJson, string Sha256Hex) NormalizeAndHash(string payloadJson)
     {
         // Normalize by sorting object keys recursively so semantically identical payloads hash identically.

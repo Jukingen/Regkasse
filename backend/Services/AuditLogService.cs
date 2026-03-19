@@ -32,7 +32,7 @@ namespace KasseAPI_Final.Services
         Task<AuditLog> LogSystemOperationAsync(string action, string entityType, string userId, 
             string userRole, string? description = null, string? notes = null, 
             AuditLogStatus status = AuditLogStatus.Success, string? errorDetails = null,
-            object? requestData = null, object? responseData = null);
+            object? requestData = null, object? responseData = null, string? correlationIdOverride = null);
 
         Task<AuditLog> LogUserActivityAsync(string action, string userId, string userRole, 
             string? description = null, string? notes = null, AuditLogStatus status = AuditLogStatus.Success,
@@ -242,7 +242,7 @@ namespace KasseAPI_Final.Services
         public async Task<AuditLog> LogSystemOperationAsync(string action, string entityType, string userId,
             string userRole, string? description = null, string? notes = null,
             AuditLogStatus status = AuditLogStatus.Success, string? errorDetails = null,
-            object? requestData = null, object? responseData = null)
+            object? requestData = null, object? responseData = null, string? correlationIdOverride = null)
         {
             try
             {
@@ -273,7 +273,7 @@ namespace KasseAPI_Final.Services
                     HttpStatusCode = httpContext?.Response.StatusCode,
                     ProcessingTimeMs = null,
                     ErrorDetails = errorDetails,
-                    CorrelationId = GetRequestCorrelationId(),
+                    CorrelationId = correlationIdOverride ?? GetRequestCorrelationId(),
                     TransactionId = null,
                     Amount = null,
                     PaymentMethod = null,

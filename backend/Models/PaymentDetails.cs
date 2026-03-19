@@ -98,6 +98,12 @@ namespace KasseAPI_Final.Models
         /// </summary>
         public Guid? OfflineTransactionId { get; set; }
         public virtual OfflineTransaction? OfflineTransaction { get; set; }
+
+        /// <summary>
+        /// Server-generated id for one POST /replay batch; links payment/receipt audits to the same offline replay operation.
+        /// </summary>
+        [Column("offline_replay_batch_correlation_id")]
+        public Guid? OfflineReplayBatchCorrelationId { get; set; }
         [MaxLength(200)]
         public string? RefundReason { get; set; }
         [Column(TypeName = "decimal(18,2)")]
@@ -158,7 +164,22 @@ namespace KasseAPI_Final.Models
         [MaxLength(64)]
         [Column("cancel_idempotency_key")]
         public string? CancelIdempotencyKey { get; set; }
-        
+
+        /// <summary>Reconciliation: FinanzOnline submit state. NotSent / Pending / Submitted / Failed / NeedsReconciliation.</summary>
+        [MaxLength(30)]
+        [Column("finanz_online_status")]
+        public string? FinanzOnlineStatus { get; set; }
+        [MaxLength(500)]
+        [Column("finanz_online_error")]
+        public string? FinanzOnlineError { get; set; }
+        [MaxLength(100)]
+        [Column("finanz_online_reference_id")]
+        public string? FinanzOnlineReferenceId { get; set; }
+        [Column("finanz_online_last_attempt_at_utc")]
+        public DateTime? FinanzOnlineLastAttemptAtUtc { get; set; }
+        [Column("finanz_online_retry_count")]
+        public int FinanzOnlineRetryCount { get; set; }
+
         // Navigation properties
         public virtual Customer? Customer { get; set; }
     }

@@ -11,7 +11,11 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// Yeni ödeme oluştur
         /// </summary>
-        Task<PaymentResult> CreatePaymentAsync(CreatePaymentRequest request, string userId, Guid? offlineTransactionId = null);
+        Task<PaymentResult> CreatePaymentAsync(
+            CreatePaymentRequest request,
+            string userId,
+            Guid? offlineTransactionId = null,
+            Guid? offlineReplayBatchCorrelationId = null);
         
         /// <summary>
         /// Ödeme detaylarını getir
@@ -62,6 +66,9 @@ namespace KasseAPI_Final.Services
         /// FinanzOnline entegrasyonu
         /// </summary>
         Task<bool> SendToFinanzOnlineAsync(PaymentDetails payment);
+
+        /// <summary>Retry FinanzOnline submit for a payment (reconciliation). No-op if already Submitted.</summary>
+        Task<FinanzOnlineSubmitResponse> RetryFinanzOnlineSubmitAsync(Guid paymentId);
 
         /// <summary>
         /// Ödeme için QR payload (RKSV/NON_FISCAL) üretir. DB'de saklanmaz, her çağrıda hesaplanır.

@@ -1,3 +1,4 @@
+using System.Net.Http;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using KasseAPI_Final.Data;
@@ -36,6 +37,7 @@ namespace KasseAPI_Final.Services
         private readonly IReceiptSequenceService _receiptSequenceService;
         private readonly IReceiptService _receiptService;
         private readonly IAuditLogService _auditLogService;
+        private readonly IFinanzOnlineMetrics? _finanzOnlineMetrics;
 
         public PaymentService(
             AppDbContext context,
@@ -51,7 +53,8 @@ namespace KasseAPI_Final.Services
             IAuditLogService auditLogService,
             Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile,
             Microsoft.Extensions.Options.IOptions<TseOptions> tseOptions,
-            ILogger<PaymentService> logger)
+            ILogger<PaymentService> logger,
+            IFinanzOnlineMetrics? finanzOnlineMetrics = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -67,12 +70,17 @@ namespace KasseAPI_Final.Services
             _companyProfile = companyProfile.Value;
             _tseOptions = tseOptions.Value;
             _logger = logger;
+            _finanzOnlineMetrics = finanzOnlineMetrics;
         }
 
         /// <summary>
         /// Yeni ödeme oluştur
         /// </summary>
-        public async Task<PaymentResult> CreatePaymentAsync(CreatePaymentRequest request, string userId, Guid? offlineTransactionId = null)
+        public async Task<PaymentResult> CreatePaymentAsync(
+            CreatePaymentRequest request,
+            string userId,
+            Guid? offlineTransactionId = null,
+            Guid? offlineReplayBatchCorrelationId = null)
         {
             try
             {
@@ -588,7 +596,8 @@ namespace KasseAPI_Final.Services
                         ReceiptNumber = preReceiptNumber,
                         AppliedBenefitsSnapshot = appliedBenefitsSnapshot,
                         IdempotencyKey = idempotencyKey,
-                        OfflineTransactionId = offlineTransactionId
+                        OfflineTransactionId = offlineTransactionId,
+                        OfflineReplayBatchCorrelationId = offlineReplayBatchCorrelationId
                     };
 
                     // TSE imzası oluştur (eğer gerekliyse). External call; if it fails we rollback the transaction (no DB changes committed yet).
@@ -715,11 +724,21 @@ namespace KasseAPI_Final.Services
                     createdPayment.Id, customer.Id, createdInvoice.Id);
 
                 // Audit: append-only, after successful commit. Best-effort; failure does not roll back payment.
+                var paymentAuditCorrelation = offlineReplayBatchCorrelationId?.ToString("N");
                 await LogPaymentAuditAsync("PaymentCreated", "Payment", createdPayment.Id, userId,
                     amount: createdPayment.TotalAmount,
                     paymentMethod: createdPayment.PaymentMethodRaw,
                     tseSignature: createdPayment.TseSignature,
-                    responseData: new { createdPayment.Id, createdPayment.ReceiptNumber, createdPayment.TotalAmount, createdPayment.CashRegisterId, CreatedAt = createdPayment.CreatedAt });
+                    correlationId: paymentAuditCorrelation,
+                    responseData: new
+                    {
+                        createdPayment.Id,
+                        createdPayment.ReceiptNumber,
+                        createdPayment.TotalAmount,
+                        createdPayment.CashRegisterId,
+                        CreatedAt = createdPayment.CreatedAt,
+                        offlineReplayBatchCorrelationId = offlineReplayBatchCorrelationId
+                    });
 
                 var persistedReceipt = await _context.Receipts.AsNoTracking()
                     .FirstOrDefaultAsync(r => r.PaymentId == createdPayment.Id);
@@ -728,21 +747,51 @@ namespace KasseAPI_Final.Services
                     await LogPaymentAuditAsync("ReceiptPersisted", "Receipt", persistedReceipt.ReceiptId, userId,
                         amount: createdPayment.TotalAmount,
                         tseSignature: createdPayment.TseSignature,
+                        correlationId: paymentAuditCorrelation,
                         description: "Canonical fiscal receipt persisted with payment",
-                        responseData: new { persistedReceipt.ReceiptId, persistedReceipt.ReceiptNumber, PaymentId = createdPayment.Id, createdPayment.CashRegisterId });
+                        responseData: new
+                        {
+                            persistedReceipt.ReceiptId,
+                            persistedReceipt.ReceiptNumber,
+                            PaymentId = createdPayment.Id,
+                            createdPayment.CashRegisterId,
+                            offlineReplayBatchCorrelationId = offlineReplayBatchCorrelationId
+                        });
                 }
 
-                // FinanzOnline: best-effort after commit; failure does not roll back DB.
+                // FinanzOnline: best-effort after commit; failure does not roll back DB. Persist reconciliation state.
                 if (effectiveTseRequired)
                 {
                     try
                     {
-                        await _finanzOnlineService.SubmitInvoiceAsync(createdInvoice);
-                        _logger.LogInformation("Invoice sent to FinanzOnline: {InvoiceId}", createdInvoice.Id);
+                        _finanzOnlineMetrics?.IncrementSubmitTotal();
+                        var foResult = await _finanzOnlineService.SubmitInvoiceAsync(createdInvoice).ConfigureAwait(false);
+                        await UpdatePaymentFinanzOnlineStateAsync(createdPayment.Id, foResult, isRetry: false,
+                            userIdForAudit: userId,
+                            correlationIdForAudit: offlineReplayBatchCorrelationId?.ToString("N")).ConfigureAwait(false);
+                        if (foResult.Success)
+                            _logger.LogInformation("Invoice sent to FinanzOnline: {InvoiceId}, ReferenceId={RefId}", createdInvoice.Id, foResult.ReferenceId);
+                        else
+                        {
+                            _finanzOnlineMetrics?.IncrementSubmitFailed(foResult.FailureKind);
+                            _logger.LogWarning("FinanzOnline submit failed for Invoice {InvoiceId}: {Error}, FailureKind={Kind}", createdInvoice.Id, foResult.ErrorMessage, foResult.FailureKind);
+                        }
                     }
                     catch (Exception ex)
                     {
+                        var kind = ClassifyFinanzOnlineFailure(ex);
+                        _finanzOnlineMetrics?.IncrementSubmitFailed(kind);
                         _logger.LogWarning(ex, "Failed to send invoice to FinanzOnline: {InvoiceId}", createdInvoice.Id);
+                        await UpdatePaymentFinanzOnlineStateAsync(createdPayment.Id, new FinanzOnlineSubmitResponse
+                        {
+                            Success = false,
+                            ErrorMessage = ex.Message,
+                            SubmittedAt = DateTime.UtcNow,
+                            Status = "Failed",
+                            FailureKind = kind
+                        }, isRetry: false,
+                            userIdForAudit: userId,
+                            correlationIdForAudit: offlineReplayBatchCorrelationId?.ToString("N")).ConfigureAwait(false);
                     }
                 }
 
@@ -2146,6 +2195,76 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        /// <summary>Retry FinanzOnline submit for a payment (reconciliation). No-op if already Submitted.</summary>
+        public async Task<FinanzOnlineSubmitResponse> RetryFinanzOnlineSubmitAsync(Guid paymentId)
+        {
+            var payment = await _context.PaymentDetails.AsNoTracking().FirstOrDefaultAsync(p => p.Id == paymentId).ConfigureAwait(false);
+            if (payment == null)
+            {
+                return new FinanzOnlineSubmitResponse
+                {
+                    Success = false,
+                    ErrorMessage = "Payment not found.",
+                    Status = "Failed",
+                    SubmittedAt = DateTime.UtcNow,
+                    FailureKind = FinanzOnlineFailureKind.Permanent
+                };
+            }
+            if (payment.FinanzOnlineStatus == "Submitted")
+            {
+                _finanzOnlineMetrics?.IncrementSubmitTotal();
+                return new FinanzOnlineSubmitResponse
+                {
+                    Success = true,
+                    ReferenceId = payment.FinanzOnlineReferenceId,
+                    Status = "Submitted",
+                    SubmittedAt = payment.FinanzOnlineLastAttemptAtUtc ?? DateTime.UtcNow,
+                    FailureKind = FinanzOnlineFailureKind.None
+                };
+            }
+            _finanzOnlineMetrics?.IncrementSubmitTotal();
+            var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.SourcePaymentId == paymentId).ConfigureAwait(false);
+            if (invoice == null)
+            {
+                return new FinanzOnlineSubmitResponse
+                {
+                    Success = false,
+                    ErrorMessage = "Invoice not found for payment.",
+                    Status = "Failed",
+                    SubmittedAt = DateTime.UtcNow,
+                    FailureKind = FinanzOnlineFailureKind.Permanent
+                };
+            }
+            var foCorrelationId = payment.OfflineReplayBatchCorrelationId?.ToString("N") ?? paymentId.ToString("N");
+            try
+            {
+                var result = await _finanzOnlineService.SubmitInvoiceAsync(invoice).ConfigureAwait(false);
+                if (!result.Success)
+                    _finanzOnlineMetrics?.IncrementSubmitFailed(result.FailureKind);
+                await UpdatePaymentFinanzOnlineStateAsync(paymentId, result, isRetry: true,
+                    userIdForAudit: "system",
+                    correlationIdForAudit: foCorrelationId).ConfigureAwait(false);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                var classified = ClassifyFinanzOnlineFailure(ex);
+                _finanzOnlineMetrics?.IncrementSubmitFailed(classified);
+                var response = new FinanzOnlineSubmitResponse
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message,
+                    SubmittedAt = DateTime.UtcNow,
+                    Status = "Failed",
+                    FailureKind = classified
+                };
+                await UpdatePaymentFinanzOnlineStateAsync(paymentId, response, isRetry: true,
+                    userIdForAudit: "system",
+                    correlationIdForAudit: foCorrelationId).ConfigureAwait(false);
+                return response;
+            }
+        }
+
         /// <summary>
         /// Returns persisted receipt for payment. Receipt is created at payment time and includes totals, tax breakdown, signature, QR payload.
         /// When userId is provided, audit is written for ReceiptGenerated or ReceiptReprinted (append-only).
@@ -2193,13 +2312,14 @@ namespace KasseAPI_Final.Services
         /// <summary>Writes payment lifecycle audit log after successful commit. Append-only; never updates. Swallows exceptions to avoid affecting caller.</summary>
         private async Task LogPaymentAuditAsync(string action, string entityType, Guid entityId, string userId,
             decimal? amount = null, string? paymentMethod = null, string? tseSignature = null, string? description = null,
-            object? responseData = null)
+            object? responseData = null, string? correlationId = null)
         {
             try
             {
                 var userRole = await GetUserRoleAsync(userId);
                 await _auditLogService.LogPaymentOperationAsync(action, entityType, entityId, userId, userRole,
                     amount: amount, paymentMethod: paymentMethod, tseSignature: tseSignature,
+                    correlationId: correlationId,
                     description: description, responseData: responseData);
             }
             catch (Exception ex)
@@ -2296,6 +2416,94 @@ namespace KasseAPI_Final.Services
                     return true;
             }
             return false;
+        }
+
+        /// <summary>Persist FinanzOnline reconciliation state on PaymentDetails after submit (post-commit). Best-effort; does not throw. Logs FO attempt to audit for incident investigation (correlation id + retry history).</summary>
+        private async Task UpdatePaymentFinanzOnlineStateAsync(Guid paymentId, FinanzOnlineSubmitResponse result, bool isRetry,
+            string? userIdForAudit = null,
+            string? correlationIdForAudit = null)
+        {
+            try
+            {
+                var payment = await _context.PaymentDetails.FindAsync(paymentId).ConfigureAwait(false);
+                if (payment == null) return;
+
+                payment.FinanzOnlineLastAttemptAtUtc = result.SubmittedAt;
+                payment.FinanzOnlineError = result.Success ? null : TruncateForDb(result.ErrorMessage, 500);
+                payment.FinanzOnlineReferenceId = result.ReferenceId;
+                if (isRetry) payment.FinanzOnlineRetryCount++;
+
+                payment.FinanzOnlineStatus = result.Success
+                    ? "Submitted"
+                    : result.FailureKind == FinanzOnlineFailureKind.Transient
+                        ? "Pending"
+                        : "Failed";
+
+                await _context.SaveChangesAsync().ConfigureAwait(false);
+
+                var correlationId = correlationIdForAudit ?? payment.OfflineReplayBatchCorrelationId?.ToString("N") ?? paymentId.ToString("N");
+                var userId = userIdForAudit ?? "system";
+                await LogFinanzOnlineAttemptAsync(
+                    paymentId,
+                    result,
+                    isRetry,
+                    payment.FinanzOnlineRetryCount,
+                    correlationId,
+                    userId).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update PaymentDetails FinanzOnline state for PaymentId={PaymentId}; reconciliation view may be stale.", paymentId);
+            }
+        }
+
+        /// <summary>Audit one FinanzOnline submit/retry attempt for incident investigation (support can query by CorrelationId).</summary>
+        private async Task LogFinanzOnlineAttemptAsync(Guid paymentId, FinanzOnlineSubmitResponse result, bool isRetry, int attemptNumber, string correlationId, string userId)
+        {
+            try
+            {
+                var action = isRetry ? "FinanzOnlineRetry" : "FinanzOnlineSubmit";
+                var userRole = string.Equals(userId, "system", StringComparison.OrdinalIgnoreCase) ? "System" : await GetUserRoleAsync(userId).ConfigureAwait(false);
+                await _auditLogService.LogPaymentOperationAsync(
+                    action,
+                    "Payment",
+                    paymentId,
+                    userId,
+                    userRole,
+                    description: $"{action} attempt {attemptNumber}: {(result.Success ? "Submitted" : "Failed")}",
+                    responseData: new
+                    {
+                        Attempt = attemptNumber,
+                        Success = result.Success,
+                        ReferenceId = result.ReferenceId,
+                        FailureKind = result.FailureKind.ToString(),
+                        ErrorMessage = result.Success ? null : result.ErrorMessage,
+                        CorrelationId = correlationId
+                    },
+                    correlationId: correlationId,
+                    status: result.Success ? AuditLogStatus.Success : AuditLogStatus.Failed,
+                    errorDetails: result.Success ? null : result.ErrorMessage).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "FinanzOnline attempt audit log failed for PaymentId={PaymentId}.", paymentId);
+            }
+        }
+
+        private static string? TruncateForDb(string? value, int maxLen)
+        {
+            if (string.IsNullOrEmpty(value)) return null;
+            return value.Length <= maxLen ? value : value.Substring(0, maxLen - 3) + "...";
+        }
+
+        private static FinanzOnlineFailureKind ClassifyFinanzOnlineFailure(Exception ex)
+        {
+            if (ex is HttpRequestException || ex is TaskCanceledException || ex is OperationCanceledException)
+                return FinanzOnlineFailureKind.Transient;
+            var msg = (ex.Message ?? "").ToLowerInvariant();
+            if (msg.Contains("duplicate") || msg.Contains("already submitted") || msg.Contains("validation") || msg.Contains("forbidden"))
+                return FinanzOnlineFailureKind.Permanent;
+            return FinanzOnlineFailureKind.Unknown;
         }
 
         #endregion

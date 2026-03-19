@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
@@ -11,16 +12,31 @@ namespace KasseAPI_Final.Services;
 
 public class FiscalExportService : IFiscalExportService
 {
+    /// <summary>Misuse guard: always included in export and as first ExportScopeWarnings entry so the payload is never interpreted as legal proof.</summary>
+    public const string NotLegalProofNoticeText =
+        "NOT LEGAL PROOF — This export is for support and analysis only; it does not constitute a legal RKSV attestation or compliance certificate.";
+
     private const int MaxReceiptRows = 50_000;
     private static readonly TimeSpan MaxPeriod = TimeSpan.FromDays(366);
 
     private readonly AppDbContext _context;
     private readonly ILogger<FiscalExportService> _logger;
+    private readonly IOfflinePayloadHashMaintenanceService? _payloadHashMaintenance;
+    private readonly int _payloadHashSampleSize;
+    private readonly CoverageGuardOptions _coverageGuardOptions;
 
-    public FiscalExportService(AppDbContext context, ILogger<FiscalExportService> logger)
+    public FiscalExportService(
+        AppDbContext context,
+        ILogger<FiscalExportService> logger,
+        IOfflinePayloadHashMaintenanceService? payloadHashMaintenance = null,
+        Microsoft.Extensions.Options.IOptions<PayloadHashGuardOptions>? guardOptions = null,
+        Microsoft.Extensions.Options.IOptions<CoverageGuardOptions>? coverageGuardOptions = null)
     {
         _context = context;
         _logger = logger;
+        _payloadHashMaintenance = payloadHashMaintenance;
+        _payloadHashSampleSize = guardOptions?.Value?.SampleSizeForExportCheck ?? 500;
+        _coverageGuardOptions = coverageGuardOptions?.Value ?? new CoverageGuardOptions();
     }
 
     public async Task<FiscalExportPackageDto> BuildExportAsync(
@@ -47,6 +63,20 @@ public class FiscalExportService : IFiscalExportService
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.CashRegisterId == cashRegisterId, cancellationToken);
 
+        var totalReceiptsMatchingPeriod = await _context.Receipts
+            .AsNoTracking()
+            .CountAsync(
+                r => r.CashRegisterId == cashRegisterId && r.IssuedAt >= from && r.IssuedAt <= to,
+                cancellationToken);
+
+        var hasReceiptBeforeWindow = await _context.Receipts
+            .AsNoTracking()
+            .AnyAsync(r => r.CashRegisterId == cashRegisterId && r.IssuedAt < from, cancellationToken);
+
+        var hasReceiptAfterWindow = await _context.Receipts
+            .AsNoTracking()
+            .AnyAsync(r => r.CashRegisterId == cashRegisterId && r.IssuedAt > to, cancellationToken);
+
         var receipts = await _context.Receipts
             .AsNoTracking()
             .Where(r => r.CashRegisterId == cashRegisterId && r.IssuedAt >= from && r.IssuedAt <= to)
@@ -59,13 +89,42 @@ public class FiscalExportService : IFiscalExportService
             .Include(r => r.TaxLines)
             .ToListAsync(cancellationToken);
 
-        if (receipts.Count > MaxReceiptRows)
+        var receiptsTruncated = receipts.Count > MaxReceiptRows;
+        if (receiptsTruncated)
         {
             _logger.LogWarning(
                 "Fiscal export truncated: register {RegisterId}, period {From}–{To}, max {Max}",
                 cashRegisterId, from, to, MaxReceiptRows);
             receipts = receipts.Take(MaxReceiptRows).ToList();
         }
+
+        var exportScopeWarnings = new List<string>
+        {
+            NotLegalProofNoticeText,
+            "Integrity and chain flags in this export are best-effort diagnostics only; they are not a legal RKSV compliance certificate or guarantee.",
+            "Signature linkage is observed only between consecutive receipts in this export (issued-at order); it is not validated against the full register history unless the export contains all receipts (observed-within-scope only)."
+        };
+
+        if (hasReceiptBeforeWindow)
+        {
+            exportScopeWarnings.Add(
+                "Receipts exist before the export start (FromUtc); the first exported receipt's PrevSignatureValue may reference a document outside this file—linkage to that predecessor is not validated here.");
+        }
+
+        if (hasReceiptAfterWindow)
+        {
+            exportScopeWarnings.Add(
+                "Receipts exist after the export end (ToUtc); signatureChainState reflects the live chain head and may not equal the last receipt's signature in this export.");
+        }
+
+        if (receiptsTruncated)
+        {
+            exportScopeWarnings.Add(
+                $"Receipt list truncated at {MaxReceiptRows} rows ({totalReceiptsMatchingPeriod} matched the period). Chain and Beleg-sequence checks apply only to included rows.");
+        }
+
+        exportScopeWarnings.Add(
+            "Offline transaction counts use OfflineCreatedAtUtc within the same UTC window as Period (not identical to receipt issuance scope).");
 
         var closings = await _context.DailyClosings
             .AsNoTracking()
@@ -90,6 +149,25 @@ public class FiscalExportService : IFiscalExportService
         var signatureChainValid = chainWarnings.Count == 0;
         var sequenceContinuous = BuildReceiptSequenceContinuity(receipts.Select(r => r.ReceiptNumber).ToList());
 
+        var integrityNotes = new List<string>
+        {
+            "All integrity booleans in this block are diagnostic (best-effort, observed-within-scope only); they do not constitute a legal or global guarantee."
+        };
+        if (receipts.Count < 2)
+        {
+            integrityNotes.Add(
+                "Fewer than two receipts in export: adjacent signature linkage was not evaluated (trivially no internal breaks).");
+        }
+
+        if (receipts.Count > 0 && hasReceiptBeforeWindow)
+        {
+            integrityNotes.Add(
+                "Receipts exist before the export window; linkage from the first exported receipt to any earlier fiscal document is not validated in this export.");
+        }
+
+        integrityNotes.Add(
+            "Beleg sequence continuity (diagnostic): per calendar day (YYYYMMDD segment), consecutive exported receipts must have SEQ differ by exactly 1 in export order; day changes reset the check; unparseable receipt numbers are skipped.");
+
         // Offline integrity metrics (diagnostics only).
         var offlineTransactionsInPeriod = await _context.OfflineTransactions
             .AsNoTracking()
@@ -101,10 +179,35 @@ public class FiscalExportService : IFiscalExportService
         var failedOfflineTransactions = offlineTransactionsInPeriod.Count(o => o.Status == OfflineTransactionStatus.Failed);
         var offlineReplayGaps = offlineTransactionsInPeriod.Count(o => o.Status == OfflineTransactionStatus.Pending);
 
+        // DeviceId/Sequence coverage (observability): samples in same UTC window for this register
+        var coverageInPeriod = await _context.OfflineIntentCoverageSamples
+            .AsNoTracking()
+            .Where(s => s.CashRegisterId == cashRegisterId && s.CreatedAtUtc >= from && s.CreatedAtUtc <= to)
+            .Select(s => new { s.HasDeviceId, s.HasClientSequence })
+            .ToListAsync(cancellationToken);
+        var coverageTotal = coverageInPeriod.Count;
+        var coverageWithDeviceId = coverageInPeriod.Count(s => s.HasDeviceId);
+        var coverageWithSequence = coverageInPeriod.Count(s => s.HasClientSequence);
+        double? deviceIdCoveragePercent = coverageTotal > 0 ? 100.0 * coverageWithDeviceId / coverageTotal : null;
+        double? sequenceCoveragePercent = coverageTotal > 0 ? 100.0 * coverageWithSequence / coverageTotal : null;
+        var thresholdPercent = _coverageGuardOptions.LowCoverageThresholdPercent;
+        var minSamplesForAlert = _coverageGuardOptions.MinSamplesForAlert;
+        var lowCoverageAlert = coverageTotal >= minSamplesForAlert
+            && (deviceIdCoveragePercent < thresholdPercent || sequenceCoveragePercent < thresholdPercent);
+
+        if (coverageTotal > 0)
+        {
+            integrityNotes.Add(
+                $"Offline intent coverage (replayed in period): DeviceId {coverageWithDeviceId}/{coverageTotal} ({deviceIdCoveragePercent:F1}%), Sequence {coverageWithSequence}/{coverageTotal} ({sequenceCoveragePercent:F1}%). Low coverage increases replay/fraud-resistance risk.");
+            if (lowCoverageAlert)
+                integrityNotes.Add($"Low coverage alert: DeviceId or Sequence coverage below threshold {thresholdPercent}%. Consider upgrading mobile clients or investigating missing DeviceId/ClientSequence.");
+        }
+
         var closingDtos = closings.Select(MapClosing).ToList();
 
         var package = new FiscalExportPackageDto
         {
+            NotLegalProofNotice = NotLegalProofNoticeText,
             GeneratedAtUtc = DateTime.UtcNow,
             CashRegisterId = cashRegisterId,
             RegisterNumber = register.RegisterNumber,
@@ -124,17 +227,51 @@ public class FiscalExportService : IFiscalExportService
             Closings = closingDtos,
             ReceiptCount = receiptDtos.Count,
             ClosingCount = closingDtos.Count,
+            TotalReceiptsMatchingPeriod = totalReceiptsMatchingPeriod,
+            ReceiptsTruncated = receiptsTruncated,
+            ExportScopeWarnings = exportScopeWarnings,
             ChainContinuityWarnings = chainWarnings,
             Integrity = new FiscalExportIntegrityDto
             {
                 SignatureChainValid = signatureChainValid,
+                ReceiptSignatureLinkageOkInExportOrder = signatureChainValid,
                 SequenceContinuous = sequenceContinuous,
+                BelegSequenceContiguousInExportedOrderPerDay = sequenceContinuous,
                 OfflineReplayGaps = offlineReplayGaps,
                 TotalOfflineTransactions = totalOfflineTransactions,
                 SyncedOfflineTransactions = syncedOfflineTransactions,
-                FailedOfflineTransactions = failedOfflineTransactions
+                FailedOfflineTransactions = failedOfflineTransactions,
+                OfflineIntentCoverageTotal = coverageTotal,
+                OfflineIntentCoverageWithDeviceId = coverageWithDeviceId,
+                OfflineIntentCoverageWithSequence = coverageWithSequence,
+                DeviceIdCoveragePercent = deviceIdCoveragePercent,
+                SequenceCoveragePercent = sequenceCoveragePercent,
+                LowCoverageAlert = lowCoverageAlert,
+                OfflineMetricsScopedToPeriod = true,
+                IntegrityDiagnosticNotes = integrityNotes
             }
         };
+
+        if (_payloadHashMaintenance != null)
+        {
+            try
+            {
+                var riskResult = await _payloadHashMaintenance.AnalyzeAsync(_payloadHashSampleSize, null, cancellationToken).ConfigureAwait(false);
+                package.Integrity.LegacyDataQualityRiskHigh = riskResult.LegacyDataQualityRiskHigh;
+                package.Integrity.LegacyPayloadHashMismatchRatioPercent = riskResult.MismatchRatioPercent;
+                if (riskResult.LegacyDataQualityRiskHigh)
+                {
+                    var warnings = package.ExportScopeWarnings.ToList();
+                    warnings.Add(
+                        $"Legacy data quality risk high: payload_hash mismatch ratio {riskResult.MismatchRatioPercent:F1}% (sample n={riskResult.Scanned}). Run POST /api/admin/offline-payload-hash/repair or investigate before production.");
+                    package.ExportScopeWarnings = warnings;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Payload hash risk check failed during fiscal export; LegacyDataQualityRiskHigh not set.");
+            }
+        }
 
         if (includeCsv)
         {
@@ -149,9 +286,9 @@ public class FiscalExportService : IFiscalExportService
         return package;
     }
 
+    /// <summary>Best-effort diagnostic: per-day receipt SEQ +1 in export order only; not a full register audit.</summary>
     private static bool BuildReceiptSequenceContinuity(IReadOnlyList<string> receiptNumbersInOrder)
     {
-        // Best-effort: validates that per-day receipt SEQ increments by 1 in the export order.
         string? currentDateSegment = null;
         int? prevSeq = null;
 
@@ -242,6 +379,7 @@ public class FiscalExportService : IFiscalExportService
             HasOfflineOrigin = p?.OfflineTransactionId != null,
             OfflineCreatedAtUtc = p?.OfflineTransaction?.OfflineCreatedAtUtc,
             FiscalizedAtUtc = p?.OfflineTransaction?.FiscalizedAtUtc,
+            OfflineReplayBatchCorrelationId = p?.OfflineReplayBatchCorrelationId,
             Items = r.Items.OrderBy(i => i.ItemId).Select(i => new FiscalReceiptItemExportDto
             {
                 ItemId = i.ItemId,
@@ -300,7 +438,7 @@ public class FiscalExportService : IFiscalExportService
             "receipt_id,payment_id,receipt_number,issued_at_utc,cashier_id,cash_register_id," +
             "sub_total,tax_total,grand_total,signature_value,prev_signature_value,signature_format," +
             "provider,correlation_id,created_at_utc,is_storno,is_refund,original_payment_id,original_receipt_id,reversal_reason," +
-            "has_offline_origin,offline_created_at_utc,fiscalized_at_utc");
+            "has_offline_origin,offline_created_at_utc,fiscalized_at_utc,offline_replay_batch_correlation_id");
         var inv = CultureInfo.InvariantCulture;
         foreach (var r in receipts)
         {
@@ -326,7 +464,8 @@ public class FiscalExportService : IFiscalExportService
                 .Append(Csv(r.ReversalReason)).Append(',')
                 .Append(r.HasOfflineOrigin ? "1" : "0").Append(',')
                 .Append(Csv(r.OfflineCreatedAtUtc?.ToString("o", inv))).Append(',')
-                .Append(Csv(r.FiscalizedAtUtc?.ToString("o", inv)))
+                .Append(Csv(r.FiscalizedAtUtc?.ToString("o", inv))).Append(',')
+                .Append(Csv(r.OfflineReplayBatchCorrelationId?.ToString("D", inv)))
                 .AppendLine();
         }
 

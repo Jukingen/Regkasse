@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 
 namespace KasseAPI_Final.Services
 {
@@ -145,38 +148,95 @@ namespace KasseAPI_Final.Services
 
         public async Task<FinanzOnlineSubmitResponse> SubmitInvoiceAsync(Invoice invoice)
         {
+            var submittedAt = DateTime.UtcNow;
+            var submission = new FinanzOnlineSubmission
+            {
+                Id = Guid.NewGuid(),
+                InvoiceId = invoice.Id,
+                SubmittedAt = submittedAt,
+                RequestPayloadJson = JsonSerializer.Serialize(new { invoice.Id, invoice.InvoiceNumber, invoice.CashRegisterId }),
+                ResponseStatusCode = "",
+                ResponseBodyJson = "{}",
+                Success = false,
+                ErrorMessage = null
+            };
+
             try
             {
-                // Simulate FinanzOnline submission
-                var referenceId = $"FIN_{DateTime.UtcNow:yyyyMMddHHmmss}_{invoice.Id}";
-                
-                // Update company settings
+                // Simulate FinanzOnline submission (replace with real API call in production)
+                var referenceId = $"FIN_{submittedAt:yyyyMMddHHmmss}_{invoice.Id:N}";
+
                 var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
                 if (companySettings != null)
                 {
-                    companySettings.LastFinanzOnlineSync = DateTime.UtcNow;
+                    companySettings.LastFinanzOnlineSync = submittedAt;
                     companySettings.PendingInvoices = Math.Max(0, (companySettings.PendingInvoices ?? 0) - 1);
-                    await _context.SaveChangesAsync();
                 }
+
+                submission.Success = true;
+                submission.ResponseStatusCode = "200";
+                submission.ResponseBodyJson = JsonSerializer.Serialize(new { referenceId, status = "Submitted" });
+                _context.FinanzOnlineSubmissions.Add(submission);
+                await _context.SaveChangesAsync();
 
                 return new FinanzOnlineSubmitResponse
                 {
                     Success = true,
                     ReferenceId = referenceId,
                     Status = "Submitted",
-                    SubmittedAt = DateTime.UtcNow
+                    SubmittedAt = submittedAt,
+                    FailureKind = FinanzOnlineFailureKind.None
                 };
             }
             catch (Exception ex)
             {
+                var failureKind = ClassifyFailure(ex);
+                submission.ErrorMessage = TruncateErrorMessage(ex.Message, 500);
+                submission.ResponseStatusCode = "0";
+                submission.ResponseBodyJson = JsonSerializer.Serialize(new { error = submission.ErrorMessage, failureKind = failureKind.ToString() });
+                _context.FinanzOnlineSubmissions.Add(submission);
+
+                var errorRecord = new FinanzOnlineError
+                {
+                    Id = Guid.NewGuid(),
+                    ErrorType = "Submission",
+                    ErrorMessage = submission.ErrorMessage,
+                    ReferenceId = invoice.Id.ToString(),
+                    OccurredAt = submittedAt,
+                    InvoiceNumber = invoice.InvoiceNumber,
+                    CashRegisterId = invoice.CashRegisterId,
+                    RetryCount = 0,
+                    Status = "Active"
+                };
+                _context.FinanzOnlineErrors.Add(errorRecord);
+                await _context.SaveChangesAsync();
+
                 return new FinanzOnlineSubmitResponse
                 {
                     Success = false,
-                    ErrorMessage = ex.Message,
+                    ErrorMessage = submission.ErrorMessage,
                     Status = "Failed",
-                    SubmittedAt = DateTime.UtcNow
+                    SubmittedAt = submittedAt,
+                    FailureKind = failureKind
                 };
             }
+        }
+
+        /// <summary>Classify failure for retry/alerting: Transient (retry), Permanent (do not retry), Unknown.</summary>
+        private static FinanzOnlineFailureKind ClassifyFailure(Exception ex)
+        {
+            if (ex is HttpRequestException || ex is TaskCanceledException || ex is OperationCanceledException)
+                return FinanzOnlineFailureKind.Transient;
+            var msg = (ex.Message ?? "").ToLowerInvariant();
+            if (msg.Contains("duplicate") || msg.Contains("already submitted") || msg.Contains("validation") || msg.Contains("forbidden"))
+                return FinanzOnlineFailureKind.Permanent;
+            return FinanzOnlineFailureKind.Unknown;
+        }
+
+        private static string TruncateErrorMessage(string message, int maxLen)
+        {
+            if (string.IsNullOrEmpty(message)) return "";
+            return message.Length <= maxLen ? message : message.Substring(0, maxLen - 3) + "...";
         }
 
         public async Task<FinanzOnlineSubmitResponse> SubmitDailyClosingAsync(DailyClosing dailyClosing)

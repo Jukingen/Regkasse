@@ -19,6 +19,9 @@ namespace KasseAPI_Final.Services
 
     public sealed class ReplayOfflineTransactionsResponse
     {
+        /// <summary>Server-generated id for this POST /replay call; ties audits, logs, and payment rows together.</summary>
+        public Guid? ReplayBatchCorrelationId { get; set; }
+
         public IReadOnlyList<ReplayOfflineTransactionsResponseItem> Items { get; set; } =
             Array.Empty<ReplayOfflineTransactionsResponseItem>();
     }

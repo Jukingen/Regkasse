@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Prometheus;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
@@ -252,6 +253,16 @@ builder.Services.AddScoped<IGenericRepository<Category>, GenericRepository<Categ
 builder.Services.AddScoped<IGenericRepository<Invoice>, GenericRepository<Invoice>>();
 builder.Services.AddScoped<IGenericRepository<PaymentDetails>, GenericRepository<PaymentDetails>>();
 
+// Core metrics (Prometheus) for Grafana dashboards
+builder.Services.AddSingleton<ICoreMetrics, CoreMetrics>();
+
+// FinanzOnline retry job + metrics + alert sink
+builder.Services.Configure<KasseAPI_Final.Configuration.FinanzOnlineRetryJobOptions>(
+    builder.Configuration.GetSection(KasseAPI_Final.Configuration.FinanzOnlineRetryJobOptions.SectionName));
+builder.Services.AddSingleton<IFinanzOnlineMetrics, FinanzOnlineMetrics>();
+builder.Services.AddSingleton<IFinanzOnlineAlertSink, NoOpFinanzOnlineAlertSink>();
+builder.Services.AddHostedService<FinanzOnlineRetryHostedService>();
+
 // 🚀 Akıllı Sepet Yaşam Döngüsü Service'i
 builder.Services.AddHostedService<CartLifecycleService>();
 // CartLifecycleService'i ayrıca Scoped olarak da kayıt et (logout için)
@@ -259,7 +270,18 @@ builder.Services.AddScoped<CartLifecycleService>();
 
 // Audit log service
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.Configure<KasseAPI_Final.Configuration.OfflineReplayOptions>(
+    builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineReplayOptions.SectionName));
 builder.Services.AddScoped<IOfflineTransactionService, OfflineTransactionService>();
+builder.Services.Configure<KasseAPI_Final.Configuration.PayloadHashGuardOptions>(
+    builder.Configuration.GetSection(KasseAPI_Final.Configuration.PayloadHashGuardOptions.SectionName));
+builder.Services.Configure<KasseAPI_Final.Configuration.CoverageGuardOptions>(
+    builder.Configuration.GetSection(KasseAPI_Final.Configuration.CoverageGuardOptions.SectionName));
+builder.Services.Configure<KasseAPI_Final.Configuration.PayloadHashRepairJobOptions>(
+    builder.Configuration.GetSection(KasseAPI_Final.Configuration.PayloadHashRepairJobOptions.SectionName));
+builder.Services.AddScoped<IOfflinePayloadHashMaintenanceService, OfflinePayloadHashMaintenanceService>();
+builder.Services.AddHostedService<KasseAPI_Final.Services.PayloadHashGuardStartupCheck>();
+builder.Services.AddHostedService<KasseAPI_Final.Services.PayloadHashRepairHostedService>();
 builder.Services.AddScoped<ILegalHoldService, LegalHoldService>();
 builder.Services.AddScoped<IIntegrityCheckService, IntegrityCheckService>();
 builder.Services.AddScoped<IFiscalExportService, FiscalExportService>();
@@ -325,6 +347,9 @@ app.UseAuthorization();
 app.UseMiddleware<KasseAPI_Final.Middleware.PaymentSecurityMiddleware>();
 
 app.MapControllers();
+
+// Prometheus /metrics endpoint for scraping (Grafana dashboards)
+app.MapMetrics();
 
 // Test endpoint
 app.MapGet("/", () => "Kasse API is running!");

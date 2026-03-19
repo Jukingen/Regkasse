@@ -23,6 +23,8 @@ export const MENU_PERMISSION: Record<string, string | string[] | undefined> = {
   '/rksv/cmc-certificate': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/verifications': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/finanz-online-queue': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/rksv/fiscal-export-diagnostics': PERMISSIONS.SETTINGS_VIEW,
+  '/rksv/replay-batch': PERMISSIONS.SETTINGS_VIEW,
   '/benefit-definitions': PERMISSIONS.BENEFIT_VIEW,
   '/benefit-assignments': PERMISSIONS.BENEFIT_VIEW,
 };

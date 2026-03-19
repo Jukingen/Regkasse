@@ -2009,6 +2009,42 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("localization_settings");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.OfflineIntentCoverageSample", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<bool>("HasClientSequence")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_client_sequence");
+
+                    b.Property<bool>("HasDeviceId")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_device_id");
+
+                    b.Property<Guid?>("ReplayBatchCorrelationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replay_batch_correlation_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("ReplayBatchCorrelationId");
+
+                    b.ToTable("offline_intent_coverage_samples", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.OfflineTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2347,6 +2383,29 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("FinanzOnlineError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("finanz_online_error");
+
+                    b.Property<DateTime?>("FinanzOnlineLastAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finanz_online_last_attempt_at_utc");
+
+                    b.Property<string>("FinanzOnlineReferenceId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("finanz_online_reference_id");
+
+                    b.Property<int>("FinanzOnlineRetryCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("finanz_online_retry_count");
+
+                    b.Property<string>("FinanzOnlineStatus")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("finanz_online_status");
+
                     b.Property<string>("IdempotencyKey")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
@@ -2383,6 +2442,10 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("OfflineReplayBatchCorrelationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offline_replay_batch_correlation_id");
 
                     b.Property<Guid?>("OfflineTransactionId")
                         .HasColumnType("uuid")
@@ -2483,6 +2546,9 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("FinanzOnlineStatus")
+                        .HasFilter("\"finanz_online_status\" IS NOT NULL");
 
                     b.HasIndex("IdempotencyKey")
                         .IsUnique()

@@ -64,6 +64,9 @@ namespace KasseAPI_Final.DTOs
         /// When Status stays Pending (under retry limit), hint next retry delay in seconds.
         /// </summary>
         public int? ExponentialBackoffHintSeconds { get; set; }
+
+        /// <summary>Server-generated replay batch id (same for all items in one POST /replay).</summary>
+        public Guid ReplayBatchCorrelationId { get; set; }
     }
 }
 

@@ -174,7 +174,8 @@ public class OfflineTransactionReplayIntegrationTests
                 It.IsAny<AuditLogStatus>(),
                 It.IsAny<string?>(),
                 It.IsAny<object?>(),
-                It.IsAny<object?>()))
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
             .ReturnsAsync(new AuditLog());
 
         var tseMock = new Mock<ITseService>();
@@ -291,6 +292,11 @@ public class OfflineTransactionReplayIntegrationTests
         await context.SaveChangesAsync();
 
         var auditMock = new Mock<IAuditLogService>();
+        auditMock.Setup(x => x.LogSystemOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(),
+                It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
         var tseMock = new Mock<ITseService>();
         var receiptSeqMock = new Mock<IReceiptSequenceService>();
         var companyProfile = new CompanyProfileOptions { CompanyName = "T", TaxNumber = "ATU12345678", Street = "", ZipCode = "", City = "", FooterText = "" };
@@ -315,6 +321,186 @@ public class OfflineTransactionReplayIntegrationTests
         Assert.Equal("PAYLOAD_IMMUTABLE_MISMATCH", resp.Items[0].ErrorCode);
         var row = await context.OfflineTransactions.AsNoTracking().FirstAsync(x => x.Id == offlineId);
         Assert.Equal(originalPayload, row.PayloadJson);
+        var batch = resp.ReplayBatchCorrelationId!.Value;
+        Assert.Equal(batch, resp.Items[0].ReplayBatchCorrelationId);
+        auditMock.Verify(x => x.LogSystemOperationAsync(
+            "PAYLOAD_IMMUTABLE_MISMATCH",
+            "OfflineTransaction",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<AuditLogStatus>(),
+            It.IsAny<string?>(),
+            It.IsAny<object?>(),
+            It.IsAny<object?>(),
+            batch.ToString("N")), Times.Once);
+    }
+
+    [Fact]
+    public async Task ReplayOfflineTransaction_BatchCorrelation_SameOnSuccessAcrossPaymentAndAudits()
+    {
+        await using var context = CreateContext();
+
+        var categoryId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+        var cashRegisterId = Guid.NewGuid();
+
+        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        context.Products.Add(new Product
+        {
+            Id = productId,
+            Name = "Döner",
+            Price = 6.90m,
+            CategoryId = categoryId,
+            Category = "Speisen",
+            StockQuantity = 100,
+            MinStockLevel = 0,
+            Unit = "Stk",
+            TaxType = 2,
+            IsActive = true
+        });
+        context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
+        context.CashRegisters.Add(new CashRegister
+        {
+            Id = cashRegisterId,
+            RegisterNumber = "KASSE-01",
+            Location = "T",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var companyProfile = new CompanyProfileOptions
+        {
+            CompanyName = "Test",
+            TaxNumber = "ATU12345678",
+            Street = "S1",
+            ZipCode = "1010",
+            City = "Wien",
+            FooterText = ""
+        };
+
+        var auditMock = new Mock<IAuditLogService>();
+        auditMock.Setup(x => x.LogPaymentOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(),
+                It.IsAny<double?>()))
+            .ReturnsAsync(new AuditLog());
+        auditMock.Setup(x => x.LogSystemOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(),
+                It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var tseMock = new Mock<ITseService>();
+        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(
+                It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<string>(),
+                It.IsAny<string?>(), It.IsAny<DateTime?>(), It.IsAny<string?>(), It.IsAny<IDbContextTransaction?>()))
+            .ReturnsAsync(new TseSignatureResult("eyJ.eyJ.sign", "prev"));
+        tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
+            .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert123" });
+
+        var receiptSeqMock = new Mock<IReceiptSequenceService>();
+        receiptSeqMock.Setup(x => x.AllocateNextBelegNrAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync((Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-1");
+        receiptSeqMock.Setup(x => x.AllocateNextBelegNrInTransactionAsync(
+                It.IsAny<IDbContextTransaction>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync((IDbContextTransaction _, Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-1");
+
+        var (_, offlineService) = CreateServices(context, companyProfile, auditMock, tseMock, receiptSeqMock);
+
+        var offlineId = Guid.NewGuid();
+        var idempotencyKey = Guid.NewGuid().ToString("N");
+        var paymentRequest = new CreatePaymentRequest
+        {
+            CustomerId = customerId,
+            TableNumber = 1,
+            CashierId = "u1",
+            TotalAmount = 6.90m,
+            Steuernummer = "ATU12345678",
+            CashRegisterId = cashRegisterId,
+            Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
+            Items = new List<PaymentItemRequest>
+            {
+                new() { ProductId = productId, Quantity = 1, TaxType = TaxType.Reduced }
+            },
+            IdempotencyKey = idempotencyKey
+        };
+        using var doc = JsonDocument.Parse(JsonSerializer.Serialize(paymentRequest));
+        context.OfflineTransactions.Add(new OfflineTransaction
+        {
+            Id = offlineId,
+            CashRegisterId = cashRegisterId,
+            PayloadJson = doc.RootElement.GetRawText(),
+            PayloadHash = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(doc.RootElement.GetRawText()),
+            ServerReceivedAtUtc = DateTime.UtcNow,
+            OfflineCreatedAtUtc = DateTime.UtcNow,
+            Status = OfflineTransactionStatus.Pending,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+            RetryCount = 0
+        });
+        await context.SaveChangesAsync();
+
+        var resp = await offlineService.ReplayOfflineTransactionsAsync(new ReplayOfflineTransactionsRequest
+        {
+            Transactions =
+            {
+                new ReplayOfflineTransactionItem
+                {
+                    OfflineTransactionId = offlineId,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CashRegisterId = cashRegisterId,
+                    Payload = doc.RootElement.Clone()
+                }
+            }
+        }, "u1", "Cashier");
+
+        var batch = resp.ReplayBatchCorrelationId!.Value;
+        Assert.Single(resp.Items);
+        Assert.Equal(batch, resp.Items[0].ReplayBatchCorrelationId);
+        var payment = await context.PaymentDetails.FirstAsync();
+        Assert.Equal(batch, payment.OfflineReplayBatchCorrelationId);
+
+        auditMock.Verify(x => x.LogSystemOperationAsync(
+            "OFFLINE_SYNCED",
+            "OfflineTransaction",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<AuditLogStatus>(),
+            It.IsAny<string?>(),
+            It.IsAny<object?>(),
+            It.IsAny<object?>(),
+            batch.ToString("N")), Times.Once);
+
+        auditMock.Verify(x => x.LogPaymentOperationAsync(
+            "PaymentCreated",
+            "Payment",
+            It.IsAny<Guid?>(),
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<decimal?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            batch.ToString("N"),
+            It.IsAny<object?>(),
+            It.IsAny<object?>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<AuditLogStatus>(),
+            It.IsAny<string?>(),
+            It.IsAny<double?>()), Times.Once);
     }
 
     [Fact]
@@ -396,7 +582,8 @@ public class OfflineTransactionReplayIntegrationTests
                 It.IsAny<AuditLogStatus>(),
                 It.IsAny<string?>(),
                 It.IsAny<object?>(),
-                It.IsAny<object?>()))
+                It.IsAny<object?>(),
+                It.IsAny<string?>()))
             .ReturnsAsync(new AuditLog());
 
         var tseMock = new Mock<ITseService>();
@@ -523,7 +710,7 @@ public class OfflineTransactionReplayIntegrationTests
         auditMock.Setup(x => x.LogSystemOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(),
-                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>()))
+                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()))
             .ReturnsAsync(new AuditLog());
 
         var tseMock = new Mock<ITseService>();
@@ -603,7 +790,8 @@ public class OfflineTransactionReplayIntegrationTests
             It.IsAny<AuditLogStatus>(),
             It.IsAny<string?>(),
             It.IsAny<object?>(),
-            It.IsAny<object?>()), Times.AtLeastOnce);
+            It.IsAny<object?>(),
+            It.IsAny<string?>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -652,7 +840,7 @@ public class OfflineTransactionReplayIntegrationTests
         auditMock.Setup(x => x.LogSystemOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(),
-                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>()))
+                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()))
             .ReturnsAsync(new AuditLog());
 
         var tseMock = new Mock<ITseService>();
@@ -772,7 +960,8 @@ public class OfflineTransactionReplayIntegrationTests
             It.IsAny<AuditLogStatus>(),
             It.IsAny<string?>(),
             It.IsAny<object?>(),
-            It.IsAny<object?>()), Times.AtLeastOnce);
+            It.IsAny<object?>(),
+            It.IsAny<string?>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -820,7 +1009,7 @@ public class OfflineTransactionReplayIntegrationTests
         auditMock.Setup(x => x.LogSystemOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(),
-                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>()))
+                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()))
             .ReturnsAsync(new AuditLog());
 
         var tseMock = new Mock<ITseService>();
@@ -922,7 +1111,160 @@ public class OfflineTransactionReplayIntegrationTests
             It.IsAny<AuditLogStatus>(),
             It.IsAny<string?>(),
             It.IsAny<object?>(),
-            It.IsAny<object?>()), Times.AtLeastOnce);
+            It.IsAny<object?>(),
+            It.IsAny<string?>()), Times.AtLeastOnce);
+    }
+
+    /// <summary>
+    /// Legacy migration used digest(PayloadJson::text) without key ordering; runtime uses sorted JSON.
+    /// Recompute-hash path must still dedupe and align stored payload_hash after successful payload match.
+    /// </summary>
+    [Fact]
+    public async Task ReplayOfflineTransaction_LegacyWrongPayloadHash_RecomputesHashAndDedupes()
+    {
+        await using var context = CreateContext();
+
+        var customerId = Guid.NewGuid();
+        var cashRegisterId = Guid.NewGuid();
+        context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
+        context.CashRegisters.Add(new CashRegister
+        {
+            Id = cashRegisterId,
+            RegisterNumber = "KASSE-01",
+            Location = "T",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var companyProfile = new CompanyProfileOptions
+        {
+            CompanyName = "Test",
+            TaxNumber = "ATU12345678",
+            Street = "S1",
+            ZipCode = "1010",
+            City = "Wien",
+            FooterText = ""
+        };
+
+        var auditMock = new Mock<IAuditLogService>();
+        auditMock.Setup(x => x.LogPaymentOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(),
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(), It.IsAny<double?>()))
+            .ReturnsAsync(new AuditLog());
+        auditMock.Setup(x => x.LogSystemOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()))
+            .ReturnsAsync(new AuditLog());
+
+        var tseMock = new Mock<ITseService>();
+        tseMock.Setup(x => x.CreateInvoiceSignatureAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<decimal>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<string?>(),
+                It.IsAny<IDbContextTransaction?>()))
+            .ReturnsAsync(new TseSignatureResult("eyJ.eyJ.sign", "prev"));
+        tseMock.Setup(x => x.GetTseCertificateInfoAsync(It.IsAny<string>()))
+            .ReturnsAsync(new TseCertificateInfo { CertificateNumber = "cert123" });
+
+        var receiptSeqMock = new Mock<IReceiptSequenceService>();
+        receiptSeqMock.Setup(x => x.AllocateNextBelegNrAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>()))
+            .ReturnsAsync((Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-1");
+        receiptSeqMock.Setup(x => x.AllocateNextBelegNrInTransactionAsync(
+                It.IsAny<IDbContextTransaction>(),
+                It.IsAny<Guid>(),
+                It.IsAny<string>(),
+                It.IsAny<DateTime>()))
+            .ReturnsAsync((IDbContextTransaction _, Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-1");
+
+        var (_, offlineService) = CreateServices(context, companyProfile, auditMock, tseMock, receiptSeqMock);
+
+        var offlineIdCanonical = Guid.NewGuid();
+        var offlineIdClient = Guid.NewGuid();
+        var missingProductId = Guid.NewGuid();
+        var idempotencyKey = Guid.NewGuid().ToString("N");
+
+        var paymentRequest = new CreatePaymentRequest
+        {
+            CustomerId = customerId,
+            TableNumber = 1,
+            CashierId = "u1",
+            TotalAmount = 6.90m,
+            Steuernummer = "ATU12345678",
+            CashRegisterId = cashRegisterId,
+            Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
+            Items = new List<PaymentItemRequest>
+            {
+                new() { ProductId = missingProductId, Quantity = 1, TaxType = TaxType.Reduced }
+            },
+            IdempotencyKey = idempotencyKey
+        };
+
+        var payloadJson = CreatePayloadJson(paymentRequest);
+        var (_, runtimeHash) = OfflinePayloadHashing.NormalizeAndHash(payloadJson);
+
+        context.OfflineTransactions.Add(new OfflineTransaction
+        {
+            Id = offlineIdCanonical,
+            CashRegisterId = cashRegisterId,
+            PayloadJson = payloadJson,
+            PayloadHash = new string('0', 64),
+            ServerReceivedAtUtc = DateTime.UtcNow,
+            OfflineCreatedAtUtc = DateTime.UtcNow,
+            Status = OfflineTransactionStatus.Pending,
+            CreatedAt = DateTime.UtcNow.AddMinutes(-1)
+        });
+        await context.SaveChangesAsync();
+
+        using var doc = JsonDocument.Parse(payloadJson);
+        var replayReq = new ReplayOfflineTransactionsRequest
+        {
+            Transactions = new List<ReplayOfflineTransactionItem>
+            {
+                new()
+                {
+                    OfflineTransactionId = offlineIdClient,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    CashRegisterId = cashRegisterId,
+                    Payload = doc.RootElement.Clone(),
+                    DeviceId = "dev1",
+                    ClientSequenceNumber = 10
+                }
+            }
+        };
+
+        await offlineService.ReplayOfflineTransactionsAsync(replayReq, "u1", "Cashier");
+
+        Assert.Single(context.OfflineTransactions);
+        var row = await context.OfflineTransactions.FirstAsync();
+        Assert.Equal(offlineIdCanonical, row.Id);
+        Assert.Equal(runtimeHash, row.PayloadHash, StringComparer.OrdinalIgnoreCase);
+
+        auditMock.Verify(x => x.LogSystemOperationAsync(
+            "PAYLOAD_HASH_DEDUPLICATED",
+            "OfflineTransaction",
+            It.IsAny<string>(),
+            It.IsAny<string>(),
+            It.IsAny<string?>(),
+            It.IsAny<string?>(),
+            It.IsAny<AuditLogStatus>(),
+            It.IsAny<string?>(),
+            It.IsAny<object?>(),
+            It.IsAny<object?>(),
+            It.IsAny<string?>()), Times.AtLeastOnce);
     }
 
     [Fact]
@@ -991,7 +1333,7 @@ public class OfflineTransactionReplayIntegrationTests
         auditMock.Setup(x => x.LogSystemOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(),
-                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>()))
+                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()))
             .ReturnsAsync(new AuditLog());
 
         var tseMock = new Mock<ITseService>();
@@ -1133,7 +1475,7 @@ public class OfflineTransactionReplayIntegrationTests
         auditMock.Setup(x => x.LogSystemOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(),
-                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>()))
+                It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>()))
             .ReturnsAsync(new AuditLog());
 
         var tseMock = new Mock<ITseService>();

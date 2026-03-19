@@ -78,6 +78,14 @@ export default function DashboardLayout({
                 { key: '/rksv/cmc-certificate', label: <Link href="/rksv/cmc-certificate">CMC / Certificate</Link> },
                 { key: '/rksv/verifications', label: <Link href="/rksv/verifications">Last 100 Verifications</Link> },
                 { key: '/rksv/finanz-online-queue', label: <Link href="/rksv/finanz-online-queue">FinanzOnline Queue</Link> },
+                {
+                    key: '/rksv/fiscal-export-diagnostics',
+                    label: <Link href="/rksv/fiscal-export-diagnostics">Fiscal-Export Diagnose</Link>,
+                },
+                {
+                    key: '/rksv/replay-batch',
+                    label: <Link href="/rksv/replay-batch">Replay-Batch (Correlation)</Link>,
+                },
             ],
         },
     ];

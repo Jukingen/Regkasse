@@ -1,8 +1,12 @@
 namespace KasseAPI_Final.Models.Export;
 
-/// <summary>Validates receipt-to-receipt signature linkage for export packages (best-effort).</summary>
+/// <summary>
+/// Diagnostic only: compares consecutive exported receipts in order (PrevSignatureValue[i] vs SignatureValue[i-1]).
+/// Does not validate against receipts outside the export list; observed-within-scope, not a chain guarantee.
+/// </summary>
 public static class FiscalExportChainContinuity
 {
+    /// <summary>Returns diagnostic warnings for adjacency in the given list only; not proof of full chain integrity.</summary>
     public static IReadOnlyList<string> BuildWarnings(IReadOnlyList<FiscalReceiptChainLinkDto> chainLinks)
     {
         if (chainLinks == null || chainLinks.Count < 2)

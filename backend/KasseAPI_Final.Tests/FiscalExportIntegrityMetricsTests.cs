@@ -213,7 +213,12 @@ public class FiscalExportIntegrityMetricsTests
 
         Assert.NotNull(export.Integrity);
         Assert.True(export.Integrity.SignatureChainValid);
+        Assert.True(export.Integrity.ReceiptSignatureLinkageOkInExportOrder);
         Assert.True(export.Integrity.SequenceContinuous);
+        Assert.True(export.Integrity.BelegSequenceContiguousInExportedOrderPerDay);
+        Assert.NotEmpty(export.ExportScopeWarnings);
+        Assert.False(export.ReceiptsTruncated);
+        Assert.Equal(2, export.TotalReceiptsMatchingPeriod);
         Assert.Equal(4, export.Integrity.TotalOfflineTransactions);
         Assert.Equal(2, export.Integrity.SyncedOfflineTransactions);
         Assert.Equal(1, export.Integrity.FailedOfflineTransactions);
@@ -360,6 +365,141 @@ public class FiscalExportIntegrityMetricsTests
 
         Assert.NotNull(export.Integrity);
         Assert.False(export.Integrity.SignatureChainValid);
+        Assert.False(export.Integrity.ReceiptSignatureLinkageOkInExportOrder);
+    }
+
+    [Fact]
+    public async Task ExportScope_WhenReceiptExistsBeforeWindow_IncludesBoundaryWarning()
+    {
+        await using var context = CreateContext();
+        var cashRegisterId = Guid.NewGuid();
+        context.CashRegisters.Add(new CashRegister
+        {
+            Id = cashRegisterId,
+            RegisterNumber = "K-01",
+            Location = "T",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+
+        var fromUtc = new DateTime(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc);
+        var toUtc = fromUtc.AddHours(2);
+
+        var earlyPaymentId = Guid.NewGuid();
+        context.PaymentDetails.Add(new PaymentDetails
+        {
+            Id = earlyPaymentId,
+            CustomerId = Guid.NewGuid(),
+            CustomerName = "C",
+            TableNumber = 1,
+            CashierId = "u1",
+            TotalAmount = 1m,
+            TaxAmount = 0.1m,
+            PaymentMethodRaw = "0",
+            Steuernummer = "ATU12345678",
+            TseSignature = "t",
+            TseTimestamp = DateTime.UtcNow,
+            CashRegisterId = cashRegisterId,
+            ReceiptNumber = "AT-K-01-20260501-1",
+            IsActive = true
+        });
+        context.Receipts.Add(new Receipt
+        {
+            ReceiptId = Guid.NewGuid(),
+            PaymentId = earlyPaymentId,
+            CashRegisterId = cashRegisterId,
+            ReceiptNumber = "AT-K-01-20260501-1",
+            IssuedAt = fromUtc.AddHours(-1),
+            SubTotal = 1m,
+            TaxTotal = 0.1m,
+            GrandTotal = 1.1m,
+            SignatureValue = "s0",
+            CreatedAt = fromUtc.AddHours(-1)
+        });
+
+        var p1 = Guid.NewGuid();
+        context.PaymentDetails.Add(new PaymentDetails
+        {
+            Id = p1,
+            CustomerId = Guid.NewGuid(),
+            CustomerName = "C2",
+            TableNumber = 1,
+            CashierId = "u1",
+            TotalAmount = 1m,
+            TaxAmount = 0.1m,
+            PaymentMethodRaw = "0",
+            Steuernummer = "ATU12345678",
+            TseSignature = "t",
+            TseTimestamp = DateTime.UtcNow,
+            CashRegisterId = cashRegisterId,
+            ReceiptNumber = "AT-K-01-20260601-1",
+            IsActive = true
+        });
+        context.Receipts.Add(new Receipt
+        {
+            ReceiptId = Guid.NewGuid(),
+            PaymentId = p1,
+            CashRegisterId = cashRegisterId,
+            ReceiptNumber = "AT-K-01-20260601-1",
+            IssuedAt = fromUtc.AddMinutes(30),
+            SubTotal = 1m,
+            TaxTotal = 0.1m,
+            GrandTotal = 1.1m,
+            SignatureValue = "s1",
+            PrevSignatureValue = null,
+            CreatedAt = fromUtc.AddMinutes(30)
+        });
+
+        await context.SaveChangesAsync();
+
+        var export = await new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object)
+            .BuildExportAsync(cashRegisterId, fromUtc, toUtc, false);
+
+        Assert.Contains(export.ExportScopeWarnings, w => w.Contains("before the export start", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(export.Integrity.IntegrityDiagnosticNotes,
+            n => n.Contains("before the export window", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Misuse guard: ExportScopeWarnings and NotLegalProofNotice must never be empty; payload must explicitly state NOT LEGAL PROOF.
+    /// </summary>
+    [Fact]
+    public async Task Export_MisuseGuard_ExportScopeWarningsAndNotLegalProofNotice_NeverEmptyAndContainNotLegalProof()
+    {
+        await using var context = CreateContext();
+        var cashRegisterId = Guid.NewGuid();
+        context.CashRegisters.Add(new CashRegister
+        {
+            Id = cashRegisterId,
+            RegisterNumber = "KASSE-01",
+            Location = "T",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
+        var fromUtc = DateTime.UtcNow.AddDays(-1);
+        var toUtc = DateTime.UtcNow.AddDays(1);
+        var exportService = new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object);
+        var export = await exportService.BuildExportAsync(cashRegisterId, fromUtc, toUtc, includeCsv: false);
+
+        Assert.NotNull(export.ExportScopeWarnings);
+        Assert.NotEmpty(export.ExportScopeWarnings);
+        Assert.True(
+            export.ExportScopeWarnings.Any(w => w.Contains("NOT LEGAL PROOF", StringComparison.OrdinalIgnoreCase)),
+            "ExportScopeWarnings must contain an entry with 'NOT LEGAL PROOF'.");
+
+        Assert.False(string.IsNullOrEmpty(export.NotLegalProofNotice));
+        Assert.Contains("NOT LEGAL PROOF", export.NotLegalProofNotice, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(FiscalExportService.NotLegalProofNoticeText, export.NotLegalProofNotice);
     }
 }
 

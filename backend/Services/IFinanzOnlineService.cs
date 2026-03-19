@@ -55,5 +55,16 @@ namespace KasseAPI_Final.Services
         public string? ErrorMessage { get; set; }
         public DateTime SubmittedAt { get; set; }
         public string Status { get; set; } = string.Empty; // Submitted, Failed, Pending
+        /// <summary>When Success is false: Transient (retry may help), Permanent (do not retry), Unknown/Timeout.</summary>
+        public FinanzOnlineFailureKind FailureKind { get; set; } = FinanzOnlineFailureKind.None;
+    }
+
+    /// <summary>Classification for external submit failures; used for retry and alerting.</summary>
+    public enum FinanzOnlineFailureKind
+    {
+        None = 0,
+        Transient = 1,
+        Permanent = 2,
+        Unknown = 3
     }
 }

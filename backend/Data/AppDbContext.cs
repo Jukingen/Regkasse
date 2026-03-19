@@ -28,6 +28,8 @@ namespace KasseAPI_Final.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<PaymentDetails> PaymentDetails { get; set; }
         public DbSet<OfflineTransaction> OfflineTransactions { get; set; }
+        /// <summary>Observability: DeviceId/ClientSequence coverage per replayed offline intent (no domain impact).</summary>
+        public DbSet<OfflineIntentCoverageSample> OfflineIntentCoverageSamples { get; set; }
         public DbSet<InventoryItem> Inventory { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
         public DbSet<SystemSettings> SystemSettings { get; set; }
@@ -448,6 +450,10 @@ namespace KasseAPI_Final.Data
                     .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasIndex(e => e.OfflineTransactionId);
+                entity.Property(e => e.FinanzOnlineStatus).HasMaxLength(30);
+                entity.Property(e => e.FinanzOnlineError).HasMaxLength(500);
+                entity.Property(e => e.FinanzOnlineReferenceId).HasMaxLength(100);
+                entity.HasIndex(e => e.FinanzOnlineStatus).HasFilter("\"finanz_online_status\" IS NOT NULL");
             });
 
             // OfflineTransaction configuration (non-fiscal intent; replay creates the canonical Payment + Receipt)
@@ -481,6 +487,20 @@ namespace KasseAPI_Final.Data
                 // Enforce monotonic sequence identity per device (nulls are allowed multiple times by Postgres)
                 entity.HasIndex(e => new { e.CashRegisterId, e.DeviceId, e.ClientSequenceNumber })
                     .IsUnique();
+            });
+
+            // OfflineIntentCoverageSample: observability only; one row per replayed intent for coverage metrics
+            builder.Entity<OfflineIntentCoverageSample>(entity =>
+            {
+                entity.ToTable("offline_intent_coverage_samples");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
+                entity.Property(e => e.CashRegisterId).IsRequired();
+                entity.Property(e => e.HasDeviceId).IsRequired();
+                entity.Property(e => e.HasClientSequence).IsRequired();
+                entity.HasIndex(e => e.CreatedAtUtc);
+                entity.HasIndex(e => e.CashRegisterId);
+                entity.HasIndex(e => e.ReplayBatchCorrelationId);
             });
 
             // PaymentItem: not mapped; single source of truth is payment_details.PaymentItems (JSON).
