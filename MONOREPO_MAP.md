@@ -28,6 +28,7 @@ The repository consists of three independent applications:
 ## Mobile POS
 - Path: `./frontend` (or `./mobile`)
 - Tech: Expo Router (React Native)
+- **Payments:** canonical HTTP client is `frontend/services/api/paymentService.ts` → `/api/pos/payment/*` (see `posPaymentPaths.ts`). Do not add new `/api/Payment/*` calls from POS. Quick checks: `docs/architecture/POS_PAYMENT_REGRESSION_CHECKS.md`.
 - Main Screen: `cash-register.tsx`
 - Architecture: Large orchestrator screen + small UI components
 - UI folders:
@@ -38,6 +39,7 @@ The repository consists of three independent applications:
 ## Admin Panel
 - Path: `./frontend-admin` (or `./admin`)
 - Tech: Next.js 14 (App Router), TypeScript, Ant Design
+- **Tagesabschluss UI:** `(protected)/tagesabschluss` — Orval hooks for `/api/Tagesabschluss/*` (permission `tse.sign`). Legacy admin payment listing may still use `src/api/legacy/payment.ts` (`/api/Payment/*`).
 - Server State: React Query
 - Client Global State: Zustand
 - API Layer: Axios + auto-generated Orval hooks

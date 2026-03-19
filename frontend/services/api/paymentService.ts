@@ -1,6 +1,18 @@
 import { Buffer } from 'buffer';
 import { storage } from '../../utils/storage';
 import { apiClient, API_BASE_URL } from './config';
+import {
+  POS_PAYMENT_API_PREFIX,
+  POS_PAYMENT_METHODS_PATH,
+  posPaymentByIdPath,
+  posPaymentQrPngAbsoluteUrl,
+} from './posPaymentPaths';
+import {
+  isRecord,
+  normalizeToPosPaymentMethods,
+  type NormalizedPosPaymentMethod,
+  unwrapApiResponseLayer,
+} from './normalizePosPaymentMethods';
 import { normalizePaymentError } from '../../features/payment/paymentErrors';
 import {
   enqueuePendingPayment,
@@ -12,12 +24,8 @@ import {
 
 export type { PendingPaymentEntry } from '../payment/pendingPaymentQueue';
 
-export interface PaymentMethod {
-  id: string;
-  name: string;
-  type: 'cash' | 'card' | 'voucher' | 'transfer';
-  icon: string;
-}
+/** Same row shape as `normalizeToPosPaymentMethods` — single source of truth. */
+export type PaymentMethod = NormalizedPosPaymentMethod;
 
 // Backend PaymentItemRequest: one item per cart line. Phase D: POS does not send modifierIds; add-ons are separate lines.
 export interface PaymentItem {
@@ -77,7 +85,7 @@ export interface PaymentResponse {
   error?: string;
   message?: string;
   tseSignature?: string;
-  /** TSE imza/QR bilgisi - POST /Payment response'unda */
+  /** TSE / QR info from POST /api/pos/payment response */
   tse?: PaymentTseInfo;
   /** When false, payment succeeded but invoice was not persisted — operator attention required. */
   invoicePersisted?: boolean;
@@ -119,22 +127,16 @@ export interface Receipt {
 }
 
 class PaymentService {
-  private baseUrl = '/Payment'; // Backend'deki route ile eşleştirildi
+  /** All payment HTTP uses `/api/pos/payment` — see `posPaymentPaths.ts` (canonical POS boundary). */
+  private readonly baseUrl = POS_PAYMENT_API_PREFIX;
 
-  // Ödeme yöntemlerini getir
   async getPaymentMethods(): Promise<PaymentMethod[]> {
-    const response = await apiClient.get<any>(`${this.baseUrl}/methods`);
-    // API yanıtı { success: true, data: [...] } formatındaysa data'yı dön
-    if (response && response.data && Array.isArray(response.data)) {
-      return response.data;
+    const raw = await apiClient.get<unknown>(POS_PAYMENT_METHODS_PATH);
+    const list = normalizeToPosPaymentMethods(raw);
+    if (list.length === 0 && raw != null) {
+      console.warn('[paymentService] No payment methods parsed from response:', raw);
     }
-    // Direkt array dönüyorsa
-    if (Array.isArray(response)) {
-      return response;
-    }
-    // Beklenmedik format
-    console.warn('Unexpected payment methods response:', response);
-    return [];
+    return list as PaymentMethod[];
   }
 
   // Payment processing - Backend endpoint compatible
@@ -285,13 +287,13 @@ class PaymentService {
 
   /**
    * RKSV fiş için QR PNG'yi base64 data URL olarak getirir.
-   * Backend GET /api/Payment/{id}/qr.png endpoint'ini kullanır.
+   * Backend GET /api/pos/payment/{id}/qr.png.
    * CORS/offline sorunlarını önlemek için print template'e data URL gömülür.
    */
   async getQrPngAsBase64(paymentId: string): Promise<string | null> {
     try {
       const token = await storage.getItem('token');
-      const url = `${API_BASE_URL}/Payment/${paymentId}/qr.png`;
+      const url = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
       const res = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -311,9 +313,8 @@ class PaymentService {
   // Get receipt data for printing
   async getReceipt(paymentId: string): Promise<any> {
     try {
-      const response = await apiClient.get<any>(`${this.baseUrl}/${paymentId}/receipt`);
-      // Unwrap response if nested in data/Value
-      return response?.data || response?.Value || response;
+      const response = await apiClient.get<unknown>(posPaymentByIdPath(paymentId, 'receipt'));
+      return unwrapApiResponseLayer(response);
     } catch (error) {
       console.error('Receipt fetch failed:', error);
       throw error;
@@ -324,7 +325,7 @@ class PaymentService {
   async getPaymentHistory(limit: number = 50, offset: number = 0): Promise<PaymentResponse[]> {
     try {
       const response = await apiClient.get<PaymentResponse[]>(
-        `${this.baseUrl}/history?limit=${limit}&offset=${offset}`
+        `${this.baseUrl}/history?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`
       );
       return response;
     } catch (error) {
@@ -336,7 +337,7 @@ class PaymentService {
   // Belirli bir ödeme
   async getPaymentById(id: string): Promise<PaymentResponse> {
     try {
-      const response = await apiClient.get<PaymentResponse>(`${this.baseUrl}/${id}`);
+      const response = await apiClient.get<PaymentResponse>(posPaymentByIdPath(id));
       return response;
     } catch (error) {
       console.error('Payment fetch failed:', error);
@@ -353,7 +354,7 @@ class PaymentService {
   // Ödeme iptal
   async cancelPayment(paymentId: string, reason?: string): Promise<any> {
     try {
-      const response = await apiClient.post<any>(`${this.baseUrl}/${paymentId}/cancel`, {
+      const response = await apiClient.post<any>(posPaymentByIdPath(paymentId, 'cancel'), {
         reason: reason || 'Kasiyer tarafından iptal edildi'
       });
       return response;
@@ -368,7 +369,7 @@ class PaymentService {
   // Ödeme iade
   async refundPayment(id: string, amount: number, reason: string): Promise<PaymentResponse> {
     try {
-      const response = await apiClient.post<PaymentResponse>(`${this.baseUrl}/${id}/refund`, {
+      const response = await apiClient.post<PaymentResponse>(posPaymentByIdPath(id, 'refund'), {
         amount,
         reason
       });
@@ -382,7 +383,7 @@ class PaymentService {
   }
 
   /**
-   * @deprecated Backend has no GET /Payment/daily-report/:date. Use Tagesabschluss/statistics or
+   * @deprecated Backend has no daily-report route. Use Tagesabschluss/statistics or
    * date-range payments instead. This method throws; do not use in new code.
    */
   async getDailyPaymentReport(_date: string): Promise<{
@@ -404,8 +405,15 @@ class PaymentService {
     topPaymentMethods: { method: string; count: number; amount: number }[];
   }> {
     try {
-      const response = await apiClient.get<any>(`${this.baseUrl}/statistics?period=${period}`);
-      return response.data as {
+      const raw = await apiClient.get<unknown>(
+        `${this.baseUrl}/statistics?period=${encodeURIComponent(period)}`
+      );
+      const layer = unwrapApiResponseLayer(raw);
+      const payload =
+        isRecord(layer) && layer.data != null && typeof layer.data === 'object'
+          ? layer.data
+          : layer;
+      return payload as {
         totalPayments: number;
         totalAmount: number;
         averageAmount: number;
@@ -420,7 +428,7 @@ class PaymentService {
   }
 
   /**
-   * Retry pending NON-FISCAL payment rows against POST /Payment.
+   * Retry pending NON_FISCAL rows against POST /api/pos/payment.
    * Returns count of successfully synced entries.
    */
   async syncOfflinePayments(): Promise<number> {
@@ -438,7 +446,7 @@ class PaymentService {
     return flushPendingPaymentQueue();
   }
 
-  /** NON_FISCAL rows waiting for server POST /Payment (isSynced false). */
+  /** NON_FISCAL rows waiting for server POST /api/pos/payment (isSynced false). */
   async listPendingNonFiscalPayments() {
     return getPendingPaymentQueue();
   }

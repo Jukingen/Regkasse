@@ -1,7 +1,11 @@
 /**
- * Legacy Payment API boundary. All admin usage of /api/Payment/* goes through this module.
- * Do not import from @/api/generated/payment/payment in pages or features.
- * Replacement direction: /api/admin/* or /api/pos/* when backend provides them.
+ * ADMIN-ONLY legacy Payment API boundary (GET/POST /api/Payment/*).
+ *
+ * - Mobile POS must NOT use this module. POS canonical client: `frontend/services/api/paymentService.ts`
+ *   + `posPaymentPaths.ts` → `/api/pos/payment/*`.
+ * - Do not import `@/api/generated/payment/payment` directly in pages; use hooks/wrappers from here
+ *   so list/detail/statistics/cancel/refund stay on the legacy surface until a deliberate admin migration.
+ * - Mixing POS and admin payment clients in one feature is a regression risk — keep boundaries separate.
  */
 
 import {

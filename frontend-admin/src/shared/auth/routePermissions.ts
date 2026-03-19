@@ -13,6 +13,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/invoices': PERMISSIONS.INVOICE_VIEW,
   '/orders': PERMISSIONS.ORDER_VIEW,
   '/payments': PERMISSIONS.PAYMENT_VIEW,
+  '/tagesabschluss': PERMISSIONS.TSE_SIGN,
   '/audit-logs': PERMISSIONS.AUDIT_VIEW,
   '/users': PERMISSIONS.USER_VIEW,
   '/settings': PERMISSIONS.SETTINGS_VIEW,

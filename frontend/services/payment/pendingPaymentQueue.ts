@@ -10,7 +10,7 @@ const LEGACY_STORAGE_KEY = '@regkasse/pending_payments_v1';
 const DEVICE_ID_KEY = '@regkasse/device_id_v1';
 const SEQUENCE_MAP_KEY = '@regkasse/client_sequence_map_v1';
 
-/** Same payload as POST /Payment (avoids circular import with paymentService). */
+/** Same payload as POST /api/pos/payment (avoids circular import with paymentService). */
 export interface PendingPaymentPayload {
   customerId: string;
   items: { productId: string; quantity: number; taxType: string }[];

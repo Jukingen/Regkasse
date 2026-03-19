@@ -172,7 +172,7 @@ export default function PaymentModal({
   // Store paymentId and TSE/QR bilgisi for success ekranı ve retry
   const [completedPaymentId, setCompletedPaymentId] = useState<string | null>(null);
   const [completedPaymentTse, setCompletedPaymentTse] = useState<PaymentTseInfo | null>(null);
-  /** Ödeme sonrası fiş verisi – GET /Payment/{id}/receipt */
+  /** Receipt payload for summary — GET /api/pos/payment/{id}/receipt */
   const [receiptData, setReceiptData] = useState<ReceiptDTO | null>(null);
 
   /** Eligibility preview: read-only UI info. Only when customer selected (not guest) and cart has items. */
@@ -228,7 +228,7 @@ export default function PaymentModal({
 
   const cashPresets = getCashPresets(totalAmount);
 
-  // Load payment methods, guest customer, and cash register (required for POST /Payment)
+  // Load payment methods, guest customer, and cash register (required for POST /api/pos/payment)
   useEffect(() => {
     if (!visible) {
       setCashRegisterId(null);
@@ -478,7 +478,7 @@ export default function PaymentModal({
         );
       }
 
-      // 9. START PRINTING (QR backend /api/Payment/{id}/qr.png'den base64 embed)
+      // 9. START PRINTING (QR from GET /api/pos/payment/{id}/qr.png as base64 embed)
       setPurchaseState('printing');
       try {
         await receiptPrinter.print(response.paymentId, {
@@ -834,7 +834,7 @@ export default function PaymentModal({
                   <Ionicons name="checkmark-circle" size={48} color={SoftColors.success} />
                   <Text style={styles.successTitle}>Zahlung erfolgreich</Text>
                   {(() => {
-                    // Receipt: GET /Payment/{id}/receipt. TODO: use payment response.receipt/totals/vatBreakdown when backend returns them.
+                    // Receipt: GET /api/pos/payment/{id}/receipt
                     const summaryReceipt = toSummaryReceipt(receiptData ?? null);
                     return summaryReceipt ? (
                       <View style={[styles.receiptPreview, { marginTop: SoftSpacing.sm, maxHeight: 320 }]}>

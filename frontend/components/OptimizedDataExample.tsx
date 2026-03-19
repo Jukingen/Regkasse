@@ -153,9 +153,9 @@ export const OptimizedDataExample: React.FC = () => {
           Son güncelleme: {formatLastFetch(paymentMethodsLastFetch)}
         </Text>
         
-        {paymentMethods && (
+        {paymentMethods && Array.isArray(paymentMethods) && (
           <Text style={styles.dataText}>
-            Ödeme yöntemi sayısı: {paymentMethods.methods?.length || 0}
+            Ödeme yöntemi sayısı: {paymentMethods.length}
           </Text>
         )}
       </View>

@@ -302,6 +302,7 @@ export const ProductList: React.FC<ProductListProps> = ({
         keyExtractor={(item) => item.id || Math.random().toString()}
         numColumns={viewMode === 'grid' ? getGridColumns() : 1}
         key={viewMode}
+        keyboardShouldPersistTaps="handled"
         removeClippedSubviews={false}
         contentContainerStyle={[
           styles.listContainer,

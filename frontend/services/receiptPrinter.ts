@@ -218,7 +218,7 @@ class ReceiptPrinter {
   }
 }
 
-/** Backend /api/Payment/{id}/qr.png'den QR PNG'yi base64 data URL olarak getirir. Print template embed için. */
+/** QR PNG as base64 data URL from GET /api/pos/payment/{id}/qr.png (print template embed). */
 export async function fetchQrAsBase64(paymentId: string): Promise<string | null> {
   return paymentService.getQrPngAsBase64(paymentId);
 }

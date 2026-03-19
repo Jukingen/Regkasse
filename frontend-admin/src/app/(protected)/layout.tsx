@@ -13,6 +13,7 @@ import {
     SafetyCertificateOutlined,
     CreditCardOutlined,
     SafetyOutlined,
+    CalendarOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -67,6 +68,11 @@ export default function DashboardLayout({
         { key: '/receipt-generate', icon: <FileTextOutlined />, label: <Link href="/receipt-generate">Belegvorschau</Link> },
         { key: '/audit-logs', icon: <SafetyCertificateOutlined />, label: <Link href="/audit-logs">Audit Logs</Link> },
         { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">Payments</Link> },
+        {
+          key: '/tagesabschluss',
+          icon: <CalendarOutlined />,
+          label: <Link href="/tagesabschluss">Tagesabschluss</Link>,
+        },
         { key: '/users', icon: <UserOutlined />, label: <Link href="/users">Users</Link> },
         { key: '/settings', icon: <SettingOutlined />, label: <Link href="/settings">Settings</Link> },
         {

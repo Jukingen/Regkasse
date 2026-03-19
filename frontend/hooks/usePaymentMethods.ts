@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { API_BASE_URL } from '../config'; // Config'den API URL'ini al
+import { API_BASE_URL } from '../config';
+import {
+  isRecord,
+  normalizeToPosPaymentMethods,
+  type NormalizedPosPaymentMethod,
+} from '../services/api/normalizePosPaymentMethods';
+import { POS_PAYMENT_METHODS_PATH } from '../services/api/posPaymentPaths';
 
 // English Description: Hook for fetching and managing payment methods from backend. Also checks TSE status.
 // OPTIMIZATION: Sürekli API çağrısı yerine sadece gerekli durumlarda fetch yapar
@@ -22,11 +28,23 @@ export interface TseStatusInfo {
   deviceInfo: string;
 }
 
-export interface PaymentMethodsResponse {
-  success: boolean;
-  methods: PaymentMethodInfo[];
-  tseStatus: TseStatusInfo;
-  message: string;
+function hookMethodKey(m: NormalizedPosPaymentMethod): 'cash' | 'card' | 'voucher' {
+  if (m.type === 'card') return 'card';
+  if (m.type === 'voucher') return 'voucher';
+  return 'cash';
+}
+
+function toPaymentMethodInfo(m: NormalizedPosPaymentMethod): PaymentMethodInfo {
+  return {
+    method: hookMethodKey(m),
+    name: m.name,
+    description: m.name,
+    isEnabled: true,
+    requiresTse: false,
+    icon: m.icon,
+    minAmount: 0.01,
+    maxAmount: 100_000,
+  };
 }
 
 export function usePaymentMethods(user: any) {
@@ -58,7 +76,7 @@ export function usePaymentMethods(user: any) {
       console.log('🔄 Fetching payment methods from backend...');
       console.log('🔐 Using token:', user.token ? 'Available' : 'Missing');
 
-      const response = await fetch(`${API_BASE_URL}/Payment/methods`, { // Absolute URL kullan
+      const response = await fetch(`${API_BASE_URL}${POS_PAYMENT_METHODS_PATH}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${user.token}`, // Token zaten Bearer prefix olmadan, burada ekliyoruz
@@ -74,24 +92,30 @@ export function usePaymentMethods(user: any) {
         throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data: PaymentMethodsResponse = await response.json();
+      const json: unknown = await response.json();
+      const methods = normalizeToPosPaymentMethods(json);
+      const env = isRecord(json) ? json : null;
 
-      if (data.success) {
-        // Safe access to methods array
-        const methods = Array.isArray(data.methods) ? data.methods : [];
-        const tseStatusInfo = data.tseStatus || { isConnected: false, lastCheck: '', deviceInfo: '' };
-
-        setPaymentMethods(methods);
-        setTseStatus(tseStatusInfo);
-        setIsInitialized(true);
-        console.log('✅ Payment methods fetched successfully:', {
-          methodsCount: methods.length,
-          tseConnected: tseStatusInfo.isConnected,
-          rawMethods: data.methods // Debug log
-        });
-      } else {
-        throw new Error(data.message || 'Payment methods could not be retrieved');
+      if (methods.length === 0 && env?.success === false) {
+        throw new Error(String(env.message ?? 'Payment methods could not be retrieved'));
       }
+
+      const tseRaw = env && isRecord(env.tseStatus) ? env.tseStatus : null;
+      const tseStatusInfo: TseStatusInfo = tseRaw
+        ? {
+            isConnected: Boolean(tseRaw.isConnected ?? tseRaw.IsConnected),
+            lastCheck: String(tseRaw.lastCheck ?? tseRaw.LastCheck ?? ''),
+            deviceInfo: String(tseRaw.deviceInfo ?? tseRaw.DeviceInfo ?? ''),
+          }
+        : { isConnected: false, lastCheck: '', deviceInfo: '' };
+
+      setPaymentMethods(methods.map(toPaymentMethodInfo));
+      setTseStatus(tseStatusInfo);
+      setIsInitialized(true);
+      console.log('✅ Payment methods fetched successfully:', {
+        methodsCount: methods.length,
+        tseConnected: tseStatusInfo.isConnected,
+      });
     } catch (error: any) {
       console.error('❌ Payment methods fetch error:', error);
       const errorMessage = error.message || 'Payment methods could not be loaded';

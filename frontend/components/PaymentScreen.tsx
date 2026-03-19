@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { PaymentService } from '../services/api/paymentService';
+import paymentService from '../services/api/paymentService';
 import { PaymentCancelResponse } from '../types/cart';
 
 // Desteklenen ödeme yöntemleri ve ikon adları
@@ -69,13 +69,16 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
           onPress: async () => {
             setProcessing(true);
             try {
-              const paymentService = new PaymentService();
               const cancelResponse = await paymentService.cancelPayment(
                 paymentSessionId, 
                 'Kasiyer tarafından iptal edildi'
               );
 
-              if (cancelResponse.success) {
+              const ok =
+                cancelResponse &&
+                (cancelResponse as { success?: boolean }).success !== false;
+
+              if (ok) {
                 // Başarılı iptal - callback'i çağır
                 if (onPaymentCancelled) {
                   onPaymentCancelled(cancelResponse);

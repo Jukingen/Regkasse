@@ -3,6 +3,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config';
+import { normalizeToPosPaymentMethods } from '../services/api/normalizePosPaymentMethods';
+import { POS_PAYMENT_METHODS_PATH } from '../services/api/posPaymentPaths';
 import { useNetInfo } from '@react-native-community/netinfo';
 
 interface FetchOptions {
@@ -219,7 +222,7 @@ export function useOptimizedPaymentMethods() {
     if (!user || !user.token) return null;
     
     try {
-      const response = await fetch('/api/Payment/methods', {
+      const response = await fetch(`${API_BASE_URL}${POS_PAYMENT_METHODS_PATH}`, {
         headers: {
           'Authorization': `Bearer ${user.token}`, // user.token JWT token, Bearer prefix ekle
           'Content-Type': 'application/json',
@@ -229,8 +232,9 @@ export function useOptimizedPaymentMethods() {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
-      return await response.json();
+
+      const json: unknown = await response.json();
+      return normalizeToPosPaymentMethods(json);
     } catch (error) {
       console.error('Payment methods fetch failed:', error);
       throw error;

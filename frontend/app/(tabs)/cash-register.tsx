@@ -64,9 +64,6 @@ function POSSummaryBlock({
   cart,
   cartLoading,
   cartError,
-  paymentError,
-  paymentProcessing,
-  preventDoubleClick,
   onQuantityUpdate,
   onItemRemove,
   onClearCart,
@@ -85,9 +82,6 @@ function POSSummaryBlock({
   cart: any;
   cartLoading: boolean;
   cartError: string | null;
-  paymentError: string | null;
-  paymentProcessing: boolean;
-  preventDoubleClick: boolean;
   onQuantityUpdate: (itemId: string, action: 'increment' | 'decrement') => Promise<void>;
   onItemRemove: (itemId: string) => Promise<void>;
   onClearCart: () => Promise<void>;
@@ -158,9 +152,7 @@ function POSSummaryBlock({
       <CartSummary
         cart={cart}
         loading={cartLoading}
-        error={paymentError}
-        paymentProcessing={paymentProcessing}
-        preventDoubleClick={preventDoubleClick}
+        error={cartError}
         onPayment={onPayment}
       />
     </View>
@@ -229,14 +221,7 @@ function usePOSOrderFlow(
 
 export default function CashRegisterScreen() {
   const { categories } = useProductsUnified();
-  const {
-    paymentProcessing,
-    preventDoubleClick,
-    error,
-    toasts,
-    addToast,
-    removeToast,
-  } = useCashRegister();
+  const { toasts, addToast, removeToast } = useCashRegister();
   const {
     recoveryData,
     isLoading: recoveryLoading,
@@ -556,9 +541,6 @@ export default function CashRegisterScreen() {
             cart={cart}
             cartLoading={cartLoading}
             cartError={cartError}
-            paymentError={error}
-            paymentProcessing={paymentProcessing}
-            preventDoubleClick={preventDoubleClick}
             onQuantityUpdate={handleQuantityUpdate}
             onItemRemove={handleItemRemove}
             onClearCart={handleClearCart}

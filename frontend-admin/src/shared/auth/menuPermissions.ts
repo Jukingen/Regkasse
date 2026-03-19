@@ -16,6 +16,7 @@ export const MENU_PERMISSION: Record<string, string | string[] | undefined> = {
   '/receipt-generate': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/audit-logs': PERMISSIONS.AUDIT_VIEW,
   '/payments': PERMISSIONS.PAYMENT_VIEW,
+  '/tagesabschluss': PERMISSIONS.TSE_SIGN,
   '/users': PERMISSIONS.USER_VIEW,
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   '/rksv': PERMISSIONS.FINANZONLINE_MANAGE,
