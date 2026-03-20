@@ -10,13 +10,12 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 /**
- * GET /api/Payment/{paymentId}/signature-debug
- * Admin only. RKSV checklist steps + optional compact JWS for payment-linked TSE signature.
- * Accepts standard SuccessResponse `{ success, message, data, timestamp }` or a bare `{ steps, compactJws }` body.
+ * Canonical payment-scoped signature debug fetcher.
+ * GET /api/pos/payment/{paymentId}/signature-debug
  */
 export async function fetchSignatureDebug(paymentId: string): Promise<SignatureDebugApiResponse> {
     const rawUnknown = await customInstance<unknown>({
-        url: `/api/Payment/${paymentId}/signature-debug`,
+        url: `/api/pos/payment/${paymentId}/signature-debug`,
         method: 'GET',
     });
 

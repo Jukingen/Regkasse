@@ -36,11 +36,13 @@ import {
   usePostApiTagesabschlussYearly,
 } from '@/api/generated/tagesabschluss/tagesabschluss';
 import {
-  normalizeCanClosePayload,
   normalizeCashRegisterListBody,
-  normalizeTagesabschlussHistory,
-  normalizeTagesabschlussStatistics,
 } from '@/features/tagesabschluss/normalizers';
+import type {
+  TagesabschlussCanCloseResponse,
+  TagesabschlussResult,
+  TagesabschlussStatisticsResponse,
+} from '@/api/generated/model';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
@@ -109,15 +111,15 @@ export default function TagesabschlussPage() {
   const registerIdValid = effectiveRegisterId.length > 0 && isUuid(effectiveRegisterId);
 
   const historyQuery = useGetApiTagesabschlussHistory(historyParams);
-  const historyRows = normalizeTagesabschlussHistory(historyQuery.data as unknown);
+  const historyRows: TagesabschlussResult[] = historyQuery.data ?? [];
 
   const statsQuery = useGetApiTagesabschlussStatistics(statsParams);
-  const stats = normalizeTagesabschlussStatistics(statsQuery.data as unknown);
+  const stats: TagesabschlussStatisticsResponse | undefined = statsQuery.data;
 
   const canCloseQuery = useGetApiTagesabschlussCanCloseCashRegisterId(effectiveRegisterId, {
     query: { enabled: registerIdValid },
   });
-  const canClose = normalizeCanClosePayload(canCloseQuery.data as unknown);
+  const canClose: TagesabschlussCanCloseResponse | undefined = canCloseQuery.data;
 
   const invalidateTagesabschluss = useCallback(async () => {
     await queryClient.invalidateQueries({
@@ -193,13 +195,13 @@ export default function TagesabschlussPage() {
       title: 'Brutto',
       dataIndex: 'totalAmount',
       key: 'totalAmount',
-      render: (v: number | undefined) => (v != null ? `${v.toFixed(2)} €` : '—'),
+      render: (v: number) => `${v.toFixed(2)} €`,
     },
     {
       title: 'Steuer',
       dataIndex: 'totalTaxAmount',
       key: 'totalTaxAmount',
-      render: (v: number | undefined) => (v != null ? `${v.toFixed(2)} €` : '—'),
+      render: (v: number) => `${v.toFixed(2)} €`,
     },
     { title: 'Vorgänge', dataIndex: 'transactionCount', key: 'transactionCount', width: 100 },
     { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
@@ -277,7 +279,7 @@ export default function TagesabschlussPage() {
                   : '—'}
               </Descriptions.Item>
               <Descriptions.Item label="Zahlungen ohne Rechnung (heute)">
-                {canClose?.paymentsWithoutInvoiceCount ?? 0}
+                {canClose?.paymentsWithoutInvoiceCount}
               </Descriptions.Item>
               <Descriptions.Item label="Hinweis">{canClose?.message ?? '—'}</Descriptions.Item>
             </Descriptions>
@@ -333,20 +335,20 @@ export default function TagesabschlussPage() {
             ) : statsQuery.isError ? (
               <Alert type="error" description={pickError(statsQuery.error)} />
             ) : /* No aggregate closings in range */ stats == null ||
-              (stats.totalClosings === 0 && (stats.totalAmount ?? 0) === 0) ? (
+              (stats.totalClosings === 0 && stats.totalAmount === 0) ? (
               <Empty description="Keine Daten für diesen Zeitraum." />
             ) : (
               <Descriptions bordered size="small" column={1}>
-                <Descriptions.Item label="Abschlüsse (Anzahl)">{stats.totalClosings ?? 0}</Descriptions.Item>
+                <Descriptions.Item label="Abschlüsse (Anzahl)">{stats.totalClosings}</Descriptions.Item>
                 <Descriptions.Item label="Summe Brutto">
-                  {(stats.totalAmount ?? 0).toFixed(2)} €
+                  {stats.totalAmount.toFixed(2)} €
                 </Descriptions.Item>
                 <Descriptions.Item label="Summe Steuer">
-                  {(stats.totalTaxAmount ?? 0).toFixed(2)} €
+                  {stats.totalTaxAmount.toFixed(2)} €
                 </Descriptions.Item>
-                <Descriptions.Item label="Transaktionen">{stats.totalTransactions ?? 0}</Descriptions.Item>
+                <Descriptions.Item label="Transaktionen">{stats.totalTransactions}</Descriptions.Item>
                 <Descriptions.Item label="Ø Tagesbrutto (nur Daily)">
-                  {(stats.averageDailyAmount ?? 0).toFixed(2)} €
+                  {stats.averageDailyAmount.toFixed(2)} €
                 </Descriptions.Item>
                 <Descriptions.Item label="Letzter Abschluss im Zeitraum">
                   {stats.lastClosingDate

@@ -5,6 +5,8 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { ApplicationUser } from './applicationUser';
+import type { BenefitAssignment } from './benefitAssignment';
 import type { Cart } from './cart';
 import type { CustomerCategory } from './customerCategory';
 import type { Invoice } from './invoice';
@@ -17,6 +19,14 @@ export interface Customer {
    * @nullable
    */
   address?: string | null;
+  applicationUser?: ApplicationUser;
+  /**
+   * @maxLength 450
+   * @nullable
+   */
+  applicationUserId?: string | null;
+  /** @nullable */
+  benefitAssignments?: BenefitAssignment[] | null;
   /** @nullable */
   birthDate?: string | null;
   /** @nullable */

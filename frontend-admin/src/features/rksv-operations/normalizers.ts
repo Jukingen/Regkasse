@@ -2,8 +2,11 @@
  * Pure mappers from backend DTOs to dashboard health levels (RKSV operations landing).
  */
 
-import type { OfflinePayloadHashAnalyzeResult } from '@/api/offline-payload-hash';
-import type { FinanzOnlineMetricsResponse } from '@/api/finanzonline-reconciliation';
+import type {
+  AdminOperationsSummaryResponse,
+  OfflinePayloadHashAnalyzeResult,
+  FinanzOnlineMetricsResponse,
+} from '@/api/generated/model';
 import type { OpsHealthLevel } from './types';
 
 /** Coverage summary shape from GET /api/admin/offline-intent-coverage */
@@ -126,6 +129,67 @@ export function buildFinanzOnlineCardCopy(
   let summaryLine = 'Laut Metriken-API: keine fehlgeschlagenen Submits (Zähler).';
   if (level === 'critical') summaryLine = 'Permanente FO-Submit-Fehler laut Metriken — Abgleich prüfen.';
   else if (level === 'warning') summaryLine = 'Fehlgeschlagene Submits laut Metriken — Abgleich prüfen.';
+  return { summaryLine, detailLines: lines };
+}
+
+export function mapReplaySummaryToHealth(data: AdminOperationsSummaryResponse | null | undefined): OpsHealthLevel {
+  if (data == null) return 'unavailable';
+  const backlog = data.replayBacklogCount ?? 0;
+  const finalFailures = data.replayFinalFailureAuditCount ?? 0;
+  if (finalFailures > 0 || backlog > 50) return 'critical';
+  if (backlog > 0 || (data.replayFailedCount ?? 0) > 0) return 'warning';
+  return 'healthy';
+}
+
+export function buildReplaySummaryCardCopy(
+  data: AdminOperationsSummaryResponse | null | undefined,
+  level: OpsHealthLevel
+): { summaryLine: string; detailLines: string[] } {
+  if (level === 'unavailable' || data == null) {
+    return {
+      summaryLine: 'Replay-Übersicht nicht verfügbar — keine belastbare Aussage.',
+      detailLines: [],
+    };
+  }
+  const lines = [
+    `Backlog: ${data.replayBacklogCount ?? 0} (Pending ${data.replayPendingCount ?? 0}, Failed ${data.replayFailedCount ?? 0})`,
+    `Final-Failure-Audit (Fenster): ${data.replayFinalFailureAuditCount ?? 0}`,
+    `OFFLINE_SYNCED (Fenster): ${data.replaySyncedAuditCount ?? 0}`,
+  ];
+  let summaryLine = `Replay unauffällig im ${data.windowHours ?? 24}h-Fenster.`;
+  if (level === 'critical') summaryLine = 'Replay-Risiko erhöht (Backlog oder Final-Failure-Audit).';
+  else if (level === 'warning') summaryLine = 'Replay benötigt Aufmerksamkeit (offene/fehlgeschlagene Elemente).';
+  return { summaryLine, detailLines: lines };
+}
+
+export function mapExportRiskToHealth(data: AdminOperationsSummaryResponse | null | undefined): OpsHealthLevel {
+  if (data == null) return 'unavailable';
+  const total = data.exportRisk?.totalRiskCount ?? 0;
+  if (total > 0) return 'critical';
+  return 'healthy';
+}
+
+export function buildExportRiskCardCopy(
+  data: AdminOperationsSummaryResponse | null | undefined,
+  level: OpsHealthLevel
+): { summaryLine: string; detailLines: string[] } {
+  if (level === 'unavailable' || data == null) {
+    return {
+      summaryLine: 'Export-/Integritätsübersicht nicht verfügbar — keine belastbare Aussage.',
+      detailLines: [],
+    };
+  }
+  const risk = data.exportRisk;
+  const lines = [
+    `Risiken gesamt: ${risk?.totalRiskCount ?? 0}`,
+    `Seq duplicate/non-monotonic: ${risk?.sequenceDuplicateCount ?? 0}/${risk?.sequenceNonMonotonicCount ?? 0}`,
+    `Orphan refunds: ${risk?.orphanRefundCount ?? 0}`,
+    `Payments ohne Invoice: ${risk?.paymentWithoutInvoiceCount ?? 0}`,
+  ];
+  const summaryLine =
+    level === 'critical'
+      ? 'Export-/Integritätsrisiken vorhanden — Integritätsseite prüfen.'
+      : 'Keine Export-/Integritätsrisiken im Summary-Check.';
   return { summaryLine, detailLines: lines };
 }
 

@@ -11,21 +11,22 @@ import type { PaymentMethodRequest } from './paymentMethodRequest';
 export interface CreatePaymentRequest {
   /** @minLength 1 */
   cashierId: string;
+  cashRegisterId: string;
   customerId: string;
-  items: PaymentItemRequest[];
   /**
-   * @minLength 3
-   * @maxLength 50
+   * @maxLength 64
+   * @nullable
    */
-  kassenId: string;
+  idempotencyKey?: string | null;
+  items: PaymentItemRequest[];
   /** @nullable */
   notes?: string | null;
   payment: PaymentMethodRequest;
   /**
-   * @minLength 1
+   * @nullable
    * @pattern ^ATU\d{8}$
    */
-  steuernummer: string;
+  steuernummer?: string | null;
   tableNumber: number;
   /** @minimum 0.01 */
   totalAmount: number;

@@ -58,7 +58,7 @@ export function useApiCart() {
         if (savedCartId) {
           setCurrentCartId(savedCartId);
           setLoading(true);
-          const res = await apiClient.get(`/cart/${savedCartId}`);
+          const res = await apiClient.get(`/pos/cart/${savedCartId}`);
           setCart(res as Cart);
         }
       } catch (err: any) {
@@ -83,7 +83,7 @@ export function useApiCart() {
       return;
     }
     try {
-      const res = await apiClient.get(`/cart/${currentCartId}`);
+      const res = await apiClient.get(`/pos/cart/${currentCartId}`);
       setCart(res as Cart);
     } catch (err: any) {
       setError('Fehler beim Laden des Warenkorbs.');
@@ -105,7 +105,7 @@ export function useApiCart() {
     try {
       if (!currentCartId) {
         // Yeni cart oluştur ve ilk ürünü ekle
-        const res = await apiClient.post('/cart', {
+        const res = await apiClient.post('/pos/cart', {
           TableNumber: '1',
           WaiterName: 'Kasiyer',
           initialItem: { productId, quantity }
@@ -116,7 +116,7 @@ export function useApiCart() {
         await AsyncStorage.setItem('currentCartId', String(cartId));
       } else {
         // Var olan cart'a ürün ekle
-        await apiClient.post(`/cart/${currentCartId}/items`, { productId, quantity });
+        await apiClient.post(`/pos/cart/${currentCartId}/items`, { productId, quantity });
         await fetchCart();
       }
       handleSuccess('Ürün sepete eklendi');
@@ -140,7 +140,7 @@ export function useApiCart() {
     const cartId = cart?.id || currentCartId;
     if (!cartId) return;
     try {
-      await apiClient.delete(`/cart/${cartId}/items/${itemId}`);
+      await apiClient.delete(`/pos/cart/${cartId}/items/${itemId}`);
       await fetchCart();
       handleSuccess('Ürün sepetten çıkarıldı');
     } catch (err: any) {
@@ -171,10 +171,10 @@ export function useApiCart() {
     try {
       if (quantity < 1) {
         // Miktar 0 veya altına düştüyse ürünü sepetten çıkar
-        await apiClient.delete(`/cart/${cartId}/items/${itemId}`);
+        await apiClient.delete(`/pos/cart/${cartId}/items/${itemId}`);
         handleSuccess('Ürün sepetten çıkarıldı');
       } else {
-        await apiClient.put(`/cart/${cartId}/items/${itemId}`, { quantity });
+        await apiClient.put(`/pos/cart/${cartId}/items/${itemId}`, { quantity });
         handleSuccess('Ürün miktarı güncellendi');
       }
       await fetchCart();
@@ -212,7 +212,7 @@ export function useApiCart() {
       if (cartService && cartService.clearCart) {
         await cartService.clearCart(cartId);
       } else {
-        await apiClient.delete(`/cart/${cartId}`);
+        await apiClient.delete(`/pos/cart/${cartId}`);
       }
       await fetchCart();
       handleSuccess('Sepet temizlendi');
@@ -288,7 +288,7 @@ export function useApiCart() {
     const cartId = cart?.id || currentCartId;
     if (!cartId) return;
     try {
-              await apiClient.post(`/cart/${cartId}/complete`, {
+              await apiClient.post(`/pos/cart/${cartId}/complete`, {
         paymentMethod,
         amountPaid,
         notes,

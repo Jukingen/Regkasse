@@ -87,6 +87,7 @@ export default function DashboardLayout({
                 { key: '/rksv/status', label: <Link href="/rksv/status">General Status</Link> },
                 { key: '/rksv/cmc-certificate', label: <Link href="/rksv/cmc-certificate">CMC / Certificate</Link> },
                 { key: '/rksv/verifications', label: <Link href="/rksv/verifications">Last 100 Verifications</Link> },
+                { key: '/rksv/finanz-online-operations', label: <Link href="/rksv/finanz-online-operations">FinanzOnline Operations</Link> },
                 { key: '/rksv/finanz-online-queue', label: <Link href="/rksv/finanz-online-queue">FinanzOnline Abgleich</Link> },
                 {
                     key: '/rksv/fiscal-export-diagnostics',

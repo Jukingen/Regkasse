@@ -4,8 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { Table, Card, Typography, Tag, Space, Button, Select, DatePicker, message } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { useGetApiAuditLog } from '@/api/generated/audit-log/audit-log';
-import type { AuditLog } from '@/api/generated/model';
-import { AuditLogStatus } from '@/api/generated/model';
+import type { AuditLogEntryDto } from '@/api/generated/model';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import dayjs from 'dayjs';
 
@@ -122,14 +121,14 @@ export default function AuditLogsPage() {
         {
             title: 'User',
             key: 'userName',
-            render: (_: unknown, record: AuditLog) =>
-                record.user?.userName ?? record.createdBy ?? record.userId ?? '—',
+            render: (_: unknown, record: AuditLogEntryDto) =>
+                record.actorDisplayName ?? record.createdBy ?? record.userId ?? '—',
         },
         {
             title: 'Action',
             dataIndex: 'action',
             key: 'action',
-            render: (action: string) => <Tag color="blue">{action}</Tag>,
+            render: (action: string | null | undefined) => <Tag color="blue">{action ?? '—'}</Tag>,
         },
         {
             title: 'Entity',

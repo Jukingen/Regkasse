@@ -5,6 +5,7 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { AuditEventType } from './auditEventType';
 import type { AuditLogStatus } from './auditLogStatus';
 import type { ApplicationUser } from './applicationUser';
 
@@ -14,8 +15,16 @@ export interface AuditLog {
    * @maxLength 50
    */
   action: string;
+  actionType?: AuditEventType;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  actorDisplayName?: string | null;
   /** @nullable */
   amount?: number | null;
+  /** @nullable */
+  changes?: string | null;
   /**
    * @maxLength 100
    * @nullable
@@ -68,6 +77,8 @@ export interface AuditLog {
    */
   ipAddress?: string | null;
   isActive?: boolean;
+  /** @nullable */
+  metadata?: string | null;
   /**
    * @maxLength 4000
    * @nullable

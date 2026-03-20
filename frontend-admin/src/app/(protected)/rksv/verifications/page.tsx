@@ -5,7 +5,7 @@ import { Card, Table, Tag, Typography, Switch, Space, Alert } from 'antd';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useGetApiAuditLog, useGetApiAuditLogCorrelationCorrelationId } from '@/api/generated/audit-log/audit-log';
-import type { AuditLog } from '@/api/generated/model';
+import type { AuditLogEntryDto } from '@/api/generated/model';
 import dayjs from 'dayjs';
 
 export default function RksvVerificationsPage() {
@@ -24,7 +24,7 @@ export default function RksvVerificationsPage() {
 
     const signatureEntries =
         (useCorrelation ? list : data?.auditLogs)?.filter(
-            (e: AuditLog) =>
+            (e: AuditLogEntryDto) =>
                 e.action?.toLowerCase().includes('signature') ||
                 e.action?.toLowerCase().includes('offline') ||
                 e.entityType?.toLowerCase().includes('receipt') ||
@@ -37,7 +37,7 @@ export default function RksvVerificationsPage() {
     const [suspiciousTimingOnly, setSuspiciousTimingOnly] = React.useState(false);
 
     const filteredEntries = React.useMemo(() => {
-        return signatureEntries.filter((e: AuditLog) => {
+        return signatureEntries.filter((e: AuditLogEntryDto) => {
             const action = String(e.action ?? '').toLowerCase();
             const entity = String(e.entityType ?? '').toLowerCase();
 
@@ -75,15 +75,14 @@ export default function RksvVerificationsPage() {
         },
         {
             title: 'User',
-            dataIndex: ['user', 'userName'],
             key: 'userName',
-            render: (_: unknown, r: AuditLog) => r.user?.userName ?? r.userId ?? '—',
+            render: (_: unknown, r: AuditLogEntryDto) => r.actorDisplayName ?? r.userId ?? '—',
         },
         {
             title: 'Action',
             dataIndex: 'action',
             key: 'action',
-            render: (a: string) => <Tag color="blue">{a}</Tag>,
+            render: (a: string | null | undefined) => <Tag color="blue">{a ?? '—'}</Tag>,
         },
         {
             title: 'Entity',

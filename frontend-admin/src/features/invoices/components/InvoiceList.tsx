@@ -5,6 +5,7 @@ import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, m
 import { SearchOutlined, DownloadOutlined, ReloadOutlined, EyeOutlined, PrinterOutlined, CloudUploadOutlined, RollbackOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
+import Link from 'next/link';
 import type { TablePaginationConfig, TableProps } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -16,11 +17,9 @@ import {
     getGetApiInvoiceIdQueryKey,
     getApiInvoiceId,
 } from '@/api/generated/invoice/invoice';
-import {
-    usePostApiFinanzOnlineSubmitInvoice,
-    postApiFinanzOnlineSubmitInvoice
-} from '@/api/generated/finanz-online/finanz-online';
+import { postApiAdminFinanzonlineReconciliationRetryPaymentId } from '@/api/generated/admin/admin';
 import type { Invoice, PaymentMethod, InvoiceStatus } from '@/api/generated/model';
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 
 // POS-backed list — uses /api/Invoice/pos-list
 import { getInvoicesList, getInvoicePdf, createCreditNote, exportInvoices as orvalExportInvoices } from '../api/invoiceService';
@@ -140,8 +139,9 @@ export const InvoiceList: React.FC = () => {
         }
     );
 
-    // Mutations
-    const submitFinanzOnlineMutation = usePostApiFinanzOnlineSubmitInvoice();
+    const invalidateReconciliationViews = async () => {
+        await queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.base });
+    };
 
     const buildReconciliationLink = (
         cashRegisterId?: string,
@@ -309,38 +309,32 @@ export const InvoiceList: React.FC = () => {
     const handleBatchSubmit = () => {
         if (!selectedRowKeys.length) return;
         Modal.confirm({
-            title: 'Confirm Batch Submit',
-            content: `Are you sure you want to submit ${selectedRowKeys.length} invoice(s) to FinanzOnline? Ineligible statuses will be skipped.`,
+            title: 'Confirm Batch Reconciliation Retry',
+            content: `Retry FinanzOnline reconciliation for ${selectedRowKeys.length} invoice/payment row(s)?`,
             onOk: async () => {
                 setBatchLoading(true);
                 let success = 0;
                 let fail = 0;
                 let skipped = 0;
-                const successfulInvoices: Array<{ cashRegisterId?: string; invoiceDate?: string }> = [];
+                let alreadySubmitted = 0;
+                const attemptedRows: Array<{ cashRegisterId?: string; invoiceDate?: string }> = [];
                 for (const key of selectedRowKeys) {
                     try {
                         const inv = await getApiInvoiceId(key.toString());
-                        if (inv.status !== 1 && inv.status !== 2) {
+                        const paymentId = inv.sourcePaymentId ?? inv.id;
+                        if (!paymentId) {
                             skipped++;
                             continue;
                         }
-                        if (!inv.tseSignature || !inv.taxDetails) {
-                            fail++;
-                            continue;
-                        }
-
-                        const res = await postApiFinanzOnlineSubmitInvoice({
-                            invoiceNumber: inv.invoiceNumber,
-                            totalAmount: inv.totalAmount,
-                            tseSignature: inv.tseSignature,
-                            taxDetails: typeof inv.taxDetails === 'string' ? inv.taxDetails : JSON.stringify(inv.taxDetails),
-                            invoiceDate: inv.invoiceDate,
-                            kassenId: inv.kassenId,
-                        });
-
+                        const res = await postApiAdminFinanzonlineReconciliationRetryPaymentId(paymentId);
                         if (res.success) {
                             success++;
-                            successfulInvoices.push({
+                            if (res.message === 'Submitted' && res.referenceId) {
+                                // Fresh submit with reference id.
+                            } else if (!res.referenceId && res.message === 'Submitted') {
+                                alreadySubmitted++;
+                            }
+                            attemptedRows.push({
                                 cashRegisterId: inv.kassenId || undefined,
                                 invoiceDate: inv.invoiceDate,
                             });
@@ -352,10 +346,10 @@ export const InvoiceList: React.FC = () => {
                     }
                 }
                 setBatchLoading(false);
-                message.info(`Batch Submit: ${success} successful, ${fail} failed, ${skipped} skipped.`);
+                message.info(`Batch reconciliation: ${success} successful, ${fail} failed, ${skipped} skipped, ${alreadySubmitted} already submitted.`);
                 if (success > 0) {
-                    const firstRegister = successfulInvoices.find((x) => !!x.cashRegisterId)?.cashRegisterId;
-                    const dates = successfulInvoices
+                    const firstRegister = attemptedRows.find((x) => !!x.cashRegisterId)?.cashRegisterId;
+                    const dates = attemptedRows
                         .map((x) => x.invoiceDate)
                         .filter((x): x is string => !!x && dayjs(x).isValid());
                     const minDate = dates.length
@@ -365,16 +359,17 @@ export const InvoiceList: React.FC = () => {
                         ? dates.map((d) => dayjs(d)).reduce((a, b) => (b.isAfter(a) ? b : a))
                         : dayjs();
                     openReconciliationHandoffModal({
-                        title: 'Batch Submit abgeschlossen',
-                        messageText: `${success} Rechnung(en) wurden eingereicht. Abgleichsstatus kann direkt geprüft werden.`,
+                        title: 'Batch-Reconciliation abgeschlossen',
+                        messageText: `${success} Rechnung/Payment-Zeilen verarbeitet. Bitte den aktuellen Abgleichsstatus prüfen.`,
                         cashRegisterId: firstRegister,
                         fromUtc: minDate.startOf('day').toISOString(),
                         toUtc: maxDate.endOf('day').toISOString(),
-                        footerHint: `Erfolg: ${success}, Fehlgeschlagen: ${fail}, Übersprungen: ${skipped}`,
+                        footerHint: `Erfolg: ${success}, Fehlgeschlagen: ${fail}, Übersprungen: ${skipped}, Bereits submitted: ${alreadySubmitted}`,
                     });
                 }
                 setSelectedRowKeys([]);
                 refetch();
+                void invalidateReconciliationViews();
             }
         });
     };
@@ -427,94 +422,85 @@ export const InvoiceList: React.FC = () => {
         }
     };
 
-    const handleSubmitFinanzOnline = (invoice: Invoice) => {
-        if (!invoice.tseSignature || !invoice.taxDetails) {
-            message.error('Missing TSE Signature or Tax Details');
+    const handleSubmitFinanzOnline = async (invoice: Invoice) => {
+        const paymentId = invoice.sourcePaymentId ?? invoice.id;
+        if (!paymentId) {
+            message.error('Kein verknüpftes Payment für Reconciliation gefunden');
             return;
         }
-
-        submitFinanzOnlineMutation.mutate({
-            data: {
-                invoiceNumber: invoice.invoiceNumber,
-                totalAmount: invoice.totalAmount,
-                tseSignature: invoice.tseSignature,
-                taxDetails: JSON.stringify(invoice.taxDetails),
-                invoiceDate: invoice.invoiceDate,
-                kassenId: invoice.kassenId,
-            }
-        }, {
-            onSuccess: (data) => {
-                if (data.success) {
-                    message.success('Submitted to FinanzOnline successfully');
-                    const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
-                    openReconciliationHandoffModal({
-                        title: 'Submit erfolgreich',
-                        messageText: data.message || 'Rechnung wurde an FinanzOnline übergeben.',
-                        submissionId: data.submissionId || null,
-                        submittedAt: data.timestamp || null,
-                        cashRegisterId: invoice.kassenId || undefined,
-                        fromUtc: invoiceDate.startOf('day').toISOString(),
-                        toUtc: invoiceDate.endOf('day').toISOString(),
-                    });
-                    refetch();
-                    if (selectedInvoiceId) {
-                        // re-fetch details if open
-                        queryClient.invalidateQueries({ queryKey: getGetApiInvoiceIdQueryKey(selectedInvoiceId) } as any);
-                    }
-                } else {
-                    message.warning(`Submission failed: ${data.message}`);
-                    Modal.warning({
-                        title: 'Submit fehlgeschlagen',
-                        content: (
-                            <Space direction="vertical" size={8}>
-                                <Typography.Text>{data.message || 'Unbekannter Fehler beim Submit.'}</Typography.Text>
-                                <Typography.Text type="secondary">
-                                    Öffne den FinanzOnline-Abgleich, um Status/Retry-Zustand zu prüfen.
-                                </Typography.Text>
-                            </Space>
-                        ),
-                        okText: 'Zum Abgleich',
-                        onOk: () => {
-                            const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
-                            const link = buildReconciliationLink(
-                                invoice.kassenId || undefined,
-                                invoiceDate.startOf('day').toISOString(),
-                                invoiceDate.endOf('day').toISOString(),
-                                'Pending,Failed,NeedsReconciliation'
-                            );
-                            window.open(link, '_blank', 'noopener,noreferrer');
-                        },
-                    });
-                }
-            },
-            onError: (err: any) => {
-                message.error('Error submitting to FinanzOnline');
-                Modal.error({
-                    title: 'Submit Fehler',
+        try {
+            const data = await postApiAdminFinanzonlineReconciliationRetryPaymentId(paymentId);
+            const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
+            if (data.success) {
+                const uiMessage = data.referenceId
+                    ? 'FinanzOnline-Übermittlung erfolgreich abgeschlossen.'
+                    : 'Bereits als Submitted markiert.';
+                message.success(uiMessage);
+                openReconciliationHandoffModal({
+                    title: data.referenceId ? 'Reconciliation erfolgreich' : 'Bereits Submitted',
+                    messageText: `${uiMessage} Status jetzt im Abgleich prüfen.`,
+                    submissionId: data.referenceId || null,
+                    submittedAt: data.submittedAt || null,
+                    cashRegisterId: invoice.kassenId || undefined,
+                    fromUtc: invoiceDate.startOf('day').toISOString(),
+                    toUtc: invoiceDate.endOf('day').toISOString(),
+                });
+            } else {
+                message.warning(`Reconciliation fehlgeschlagen: ${data.message}`);
+                Modal.warning({
+                    title: 'Reconciliation fehlgeschlagen',
                     content: (
                         <Space direction="vertical" size={8}>
-                            <Typography.Text>
-                                {err?.response?.data?.message || 'Fehler beim Übermitteln an FinanzOnline.'}
-                            </Typography.Text>
+                            <Typography.Text>{data.message || 'Unbekannter Fehler beim Retry.'}</Typography.Text>
                             <Typography.Text type="secondary">
-                                Du kannst direkt zur Abgleichsansicht wechseln, um den aktuellen Zustand zu prüfen.
+                                Öffne den FinanzOnline-Abgleich, um Status/Retry-Zustand zu prüfen.
                             </Typography.Text>
                         </Space>
                     ),
                     okText: 'Zum Abgleich',
                     onOk: () => {
-                        const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
                         const link = buildReconciliationLink(
                             invoice.kassenId || undefined,
                             invoiceDate.startOf('day').toISOString(),
                             invoiceDate.endOf('day').toISOString(),
-                            'Pending,Failed,NeedsReconciliation'
+                            'Pending,Failed,NeedsReconciliation,Submitted'
                         );
                         window.open(link, '_blank', 'noopener,noreferrer');
                     },
                 });
             }
-        });
+            refetch();
+            if (selectedInvoiceId) {
+                queryClient.invalidateQueries({ queryKey: getGetApiInvoiceIdQueryKey(selectedInvoiceId) } as any);
+            }
+            void invalidateReconciliationViews();
+        } catch (err: any) {
+            message.error('Error running reconciliation retry');
+            Modal.error({
+                title: 'Reconciliation Fehler',
+                content: (
+                    <Space direction="vertical" size={8}>
+                        <Typography.Text>
+                            {err?.response?.data?.message || 'Fehler beim Auslösen des Reconciliation-Retry.'}
+                        </Typography.Text>
+                        <Typography.Text type="secondary">
+                            Du kannst direkt zur Abgleichsansicht wechseln, um den aktuellen Zustand zu prüfen.
+                        </Typography.Text>
+                    </Space>
+                ),
+                okText: 'Zum Abgleich',
+                onOk: () => {
+                    const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
+                    const link = buildReconciliationLink(
+                        invoice.kassenId || undefined,
+                        invoiceDate.startOf('day').toISOString(),
+                        invoiceDate.endOf('day').toISOString(),
+                        'Pending,Failed,NeedsReconciliation,Submitted'
+                    );
+                    window.open(link, '_blank', 'noopener,noreferrer');
+                },
+            });
+        }
     };
 
     // Columns
@@ -650,7 +636,7 @@ export const InvoiceList: React.FC = () => {
                         onClick={handleBatchSubmit}
                         loading={batchLoading}
                     >
-                        Batch Submit
+                        Batch Reconcile
                     </Button>
                     <Button
                         type="primary"
@@ -800,9 +786,9 @@ export const InvoiceList: React.FC = () => {
                         <Button
                             key="submit"
                             icon={<CloudUploadOutlined />}
-                            onClick={() => handleSubmitFinanzOnline(detailInvoice)}
+                            onClick={() => void handleSubmitFinanzOnline(detailInvoice)}
                         >
-                            Submit to FinanzOnline
+                            Reconciliation Retry
                         </Button>
                     )
                 ]}
@@ -852,6 +838,44 @@ export const InvoiceList: React.FC = () => {
                                     <Descriptions.Item label="Payment Method">{safe(getPaymentMethodLabel(detailInvoice.paymentMethod))}</Descriptions.Item>
                                     <Descriptions.Item label="TSE Signature" span={2} style={{ wordBreak: 'break-all', fontFamily: 'monospace', fontSize: 10 }}>
                                         {safe(detailInvoice.tseSignature)}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Verknüpfte Entitäten" span={2}>
+                                        <Space direction="vertical" size={4}>
+                                            <Space>
+                                                <Typography.Text type="secondary">Payment:</Typography.Text>
+                                                {detailInvoice.sourcePaymentId ? (
+                                                    <>
+                                                        <Typography.Text code copyable>{detailInvoice.sourcePaymentId}</Typography.Text>
+                                                        <Link
+                                                            href={`/payments?paymentId=${encodeURIComponent(detailInvoice.sourcePaymentId)}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            Öffnen
+                                                        </Link>
+                                                    </>
+                                                ) : (
+                                                    <Typography.Text type="secondary">—</Typography.Text>
+                                                )}
+                                            </Space>
+                                            <Space>
+                                                <Typography.Text type="secondary">Rechnung:</Typography.Text>
+                                                <Typography.Text code copyable>{safe(detailInvoice.invoiceNumber)}</Typography.Text>
+                                            </Space>
+                                            {detailInvoice.correlationId ? (
+                                                <Space>
+                                                    <Typography.Text type="secondary">Correlation:</Typography.Text>
+                                                    <Typography.Text code copyable>{detailInvoice.correlationId}</Typography.Text>
+                                                    <Link
+                                                        href={`/rksv/incident?correlationId=${encodeURIComponent(detailInvoice.correlationId)}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        Incident
+                                                    </Link>
+                                                </Space>
+                                            ) : null}
+                                        </Space>
                                     </Descriptions.Item>
 
                                     <Descriptions.Item label="Items (JSON)" span={2}>

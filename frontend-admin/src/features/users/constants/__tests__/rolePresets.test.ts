@@ -58,7 +58,10 @@ describe('rolePresets', () => {
       const appliedDraft = getPresetKeysInCatalog(PRESET_RAPOR_GORUNTULEME, catalogSet);
       const savedSet = new Set(savedPermissions);
       const draftSet = new Set(appliedDraft);
-      const dirty = draftSet.size !== savedSet.size || [...draftSet].some((p) => !savedSet.has(p)) || [...savedSet].some((p) => !draftSet.has(p));
+      const dirty =
+        draftSet.size !== savedSet.size ||
+        Array.from(draftSet).some((p) => !savedSet.has(p)) ||
+        Array.from(savedSet).some((p) => !draftSet.has(p));
       expect(dirty).toBe(true);
     });
   });

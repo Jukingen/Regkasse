@@ -19,46 +19,19 @@ import {
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
-import { customInstance } from '@/lib/axios';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { getApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import { normalizeCashRegisterListBody, type CashRegisterRow } from '@/features/tagesabschluss/normalizers';
+import {
+    getApiAdminOfflineIntentCoverage,
+    getApiAdminOfflineIntentCoverageTopRisk,
+} from '@/api/generated/admin/admin';
+import {
+    getAdminCashRegisters,
+} from '@/api/admin-rksv/client';
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import type { CashRegisterRow } from '@/features/tagesabschluss/normalizers';
+import type { OfflineIntentCoverageByRegisterDto } from '@/api/generated/model';
 
 const { RangePicker } = DatePicker;
-
-const BASE = '/api/admin/offline-intent-coverage';
-
-type OfflineIntentCoverageByRegisterDto = {
-    cashRegisterId: string;
-    total: number;
-    withDeviceId: number;
-    withSequence: number;
-    deviceIdMissingRate: number; // 0..1
-    sequenceMissingRate: number; // 0..1
-    riskScore: number; // deviceIdMissingRate + sequenceMissingRate
-};
-
-type OfflineIntentCoverageResponse = {
-    fromUtc: string;
-    toUtc: string;
-    total: number;
-    withDeviceId: number;
-    withSequence: number;
-    deviceIdMissingRate: number;
-    sequenceMissingRate: number;
-    deviceIdCoveragePercent: number; // 0..100
-    sequenceCoveragePercent: number; // 0..100
-    lowCoverageAlert: boolean;
-    alertReason?: string | null;
-    byRegister: OfflineIntentCoverageByRegisterDto[];
-};
-
-type OfflineIntentCoverageTopRiskResponse = {
-    fromUtc: string;
-    toUtc: string;
-    limit: number;
-    registers: OfflineIntentCoverageByRegisterDto[];
-};
 
 function riskTagColor(score: number): string {
     if (score >= 1.0) return 'red';
@@ -79,11 +52,8 @@ export default function OfflineIntentCoveragePage() {
     const [topLimit, setTopLimit] = useState<number>(10);
 
     const registersQuery = useQuery({
-        queryKey: ['admin', 'cash-registers', 'offline-coverage-filter'],
-        queryFn: async () => {
-            const raw = await getApiCashRegister();
-            return normalizeCashRegisterListBody(raw);
-        },
+        queryKey: rksvAdminQueryKeys.cashRegisters,
+        queryFn: getAdminCashRegisters,
         staleTime: 60_000,
     });
 
@@ -113,24 +83,14 @@ export default function OfflineIntentCoveragePage() {
     }, [params, topLimit]);
 
     const coverageQuery = useQuery({
-        queryKey: ['admin', 'offline-intent-coverage', 'summary', params],
-        queryFn: () =>
-            customInstance<OfflineIntentCoverageResponse>({
-                url: BASE,
-                method: 'GET',
-                params,
-            }),
+        queryKey: rksvAdminQueryKeys.offlineIntentCoverage.summary(params),
+        queryFn: () => getApiAdminOfflineIntentCoverage(params),
         staleTime: 30_000,
     });
 
     const topRiskQuery = useQuery({
-        queryKey: ['admin', 'offline-intent-coverage', 'top-risk', topRiskParams],
-        queryFn: () =>
-            customInstance<OfflineIntentCoverageTopRiskResponse>({
-                url: `${BASE}/top-risk`,
-                method: 'GET',
-                params: topRiskParams,
-            }),
+        queryKey: rksvAdminQueryKeys.offlineIntentCoverage.topRisk(topRiskParams),
+        queryFn: () => getApiAdminOfflineIntentCoverageTopRisk(topRiskParams),
         staleTime: 30_000,
     });
 
@@ -305,7 +265,7 @@ export default function OfflineIntentCoveragePage() {
                         <Table
                             columns={byRegisterColumns}
                             dataSource={byRegister}
-                            rowKey={(r) => r.cashRegisterId}
+                            rowKey={(r, idx) => r.cashRegisterId ?? `register-${idx ?? 0}`}
                             pagination={false}
                             locale={{ emptyText: 'No coverage samples in this window.' }}
                             size="small"
@@ -316,7 +276,7 @@ export default function OfflineIntentCoveragePage() {
                         <Table
                             columns={byRegisterColumns}
                             dataSource={topRiskRegisters}
-                            rowKey={(r) => r.cashRegisterId}
+                            rowKey={(r, idx) => r.cashRegisterId ?? `top-risk-${idx ?? 0}`}
                             pagination={false}
                             locale={{ emptyText: 'No top-risk samples in this window.' }}
                             size="small"

@@ -26,14 +26,17 @@ namespace KasseAPI_Final.Controllers
         /// Perform daily closing for the current day
         /// </summary>
         [HttpPost("daily")]
-        public async Task<IActionResult> PerformDailyClosing([FromBody] DailyClosingRequest request)
+        [ProducesResponseType(typeof(TagesabschlussResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<TagesabschlussResult>> PerformDailyClosing([FromBody] DailyClosingRequest request)
         {
             try
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized("User ID not found in token");
+                    return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
                 }
 
                 var result = await _tagesabschlussService.PerformDailyClosingAsync(userId, request.CashRegisterId);
@@ -45,7 +48,7 @@ namespace KasseAPI_Final.Controllers
                 else
                 {
                     _logger.LogWarning("Daily closing blocked: {Reason}", result.ErrorMessage);
-                    return BadRequest(new
+                    return BadRequest(new TagesabschlussErrorResponse
                     {
                         error = result.ErrorMessage,
                         paymentsWithoutInvoiceCount = result.PaymentsWithoutInvoiceCount
@@ -54,7 +57,7 @@ namespace KasseAPI_Final.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+                return StatusCode(500, new TagesabschlussErrorResponse { error = "Internal server error", details = ex.Message });
             }
         }
 
@@ -62,14 +65,17 @@ namespace KasseAPI_Final.Controllers
         /// Perform monthly closing for the current month
         /// </summary>
         [HttpPost("monthly")]
-        public async Task<IActionResult> PerformMonthlyClosing([FromBody] DailyClosingRequest request)
+        [ProducesResponseType(typeof(TagesabschlussResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<TagesabschlussResult>> PerformMonthlyClosing([FromBody] DailyClosingRequest request)
         {
             try
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized("User ID not found in token");
+                    return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
                 }
 
                 var result = await _tagesabschlussService.PerformMonthlyClosingAsync(userId, request.CashRegisterId);
@@ -81,7 +87,7 @@ namespace KasseAPI_Final.Controllers
                 else
                 {
                     _logger.LogWarning("Monthly closing blocked: {Reason}", result.ErrorMessage);
-                    return BadRequest(new
+                    return BadRequest(new TagesabschlussErrorResponse
                     {
                         error = result.ErrorMessage,
                         paymentsWithoutInvoiceCount = result.PaymentsWithoutInvoiceCount
@@ -90,7 +96,7 @@ namespace KasseAPI_Final.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+                return StatusCode(500, new TagesabschlussErrorResponse { error = "Internal server error", details = ex.Message });
             }
         }
 
@@ -98,14 +104,17 @@ namespace KasseAPI_Final.Controllers
         /// Perform yearly closing for the current year
         /// </summary>
         [HttpPost("yearly")]
-        public async Task<IActionResult> PerformYearlyClosing([FromBody] DailyClosingRequest request)
+        [ProducesResponseType(typeof(TagesabschlussResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<TagesabschlussResult>> PerformYearlyClosing([FromBody] DailyClosingRequest request)
         {
             try
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized("User ID not found in token");
+                    return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
                 }
 
                 var result = await _tagesabschlussService.PerformYearlyClosingAsync(userId, request.CashRegisterId);
@@ -117,7 +126,7 @@ namespace KasseAPI_Final.Controllers
                 else
                 {
                     _logger.LogWarning("Yearly closing blocked: {Reason}", result.ErrorMessage);
-                    return BadRequest(new
+                    return BadRequest(new TagesabschlussErrorResponse
                     {
                         error = result.ErrorMessage,
                         paymentsWithoutInvoiceCount = result.PaymentsWithoutInvoiceCount
@@ -126,7 +135,7 @@ namespace KasseAPI_Final.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+                return StatusCode(500, new TagesabschlussErrorResponse { error = "Internal server error", details = ex.Message });
             }
         }
 
@@ -134,14 +143,16 @@ namespace KasseAPI_Final.Controllers
         /// Get closing history for the authenticated user
         /// </summary>
         [HttpGet("history")]
-        public async Task<IActionResult> GetClosingHistory([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? cashRegisterId)
+        [ProducesResponseType(typeof(List<TagesabschlussResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<List<TagesabschlussResult>>> GetClosingHistory([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? cashRegisterId)
         {
             try
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized("User ID not found in token");
+                    return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
                 }
 
                 var history = await _tagesabschlussService.GetClosingHistoryAsync(userId, fromDate, toDate, cashRegisterId);
@@ -149,7 +160,7 @@ namespace KasseAPI_Final.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+                return StatusCode(500, new TagesabschlussErrorResponse { error = "Internal server error", details = ex.Message });
             }
         }
 
@@ -157,7 +168,9 @@ namespace KasseAPI_Final.Controllers
         /// Check if daily closing can be performed for a cash register
         /// </summary>
         [HttpGet("can-close/{cashRegisterId}")]
-        public async Task<IActionResult> CanPerformClosing(Guid cashRegisterId)
+        [ProducesResponseType(typeof(TagesabschlussCanCloseResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<TagesabschlussCanCloseResponse>> CanPerformClosing(Guid cashRegisterId)
         {
             try
             {
@@ -172,17 +185,17 @@ namespace KasseAPI_Final.Controllers
                         ? $"{paymentsWithoutInvoiceCount} payment(s) without invoice; resolve before closing."
                         : "Daily closing already performed for today");
 
-                return Ok(new
+                return Ok(new TagesabschlussCanCloseResponse
                 {
-                    canClose,
-                    lastClosingDate,
-                    paymentsWithoutInvoiceCount,
-                    message
+                    canClose = canClose,
+                    lastClosingDate = lastClosingDate,
+                    paymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,
+                    message = message
                 });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+                return StatusCode(500, new TagesabschlussErrorResponse { error = "Internal server error", details = ex.Message });
             }
         }
 
@@ -190,19 +203,21 @@ namespace KasseAPI_Final.Controllers
         /// Get closing statistics for a specific period
         /// </summary>
         [HttpGet("statistics")]
-        public async Task<IActionResult> GetClosingStatistics([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? cashRegisterId)
+        [ProducesResponseType(typeof(TagesabschlussStatisticsResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<TagesabschlussStatisticsResponse>> GetClosingStatistics([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? cashRegisterId)
         {
             try
             {
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized("User ID not found in token");
+                    return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
                 }
 
                 var history = await _tagesabschlussService.GetClosingHistoryAsync(userId, fromDate, toDate, cashRegisterId);
                 
-                var statistics = new
+                var statistics = new TagesabschlussStatisticsResponse
                 {
                     totalClosings = history.Count,
                     totalAmount = history.Sum(h => h.TotalAmount),
@@ -218,7 +233,7 @@ namespace KasseAPI_Final.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+                return StatusCode(500, new TagesabschlussErrorResponse { error = "Internal server error", details = ex.Message });
             }
         }
     }
@@ -227,5 +242,37 @@ namespace KasseAPI_Final.Controllers
     {
         [Required]
         public Guid CashRegisterId { get; set; }
+    }
+
+    public class TagesabschlussCanCloseResponse
+    {
+        [Required]
+        public bool canClose { get; set; }
+        public DateTime? lastClosingDate { get; set; }
+        [Required]
+        public int paymentsWithoutInvoiceCount { get; set; }
+        public string? message { get; set; }
+    }
+
+    public class TagesabschlussStatisticsResponse
+    {
+        [Required]
+        public int totalClosings { get; set; }
+        [Required]
+        public decimal totalAmount { get; set; }
+        [Required]
+        public decimal totalTaxAmount { get; set; }
+        [Required]
+        public int totalTransactions { get; set; }
+        [Required]
+        public decimal averageDailyAmount { get; set; }
+        public DateTime? lastClosingDate { get; set; }
+    }
+
+    public class TagesabschlussErrorResponse
+    {
+        public string? error { get; set; }
+        public string? details { get; set; }
+        public int? paymentsWithoutInvoiceCount { get; set; }
     }
 }

@@ -210,8 +210,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLoading(true);
         console.log(`🔄 [CartContext] Fetching fresh data for Table ${tableNumber}...`);
         try {
-            // GET /cart/current?tableNumber=X (equivalent to GET /Table/{id})
-            const response = await apiClient.get<AddItemResponse['cart']>(`/cart/current?tableNumber=${tableNumber}`);
+            // GET /pos/cart/current?tableNumber=X (equivalent to GET /Table/{id})
+            const response = await apiClient.get<AddItemResponse['cart']>(`/pos/cart/current?tableNumber=${tableNumber}`);
 
             if (response && (response.items || response.Items)) {
                 const backendItems = response.items || response.Items || [];
@@ -409,7 +409,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 tableNumber: activeTableId
             };
 
-            const response = await apiClient.post<AddItemResponse>('/cart/add-item', body);
+            const response = await apiClient.post<AddItemResponse>('/pos/cart/add-item', body);
 
             if (response.cart) {
                 const backendCart = response.cart;
@@ -532,7 +532,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }));
 
             // Backend DELETE using itemId directly from local state
-            await apiClient.delete(`/Cart/items/${item.itemId}`);
+            await apiClient.delete(`/pos/cart/items/${item.itemId}`);
 
             console.log('✅ [remove] Item removed successfully');
         } catch (err: any) {
@@ -590,8 +590,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             }));
 
-            // PUT /cart/items/{itemId} with {quantity} - using itemId directly from state
-            await apiClient.put(`/Cart/items/${item.itemId}`, {
+            // PUT /pos/cart/items/{itemId} with {quantity} - using itemId directly from state
+            await apiClient.put(`/pos/cart/items/${item.itemId}`, {
                 Quantity: quantity,
                 Notes: item.notes || ""
             });
@@ -641,7 +641,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 ...prev,
                 [activeTableId]: { ...currentCart, items: updatedItems, updatedAt: Date.now() }
             }));
-            await apiClient.delete(`/Cart/items/${item.itemId}`);
+            await apiClient.delete(`/pos/cart/items/${item.itemId}`);
             await fetchTableCart(activeTableId, true);
         } catch (err: any) {
             const status = err?.response?.status;
@@ -699,7 +699,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 ...prev,
                 [activeTableId]: { ...currentCart, items: updatedItems, updatedAt: Date.now() }
             }));
-            await apiClient.put(`/Cart/items/${item.itemId}`, {
+            await apiClient.put(`/pos/cart/items/${item.itemId}`, {
                 Quantity: quantity,
                 Notes: item.notes || ''
             });
@@ -722,7 +722,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (!item.itemId) return;
             try {
                 // FE sends Quantity per modifier; backend may only persist id until API supports modifier quantity.
-                await apiClient.put(`/Cart/items/${item.itemId}`, {
+                await apiClient.put(`/pos/cart/items/${item.itemId}`, {
                     Quantity: item.qty ?? 0,
                     Notes: item.notes ?? '',
                     SelectedModifiers: nextMods.map((m) => ({ Id: m.id, Quantity: m.quantity ?? 1 }))
@@ -890,7 +890,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             }));
 
-            await apiClient.put(`/Cart/items/${item.itemId}`, {
+            await apiClient.put(`/pos/cart/items/${item.itemId}`, {
                 Quantity: newQuantity,
                 Notes: item.notes || ""
             });
@@ -959,7 +959,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 }
             }));
 
-            await apiClient.put(`/Cart/items/${item.itemId}`, {
+            await apiClient.put(`/pos/cart/items/${item.itemId}`, {
                 Quantity: newQuantity,
                 Notes: item.notes || ""
             });
@@ -983,7 +983,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const target = tableNumber ?? activeTableId;
         setLoading(true);
         try {
-            await apiClient.post(`/cart/clear?tableNumber=${target}`);
+            await apiClient.post(`/pos/cart/clear?tableNumber=${target}`);
 
             // ✅ Fix: Don't delete the key, just empty the items
             setCartsByTable(prev => ({

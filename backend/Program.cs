@@ -198,6 +198,7 @@ builder.Services.AddSwaggerGen(c =>
     });
     
     c.SchemaFilter<KasseAPI_Final.Swagger.TaxTypeSchemaFilter>();
+    c.SchemaFilter<KasseAPI_Final.Swagger.TagesabschlussSchemaRequiredFilter>();
     c.OperationFilter<SignatureDebugSwaggerExamples>();
     c.OperationFilter<KasseAPI_Final.Swagger.PosAdminTagsAndDeprecationFilter>();
     

@@ -2,33 +2,32 @@
  * Centralized API endpoint paths — MUST match swagger.json / backend route attributes exactly.
  * 
  * Rule: Never hardcode endpoint path strings elsewhere. Import from here.
- * Backend controller routes use PascalCase (e.g. /Product, /Cart, /Auth).
- * These constants ensure frontend always matches backend casing.
+ * Canonical POS surfaces live under /pos/*.
  */
 export const API_PATHS = {
     PRODUCT: {
         /** GET - Paginated active products */
-        LIST: '/Product',
+        LIST: '/pos',
         /** GET - All active products without pagination */
-        ALL: '/Product/all',
+        ALL: '/pos/all',
         /** GET - Catalog: categories with IDs + products with categoryId */
-        CATALOG: '/Product/catalog',
+        CATALOG: '/pos/catalog',
         /** GET - Active products grouped by category */
-        ACTIVE: '/Product/active',
+        ACTIVE: '/pos/active',
         /** GET - All unique category names */
-        CATEGORIES: '/Product/categories',
+        CATEGORIES: '/pos/categories',
         /** GET - Products filtered by category name */
-        CATEGORY: (name: string) => `/Product/category/${encodeURIComponent(name)}`,
+        CATEGORY: (name: string) => `/pos/category/${encodeURIComponent(name)}`,
         /** GET - Search products by name/category query params */
-        SEARCH: '/Product/search',
+        SEARCH: '/pos/search',
         /** GET/PUT - Single product by ID */
-        BY_ID: (id: string) => `/Product/${id}`,
+        BY_ID: (id: string) => `/pos/${id}`,
         /** GET - Product modifier groups (Extra Zutaten) */
-        MODIFIER_GROUPS: (id: string) => `/Product/${id}/modifier-groups`,
+        MODIFIER_GROUPS: (id: string) => `/pos/${id}/modifier-groups`,
         /** PUT - Update product stock */
-        STOCK: (id: string) => `/Product/stock/${id}`,
+        STOCK: (id: string) => `/pos/stock/${id}`,
         /** GET - Debug: categories and products info */
-        DEBUG: '/Product/debug/categories-products',
+        DEBUG: '/pos/debug/categories-products',
     },
     // Future: CART, AUTH, INVOICE, etc.
 } as const;

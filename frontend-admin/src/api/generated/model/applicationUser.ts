@@ -28,6 +28,18 @@ export interface ApplicationUser {
   concurrencyStamp?: string | null;
   createdAt?: string;
   /** @nullable */
+  deactivatedAt?: string | null;
+  /**
+   * @maxLength 450
+   * @nullable
+   */
+  deactivatedBy?: string | null;
+  /**
+   * @maxLength 500
+   * @nullable
+   */
+  deactivationReason?: string | null;
+  /** @nullable */
   email?: string | null;
   emailConfirmed?: boolean;
   /**

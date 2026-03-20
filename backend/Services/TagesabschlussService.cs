@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -392,18 +393,24 @@ namespace KasseAPI_Final.Services
 
     public class TagesabschlussResult
     {
+        [Required]
         public bool Success { get; set; }
         public string? ErrorMessage { get; set; }
         public Guid? ClosingId { get; set; }
+        [Required]
         public DateTime ClosingDate { get; set; }
         public string? ClosingType { get; set; }
+        [Required]
         public decimal TotalAmount { get; set; }
+        [Required]
         public decimal TotalTaxAmount { get; set; }
+        [Required]
         public int TransactionCount { get; set; }
         public string? TseSignature { get; set; }
         public string? Status { get; set; }
         public string? FinanzOnlineStatus { get; set; }
         /// <summary>When Success is false due to Sprint 4 enforcement: count of payments without Invoice that blocked closing. On success, 0.</summary>
+        [Required]
         public int PaymentsWithoutInvoiceCount { get; set; }
         /// <summary>Optional warning on success. Unused when closing is blocked (PaymentsWithoutInvoiceCount &gt; 0).</summary>
         public string? Warning { get; set; }

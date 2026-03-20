@@ -188,7 +188,7 @@ export function useOptimizedTableOrdersRecovery() {
     if (!user || !user.token) return null;
     
     try {
-      const response = await fetch('/api/cart/table-orders-recovery', {
+      const response = await fetch('/api/pos/cart/table-orders-recovery', {
         headers: {
           'Authorization': `Bearer ${user.token}`, // user.token JWT token, Bearer prefix ekle
           'Content-Type': 'application/json',

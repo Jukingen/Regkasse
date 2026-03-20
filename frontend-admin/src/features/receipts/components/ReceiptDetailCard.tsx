@@ -43,7 +43,14 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
             </Descriptions.Item>
             <Descriptions.Item label="Payment ID">
                 {receipt.paymentId ? (
-                    <Text copyable style={{ fontSize: 12 }}>{receipt.paymentId}</Text>
+                    <div>
+                        <Text copyable style={{ fontSize: 12 }}>{receipt.paymentId}</Text>
+                        <div style={{ marginTop: 6 }}>
+                            <Link href={`/payments?paymentId=${encodeURIComponent(receipt.paymentId)}`}>
+                                Payment öffnen
+                            </Link>
+                        </div>
+                    </div>
                 ) : '—'}
             </Descriptions.Item>
             {receipt.hasOfflineOrigin ? (
@@ -87,9 +94,14 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                 <Descriptions.Item label="Fiscal trace (reversal)">
                     <Tag color="orange">{receipt.fiscalTraceKind}</Tag>
                     {receipt.originalPaymentId ? (
-                        <Text type="secondary" copyable style={{ fontSize: 11, display: 'block', marginTop: 4 }}>
-                            Original payment: {receipt.originalPaymentId}
-                        </Text>
+                        <div style={{ marginTop: 4 }}>
+                            <Text type="secondary" copyable style={{ fontSize: 11, display: 'block' }}>
+                                Original payment: {receipt.originalPaymentId}
+                            </Text>
+                            <Link href={`/payments?paymentId=${encodeURIComponent(receipt.originalPaymentId)}`}>
+                                Original payment öffnen
+                            </Link>
+                        </div>
                     ) : null}
                     {receipt.originalSaleReceiptId ? (
                         <div style={{ marginTop: 8 }}>

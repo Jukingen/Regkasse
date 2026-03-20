@@ -11,8 +11,7 @@ import type { PaymentMethod } from './paymentMethod';
 import type { InvoiceStatus } from './invoiceStatus';
 
 export interface Invoice {
-  /** @nullable */
-  cashRegisterId?: string | null;
+  cashRegisterId: string;
   /**
    * @minLength 0
    * @maxLength 200

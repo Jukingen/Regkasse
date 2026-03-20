@@ -11,8 +11,13 @@ export type SettingsFormValues = Omit<UpdateCompanySettingsRequest, 'businessHou
     finanzOnlineEnabled?: boolean;
     finanzOnlineParticipantId?: string;
     finanzOnlinePin?: string;
+    finanzOnlineApiUrl?: string;
     finanzOnlineSubmitInterval?: number;
+    finanzOnlineRetryAttempts?: number;
     finanzOnlineAutoSubmit?: boolean;
+    finanzOnlineEnableValidation?: boolean;
+    lastFinanzOnlineSync?: string;
+    pendingInvoices?: number;
     defaultTseDeviceId?: string;
     tseAutoConnect?: boolean;
     tseConnectionTimeout?: number;
@@ -52,10 +57,16 @@ export function mapSettingsToFormValues(s: CompanySettings | undefined): Partial
         receiptNumbering: s.receiptNumbering,
         businessHours: s.businessHours as Record<string, string>,
         finanzOnlineEnabled: s.finanzOnlineEnabled,
+        finanzOnlineApiUrl: s.finanzOnlineApiUrl ?? undefined,
         finanzOnlineParticipantId: s.finanzOnlineUsername ?? undefined,
-        finanzOnlinePin: s.finanzOnlinePassword ?? undefined,
+        // Do not prefill secrets in settings form.
+        finanzOnlinePin: undefined,
         finanzOnlineSubmitInterval: s.finanzOnlineSubmitInterval,
+        finanzOnlineRetryAttempts: s.finanzOnlineRetryAttempts,
         finanzOnlineAutoSubmit: s.finanzOnlineAutoSubmit,
+        finanzOnlineEnableValidation: s.finanzOnlineEnableValidation,
+        lastFinanzOnlineSync: s.lastFinanzOnlineSync ?? undefined,
+        pendingInvoices: s.pendingInvoices ?? undefined,
         defaultTseDeviceId: s.defaultTseDeviceId ?? undefined,
         tseAutoConnect: s.tseAutoConnect,
         tseConnectionTimeout: s.tseConnectionTimeout,
@@ -97,11 +108,14 @@ export function mapFormValuesToUpdateRequest(v: SettingsFormValues): UpdateCompa
     };
     return {
         ...base,
+        finanzOnlineApiUrl: v.finanzOnlineApiUrl,
         finanzOnlineUsername: v.finanzOnlineParticipantId,
         finanzOnlinePassword: v.finanzOnlinePin,
         finanzOnlineEnabled: v.finanzOnlineEnabled,
         finanzOnlineSubmitInterval: v.finanzOnlineSubmitInterval,
+        finanzOnlineRetryAttempts: v.finanzOnlineRetryAttempts,
         finanzOnlineAutoSubmit: v.finanzOnlineAutoSubmit,
+        finanzOnlineEnableValidation: v.finanzOnlineEnableValidation,
         defaultTseDeviceId: v.defaultTseDeviceId,
         tseAutoConnect: v.tseAutoConnect,
         tseConnectionTimeout: v.tseConnectionTimeout,

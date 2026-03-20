@@ -19,15 +19,16 @@ import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
+import {
+    downloadFiscalExportJson,
+    extractApiErrorMessage,
+    getAdminCashRegisters,
+    getFiscalExportPreview,
+} from '@/api/admin-rksv/client';
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import type { GetApiAdminFiscalExportParams } from '@/api/generated/model';
 
 const { RangePicker } = DatePicker;
-
-const BASE = '/api/admin/fiscal-export';
-
-interface CashRegisterListResponse {
-    registers?: { id: string; registerNumber?: string }[];
-}
 
 type FiscalExportIntegrity = {
     signatureChainValid?: boolean;
@@ -94,12 +95,8 @@ export default function FiscalExportDiagnosticsPage() {
     const [preview, setPreview] = useState<FiscalExportPackage | null>(null);
 
     const { data: cashRegisters, isLoading: cashLoading } = useQuery({
-        queryKey: ['admin-cash-registers'],
-        queryFn: async () =>
-            customInstance<CashRegisterListResponse>({
-                url: '/api/CashRegister',
-                method: 'GET',
-            }),
+        queryKey: rksvAdminQueryKeys.cashRegisters,
+        queryFn: getAdminCashRegisters,
         staleTime: 60_000,
     });
 
@@ -108,7 +105,7 @@ export default function FiscalExportDiagnosticsPage() {
 
     const canRun = Boolean(cashRegisterId && fromUtc && toUtc && !exportLoading);
 
-    const params = useMemo(() => {
+    const params = useMemo<GetApiAdminFiscalExportParams>(() => {
         return {
             cashRegisterId,
             fromUtc,
@@ -127,17 +124,10 @@ export default function FiscalExportDiagnosticsPage() {
         setExportError(null);
 
         try {
-            const data = await customInstance<FiscalExportPackage>({
-                url: BASE,
-                method: 'GET',
-                params: {
-                    ...params,
-                    format: 'json',
-                },
-            });
+            const data = await getFiscalExportPreview(params);
             setPreview(data);
         } catch (e) {
-            const msg = e instanceof Error ? e.message : 'Export failed';
+            const msg = extractApiErrorMessage(e, 'Export failed');
             setExportError(msg);
             setPreview(null);
         } finally {
@@ -155,22 +145,11 @@ export default function FiscalExportDiagnosticsPage() {
         setExportError(null);
 
         try {
-            const res = await AXIOS_INSTANCE.get<globalThis.Blob>(BASE, {
-                params: {
-                    ...params,
-                    format: 'jsonDownload',
-                },
-                responseType: 'blob',
-            });
-
-            const disposition = String(res.headers?.['content-disposition'] ?? '');
-            const match = disposition.match(/filename="?([^"]+)"?/i);
-            const fileName =
-                match?.[1] ??
-                `fiscal-export-${cashRegisterId}-${fromUtc.slice(0, 10)}-${toUtc.slice(0, 10)}.json`;
+            const blob = await downloadFiscalExportJson(params);
+            const fileName = `fiscal-export-${cashRegisterId}-${fromUtc.slice(0, 10)}-${toUtc.slice(0, 10)}.json`;
 
             // Avoid downloading backend error payloads (JSON error envelope).
-            const maybeText = await res.data.text();
+            const maybeText = await blob.text();
             try {
                 const parsed = JSON.parse(maybeText);
                 if (typeof parsed?.message === 'string' && typeof parsed?.code === 'string') {
@@ -181,9 +160,9 @@ export default function FiscalExportDiagnosticsPage() {
                 // Not an error envelope; proceed with download.
             }
 
-            downloadBlob(res.data, fileName);
+            downloadBlob(blob, fileName);
         } catch (e) {
-            const msg = e instanceof Error ? e.message : 'Download failed';
+            const msg = extractApiErrorMessage(e, 'Download failed');
             setExportError(msg);
         } finally {
             setExportLoading(false);
@@ -244,10 +223,12 @@ export default function FiscalExportDiagnosticsPage() {
                             allowClear
                             value={cashRegisterId}
                             onChange={(v) => setCashRegisterId(v)}
-                            options={(cashRegisters?.registers ?? []).map((r) => ({
-                                value: r.id,
-                                label: r.registerNumber ? `${r.registerNumber} (${r.id.slice(0, 8)}…)` : r.id,
-                            }))}
+                            options={(cashRegisters ?? [])
+                                .filter((r) => typeof r.id === 'string' && r.id.length > 0)
+                                .map((r) => ({
+                                    value: r.id as string,
+                                    label: r.registerNumber ? `${r.registerNumber} (${(r.id as string).slice(0, 8)}…)` : (r.id as string),
+                                }))}
                         />
                     </div>
 

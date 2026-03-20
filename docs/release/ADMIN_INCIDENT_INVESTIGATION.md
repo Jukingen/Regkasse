@@ -2,33 +2,32 @@
 
 ## Overview
 
-Single support-first screen that composes existing APIs to show replay batch, audit timeline, replayPath/payloadRepaired, FinanzOnline attempts, and payment/receipt/register links. No new backend endpoint; optional aggregation endpoint only if needed later.
+Single support-first screen built on a dedicated aggregated backend endpoint to show replay batch, audit timeline, replayPath/payloadRepaired, FinanzOnline attempts, and payment/receipt/register links.
+No client-side multi-endpoint composition is required.
 
 ## Screen Flow
 
 1. **Entry:** RKSV → **Incident (Correlation-ID)** or URL `/rksv/incident` or `/rksv/incident?correlationId=xxx`.
 2. **Search:** User enters Correlation-ID (with or without dashes), clicks **Suchen** (or pastes from URL query).
-3. **Loading:** Batch is fetched first; then audit by batch’s `auditCorrelationId`; reconciliation list is fetched and filtered by batch payment IDs.
+3. **Loading:** One call to the aggregated incident endpoint returns replay batch, mapped audit entries, and FinanzOnline reconciliation rows.
 4. **Result (top to bottom):**
    - **Replay-Zusammenfassung:** totalItems, successCount, failedOrDuplicateCount, correlationId + auditCorrelationId (copyable).
    - **Timeline (Audit):** Chronological audit entries; each line shows timestamp, action, short description, and **ReplayPath** / **PayloadRepaired** when present in requestData/responseData.
    - **Zahlungen / Belege / FO:** Table with Payment (link), Receipt (link), FO Status (tag + error + retry count), Amount.
    - **Rohes Audit-Log (JSON):** Collapsible section with full `auditLogs` array for copy/debug.
 
-## Data Sources (Composed, No New Backend)
+## Data Source (Aggregated Backend Endpoint)
 
 | Source | Endpoint | When |
 |--------|----------|------|
-| Replay batch | `GET /api/admin/replay-batch/{correlationId}` | On search; correlationId normalized (Guid with/without dashes). |
-| Audit by correlation | `GET /api/AuditLog/correlation/{auditCorrelationId}` | After batch loaded; uses `batch.auditCorrelationId` (N format). |
-| FO reconciliation | `GET /api/admin/finanzonline-reconciliation?status=...&limit=500` | When batch has payments; client filters items by `batch.payments[].paymentId`. |
+| Incident aggregate | `GET /api/admin/incidents/{correlationId}` | On search; correlationId normalized (Guid with/without dashes). |
 
 ## Timeline Logic
 
 - **Replay started:** First audit entry for this correlation (e.g. OfflineReplayBatchStarted or similar).
 - **Dedup / Recompute / Structural:** Shown via **ReplayPath** parsed from audit `requestData`/`responseData` (e.g. `requested_id`, `hash_match`, `recompute`, `structural`).
 - **Synced / Failed:** From audit action/status and batch summary (successCount, failedOrDuplicateCount).
-- **FO submit/retry:** From reconciliation list filtered by batch paymentIds (status, error, retryCount per payment).
+- **FO submit/retry:** From `finanzOnlineReconciliation` rows returned by the incident aggregate payload.
 
 ## ReplayPath and PayloadRepaired
 
@@ -38,17 +37,20 @@ Single support-first screen that composes existing APIs to show replay batch, au
   - **PayloadRepaired** as tag when `true`.
 - Raw audit JSON is kept in the collapsible section for full detail.
 
-## New / Extra Endpoint Need
+## Current Source of Truth
 
-- **None** for the current design. All data comes from existing endpoints; reconciliation list is filtered client-side by batch payment IDs (limit 500; sufficient for typical batch sizes).
-- **Optional later:** If support needs a single “incident by correlationId” response (e.g. to reduce round-trips or to support very large reconciliation lists), a minimal aggregation endpoint could return `{ batch, auditLogs, foByPaymentId }` in one call.
+- Backend aggregate endpoint and contract:
+  - `backend/Controllers/AdminIncidentInvestigationController.cs`
+  - `GET /api/admin/incidents/{correlationId}`
+- Frontend consumer:
+  - `frontend-admin/src/app/(protected)/rksv/incident/page.tsx`
 
 ## Test Plan
 
-1. **Search:** Open `/rksv/incident`, enter a valid replay batch correlation ID (from logs or replay-batch detail), click Suchen → Replay summary and timeline load.
+1. **Search:** Open `/rksv/incident`, enter a valid replay batch correlation ID (from logs or replay-batch detail), click Suchen → replay summary and timeline load from a single endpoint.
 2. **URL:** Open `/rksv/incident?correlationId=<id>` → same result; input pre-filled, data loads when id valid.
 3. **Timeline:** Audit entries appear in time order; entries that contain replayPath/payloadRepaired show tags.
-4. **FO column:** Payments that exist in reconciliation list show FO status (Submitted/Failed/Pending) and error/retry; others show —.
+4. **FO column:** Payments include FO status (Submitted/Failed/Pending), error, and retry count from aggregated response.
 5. **Links:** Payment and Receipt columns link to `/payments?paymentId=...` and `/receipts/{receiptId}`; open in new tab.
 6. **Raw audit:** Collapse “Rohes Audit-Log (JSON)” → expand → full JSON visible and copyable.
 7. **Not found:** Invalid or unknown correlation ID → “Keine Daten” info alert.

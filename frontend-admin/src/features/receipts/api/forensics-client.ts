@@ -1,0 +1,145 @@
+import {
+  getApiReceiptsByPaymentPaymentId,
+  getApiReceiptsList,
+  getApiReceiptsReceiptId,
+  getApiReceiptsReceiptIdSignatureDebug,
+} from '@/api/generated/receipts/receipts';
+import type {
+  ReceiptDTO,
+  ReceiptListItemDtoPagedResult,
+} from '@/api/generated/model';
+import type {
+  ReceiptDetailDto,
+  ReceiptListItemDto,
+  ReceiptListParams,
+  ReceiptListResponse,
+} from '@/features/receipts/types/receipts';
+import type {
+  PaymentSignatureDebugPayload,
+  SignatureDebugApiResponse,
+  SignatureDiagnosticStepDto,
+} from '@/features/receipts/types/signature-debug';
+
+function toListItem(row: NonNullable<ReceiptListItemDtoPagedResult['items']>[number]): ReceiptListItemDto {
+  return {
+    receiptId: row.receiptId ?? '',
+    receiptNumber: row.receiptNumber ?? '',
+    issuedAt: row.issuedAt ?? '',
+    cashierId: row.cashierId ?? null,
+    cashRegisterId: row.cashRegisterId ?? '',
+    subTotal: row.subTotal ?? 0,
+    taxTotal: row.taxTotal ?? 0,
+    grandTotal: row.grandTotal ?? 0,
+    createdAt: row.createdAt ?? '',
+  };
+}
+
+export function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
+  const issued = d.date ?? '';
+  const persisted = d.receiptPersistedAtUtc ?? issued;
+  return {
+    receiptId: d.receiptId ?? '',
+    paymentId: d.paymentId ?? null,
+    receiptNumber: d.receiptNumber ?? '',
+    issuedAt: issued,
+    cashierId: d.cashierName ?? null,
+    cashRegisterId: d.cashRegisterId ?? d.kassenID ?? '',
+    subTotal: d.subTotal ?? 0,
+    taxTotal: d.taxAmount ?? 0,
+    grandTotal: d.grandTotal ?? 0,
+    qrCodePayload: d.signature?.qrData ?? null,
+    signatureValue: d.signature?.signatureValue ?? null,
+    prevSignatureValue: d.signature?.prevSignatureValue ?? null,
+    createdAt: persisted,
+    receiptPersistedAtUtc: persisted,
+    hasOfflineOrigin: d.hasOfflineOrigin ?? false,
+    offlineTransactionId: d.offlineTransactionId ?? null,
+    offlineCreatedAtUtc: d.offlineCreatedAtUtc ?? null,
+    fiscalizedAtUtc: d.fiscalizedAtUtc ?? null,
+    clockDriftWarning: d.clockDriftWarning ?? false,
+    sequenceGapDetected: d.sequenceGapDetected ?? false,
+    sequenceDuplicateDetected: d.sequenceDuplicateDetected ?? false,
+    items: (d.items ?? []).map((i) => ({
+      itemId: i.itemId ?? '',
+      productName: i.name ?? '',
+      quantity: i.quantity ?? 0,
+      unitPrice: i.unitPrice ?? 0,
+      totalPrice: i.totalPrice ?? 0,
+      taxRate: i.taxRate ?? 0,
+    })),
+    taxLines: (d.taxRates ?? []).map((t, idx) => ({
+      lineId: `line-${idx}`,
+      taxRate: t.rate ?? 0,
+      netAmount: t.netAmount ?? 0,
+      taxAmount: t.taxAmount ?? 0,
+      grossAmount: t.grossAmount ?? 0,
+    })),
+    fiscalTraceKind: d.fiscalTraceKind ?? null,
+    originalPaymentId: d.originalPaymentId ?? null,
+    originalSaleReceiptId: d.originalSaleReceiptId ?? null,
+  };
+}
+
+export async function getReceiptListForensics(params: ReceiptListParams): Promise<ReceiptListResponse> {
+  const data = await getApiReceiptsList({
+    page: params.page,
+    pageSize: params.pageSize,
+    sort: params.sort,
+    receiptNumber: params.receiptNumber,
+    cashRegisterId: params.cashRegisterId,
+    cashierId: params.cashierId,
+    issuedFrom: params.issuedFrom,
+    issuedTo: params.issuedTo,
+  });
+  return {
+    items: (data.items ?? []).map(toListItem),
+    page: data.page ?? params.page,
+    pageSize: data.pageSize ?? params.pageSize,
+    totalCount: data.totalCount ?? 0,
+  };
+}
+
+export async function getReceiptDetailForensics(receiptId: string): Promise<ReceiptDetailDto> {
+  const data = await getApiReceiptsReceiptId(receiptId);
+  return mapReceiptDtoToDetail(data);
+}
+
+export async function getReceiptByPaymentForensics(paymentId: string): Promise<ReceiptDetailDto> {
+  const data = await getApiReceiptsByPaymentPaymentId(paymentId);
+  return mapReceiptDtoToDetail(data);
+}
+
+function normalizeReceiptSignaturePayload(raw: unknown): PaymentSignatureDebugPayload {
+  if (raw == null || typeof raw !== 'object') return { steps: [], compactJws: null };
+  const o = raw as Record<string, unknown>;
+  const verifyResult = typeof o.verifyResult === 'string' ? o.verifyResult.toUpperCase() : 'WARN';
+  const hasSig = typeof o.signatureValue === 'string' && o.signatureValue.length > 0;
+  const steps: SignatureDiagnosticStepDto[] = [
+    {
+      stepId: 1,
+      name: 'Receipt signature present',
+      status: hasSig ? 'PASS' : 'WARN',
+      evidence: hasSig ? 'signatureValue present on receipt signature debug response.' : String(o.message ?? 'No signature'),
+    },
+    {
+      stepId: 2,
+      name: 'TSE signature verification',
+      status: verifyResult === 'PASS' ? 'PASS' : verifyResult === 'FAIL' ? 'FAIL' : 'WARN',
+      evidence: `verifyResult=${verifyResult}`,
+    },
+  ];
+  return {
+    steps,
+    compactJws: typeof o.signatureValue === 'string' ? o.signatureValue : null,
+  };
+}
+
+export async function getReceiptSignatureDebugForensics(receiptId: string): Promise<SignatureDebugApiResponse> {
+  const raw = await getApiReceiptsReceiptIdSignatureDebug(receiptId);
+  return {
+    success: true,
+    message: 'OK',
+    data: normalizeReceiptSignaturePayload(raw),
+    timestamp: new Date().toISOString(),
+  };
+}

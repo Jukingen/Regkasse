@@ -2,7 +2,8 @@
 
 /**
  * Correlation-ID–centred incident investigation.
- * Data source: GET /api/admin/incidents/{correlationId} (batch + audit + FO rows for batch payments).
+ * Single source of truth: GET /api/admin/incidents/{correlationId}.
+ * The endpoint returns one aggregate payload (replay batch + audit + FO rows).
  */
 
 import React, { useMemo, useState } from 'react';
@@ -25,14 +26,63 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { getIncidentInvestigation, type IncidentAuditLogEntry } from '@/api/admin-incident';
-import type { ReplayBatchPaymentItemDto } from '@/api/replay-batch';
-import type { FinanzOnlineReconciliationItemDto } from '@/api/finanzonline-reconciliation';
+import { getApiAdminIncidentsCorrelationId } from '@/api/generated/admin/admin';
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import type { AuditLogEntryDto, ReplayBatchPaymentItemDto, FinanzOnlineReconciliationItemDto } from '@/api/generated/model';
+
+const RKSV_HANDOFF_PREFIX = 'RKSV_HANDOFF_V1:';
 
 function normalizeCorrelationId(id: string): string {
     const cleaned = id.replace(/-/g, '').trim();
     if (cleaned.length !== 32) return id;
     return `${cleaned.slice(0, 8)}-${cleaned.slice(8, 12)}-${cleaned.slice(12, 16)}-${cleaned.slice(16, 20)}-${cleaned.slice(20, 32)}`;
+}
+
+function firstGuidLike(input: string): string | null {
+    const match = input.match(/[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}/);
+    return match?.[0] ?? null;
+}
+
+function resolveCorrelationInput(input: string): string {
+    const raw = input.trim();
+    if (!raw) return '';
+
+    if (raw.startsWith(RKSV_HANDOFF_PREFIX)) {
+        const jsonText = raw.slice(RKSV_HANDOFF_PREFIX.length).trim();
+        try {
+            const parsed = JSON.parse(jsonText) as { correlationId?: unknown };
+            if (typeof parsed.correlationId === 'string' && parsed.correlationId.trim().length > 0) {
+                return normalizeCorrelationId(parsed.correlationId.trim());
+            }
+        } catch {
+            // ignore parse failure, continue with generic extraction
+        }
+    }
+
+    try {
+        if (raw.startsWith('http://') || raw.startsWith('https://')) {
+            const url = new URL(raw);
+            const qp = url.searchParams.get('correlationId');
+            if (qp?.trim()) return normalizeCorrelationId(qp.trim());
+        }
+    } catch {
+        // ignore URL parse failure
+    }
+
+    if (raw.startsWith('{') && raw.endsWith('}')) {
+        try {
+            const parsed = JSON.parse(raw) as { correlationId?: unknown; replayBatchCorrelationId?: unknown };
+            const fromCorrelation = typeof parsed.correlationId === 'string' ? parsed.correlationId : null;
+            const fromReplayBatch = typeof parsed.replayBatchCorrelationId === 'string' ? parsed.replayBatchCorrelationId : null;
+            if (fromCorrelation?.trim()) return normalizeCorrelationId(fromCorrelation.trim());
+            if (fromReplayBatch?.trim()) return normalizeCorrelationId(fromReplayBatch.trim());
+        } catch {
+            // ignore parse failure
+        }
+    }
+
+    const guid = firstGuidLike(raw);
+    return guid ? normalizeCorrelationId(guid) : normalizeCorrelationId(raw);
 }
 
 function parseReplayMeta(requestData?: string | null, responseData?: string | null): { replayPath?: string; payloadRepaired?: boolean } {
@@ -66,15 +116,15 @@ function timelineLabel(action: string, description?: string | null, meta?: { rep
 
 export default function IncidentInvestigationPage() {
     const searchParams = useSearchParams();
-    const initialId = searchParams?.get('correlationId') ?? '';
+    const initialId = searchParams?.get('correlationId') ?? searchParams?.get('handoff') ?? '';
     const [inputId, setInputId] = useState(initialId);
-    const [correlationId, setCorrelationId] = useState(initialId);
+    const [correlationId, setCorrelationId] = useState(resolveCorrelationInput(initialId));
 
     const normalizedId = correlationId.trim() ? normalizeCorrelationId(correlationId.trim()) : '';
 
     const { data: incident, isLoading: incidentLoading, error: incidentError } = useQuery({
-        queryKey: ['admin-incident', normalizedId],
-        queryFn: () => getIncidentInvestigation(normalizedId),
+        queryKey: rksvAdminQueryKeys.incident(normalizedId),
+        queryFn: () => getApiAdminIncidentsCorrelationId(normalizedId),
         enabled: !!normalizedId && normalizedId.length >= 32,
     });
 
@@ -91,16 +141,16 @@ export default function IncidentInvestigationPage() {
         return map;
     }, [incident?.finanzOnlineReconciliation]);
 
-    const auditLogs: IncidentAuditLogEntry[] = incident?.auditLogs ?? [];
+    const auditLogs: AuditLogEntryDto[] = incident?.auditLogs ?? [];
     const timelineItems = useMemo(() => {
         return auditLogs
-            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+            .sort((a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime())
             .map((log) => {
                 const meta = parseReplayMeta(log.requestData, log.responseData);
                 return {
-                    key: log.id ?? log.timestamp,
-                    timestamp: log.timestamp,
-                    action: log.action,
+                    key: log.id ?? log.timestamp ?? 'unknown',
+                    timestamp: log.timestamp ?? '',
+                    action: log.action ?? '',
                     status: log.status,
                     description: log.description,
                     meta,
@@ -110,7 +160,7 @@ export default function IncidentInvestigationPage() {
     }, [auditLogs]);
 
     const onSearch = () => {
-        const id = inputId.trim();
+        const id = resolveCorrelationInput(inputId);
         if (id) setCorrelationId(id);
     };
 
@@ -155,9 +205,9 @@ export default function IncidentInvestigationPage() {
                                 {fo.finanzOnlineError}
                             </Typography.Text>
                         )}
-                        {fo.finanzOnlineRetryCount > 0 && (
+                        {(fo.finanzOnlineRetryCount ?? 0) > 0 && (
                             <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                                Retries: {fo.finanzOnlineRetryCount}
+                                Retries: {fo.finanzOnlineRetryCount ?? 0}
                             </Typography.Text>
                         )}
                     </Space>
@@ -220,14 +270,14 @@ export default function IncidentInvestigationPage() {
                 <Alert
                     type="info"
                     message="Keine Daten"
-                    description="Für diese Correlation-ID wurde kein Replay-Batch gefunden."
+                    description="Für diese Correlation-ID wurde kein Incident-Aggregat gefunden."
                     style={{ marginBottom: 16 }}
                 />
             )}
 
             {isLoading && (
                 <Card>
-                    <Spin tip="Lade Batch, Audit-Log und FO-Daten…" />
+                    <Spin tip="Lade Incident-Aggregat…" />
                 </Card>
             )}
 
@@ -253,13 +303,25 @@ export default function IncidentInvestigationPage() {
                             <Typography.Text type="secondary">
                                 Audit-Correlation (N): <Typography.Text code copyable>{batch.auditCorrelationId}</Typography.Text>
                             </Typography.Text>
+                            {batch.correlationId ? (
+                                <Space size={4}>
+                                    <Typography.Text type="secondary">Navigation:</Typography.Text>
+                                    <Link href={`/rksv/replay-batch/${encodeURIComponent(String(batch.correlationId))}`}>
+                                        Replay-Batch
+                                    </Link>
+                                    <Typography.Text type="secondary">·</Typography.Text>
+                                    <Link href={`/rksv/verifications?correlationId=${encodeURIComponent(String(batch.auditCorrelationId ?? batch.correlationId))}`}>
+                                        Verifications
+                                    </Link>
+                                </Space>
+                            ) : null}
                         </Space>
                     </Card>
 
                     {hints &&
                         (hints.hasLockTimeoutAudit ||
                             hints.hasPayloadImmutableMismatchAudit ||
-                            hints.finanzOnlineOpenOrProblemCount > 0) && (
+                            (hints.finanzOnlineOpenOrProblemCount ?? 0) > 0) && (
                             <Card size="small" title="Hinweise (Support)" style={{ marginBottom: 16 }}>
                                 <Space direction="vertical" size="small">
                                     {hints.hasLockTimeoutAudit && (
@@ -269,8 +331,8 @@ export default function IncidentInvestigationPage() {
                                         <Alert type="error" showIcon message="Payload-Immutable-Mismatch im Batch-Audit" />
                                     )}
                                     <Typography.Text type="secondary">
-                                        FinanzOnline: {hints.finanzOnlineSubmittedCount} submitted,{' '}
-                                        {hints.finanzOnlineOpenOrProblemCount} offen / prüfen
+                                        FinanzOnline: {hints.finanzOnlineSubmittedCount ?? 0} submitted,{' '}
+                                        {hints.finanzOnlineOpenOrProblemCount ?? 0} offen / prüfen
                                     </Typography.Text>
                                 </Space>
                             </Card>
@@ -284,9 +346,9 @@ export default function IncidentInvestigationPage() {
                             <Timeline
                                 items={timelineItems.map((item) => ({
                                     color:
-                                        item.status === 'Success' || item.status === 0
+                                        item.status === 0
                                             ? 'green'
-                                            : item.status === 'Failure' || item.status === 1
+                                            : item.status === 1
                                               ? 'red'
                                               : 'blue',
                                     children: (
@@ -322,13 +384,13 @@ export default function IncidentInvestigationPage() {
                                 pagination={{ pageSize: 12 }}
                                 rowKey={(r) => String(r.id ?? r.timestamp)}
                                 dataSource={[...auditLogs].sort(
-                                    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                                    (a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime()
                                 )}
                                 columns={[
                                     {
                                         title: 'Zeit',
                                         width: 152,
-                                        render: (_: unknown, r: IncidentAuditLogEntry) =>
+                                        render: (_: unknown, r: AuditLogEntryDto) =>
                                             dayjs(r.timestamp).format('DD.MM.YYYY HH:mm:ss'),
                                     },
                                     {
@@ -340,18 +402,18 @@ export default function IncidentInvestigationPage() {
                                     {
                                         title: 'Status',
                                         width: 88,
-                                        render: (_: unknown, r: IncidentAuditLogEntry) => String(r.status),
+                                        render: (_: unknown, r: AuditLogEntryDto) => String(r.status),
                                     },
                                     {
                                         title: 'Entity',
                                         width: 120,
                                         ellipsis: true,
-                                        render: (_: unknown, r: IncidentAuditLogEntry) => r.entityType ?? '—',
+                                        render: (_: unknown, r: AuditLogEntryDto) => r.entityType ?? '—',
                                     },
                                     {
                                         title: 'Replay / Repair',
                                         width: 200,
-                                        render: (_: unknown, r: IncidentAuditLogEntry) => {
+                                        render: (_: unknown, r: AuditLogEntryDto) => {
                                             const m = parseReplayMeta(r.requestData, r.responseData);
                                             return (
                                                 <Space size={4} wrap>
@@ -379,8 +441,8 @@ export default function IncidentInvestigationPage() {
                     <Card size="small" title="Zahlungen / Belege / FO" style={{ marginBottom: 16 }}>
                         <Table
                             columns={paymentColumns}
-                            dataSource={batch.payments}
-                            rowKey="paymentId"
+                            dataSource={batch.payments ?? []}
+                            rowKey={(row) => row.paymentId ?? row.offlineTransactionId ?? row.receiptId ?? 'unknown'}
                             pagination={false}
                             size="small"
                         />

@@ -7,10 +7,7 @@
  */
 
 export interface LoginModel {
-  /**
-   * Target client application: "pos" or "admin". Required when AllowLegacyLoginWithoutClientApp is false.
-   * @nullable
-   */
+  /** @nullable */
   clientApp?: string | null;
   /** @nullable */
   email?: string | null;

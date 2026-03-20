@@ -24,7 +24,9 @@ import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { getIntegrityReport, type IntegrityReportDto } from '@/api/admin-integrity';
+import { getApiAdminIntegrity } from '@/api/generated/admin/admin';
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import type { IntegrityReportDto } from '@/api/generated/model';
 
 const { RangePicker } = DatePicker;
 
@@ -46,9 +48,9 @@ export default function IntegrityReportPage() {
   const toDate = range[1]?.add(1, 'day').format('YYYY-MM-DD');
 
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ['admin-integrity', fromDate, toDate, includeDetails],
+    queryKey: rksvAdminQueryKeys.integrity({ fromDate, toDate, includeDetails }),
     queryFn: () =>
-      getIntegrityReport({
+      getApiAdminIntegrity({
         fromDate,
         toDate,
         includeDetails,

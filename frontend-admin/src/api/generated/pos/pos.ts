@@ -40,7 +40,6 @@ import type {
   RefundPaymentRequest,
   ResetCartAfterPaymentRequest,
   SetProductModifierGroupsRequest,
-  SignatureDiagnosticStep,
   UpdateCartItemRequest,
   UpdateStockRequest,
   VerifySignatureRequest,
@@ -1800,7 +1799,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 ) => {
       
       
-      return customInstance<SignatureDiagnosticStep[]>(
+      return customInstance<unknown>(
       {url: `/api/pos/payment/${id}/signature-debug`, method: 'GET', signal
     },
       options);

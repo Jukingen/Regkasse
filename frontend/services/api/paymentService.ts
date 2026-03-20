@@ -35,8 +35,6 @@ export interface PaymentItem {
   productId: string;
   quantity: number;
   taxType: 'standard' | 'reduced' | 'special';
-  /** Backend may still accept for historical compat; POS PR-A no longer sends. */
-  modifierIds?: string[];
 }
 
 // Backend'deki CreatePaymentRequest ile uyumlu

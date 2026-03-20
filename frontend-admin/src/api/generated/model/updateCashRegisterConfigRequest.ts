@@ -10,6 +10,8 @@ export interface UpdateCashRegisterConfigRequest {
   /** @nullable */
   autoPrintReceipts?: boolean | null;
   /** @nullable */
+  cashRegisterId?: string | null;
+  /** @nullable */
   defaultTaxRate?: number | null;
   /** @nullable */
   enableCoupons?: boolean | null;

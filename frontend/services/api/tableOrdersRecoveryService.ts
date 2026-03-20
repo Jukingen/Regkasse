@@ -52,7 +52,7 @@ export class TableOrdersRecoveryService {
     try {
       console.log('🔄 Requesting table orders recovery from backend...');
       
-      const response = await apiClient.get('/cart/table-orders-recovery');
+      const response = await apiClient.get('/pos/cart/table-orders-recovery');
       
       // Backend'den gelen response'u doğrula
       if (!response || typeof response !== 'object') {

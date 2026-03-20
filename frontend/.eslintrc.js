@@ -12,5 +12,17 @@ module.exports = {
     'prettier/prettier': 'off',
     '@typescript-eslint/no-unused-vars': 'warn',
     'react-hooks/exhaustive-deps': 'warn',
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['**/frontend-admin/**', '@/api/legacy/*'],
+            message:
+              'POS/mobile must stay on canonical payment lane (services/api/paymentService + /api/pos/payment). Do not import admin legacy modules.',
+          },
+        ],
+      },
+    ],
   },
 }; 

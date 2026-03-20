@@ -87,20 +87,6 @@ export async function updateModifierGroup(
   await AXIOS_INSTANCE.put(`/api/modifier-groups/${groupId}`, body);
 }
 
-/**
- * Add legacy modifier to group (Legacy).
- * @deprecated Phase 2: Legacy modifier creation is frozen. Backend returns 410. Use addProductToGroup instead.
- * Unused: no UI calls this; backend POST .../modifiers returns 410. Stub avoids dead HTTP calls.
- */
-export function addModifierToGroup(
-  _groupId: string,
-  _body: { name: string; price?: number; taxType?: number; sortOrder?: number }
-): Promise<ModifierDto> {
-  return Promise.reject(
-    new Error('Legacy modifier creation is disabled (410). Use addProductToGroup to add products to the group instead.')
-  );
-}
-
 /** Add product to group: existing product (productId) or new add-on (createNewAddOnProduct). */
 export type AddProductToGroupBody =
   | { productId: string; createNewAddOnProduct?: never }
@@ -123,4 +109,4 @@ export async function removeProductFromGroup(groupId: string, productId: string)
   await AXIOS_INSTANCE.delete(`/api/modifier-groups/${groupId}/products/${productId}`);
 }
 
-/** Backend cleanup: POST .../modifier-groups/{groupId}/modifiers returns 410. addModifierToGroup is a frontend stub only. */
+/** Canonical add-on flow: use /products endpoints for group content changes. */

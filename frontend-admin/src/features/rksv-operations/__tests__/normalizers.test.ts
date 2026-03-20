@@ -7,6 +7,7 @@ import {
   mapFinanzOnlineMetricsToHealth,
   mapPayloadHashAnalyzeToHealth,
 } from '../normalizers';
+import type { PayloadHashRepairableItem } from '@/api/generated/model';
 
 const basePayload = {
   legacyDataQualityRiskHigh: false,
@@ -18,7 +19,7 @@ const basePayload = {
   skippedWouldConflictCount: 0,
   sampleMismatchIds: [] as string[],
   warningMessage: null as string | null,
-  repairableItems: [] as unknown[],
+  repairableItems: [] as PayloadHashRepairableItem[],
 };
 
 describe('mapPayloadHashAnalyzeToHealth', () => {

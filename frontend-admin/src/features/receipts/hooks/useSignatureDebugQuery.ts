@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchSignatureDebug } from '../api/signature-debug';
 
 const SIGNATURE_DEBUG_KEYS = {
-    all: ['signature-debug'] as const,
+    all: ['admin', 'receipts', 'signature-debug'] as const,
     byPayment: (paymentId: string) => [...SIGNATURE_DEBUG_KEYS.all, paymentId] as const,
 } as const;
 

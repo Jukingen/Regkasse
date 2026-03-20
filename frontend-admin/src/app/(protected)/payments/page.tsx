@@ -24,39 +24,28 @@ import {
 } from 'antd';
 import { CreditCardOutlined, InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import {
-  cancelLegacyPayment,
-  normalizeLegacyPaymentOperationalDetail,
-  refundLegacyPayment,
-  unwrapLegacyPaymentDetailPayload,
-  useLegacyPaymentById,
-  useLegacyPaymentList,
-  useLegacyPaymentStatistics,
-} from '@/api/legacy/payment';
+  postApiAdminPaymentsIdCancel,
+  postApiAdminPaymentsIdRefund,
+  useGetApiAdminPayments,
+  useGetApiAdminPaymentsId,
+  useGetApiAdminPaymentsStatistics,
+} from '@/api/generated/admin/admin';
+import type {
+  AdminPaymentDetailDto,
+  AdminPaymentListItemDto,
+} from '@/api/generated/model';
 import dayjs from 'dayjs';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { customInstance } from '@/lib/axios';
+import Link from 'next/link';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { getReceiptByPaymentForensics } from '@/features/receipts/api/forensics-client';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
 
 const DEFAULT_DATE_RANGE = { startDate: dayjs().subtract(30, 'day').format('YYYY-MM-DD'), endDate: dayjs().format('YYYY-MM-DD') };
-
-type PaymentRow = {
-  id?: string;
-  transactionId?: string;
-  createdAt?: string;
-  amount?: number;
-  method?: string;
-  status?: string;
-  currency?: string;
-};
-
-interface ReceiptByPaymentResponse {
-  receiptId?: string;
-}
 
 interface PaymentStatisticsShape {
   totalPayments?: number;
@@ -64,6 +53,7 @@ interface PaymentStatisticsShape {
   averageAmount?: number;
   tseSignedPayments?: number;
   finanzOnlineSentPayments?: number;
+  finanzOnlineSentAmount?: number;
 }
 
 function fmtDetail(value: unknown): string {
@@ -73,6 +63,11 @@ function fmtDetail(value: unknown): string {
   if (typeof value === 'string') return value.trim() === '' ? '—' : value;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+}
+
+function shortId(value?: string | null): string {
+  if (!value) return '—';
+  return value.length > 12 ? `${value.slice(0, 8)}…` : value;
 }
 
 export default function PaymentsPage() {
@@ -109,46 +104,26 @@ export default function PaymentsPage() {
     [dateRange]
   );
 
-  const { data, isLoading, refetch } = useLegacyPaymentList(listParams);
-  const { data: statsRaw, isLoading: statsLoading } = useLegacyPaymentStatistics({
+  const { data, isLoading, refetch } = useGetApiAdminPayments(listParams);
+  const { data: statsRaw, isLoading: statsLoading } = useGetApiAdminPaymentsStatistics({
     startDate: listParams.startDate,
     endDate: listParams.endDate,
   });
-  const { data: paymentDetail, isLoading: detailLoading } = useLegacyPaymentById(selectedPaymentId ?? '', {
+  const { data: paymentDetail, isLoading: detailLoading } = useGetApiAdminPaymentsId(selectedPaymentId ?? '', {
     query: { enabled: !!selectedPaymentId },
   });
+  const paymentDetailData = paymentDetail as AdminPaymentDetailDto | undefined;
 
-  const payments: PaymentRow[] =
-    data && typeof data === 'object' && 'items' in data && Array.isArray((data as { items?: unknown }).items)
-      ? ((data as { items: PaymentRow[] }).items ?? [])
-      : [];
+  const paymentsResponse = data as { items?: AdminPaymentListItemDto[] } | undefined;
+  const payments: AdminPaymentListItemDto[] = useMemo(
+    () => paymentsResponse?.items ?? [],
+    [paymentsResponse?.items]
+  );
 
   const stats: PaymentStatisticsShape | null =
     statsRaw && typeof statsRaw === 'object' ? (statsRaw as PaymentStatisticsShape) : null;
-
-  const paymentDetailFlat = useMemo(
-    () => unwrapLegacyPaymentDetailPayload(paymentDetail),
-    [paymentDetail]
-  );
-  const receiptLookupQuery = useQuery({
-    queryKey: ['legacy-payment', 'receipt-by-payment', selectedPaymentId],
-    enabled: !!selectedPaymentId,
-    queryFn: async () =>
-      customInstance<ReceiptByPaymentResponse>({
-        url: `/api/Receipts/by-payment/${selectedPaymentId}`,
-        method: 'GET',
-      }),
-    staleTime: 60_000,
-  });
-  const operationalDetail = useMemo(
-    () =>
-      normalizeLegacyPaymentOperationalDetail(
-        selectedPaymentId ?? '',
-        paymentDetailFlat,
-        receiptLookupQuery.data?.receiptId ?? null
-      ),
-    [selectedPaymentId, paymentDetailFlat, receiptLookupQuery.data?.receiptId]
-  );
+  const operationalDetail = paymentDetailData;
+  const safeOperationalDetail: AdminPaymentDetailDto = operationalDetail ?? ({} as AdminPaymentDetailDto);
 
   const filteredPayments = useMemo(() => {
     return payments.filter((p) => {
@@ -161,7 +136,7 @@ export default function PaymentsPage() {
   const cancelMutation = useMutation({
     mutationFn: async () => {
       if (!selectedPaymentId) throw new Error('Kein Payment ausgewählt');
-      return cancelLegacyPayment(selectedPaymentId, { reason: cancelReason.trim() });
+      return postApiAdminPaymentsIdCancel(selectedPaymentId, { reason: cancelReason.trim() });
     },
     onSuccess: async () => {
       message.success('Zahlung storniert');
@@ -175,7 +150,7 @@ export default function PaymentsPage() {
     mutationFn: async () => {
       if (!selectedPaymentId) throw new Error('Kein Payment ausgewählt');
       if (!refundAmount || refundAmount <= 0) throw new Error('Refund-Betrag muss größer als 0 sein');
-      return refundLegacyPayment(selectedPaymentId, { amount: refundAmount, reason: refundReason.trim() });
+      return postApiAdminPaymentsIdRefund(selectedPaymentId, { amount: refundAmount, reason: refundReason.trim() });
     },
     onSuccess: async () => {
       message.success('Rückerstattung verarbeitet');
@@ -187,20 +162,24 @@ export default function PaymentsPage() {
   });
 
   const openReceipt = async () => {
-    if (!selectedPaymentId) return;
+    const receiptId = paymentDetailData?.receiptId;
+    if (receiptId) {
+      router.push(`/receipts/${receiptId}`);
+      return;
+    }
+    if (!selectedPaymentId) {
+      message.warning('Kein Payment ausgewählt');
+      return;
+    }
     try {
-      const receipt = await customInstance<ReceiptByPaymentResponse>({
-        url: `/api/Receipts/by-payment/${selectedPaymentId}`,
-        method: 'GET',
-      });
-      if (!receipt?.receiptId) {
+      const receipt = await getReceiptByPaymentForensics(selectedPaymentId);
+      if (!receipt.receiptId) {
         message.warning('Kein Beleg für diese Zahlung gefunden');
         return;
       }
       router.push(`/receipts/${receipt.receiptId}`);
-    } catch (err) {
-      const e = err as Error;
-      message.error(e?.message ?? 'Beleg konnte nicht geöffnet werden');
+    } catch {
+      message.warning('Kein Beleg für diese Zahlung gefunden');
     }
   };
 
@@ -222,10 +201,10 @@ export default function PaymentsPage() {
     },
     {
       title: 'Amount',
-      dataIndex: 'amount',
+      dataIndex: 'totalAmount',
       key: 'amount',
       align: 'right' as const,
-      render: (val: number, record: PaymentRow) => `${(val ?? 0).toFixed(2)} ${record.currency || 'EUR'}`,
+      render: (val: number, record: AdminPaymentListItemDto) => `${(val ?? 0).toFixed(2)} ${record.currency || 'EUR'}`,
     },
     {
       title: 'Method',
@@ -249,9 +228,37 @@ export default function PaymentsPage() {
       },
     },
     {
+      title: 'Verknüpfte Entitäten',
+      key: 'linkedEntities',
+      render: (_: unknown, row: AdminPaymentListItemDto) => (
+        <Space size={4} wrap>
+          {row.receiptId ? (
+            <Link href={`/receipts/${row.receiptId}`} target="_blank" rel="noopener noreferrer">
+              <Tag color="blue">Beleg</Tag>
+            </Link>
+          ) : null}
+          {row.invoiceNumber ? (
+            <Link href={`/invoices?query=${encodeURIComponent(row.invoiceNumber)}`} target="_blank" rel="noopener noreferrer">
+              <Tag color="purple">Rechnung</Tag>
+            </Link>
+          ) : null}
+          {row.offlineReplayBatchCorrelationId ? (
+            <Link
+              href={`/rksv/incident?correlationId=${encodeURIComponent(row.offlineReplayBatchCorrelationId)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Tag color="orange">Incident</Tag>
+            </Link>
+          ) : null}
+          {!row.receiptId && !row.invoiceNumber && !row.offlineReplayBatchCorrelationId ? <Typography.Text type="secondary">—</Typography.Text> : null}
+        </Space>
+      ),
+    },
+    {
       title: 'Actions',
       key: 'actions',
-      render: (_: unknown, row: PaymentRow) => (
+      render: (_: unknown, row: AdminPaymentListItemDto) => (
         <Button size="small" icon={<InfoCircleOutlined />} onClick={() => setSelectedPaymentId(row.id ?? null)}>
           Details
         </Button>
@@ -324,6 +331,22 @@ export default function PaymentsPage() {
             <Statistic title="TSE signiert" value={stats?.tseSignedPayments ?? 0} loading={statsLoading} />
           </Card>
         </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card size="small">
+            <Statistic title="FinanzOnline gesendet" value={stats?.finanzOnlineSentPayments ?? 0} loading={statsLoading} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card size="small">
+            <Statistic
+              title="FO gesendeter Betrag"
+              value={stats?.finanzOnlineSentAmount ?? 0}
+              precision={2}
+              suffix="EUR"
+              loading={statsLoading}
+            />
+          </Card>
+        </Col>
       </Row>
 
       <Table columns={columns} dataSource={filteredPayments} loading={isLoading} rowKey="id" />
@@ -337,7 +360,7 @@ export default function PaymentsPage() {
       >
         {detailLoading ? (
           <Typography.Text type="secondary">Lade Details…</Typography.Text>
-        ) : paymentDetailFlat ? (
+        ) : paymentDetailData ? (
           <>
             <Card size="small" title="Kerninformationen" style={{ marginBottom: 12 }}>
               <Descriptions size="small" column={1} bordered>
@@ -348,31 +371,96 @@ export default function PaymentsPage() {
                 </Descriptions.Item>
                 <Descriptions.Item label="Transaktion">
                   <Typography.Text code copyable>
-                    {fmtDetail(paymentDetailFlat.transactionId)}
+                    {fmtDetail(paymentDetailData.transactionId)}
                   </Typography.Text>
                 </Descriptions.Item>
                 <Descriptions.Item label="Belegnummer">
                   <Typography.Text code copyable>
-                    {fmtDetail(paymentDetailFlat.receiptNumber)}
+                    {fmtDetail(paymentDetailData.receiptNumber)}
                   </Typography.Text>
                 </Descriptions.Item>
                 <Descriptions.Item label="Zeitpunkt (Server)">
-                  {fmtDetail(paymentDetailFlat.createdAt)}
+                  {fmtDetail(paymentDetailData.createdAt)}
                 </Descriptions.Item>
-                <Descriptions.Item label="Betrag">{fmtDetail(paymentDetailFlat.totalAmount)} EUR</Descriptions.Item>
+                <Descriptions.Item label="Betrag">{fmtDetail(paymentDetailData.totalAmount)} EUR</Descriptions.Item>
                 <Descriptions.Item label="Zahlungsart (Roh)">
-                  {fmtDetail(paymentDetailFlat.paymentMethodRaw ?? paymentDetailFlat.paymentMethod)}
+                  {fmtDetail(paymentDetailData.paymentMethodRaw ?? paymentDetailData.method)}
                 </Descriptions.Item>
                 <Descriptions.Item label="Kasse (UUID)">
                   <Typography.Text code copyable>
-                    {fmtDetail(paymentDetailFlat.cashRegisterId)}
+                    {fmtDetail(paymentDetailData.cashRegisterId)}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Kundenname">{fmtDetail(paymentDetailFlat.customerName)}</Descriptions.Item>
+                <Descriptions.Item label="Kundenname">{fmtDetail(paymentDetailData.customerName)}</Descriptions.Item>
                 <Descriptions.Item label="Idempotency Key">
                   <Typography.Text code copyable>
-                    {fmtDetail(paymentDetailFlat.idempotencyKey)}
+                    {fmtDetail(paymentDetailData.idempotencyKey)}
                   </Typography.Text>
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+
+            <Card size="small" title="Verknüpfte Entitäten" style={{ marginBottom: 12 }}>
+              <Descriptions size="small" column={1} bordered>
+                <Descriptions.Item label="Payment ID">
+                  <Typography.Text code copyable>
+                    {fmtDetail(paymentDetailData.id)}
+                  </Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="Beleg-ID">
+                  {safeOperationalDetail.receiptId ? (
+                    <Space wrap>
+                      <Typography.Text code copyable>{safeOperationalDetail.receiptId}</Typography.Text>
+                      <Link href={`/receipts/${safeOperationalDetail.receiptId}`} target="_blank" rel="noopener noreferrer">
+                        Öffnen
+                      </Link>
+                    </Space>
+                  ) : (
+                    '—'
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="Rechnung">
+                  {safeOperationalDetail.invoiceNumber || safeOperationalDetail.invoiceId ? (
+                    <Space wrap>
+                      <Typography.Text code copyable>
+                        {safeOperationalDetail.invoiceNumber ?? shortId(safeOperationalDetail.invoiceId)}
+                      </Typography.Text>
+                      {safeOperationalDetail.invoiceNumber ? (
+                        <Link
+                          href={`/invoices?query=${encodeURIComponent(safeOperationalDetail.invoiceNumber)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Öffnen
+                        </Link>
+                      ) : null}
+                    </Space>
+                  ) : (
+                    '—'
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="Replay-Batch-Correlation-ID">
+                  {safeOperationalDetail.offlineReplayBatchCorrelationId ? (
+                    <Space wrap>
+                      <Typography.Text code copyable>{safeOperationalDetail.offlineReplayBatchCorrelationId}</Typography.Text>
+                      <Link
+                        href={`/rksv/incident?correlationId=${encodeURIComponent(safeOperationalDetail.offlineReplayBatchCorrelationId)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Incident
+                      </Link>
+                      <Link
+                        href={`/rksv/replay-batch/${encodeURIComponent(safeOperationalDetail.offlineReplayBatchCorrelationId)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Replay-Batch
+                      </Link>
+                    </Space>
+                  ) : (
+                    '—'
+                  )}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
@@ -380,22 +468,22 @@ export default function PaymentsPage() {
             <Card size="small" title="Betrieb / Herkunft" style={{ marginBottom: 12 }}>
               <Descriptions size="small" column={1} bordered>
                 <Descriptions.Item label="Zahlungsursprung">
-                  {operationalDetail.isOfflineOrigin
+                  {safeOperationalDetail.isOfflineOrigin
                     ? 'Offline-Warteschlange → Server-Replay'
                     : 'Direkt (Online)'}
                 </Descriptions.Item>
                 <Descriptions.Item label="Belegnummer gesetzt">
-                  {operationalDetail.receiptNumber ? 'Ja' : 'Nein'}
+                  {safeOperationalDetail.receiptNumber ? 'Ja' : 'Nein'}
                 </Descriptions.Item>
                 <Descriptions.Item label="Beleg-ID">
                   <Typography.Text code copyable>
-                    {fmtDetail(operationalDetail.receiptId)}
+                    {fmtDetail(safeOperationalDetail.receiptId)}
                   </Typography.Text>
                 </Descriptions.Item>
                 <Descriptions.Item label="Rechnung persistiert (API)">
-                  {operationalDetail.invoicePersisted == null
+                  {safeOperationalDetail.invoicePersisted == null
                     ? '— (Feld nicht in älterer API-Antwort)'
-                    : fmtDetail(operationalDetail.invoicePersisted)}
+                    : fmtDetail(safeOperationalDetail.invoicePersisted)}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
@@ -407,12 +495,12 @@ export default function PaymentsPage() {
               <Descriptions size="small" column={1} bordered>
                 <Descriptions.Item label="Offline-Transaktions-ID">
                   <Typography.Text code copyable>
-                    {fmtDetail(operationalDetail.offlineTransactionId)}
+                    {fmtDetail(safeOperationalDetail.offlineTransactionId)}
                   </Typography.Text>
                 </Descriptions.Item>
                 <Descriptions.Item label="Replay-Batch-Correlation-ID">
                   <Typography.Text code copyable>
-                    {fmtDetail(operationalDetail.replayBatchCorrelationId)}
+                    {fmtDetail(safeOperationalDetail.offlineReplayBatchCorrelationId)}
                   </Typography.Text>
                 </Descriptions.Item>
               </Descriptions>
@@ -420,17 +508,17 @@ export default function PaymentsPage() {
 
             <Card size="small" title="FinanzOnline" style={{ marginBottom: 12 }}>
               <Descriptions size="small" column={1} bordered>
-                <Descriptions.Item label="Status">{fmtDetail(operationalDetail.finanzOnlineStatus)}</Descriptions.Item>
-                <Descriptions.Item label="Fehler">{fmtDetail(operationalDetail.finanzOnlineError)}</Descriptions.Item>
+                <Descriptions.Item label="Status">{fmtDetail(safeOperationalDetail.finanzOnlineStatus)}</Descriptions.Item>
+                <Descriptions.Item label="Fehler">{fmtDetail(safeOperationalDetail.finanzOnlineError)}</Descriptions.Item>
                 <Descriptions.Item label="Referenz-ID">
                   <Typography.Text code copyable>
-                    {fmtDetail(operationalDetail.finanzOnlineReferenceId)}
+                    {fmtDetail(safeOperationalDetail.finanzOnlineReferenceId)}
                   </Typography.Text>
                 </Descriptions.Item>
                 <Descriptions.Item label="Letzter Versuch (UTC)">
-                  {fmtDetail(paymentDetailFlat.finanzOnlineLastAttemptAtUtc)}
+                  {fmtDetail(paymentDetailData.finanzOnlineLastAttemptAtUtc)}
                 </Descriptions.Item>
-                <Descriptions.Item label="Retries">{fmtDetail(paymentDetailFlat.finanzOnlineRetryCount)}</Descriptions.Item>
+                <Descriptions.Item label="Retries">{fmtDetail(paymentDetailData.finanzOnlineRetryCount)}</Descriptions.Item>
               </Descriptions>
             </Card>
 
@@ -442,7 +530,7 @@ export default function PaymentsPage() {
                   label: 'Rohe API-Antwort (Technik)',
                   children: (
                     <Typography.Paragraph copyable style={{ marginBottom: 0, fontSize: 11 }}>
-                      {JSON.stringify(paymentDetail, null, 2)}
+                      {JSON.stringify(paymentDetailData, null, 2)}
                     </Typography.Paragraph>
                   ),
                 },
@@ -536,13 +624,6 @@ export default function PaymentsPage() {
               )}
             </Space>
           </>
-        ) : paymentDetail && !paymentDetailFlat ? (
-          <Alert
-            type="warning"
-            showIcon
-            message="Unerwartetes Detailformat"
-            description="Die API-Antwort konnte nicht als Zahlungsdetails gelesen werden. Siehe Rohentwickler-Tools."
-          />
         ) : (
           <Alert type="warning" showIcon message="Keine Detaildaten verfügbar" />
         )}

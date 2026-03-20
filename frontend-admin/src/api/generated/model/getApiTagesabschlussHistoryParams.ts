@@ -9,4 +9,5 @@
 export type GetApiTagesabschlussHistoryParams = {
 fromDate?: string;
 toDate?: string;
+cashRegisterId?: string;
 };

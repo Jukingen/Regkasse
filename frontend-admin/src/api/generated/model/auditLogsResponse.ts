@@ -5,11 +5,11 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { AuditLog } from './auditLog';
+import type { AuditLogEntryDto } from './auditLogEntryDto';
 
 export interface AuditLogsResponse {
   /** @nullable */
-  auditLogs?: AuditLog[] | null;
+  auditLogs?: AuditLogEntryDto[] | null;
   /** @nullable */
   message?: string | null;
   page?: number;

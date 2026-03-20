@@ -95,7 +95,7 @@ export const useTableOrdersRecovery = () => {
     try {
       console.log('🔄 Fetching table orders for recovery...');
       
-      const response = await apiClient.get('/cart/table-orders-recovery');
+      const response = await apiClient.get('/pos/cart/table-orders-recovery');
       
       // Response format kontrolü
       if (!response || typeof response !== 'object') {

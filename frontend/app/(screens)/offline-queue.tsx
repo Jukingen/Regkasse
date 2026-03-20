@@ -28,6 +28,7 @@ import {
 const FILTER_ALL = 'All';
 const FILTER_PENDING = 'Pending';
 const FILTER_FAILED = 'Failed';
+const RKSV_HANDOFF_PREFIX = 'RKSV_HANDOFF_V1';
 
 function formatDate(iso: string): string {
   try {
@@ -85,6 +86,25 @@ function getErrorSummary(lastError: string | undefined): string {
   }
   if (lastError.length > 60) return lastError.slice(0, 57) + '…';
   return lastError;
+}
+
+type MobileIncidentHandoffPayload = {
+  source: 'mobile-offline-queue';
+  correlationId: string;
+  generatedAt: string;
+  adminPath: string;
+  queueHint?: string;
+};
+
+function buildIncidentHandoffPayload(correlationId: string, queueId?: string): string {
+  const payload: MobileIncidentHandoffPayload = {
+    source: 'mobile-offline-queue',
+    correlationId,
+    generatedAt: new Date().toISOString(),
+    adminPath: `/rksv/incident?correlationId=${encodeURIComponent(correlationId)}`,
+    queueHint: queueId,
+  };
+  return `${RKSV_HANDOFF_PREFIX}:${JSON.stringify(payload)}`;
 }
 
 export default function OfflineQueueScreen() {
@@ -180,16 +200,20 @@ export default function OfflineQueueScreen() {
   );
 
   const handleShareReplayBatchId = useCallback(
-    async (batchId: string) => {
+    async (batchId: string, queueId?: string) => {
       const v = batchId.trim();
       if (!v) return;
+      const handoffPayload = buildIncidentHandoffPayload(v, queueId);
       try {
         await Share.share({
-          message: `Replay-Batch-Correlation-ID (Support): ${v}`,
+          message:
+            `Replay-Batch-Correlation-ID (Support): ${v}\n` +
+            `Admin Incident Path: /rksv/incident?correlationId=${encodeURIComponent(v)}\n` +
+            `${handoffPayload}`,
           title: 'Support: Replay-Batch',
         });
       } catch {
-        await copyToClipboard('Replay-Batch-ID', v);
+        await copyToClipboard('Support-Handoff', handoffPayload);
       }
     },
     [copyToClipboard]
@@ -301,7 +325,7 @@ export default function OfflineQueueScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.copySmallBtn}
-                      onPress={() => handleShareReplayBatchId(entry.replayBatchCorrelationId!)}
+                      onPress={() => handleShareReplayBatchId(entry.replayBatchCorrelationId!, entry.queueId)}
                     >
                       <Text style={styles.copySmallBtnText}>Teilen</Text>
                     </TouchableOpacity>

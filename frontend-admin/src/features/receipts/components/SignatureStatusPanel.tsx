@@ -63,7 +63,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
                 <Alert
                     type="info"
                     message="No payment linked"
-                    description="This receipt has no associated payment. Signature verification is not available."
+                    description="This page has no payment id. Signature verification is not available."
                 />
             </Card>
         );

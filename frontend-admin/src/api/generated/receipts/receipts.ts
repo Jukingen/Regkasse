@@ -19,12 +19,125 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
-  ReceiptDTO
+  GetApiReceiptsListParams,
+  ReceiptDTO,
+  ReceiptListItemDtoPagedResult
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
 
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
+
+
+export const getApiReceiptsList = (
+    params?: GetApiReceiptsListParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ReceiptListItemDtoPagedResult>(
+      {url: `/api/Receipts/list`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiReceiptsListQueryKey = (params?: GetApiReceiptsListParams,) => {
+    return [`/api/Receipts/list`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiReceiptsListQueryOptions = <TData = Awaited<ReturnType<typeof getApiReceiptsList>>, TError = unknown>(params?: GetApiReceiptsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsList>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReceiptsListQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReceiptsList>>> = ({ signal }) => getApiReceiptsList(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsList>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiReceiptsListQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReceiptsList>>>
+export type GetApiReceiptsListQueryError = unknown
+
+export const useGetApiReceiptsList = <TData = Awaited<ReturnType<typeof getApiReceiptsList>>, TError = unknown>(
+ params?: GetApiReceiptsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsList>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiReceiptsListQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiReceiptsByPaymentPaymentId = (
+    paymentId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ReceiptDTO>(
+      {url: `/api/Receipts/by-payment/${paymentId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiReceiptsByPaymentPaymentIdQueryKey = (paymentId: string,) => {
+    return [`/api/Receipts/by-payment/${paymentId}`] as const;
+    }
+
+    
+export const getGetApiReceiptsByPaymentPaymentIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiReceiptsByPaymentPaymentId>>, TError = unknown>(paymentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsByPaymentPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReceiptsByPaymentPaymentIdQueryKey(paymentId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReceiptsByPaymentPaymentId>>> = ({ signal }) => getApiReceiptsByPaymentPaymentId(paymentId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(paymentId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsByPaymentPaymentId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiReceiptsByPaymentPaymentIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReceiptsByPaymentPaymentId>>>
+export type GetApiReceiptsByPaymentPaymentIdQueryError = unknown
+
+export const useGetApiReceiptsByPaymentPaymentId = <TData = Awaited<ReturnType<typeof getApiReceiptsByPaymentPaymentId>>, TError = unknown>(
+ paymentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReceiptsByPaymentPaymentId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiReceiptsByPaymentPaymentIdQueryOptions(paymentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
 
 
 export const getApiReceiptsReceiptId = (

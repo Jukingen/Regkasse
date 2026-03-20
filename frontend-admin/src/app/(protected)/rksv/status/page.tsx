@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Card, Row, Col, Statistic, Tag, Spin, Alert } from 'antd';
+import { Card, Row, Col, Statistic, Tag, Spin, Alert, Typography } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useGetApiTseStatus } from '@/api/generated/tse/tse';
 import { useGetApiFinanzOnlineStatus } from '@/api/generated/finanz-online/finanz-online';
+import Link from 'next/link';
 
 export default function RksvStatusPage() {
     const { data: tseStatus, isLoading: tseLoading, error: tseError } = useGetApiTseStatus();
@@ -73,6 +74,9 @@ export default function RksvStatusPage() {
                         />
                         {foStatus?.pendingInvoices !== undefined && <p style={{ marginTop: 8 }}>Pending invoices: {foStatus.pendingInvoices}</p>}
                         {foStatus?.lastSync && <p>Last sync: {foStatus.lastSync}</p>}
+                        <Typography.Paragraph style={{ marginTop: 8, marginBottom: 0 }}>
+                            <Link href="/rksv/finanz-online-operations">Open FinanzOnline Operations</Link>
+                        </Typography.Paragraph>
                     </Card>
                 </Col>
             </Row>

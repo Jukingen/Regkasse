@@ -31,6 +31,11 @@ export interface Order {
   customerPhone?: string | null;
   discountAmount: number;
   id?: string;
+  /**
+   * @maxLength 64
+   * @nullable
+   */
+  idempotencyKey?: string | null;
   isActive?: boolean;
   /** @nullable */
   items?: OrderItem[] | null;

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, Tabs, message, Row, Col, InputNumber, Switch, Divider, Spin } from 'antd';
+import { Form, Input, Button, Card, Tabs, message, Row, Col, InputNumber, Switch, Divider, Spin, Descriptions, Typography } from 'antd';
 import { SaveOutlined, LockOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
@@ -268,40 +268,111 @@ function LocalizationTab() {
 
 function FinanzOnlineTab() {
     return (
-        <Card title="FinanzOnline Settings">
-            <Form.Item name="finanzOnlineEnabled" valuePropName="checked" label="Enable FinanzOnline Integration">
-                <Switch />
-            </Form.Item>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Card title="Credentials & Connectivity">
+                <Row gutter={24}>
+                    <Col xs={24} md={12}>
+                        <Form.Item name="finanzOnlineEnabled" valuePropName="checked" label="Enable FinanzOnline Integration">
+                            <Switch />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Form.Item
+                            label="API URL"
+                            name="finanzOnlineApiUrl"
+                            rules={[
+                                { max: 500, message: 'Max 500 characters' },
+                                { type: 'url', message: 'Provide a valid URL' },
+                            ]}
+                        >
+                            <Input placeholder="https://finanzonline.example.at/api" />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Form.Item
+                            label="Participant ID (Teilnehmer-ID)"
+                            name="finanzOnlineParticipantId"
+                            rules={[{ max: 100, message: 'Max 100 characters' }]}
+                            extra="Teilnehmer-ID or combined Teilnehmer-ID/Benutzer-ID if required by provider"
+                        >
+                            <Input placeholder="Teilnehmer-ID" />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Form.Item
+                            label="PIN"
+                            name="finanzOnlinePin"
+                            rules={[{ max: 100, message: 'Max 100 characters' }]}
+                            extra="Aus Sicherheitsgründen wird ein bestehender PIN nie angezeigt. Feld leer lassen, um den aktuellen PIN beizubehalten."
+                        >
+                            <Input.Password placeholder="PIN" />
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </Card>
 
-            <Form.Item
-                label="Participant ID (Teilnehmer-ID)"
-                name="finanzOnlineParticipantId"
-                rules={[{ max: 100, message: 'Max 100 characters' }]}
-                extra="Teilnehmer-ID or combined Teilnehmer-ID/Benutzer-ID if required by provider"
-            >
-                <Input placeholder="Teilnehmer-ID" />
-            </Form.Item>
+            <Card title="Submission Behavior">
+                <Row gutter={24}>
+                    <Col xs={24} md={12}>
+                        <Form.Item
+                            label="Session Timeout (min)"
+                            name="finanzOnlineSubmitInterval"
+                            rules={[{ type: 'number', min: 1, max: 1440, message: 'Between 1 and 1440' }]}
+                        >
+                            <InputNumber style={{ width: '100%' }} min={1} max={1440} />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Form.Item name="finanzOnlineAutoSubmit" valuePropName="checked" label="Automatic Submission">
+                            <Switch />
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </Card>
 
-            <Form.Item
-                label="PIN"
-                name="finanzOnlinePin"
-                rules={[{ max: 100, message: 'Max 100 characters' }]}
-            >
-                <Input.Password placeholder="PIN" />
-            </Form.Item>
+            <Card title="Validation & Retry Policy">
+                <Row gutter={24}>
+                    <Col xs={24} md={12}>
+                        <Form.Item
+                            label="Retry Attempts"
+                            name="finanzOnlineRetryAttempts"
+                            rules={[{ type: 'number', min: 0, max: 20, message: 'Between 0 and 20' }]}
+                        >
+                            <InputNumber style={{ width: '100%' }} min={0} max={20} />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={24} md={12}>
+                        <Form.Item name="finanzOnlineEnableValidation" valuePropName="checked" label="Enable Payload Validation">
+                            <Switch />
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </Card>
 
-            <Form.Item
-                label="Session Timeout (min)"
-                name="finanzOnlineSubmitInterval"
-                rules={[{ type: 'number', min: 1, max: 1440, message: 'Between 1 and 1440' }]}
-            >
-                <InputNumber style={{ width: '100%' }} min={1} max={1440} />
-            </Form.Item>
-
-            <Form.Item name="finanzOnlineAutoSubmit" valuePropName="checked" label="Automatic Submission">
-                <Switch />
-            </Form.Item>
-        </Card>
+            <Card title="Operational State / Health">
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+                    Laufzeitstatus aus dem Backend. Diese Felder sind read-only und werden nicht über Save Changes geschrieben.
+                </Typography.Paragraph>
+                <Descriptions size="small" bordered column={1}>
+                    <Descriptions.Item label="Last FinanzOnline Sync">
+                        <Form.Item noStyle shouldUpdate>
+                            {({ getFieldValue }) => {
+                                const v = getFieldValue('lastFinanzOnlineSync');
+                                return v ? String(v) : '—';
+                            }}
+                        </Form.Item>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Pending Invoices">
+                        <Form.Item noStyle shouldUpdate>
+                            {({ getFieldValue }) => {
+                                const v = getFieldValue('pendingInvoices');
+                                return typeof v === 'number' ? String(v) : '—';
+                            }}
+                        </Form.Item>
+                    </Descriptions.Item>
+                </Descriptions>
+            </Card>
+        </div>
     );
 }
 

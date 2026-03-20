@@ -13,10 +13,10 @@ export interface CreateUserRequest {
    */
   email?: string | null;
   /**
+   * @minLength 1
    * @maxLength 20
-   * @nullable
    */
-  employeeNumber?: string | null;
+  employeeNumber: string;
   /**
    * @minLength 1
    * @maxLength 50

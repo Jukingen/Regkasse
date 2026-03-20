@@ -28,6 +28,7 @@ import type {
   GetApiAuditLogParams,
   GetApiAuditLogPaymentPaymentIdParams,
   GetApiAuditLogStatisticsParams,
+  GetApiAuditLogSuspiciousAdminActionsParams,
   GetApiAuditLogUserUserIdParams
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -312,6 +313,62 @@ export const useGetApiAuditLogCorrelationCorrelationId = <TData = Awaited<Return
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAuditLogCorrelationCorrelationIdQueryOptions(correlationId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAuditLogSuspiciousAdminActions = (
+    params?: GetApiAuditLogSuspiciousAdminActionsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AuditLogsResponse>(
+      {url: `/api/AuditLog/suspicious-admin-actions`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAuditLogSuspiciousAdminActionsQueryKey = (params?: GetApiAuditLogSuspiciousAdminActionsParams,) => {
+    return [`/api/AuditLog/suspicious-admin-actions`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAuditLogSuspiciousAdminActionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>, TError = unknown>(params?: GetApiAuditLogSuspiciousAdminActionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAuditLogSuspiciousAdminActionsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>> = ({ signal }) => getApiAuditLogSuspiciousAdminActions(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAuditLogSuspiciousAdminActionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>>
+export type GetApiAuditLogSuspiciousAdminActionsQueryError = unknown
+
+export const useGetApiAuditLogSuspiciousAdminActions = <TData = Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>, TError = unknown>(
+ params?: GetApiAuditLogSuspiciousAdminActionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAuditLogSuspiciousAdminActions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAuditLogSuspiciousAdminActionsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

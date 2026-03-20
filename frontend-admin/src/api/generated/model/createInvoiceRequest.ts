@@ -10,6 +10,7 @@ import type { PaymentMethod } from './paymentMethod';
 import type { CreateInvoiceRequestTaxDetails } from './createInvoiceRequestTaxDetails';
 
 export interface CreateInvoiceRequest {
+  cashRegisterId?: string;
   /** @nullable */
   companyAddress?: string | null;
   /** @nullable */

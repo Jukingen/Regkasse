@@ -7,6 +7,11 @@
  */
 
 export interface CancelPaymentRequest {
+  /**
+   * @maxLength 64
+   * @nullable
+   */
+  idempotencyKey?: string | null;
   /** @minLength 1 */
   reason: string;
 }

@@ -23,20 +23,25 @@ import {
     Typography,
     Tooltip,
 } from 'antd';
-import { ReloadOutlined, RetryOutlined } from '@ant-design/icons';
+import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
-    getReconciliationList,
-    getReconciliationMetrics,
-    retryReconciliationSubmit,
-    type FinanzOnlineReconciliationItemDto,
-    type GetReconciliationListParams,
-} from '@/api/finanzonline-reconciliation';
-import { customInstance } from '@/lib/axios';
+    getApiAdminFinanzonlineReconciliation,
+    getApiAdminFinanzonlineReconciliationMetrics,
+    postApiAdminFinanzonlineReconciliationRetryPaymentId,
+} from '@/api/generated/admin/admin';
+import {
+    getAdminCashRegisters,
+} from '@/api/admin-rksv/client';
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import type {
+    FinanzOnlineReconciliationItemDto,
+    GetApiAdminFinanzonlineReconciliationParams,
+} from '@/api/generated/model';
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
     { value: 'Pending', label: 'Pending' },
@@ -44,14 +49,6 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
     { value: 'NeedsReconciliation', label: 'NeedsReconciliation' },
     { value: 'Submitted', label: 'Submitted' },
 ];
-
-// Cash register list response from GET /api/CashRegister
-interface CashRegisterListResponse {
-    registers?: { id: string; registerNumber?: string }[];
-}
-
-const RECONCILIATION_QUERY_KEY = ['admin', 'finanzonline-reconciliation'];
-const METRICS_QUERY_KEY = ['admin', 'finanzonline-reconciliation', 'metrics'];
 
 function statusBadgeColor(status: string | null): string {
     if (!status) return 'default';
@@ -97,38 +94,37 @@ export default function FinanzOnlineReconciliationPage() {
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>(initialDateRange);
     const [retryingId, setRetryingId] = useState<string | null>(null);
 
-    const listParams: GetReconciliationListParams = useMemo(() => {
-        const p: GetReconciliationListParams = {
+    const listParams: GetApiAdminFinanzonlineReconciliationParams = useMemo(() => {
+        const p: GetApiAdminFinanzonlineReconciliationParams = {
             status: statusFilter.length ? statusFilter.join(',') : undefined,
             limit: 200,
         };
         if (cashRegisterId) p.cashRegisterId = cashRegisterId;
-        if (dateRange[0]) p.fromUtc = dateRange[0].utc().toISOString();
-        if (dateRange[1]) p.toUtc = dateRange[1].utc().endOf('day').toISOString();
+        if (dateRange[0]) p.fromUtc = dateRange[0].toISOString();
+        if (dateRange[1]) p.toUtc = dateRange[1].endOf('day').toISOString();
         return p;
     }, [statusFilter, cashRegisterId, dateRange]);
 
     const { data: listData, isLoading: listLoading, error: listError } = useQuery({
-        queryKey: [...RECONCILIATION_QUERY_KEY, listParams],
-        queryFn: () => getReconciliationList(listParams),
+        queryKey: rksvAdminQueryKeys.finanzOnline.list(listParams),
+        queryFn: () => getApiAdminFinanzonlineReconciliation(listParams),
         staleTime: 30_000,
     });
 
     const { data: metricsData, isLoading: metricsLoading } = useQuery({
-        queryKey: METRICS_QUERY_KEY,
-        queryFn: getReconciliationMetrics,
+        queryKey: rksvAdminQueryKeys.finanzOnline.metrics,
+        queryFn: getApiAdminFinanzonlineReconciliationMetrics,
         staleTime: 15_000,
     });
 
     const { data: cashRegisters } = useQuery({
-        queryKey: ['cash-registers'],
-        queryFn: async () =>
-            customInstance<CashRegisterListResponse>({ url: '/api/CashRegister', method: 'GET' }),
+        queryKey: rksvAdminQueryKeys.cashRegisters,
+        queryFn: getAdminCashRegisters,
         staleTime: 60_000,
     });
 
     const retryMutation = useMutation({
-        mutationFn: retryReconciliationSubmit,
+        mutationFn: (paymentId: string) => postApiAdminFinanzonlineReconciliationRetryPaymentId(paymentId),
         onSuccess: (result, paymentId) => {
             if (result.success) {
                 message.success(`Zahlung ${paymentId}: ${result.message}`);
@@ -136,14 +132,14 @@ export default function FinanzOnlineReconciliationPage() {
                 message.warning(`Zahlung ${paymentId}: ${result.message}`);
             }
             setRetryingId(null);
-            queryClient.invalidateQueries({ queryKey: RECONCILIATION_QUERY_KEY });
-            queryClient.invalidateQueries({ queryKey: METRICS_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.base });
+            queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.metrics });
         },
         onError: (err: Error, paymentId) => {
             const msg = err?.message || 'Retry fehlgeschlagen';
             message.error(`Retry für ${paymentId}: ${msg}`);
             setRetryingId(null);
-            queryClient.invalidateQueries({ queryKey: RECONCILIATION_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.base });
         },
     });
 
@@ -173,11 +169,14 @@ export default function FinanzOnlineReconciliationPage() {
             title: 'Zahlung',
             key: 'paymentId',
             width: 120,
-            render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => (
-                <Link href={`/payments?paymentId=${r.paymentId}`} target="_blank" rel="noopener noreferrer">
-                    <Typography.Text code>{r.paymentId.slice(0, 8)}…</Typography.Text>
-                </Link>
-            ),
+            render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => {
+                const paymentId = r.paymentId ?? '';
+                return (
+                    <Link href={`/payments?paymentId=${paymentId}`} target="_blank" rel="noopener noreferrer">
+                        <Typography.Text code>{paymentId ? `${paymentId.slice(0, 8)}…` : '—'}</Typography.Text>
+                    </Link>
+                );
+            },
         },
         {
             title: 'Status',
@@ -243,14 +242,15 @@ export default function FinanzOnlineReconciliationPage() {
                     r.finanzOnlineStatus === 'Pending' ||
                     r.finanzOnlineStatus === 'Failed' ||
                     r.finanzOnlineStatus === 'NeedsReconciliation';
-                const loading = retryingId === r.paymentId;
-                return canRetry ? (
+                const paymentId = r.paymentId ?? '';
+                const loading = retryingId === paymentId;
+                return canRetry && paymentId ? (
                     <Button
                         type="link"
                         size="small"
-                        icon={<RetryOutlined />}
+                        icon={<SyncOutlined />}
                         loading={loading}
-                        onClick={() => handleRetry(r.paymentId)}
+                        onClick={() => handleRetry(paymentId)}
                     >
                         Erneut senden
                     </Button>
@@ -275,8 +275,8 @@ export default function FinanzOnlineReconciliationPage() {
                     <Button
                         icon={<ReloadOutlined />}
                         onClick={() => {
-                            queryClient.invalidateQueries({ queryKey: RECONCILIATION_QUERY_KEY });
-                            queryClient.invalidateQueries({ queryKey: METRICS_QUERY_KEY });
+                            queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.base });
+                            queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.metrics });
                         }}
                     >
                         Aktualisieren
@@ -286,6 +286,8 @@ export default function FinanzOnlineReconciliationPage() {
 
             <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
                 Verwandt:{' '}
+                <Link href="/rksv/finanz-online-operations">FinanzOnline Operations</Link>
+                {' · '}
                 <Link href="/rksv/integrity">Datenintegrität (Support)</Link>
                 {' · '}
                 <Link href="/rksv/incident">Incident (Correlation)</Link>
@@ -363,10 +365,12 @@ export default function FinanzOnlineReconciliationPage() {
                             value={cashRegisterId || undefined}
                             onChange={(v) => setCashRegisterId(v ?? undefined)}
                             style={{ minWidth: 200 }}
-                            options={(cashRegisters?.registers ?? []).map((r) => ({
-                                value: r.id,
-                                label: r.registerNumber ? `${r.registerNumber} (${r.id.slice(0, 8)}…)` : r.id,
-                            }))}
+                            options={(cashRegisters ?? [])
+                                .filter((r) => typeof r.id === 'string' && r.id.length > 0)
+                                .map((r) => ({
+                                    value: r.id as string,
+                                    label: r.registerNumber ? `${r.registerNumber} (${(r.id as string).slice(0, 8)}…)` : (r.id as string),
+                                }))}
                         />
                     </Space>
                     <Space>
@@ -396,7 +400,7 @@ export default function FinanzOnlineReconciliationPage() {
                     <Table
                         columns={columns}
                         dataSource={items}
-                        rowKey="paymentId"
+                        rowKey={(row) => row.paymentId ?? `${row.receiptNumber}-${row.createdAt}`}
                         loading={listLoading}
                         pagination={{
                             pageSize: 50,

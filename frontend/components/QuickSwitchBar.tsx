@@ -37,6 +37,18 @@ export interface OpenCart {
   createdAt: string;
 }
 
+interface TableOrdersRecoveryApiResponse {
+  success: boolean;
+  tableOrders: Array<{
+    cartId: string;
+    tableNumber?: number;
+    customerName?: string;
+    totalAmount: number;
+    itemCount: number;
+    createdAt: string;
+  }>;
+}
+
 interface QuickSwitchBarProps {
   onSelectWaiter: (waiter: Waiter) => void;
   onSelectTable: (table: Table) => void;
@@ -83,8 +95,16 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
 
   const fetchOpenCarts = async () => {
     try {
-      const response = await apiClient.get<OpenCart[]>('/cart/open');
-      setOpenCarts(response);
+      const response = await apiClient.get<TableOrdersRecoveryApiResponse>('/pos/cart/table-orders-recovery');
+      const mapped: OpenCart[] = (response.tableOrders ?? []).map((order) => ({
+        cartId: order.cartId,
+        tableNumber: String(order.tableNumber ?? ''),
+        waiterName: order.customerName,
+        totalAmount: order.totalAmount,
+        itemCount: order.itemCount,
+        createdAt: order.createdAt,
+      }));
+      setOpenCarts(mapped);
     } catch (error) {
       console.error('Açık sepetler yüklenemedi:', error);
     }

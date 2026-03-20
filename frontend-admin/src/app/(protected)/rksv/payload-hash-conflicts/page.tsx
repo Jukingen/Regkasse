@@ -28,23 +28,22 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
-  analyzeOfflinePayloadHash,
-  downloadExportCsv,
-  repairOfflinePayloadHash,
-  type PayloadHashConflictGroup,
-  type PayloadHashRepairableItem,
-  type OfflinePayloadHashAnalyzeResult,
-  type OfflinePayloadHashRepairResult,
-} from '@/api/offline-payload-hash';
-import { customInstance } from '@/lib/axios';
+  postApiAdminOfflinePayloadHashAnalyze,
+  postApiAdminOfflinePayloadHashRepair,
+} from '@/api/generated/admin/admin';
+import {
+  getAdminCashRegisters,
+  downloadOfflinePayloadHashExportCsv,
+} from '@/api/admin-rksv/client';
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import type {
+  OfflinePayloadHashAnalyzeResult,
+  OfflinePayloadHashRepairResult,
+  PayloadHashConflictGroup,
+  PayloadHashRepairableItem,
+} from '@/api/generated/model';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
-
-interface CashRegisterListResponse {
-  registers?: { id: string; registerNumber?: string }[];
-}
-
-const QUERY_KEY = ['admin', 'offline-payload-hash', 'analyze'];
 
 function severityColor(severity: string): string {
   if (severity === 'High') return 'red';
@@ -65,20 +64,19 @@ export default function PayloadHashConflictsPage() {
   );
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: [...QUERY_KEY, analyzeParams],
-    queryFn: () => analyzeOfflinePayloadHash(analyzeParams),
+    queryKey: rksvAdminQueryKeys.offlinePayloadHash.analyze(analyzeParams),
+    queryFn: () => postApiAdminOfflinePayloadHashAnalyze(analyzeParams),
     staleTime: 60_000,
   });
 
   const { data: cashRegisters } = useQuery({
-    queryKey: ['cash-registers'],
-    queryFn: async () =>
-      customInstance<CashRegisterListResponse>({ url: '/api/CashRegister', method: 'GET' }),
+    queryKey: rksvAdminQueryKeys.cashRegisters,
+    queryFn: getAdminCashRegisters,
     staleTime: 60_000,
   });
 
   const downloadCsvMutation = useMutation({
-    mutationFn: () => downloadExportCsv(analyzeParams),
+    mutationFn: () => downloadOfflinePayloadHashExportCsv(analyzeParams),
     onSuccess: async (blob) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -93,7 +91,7 @@ export default function PayloadHashConflictsPage() {
 
   const dryRunMutation = useMutation({
     mutationFn: () =>
-      repairOfflinePayloadHash({
+      postApiAdminOfflinePayloadHashRepair({
         maxRows,
         cashRegisterId: cashRegisterId ?? undefined,
         dryRun: true,
@@ -107,7 +105,7 @@ export default function PayloadHashConflictsPage() {
 
   const applyMutation = useMutation({
     mutationFn: () =>
-      repairOfflinePayloadHash({
+      postApiAdminOfflinePayloadHashRepair({
         maxRows,
         cashRegisterId: cashRegisterId ?? undefined,
         dryRun: false,
@@ -300,10 +298,12 @@ export default function PayloadHashConflictsPage() {
               value={cashRegisterId ?? undefined}
               onChange={(v) => setCashRegisterId(v ?? undefined)}
               style={{ minWidth: 220 }}
-              options={(cashRegisters?.registers ?? []).map((r) => ({
-                value: r.id,
-                label: r.registerNumber ? `${r.registerNumber} (${r.id.slice(0, 8)}…)` : r.id,
-              }))}
+              options={(cashRegisters ?? [])
+                .filter((r) => typeof r.id === 'string' && r.id.length > 0)
+                .map((r) => ({
+                  value: r.id as string,
+                  label: r.registerNumber ? `${r.registerNumber} (${(r.id as string).slice(0, 8)}…)` : (r.id as string),
+                }))}
             />
           </Space>
           <Button type="primary" onClick={() => refetch()}>

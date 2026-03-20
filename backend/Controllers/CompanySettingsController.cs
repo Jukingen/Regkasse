@@ -144,6 +144,8 @@ namespace KasseAPI_Final.Controllers
                 if (request.FinanzOnlineEnabled.HasValue) settings.FinanzOnlineEnabled = request.FinanzOnlineEnabled.Value;
                 if (request.FinanzOnlineAutoSubmit.HasValue) settings.FinanzOnlineAutoSubmit = request.FinanzOnlineAutoSubmit.Value;
                 if (request.FinanzOnlineSubmitInterval.HasValue) settings.FinanzOnlineSubmitInterval = request.FinanzOnlineSubmitInterval.Value;
+                if (request.FinanzOnlineRetryAttempts.HasValue) settings.FinanzOnlineRetryAttempts = request.FinanzOnlineRetryAttempts.Value;
+                if (request.FinanzOnlineEnableValidation.HasValue) settings.FinanzOnlineEnableValidation = request.FinanzOnlineEnableValidation.Value;
                 if (request.DefaultTseDeviceId != null) settings.DefaultTseDeviceId = request.DefaultTseDeviceId;
                 if (request.TseAutoConnect.HasValue) settings.TseAutoConnect = request.TseAutoConnect.Value;
                 if (request.TseConnectionTimeout.HasValue) settings.TseConnectionTimeout = request.TseConnectionTimeout.Value;
@@ -579,6 +581,10 @@ namespace KasseAPI_Final.Controllers
         public bool? FinanzOnlineAutoSubmit { get; set; }
 
         public int? FinanzOnlineSubmitInterval { get; set; }
+
+        public int? FinanzOnlineRetryAttempts { get; set; }
+
+        public bool? FinanzOnlineEnableValidation { get; set; }
 
         [MaxLength(100)]
         public string? DefaultTseDeviceId { get; set; }

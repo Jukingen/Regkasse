@@ -12,6 +12,11 @@ export interface CreateOrderRequest {
   customerName?: string | null;
   /** @nullable */
   customerPhone?: string | null;
+  /**
+   * @maxLength 64
+   * @nullable
+   */
+  idempotencyKey?: string | null;
   /** @nullable */
   items?: OrderItemRequest[] | null;
   /** @nullable */

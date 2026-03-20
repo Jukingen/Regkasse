@@ -8,7 +8,11 @@
 
 export interface AuditLogCleanupResponse {
   cutoffDate?: string;
+  deletedCount?: number;
   /** @nullable */
   message?: string | null;
+  /** @nullable */
+  minCutoffDate?: string | null;
+  skippedDueToLegalHoldCount?: number;
   success?: boolean;
 }

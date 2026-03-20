@@ -7,10 +7,10 @@
  */
 
 export interface UpdateUserSettingsRequest {
-  /** Cash register row id (GUID string) for POS scope. @nullable */
-  cashRegisterId?: string | null;
   /** @nullable */
   autoPrintReceipts?: boolean | null;
+  /** @nullable */
+  cashRegisterId?: string | null;
   /** @nullable */
   compactMode?: boolean | null;
   /** @nullable */

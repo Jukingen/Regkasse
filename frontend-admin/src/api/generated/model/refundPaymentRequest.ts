@@ -9,6 +9,11 @@
 export interface RefundPaymentRequest {
   /** @minimum 0.01 */
   amount: number;
+  /**
+   * @maxLength 64
+   * @nullable
+   */
+  idempotencyKey?: string | null;
   /** @minLength 1 */
   reason: string;
 }

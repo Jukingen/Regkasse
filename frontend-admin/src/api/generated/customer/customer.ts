@@ -19,6 +19,7 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  BenefitEligibilityPreviewRequest,
   Customer,
   GetApiCustomerParams,
   GetApiCustomerSearchParams
@@ -353,6 +354,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const deleteApiCustomerId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Customer/${id}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiCustomerIdMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomerId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomerId>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiCustomerId>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteApiCustomerId(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiCustomerIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiCustomerId>>>
+    
+    export type DeleteApiCustomerIdMutationError = unknown
+
+    export const useDeleteApiCustomerId = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomerId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiCustomerId>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiCustomerIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const getApiCustomerId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -408,31 +458,89 @@ export const useGetApiCustomerId = <TData = Awaited<ReturnType<typeof getApiCust
 
 
 
-export const deleteApiCustomerId = (
+export const getApiCustomerIdBenefitSummary = (
     id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Customer/${id}/benefit-summary`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiCustomerIdBenefitSummaryQueryKey = (id: string,) => {
+    return [`/api/Customer/${id}/benefit-summary`] as const;
+    }
+
+    
+export const getGetApiCustomerIdBenefitSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerIdBenefitSummaryQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>> = ({ signal }) => getApiCustomerIdBenefitSummary(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiCustomerIdBenefitSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>>
+export type GetApiCustomerIdBenefitSummaryQueryError = unknown
+
+export const useGetApiCustomerIdBenefitSummary = <TData = Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerIdBenefitSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiCustomerIdBenefitSummaryQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiCustomerIdBenefitEligibilityPreview = (
+    id: string,
+    benefitEligibilityPreviewRequest: BenefitEligibilityPreviewRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<void>(
-      {url: `/api/Customer/${id}`, method: 'DELETE'
+      {url: `/api/Customer/${id}/benefit-eligibility-preview`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: benefitEligibilityPreviewRequest
     },
       options);
     }
   
 
 
-export const getDeleteApiCustomerIdMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomerId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomerId>>, TError,{id: string}, TContext> => {
+export const getPostApiCustomerIdBenefitEligibilityPreviewMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomerIdBenefitEligibilityPreview>>, TError,{id: string;data: BenefitEligibilityPreviewRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiCustomerIdBenefitEligibilityPreview>>, TError,{id: string;data: BenefitEligibilityPreviewRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiCustomerId>>, {id: string}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCustomerIdBenefitEligibilityPreview>>, {id: string;data: BenefitEligibilityPreviewRequest}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  deleteApiCustomerId(id,requestOptions)
+          return  postApiCustomerIdBenefitEligibilityPreview(id,data,requestOptions)
         }
 
         
@@ -440,20 +548,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type DeleteApiCustomerIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiCustomerId>>>
-    
-    export type DeleteApiCustomerIdMutationError = unknown
+    export type PostApiCustomerIdBenefitEligibilityPreviewMutationResult = NonNullable<Awaited<ReturnType<typeof postApiCustomerIdBenefitEligibilityPreview>>>
+    export type PostApiCustomerIdBenefitEligibilityPreviewMutationBody = BenefitEligibilityPreviewRequest
+    export type PostApiCustomerIdBenefitEligibilityPreviewMutationError = unknown
 
-    export const useDeleteApiCustomerId = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiCustomerId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const usePostApiCustomerIdBenefitEligibilityPreview = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomerIdBenefitEligibilityPreview>>, TError,{id: string;data: BenefitEligibilityPreviewRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
-        Awaited<ReturnType<typeof deleteApiCustomerId>>,
+        Awaited<ReturnType<typeof postApiCustomerIdBenefitEligibilityPreview>>,
         TError,
-        {id: string},
+        {id: string;data: BenefitEligibilityPreviewRequest},
         TContext
       > => {
 
-      const mutationOptions = getDeleteApiCustomerIdMutationOptions(options);
+      const mutationOptions = getPostApiCustomerIdBenefitEligibilityPreviewMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

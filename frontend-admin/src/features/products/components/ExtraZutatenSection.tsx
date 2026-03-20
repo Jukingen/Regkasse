@@ -13,7 +13,7 @@ import type { ModifierGroupDto, AddOnGroupProductItemDto } from '@/lib/api/modif
 const { Text } = Typography;
 
 export interface ExtraZutatenSectionProps {
-  /** All add-on groups (from getModifierGroups). Includes products; modifiers only for legacy display subsection. */
+  /** All add-on groups (from getModifierGroups). Uses products as source of truth. */
   groups: ModifierGroupDto[];
   /** Group IDs assigned to this product. */
   selectedGroupIds: string[];
@@ -50,8 +50,6 @@ export default function ExtraZutatenSection({
   const items = groups.map((group) => {
     const gid = getGroupId(group);
     const products: AddOnGroupProductItemDto[] = group.products ?? [];
-    // Legacy-only: modifiers come from getModifierGroups() (not from product modifier-groups response). Phase D PR-D.
-    const modifiers = group.modifiers ?? [];
     const productCount = products.length;
     const countLabel = productCount === 0 ? 'leer' : `${productCount} Produkt${productCount !== 1 ? 'e' : ''}`;
     return {
@@ -82,18 +80,9 @@ export default function ExtraZutatenSection({
               ))}
             </ul>
           )}
-          <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>Modifier (Legacy, nur Leseansicht)</div>
-          {modifiers.length === 0 ? (
-            <Text type="secondary" style={{ display: 'block' }}>Keine Modifier.</Text>
-          ) : (
-            <ul style={{ margin: 0, paddingLeft: 20 }}>
-              {modifiers.map((m) => (
-                <li key={m.id} style={{ marginBottom: 4, color: '#666' }}>
-                  <Text>{m.name} — €{Number(m.price).toFixed(2)}</Text>
-                </li>
-              ))}
-            </ul>
-          )}
+          <Text type="secondary" style={{ display: 'block' }}>
+            Neue Laufzeit nutzt nur Add-on-Produkte aus dieser Gruppe.
+          </Text>
         </div>
       ),
     };

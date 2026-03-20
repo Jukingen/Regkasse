@@ -143,11 +143,15 @@ export interface UpdateCompanySettingsRequest {
   finanzOnlineAutoSubmit?: boolean | null;
   /** @nullable */
   finanzOnlineEnabled?: boolean | null;
+  /** @nullable */
+  finanzOnlineEnableValidation?: boolean | null;
   /**
    * @maxLength 100
    * @nullable
    */
   finanzOnlinePassword?: string | null;
+  /** @nullable */
+  finanzOnlineRetryAttempts?: number | null;
   /** @nullable */
   finanzOnlineSubmitInterval?: number | null;
   /**

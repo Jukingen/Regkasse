@@ -6,7 +6,6 @@
  * OpenAPI spec version: v1
  */
 import type { AddOnGroupProduct } from './addOnGroupProduct';
-import type { ProductModifier } from './productModifier';
 import type { ProductModifierGroupAssignment } from './productModifierGroupAssignment';
 
 export interface ProductModifierGroup {
@@ -24,8 +23,6 @@ export interface ProductModifierGroup {
   /** @nullable */
   maxSelections?: number | null;
   minSelections?: number;
-  /** @nullable */
-  modifiers?: ProductModifier[] | null;
   /**
    * @minLength 1
    * @maxLength 100

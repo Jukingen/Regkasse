@@ -22,40 +22,35 @@ import Link from 'next/link';
 import dayjs from 'dayjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { analyzeOfflinePayloadHash } from '@/api/offline-payload-hash';
-import { getReconciliationMetrics } from '@/api/finanzonline-reconciliation';
-import { customInstance } from '@/lib/axios';
+import {
+  getApiAdminFinanzonlineReconciliationMetrics,
+  getApiAdminOfflineIntentCoverage,
+  postApiAdminOfflinePayloadHashAnalyze,
+  getApiAdminOperationsSummary,
+} from '@/api/generated/admin/admin';
+import {
+  getAdminCashRegisters,
+} from '@/api/admin-rksv/client';
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import {
   buildCoverageCardCopy,
+  buildExportRiskCardCopy,
   buildFinanzOnlineCardCopy,
   buildPayloadHashCardCopy,
+  buildReplaySummaryCardCopy,
   healthLabelDe,
   healthTagColor,
   mapCoverageSummaryToHealth,
+  mapExportRiskToHealth,
   mapFinanzOnlineMetricsToHealth,
   mapPayloadHashAnalyzeToHealth,
+  mapReplaySummaryToHealth,
   type OfflineIntentCoverageSummaryInput,
 } from '../normalizers';
 import type { OpsHealthLevel } from '../types';
+import type { GetApiAdminOfflineIntentCoverageParams, GetApiAdminOperationsSummaryParams } from '@/api/generated/model';
 
 const PAYLOAD_QUICK_MAX_ROWS = 5000;
-
-type OfflineIntentCoverageResponse = {
-  fromUtc: string;
-  toUtc: string;
-  total: number;
-  withDeviceId: number;
-  withSequence: number;
-  deviceIdCoveragePercent: number;
-  sequenceCoveragePercent: number;
-  lowCoverageAlert: boolean;
-  alertReason?: string | null;
-};
-
-const COVERAGE_BASE = '/api/admin/offline-intent-coverage';
-
-const QK_PAYLOAD = ['rksv-operations', 'payload-analyze', PAYLOAD_QUICK_MAX_ROWS] as const;
-const QK_FO = ['rksv-operations', 'fo-metrics'] as const;
 
 function OpsHealthCard(props: {
   title: string;
@@ -112,39 +107,6 @@ function OpsHealthCard(props: {
   );
 }
 
-function CtaOnlyCard(props: {
-  title: string;
-  description: string;
-  ctaHref: string;
-  ctaLabel: string;
-  secondaryHref?: string;
-  secondaryLabel?: string;
-}) {
-  const { title, description, ctaHref, ctaLabel, secondaryHref, secondaryLabel } = props;
-  return (
-    <Card size="small" style={{ height: '100%' }}>
-      <Space direction="vertical" size="small" style={{ width: '100%' }}>
-        <Typography.Text strong>{title}</Typography.Text>
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 13 }}>
-          {description}
-        </Typography.Paragraph>
-        <Space wrap>
-          <Link href={ctaHref}>
-            <Button type="primary" size="small">
-              {ctaLabel}
-            </Button>
-          </Link>
-          {secondaryHref && secondaryLabel && (
-            <Link href={secondaryHref}>
-              <Button size="small">{secondaryLabel}</Button>
-            </Link>
-          )}
-        </Space>
-      </Space>
-    </Card>
-  );
-}
-
 function DrillTile(props: { title: string; line: string; href: string; action: string }) {
   return (
     <Card size="small" style={{ height: '100%' }}>
@@ -164,7 +126,7 @@ function DrillTile(props: { title: string; line: string; href: string; action: s
 export function RksvOperationsDashboard() {
   const queryClient = useQueryClient();
   /** Fixed window for dashboard card only; refetch uses same bounds until remount. */
-  const coverageParams = useMemo(
+  const coverageParams = useMemo<GetApiAdminOfflineIntentCoverageParams>(
     () => ({
       fromUtc: dayjs().subtract(1, 'day').toISOString(),
       toUtc: dayjs().toISOString(),
@@ -172,33 +134,35 @@ export function RksvOperationsDashboard() {
     []
   );
   const coverageQueryKey = useMemo(
-    () => ['rksv-operations', 'coverage', coverageParams] as const,
+    () => rksvAdminQueryKeys.operations.coverageSummary(coverageParams),
     [coverageParams]
   );
 
   const [refreshedAt, setRefreshedAt] = useState(() => new Date());
+  const operationsSummaryParams = useMemo<GetApiAdminOperationsSummaryParams>(() => ({ windowHours: 24 }), []);
 
   const payloadQuery = useQuery({
-    queryKey: QK_PAYLOAD,
-    queryFn: () => analyzeOfflinePayloadHash({ maxRows: PAYLOAD_QUICK_MAX_ROWS }),
+    queryKey: rksvAdminQueryKeys.operations.payloadAnalyzeQuick(PAYLOAD_QUICK_MAX_ROWS),
+    queryFn: () => postApiAdminOfflinePayloadHashAnalyze({ maxRows: PAYLOAD_QUICK_MAX_ROWS }),
     staleTime: 60_000,
   });
 
   const coverageQuery = useQuery({
     queryKey: coverageQueryKey,
-    queryFn: () =>
-      customInstance<OfflineIntentCoverageResponse>({
-        url: COVERAGE_BASE,
-        method: 'GET',
-        params: coverageParams,
-      }),
+    queryFn: () => getApiAdminOfflineIntentCoverage(coverageParams),
     staleTime: 30_000,
   });
 
   const foQuery = useQuery({
-    queryKey: QK_FO,
-    queryFn: getReconciliationMetrics,
+    queryKey: rksvAdminQueryKeys.operations.foMetrics,
+    queryFn: getApiAdminFinanzonlineReconciliationMetrics,
     staleTime: 15_000,
+  });
+
+  const opsSummaryQuery = useQuery({
+    queryKey: rksvAdminQueryKeys.operations.summary(operationsSummaryParams),
+    queryFn: () => getApiAdminOperationsSummary(operationsSummaryParams),
+    staleTime: 30_000,
   });
 
   const coverageSummary: OfflineIntentCoverageSummaryInput | null = coverageQuery.data
@@ -218,10 +182,14 @@ export function RksvOperationsDashboard() {
     ? ('unavailable' as const)
     : mapCoverageSummaryToHealth(coverageSummary);
   const foLevel = foQuery.isError ? ('unavailable' as const) : mapFinanzOnlineMetricsToHealth(foQuery.data);
+  const replayLevel = opsSummaryQuery.isError ? ('unavailable' as const) : mapReplaySummaryToHealth(opsSummaryQuery.data);
+  const exportRiskLevel = opsSummaryQuery.isError ? ('unavailable' as const) : mapExportRiskToHealth(opsSummaryQuery.data);
 
   const payloadCopy = buildPayloadHashCardCopy(payloadQuery.data, payloadLevel);
   const coverageCopy = buildCoverageCardCopy(coverageSummary, coverageLevel);
   const foCopy = buildFinanzOnlineCardCopy(foQuery.data, foLevel);
+  const replayCopy = buildReplaySummaryCardCopy(opsSummaryQuery.data, replayLevel);
+  const exportRiskCopy = buildExportRiskCardCopy(opsSummaryQuery.data, exportRiskLevel);
 
   const onRefresh = useCallback(async () => {
     await queryClient.refetchQueries({ queryKey: ['rksv-operations'] });
@@ -229,7 +197,7 @@ export function RksvOperationsDashboard() {
   }, [queryClient]);
 
   const refreshing =
-    payloadQuery.isFetching || coverageQuery.isFetching || foQuery.isFetching;
+    payloadQuery.isFetching || coverageQuery.isFetching || foQuery.isFetching || opsSummaryQuery.isFetching;
 
   return (
     <div style={{ paddingBottom: 24 }}>
@@ -295,21 +263,30 @@ export function RksvOperationsDashboard() {
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <CtaOnlyCard
+          <OpsHealthCard
             title="Replay / Incident"
-            description="Kein Dashboard-Signal: es gibt keine globale Batch-Zusammenfassung. Correlation-ID auf der Zielseite eingeben."
+            level={replayLevel}
+            loading={opsSummaryQuery.isLoading}
+            summaryLine={replayCopy.summaryLine}
+            detailLines={[
+              ...replayCopy.detailLines,
+              `Incident-Korrelationen (24h): ${opsSummaryQuery.data?.incidentCorrelationCount ?? 0}`,
+            ]}
             ctaHref="/rksv/incident"
             ctaLabel="Incident (Correlation-ID)"
-            secondaryHref="/rksv/replay-batch"
-            secondaryLabel="Replay-Batch"
+            footnote="Summary-Bridge: Backlog + Final-Failure + Incident-Dichte (24h)."
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>
-          <CtaOnlyCard
-            title="Fiscal-Export Diagnose"
-            description="Kein Dashboard-Signal: Vorschau braucht Kasse und Zeitraum — auf der Diagnoseseite."
+          <OpsHealthCard
+            title="Export-Risiko"
+            level={exportRiskLevel}
+            loading={opsSummaryQuery.isLoading}
+            summaryLine={exportRiskCopy.summaryLine}
+            detailLines={exportRiskCopy.detailLines}
             ctaHref="/rksv/fiscal-export-diagnostics"
             ctaLabel="Diagnose öffnen"
+            footnote="Summary nutzt Integritätschecks als first-glance Export-Risikoindikator."
           />
         </Col>
       </Row>
@@ -397,7 +374,7 @@ export function RksvOperationsDashboard() {
               <strong>Nicht verfügbar</strong> = Aufruf fehlgeschlagen — nicht als „alles gut“ lesen.
             </li>
             <li>Payload: POST analyze, begrenzte Zeilen. Coverage: GET summary, 24h UTC. FO: GET metrics.</li>
-            <li>Replay / Fiscal-Export: nur Links, keine Summary-API auf dem Dashboard.</li>
+            <li>Replay/Export: Dashboard nutzt `api/admin/operations/summary` (24h) als Bridge-Signal.</li>
           </ul>
         }
       />

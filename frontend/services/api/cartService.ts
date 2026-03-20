@@ -43,30 +43,17 @@ export interface CreateCartRequest {
   notes?: string;
 }
 
-/** Backend contract: id required; quantity optional (FE sends it; backend may not persist yet – see integration note). */
-export interface SelectedModifierInput {
-  id: string;
-  quantity?: number;
-  name?: string;
-  price?: number;
-  groupId?: string;
-}
-
 export interface AddItemToCartRequest {
   productId: string;
   quantity: number;
   tableNumber?: number;
   waiterName?: string;
   notes?: string;
-  /** Backend accepts; optional. POS add-item does not send (Phase D PR-B); kept for API/legacy compat. */
-  selectedModifiers?: SelectedModifierInput[];
 }
 
 export interface UpdateCartItemRequest {
   quantity: number;
   notes?: string;
-  /** Legacy line modifier updates (e.g. persistModifiers). Backend may ignore for write; kept for compat. */
-  selectedModifiers?: { id: string; quantity?: number }[];
 }
 
 export interface CartHistoryItem {
@@ -133,7 +120,7 @@ export class CartService {
       console.log('🛒 Masa', tableNumber, 'sepeti getiriliyor...');
       console.log('🔍 API endpoint: /cart/current?tableNumber=' + tableNumber);
       
-      const response = await apiClient.get<any>(`/cart/current?tableNumber=${tableNumber}`);
+      const response = await apiClient.get<any>(`/pos/cart/current?tableNumber=${tableNumber}`);
       
       // Debouncing kontrolü - null response handle et
       if (response === null) {
@@ -199,7 +186,7 @@ export class CartService {
   async getCart(cartId: string): Promise<Cart> {
     try {
       console.log('🛒 Sepet getiriliyor:', cartId);
-      const response = await apiClient.get<Cart>(`/cart/${cartId}`);
+      const response = await apiClient.get<Cart>(`/pos/cart/${cartId}`);
       console.log('✅ Sepet başarıyla getirildi');
       return response;
     } catch (error) {
@@ -219,7 +206,7 @@ export class CartService {
 
     try {
       console.log('🛒 Yeni sepet oluşturuluyor:', request);
-      const response = await apiClient.post<{ cartId: string; expiresAt: string }>('/cart', request);
+      const response = await apiClient.post<{ cartId: string; expiresAt: string }>('/pos/cart', request);
       
       // Masa bazlı sepet ID'sini sakla
       this.tableCarts.set(request.tableNumber, response.cartId);
@@ -250,7 +237,7 @@ export class CartService {
 
     try {
       console.log('🛒 Sepete ürün ekleniyor:', request);
-      const response = await apiClient.post<{ message: string; cart: any }>('/cart/add-item', request);
+      const response = await apiClient.post<{ message: string; cart: any }>('/pos/cart/add-item', request);
       
       // Backend response'unu frontend interface'ine uygun hale getir
       const mappedCart: Cart = {
@@ -298,7 +285,7 @@ export class CartService {
 
     try {
       console.log('🛒 Belirli sepete ürün ekleniyor:', { cartId, request });
-      const response = await apiClient.post<{ message: string }>(`/cart/${cartId}/items`, request);
+      const response = await apiClient.post<{ message: string }>(`/pos/cart/${cartId}/items`, request);
       console.log('✅ Ürün başarıyla sepete eklendi');
       return response;
     } catch (error) {
@@ -314,7 +301,7 @@ export class CartService {
 
     try {
       console.log('🛒 Sepet ürünü güncelleniyor:', { itemId, request });
-      const response = await apiClient.put<{ message: string }>(`/cart/items/${itemId}`, request);
+      const response = await apiClient.put<{ message: string }>(`/pos/cart/items/${itemId}`, request);
       console.log('✅ Sepet ürünü başarıyla güncellendi');
       return { success: true, message: response.message };
     } catch (error) {
@@ -330,7 +317,7 @@ export class CartService {
 
     try {
       console.log('🛒 Sepetten ürün çıkarılıyor:', { itemId });
-      const response = await apiClient.delete<{ message: string }>(`/cart/items/${itemId}`);
+      const response = await apiClient.delete<{ message: string }>(`/pos/cart/items/${itemId}`);
       console.log('✅ Ürün başarıyla sepetten çıkarıldı');
       return { success: true, message: response.message };
     } catch (error) {
@@ -346,7 +333,7 @@ export class CartService {
 
     try {
       console.log('🛒 Sepet ürünleri temizleniyor:', cartId);
-      const response = await apiClient.post<{ message: string }>(`/cart/${cartId}/clear-items`);
+      const response = await apiClient.post<{ message: string }>(`/pos/cart/${cartId}/clear-items`);
       console.log('✅ Sepet ürünleri başarıyla temizlendi');
       return response;
     } catch (error) {
@@ -374,7 +361,7 @@ export class CartService {
         newCartId: string; 
         tableNumber: number; 
         status: string 
-      }>(`/cart/${cartId}/reset-after-payment`, { notes });
+      }>(`/pos/cart/${cartId}/reset-after-payment`, { notes });
       
       // Yeni sepet ID'sini güncelle
       this.tableCarts.set(response.tableNumber, response.newCartId);
@@ -394,7 +381,7 @@ export class CartService {
 
     try {
       console.log('🛒 Sepet siliniyor:', cartId);
-      const response = await apiClient.delete<{ message: string }>(`/cart/${cartId}`);
+      const response = await apiClient.delete<{ message: string }>(`/pos/cart/${cartId}`);
       
       // Masa bazlı sepet ID'sini temizle
       for (const [tableNumber, cartIdValue] of this.tableCarts.entries()) {
@@ -419,7 +406,7 @@ export class CartService {
 
     try {
       console.log('🛒 Sepet tamamlanıyor:', cartId);
-      const response = await apiClient.post<{ message: string; cartId: string; totalItems: number; totalAmount: number }>(`/cart/${cartId}/complete`, { notes });
+      const response = await apiClient.post<{ message: string; cartId: string; totalItems: number; totalAmount: number }>(`/pos/cart/${cartId}/complete`, { notes });
       
       // Masa bazlı sepet ID'sini temizle
       for (const [tableNumber, cartIdValue] of this.tableCarts.entries()) {
@@ -444,7 +431,7 @@ export class CartService {
 
     try {
       console.log('🛒 Sepet geçmişi getiriliyor...');
-      const response = await apiClient.get<CartHistoryItem[]>('/cart/history');
+      const response = await apiClient.get<CartHistoryItem[]>('/pos/cart/history');
       console.log('✅ Sepet geçmişi başarıyla getirildi, {Count} kayıt bulundu', response.length);
       return response;
     } catch (error) {
@@ -475,7 +462,7 @@ export class CartService {
         clearedTablesDetails: any[];
         userId: string;
         clearedAt: string;
-      }>('/cart/clear-all');
+      }>('/pos/cart/clear-all');
       
       console.log('🎯 HTTP request completed, response received:', response);
       
@@ -529,7 +516,7 @@ export class CartService {
         clearedCarts: number; 
         clearedItems: number; 
         tableNumber: number 
-      }>('/cart/clear', null, { params: { tableNumber } });
+      }>('/pos/cart/clear', null, { params: { tableNumber } });
       
       console.log('🎯 HTTP request completed for clear cart, response received:', response);
       

@@ -130,7 +130,7 @@ export const useTableOrdersRecoveryOptimized = () => {
       console.log('🔄 Fetching table orders for recovery (single call)...');
 
       // Direkt apiClient - useApiManager.apiCall KULLANILMAZ (503'te retry yapmasın)
-      const response = await apiClient.get('/cart/table-orders-recovery');
+      const response = await apiClient.get('/pos/cart/table-orders-recovery');
 
       if (!response || typeof response !== 'object') {
         throw new Error(`Invalid response format: ${JSON.stringify(response)}`);

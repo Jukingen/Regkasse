@@ -11,8 +11,8 @@ export interface SignatureDiagnosticStepDto {
 
 /**
  * Payload nested under the success envelope for
- * GET /api/Payment/{paymentId}/signature-debug (payment-scoped diagnostics).
- * Distinct from receipt-level debug: GET /api/Receipts/{receiptId}/signature-debug (Orval / other consumers).
+ * GET /api/Receipts/{receiptId}/signature-debug (admin forensic diagnostics).
+ * UI keeps a normalized checklist-like shape for stable rendering.
  */
 export interface PaymentSignatureDebugPayload {
     steps: SignatureDiagnosticStepDto[];

@@ -1,30 +1,35 @@
 'use client';
 
 import React from 'react';
-import { Card, Table, Tag, Typography, Space, Alert } from 'antd';
+import { Card, Table, Tag, Typography, Space, Alert, Row, Col, Statistic } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { getReplayBatchDetail, type ReplayBatchDetailResponse, type ReplayBatchPaymentItemDto } from '@/api/replay-batch';
+import { getApiAdminReplayBatchCorrelationId } from '@/api/generated/admin/admin';
+import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import type { ReplayBatchPaymentItemDto } from '@/api/generated/model';
 import dayjs from 'dayjs';
 
 /**
- * Replay-Batch-Detail: Item-Anzahl, Success/Fail/Duplicate, Log-Trace-Link, Payment-/Receipt-Links.
+ * Replay-Batch-Detail: item counts + observability counters + trace links + payment/receipt links.
  */
 export default function ReplayBatchDetailPage() {
     const params = useParams();
     const correlationId = params?.correlationId as string;
 
     const { data, isLoading, error } = useQuery({
-        queryKey: ['replay-batch', correlationId],
-        queryFn: () => getReplayBatchDetail(correlationId),
+        queryKey: rksvAdminQueryKeys.replayBatch(correlationId),
+        queryFn: () => getApiAdminReplayBatchCorrelationId(correlationId),
         enabled: !!correlationId,
     });
 
     // Log-Trace: Verifications-Seite mit Correlation-ID (Audit-Logs für diese Batch).
     const auditTraceHref = data?.auditCorrelationId
         ? `/rksv/verifications?correlationId=${encodeURIComponent(data.auditCorrelationId)}`
+        : null;
+    const incidentHref = data?.correlationId
+        ? `/rksv/incident?correlationId=${encodeURIComponent(String(data.correlationId))}`
         : null;
 
     const columns = [
@@ -103,22 +108,90 @@ export default function ReplayBatchDetailPage() {
                             <Typography.Text type="secondary">
                                 Correlation-ID: <Typography.Text code>{data.correlationId}</Typography.Text>
                             </Typography.Text>
+                            <Typography.Text type="secondary">
+                                Audit-Correlation-ID: <Typography.Text code>{data.auditCorrelationId ?? '—'}</Typography.Text>
+                            </Typography.Text>
                             {auditTraceHref && (
-                                <Space>
+                                <Space wrap>
                                     <Typography.Text strong>Log-Trace:</Typography.Text>
                                     <Link href={auditTraceHref}>
                                         Audit-Logs für diese Batch anzeigen
                                     </Link>
+                                    {incidentHref && (
+                                        <>
+                                            <Typography.Text type="secondary">|</Typography.Text>
+                                            <Link href={incidentHref}>
+                                                Incident-Ansicht öffnen
+                                            </Link>
+                                        </>
+                                    )}
                                 </Space>
                             )}
                         </Space>
                     </Card>
 
+                    <Card size="small" title="Verknüpfte Entitäten" style={{ marginBottom: 16 }}>
+                        <Space wrap>
+                            {data.correlationId ? (
+                                <Link href={`/rksv/incident?correlationId=${encodeURIComponent(String(data.correlationId))}`}>
+                                    Incident (Correlation)
+                                </Link>
+                            ) : null}
+                            {auditTraceHref ? (
+                                <>
+                                    <Typography.Text type="secondary">·</Typography.Text>
+                                    <Link href={auditTraceHref}>Verifications (Audit)</Link>
+                                </>
+                            ) : null}
+                        </Space>
+                    </Card>
+
+                    <Card size="small" title="Observability" style={{ marginBottom: 16 }}>
+                        <Row gutter={[12, 12]}>
+                            <Col xs={24} sm={8}>
+                                <Card size="small">
+                                    <Statistic
+                                        title="Coverage-Samples"
+                                        value={data.coverageSampleCount ?? 0}
+                                    />
+                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                        Replay-Loop Samples (Device/Sequence Coverage)
+                                    </Typography.Text>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card size="small">
+                                    <Statistic
+                                        title="Audit OFFLINE_SYNCED"
+                                        value={data.offlineSyncedAuditCount ?? 0}
+                                    />
+                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                        Immutable Success-Audit Events
+                                    </Typography.Text>
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <Card size="small">
+                                    <Statistic
+                                        title="Audit FINAL_FAILURE"
+                                        value={data.offlineFinalFailureAuditCount ?? 0}
+                                        valueStyle={{
+                                            color: (data.offlineFinalFailureAuditCount ?? 0) > 0 ? '#cf1322' : undefined,
+                                        }}
+                                    />
+                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                        Final Failure Events (terminal replay)
+                                    </Typography.Text>
+                                </Card>
+                            </Col>
+                        </Row>
+                    </Card>
+
                     <Card title="Zahlungen / Belege in dieser Batch" size="small">
                         <Table
                             columns={columns}
-                            dataSource={data.payments}
-                            rowKey={(r) => r.paymentId}
+                            dataSource={data.payments ?? []}
+                            rowKey={(r) => r.paymentId ?? r.offlineTransactionId ?? r.receiptId ?? 'unknown'}
                             loading={isLoading}
                             pagination={false}
                             size="small"
