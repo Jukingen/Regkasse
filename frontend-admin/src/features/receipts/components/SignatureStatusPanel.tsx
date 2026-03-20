@@ -108,7 +108,9 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
         );
     }
 
-    const steps = data?.data ?? [];
+    const payload = data?.data ?? { steps: [], compactJws: null };
+    const steps = payload.steps;
+    const compactJws = payload.compactJws;
     const hasFail = steps.some((s) => s.status === 'FAIL');
     const failSteps = steps.filter((s) => s.status === 'FAIL');
 
@@ -197,6 +199,23 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
                     ]}
                 />
             )}
+
+            {compactJws ? (
+                <Collapse
+                    style={{ marginTop: 12 }}
+                    items={[
+                        {
+                            key: 'jws',
+                            label: 'Compact JWS (debug)',
+                            children: (
+                                <Text copyable style={{ fontFamily: 'monospace', fontSize: 11, wordBreak: 'break-all' }}>
+                                    {compactJws}
+                                </Text>
+                            ),
+                        },
+                    ]}
+                />
+            ) : null}
         </Card>
     );
 }

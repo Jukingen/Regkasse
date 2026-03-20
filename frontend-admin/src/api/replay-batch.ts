@@ -1,3 +1,4 @@
+/** Admin replay batch detail — same fiscal/audit aggregation as in `ReplayBatchDetailAssembler` (backend). */
 import { customInstance } from '@/lib/axios';
 
 export interface ReplayBatchPaymentItemDto {
@@ -16,6 +17,12 @@ export interface ReplayBatchDetailResponse {
   failedOrDuplicateCount: number;
   auditCorrelationId: string;
   payments: ReplayBatchPaymentItemDto[];
+  /** Observability replay samples (supplementary). */
+  coverageSampleCount?: number;
+  /** Audit OFFLINE_SYNCED count for this batch correlation. */
+  offlineSyncedAuditCount?: number;
+  /** Terminal offline replay failure audit events in this batch. */
+  offlineFinalFailureAuditCount?: number;
 }
 
 export async function getReplayBatchDetail(correlationId: string): Promise<ReplayBatchDetailResponse> {

@@ -1,237 +1,272 @@
 import { apiClient } from './config';
+import { unwrapApiResponseLayer } from './normalizePosPaymentMethods';
 
 export interface DailyClosingRequest {
-  cashRegisterId: string; // Keep as string for frontend, will be converted to Guid on backend
+    cashRegisterId: string;
 }
 
 export interface TagesabschlussResult {
-  success: boolean;
-  errorMessage?: string;
-  /** When closing is blocked: count of payments without a matching invoice (backend). */
-  paymentsWithoutInvoiceCount?: number;
-  closingId?: string;
-  closingDate: string;
-  closingType?: string;
-  totalAmount: number;
-  totalTaxAmount: number;
-  transactionCount: number;
-  tseSignature?: string;
-  status?: string;
-  finanzOnlineStatus?: string;
+    success: boolean;
+    errorMessage?: string;
+    /** When closing is blocked: count of payments without a matching invoice (backend). */
+    paymentsWithoutInvoiceCount?: number;
+    closingId?: string;
+    closingDate: string;
+    closingType?: string;
+    totalAmount: number;
+    totalTaxAmount: number;
+    transactionCount: number;
+    tseSignature?: string;
+    status?: string;
+    finanzOnlineStatus?: string;
 }
 
 export interface ClosingHistoryItem {
-  success: boolean;
-  closingId: string;
-  closingDate: string;
-  closingType: string;
-  totalAmount: number;
-  totalTaxAmount: number;
-  transactionCount: number;
-  tseSignature: string;
-  status: string;
-  finanzOnlineStatus?: string;
+    success: boolean;
+    closingId: string;
+    closingDate: string;
+    closingType: string;
+    totalAmount: number;
+    totalTaxAmount: number;
+    transactionCount: number;
+    tseSignature: string;
+    status: string;
+    finanzOnlineStatus?: string;
 }
 
 export interface CanCloseResponse {
-  canClose: boolean;
-  lastClosingDate?: string;
-  /** Backend message (e.g. why closing is blocked or already performed). */
-  message: string;
-  /** Count of payments without invoice in scope; shown when canClose is false. */
-  paymentsWithoutInvoiceCount?: number;
+    canClose: boolean;
+    lastClosingDate?: string;
+    message: string;
+    paymentsWithoutInvoiceCount?: number;
 }
 
 export interface ClosingStatistics {
-  totalClosings: number;
-  totalAmount: number;
-  totalTaxAmount: number;
-  totalTransactions: number;
-  averageDailyAmount: number;
-  lastClosingDate?: string;
+    totalClosings: number;
+    totalAmount: number;
+    totalTaxAmount: number;
+    totalTransactions: number;
+    averageDailyAmount: number;
+    lastClosingDate?: string;
+}
+
+function asClosingResult(raw: unknown): TagesabschlussResult {
+    return unwrapApiResponseLayer(raw) as TagesabschlussResult;
+}
+
+function asClosingHistory(raw: unknown): ClosingHistoryItem[] {
+    const layer = unwrapApiResponseLayer(raw);
+    return Array.isArray(layer) ? (layer as ClosingHistoryItem[]) : [];
+}
+
+function asCanClose(raw: unknown): CanCloseResponse {
+    return unwrapApiResponseLayer(raw) as CanCloseResponse;
+}
+
+function asStatistics(raw: unknown): ClosingStatistics {
+    return unwrapApiResponseLayer(raw) as ClosingStatistics;
+}
+
+function readErrorPayload(error: unknown): { error?: string; paymentsWithoutInvoiceCount?: number } | null {
+    const e = error as { data?: unknown; response?: { data?: unknown } } | null;
+    const data = (e?.data ?? e?.response?.data) as Record<string, unknown> | null | undefined;
+    if (!data || typeof data !== 'object') return null;
+    return {
+        error: typeof data.error === 'string' ? data.error : undefined,
+        paymentsWithoutInvoiceCount:
+            typeof data.paymentsWithoutInvoiceCount === 'number' ? data.paymentsWithoutInvoiceCount : undefined,
+    };
 }
 
 /**
  * Perform daily closing for the current day
  */
 export const performDailyClosing = async (request: DailyClosingRequest): Promise<TagesabschlussResult> => {
-  try {
-    const response = await apiClient.post('/tagesabschluss/daily', request);
-    return response.data;
-  } catch (error: any) {
-    console.error('Daily closing failed:', error);
-    const data = error.response?.data;
-    return {
-      success: false,
-      errorMessage: (typeof data?.error === 'string' ? data.error : null) || 'Daily closing failed',
-      paymentsWithoutInvoiceCount: typeof data?.paymentsWithoutInvoiceCount === 'number' ? data.paymentsWithoutInvoiceCount : undefined,
-      closingDate: new Date().toISOString(),
-      totalAmount: 0,
-      totalTaxAmount: 0,
-      transactionCount: 0
-    };
-  }
+    try {
+        const raw = await apiClient.post<unknown>('/tagesabschluss/daily', request);
+        return asClosingResult(raw);
+    } catch (error: unknown) {
+        console.error('Daily closing failed:', error);
+        const data = readErrorPayload(error);
+        return {
+            success: false,
+            errorMessage: data?.error || 'Daily closing failed',
+            paymentsWithoutInvoiceCount: data?.paymentsWithoutInvoiceCount,
+            closingDate: new Date().toISOString(),
+            totalAmount: 0,
+            totalTaxAmount: 0,
+            transactionCount: 0,
+        };
+    }
 };
 
 /**
  * Perform monthly closing for the current month
  */
 export const performMonthlyClosing = async (request: DailyClosingRequest): Promise<TagesabschlussResult> => {
-  try {
-    const response = await apiClient.post('/tagesabschluss/monthly', request);
-    return response.data;
-  } catch (error: any) {
-    console.error('Monthly closing failed:', error);
-    const data = error.response?.data;
-    return {
-      success: false,
-      errorMessage: (typeof data?.error === 'string' ? data.error : null) || 'Monthly closing failed',
-      paymentsWithoutInvoiceCount: typeof data?.paymentsWithoutInvoiceCount === 'number' ? data.paymentsWithoutInvoiceCount : undefined,
-      closingDate: new Date().toISOString(),
-      totalAmount: 0,
-      totalTaxAmount: 0,
-      transactionCount: 0
-    };
-  }
+    try {
+        const raw = await apiClient.post<unknown>('/tagesabschluss/monthly', request);
+        return asClosingResult(raw);
+    } catch (error: unknown) {
+        console.error('Monthly closing failed:', error);
+        const data = readErrorPayload(error);
+        return {
+            success: false,
+            errorMessage: data?.error || 'Monthly closing failed',
+            paymentsWithoutInvoiceCount: data?.paymentsWithoutInvoiceCount,
+            closingDate: new Date().toISOString(),
+            totalAmount: 0,
+            totalTaxAmount: 0,
+            transactionCount: 0,
+        };
+    }
 };
 
 /**
  * Perform yearly closing for the current year
  */
 export const performYearlyClosing = async (request: DailyClosingRequest): Promise<TagesabschlussResult> => {
-  try {
-    const response = await apiClient.post('/tagesabschluss/yearly', request);
-    return response.data;
-  } catch (error: any) {
-    console.error('Yearly closing failed:', error);
-    const data = error.response?.data;
-    return {
-      success: false,
-      errorMessage: (typeof data?.error === 'string' ? data.error : null) || 'Yearly closing failed',
-      paymentsWithoutInvoiceCount: typeof data?.paymentsWithoutInvoiceCount === 'number' ? data.paymentsWithoutInvoiceCount : undefined,
-      closingDate: new Date().toISOString(),
-      totalAmount: 0,
-      totalTaxAmount: 0,
-      transactionCount: 0
-    };
-  }
+    try {
+        const raw = await apiClient.post<unknown>('/tagesabschluss/yearly', request);
+        return asClosingResult(raw);
+    } catch (error: unknown) {
+        console.error('Yearly closing failed:', error);
+        const data = readErrorPayload(error);
+        return {
+            success: false,
+            errorMessage: data?.error || 'Yearly closing failed',
+            paymentsWithoutInvoiceCount: data?.paymentsWithoutInvoiceCount,
+            closingDate: new Date().toISOString(),
+            totalAmount: 0,
+            totalTaxAmount: 0,
+            transactionCount: 0,
+        };
+    }
 };
 
 /**
  * Get closing history for the authenticated user
  */
 export const getClosingHistory = async (
-  fromDate?: string,
-  toDate?: string
+    fromDate?: string,
+    toDate?: string,
+    cashRegisterId?: string
 ): Promise<ClosingHistoryItem[]> => {
-  try {
-    const params = new URLSearchParams();
-    if (fromDate) params.append('fromDate', fromDate);
-    if (toDate) params.append('toDate', toDate);
+    try {
+        const params = new URLSearchParams();
+        if (fromDate) params.append('fromDate', fromDate);
+        if (toDate) params.append('toDate', toDate);
+        if (cashRegisterId) params.append('cashRegisterId', cashRegisterId);
 
-    const response = await apiClient.get(`/tagesabschluss/history?${params.toString()}`);
-    return response.data;
-  } catch (error: any) {
-    console.error('Failed to get closing history:', error);
-    return [];
-  }
+        const query = params.toString();
+        const url = query ? `/tagesabschluss/history?${query}` : '/tagesabschluss/history';
+        const raw = await apiClient.get<unknown>(url);
+        return asClosingHistory(raw);
+    } catch (error: unknown) {
+        console.error('Failed to get closing history:', error);
+        return [];
+    }
 };
 
 /**
  * Check if daily closing can be performed for a cash register
  */
 export const canPerformClosing = async (cashRegisterId: string): Promise<CanCloseResponse> => {
-  try {
-    const response = await apiClient.get(`/tagesabschluss/can-close/${cashRegisterId}`);
-    return response.data;
-  } catch (error: any) {
-    console.error('Failed to check if closing can be performed:', error);
-    return {
-      canClose: false,
-      message: 'Failed to check closing status',
-      paymentsWithoutInvoiceCount: undefined
-    };
-  }
+    try {
+        const raw = await apiClient.get<unknown>(`/tagesabschluss/can-close/${cashRegisterId}`);
+        return asCanClose(raw);
+    } catch (error: unknown) {
+        console.error('Failed to check if closing can be performed:', error);
+        return {
+            canClose: false,
+            message: 'Failed to check closing status',
+            paymentsWithoutInvoiceCount: undefined,
+        };
+    }
 };
 
 /**
  * Get closing statistics for a specific period
  */
 export const getClosingStatistics = async (
-  fromDate?: string,
-  toDate?: string
+    fromDate?: string,
+    toDate?: string,
+    cashRegisterId?: string
 ): Promise<ClosingStatistics> => {
-  try {
-    const params = new URLSearchParams();
-    if (fromDate) params.append('fromDate', fromDate);
-    if (toDate) params.append('toDate', toDate);
+    try {
+        const params = new URLSearchParams();
+        if (fromDate) params.append('fromDate', fromDate);
+        if (toDate) params.append('toDate', toDate);
+        if (cashRegisterId) params.append('cashRegisterId', cashRegisterId);
 
-    const response = await apiClient.get(`/tagesabschluss/statistics?${params.toString()}`);
-    return response.data;
-  } catch (error: any) {
-    console.error('Failed to get closing statistics:', error);
-    return {
-      totalClosings: 0,
-      totalAmount: 0,
-      totalTaxAmount: 0,
-      totalTransactions: 0,
-      averageDailyAmount: 0
-    };
-  }
+        const query = params.toString();
+        const url = query ? `/tagesabschluss/statistics?${query}` : '/tagesabschluss/statistics';
+        const raw = await apiClient.get<unknown>(url);
+        return asStatistics(raw);
+    } catch (error: unknown) {
+        console.error('Failed to get closing statistics:', error);
+        return {
+            totalClosings: 0,
+            totalAmount: 0,
+            totalTaxAmount: 0,
+            totalTransactions: 0,
+            averageDailyAmount: 0,
+        };
+    }
 };
 
 /**
  * Format closing date for display
  */
 export const formatClosingDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
+    const date = new Date(dateString);
+    return date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
 };
 
 /**
  * Format closing time for display
  */
 export const formatClosingTime = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+    });
 };
 
 /**
  * Get closing type display name
  */
 export const getClosingTypeDisplayName = (closingType: string): string => {
-  switch (closingType) {
-    case 'Daily':
-      return 'Tagesabschluss';
-    case 'Monthly':
-      return 'Monatsabschluss';
-    case 'Yearly':
-      return 'Jahresabschluss';
-    default:
-      return closingType;
-  }
+    switch (closingType) {
+        case 'Daily':
+            return 'Tagesabschluss';
+        case 'Monthly':
+            return 'Monatsabschluss';
+        case 'Yearly':
+            return 'Jahresabschluss';
+        default:
+            return closingType;
+    }
 };
 
 /**
  * Get closing status display name
  */
 export const getClosingStatusDisplayName = (status: string): string => {
-  switch (status) {
-    case 'Completed':
-      return 'Abgeschlossen';
-    case 'Failed':
-      return 'Fehlgeschlagen';
-    case 'Pending':
-      return 'Ausstehend';
-    default:
-      return status;
-  }
+    switch (status) {
+        case 'Completed':
+            return 'Abgeschlossen';
+        case 'Failed':
+            return 'Fehlgeschlagen';
+        case 'Pending':
+            return 'Ausstehend';
+        default:
+            return status;
+    }
 };

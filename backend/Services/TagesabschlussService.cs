@@ -13,7 +13,8 @@ namespace KasseAPI_Final.Services
         Task<TagesabschlussResult> PerformDailyClosingAsync(string userId, Guid cashRegisterId);
         Task<TagesabschlussResult> PerformMonthlyClosingAsync(string userId, Guid cashRegisterId);
         Task<TagesabschlussResult> PerformYearlyClosingAsync(string userId, Guid cashRegisterId);
-        Task<List<TagesabschlussResult>> GetClosingHistoryAsync(string userId, DateTime? fromDate = null, DateTime? toDate = null);
+        /// <param name="cashRegisterId">When set, restricts history to closings for that register (still scoped to the authenticated user).</param>
+        Task<List<TagesabschlussResult>> GetClosingHistoryAsync(string userId, DateTime? fromDate = null, DateTime? toDate = null, Guid? cashRegisterId = null);
         Task<bool> CanPerformClosingAsync(Guid cashRegisterId);
         Task<DateTime?> GetLastClosingDateAsync(Guid cashRegisterId);
         /// <summary>Sprint 4: Count active payments in scope with no Invoice (SourcePaymentId). Used for blocking and readiness.</summary>
@@ -333,10 +334,13 @@ namespace KasseAPI_Final.Services
             }
         }
 
-        public async Task<List<TagesabschlussResult>> GetClosingHistoryAsync(string userId, DateTime? fromDate = null, DateTime? toDate = null)
+        public async Task<List<TagesabschlussResult>> GetClosingHistoryAsync(string userId, DateTime? fromDate = null, DateTime? toDate = null, Guid? cashRegisterId = null)
         {
             var query = _context.DailyClosings
                 .Where(d => d.UserId == userId);
+
+            if (cashRegisterId.HasValue && cashRegisterId.Value != Guid.Empty)
+                query = query.Where(d => d.CashRegisterId == cashRegisterId.Value);
 
             if (fromDate.HasValue)
                 query = query.Where(d => d.ClosingDate >= fromDate.Value);

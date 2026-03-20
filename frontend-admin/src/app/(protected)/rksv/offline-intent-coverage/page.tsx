@@ -13,12 +13,16 @@ import {
     Tag,
     Space,
     Typography,
+    Select,
+    InputNumber,
 } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { customInstance } from '@/lib/axios';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { getApiCashRegister } from '@/api/generated/cash-register/cash-register';
+import { normalizeCashRegisterListBody, type CashRegisterRow } from '@/features/tagesabschluss/normalizers';
 
 const { RangePicker } = DatePicker;
 
@@ -57,7 +61,6 @@ type OfflineIntentCoverageTopRiskResponse = {
 };
 
 function riskTagColor(score: number): string {
-    // riskScore is 0..2 (missing rates sum). Use bands to make it actionable.
     if (score >= 1.0) return 'red';
     if (score >= 0.5) return 'orange';
     return 'green';
@@ -72,14 +75,42 @@ export default function OfflineIntentCoveragePage() {
         dayjs().subtract(1, 'day'),
         dayjs(),
     ]);
-    const [topLimit] = useState<number>(10);
+    const [cashRegisterId, setCashRegisterId] = useState<string | undefined>(undefined);
+    const [topLimit, setTopLimit] = useState<number>(10);
+
+    const registersQuery = useQuery({
+        queryKey: ['admin', 'cash-registers', 'offline-coverage-filter'],
+        queryFn: async () => {
+            const raw = await getApiCashRegister();
+            return normalizeCashRegisterListBody(raw);
+        },
+        staleTime: 60_000,
+    });
+
+    const registerOptions: { value: string; label: string }[] = useMemo(() => {
+        const rows = registersQuery.data ?? [];
+        return rows
+            .filter((r: CashRegisterRow) => typeof r.id === 'string' && r.id.length > 0)
+            .map((r) => ({
+                value: r.id as string,
+                label: r.registerNumber ? `${r.registerNumber} (${(r.id as string).slice(0, 8)}…)` : (r.id as string),
+            }));
+    }, [registersQuery.data]);
 
     const params = useMemo(() => {
-        return {
+        const p: Record<string, string> = {
             fromUtc: dateRange[0].toISOString(),
             toUtc: dateRange[1].toISOString(),
         };
-    }, [dateRange]);
+        const cr = cashRegisterId?.trim();
+        if (cr) p.cashRegisterId = cr;
+        return p;
+    }, [dateRange, cashRegisterId]);
+
+    const topRiskParams = useMemo(() => {
+        const lim = Math.min(100, Math.max(1, Math.floor(topLimit) || 10));
+        return { ...params, limit: lim };
+    }, [params, topLimit]);
 
     const coverageQuery = useQuery({
         queryKey: ['admin', 'offline-intent-coverage', 'summary', params],
@@ -93,12 +124,12 @@ export default function OfflineIntentCoveragePage() {
     });
 
     const topRiskQuery = useQuery({
-        queryKey: ['admin', 'offline-intent-coverage', 'top-risk', params, topLimit],
+        queryKey: ['admin', 'offline-intent-coverage', 'top-risk', topRiskParams],
         queryFn: () =>
             customInstance<OfflineIntentCoverageTopRiskResponse>({
                 url: `${BASE}/top-risk`,
                 method: 'GET',
-                params: { ...params, limit: topLimit },
+                params: topRiskParams,
             }),
         staleTime: 30_000,
     });
@@ -192,17 +223,41 @@ export default function OfflineIntentCoveragePage() {
                     ) : null}
 
                     <Card size="small" style={{ marginBottom: 16 }}>
-                        <Space direction="horizontal" wrap>
-                            <Typography.Text strong>Date Range (UTC):</Typography.Text>
-                            <RangePicker
-                                showTime
-                                value={[dateRange[0], dateRange[1]]}
-                                onChange={(dates) => {
-                                    const d0 = dates?.[0];
-                                    const d1 = dates?.[1];
-                                    if (d0 && d1) setDateRange([d0, d1]);
-                                }}
-                            />
+                        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                            <Space wrap align="center">
+                                <Typography.Text strong>Date Range (UTC):</Typography.Text>
+                                <RangePicker
+                                    showTime
+                                    value={[dateRange[0], dateRange[1]]}
+                                    onChange={(dates) => {
+                                        const d0 = dates?.[0];
+                                        const d1 = dates?.[1];
+                                        if (d0 && d1) setDateRange([d0, d1]);
+                                    }}
+                                />
+                            </Space>
+                            <Space wrap align="center">
+                                <Typography.Text strong>Kasse (optional):</Typography.Text>
+                                <Select
+                                    allowClear
+                                    placeholder="Alle Kassen"
+                                    style={{ minWidth: 260 }}
+                                    value={cashRegisterId}
+                                    onChange={(v) => setCashRegisterId(v)}
+                                    options={registerOptions}
+                                    loading={registersQuery.isLoading}
+                                />
+                            </Space>
+                            <Space wrap align="center">
+                                <Typography.Text strong>Top-Risk Limit:</Typography.Text>
+                                <InputNumber
+                                    min={1}
+                                    max={100}
+                                    value={topLimit}
+                                    onChange={(v) => setTopLimit(typeof v === 'number' ? v : 10)}
+                                />
+                                <Typography.Text type="secondary">(1–100, Standard 10)</Typography.Text>
+                            </Space>
                         </Space>
                     </Card>
 
@@ -272,4 +327,3 @@ export default function OfflineIntentCoveragePage() {
         </>
     );
 }
-

@@ -32,6 +32,15 @@ describe('normalizePosPaymentMethods', () => {
     expect(unwrapApiResponseLayer({ data: { b: 2 } })).toEqual({ b: 2 });
   });
 
+  it('preserves transfer method type from backend', () => {
+    const body = {
+      data: [{ id: 'transfer', name: 'Havale', type: 'transfer', icon: 'swap-horizontal-outline' }],
+    };
+    expect(normalizeToPosPaymentMethods(body)).toEqual([
+      { id: 'transfer', name: 'Havale', type: 'transfer', icon: 'swap-horizontal-outline' },
+    ]);
+  });
+
   it('prefers data array over legacy methods key when both present', () => {
     const body = {
       data: [{ id: 'a', name: 'A', type: 'cash', icon: 'i' }],

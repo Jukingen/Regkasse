@@ -163,6 +163,12 @@ namespace KasseAPI_Final.Controllers
                 if (request.DefaultPaymentMethod != null) userSettings.DefaultPaymentMethod = request.DefaultPaymentMethod;
                 if (request.DefaultTableNumber != null) userSettings.DefaultTableNumber = request.DefaultTableNumber;
                 if (request.DefaultWaiterName != null) userSettings.DefaultWaiterName = request.DefaultWaiterName;
+                // Same semantics as PUT cash-register: allow generic settings save to persist register assignment (POS / admin partial updates).
+                if (request.CashRegisterId != null)
+                {
+                    var trimmed = request.CashRegisterId.Trim();
+                    userSettings.CashRegisterId = string.IsNullOrEmpty(trimmed) ? null : trimmed;
+                }
 
                 userSettings.UpdatedAt = DateTime.UtcNow;
 
@@ -244,6 +250,11 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // Kasa konfigürasyonunu güncelle
+                if (request.CashRegisterId != null)
+                {
+                    var trimmed = request.CashRegisterId.Trim();
+                    userSettings.CashRegisterId = string.IsNullOrEmpty(trimmed) ? null : trimmed;
+                }
                 if (request.DefaultTaxRate.HasValue) userSettings.DefaultTaxRate = request.DefaultTaxRate.Value;
                 if (request.EnableDiscounts.HasValue) userSettings.EnableDiscounts = request.EnableDiscounts.Value;
                 if (request.EnableCoupons.HasValue) userSettings.EnableCoupons = request.EnableCoupons.Value;
@@ -437,6 +448,8 @@ namespace KasseAPI_Final.Controllers
         public string? DefaultPaymentMethod { get; set; }
         public string? DefaultTableNumber { get; set; }
         public string? DefaultWaiterName { get; set; }
+        /// <summary>Optional cash register row id (GUID string). Cleared when empty after trim.</summary>
+        public string? CashRegisterId { get; set; }
     }
 
     public class UpdateLanguageRequest
@@ -447,6 +460,8 @@ namespace KasseAPI_Final.Controllers
 
     public class UpdateCashRegisterConfigRequest
     {
+        /// <summary>Cash register row id (GUID string) assigned to the user for POS / payment scope.</summary>
+        public string? CashRegisterId { get; set; }
         public int? DefaultTaxRate { get; set; }
         public bool? EnableDiscounts { get; set; }
         public bool? EnableCoupons { get; set; }

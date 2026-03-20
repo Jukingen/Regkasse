@@ -23,12 +23,14 @@ import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paym
 import { cartService } from '../services/api/cartService';
 import { customerService, GUEST_CUSTOMER_ID, type BenefitEligibilityPreviewResponse } from '../services/api/customerService';
 import { validateAmount } from '../utils/validation';
-import { getUserSettings } from '../services/api/userSettingsService';
+import { getUserSettings, updateCashRegisterConfig } from '../services/api/userSettingsService';
+import { listPosCashRegisters, type CashRegisterRow } from '../services/api/cashRegisterService';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
+import type { PosPaymentMethodCode } from '../services/api/paymentService';
 
 /** Known blocked reason codes (must match backend BenefitBlockedReasonCodes). Used for stable German UI text only. */
 const BLOCKED_REASON_DE: Record<string, string> = {
@@ -128,6 +130,10 @@ function normalizeReceiptDto(r: any): ReceiptDTO {
   };
 }
 
+function isPosPaymentMethodCode(value: string): value is PosPaymentMethodCode {
+  return value === 'cash' || value === 'card' || value === 'voucher' || value === 'transfer';
+}
+
 // Türkçe Açıklama: Ödeme alma modal'ı - Sepet içeriğini ödeme işlemine dönüştürür
 interface PaymentModalProps {
   visible: boolean;
@@ -182,6 +188,10 @@ export default function PaymentModal({
 
   /** Backend requires valid cash register UUID (no fallback). */
   const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
+  const [cashRegisterResolved, setCashRegisterResolved] = useState(false);
+  const [registerPicklist, setRegisterPicklist] = useState<CashRegisterRow[]>([]);
+  const [registerListLoading, setRegisterListLoading] = useState(false);
+  const [savingRegisterId, setSavingRegisterId] = useState<string | null>(null);
 
   // DEV: TSE Simulation Toggle
   // Default: AÇIK (Bypass) in Development
@@ -232,8 +242,11 @@ export default function PaymentModal({
   useEffect(() => {
     if (!visible) {
       setCashRegisterId(null);
+      setCashRegisterResolved(false);
+      setRegisterPicklist([]);
       return;
     }
+    setCashRegisterResolved(false);
     getPaymentMethods();
 
     customerService.getGuestCustomer()
@@ -248,8 +261,51 @@ export default function PaymentModal({
           id === '00000000-0000-0000-0000-000000000000';
         setCashRegisterId(invalid ? null : id);
       })
-      .catch(() => setCashRegisterId(null));
+      .catch(() => setCashRegisterId(null))
+      .finally(() => setCashRegisterResolved(true));
   }, [visible, getPaymentMethods]);
+
+  useEffect(() => {
+    if (!visible || !cashRegisterResolved || cashRegisterId) {
+      if (!visible) setRegisterPicklist([]);
+      return;
+    }
+    let cancelled = false;
+    setRegisterListLoading(true);
+    listPosCashRegisters()
+      .then((rows) => {
+        if (!cancelled) setRegisterPicklist(rows);
+      })
+      .catch((e) => {
+        console.warn('[PaymentModal] Cash register list failed:', e);
+        if (!cancelled) setRegisterPicklist([]);
+      })
+      .finally(() => {
+        if (!cancelled) setRegisterListLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, cashRegisterResolved, cashRegisterId]);
+
+  const handlePersistCashRegister = async (id: string) => {
+    setSavingRegisterId(id);
+    try {
+      const updated = await updateCashRegisterConfig({ cashRegisterId: id });
+      const next = updated.cashRegisterId?.trim();
+      if (next && next !== '00000000-0000-0000-0000-000000000000') {
+        setCashRegisterId(next);
+      } else {
+        setCashRegisterId(id);
+      }
+      Alert.alert('Gespeichert', 'Kasse wurde zugewiesen.');
+    } catch (e) {
+      console.warn('[PaymentModal] Failed to persist cash register:', e);
+      Alert.alert('Fehler', 'Kasse konnte nicht gespeichert werden.');
+    } finally {
+      setSavingRegisterId(null);
+    }
+  };
 
   // Eligibility preview: only when customer selected (not guest), cart has items, and modal visible. Race-safe.
   const shouldFetchEligibility =
@@ -400,7 +456,7 @@ export default function PaymentModal({
         customerId: finalCustomerId, // Always send valid customer ID (guest or registered)
         items: paymentItems,
         payment: {
-          method: selectedPaymentMethod as 'cash' | 'card' | 'voucher',
+          method: selectedPaymentMethod,
           tseRequired: shouldRequireTse,
           amount: selectedPaymentMethod === 'cash' ? parseFloat(amountReceived) : undefined
         },
@@ -595,6 +651,44 @@ export default function PaymentModal({
               </View>
             </View>
 
+            {!cashRegisterId && cashRegisterResolved && (
+              <View style={styles.registerBanner}>
+                <Text style={styles.registerBannerTitle}>Kasse erforderlich</Text>
+                <Text style={styles.registerBannerText}>
+                  Ohne zugewiesene Kasse ist keine fiskal gültige Zahlung möglich. Wählen Sie Ihre Kasse unten — die
+                  Zuordnung wird im Benutzerprofil gespeichert.
+                </Text>
+                {registerListLoading ? (
+                  <ActivityIndicator color={SoftColors.accent} style={{ marginVertical: SoftSpacing.sm }} />
+                ) : registerPicklist.length === 0 ? (
+                  <Text style={styles.registerBannerMuted}>
+                    Keine Kassen geladen. Prüfen Sie die Berechtigung oder wenden Sie sich an den Administrator.
+                  </Text>
+                ) : (
+                  <View style={styles.registerChipRow}>
+                    {registerPicklist.map((r) => (
+                      <Pressable
+                        key={r.id}
+                        style={({ pressed }) => [
+                          styles.registerChip,
+                          pressed && SoftState.pressedScale,
+                          savingRegisterId === r.id && styles.registerChipDisabled,
+                        ]}
+                        disabled={!!savingRegisterId}
+                        onPress={() => handlePersistCashRegister(r.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Kasse ${r.registerNumber || r.id} zuweisen`}
+                      >
+                        <Text style={styles.registerChipText} numberOfLines={1}>
+                          {r.registerNumber || r.id.slice(0, 8)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* Benefit eligibility preview: read-only info when customer selected (not guest) and cart has items */}
             {shouldFetchEligibility && (
               <View style={styles.benefitPreviewSection}>
@@ -655,7 +749,11 @@ export default function PaymentModal({
                           isSelected && styles.selectedPaymentMethod,
                           pressed && SoftState.pressedScale,
                         ]}
-                        onPress={() => setSelectedPaymentMethod(method.type as any)}
+                        onPress={() => {
+                          if (isPosPaymentMethodCode(method.type)) {
+                            setSelectedPaymentMethod(method.type);
+                          }
+                        }}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isSelected }}
                         accessibilityLabel={`${method.name}${isSelected ? ', ausgewählt' : ''}`}
@@ -1230,5 +1328,51 @@ const styles = StyleSheet.create({
   printErrorBtnSecondaryText: {
     ...SoftTypography.body,
     color: SoftColors.error,
+  },
+  registerBanner: {
+    marginHorizontal: SoftSpacing.md,
+    marginBottom: SoftSpacing.md,
+    padding: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.warningBg,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.35)',
+  },
+  registerBannerTitle: {
+    ...SoftTypography.label,
+    fontWeight: '600',
+    color: SoftColors.textPrimary,
+    marginBottom: SoftSpacing.xs,
+  },
+  registerBannerText: {
+    ...SoftTypography.caption,
+    color: SoftColors.textSecondary,
+    marginBottom: SoftSpacing.sm,
+  },
+  registerBannerMuted: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    fontStyle: 'italic',
+  },
+  registerChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SoftSpacing.sm,
+  },
+  registerChip: {
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.md,
+    borderRadius: SoftRadius.full,
+    backgroundColor: SoftColors.bgCard,
+    borderWidth: 1,
+    borderColor: SoftColors.borderLight,
+    maxWidth: '100%',
+  },
+  registerChipDisabled: {
+    opacity: 0.6,
+  },
+  registerChipText: {
+    ...SoftTypography.label,
+    color: SoftColors.accent,
   },
 }); 

@@ -37,6 +37,7 @@
     "cash": "Nakit",
     "card": "Kredi Kartı",
     "voucher": "Kupon",
+    "transfer": "Havale / EFT",
     "contactless": "Temassız"
   },
   "amount": {

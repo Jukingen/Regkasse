@@ -37,6 +37,7 @@
     "cash": "Bargeld",
     "card": "Kreditkarte",
     "voucher": "Gutschein",
+    "transfer": "Überweisung",
     "contactless": "Kontaktlos"
   },
   "amount": {

@@ -26,7 +26,11 @@ export const MENU_PERMISSION: Record<string, string | string[] | undefined> = {
   '/rksv/finanz-online-queue': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/fiscal-export-diagnostics': PERMISSIONS.REPORT_EXPORT,
   '/rksv/replay-batch': PERMISSIONS.SETTINGS_VIEW,
+  '/rksv/operations': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/rksv/incident': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/rksv/payload-hash-conflicts': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/offline-intent-coverage': PERMISSIONS.REPORT_EXPORT,
+  '/rksv/integrity': [PERMISSIONS.AUDIT_VIEW, PERMISSIONS.FINANZONLINE_MANAGE],
   '/benefit-definitions': PERMISSIONS.BENEFIT_VIEW,
   '/benefit-assignments': PERMISSIONS.BENEFIT_VIEW,
 };

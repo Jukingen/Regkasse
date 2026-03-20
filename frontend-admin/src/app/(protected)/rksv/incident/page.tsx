@@ -1,9 +1,8 @@
 'use client';
 
 /**
- * Correlation-ID–centred unified incident investigation.
- * Composes: replay batch detail, audit log by correlation, FO reconciliation (filtered by batch paymentIds).
- * Support-first: key info at top, timeline, FO attempts, payment/receipt/register links, raw audit.
+ * Correlation-ID–centred incident investigation.
+ * Data source: GET /api/admin/incidents/{correlationId} (batch + audit + FO rows for batch payments).
  */
 
 import React, { useMemo, useState } from 'react';
@@ -26,16 +25,9 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { getReplayBatchDetail, type ReplayBatchPaymentItemDto } from '@/api/replay-batch';
-import { getReconciliationList } from '@/api/finanzonline-reconciliation';
-import { customInstance } from '@/lib/axios';
-import type { AuditLog } from '@/api/generated/model';
-
-interface AuditLogsResponse {
-    success?: boolean;
-    auditLogs?: AuditLog[];
-    totalCount?: number;
-}
+import { getIncidentInvestigation, type IncidentAuditLogEntry } from '@/api/admin-incident';
+import type { ReplayBatchPaymentItemDto } from '@/api/replay-batch';
+import type { FinanzOnlineReconciliationItemDto } from '@/api/finanzonline-reconciliation';
 
 function normalizeCorrelationId(id: string): string {
     const cleaned = id.replace(/-/g, '').trim();
@@ -80,42 +72,26 @@ export default function IncidentInvestigationPage() {
 
     const normalizedId = correlationId.trim() ? normalizeCorrelationId(correlationId.trim()) : '';
 
-    const { data: batch, isLoading: batchLoading, error: batchError } = useQuery({
-        queryKey: ['replay-batch', normalizedId],
-        queryFn: () => getReplayBatchDetail(normalizedId),
+    const { data: incident, isLoading: incidentLoading, error: incidentError } = useQuery({
+        queryKey: ['admin-incident', normalizedId],
+        queryFn: () => getIncidentInvestigation(normalizedId),
         enabled: !!normalizedId && normalizedId.length >= 32,
     });
 
-    const { data: auditData, isLoading: auditLoading } = useQuery({
-        queryKey: ['audit-correlation', batch?.auditCorrelationId ?? ''],
-        queryFn: async () => {
-            const id = batch!.auditCorrelationId;
-            const res = await customInstance<AuditLogsResponse>({
-                url: `/api/AuditLog/correlation/${id}`,
-                method: 'GET',
-            });
-            return res;
-        },
-        enabled: !!batch?.auditCorrelationId,
-    });
-
-    const { data: reconList } = useQuery({
-        queryKey: ['reconciliation-for-incident', batch?.payments?.map((p) => p.paymentId) ?? []],
-        queryFn: () => getReconciliationList({ status: 'Pending,Failed,NeedsReconciliation,Submitted', limit: 500 }),
-        enabled: !!batch?.payments?.length,
-    });
+    const batch = incident?.replayBatch;
+    const hints = incident?.hints;
 
     const foByPayment = useMemo(() => {
-        const map = new Map<string, (typeof reconList)['items'][number]>();
-        if (!reconList?.items || !batch?.payments) return map;
-        const ids = new Set(batch.payments.map((p) => String(p.paymentId)));
-        for (const item of reconList.items) {
-            if (ids.has(item.paymentId)) map.set(item.paymentId, item);
+        const map = new Map<string, FinanzOnlineReconciliationItemDto>();
+        const rows = incident?.finanzOnlineReconciliation;
+        if (!rows?.length) return map;
+        for (const item of rows) {
+            map.set(String(item.paymentId), item);
         }
         return map;
-    }, [reconList, batch?.payments]);
+    }, [incident?.finanzOnlineReconciliation]);
 
-    const auditLogs = auditData?.auditLogs ?? [];
+    const auditLogs: IncidentAuditLogEntry[] = incident?.auditLogs ?? [];
     const timelineItems = useMemo(() => {
         return auditLogs
             .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
@@ -138,8 +114,8 @@ export default function IncidentInvestigationPage() {
         if (id) setCorrelationId(id);
     };
 
-    const isLoading = batchLoading || (!!batch && auditLoading);
-    const notFound = !batchLoading && correlationId && !batch && !batchError;
+    const isLoading = incidentLoading;
+    const notFound = !incidentLoading && correlationId && !batch && !incidentError;
     const hasBatch = !!batch;
 
     const paymentColumns = [
@@ -231,11 +207,11 @@ export default function IncidentInvestigationPage() {
                 </Space.Compact>
             </Card>
 
-            {batchError && (
+            {incidentError && (
                 <Alert
                     type="error"
-                    message="Replay-Batch konnte nicht geladen werden"
-                    description={batchError instanceof Error ? batchError.message : 'Unbekannter Fehler'}
+                    message="Incident-Daten konnten nicht geladen werden"
+                    description={incidentError instanceof Error ? incidentError.message : 'Unbekannter Fehler'}
                     style={{ marginBottom: 16 }}
                 />
             )}
@@ -255,13 +231,22 @@ export default function IncidentInvestigationPage() {
                 </Card>
             )}
 
-            {hasBatch && batch && !batchLoading && (
+            {hasBatch && batch && !incidentLoading && (
                 <>
                     <Card size="small" title="Replay-Zusammenfassung" style={{ marginBottom: 16 }}>
                         <Space wrap>
                             <Tag color="blue">Items: {batch.totalItems}</Tag>
-                            <Tag color="green">Success: {batch.successCount}</Tag>
-                            <Tag color="orange">Failed/Duplicate: {batch.failedOrDuplicateCount}</Tag>
+                            <Tag color="green">Fiskalisiert: {batch.successCount}</Tag>
+                            <Tag color="orange">Fehler/Duplikat: {batch.failedOrDuplicateCount}</Tag>
+                            {batch.offlineSyncedAuditCount != null && (
+                                <Tag>Audit OFFLINE_SYNCED: {batch.offlineSyncedAuditCount}</Tag>
+                            )}
+                            {batch.offlineFinalFailureAuditCount != null && batch.offlineFinalFailureAuditCount > 0 && (
+                                <Tag color="red">Audit Fail (final): {batch.offlineFinalFailureAuditCount}</Tag>
+                            )}
+                            {batch.coverageSampleCount != null && (
+                                <Tag color="default">Coverage-Samples: {batch.coverageSampleCount}</Tag>
+                            )}
                             <Typography.Text type="secondary">
                                 Correlation-ID: <Typography.Text code copyable>{String(batch.correlationId)}</Typography.Text>
                             </Typography.Text>
@@ -271,6 +256,26 @@ export default function IncidentInvestigationPage() {
                         </Space>
                     </Card>
 
+                    {hints &&
+                        (hints.hasLockTimeoutAudit ||
+                            hints.hasPayloadImmutableMismatchAudit ||
+                            hints.finanzOnlineOpenOrProblemCount > 0) && (
+                            <Card size="small" title="Hinweise (Support)" style={{ marginBottom: 16 }}>
+                                <Space direction="vertical" size="small">
+                                    {hints.hasLockTimeoutAudit && (
+                                        <Alert type="warning" showIcon message="Advisory-Lock-Timeout im Batch-Audit erkannt" />
+                                    )}
+                                    {hints.hasPayloadImmutableMismatchAudit && (
+                                        <Alert type="error" showIcon message="Payload-Immutable-Mismatch im Batch-Audit" />
+                                    )}
+                                    <Typography.Text type="secondary">
+                                        FinanzOnline: {hints.finanzOnlineSubmittedCount} submitted,{' '}
+                                        {hints.finanzOnlineOpenOrProblemCount} offen / prüfen
+                                    </Typography.Text>
+                                </Space>
+                            </Card>
+                        )}
+
                     {timelineItems.length > 0 && (
                         <Card size="small" title="Timeline (Audit)" style={{ marginBottom: 16 }}>
                             <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
@@ -278,7 +283,12 @@ export default function IncidentInvestigationPage() {
                             </Typography.Paragraph>
                             <Timeline
                                 items={timelineItems.map((item) => ({
-                                    color: item.status === 'Success' ? 'green' : item.status === 'Failure' ? 'red' : 'blue',
+                                    color:
+                                        item.status === 'Success' || item.status === 0
+                                            ? 'green'
+                                            : item.status === 'Failure' || item.status === 1
+                                              ? 'red'
+                                              : 'blue',
                                     children: (
                                         <div>
                                             <Typography.Text strong>{dayjs(item.timestamp).format('DD.MM.YYYY HH:mm:ss')}</Typography.Text>
@@ -301,6 +311,71 @@ export default function IncidentInvestigationPage() {
                         </Card>
                     )}
 
+                    {auditLogs.length > 0 && (
+                        <Card size="small" title="Audit (Struktur)" style={{ marginBottom: 16 }}>
+                            <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+                                Sortiert nach Zeit — Replay-Pfad und Payload-Reparatur aus Request/Response extrahiert (wo vorhanden).
+                            </Typography.Paragraph>
+                            <Table
+                                size="small"
+                                scroll={{ x: 900 }}
+                                pagination={{ pageSize: 12 }}
+                                rowKey={(r) => String(r.id ?? r.timestamp)}
+                                dataSource={[...auditLogs].sort(
+                                    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                                )}
+                                columns={[
+                                    {
+                                        title: 'Zeit',
+                                        width: 152,
+                                        render: (_: unknown, r: IncidentAuditLogEntry) =>
+                                            dayjs(r.timestamp).format('DD.MM.YYYY HH:mm:ss'),
+                                    },
+                                    {
+                                        title: 'Aktion',
+                                        dataIndex: 'action',
+                                        width: 200,
+                                        ellipsis: true,
+                                    },
+                                    {
+                                        title: 'Status',
+                                        width: 88,
+                                        render: (_: unknown, r: IncidentAuditLogEntry) => String(r.status),
+                                    },
+                                    {
+                                        title: 'Entity',
+                                        width: 120,
+                                        ellipsis: true,
+                                        render: (_: unknown, r: IncidentAuditLogEntry) => r.entityType ?? '—',
+                                    },
+                                    {
+                                        title: 'Replay / Repair',
+                                        width: 200,
+                                        render: (_: unknown, r: IncidentAuditLogEntry) => {
+                                            const m = parseReplayMeta(r.requestData, r.responseData);
+                                            return (
+                                                <Space size={4} wrap>
+                                                    {m.replayPath ? <Tag>{m.replayPath}</Tag> : null}
+                                                    {m.payloadRepaired === true ? (
+                                                        <Tag color="orange">PayloadRepaired</Tag>
+                                                    ) : null}
+                                                    {!m.replayPath && m.payloadRepaired !== true ? (
+                                                        <Typography.Text type="secondary">—</Typography.Text>
+                                                    ) : null}
+                                                </Space>
+                                            );
+                                        },
+                                    },
+                                    {
+                                        title: 'Beschreibung',
+                                        dataIndex: 'description',
+                                        ellipsis: true,
+                                    },
+                                ]}
+                            />
+                        </Card>
+                    )}
+
                     <Card size="small" title="Zahlungen / Belege / FO" style={{ marginBottom: 16 }}>
                         <Table
                             columns={paymentColumns}
@@ -316,7 +391,7 @@ export default function IncidentInvestigationPage() {
                             items={[
                                 {
                                     key: 'raw',
-                                    label: 'Rohes Audit-Log (JSON)',
+                                    label: 'Rohes Audit-Log (JSON, vollständig)',
                                     children: (
                                         <pre style={{ fontSize: 11, maxHeight: 400, overflow: 'auto', background: '#f5f5f5', padding: 12 }}>
                                             {JSON.stringify(auditLogs, null, 2)}

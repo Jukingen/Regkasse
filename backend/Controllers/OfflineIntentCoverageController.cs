@@ -168,12 +168,14 @@ public class OfflineIntentCoverageController : ControllerBase
     /// <param name="fromUtc">Inclusive start (UTC). Default: 24h ago.</param>
     /// <param name="toUtc">Inclusive end (UTC). Default: now.</param>
     /// <param name="limit">Max number of registers to return. Default 10.</param>
+    /// <param name="cashRegisterId">Optional: restrict top-risk ranking to one cash register.</param>
     [HttpGet("top-risk")]
     [HasPermission(AppPermissions.ReportExport)]
     public async Task<ActionResult<OfflineIntentCoverageTopRiskResponse>> GetTopRisk(
         [FromQuery] DateTime? fromUtc = null,
         [FromQuery] DateTime? toUtc = null,
         [FromQuery] int limit = 10,
+        [FromQuery] Guid? cashRegisterId = null,
         CancellationToken cancellationToken = default)
     {
         var to = toUtc ?? DateTime.UtcNow;
@@ -187,6 +189,9 @@ public class OfflineIntentCoverageController : ControllerBase
             var query = _context.OfflineIntentCoverageSamples
                 .AsNoTracking()
                 .Where(s => s.CreatedAtUtc >= from && s.CreatedAtUtc <= to);
+
+            if (cashRegisterId.HasValue && cashRegisterId.Value != Guid.Empty)
+                query = query.Where(s => s.CashRegisterId == cashRegisterId.Value);
 
             var list = await query
                 .Select(s => new { s.CashRegisterId, s.HasDeviceId, s.HasClientSequence })

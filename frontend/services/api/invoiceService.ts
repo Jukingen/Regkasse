@@ -1,90 +1,141 @@
-// ❌ DEPRECATED: useFetch kaldırıldı - useApiManager kullanın
-// import { useFetch } from './useFetch';
 import { apiClient, API_BASE_URL } from './config';
+import { unwrapApiResponseLayer } from './normalizePosPaymentMethods';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ❌ DEPRECATED: Bu hook'lar artık kullanılmamalı
-// ✅ YENİ: useApiManager ile apiClient.get/post/put/delete kullanın
+/** Line item shape used by the POS invoices screen (mapped from Invoice.invoiceItems / PaymentItems JSON). */
+export interface PosInvoiceLine {
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    totalAmount: number;
+}
 
-// export function useInvoices(params?: any) {
-//   let url = '/api/invoices';
-//   if (params) {
-//     const queryParams = new URLSearchParams(params);
-//     url += `?${queryParams.toString()}`;
-//   }
-//   return useFetch<any[]>(url);
-// }
+/** View model for POS Beleg / payment-backed rows (api/Invoice/pos-list + api/Invoice/{id}). */
+export interface PosInvoiceView {
+    id: string;
+    receiptNumber: string;
+    invoiceDate: string;
+    status: string;
+    totalAmount: number;
+    taxAmount: number;
+    customer?: { firstName?: string; lastName?: string };
+    paymentMethod?: string;
+    tseSignature?: string;
+    kassenId?: string;
+    taxNumber?: string;
+    companyName?: string;
+    companyAddress?: string;
+    companyEmail?: string;
+    companyPhone?: string;
+    isPrinted?: boolean;
+    items: PosInvoiceLine[];
+}
 
-// export function useInvoice(id: string) {
-//   return useFetch<any>(`/api/invoices/${id}`);
-// }
+interface PagedResult<T> {
+    items?: T[];
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+}
 
-// export function useCreateInvoice() {
-//   return useFetch<any>('/api/invoices', { method: 'POST' });
-// }
+interface InvoiceListItemRow {
+    id: string;
+    invoiceNumber: string;
+    invoiceDate: string;
+    customerName?: string | null;
+    companyName?: string;
+    totalAmount: number;
+    status: string;
+    kassenId?: string;
+    tseSignature?: string | null;
+}
 
-// export function useUpdateInvoice(id: string) {
-//   return useFetch<any>(`/api/invoices/${id}`, { method: 'PUT' });
-// }
+function splitCustomerName(name?: string | null): { firstName?: string; lastName?: string } {
+    if (!name?.trim()) return {};
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return { firstName: parts[0] };
+    return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+}
 
-// export function useDeleteInvoice(id: string) {
-//   return useFetch<any>(`/api/invoices/${id}`, { method: 'DELETE' });
-// }
+function mapListRow(row: InvoiceListItemRow): PosInvoiceView {
+    return {
+        id: row.id,
+        receiptNumber: row.invoiceNumber,
+        invoiceDate: row.invoiceDate,
+        status: String(row.status),
+        totalAmount: Number(row.totalAmount),
+        taxAmount: 0,
+        customer: splitCustomerName(row.customerName),
+        tseSignature: row.tseSignature ?? '',
+        kassenId: row.kassenId,
+        companyName: row.companyName,
+        items: [],
+    };
+}
 
-// Tüm faturaları getir
-export const getInvoices = async () => {
-  return await apiClient.get('/invoice');
-};
+function parseItems(raw: unknown): PosInvoiceLine[] {
+    if (!Array.isArray(raw)) return [];
+    return raw.map((it: Record<string, unknown>) => ({
+        productName: String(it.productName ?? ''),
+        quantity: Number(it.quantity ?? 0),
+        unitPrice: Number(it.unitPrice ?? 0),
+        totalAmount: Number(it.totalPrice ?? it.totalAmount ?? 0),
+    }));
+}
 
-// Fatura istatistiklerini getir
-export const getInvoiceStatistics = async () => {
-  return await apiClient.get('/invoice/statistics');
-};
+function mapDetail(raw: Record<string, unknown>): PosInvoiceView {
+    const cust = splitCustomerName(raw.customerName as string | null | undefined);
+    return {
+        id: String(raw.id ?? ''),
+        receiptNumber: String(raw.invoiceNumber ?? ''),
+        invoiceDate: String(raw.invoiceDate ?? raw.createdAt ?? ''),
+        status: String(raw.status ?? ''),
+        totalAmount: Number(raw.totalAmount ?? 0),
+        taxAmount: Number(raw.taxAmount ?? 0),
+        customer: cust,
+        paymentMethod: raw.paymentMethod != null ? String(raw.paymentMethod) : undefined,
+        tseSignature: raw.tseSignature != null ? String(raw.tseSignature) : '',
+        kassenId: raw.kassenId != null ? String(raw.kassenId) : undefined,
+        taxNumber: raw.customerTaxNumber != null ? String(raw.customerTaxNumber) : undefined,
+        companyName: raw.companyName != null ? String(raw.companyName) : undefined,
+        companyAddress: raw.companyAddress != null ? String(raw.companyAddress) : undefined,
+        companyEmail: raw.companyEmail != null ? String(raw.companyEmail) : undefined,
+        companyPhone: raw.companyPhone != null ? String(raw.companyPhone) : undefined,
+        isPrinted: false,
+        items: parseItems(raw.invoiceItems),
+    };
+}
 
-// Fatura oluştur
-export const createInvoice = async (data: any) => {
-  return await apiClient.post('/invoice', data);
-};
+/**
+ * POS-facing list: payment-backed receipts (api/Invoice/pos-list).
+ */
+export async function getPosInvoices(page = 1, pageSize = 50): Promise<PosInvoiceView[]> {
+    const raw = await apiClient.get<unknown>(`/Invoice/pos-list?page=${page}&pageSize=${pageSize}`);
+    const res = unwrapApiResponseLayer(raw) as PagedResult<InvoiceListItemRow> & { Items?: InvoiceListItemRow[] };
+    const items = res.items ?? res.Items ?? [];
+    return items.map(mapListRow);
+}
 
-// Fatura sil
-export const deleteInvoice = async (id: string) => {
-  return await apiClient.delete(`/invoice/${id}`);
-};
+/**
+ * Full detail for a payment id or invoice id (api/Invoice/{id}).
+ */
+export async function getPosInvoiceDetail(id: string): Promise<PosInvoiceView> {
+    const raw = await apiClient.get<unknown>(`/Invoice/${id}`);
+    const flat = unwrapApiResponseLayer(raw) as Record<string, unknown>;
+    return mapDetail(flat);
+}
 
-// Fatura PDF indir
-export const downloadInvoicePdf = async (id: string) => {
-  const response = await fetch(`${API_BASE_URL}/invoice/${id}/pdf`, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${await AsyncStorage.getItem('token')}` }
-  });
-  return await response.blob();
-};
-
-// Fatura CSV indir
-export const downloadInvoiceCsv = async (id: string) => {
-  const response = await fetch(`${API_BASE_URL}/invoice/${id}/csv`, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${await AsyncStorage.getItem('token')}` }
-  });
-  return await response.blob();
-};
-
-// Fatura email gönder
-export const sendInvoiceEmail = async (id: string, data: any) => {
-  return await apiClient.post(`/invoice/${id}/email`, data);
-};
-
-// Fatura iptal et
-export const cancelInvoice = async (id: string, reason: string) => {
-  return await apiClient.post(`/invoice/${id}/cancel`, { reason });
-};
-
-// Fatura ödeme kaydet
-export const savePayment = async (id: string, data: any) => {
-  return await apiClient.post(`/invoice/${id}/payment`, data);
-};
-
-// FinanzOnline'a gönder
-export const sendToFinanzOnline = async (id: string) => {
-  return await apiClient.post(`/invoice/${id}/finanzonline`);
-}; 
+/**
+ * PDF for api/Invoice/{id}/pdf (supports POS payment id projection).
+ */
+export async function downloadInvoicePdf(id: string): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/Invoice/${id}/pdf`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${await AsyncStorage.getItem('token')}` },
+    });
+    if (!response.ok) {
+        throw new Error(`PDF download failed: ${response.status}`);
+    }
+    return await response.blob();
+}

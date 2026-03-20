@@ -28,9 +28,9 @@ export function extractPaymentMethodsArrayFromApiBody(body: unknown): unknown[] 
 
 const ALLOWED_TYPES = new Set(['cash', 'card', 'voucher', 'transfer']);
 
-function coerceType(raw: unknown): NormalizedPosPaymentMethod['type'] {
-  const s = String(raw ?? 'cash').toLowerCase();
-  return (ALLOWED_TYPES.has(s) ? s : 'cash') as NormalizedPosPaymentMethod['type'];
+function coerceType(raw: unknown): NormalizedPosPaymentMethod['type'] | null {
+  const s = String(raw ?? '').toLowerCase().trim();
+  return ALLOWED_TYPES.has(s) ? (s as NormalizedPosPaymentMethod['type']) : null;
 }
 
 /** Normalize to POS payment method rows used by paymentService / UI. */
@@ -43,6 +43,11 @@ export function normalizeToPosPaymentMethods(body: unknown): NormalizedPosPaymen
     if (!id) continue;
     const name = String(row.name ?? row.Name ?? id);
     const type = coerceType(row.type ?? row.Type);
+    if (!type) {
+      // Keep behavior explicit: do not silently remap unknown backend method types to cash.
+      console.warn('[normalizeToPosPaymentMethods] Unsupported payment type dropped:', row.type ?? row.Type);
+      continue;
+    }
     const icon = String(row.icon ?? row.Icon ?? 'ellipse-outline');
     out.push({ id, name, type, icon });
   }

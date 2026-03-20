@@ -6,6 +6,7 @@
  * - Do not import `@/api/generated/payment/payment` directly in pages; use hooks/wrappers from here
  *   so list/detail/statistics/cancel/refund stay on the legacy surface until a deliberate admin migration.
  * - Mixing POS and admin payment clients in one feature is a regression risk — keep boundaries separate.
+ * - RKSV/offline/replay correlation tooling: `@/api/admin-incident` and `@/api/replay-batch` (not this module).
  */
 
 import {
@@ -15,8 +16,76 @@ import {
   getGetApiPaymentDateRangeQueryKey,
   getGetApiPaymentIdQueryKey,
 } from '@/api/generated/payment/payment';
-import type { GetApiPaymentDateRangeParams } from '@/api/generated/model';
+import type { GetApiPaymentDateRangeParams, GetApiPaymentStatisticsParams } from '@/api/generated/model';
 import { customInstance } from '@/lib/axios';
+
+/**
+ * GET /api/Payment/{id} often returns `{ success, message, data: payment, timestamp }`.
+ * Returns the inner payment object when present; otherwise a flat object if it already looks like a payment row.
+ */
+export function unwrapLegacyPaymentDetailPayload(raw: unknown): Record<string, unknown> | null {
+  if (raw == null || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const inner = o.data;
+  if (inner != null && typeof inner === 'object' && !Array.isArray(inner)) {
+    return inner as Record<string, unknown>;
+  }
+  if (
+    'transactionId' in o ||
+    'totalAmount' in o ||
+    'paymentMethod' in o ||
+    'paymentMethodRaw' in o ||
+    'id' in o
+  ) {
+    return o;
+  }
+  return null;
+}
+
+export interface LegacyPaymentOperationalDetail {
+  paymentId: string;
+  receiptNumber: string | null;
+  receiptId: string | null;
+  isOfflineOrigin: boolean;
+  offlineTransactionId: string | null;
+  replayBatchCorrelationId: string | null;
+  finanzOnlineStatus: string | null;
+  finanzOnlineError: string | null;
+  finanzOnlineReferenceId: string | null;
+  invoicePersisted: boolean | null;
+}
+
+function toNullableString(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  return s.length > 0 ? s : null;
+}
+
+/** Maps legacy payment detail payload into stable operational fields for UI cards. */
+export function normalizeLegacyPaymentOperationalDetail(
+  paymentId: string,
+  payload: Record<string, unknown> | null,
+  receiptId?: string | null
+): LegacyPaymentOperationalDetail {
+  const receiptNumber = toNullableString(payload?.receiptNumber);
+  const offlineTransactionId = toNullableString(payload?.offlineTransactionId);
+  const replayBatchCorrelationId = toNullableString(payload?.offlineReplayBatchCorrelationId);
+  const invoicePersistedRaw = payload?.invoicePersisted;
+  const invoicePersisted = typeof invoicePersistedRaw === 'boolean' ? invoicePersistedRaw : null;
+
+  return {
+    paymentId,
+    receiptNumber,
+    receiptId: toNullableString(receiptId),
+    isOfflineOrigin: offlineTransactionId != null,
+    offlineTransactionId,
+    replayBatchCorrelationId,
+    finanzOnlineStatus: toNullableString(payload?.finanzOnlineStatus),
+    finanzOnlineError: toNullableString(payload?.finanzOnlineError),
+    finanzOnlineReferenceId: toNullableString(payload?.finanzOnlineReferenceId),
+    invoicePersisted,
+  };
+}
 
 /** Central query key namespace for legacy Payment. Use for invalidation and refetch. */
 export const legacyPaymentQueryKeys = {
@@ -54,8 +123,8 @@ export function useLegacyPaymentById(
  * Payment statistics in date range. Uses GET /api/Payment/statistics (legacy).
  */
 export function useLegacyPaymentStatistics(
-  params?: { startDate?: string; endDate?: string },
-  options?: Parameters<typeof useGetApiPaymentStatistics>[0]
+  params?: GetApiPaymentStatisticsParams,
+  options?: Parameters<typeof useGetApiPaymentStatistics>[1]
 ) {
   return useGetApiPaymentStatistics(params, options);
 }

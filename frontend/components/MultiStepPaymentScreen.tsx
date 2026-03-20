@@ -35,7 +35,7 @@ enum PaymentStep {
 }
 
 // Desteklenen ödeme yöntemleri - i18n kullanarak
-type PaymentMethodKey = 'cash' | 'card' | 'voucher';
+type PaymentMethodKey = 'cash' | 'card' | 'voucher' | 'transfer';
 const PAYMENT_METHODS: {
   key: PaymentMethodKey;
   label: string;
@@ -45,6 +45,7 @@ const PAYMENT_METHODS: {
     { key: 'cash', label: 'payment:methods.cash', icon: 'cash', requiresTSE: true },
     { key: 'card', label: 'payment:methods.card', icon: 'card', requiresTSE: true },
     { key: 'voucher', label: 'payment:methods.voucher', icon: 'pricetag', requiresTSE: false },
+    { key: 'transfer', label: 'payment:methods.transfer', icon: 'swap-horizontal', requiresTSE: true },
   ];
 
 interface MultiStepPaymentScreenProps {

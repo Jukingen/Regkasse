@@ -78,7 +78,7 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
 
   const loadClosingHistory = async () => {
     try {
-      const history = await getClosingHistory();
+      const history = await getClosingHistory(undefined, undefined, cashRegisterId);
       setClosingHistory(history);
     } catch (error) {
       console.error('Failed to load closing history:', error);
@@ -87,7 +87,7 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
 
   const loadStatistics = async () => {
     try {
-      const stats = await getClosingStatistics();
+      const stats = await getClosingStatistics(undefined, undefined, cashRegisterId);
       setStatistics(stats);
     } catch (error) {
       console.error('Failed to load statistics:', error);
@@ -225,6 +225,12 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
         <Text style={styles.statusTitle}>
           {t('tagesabschluss.status', 'Status')}
         </Text>
+        <Text style={styles.scopeHint}>
+          {t(
+            'tagesabschluss.scopeRegisterClose',
+            'Schließbereitschaft und letzter Abschluss beziehen sich auf diese Kasse.'
+          )}
+        </Text>
         <View style={styles.statusRow}>
           <Text style={styles.statusLabel}>
             {t('tagesabschluss.canClose', 'Can Close:')}
@@ -316,6 +322,12 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
     <View style={styles.tabContent}>
       <Text style={styles.sectionTitle}>
         {t('tagesabschluss.closingHistory', 'Closing History')}
+      </Text>
+      <Text style={styles.scopeHint}>
+        {t(
+          'tagesabschluss.historyScopeHint',
+          'Einträge: Abschlüsse dieser Kasse für den angemeldeten Benutzer.'
+        )}
       </Text>
       
       {closingHistory.length === 0 ? (
@@ -541,8 +553,14 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 8,
     color: '#333',
+  },
+  scopeHint: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 12,
+    lineHeight: 16,
   },
   statusRow: {
     flexDirection: 'row',

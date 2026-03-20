@@ -80,6 +80,10 @@ export default function DashboardLayout({
             icon: <SafetyOutlined />,
             label: 'RKSV',
             children: [
+                {
+                    key: '/rksv/operations',
+                    label: <Link href="/rksv">RKSV Operations</Link>,
+                },
                 { key: '/rksv/status', label: <Link href="/rksv/status">General Status</Link> },
                 { key: '/rksv/cmc-certificate', label: <Link href="/rksv/cmc-certificate">CMC / Certificate</Link> },
                 { key: '/rksv/verifications', label: <Link href="/rksv/verifications">Last 100 Verifications</Link> },
@@ -87,6 +91,10 @@ export default function DashboardLayout({
                 {
                     key: '/rksv/fiscal-export-diagnostics',
                     label: <Link href="/rksv/fiscal-export-diagnostics">Fiscal-Export Diagnose</Link>,
+                },
+                {
+                    key: '/rksv/integrity',
+                    label: <Link href="/rksv/integrity">Datenintegrität (Support)</Link>,
                 },
                 {
                     key: '/rksv/replay-batch',
@@ -136,6 +144,10 @@ export default function DashboardLayout({
         ],
     };
 
+    // Route is `/rksv`; menu child key is `/rksv/operations` so Ant Design can highlight the landing item.
+    const menuSelectedKeys =
+        pathname === '/rksv' ? ['/rksv/operations'] : pathname ? [pathname] : [];
+
     const SidebarContent = (
         <>
             <div style={{ height: 64, margin: 16, background: 'rgba(0, 0, 0, 0.05)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', overflow: 'hidden', whiteSpace: 'nowrap' }}>
@@ -144,7 +156,7 @@ export default function DashboardLayout({
             <Menu
                 theme="light"
                 mode="inline"
-                selectedKeys={[pathname]}
+                selectedKeys={menuSelectedKeys}
                 defaultOpenKeys={(usePermissionFirst ? isMenuItemAllowed('/rksv', permissions) : canShowRksvMenu(user?.role ?? '')) ? ['/rksv'] : []}
                 items={menuItems}
                 onClick={() => {

@@ -17,6 +17,7 @@ import {
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
 
@@ -200,6 +201,20 @@ export default function FiscalExportDiagnosticsPage() {
                     { title: 'RKSV', href: '/rksv' },
                     { title: 'Fiscal-Export Diagnose' },
                 ]}
+            />
+
+            <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="Ergänzung: globale Integritätsprüfung"
+                description={
+                    <span>
+                        Export-Integrität bezieht sich auf den gewählten Slice. Für datenbankweite Konsistenz (Duplikate,
+                        Sequenzen, Refunds, Zahlung ohne Rechnung) siehe{' '}
+                        <Link href="/rksv/integrity">Datenintegrität (Support)</Link>.
+                    </span>
+                }
             />
 
             {cashLoading ? (

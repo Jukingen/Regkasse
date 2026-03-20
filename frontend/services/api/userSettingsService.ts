@@ -42,7 +42,7 @@ export interface UserSettings {
   dailyReportEmail?: string; // Günlük rapor email'i
   
   // Varsayılan değerler
-  defaultPaymentMethod: 'cash' | 'card' | 'mixed';
+  defaultPaymentMethod: 'cash' | 'card' | 'mixed' | 'voucher' | 'transfer';
   defaultTableNumber?: string;
   defaultWaiterName?: string;
   
@@ -60,9 +60,15 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     console.log('User settings request - token management via apiClient');
     
     // ✅ YENİ: apiClient otomatik header management
-    const response = await apiClient.get<UserSettings>('/user/settings');
+    const response = await apiClient.get<UserSettings & { CashRegisterId?: string }>('/user/settings');
     console.log('User settings API response:', response);
-    return response;
+    const cashRegisterId =
+      typeof response.cashRegisterId === 'string' && response.cashRegisterId.trim() !== ''
+        ? response.cashRegisterId
+        : typeof response.CashRegisterId === 'string'
+          ? response.CashRegisterId
+          : response.cashRegisterId;
+    return { ...response, cashRegisterId } as UserSettings;
   } catch (error) {
     console.error('Error fetching user settings:', error);
     // Varsayılan ayarları döndür
@@ -103,8 +109,14 @@ export const updateCashRegisterConfig = async (config: {
   receiptFooter?: string;
 }): Promise<UserSettings> => {
   try {
-    const response = await apiClient.put<UserSettings>('/user/settings/cash-register', config);
-    return response;
+    const response = await apiClient.put<UserSettings & { CashRegisterId?: string }>('/user/settings/cash-register', config);
+    const cashRegisterId =
+      typeof response.cashRegisterId === 'string' && response.cashRegisterId.trim() !== ''
+        ? response.cashRegisterId
+        : typeof response.CashRegisterId === 'string'
+          ? response.CashRegisterId
+          : response.cashRegisterId;
+    return { ...response, cashRegisterId } as UserSettings;
   } catch (error) {
     console.error('Error updating cash register config:', error);
     throw new Error('Kasa konfigürasyonu güncellenemedi');

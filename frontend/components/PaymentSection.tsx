@@ -18,13 +18,12 @@ interface PaymentSectionProps {
   cart: CartItem[];
   paymentAmount: string;
   setPaymentAmount: (amount: string) => void;
-  selectedPaymentMethod: 'cash' | 'card' | 'voucher';
-  setSelectedPaymentMethod: (method: 'cash' | 'card' | 'voucher') => void;
+  selectedPaymentMethod: 'cash' | 'card' | 'voucher' | 'transfer';
+  setSelectedPaymentMethod: (method: 'cash' | 'card' | 'voucher' | 'transfer') => void;
   calculateTotal: () => number;
   calculateTax: () => number;
   onPayment: () => void;
   isProcessingPayment: boolean;
-  showChangeResult: boolean;
   changeAmount: number;
   changeAnimation: Animated.Value;
   showChangeResult: boolean;
@@ -89,7 +88,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
       <View style={styles.paymentMethodContainer}>
         <Text style={styles.paymentLabel}>{t('cashRegister.paymentMethod')}:</Text>
         <View style={styles.paymentMethodButtons}>
-          {(['cash', 'card', 'voucher'] as const).map(method => (
+          {(['cash', 'card', 'voucher', 'transfer'] as const).map(method => (
             <TouchableOpacity
               key={method}
               style={[
@@ -102,7 +101,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
                 styles.paymentMethodText,
                 selectedPaymentMethod === method && styles.paymentMethodTextActive
               ]}>
-                {t(`cashRegister.${method}`)}
+                {t(`payment:methods.${method}`)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -126,7 +125,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
           }}
           keyboardType="decimal-pad"
           onFocus={() => {
-            if (cart?.items?.length > 0 && !paymentAmount) {
+            if (cart.length > 0 && !paymentAmount) {
               const totalWithTax = calculateTotal() + calculateTax();
               setPaymentAmount(totalWithTax.toFixed(2));
             }

@@ -37,6 +37,7 @@
     "cash": "Cash",
     "card": "Credit Card",
     "voucher": "Voucher",
+    "transfer": "Bank transfer",
     "contactless": "Contactless"
   },
   "amount": {

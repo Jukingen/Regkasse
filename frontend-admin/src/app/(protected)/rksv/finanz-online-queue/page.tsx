@@ -284,6 +284,15 @@ export default function FinanzOnlineReconciliationPage() {
                 }
             />
 
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                Verwandt:{' '}
+                <Link href="/rksv/integrity">Datenintegrität (Support)</Link>
+                {' · '}
+                <Link href="/rksv/incident">Incident (Correlation)</Link>
+                {' · '}
+                <Link href="/payments">Payments</Link>
+            </Typography.Paragraph>
+
             {listError && (
                 <Alert
                     type="error"

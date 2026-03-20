@@ -535,7 +535,7 @@ namespace KasseAPI_Final.Controllers
         /// <response code="404">Payment not found</response>
         [HttpGet("{id}/signature-debug")]
         [HasPermission(AppPermissions.TseDiagnostics)]
-        [ProducesResponseType(typeof(IReadOnlyList<SignatureDiagnosticStep>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetSignatureDebug(Guid id)
         {
@@ -550,14 +550,15 @@ namespace KasseAPI_Final.Controllers
                 var tseSignature = payment.TseSignature;
                 if (string.IsNullOrWhiteSpace(tseSignature))
                 {
-                    return SuccessResponse(new[]
+                    var emptySteps = new[]
                     {
                         new SignatureDiagnosticStep(1, "CMC match", "FAIL", "No signature"),
                         new SignatureDiagnosticStep(2, "JWS format", "FAIL", "Empty TseSignature"),
                         new SignatureDiagnosticStep(3, "Hash", "FAIL", "N/A"),
                         new SignatureDiagnosticStep(4, "Signature verify", "FAIL", "N/A"),
                         new SignatureDiagnosticStep(5, "Base64URL padding", "FAIL", "N/A")
-                    }, "No signature on payment");
+                    };
+                    return SuccessResponse(new { steps = emptySteps, compactJws = (string?)null }, "No signature on payment");
                 }
 
                 var steps = _signaturePipeline.VerifyDiagnostic(tseSignature);

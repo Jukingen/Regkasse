@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, FlatList } from 'react-native';
 
-type PaymentMethodKey = 'cash' | 'card' | 'voucher' | 'contactless';
+type PaymentMethodKey = 'cash' | 'card' | 'voucher' | 'contactless' | 'transfer';
 
 type SplitEntry = {
   id: string;
@@ -13,10 +13,11 @@ type SplitEntry = {
 };
 
 const PAYMENT_METHODS: { key: PaymentMethodKey; label: string }[] = [
-  { key: 'cash', label: 'Nakit' },
-  { key: 'card', label: 'Kredi Kartı' },
-  { key: 'voucher', label: 'Kupon' },
-  { key: 'contactless', label: 'Temassız' },
+  { key: 'cash', label: 'Bargeld' },
+  { key: 'card', label: 'Kreditkarte' },
+  { key: 'voucher', label: 'Gutschein' },
+  { key: 'transfer', label: 'Überweisung' },
+  { key: 'contactless', label: 'Kontaktlos' },
 ];
 
 type SplitBillSectionProps = {
@@ -26,7 +27,7 @@ type SplitBillSectionProps = {
 
 const SplitBillSection: React.FC<SplitBillSectionProps> = ({ totalAmount, onSplitChange }) => {
   const [splits, setSplits] = useState<SplitEntry[]>([
-    { id: '1', name: 'Kişi 1', amount: totalAmount.toFixed(2), method: 'cash' },
+    { id: '1', name: 'Person 1', amount: totalAmount.toFixed(2), method: 'cash' },
   ]);
 
   // Toplam girilen tutar
@@ -36,7 +37,7 @@ const SplitBillSection: React.FC<SplitBillSectionProps> = ({ totalAmount, onSpli
   const addSplit = () => {
     setSplits(prev => [
       ...prev,
-      { id: (prev.length + 1).toString(), name: `Kişi ${prev.length + 1}`, amount: '', method: 'cash' },
+      { id: (prev.length + 1).toString(), name: `Person ${prev.length + 1}`, amount: '', method: 'cash' },
     ]);
   };
 
@@ -59,7 +60,7 @@ const SplitBillSection: React.FC<SplitBillSectionProps> = ({ totalAmount, onSpli
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Hesabı Böl</Text>
+      <Text style={styles.title}>Rechnung teilen</Text>
       <FlatList
         data={splits}
         keyExtractor={item => item.id}

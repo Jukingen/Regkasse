@@ -28,7 +28,8 @@ export const usePayment = () => {
       const defaultMethods: PaymentMethod[] = [
         { id: 'cash', name: 'Nakit', type: 'cash', icon: 'cash-outline' },
         { id: 'card', name: 'Kart', type: 'card', icon: 'card-outline' },
-        { id: 'voucher', name: 'Kupon', type: 'voucher', icon: 'gift-outline' }
+        { id: 'voucher', name: 'Kupon', type: 'voucher', icon: 'gift-outline' },
+        { id: 'transfer', name: 'Havale', type: 'transfer', icon: 'swap-horizontal-outline' },
       ];
       setPaymentMethods(defaultMethods);
       return defaultMethods;

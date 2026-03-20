@@ -134,7 +134,7 @@ namespace KasseAPI_Final.Controllers
         /// Get closing history for the authenticated user
         /// </summary>
         [HttpGet("history")]
-        public async Task<IActionResult> GetClosingHistory([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        public async Task<IActionResult> GetClosingHistory([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? cashRegisterId)
         {
             try
             {
@@ -144,7 +144,7 @@ namespace KasseAPI_Final.Controllers
                     return Unauthorized("User ID not found in token");
                 }
 
-                var history = await _tagesabschlussService.GetClosingHistoryAsync(userId, fromDate, toDate);
+                var history = await _tagesabschlussService.GetClosingHistoryAsync(userId, fromDate, toDate, cashRegisterId);
                 return Ok(history);
             }
             catch (Exception ex)
@@ -190,7 +190,7 @@ namespace KasseAPI_Final.Controllers
         /// Get closing statistics for a specific period
         /// </summary>
         [HttpGet("statistics")]
-        public async Task<IActionResult> GetClosingStatistics([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        public async Task<IActionResult> GetClosingStatistics([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? cashRegisterId)
         {
             try
             {
@@ -200,7 +200,7 @@ namespace KasseAPI_Final.Controllers
                     return Unauthorized("User ID not found in token");
                 }
 
-                var history = await _tagesabschlussService.GetClosingHistoryAsync(userId, fromDate, toDate);
+                var history = await _tagesabschlussService.GetClosingHistoryAsync(userId, fromDate, toDate, cashRegisterId);
                 
                 var statistics = new
                 {

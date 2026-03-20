@@ -12,7 +12,7 @@ import { POS_PAYMENT_METHODS_PATH } from '../services/api/posPaymentPaths';
 // OPTIMIZATION: Sürekli API çağrısı yerine sadece gerekli durumlarda fetch yapar
 
 export interface PaymentMethodInfo {
-  method: 'cash' | 'card' | 'voucher';
+  method: 'cash' | 'card' | 'voucher' | 'transfer';
   name: string;
   description: string;
   isEnabled: boolean;
@@ -28,9 +28,10 @@ export interface TseStatusInfo {
   deviceInfo: string;
 }
 
-function hookMethodKey(m: NormalizedPosPaymentMethod): 'cash' | 'card' | 'voucher' {
+function hookMethodKey(m: NormalizedPosPaymentMethod): PaymentMethodInfo['method'] {
   if (m.type === 'card') return 'card';
   if (m.type === 'voucher') return 'voucher';
+  if (m.type === 'transfer') return 'transfer';
   return 'cash';
 }
 
@@ -121,17 +122,47 @@ export function usePaymentMethods(user: any) {
       const errorMessage = error.message || 'Payment methods could not be loaded';
       setError(errorMessage);
 
-      // Show default methods on error
+      // Keep all supported method types visible even in degraded mode.
       setPaymentMethods([
         {
           method: 'cash',
           name: 'Cash',
           description: 'Payment at the cash register',
           isEnabled: true,
-          requiresTse: false,
-          icon: 'cash-icon',
+          requiresTse: true,
+          icon: 'cash-outline',
           minAmount: 0.01,
-          maxAmount: 1000.00
+          maxAmount: 100000.0
+        },
+        {
+          method: 'card',
+          name: 'Card',
+          description: 'Card terminal payment',
+          isEnabled: true,
+          requiresTse: true,
+          icon: 'card-outline',
+          minAmount: 0.01,
+          maxAmount: 100000.0
+        },
+        {
+          method: 'voucher',
+          name: 'Voucher',
+          description: 'Voucher payment',
+          isEnabled: true,
+          requiresTse: false,
+          icon: 'gift-outline',
+          minAmount: 0.01,
+          maxAmount: 100000.0
+        },
+        {
+          method: 'transfer',
+          name: 'Transfer',
+          description: 'Bank transfer payment',
+          isEnabled: true,
+          requiresTse: true,
+          icon: 'swap-horizontal-outline',
+          minAmount: 0.01,
+          maxAmount: 100000.0
         }
       ]);
       setIsInitialized(true); // Hata durumunda da initialized olarak işaretle

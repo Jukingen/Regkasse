@@ -7,12 +7,13 @@ import paymentService from '../services/api/paymentService';
 import { PaymentCancelResponse } from '../types/cart';
 
 // Desteklenen ödeme yöntemleri ve ikon adları
-type PaymentMethodKey = 'cash' | 'card' | 'voucher' | 'contactless';
+type PaymentMethodKey = 'cash' | 'card' | 'voucher' | 'contactless' | 'transfer';
 const PAYMENT_METHODS: { key: PaymentMethodKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'cash', label: 'Nakit', icon: 'cash' },
-  { key: 'card', label: 'Kredi Kartı', icon: 'card' },
-  { key: 'voucher', label: 'Kupon', icon: 'pricetag' },
-  { key: 'contactless', label: 'Temassız', icon: 'wifi' },
+  { key: 'cash', label: 'Bargeld', icon: 'cash' },
+  { key: 'card', label: 'Kreditkarte', icon: 'card' },
+  { key: 'voucher', label: 'Gutschein', icon: 'pricetag' },
+  { key: 'transfer', label: 'Überweisung', icon: 'swap-horizontal' },
+  { key: 'contactless', label: 'Kontaktlos', icon: 'wifi' },
 ];
 
 type PaymentScreenProps = {
@@ -36,6 +37,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
     card: '',
     voucher: '',
     contactless: '',
+    transfer: '',
   });
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
@@ -59,12 +61,12 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
     }
 
     Alert.alert(
-      'Ödeme İptali',
-      'Bu ödeme işlemini iptal etmek istediğinizden emin misiniz?',
+      'Zahlung abbrechen',
+      'Möchten Sie diese Zahlung wirklich abbrechen?',
       [
-        { text: 'Hayır', style: 'cancel' },
+        { text: 'Nein', style: 'cancel' },
         {
-          text: 'Evet, İptal Et',
+          text: 'Ja, abbrechen',
           style: 'destructive',
           onPress: async () => {
             setProcessing(true);
@@ -85,16 +87,16 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
                 }
                 
                 Alert.alert(
-                  'Ödeme İptal Edildi',
-                  `Ödeme başarıyla iptal edildi.\n\nİptal Sebebi: ${cancelResponse.cancellationReason}\nİptal Eden: ${cancelResponse.cancelledBy}\nİptal Zamanı: ${new Date(cancelResponse.cancelledAt).toLocaleString('de-DE')}`,
-                  [{ text: 'Tamam', onPress: () => onCancel() }]
+                  'Zahlung abgebrochen',
+                  `Die Zahlung wurde storniert.\n\nGrund: ${cancelResponse.cancellationReason}\nVon: ${cancelResponse.cancelledBy}\nZeit: ${new Date(cancelResponse.cancelledAt).toLocaleString('de-DE')}`,
+                  [{ text: 'OK', onPress: () => onCancel() }]
                 );
               } else {
-                Alert.alert('Hata', 'Ödeme iptal edilirken bir hata oluştu.');
+                Alert.alert('Fehler', 'Stornierung der Zahlung fehlgeschlagen.');
               }
             } catch (error) {
               console.error('Payment cancellation error:', error);
-              Alert.alert('Hata', 'Ödeme iptal edilirken bir hata oluştu. Lütfen tekrar deneyin.');
+              Alert.alert('Fehler', 'Stornierung fehlgeschlagen. Bitte erneut versuchen.');
             } finally {
               setProcessing(false);
             }
@@ -108,7 +110,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
   const handleConfirm = async () => {
     setError('');
     if (enteredTotal < totalAmount) {
-      setError('Toplam ödeme tutarı eksik.');
+      setError('Zahlungsbetrag unzureichend.');
       return;
     }
     setProcessing(true);
@@ -118,7 +120,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
       // Başarılıysa:
       onConfirm(payments);
     } catch (e) {
-      setError('Ödeme başarısız. Lütfen tekrar deneyin.');
+      setError('Zahlung fehlgeschlagen. Bitte erneut versuchen.');
     } finally {
       setProcessing(false);
     }
@@ -126,8 +128,8 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
-      <Text style={styles.title}>Ödeme Yöntemleri</Text>
-      <Text style={styles.total}>Toplam: {totalAmount.toFixed(2)} €</Text>
+      <Text style={styles.title}>Zahlungsarten</Text>
+      <Text style={styles.total}>Gesamt: {totalAmount.toFixed(2)} €</Text>
       {PAYMENT_METHODS.map(method => (
         <View key={method.key} style={styles.methodRow}>
           <Ionicons name={method.icon} size={22} color="#1976d2" style={{ marginRight: 8 }} />
@@ -145,7 +147,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
       ))}
       <View style={styles.summaryRow}>
         <Text style={enteredTotal < totalAmount ? styles.missing : styles.ok}>
-          Girilen Toplam: {enteredTotal.toFixed(2)} €
+          Eingegeben gesamt: {enteredTotal.toFixed(2)} €
         </Text>
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -155,14 +157,14 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
           onPress={handlePaymentCancel} 
           disabled={processing}
         >
-          <Text style={styles.buttonText}>İptal</Text>
+          <Text style={styles.buttonText}>Abbrechen</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.confirmBtn, { opacity: enteredTotal < totalAmount ? 0.5 : 1 }]}
           onPress={handleConfirm}
           disabled={processing || enteredTotal < totalAmount}
         >
-          <Text style={styles.buttonText}>Onayla</Text>
+          <Text style={styles.buttonText}>Bestätigen</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

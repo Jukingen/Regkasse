@@ -1,7 +1,7 @@
 'use client';
 
-import { redirect } from 'next/navigation';
+import { RksvOperationsDashboard } from '@/features/rksv-operations/components/RksvOperationsDashboard';
 
-export default function RksvPage() {
-    redirect('/rksv/status');
+export default function RksvOperationsPage() {
+  return <RksvOperationsDashboard />;
 }

@@ -15,6 +15,7 @@ import {
   RefreshControl,
   Share,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import {
   getAllQueueEntries,
@@ -156,16 +157,43 @@ export default function OfflineQueueScreen() {
     [load]
   );
 
-  const handleCopyId = useCallback(async (queueId: string) => {
+  const copyToClipboard = useCallback(async (label: string, value: string) => {
+    const v = value.trim();
+    if (!v) return;
     try {
-      await Share.share({
-        message: queueId,
-        title: 'Offline-Queue-ID',
-      });
+      await Clipboard.setStringAsync(v);
+      Alert.alert('Kopiert', `${label} wurde in die Zwischenablage kopiert.`);
     } catch {
-      Alert.alert('Queue-ID', queueId);
+      try {
+        await Share.share({ message: v, title: label });
+      } catch {
+        Alert.alert(label, v);
+      }
     }
   }, []);
+
+  const handleCopyId = useCallback(
+    async (queueId: string) => {
+      await copyToClipboard('Offline-Queue-ID', queueId);
+    },
+    [copyToClipboard]
+  );
+
+  const handleShareReplayBatchId = useCallback(
+    async (batchId: string) => {
+      const v = batchId.trim();
+      if (!v) return;
+      try {
+        await Share.share({
+          message: `Replay-Batch-Correlation-ID (Support): ${v}`,
+          title: 'Support: Replay-Batch',
+        });
+      } catch {
+        await copyToClipboard('Replay-Batch-ID', v);
+      }
+    },
+    [copyToClipboard]
+  );
 
   const pendingCount = entries.filter((e) => e.status === 'Pending').length;
   const failedCount = entries.filter((e) => e.status === 'Failed').length;
@@ -180,6 +208,14 @@ export default function OfflineQueueScreen() {
       </View>
 
       <View style={styles.toolbar}>
+        <View style={styles.supportBanner}>
+          <Text style={styles.supportBannerTitle}>Support-Hinweis</Text>
+          <Text style={styles.supportBannerText}>
+            Die Replay-Batch-Correlation-ID verknüpft einen Server-Replay mit Zahlungen und Logs. Bitte diese ID
+            (und nach erfolgreicher Sync die Payment-ID) an den Support melden — schneller als nur die lokale
+            Queue-ID.
+          </Text>
+        </View>
         <View style={styles.filterRow}>
           {[FILTER_ALL, FILTER_PENDING, FILTER_FAILED].map((f) => (
             <TouchableOpacity
@@ -252,18 +288,31 @@ export default function OfflineQueueScreen() {
               )}
               {entry.replayBatchCorrelationId ? (
                 <View style={styles.metaRow}>
-                  <Text style={styles.metaLabel}>Replay-Batch-ID (Support):</Text>
-                  <TouchableOpacity
-                    onPress={() => handleCopyId(entry.replayBatchCorrelationId!)}
-                    style={styles.copyIdTouch}
-                  >
-                    <Text style={styles.metaId} numberOfLines={1}>
-                      {entry.replayBatchCorrelationId}
-                    </Text>
-                    <Text style={styles.copyIdHint}>Tippen zum Teilen</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.metaLabel}>Replay-Batch-Correlation-ID (Support, beste Korrelation):</Text>
+                  <Text style={styles.metaId} selectable>
+                    {entry.replayBatchCorrelationId}
+                  </Text>
+                  <View style={styles.batchActions}>
+                    <TouchableOpacity
+                      style={styles.copySmallBtn}
+                      onPress={() => copyToClipboard('Replay-Batch-ID', entry.replayBatchCorrelationId!)}
+                    >
+                      <Text style={styles.copySmallBtnText}>Kopieren</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.copySmallBtn}
+                      onPress={() => handleShareReplayBatchId(entry.replayBatchCorrelationId!)}
+                    >
+                      <Text style={styles.copySmallBtnText}>Teilen</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              ) : null}
+              ) : (
+                <Text style={styles.metaMuted}>
+                  Replay-Batch-ID erscheint nach einem Replay-Versuch (Sync), sobald der Server eine Batch-ID
+                  liefert.
+                </Text>
+              )}
               <View style={styles.actions}>
                 {(entry.status === 'Pending' || entry.status === 'Failed') && (
                   <TouchableOpacity
@@ -282,7 +331,7 @@ export default function OfflineQueueScreen() {
                   style={styles.copyBtn}
                   onPress={() => handleCopyId(entry.queueId)}
                 >
-                  <Text style={styles.copyBtnText}>Queue-ID kopieren</Text>
+                  <Text style={styles.copyBtnText}>Queue-ID</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -324,6 +373,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+  },
+  supportBanner: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  supportBannerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e3a8a',
+    marginBottom: 4,
+  },
+  supportBannerText: {
+    fontSize: 12,
+    color: '#1e40af',
+    lineHeight: 17,
   },
   filterRow: {
     flexDirection: 'row',
@@ -440,13 +508,27 @@ const styles = StyleSheet.create({
     color: '#374151',
     fontFamily: 'monospace',
   },
-  copyIdTouch: {
-    marginTop: 2,
-  },
-  copyIdHint: {
-    fontSize: 10,
+  metaMuted: {
+    fontSize: 11,
     color: '#9ca3af',
-    marginTop: 1,
+    marginTop: 6,
+    fontStyle: 'italic',
+  },
+  batchActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 6,
+  },
+  copySmallBtn: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  copySmallBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   errorText: {
     fontSize: 12,

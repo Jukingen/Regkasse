@@ -1184,7 +1184,7 @@ namespace KasseAPI_Final.Services
             try
             {
                 // Ödeme yöntemi validasyonu
-                var validMethods = new[] { "cash", "card", "voucher" };
+                var validMethods = new[] { "cash", "card", "voucher", "transfer", "banktransfer" };
                 if (!validMethods.Contains(paymentMethod.ToLower()))
                 {
                     _logger.LogWarning("Invalid payment method: {PaymentMethod}", paymentMethod);
