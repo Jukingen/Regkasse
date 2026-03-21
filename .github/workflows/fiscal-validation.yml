@@ -15,12 +15,18 @@ jobs:
     name: Migrate & validate fiscal schema
     runs-on: ubuntu-latest
 
+    # Requires repository secret CI_POSTGRES_PASSWORD (same value used for the service and EF/psql).
+    env:
+      ConnectionStrings__DefaultConnection: >-
+        Host=localhost;Port=5432;Database=regkasse;Username=postgres;Password=${{ secrets.CI_POSTGRES_PASSWORD }}
+      DATABASE_URL: postgresql://postgres:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/regkasse
+
     services:
       postgres:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
           POSTGRES_DB: regkasse
         ports:
           - 5432:5432
@@ -58,13 +64,12 @@ jobs:
 
       - name: Apply migrations
         working-directory: backend
-        env:
-          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=regkasse;Username=postgres;Password=postgres"
-        run: dotnet ef database update --connection "Host=localhost;Port=5432;Database=regkasse;Username=postgres;Password=postgres"
+        run: >-
+          dotnet ef database update
+          --project KasseAPI_Final.csproj
+          --startup-project KasseAPI_Final.csproj
 
       - name: Run fiscal go-live validation
-        env:
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/regkasse"
         run: bash scripts/run_fiscal_go_live_validation.sh
 
       - name: Upload fiscal validation report (artifact)
