@@ -9,6 +9,7 @@ import * as authService from '../services/api/authService';
 import { handleAPIError } from '../services/errorService';
 import { isAuthError, AuthAppError } from '../features/auth/authErrors';
 import { getUserSettings } from '../services/api/userSettingsService';
+import { authTrace } from '../utils/authTrace';
 // CRITICAL FIX: useTranslation hook'unu kaldırdık - infinite loop'a neden oluyordu
 
 // Cart cache temizleme için event listener
@@ -89,8 +90,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export { AuthContext };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    console.log('🔐 AUTH PROVIDER: Component mounting...');
-
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -105,28 +104,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const lastAuthCheckTimeRef = React.useRef(0);
     const hasInitialAuthCheckRef = React.useRef(false);
     const AUTH_CHECK_DEBOUNCE_MS = 2000;
-
-    useEffect(() => {
-        let isMounted = true;
-
-        // ... initialize auth on mount
-        const initializeAuth = async () => {
-            try {
-                await stableCheckAuthStatus();
-            } catch (error) {
-                console.error('Auth initialization failed:', error);
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            }
-        };
-        initializeAuth();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
 
     // Inactivity timeout (30 dakika)
     const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 dakika
@@ -427,9 +404,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [justLoggedIn, user, isAuthenticated, handleLogoutAndRedirect]); // Dependencies are cleaner now
 
-    // CRITICAL FIX: checkAuthStatus'u sadece mount olduğunda bir kez çağır
+    // Single auth bootstrap on mount (storage restore first, then stableCheckAuthStatus fallback).
     useEffect(() => {
-        console.log('🔄 AUTH PROVIDER: Mount detected, starting auth check...');
+        authTrace('AuthProvider mount — single bootstrap starting');
 
         // 🚀 F5 REFRESH FIX: Her zaman önce storage'dan restore etmeye çalış
         const initializeAuth = async () => {
@@ -492,6 +469,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         initializeAuth();
+
+        return () => {
+            authTrace('AuthProvider unmount');
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Only run once on mount
 

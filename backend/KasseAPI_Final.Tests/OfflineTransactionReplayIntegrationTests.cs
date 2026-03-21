@@ -8,6 +8,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -61,6 +62,8 @@ public class OfflineTransactionReplayIntegrationTests
             tseMock.Object,
             Options.Create(companyProfile));
 
+        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var httpAccessor = Mock.Of<IHttpContextAccessor>();
         var paymentService = new PaymentService(
             context,
             paymentRepo,
@@ -75,7 +78,9 @@ public class OfflineTransactionReplayIntegrationTests
             auditMock.Object,
             Options.Create(companyProfile),
             Options.Create(tseOptions),
-            loggerPayment);
+            loggerPayment,
+            cashRegResolver,
+            httpAccessor);
 
         var offlineService = new OfflineTransactionService(
             context,

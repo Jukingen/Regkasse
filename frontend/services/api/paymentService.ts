@@ -14,6 +14,7 @@ import {
   unwrapApiResponseLayer,
 } from './normalizePosPaymentMethods';
 import { normalizePaymentError } from '../../features/payment/paymentErrors';
+import { normalizePosPaymentItemsForRequest } from '../../utils/paymentTaxType';
 import {
   enqueuePendingPayment,
   syncPendingPaymentQueue as flushPendingPaymentQueue,
@@ -21,6 +22,7 @@ import {
   getPendingPaymentQueue,
   type PendingPaymentPayload,
 } from '../payment/pendingPaymentQueue';
+import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
 
 export type { PendingPaymentEntry } from '../payment/pendingPaymentQueue';
 
@@ -141,23 +143,46 @@ class PaymentService {
   }
 
   // Payment processing - Backend endpoint compatible
+  /** Normalizes `items[*].taxType` (shared helper) before POST and before offline enqueue. */
   async processPayment(paymentRequest: PaymentRequest): Promise<PaymentResponse> {
     const idempotencyKey =
       paymentRequest.idempotencyKey?.trim() ||
       (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2, 15)}`);
-    const req: PaymentRequest = { ...paymentRequest, idempotencyKey };
+    const items = normalizePosPaymentItemsForRequest(paymentRequest.items);
+    const req: PaymentRequest = { ...paymentRequest, idempotencyKey, items };
+
+    debugPosPaymentTrace('process_payment_enter', {
+      cashRegisterId: req.cashRegisterId,
+      itemCount: req.items?.length ?? 0,
+      method: req.payment?.method,
+      idempotencyKey,
+    });
 
     try {
+      debugPosPaymentTrace('payment_api_request_start', { path: this.baseUrl });
       const response = await apiClient.post<any>(`${this.baseUrl}`, req);
       const normalized = this.normalizePaymentResponse(response);
       if (normalized.success) {
+        debugPosPaymentTrace('payment_api_success', {
+          paymentId: normalized.paymentId,
+          fiscalStatus: normalized.fiscalStatus,
+        });
         await removePendingByIdempotencyKey(idempotencyKey);
+      } else {
+        debugPosPaymentTrace('payment_api_error', {
+          fiscalStatus: normalized.fiscalStatus,
+          message: normalized.message,
+          error: normalized.error,
+        });
       }
       return normalized;
     } catch (error: unknown) {
       if (isTransportFailure(error)) {
+        debugPosPaymentTrace('payment_api_transport_failure_queue', {
+          message: error instanceof Error ? error.message : String(error),
+        });
         const payload = req as unknown as PendingPaymentPayload;
         const pendingQueueId = await enqueuePendingPayment(payload);
         return {
@@ -172,6 +197,9 @@ class PaymentService {
           invoicePersisted: false,
         };
       }
+      debugPosPaymentTrace('payment_api_error_throw', {
+        message: error instanceof Error ? error.message : String(error),
+      });
       throw normalizePaymentError(error);
     }
   }
@@ -187,15 +215,28 @@ class PaymentService {
       raw?.success === true ||
       raw?.Success === true ||
       raw?.data?.Success === true ||
-      raw?.data?.success === true;
+      raw?.data?.success === true ||
+      raw?.Value?.success === true ||
+      raw?.Value?.Success === true;
 
-    // 3. Normalize PaymentId
+    // 3. Normalize PaymentId (flat body, SuccessResponse data, Value wrapper, nested payment object)
+    const tryExtractPaymentId = (o: unknown): string => {
+      if (!o || typeof o !== 'object') return '';
+      const r = o as Record<string, unknown>;
+      const direct = r.paymentId ?? r.PaymentId;
+      if (direct !== undefined && direct !== null && direct !== '') return String(direct);
+      const pay = (r.payment ?? r.Payment) as Record<string, unknown> | undefined;
+      if (pay && typeof pay === 'object') {
+        const id = pay.id ?? pay.Id;
+        if (id !== undefined && id !== null && id !== '') return String(id);
+      }
+      return '';
+    };
     const paymentId =
-      raw?.paymentId ||
-      raw?.PaymentId ||
-      raw?.data?.Payment?.Id ||
-      raw?.data?.paymentId ||
-      raw?.payment?.id ||
+      tryExtractPaymentId(raw) ||
+      tryExtractPaymentId((raw as any)?.Value) ||
+      tryExtractPaymentId((raw as any)?.data) ||
+      tryExtractPaymentId((raw as any)?.Data) ||
       '';
 
     // 4. Normalize Message
@@ -213,7 +254,13 @@ class PaymentService {
       raw?.data?.Payment?.TseSignature;
 
     // 6. Normalize TSE info (qrPayload, isDemoFiscal, provider)
-    const rawTse = raw?.tse || raw?.Tse || raw?.data?.tse;
+    const rawTse =
+      raw?.tse ||
+      raw?.Tse ||
+      raw?.data?.tse ||
+      raw?.data?.Tse ||
+      raw?.Value?.tse ||
+      raw?.Value?.Tse;
     const tse: PaymentTseInfo | undefined = rawTse
       ? {
           qrPayload: rawTse.qrPayload ?? rawTse.QrPayload,

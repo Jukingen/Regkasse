@@ -1,4 +1,5 @@
 import i18n from '../../i18n';
+import { mapBackendCashRegisterCodeToGerman } from '../../utils/posRegisterGateCopy';
 
 export type PaymentErrorCode = 'DEMO_PAYMENT_RESTRICTED' | 'BENEFIT_DAILY_ALLOWANCE_CONFLICT' | 'UNKNOWN_PAYMENT_ERROR';
 
@@ -52,19 +53,26 @@ export function normalizePaymentError(error: unknown): PaymentAppError {
 
   const status = getStatus(error);
   const data = getData(error);
-  const details = data?.details as { diagnosticCode?: string } | undefined;
-  const diagnosticCode = details?.diagnosticCode;
+  const details = data?.details as Record<string, unknown> | undefined;
+  const diagnosticCode =
+    (typeof details?.diagnosticCode === 'string' ? details.diagnosticCode : undefined) ??
+    (typeof details?.code === 'string' ? details.code : undefined) ??
+    (typeof data?.code === 'string' ? data.code : undefined);
 
   if (status === 400 && diagnosticCode === DEMO_BY_ROLE) {
     return new PaymentAppError('DEMO_PAYMENT_RESTRICTED', 400, DEMO_BY_ROLE);
   }
 
-  const code = (data?.code ?? (data?.details as Record<string, unknown>)?.code) as string | undefined;
+  const code = (data?.code ?? details?.code) as string | undefined;
   if (status === 409 && code === 'BENEFIT_DAILY_ALLOWANCE_CONFLICT') {
     return new PaymentAppError('BENEFIT_DAILY_ALLOWANCE_CONFLICT', 409, code);
   }
 
-  return new PaymentAppError('UNKNOWN_PAYMENT_ERROR', status);
+  if (diagnosticCode?.startsWith('CASH_REGISTER_')) {
+    return new PaymentAppError('UNKNOWN_PAYMENT_ERROR', status, diagnosticCode);
+  }
+
+  return new PaymentAppError('UNKNOWN_PAYMENT_ERROR', status, diagnosticCode);
 }
 
 const PAYMENT_ERROR_I18N_KEYS: Record<PaymentErrorCode, string> = {
@@ -75,4 +83,14 @@ const PAYMENT_ERROR_I18N_KEYS: Record<PaymentErrorCode, string> = {
 
 export function getPaymentErrorMessage(code: PaymentErrorCode): string {
   return i18n.t(PAYMENT_ERROR_I18N_KEYS[code]);
+}
+
+/** User-facing message: cash-register diagnostics (German) override i18n for UNKNOWN. */
+export function getPaymentErrorDisplayMessage(err: unknown): string {
+  if (isPaymentError(err)) {
+    const reg = mapBackendCashRegisterCodeToGerman(err.diagnosticCode);
+    if (reg) return reg;
+    return getPaymentErrorMessage(err.code);
+  }
+  return err instanceof Error ? err.message : 'Zahlung fehlgeschlagen';
 }

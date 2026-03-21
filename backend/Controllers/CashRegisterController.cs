@@ -5,6 +5,7 @@ using KasseAPI_Final.Authorization;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
@@ -19,15 +20,18 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly ILogger<CashRegisterController> _logger;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ICashRegisterShiftService _cashRegisterShift;
 
         public CashRegisterController(
             ILogger<CashRegisterController> logger,
             AppDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            ICashRegisterShiftService cashRegisterShift)
         {
             _logger = logger;
             _context = context;
             _userManager = userManager;
+            _cashRegisterShift = cashRegisterShift;
         }
 
         [HasPermission(AppPermissions.CashRegisterView)]
@@ -118,47 +122,43 @@ namespace KasseAPI_Final.Controllers
 
         [HasPermission(AppPermissions.ShiftOpen)]
         [HttpPost("{id}/open")]
-        public async Task<IActionResult> OpenCashRegister(Guid id, [FromBody] OpenCashRegisterModel model)
+        public async Task<IActionResult> OpenCashRegister(Guid id, [FromBody] OpenCashRegisterModel model, CancellationToken cancellationToken)
         {
             try
             {
-                var register = await _context.CashRegisters.FindAsync(id);
-                if (register == null)
-                {
-                    return NotFound(new { message = "Kasa bulunamadı" });
-                }
-
-                if (register.Status == RegisterStatus.Open)
-                {
-                    return BadRequest(new { message = "Kasa zaten açık" });
-                }
-
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var user = await _userManager.FindByIdAsync(userId);
-                if (user == null)
+                if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new { message = "Kullanıcı bulunamadı" });
                 }
 
-                register.Status = RegisterStatus.Open;
-                register.CurrentUser = user;
-                register.LastBalanceUpdate = DateTime.UtcNow;
-                register.UpdatedAt = DateTime.UtcNow;
+                var result = await _cashRegisterShift.TryOpenCashRegisterAsync(
+                    id,
+                    userId,
+                    model.OpeningBalance,
+                    "Kasa açılışı",
+                    allowIdempotentSameUser: false,
+                    cancellationToken);
 
-                var transaction = new CashRegisterTransaction
+                return result.Kind switch
                 {
-                    CashRegisterId = register.Id,
-                    TransactionType = TransactionType.Open,
-                    Amount = model.OpeningBalance,
-                    Description = "Kasa açılışı",
-                    UserId = userId,
-                    TransactionDate = DateTime.UtcNow
+                    CashRegisterOpenKind.SuccessOpened or CashRegisterOpenKind.SuccessIdempotentAlreadyOpen =>
+                        Ok(new { message = "Kasa başarıyla açıldı" }),
+                    CashRegisterOpenKind.FailedNotFound => NotFound(new { message = "Kasa bulunamadı" }),
+                    CashRegisterOpenKind.FailedAlreadyOpenSameUserNotIdempotent =>
+                        BadRequest(new { message = "Kasa zaten açık" }),
+                    CashRegisterOpenKind.FailedConflictOtherUser =>
+                        Conflict(new { message = "Kasa ist von einem anderen Benutzer geöffnet." }),
+                    CashRegisterOpenKind.FailedActorAlreadyHasOtherOpenRegister =>
+                        Conflict(new
+                        {
+                            message =
+                                "Sie haben bereits eine andere geöffnete Kasse. Bitte schließen Sie diese zuerst, bevor Sie eine weitere öffnen."
+                        }),
+                    CashRegisterOpenKind.FailedInvalidState =>
+                        BadRequest(new { message = "Kasa kann in diesem Zustand nicht geöffnet werden." }),
+                    _ => StatusCode(500, new { message = "Kasa açılırken bir hata oluştu" })
                 };
-
-                _context.CashRegisterTransactions.Add(transaction);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Kasa başarıyla açıldı" });
             }
             catch (Exception ex)
             {

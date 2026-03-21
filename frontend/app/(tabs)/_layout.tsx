@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, Redirect } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, ActivityIndicator, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueu
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { SoftColors, SoftShadows } from '../../constants/SoftTheme';
 import { useAuth } from '../../contexts/AuthContext';
+import { PosRegisterReadinessProvider } from '../../contexts/PosRegisterReadinessContext';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
 
@@ -17,6 +18,8 @@ export default function TabLayout() {
     const { t } = useTranslation(['navigation']);
     const insets = useSafeAreaInsets();
     const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
+    const checkAuthStatusRef = useRef(checkAuthStatus);
+    checkAuthStatusRef.current = checkAuthStatus;
 
     // Context usage
     const {
@@ -50,22 +53,22 @@ export default function TabLayout() {
         return unsub;
     }, []);
 
-    // OPTIMIZATION: Auth status kontrolünü daha az sıklıkta yap
+    // OPTIMIZATION: Auth status kontrolünü daha az sıklıkta yap (ref avoids stale closure from [] deps).
     useEffect(() => {
         if (!user || !isAuthenticated) {
             return;
         }
 
-        checkAuthStatus();
+        void checkAuthStatusRef.current();
 
         const interval = setInterval(() => {
-            checkAuthStatus();
+            void checkAuthStatusRef.current();
         }, 5 * 60 * 1000); // 5 dakika
 
         return () => {
             clearInterval(interval);
         };
-    }, []);
+    }, [isAuthenticated, user?.id]);
 
     if (!isAuthReady || isLoading) {
         return (
@@ -87,6 +90,7 @@ export default function TabLayout() {
     }
 
     return (
+        <PosRegisterReadinessProvider>
         <View style={{ flex: 1 }}>
             <Tabs
                 screenOptions={{
@@ -158,7 +162,7 @@ export default function TabLayout() {
                     quantity: item.qty,
                     unitPrice: item.unitPrice || item.price || 0,
                     totalPrice: item.totalPrice ?? getCartLineTotal(item as any),
-                    taxType: undefined,
+                    taxType: item.taxType,
                     modifiers: item.modifiers?.map(m => ({ modifierId: m.id, name: m.name, priceDelta: m.price }))
                 }))}
                 grandTotalGross={totals.grandTotalGross}
@@ -166,6 +170,7 @@ export default function TabLayout() {
                 tableNumber={activeTableId}
             />
         </View>
+        </PosRegisterReadinessProvider>
     );
 }
 

@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
+using System;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -15,11 +17,16 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<UserSettingsController> _logger;
+        private readonly ICashRegisterResolutionService _cashRegisterResolution;
 
-        public UserSettingsController(AppDbContext context, ILogger<UserSettingsController> logger)
+        public UserSettingsController(
+            AppDbContext context,
+            ILogger<UserSettingsController> logger,
+            ICashRegisterResolutionService cashRegisterResolution)
         {
             _context = context;
             _logger = logger;
+            _cashRegisterResolution = cashRegisterResolution;
         }
 
         // GET: api/user/settings
@@ -106,6 +113,11 @@ namespace KasseAPI_Final.Controllers
                     _logger.LogInformation("Created default user settings for user: {UserId}", userId);
                 }
 
+                // ApplySoleOpenRegisterAutoAssignmentIfNeededAsync: persists CashRegisterId only when the DB has exactly one
+                // cash_registers row (any status) AND that row is RegisterStatus.Open. It does not mean "exactly one open
+                // register" when multiple rows exist (two rows => no assignment here, regardless of how many are open).
+                await _cashRegisterResolution.ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(userSettings, userId);
+
                 return Ok(userSettings);
             }
             catch (Exception ex)
@@ -117,7 +129,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/user/settings
         [HttpPut]
-        public async Task<ActionResult<UserSettings>> UpdateUserSettings([FromBody] UpdateUserSettingsRequest request)
+        public async Task<IActionResult> UpdateUserSettings([FromBody] UpdateUserSettingsRequest request)
         {
             try
             {
@@ -166,6 +178,13 @@ namespace KasseAPI_Final.Controllers
                 // Same semantics as PUT cash-register: allow generic settings save to persist register assignment (POS / admin partial updates).
                 if (request.CashRegisterId != null)
                 {
+                    var assignCheck = await _cashRegisterResolution.ValidateAssignmentChangeAsync(
+                        userId,
+                        request.CashRegisterId,
+                        User);
+                    if (!assignCheck.Ok)
+                        return CashRegisterAssignmentError(assignCheck);
+
                     var trimmed = request.CashRegisterId.Trim();
                     userSettings.CashRegisterId = string.IsNullOrEmpty(trimmed) ? null : trimmed;
                 }
@@ -226,7 +245,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/user/settings/cash-register
         [HttpPut("cash-register")]
-        public async Task<ActionResult<UserSettings>> UpdateCashRegisterConfig([FromBody] UpdateCashRegisterConfigRequest request)
+        public async Task<IActionResult> UpdateCashRegisterConfig([FromBody] UpdateCashRegisterConfigRequest request)
         {
             try
             {
@@ -252,6 +271,13 @@ namespace KasseAPI_Final.Controllers
                 // Kasa konfigürasyonunu güncelle
                 if (request.CashRegisterId != null)
                 {
+                    var assignCheck = await _cashRegisterResolution.ValidateAssignmentChangeAsync(
+                        userId,
+                        request.CashRegisterId,
+                        User);
+                    if (!assignCheck.Ok)
+                        return CashRegisterAssignmentError(assignCheck);
+
                     var trimmed = request.CashRegisterId.Trim();
                     userSettings.CashRegisterId = string.IsNullOrEmpty(trimmed) ? null : trimmed;
                 }
@@ -420,6 +446,28 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogError(ex, "Error resetting user settings");
                 return StatusCode(500, new { message = "Internal server error" });
             }
+        }
+
+        private IActionResult CashRegisterAssignmentError(CashRegisterResolutionValidationResult v)
+        {
+            if (v.Code == CashRegisterResolutionCodes.Forbidden)
+            {
+                return StatusCode(403, new
+                {
+                    success = false,
+                    message = v.Message,
+                    code = v.Code,
+                    details = (object?)null
+                });
+            }
+
+            return BadRequest(new
+            {
+                success = false,
+                message = v.Message,
+                code = v.Code,
+                details = (object?)null
+            });
         }
     }
 

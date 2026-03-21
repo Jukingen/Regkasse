@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import LanguageSelector from '../../components/LanguageSelector';
+import { CashRegisterAssignmentSection } from '../../components/CashRegisterAssignmentSection';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 
@@ -26,6 +27,9 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <LanguageSelector />
+      </View>
+      <View style={styles.section}>
+        <CashRegisterAssignmentSection />
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Offline-Warteschlange</Text>

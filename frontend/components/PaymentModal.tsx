@@ -12,7 +12,10 @@ import {
   TextInput,
   Switch,
   Pressable,
+  Platform,
 } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { formatPrice } from '../utils/formatPrice';
@@ -23,14 +26,24 @@ import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paym
 import { cartService } from '../services/api/cartService';
 import { customerService, GUEST_CUSTOMER_ID, type BenefitEligibilityPreviewResponse } from '../services/api/customerService';
 import { validateAmount } from '../utils/validation';
-import { getUserSettings, updateCashRegisterConfig } from '../services/api/userSettingsService';
-import { listPosCashRegisters, type CashRegisterRow } from '../services/api/cashRegisterService';
+import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignment';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
 import type { PosPaymentMethodCode } from '../services/api/paymentService';
+import { downloadInvoicePdf, InvoicePdfHttpError } from '../services/api/invoiceService';
+import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
+import { resolveCashierIdForPayment } from '../utils/paymentSessionUser';
+import {
+  buildPosRegisterGateContext,
+  registerGateAlertMessage,
+  registerGateBannerDetail,
+  registerGateBannerIntro,
+  registerGateBannerTitle,
+  registerGateFooterHint,
+} from '../utils/posRegisterGateCopy';
 
 /** Known blocked reason codes (must match backend BenefitBlockedReasonCodes). Used for stable German UI text only. */
 const BLOCKED_REASON_DE: Record<string, string> = {
@@ -147,7 +160,7 @@ interface PaymentModalProps {
     quantity: number;
     unitPrice: number;
     totalPrice: number;
-    taxType?: string;
+    taxType?: string | number;
     /** Extra Zutaten – ödeme/fiş için backend'e gönderilir (modifierId zorunlu; name/priceDelta opsiyonel) */
     modifiers?: Array<{ modifierId: string; name?: string; priceDelta?: number }>;
   }>;
@@ -180,25 +193,72 @@ export default function PaymentModal({
   const [completedPaymentTse, setCompletedPaymentTse] = useState<PaymentTseInfo | null>(null);
   /** Receipt payload for summary — GET /api/pos/payment/{id}/receipt */
   const [receiptData, setReceiptData] = useState<ReceiptDTO | null>(null);
+  /** When POST response has no qrPayload, show GET /pos/payment/{id}/qr.png as data URL. */
+  const [qrPngFallback, setQrPngFallback] = useState<string | null>(null);
+  /** True while fetching qr.png when qrPayload is missing (user-visible; avoids silent empty QR). */
+  const [qrPngLoading, setQrPngLoading] = useState(false);
+  /** True after qr.png fetch completed without a usable image and no qrPayload. */
+  const [qrPngFetchFailed, setQrPngFetchFailed] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  /** Prevents double-submit during async work before purchaseState becomes 'processing'. */
+  const [paymentBusy, setPaymentBusy] = useState(false);
 
   /** Eligibility preview: read-only UI info. Only when customer selected (not guest) and cart has items. */
   const [eligibilityPreview, setEligibilityPreview] = useState<BenefitEligibilityPreviewResponse | null>(null);
   const [eligibilityPreviewLoading, setEligibilityPreviewLoading] = useState(false);
   const eligibilityPreviewRequestIdRef = useRef(0);
 
-  /** Backend requires valid cash register UUID (no fallback). */
-  const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
-  const [cashRegisterResolved, setCashRegisterResolved] = useState(false);
-  const [registerPicklist, setRegisterPicklist] = useState<CashRegisterRow[]>([]);
-  const [registerListLoading, setRegisterListLoading] = useState(false);
-  const [savingRegisterId, setSavingRegisterId] = useState<string | null>(null);
+  const {
+    cashRegisterId,
+    cashRegisterResolved,
+    settingsLoadFailed,
+    retryUserSettingsLoad,
+    registerPicklist,
+    registerListLoading,
+    registerListFailureKind,
+    refetchRegisterList,
+    savingRegisterId,
+    hasValidCashRegisterId,
+    isRegisterGateBlockingPayment,
+    handlePersistCashRegister,
+    refreshPosReadiness,
+    posReadinessLoading,
+    posReadinessError,
+    posReadinessNextAction,
+    posReadinessMessageCode,
+  } = usePosCashRegisterAssignment(visible);
+
+  const registerGateCtx = useMemo(
+    () =>
+      buildPosRegisterGateContext({
+        settingsLoadFailed,
+        registerListFailureKind,
+        registerListLoading,
+        registerPicklistCount: registerPicklist.length,
+        readiness: {
+          loading: posReadinessLoading,
+          error: posReadinessError,
+          nextAction: posReadinessNextAction,
+          messageCode: posReadinessMessageCode,
+        },
+      }),
+    [
+      settingsLoadFailed,
+      registerListFailureKind,
+      registerListLoading,
+      registerPicklist.length,
+      posReadinessLoading,
+      posReadinessError,
+      posReadinessNextAction,
+      posReadinessMessageCode,
+    ]
+  );
 
   // DEV: TSE Simulation Toggle
   // Default: AÇIK (Bypass) in Development
   const [isTseSimulationEnabled, setIsTseSimulationEnabled] = useState<boolean>(__DEV__);
 
   const {
-    loading,
     methodsLoading,
     error,
     paymentMethods,
@@ -238,74 +298,67 @@ export default function PaymentModal({
 
   const cashPresets = getCashPresets(totalAmount);
 
-  // Load payment methods, guest customer, and cash register (required for POST /api/pos/payment)
-  useEffect(() => {
-    if (!visible) {
-      setCashRegisterId(null);
-      setCashRegisterResolved(false);
-      setRegisterPicklist([]);
-      return;
-    }
-    setCashRegisterResolved(false);
-    getPaymentMethods();
+  /**
+   * Block Zahlen until register gate passes + in-flight payment (paymentBusy / processing).
+   * Omit hook `loading`: it can block unrelated actions and caused silent early-return in handlePayment without matching disabled state in edge races.
+   */
+  const paySubmitDisabled =
+    purchaseState === 'processing' ||
+    paymentBusy ||
+    isRegisterGateBlockingPayment;
 
-    customerService.getGuestCustomer()
-      .then(id => setGuestCustomerId(id))
-      .catch(err => console.warn('[PaymentModal] Failed to load guest customer:', err));
+  const showPayWorking = purchaseState === 'processing' || paymentBusy;
 
-    getUserSettings()
-      .then((s) => {
-        const id = s.cashRegisterId?.trim();
-        const invalid =
-          !id ||
-          id === '00000000-0000-0000-0000-000000000000';
-        setCashRegisterId(invalid ? null : id);
-      })
-      .catch(() => setCashRegisterId(null))
-      .finally(() => setCashRegisterResolved(true));
-  }, [visible, getPaymentMethods]);
+  const zahlenBlockedByRegisterHint =
+    paySubmitDisabled && !showPayWorking && isRegisterGateBlockingPayment
+      ? registerGateFooterHint(registerGateCtx)
+      : undefined;
 
   useEffect(() => {
-    if (!visible || !cashRegisterResolved || cashRegisterId) {
-      if (!visible) setRegisterPicklist([]);
-      return;
-    }
-    let cancelled = false;
-    setRegisterListLoading(true);
-    listPosCashRegisters()
-      .then((rows) => {
-        if (!cancelled) setRegisterPicklist(rows);
-      })
-      .catch((e) => {
-        console.warn('[PaymentModal] Cash register list failed:', e);
-        if (!cancelled) setRegisterPicklist([]);
-      })
-      .finally(() => {
-        if (!cancelled) setRegisterListLoading(false);
-      });
+    if (!visible) return;
+    debugPosPaymentTrace('modal_open', {
+      cartItemCount: cartItems.length,
+      totalAmount,
+      customerId: customerId?.slice(0, 8) ?? null,
+    });
+  }, [visible, cartItems.length, totalAmount, customerId]);
+
+  useEffect(() => {
+    if (!visible) return;
+    debugPosPaymentTrace('zahlen_button_disabled_snapshot', {
+      paySubmitDisabled,
+      purchaseState,
+      paymentBusy,
+      cashRegisterResolved,
+      hasValidCashRegisterId,
+      isRegisterGateBlockingPayment,
+    });
+  }, [
+    visible,
+    paySubmitDisabled,
+    purchaseState,
+    paymentBusy,
+    cashRegisterResolved,
+    hasValidCashRegisterId,
+    isRegisterGateBlockingPayment,
+  ]);
+
+  useEffect(() => {
+    if (!visible) return;
+    debugPosPaymentTrace('payment_modal_mounted_while_visible', { platform: Platform.OS });
     return () => {
-      cancelled = true;
+      debugPosPaymentTrace('payment_modal_cleanup_visible_false_or_unmount', { platform: Platform.OS });
     };
-  }, [visible, cashRegisterResolved, cashRegisterId]);
+  }, [visible]);
 
-  const handlePersistCashRegister = async (id: string) => {
-    setSavingRegisterId(id);
-    try {
-      const updated = await updateCashRegisterConfig({ cashRegisterId: id });
-      const next = updated.cashRegisterId?.trim();
-      if (next && next !== '00000000-0000-0000-0000-000000000000') {
-        setCashRegisterId(next);
-      } else {
-        setCashRegisterId(id);
-      }
-      Alert.alert('Gespeichert', 'Kasse wurde zugewiesen.');
-    } catch (e) {
-      console.warn('[PaymentModal] Failed to persist cash register:', e);
-      Alert.alert('Fehler', 'Kasse konnte nicht gespeichert werden.');
-    } finally {
-      setSavingRegisterId(null);
-    }
-  };
+  // Load payment methods and guest customer when modal opens (cash register: usePosCashRegisterAssignment)
+  useEffect(() => {
+    if (!visible) return;
+    getPaymentMethods();
+    customerService.getGuestCustomer()
+      .then((id) => setGuestCustomerId(id))
+      .catch((err) => console.warn('[PaymentModal] Failed to load guest customer:', err));
+  }, [visible, getPaymentMethods]);
 
   // Eligibility preview: only when customer selected (not guest), cart has items, and modal visible. Race-safe.
   const shouldFetchEligibility =
@@ -370,6 +423,112 @@ export default function PaymentModal({
       });
   }, [completedPaymentId]);
 
+  useEffect(() => {
+    const showQrStates: Array<'completed' | 'print_error'> = ['completed', 'print_error'];
+    if (!completedPaymentId || !showQrStates.includes(purchaseState as 'completed' | 'print_error')) {
+      setQrPngFallback(null);
+      setQrPngLoading(false);
+      setQrPngFetchFailed(false);
+      return;
+    }
+    if (completedPaymentTse?.qrPayload) {
+      setQrPngFallback(null);
+      setQrPngLoading(false);
+      setQrPngFetchFailed(false);
+      return;
+    }
+    let cancelled = false;
+    setQrPngFallback(null);
+    setQrPngFetchFailed(false);
+    setQrPngLoading(true);
+    paymentService
+      .getQrPngAsBase64(completedPaymentId)
+      .then((url) => {
+        if (cancelled) return;
+        if (url) {
+          setQrPngFallback(url);
+          setQrPngFetchFailed(false);
+          debugPosPaymentTrace('success_flow_qr_ready', { source: 'qr_png_fallback' });
+        } else {
+          setQrPngFetchFailed(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setQrPngFetchFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setQrPngLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [completedPaymentId, completedPaymentTse?.qrPayload, purchaseState]);
+
+  const handleOpenReceiptPdf = async () => {
+    if (!completedPaymentId || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const blob = await downloadInvoicePdf(completedPaymentId);
+      debugPosPaymentTrace('success_flow_pdf_ready', { paymentId: completedPaymentId, bytes: blob.size });
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank', 'noopener,noreferrer');
+        setTimeout(() => URL.revokeObjectURL(url), 120_000);
+      } else {
+        const fileUri = `${FileSystem.documentDirectory}beleg_${completedPaymentId}.pdf`;
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const r = reader.result as string;
+            resolve(r.includes(',') ? r.split(',')[1] : r);
+          };
+          reader.onerror = () => reject(new Error('read failed'));
+          reader.readAsDataURL(blob);
+        });
+        await FileSystem.writeAsStringAsync(fileUri, base64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Beleg PDF',
+        });
+      }
+    } catch (e) {
+      console.warn('[PaymentModal] PDF open failed:', e);
+      if (e instanceof InvoicePdfHttpError) {
+        const ok = 'Die Zahlung war erfolgreich.';
+        if (e.status === 401) {
+          Alert.alert(
+            'Beleg-PDF',
+            `${ok} Anmeldung abgelaufen oder ungültig. Bitte erneut anmelden und „Beleg-PDF“ erneut versuchen.`
+          );
+        } else if (e.status === 403) {
+          Alert.alert(
+            'Beleg-PDF',
+            `${ok} Keine Berechtigung für PDF-Export. QR-Code und Druck bleiben nutzbar. Bei Bedarf den Administrator bitten (Berechtigung „Rechnung ansehen“ / InvoiceView).`
+          );
+        } else if (e.status === 404) {
+          Alert.alert(
+            'Beleg-PDF',
+            `${ok} PDF wurde nicht gefunden. Bitte später erneut versuchen oder den Administrator informieren.`
+          );
+        } else {
+          Alert.alert(
+            'Beleg-PDF',
+            `${ok} PDF konnte nicht geladen werden (HTTP ${e.status}). Bitte später erneut versuchen.`
+          );
+        }
+      } else {
+        Alert.alert(
+          'Hinweis',
+          'Die Zahlung war erfolgreich. Beleg-PDF konnte nicht geöffnet werden. Bitte später erneut versuchen.'
+        );
+      }
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   // Handler for preset buttons
   const handlePresetPress = (amount: number) => {
     setAmountReceived(amount.toString());
@@ -377,43 +536,63 @@ export default function PaymentModal({
 
   // Ödeme işlemi
   const handlePayment = async () => {
+    debugPosPaymentTrace('submit_clicked', {
+      authUserPresent: !!user?.id,
+      paySubmitDisabled,
+      cashRegisterResolved,
+      hasValidCashRegisterId,
+    });
+    // Intentionally no Alert: button shows "Wird verarbeitet…" and is non-interactive while busy.
+    if (paymentBusy || purchaseState === 'processing') {
+      debugPosPaymentTrace('submit_blocked_busy', { paymentBusy, purchaseState });
+      return;
+    }
+    setPaymentBusy(true);
     try {
-      // 1. Validasyonlar
-      if (!tableNumber) {
-        Alert.alert('Hata', 'Masa numarası gerekli');
-        return;
-      }
+      // 1. Validasyonlar — Tischnummer: layout usually passes activeTableId; default 1 if missing (guest POS)
+      const resolvedTableNumber =
+        tableNumber != null && Number.isFinite(Number(tableNumber)) && Number(tableNumber) >= 1
+          ? Number(tableNumber)
+          : 1;
 
       if (cartItems.length === 0) {
-        Alert.alert('Hata', 'Sepet boş');
+        debugPosPaymentTrace('submit_blocked_empty_cart', {});
+        Alert.alert('Hinweis', 'Der Warenkorb ist leer.');
         return;
       }
 
       if (selectedPaymentMethod === 'cash') {
         const received = parseFloat(amountReceived);
         if (isNaN(received) || received < totalAmount) {
-          Alert.alert('Hata', 'Alınan tutar toplam tutardan az olamaz');
+          debugPosPaymentTrace('submit_blocked_cash_amount', { received, totalAmount });
+          Alert.alert(
+            'Hinweis',
+            'Der erhaltene Betrag muss mindestens dem Gesamtbetrag entsprechen.'
+          );
           return;
         }
       }
 
-      if (!cashRegisterId) {
-        Alert.alert(
-          'Fehler',
-          'Keine Kasse zugewiesen. Bitte unter Einstellungen eine Kasse auswählen.'
-        );
+      if (!hasValidCashRegisterId || !cashRegisterId) {
+        debugPosPaymentTrace('submit_blocked_missing_cash_register', {
+          cashRegisterResolved,
+          cashRegisterId: cashRegisterId ?? null,
+          registerListFailureKind,
+        });
+        Alert.alert('Zahlung nicht möglich', registerGateAlertMessage(registerGateCtx));
         return;
       }
 
       if (!validateAmount(totalAmount)) {
-        Alert.alert('Hata', 'Geçersiz tutar (0.01\'den büyük olmalı)');
+        debugPosPaymentTrace('submit_blocked_invalid_amount', { totalAmount });
+        Alert.alert('Hinweis', 'Ungültiger Betrag (muss größer als 0,01 € sein).');
         return;
       }
 
       // 2. Aktif sepet ID'sini al (Source of Truth for Cart ID)
       let currentCartId: string;
       try {
-        const cart = await cartService.getCurrentCart(tableNumber);
+        const cart = await cartService.getCurrentCart(resolvedTableNumber);
 
         // Eğer backend cart boş geliyorsa ama frontend doluysa, frontend items kullanmaya devam et
         // Ancak cartId'ye ihtiyacımız var complete için.
@@ -423,7 +602,13 @@ export default function PaymentModal({
         currentCartId = cart.cartId;
       } catch (cartErr) {
         console.error('Cart fetch failed:', cartErr);
-        Alert.alert('Hata', 'Masa sepet bilgisi alınamadı. Lütfen sayfayı yenileyin.');
+        debugPosPaymentTrace('submit_blocked_cart_fetch', {
+          message: cartErr instanceof Error ? cartErr.message : String(cartErr),
+        });
+        Alert.alert(
+          'Fehler',
+          'Warenkorb konnte nicht geladen werden. Bitte Seite aktualisieren oder erneut versuchen.'
+        );
         return;
       }
 
@@ -432,12 +617,18 @@ export default function PaymentModal({
         ? customerId
         : guestCustomerId;
 
+      const cashierId = await resolveCashierIdForPayment(user?.id);
+      if (!user?.id && cashierId !== 'UNKNOWN') {
+        debugPosPaymentTrace('submit_auth_user_null_using_jwt_cashier', { cashierId: cashierId.slice(0, 8) + '…' });
+      }
+
       // 4. Build payment request: flat items (one PaymentItem per cart line). Phase D: no modifierIds emission; add-ons = product lines only.
       // Guard: flat items only — do not add modifierIds or modifiers (one item per cart line).
-      const paymentItems: PaymentItem[] = cartItems.map(item => ({
+      // taxType: paymentService.processPayment normalizes all items before POST / queue
+      const paymentItems: PaymentItem[] = cartItems.map((item) => ({
         productId: item.productId,
         quantity: (item as any).qty ?? item.quantity,
-        taxType: (item.taxType as 'standard' | 'reduced' | 'special') || 'standard'
+        taxType: item.taxType as PaymentItem['taxType'],
       }));
 
       // NOTE: TSE Logic
@@ -460,20 +651,30 @@ export default function PaymentModal({
           tseRequired: shouldRequireTse,
           amount: selectedPaymentMethod === 'cash' ? parseFloat(amountReceived) : undefined
         },
-        tableNumber: tableNumber || 1,
-        cashierId: user?.id || 'UNKNOWN',
+        tableNumber: resolvedTableNumber,
+        cashierId,
         totalAmount: totalAmount,
         cashRegisterId,
-        notes: notes || `Masa ${tableNumber} - ${new Date().toLocaleString('de-DE')}`,
+        notes: notes || `Tisch ${resolvedTableNumber} - ${new Date().toLocaleString('de-DE')}`,
         idempotencyKey
       };
 
       // 5. PAYMENT REQUEST (STRICT: error handling)
       setPurchaseState('processing');
+      debugPosPaymentTrace('process_payment_called', {
+        cashRegisterId: paymentRequest.cashRegisterId,
+        cashierId: paymentRequest.cashierId,
+        itemCount: paymentItems.length,
+        method: paymentRequest.payment.method,
+        tseRequired: paymentRequest.payment.tseRequired,
+        totalAmount: paymentRequest.totalAmount,
+        idempotencyKey: paymentRequest.idempotencyKey,
+      });
       console.log('[PAYMENT] Request:', JSON.stringify(paymentRequest, null, 2));
       const response = await processPayment(paymentRequest);
 
       if (response.fiscalStatus === 'NON_FISCAL_PENDING') {
+        debugPosPaymentTrace('payment_non_fiscal_pending_ui', { pendingQueueId: response.pendingQueueId });
         setPurchaseState('input');
         Alert.alert(
           'Hinweis',
@@ -488,12 +689,17 @@ export default function PaymentModal({
         response.fiscalStatus !== 'FISCAL_COMPLETE' ||
         !response.paymentId
       ) {
+        debugPosPaymentTrace('submit_blocked_fiscal_incomplete', {
+          success: response.success,
+          fiscalStatus: response.fiscalStatus,
+          paymentId: response.paymentId || null,
+        });
         console.error('[PAYMENT] Failed or not fiscally confirmed:', response);
         const errorMsg =
           response.fiscalStatus === 'FAILED'
             ? (response.message || response.error || 'Zahlung nicht fiscal bestätigt')
-            : response.message || response.error || 'Ödeme işlemi başarısız';
-        Alert.alert('Ödeme Başarısız', errorMsg);
+            : response.message || response.error || 'Zahlung fehlgeschlagen';
+        Alert.alert('Zahlung fehlgeschlagen', errorMsg);
         setPurchaseState('input');
         return;
       }
@@ -501,6 +707,10 @@ export default function PaymentModal({
       console.log('[PAYMENT] Success, paymentId:', response.paymentId);
       setCompletedPaymentId(response.paymentId);
       setCompletedPaymentTse(response.tse ?? null);
+      debugPosPaymentTrace('success_flow_qr_ready', {
+        paymentId: response.paymentId,
+        hasQrPayload: !!response.tse?.qrPayload,
+      });
 
       if (response.invoicePersisted === false) {
         Alert.alert(
@@ -519,7 +729,10 @@ export default function PaymentModal({
         // For now, keeping existing flow but ensuring UI handles it.
         // If complete fails, we probably still want to print receipt if payment took money?
         // Let's assume critical failure here means we should notify user.
-        Alert.alert('Uyarı', 'Ödeme alındı ancak sipariş kapatılamadı. Lütfen yöneticiye bildirin.');
+        Alert.alert(
+          'Hinweis',
+          'Die Zahlung war erfolgreich, der Warenkorb konnte jedoch nicht abgeschlossen werden. Bitte Administrator informieren.'
+        );
       }
 
       // 8. CART RESET
@@ -541,10 +754,6 @@ export default function PaymentModal({
           isDemoFiscal: response.tse?.isDemoFiscal ?? false,
         });
         setPurchaseState('completed');
-        // Auto close after meaningful delay
-        setTimeout(() => {
-          handleSuccessAndClose(response.paymentId);
-        }, 2000);
       } catch (printErr) {
         console.error('[PRINT] Failed:', printErr);
         setPurchaseState('print_error');
@@ -556,9 +765,16 @@ export default function PaymentModal({
       setPurchaseState('input');
       const message = isPaymentError(err)
         ? getPaymentErrorMessage(err.code)
-        : (err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu');
-      const title = isPaymentError(err) && err.code === 'BENEFIT_DAILY_ALLOWANCE_CONFLICT' ? 'Hinweis' : isPaymentError(err) && err.code === 'DEMO_PAYMENT_RESTRICTED' ? 'Uyarı' : 'Hata';
+        : (err instanceof Error ? err.message : 'Unbekannter Fehler bei der Zahlung.');
+      const title =
+        isPaymentError(err) && err.code === 'BENEFIT_DAILY_ALLOWANCE_CONFLICT'
+          ? 'Hinweis'
+          : isPaymentError(err) && err.code === 'DEMO_PAYMENT_RESTRICTED'
+            ? 'Hinweis'
+            : 'Fehler';
       Alert.alert(title, message);
+    } finally {
+      setPaymentBusy(false);
     }
   };
 
@@ -577,9 +793,6 @@ export default function PaymentModal({
         isDemoFiscal: completedPaymentTse?.isDemoFiscal ?? false,
       });
       setPurchaseState('completed');
-      setTimeout(() => {
-        handleSuccessAndClose(completedPaymentId);
-      }, 2000);
     } catch (printErr) {
       console.error('[PRINT] Retry Failed:', printErr);
       setPurchaseState('print_error');
@@ -603,6 +816,11 @@ export default function PaymentModal({
     setCompletedPaymentId(null);
     setCompletedPaymentTse(null);
     setReceiptData(null);
+    setQrPngFallback(null);
+    setQrPngLoading(false);
+    setQrPngFetchFailed(false);
+    setPaymentBusy(false);
+    setPdfLoading(false);
     setEligibilityPreview(null);
     setEligibilityPreviewLoading(false);
     onClose();
@@ -615,12 +833,13 @@ export default function PaymentModal({
       transparent
       onRequestClose={handleClose}
       accessibilityRole="dialog"
-      accessibilityLabel="Ödeme"
+      accessibilityLabel="Zahlung"
     >
       <View style={styles.overlay} accessibilityViewIsModal>
-        <Pressable style={styles.modal} onPress={undefined}>
+        {/* Use View (not Pressable) so web does not swallow inner button presses. */}
+        <View style={styles.modal}>
           <View style={styles.header}>
-            <Text style={styles.title}>Ödeme</Text>
+            <Text style={styles.title}>Zahlung</Text>
             <Pressable
               onPress={handleClose}
               style={({ pressed, focused }) => [styles.closeButton, pressed && SoftState.pressed, focused && SoftState.focusVisible]}
@@ -651,20 +870,18 @@ export default function PaymentModal({
               </View>
             </View>
 
-            {!cashRegisterId && cashRegisterResolved && (
+            {isRegisterGateBlockingPayment && (
               <View style={styles.registerBanner}>
-                <Text style={styles.registerBannerTitle}>Kasse erforderlich</Text>
-                <Text style={styles.registerBannerText}>
-                  Ohne zugewiesene Kasse ist keine fiskal gültige Zahlung möglich. Wählen Sie Ihre Kasse unten — die
-                  Zuordnung wird im Benutzerprofil gespeichert.
-                </Text>
-                {registerListLoading ? (
-                  <ActivityIndicator color={SoftColors.accent} style={{ marginVertical: SoftSpacing.sm }} />
-                ) : registerPicklist.length === 0 ? (
-                  <Text style={styles.registerBannerMuted}>
-                    Keine Kassen geladen. Prüfen Sie die Berechtigung oder wenden Sie sich an den Administrator.
+                <Text style={styles.registerBannerTitle}>{registerGateBannerTitle(registerGateCtx)}</Text>
+                {!registerListLoading && !posReadinessLoading ? (
+                  <Text style={[styles.registerBannerMuted, { marginBottom: SoftSpacing.xs }]}>
+                    {registerGateBannerIntro()}
                   </Text>
-                ) : (
+                ) : null}
+                <Text style={styles.registerBannerText}>{registerGateBannerDetail(registerGateCtx)}</Text>
+                {registerListLoading || posReadinessLoading ? (
+                  <ActivityIndicator color={SoftColors.accent} style={{ marginVertical: SoftSpacing.sm }} />
+                ) : registerPicklist.length > 0 ? (
                   <View style={styles.registerChipRow}>
                     {registerPicklist.map((r) => (
                       <Pressable
@@ -685,7 +902,34 @@ export default function PaymentModal({
                       </Pressable>
                     ))}
                   </View>
-                )}
+                ) : settingsLoadFailed ? (
+                  <Pressable
+                    onPress={retryUserSettingsLoad}
+                    style={styles.retryLink}
+                    accessibilityRole="button"
+                    accessibilityLabel="Kasseneinstellungen erneut laden"
+                  >
+                    <Text style={styles.retryLinkText}>Kasseneinstellungen erneut versuchen</Text>
+                  </Pressable>
+                ) : posReadinessError ? (
+                  <Pressable
+                    onPress={() => refreshPosReadiness()}
+                    style={styles.retryLink}
+                    accessibilityRole="button"
+                    accessibilityLabel="Kassenbereitschaft erneut laden"
+                  >
+                    <Text style={styles.retryLinkText}>Kassenbereitschaft erneut versuchen</Text>
+                  </Pressable>
+                ) : registerListFailureKind === 'network' || registerListFailureKind === 'unknown' ? (
+                  <Pressable
+                    onPress={refetchRegisterList}
+                    style={styles.retryLink}
+                    accessibilityRole="button"
+                    accessibilityLabel="Kassenliste erneut laden"
+                  >
+                    <Text style={styles.retryLinkText}>Kassenliste erneut laden</Text>
+                  </Pressable>
+                ) : null}
               </View>
             )}
 
@@ -878,45 +1122,57 @@ export default function PaymentModal({
 
           {purchaseState === 'input' || purchaseState === 'processing' ? (
             <View style={[styles.footer, { paddingBottom: Math.max(SoftSpacing.md, insets.bottom) }]}>
-              <Pressable
-                onPress={handleClose}
-                style={({ pressed, focused }) => [
-                  styles.cancelButton,
-                  pressed && SoftState.pressed,
-                  focused && SoftState.focusVisible,
-                ]}
-                disabled={purchaseState === 'processing'}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                accessibilityLabel="Abbrechen"
-                accessibilityRole="button"
-              >
-                <Text style={styles.cancelButtonText}>Abbrechen</Text>
-              </Pressable>
-              <Pressable
-                onPress={handlePayment}
-                style={({ pressed, focused }) => [
-                  styles.payButton,
-                  purchaseState === 'processing' && styles.payButtonDisabled,
-                  pressed && purchaseState !== 'processing' && SoftState.pressedScale,
-                  focused && purchaseState !== 'processing' && SoftState.focusVisible,
-                ]}
-                disabled={purchaseState === 'processing'}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                accessibilityLabel={`Zahlen ${formatPrice(totalAmount)}`}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: purchaseState === 'processing' }}
-              >
-                {purchaseState === 'processing' ? (
-                  <View style={styles.payButtonContent}>
-                    <ActivityIndicator size="small" color={SoftColors.textInverse} />
-                    <Text style={styles.payButtonText}>Wird verarbeitet…</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.payButtonText}>
-                    {formatPrice(totalAmount)} zahlen
-                  </Text>
-                )}
-              </Pressable>
+              <View style={styles.footerButtonRow}>
+                <Pressable
+                  onPress={handleClose}
+                  style={({ pressed, focused }) => [
+                    styles.cancelButton,
+                    pressed && SoftState.pressed,
+                    focused && SoftState.focusVisible,
+                  ]}
+                  disabled={showPayWorking}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityLabel="Abbrechen"
+                  accessibilityRole="button"
+                >
+                  <Text style={styles.cancelButtonText}>Abbrechen</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handlePayment}
+                  style={({ pressed, focused }) => [
+                    styles.payButton,
+                    paySubmitDisabled && styles.payButtonDisabled,
+                    pressed && !paySubmitDisabled && SoftState.pressedScale,
+                    focused && !paySubmitDisabled && SoftState.focusVisible,
+                  ]}
+                  disabled={paySubmitDisabled}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityLabel={`Zahlen ${formatPrice(totalAmount)}`}
+                  accessibilityHint={zahlenBlockedByRegisterHint}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    disabled: paySubmitDisabled,
+                  }}
+                >
+                  {showPayWorking ? (
+                    <View style={styles.payButtonContent}>
+                      <ActivityIndicator size="small" color={SoftColors.textInverse} />
+                      <Text style={styles.payButtonText}>Wird verarbeitet…</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.payButtonText}>
+                      {formatPrice(totalAmount)} zahlen
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+              {!cashRegisterResolved ? (
+                <Text style={styles.footerBlockedHint}>Kasseneinstellungen werden geladen…</Text>
+              ) : !hasValidCashRegisterId ? (
+                <Text style={styles.footerBlockedHint}>
+                  {registerGateFooterHint(registerGateCtx)}
+                </Text>
+              ) : null}
             </View>
           ) : (
             <View style={[styles.footerSecondary, { paddingBottom: Math.max(SoftSpacing.md, insets.bottom) }]}>
@@ -940,7 +1196,43 @@ export default function PaymentModal({
                       </View>
                     ) : null;
                   })()}
-                  <PaymentSuccessQr tse={completedPaymentTse} size={160} />
+                  <PaymentSuccessQr tse={completedPaymentTse} qrPngDataUrl={qrPngFallback} size={160} />
+                  {!completedPaymentTse?.qrPayload && qrPngLoading ? (
+                    <Text style={styles.qrStatusHint}>RKSV-QR wird geladen…</Text>
+                  ) : null}
+                  {!completedPaymentTse?.qrPayload && !qrPngLoading && qrPngFetchFailed ? (
+                    <Text style={styles.qrStatusHint}>
+                      RKSV-QR (PNG) konnte nicht geladen werden. Die Zahlung ist gültig — nutzen Sie den Druck oder
+                      wenden Sie sich an den Administrator.
+                    </Text>
+                  ) : null}
+                  <View style={styles.successActionsRow}>
+                    <Pressable
+                      onPress={handleOpenReceiptPdf}
+                      disabled={pdfLoading || !completedPaymentId}
+                      style={({ pressed }) => [
+                        styles.successSecondaryBtn,
+                        pressed && SoftState.pressed,
+                        (pdfLoading || !completedPaymentId) && styles.payButtonDisabled,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Beleg-PDF"
+                    >
+                      {pdfLoading ? (
+                        <ActivityIndicator size="small" color={SoftColors.accent} />
+                      ) : (
+                        <Text style={styles.successSecondaryBtnText}>Beleg-PDF</Text>
+                      )}
+                    </Pressable>
+                    <Pressable
+                      onPress={() => completedPaymentId && handleSuccessAndClose(completedPaymentId)}
+                      style={({ pressed }) => [styles.successPrimaryBtn, pressed && SoftState.pressedScale]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Fertig"
+                    >
+                      <Text style={styles.payButtonText}>Fertig</Text>
+                    </Pressable>
+                  </View>
                 </View>
               )}
 
@@ -955,8 +1247,28 @@ export default function PaymentModal({
                       </View>
                     ) : null;
                   })()}
-                  <PaymentSuccessQr tse={completedPaymentTse} size={140} />
+                  <PaymentSuccessQr tse={completedPaymentTse} qrPngDataUrl={qrPngFallback} size={140} />
+                  {!completedPaymentTse?.qrPayload && qrPngLoading ? (
+                    <Text style={styles.qrStatusHint}>RKSV-QR wird geladen…</Text>
+                  ) : null}
+                  {!completedPaymentTse?.qrPayload && !qrPngLoading && qrPngFetchFailed ? (
+                    <Text style={styles.qrStatusHint}>
+                      RKSV-QR (PNG) konnte nicht geladen werden. Die Zahlung ist gültig — nutzen Sie den Druck oder
+                      wenden Sie sich an den Administrator.
+                    </Text>
+                  ) : null}
                   <View style={styles.printErrorActions}>
+                    <Pressable
+                      onPress={handleOpenReceiptPdf}
+                      disabled={pdfLoading || !completedPaymentId}
+                      style={[styles.printErrorBtnSecondary, pdfLoading && styles.payButtonDisabled]}
+                    >
+                      {pdfLoading ? (
+                        <ActivityIndicator size="small" color={SoftColors.accent} />
+                      ) : (
+                        <Text style={styles.printErrorBtnSecondaryText}>Beleg-PDF</Text>
+                      )}
+                    </Pressable>
                     <Pressable onPress={handleSkipPrint} style={styles.printErrorBtnSecondary}>
                       <Text style={styles.printErrorBtnSecondaryText}>Überspringen</Text>
                     </Pressable>
@@ -968,7 +1280,7 @@ export default function PaymentModal({
               )}
             </View>
           )}
-        </Pressable>
+        </View>
       </View>
     </Modal>
   );
@@ -979,12 +1291,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: SoftColors.overlay,
     justifyContent: 'flex-end',
+    // Web: tab bar / custom tab buttons use overflow:visible and can sit above a low stacking context;
+    // fixed + high z-index keeps the payment sheet and Zahlen hit-target above the tab UI.
+    ...(Platform.OS === 'web'
+      ? ({
+          position: 'fixed' as const,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 2147483646,
+        } as const)
+      : {}),
   },
   modal: {
     backgroundColor: SoftColors.bgCard,
     borderTopLeftRadius: SoftRadius.xl,
     borderTopRightRadius: SoftRadius.xl,
     maxHeight: '90%',
+    ...(Platform.OS === 'web' ? ({ zIndex: 2147483647 } as const) : {}),
     ...SoftShadows.lg,
   },
   header: {
@@ -1193,12 +1518,32 @@ const styles = StyleSheet.create({
     color: SoftColors.accent,
   },
   footer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: SoftSpacing.sm,
     padding: SoftSpacing.md,
     borderTopWidth: 1,
     borderTopColor: SoftColors.borderLight,
     backgroundColor: SoftColors.bgCard,
+  },
+  footerButtonRow: {
+    flexDirection: 'row',
+    gap: SoftSpacing.sm,
+    alignItems: 'stretch',
+  },
+  footerBlockedHint: {
+    ...SoftTypography.caption,
+    color: SoftColors.error,
+    textAlign: 'center',
+    paddingHorizontal: SoftSpacing.sm,
+  },
+  qrStatusHint: {
+    ...SoftTypography.caption,
+    color: SoftColors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: SoftSpacing.md,
+    marginTop: SoftSpacing.xs,
+    maxWidth: 340,
+    alignSelf: 'center',
   },
   cancelButton: {
     flex: 1,
@@ -1226,7 +1571,9 @@ const styles = StyleSheet.create({
     ...SoftShadows.sm,
   },
   payButtonDisabled: {
-    backgroundColor: SoftColors.textMuted,
+    // Darker than textMuted so white label stays readable (disabled Zahlen was washing out on web).
+    backgroundColor: SoftColors.textSecondary,
+    opacity: 0.85,
   },
   payButtonContent: {
     flexDirection: 'row',
@@ -1296,6 +1643,40 @@ const styles = StyleSheet.create({
     ...SoftTypography.h3,
     color: SoftColors.success,
   },
+  successActionsRow: {
+    flexDirection: 'row',
+    gap: SoftSpacing.sm,
+    alignItems: 'stretch',
+    marginTop: SoftSpacing.md,
+    width: '100%',
+    paddingHorizontal: SoftSpacing.xs,
+  },
+  successSecondaryBtn: {
+    flex: 1,
+    minHeight: 48,
+    paddingVertical: SoftSpacing.sm,
+    borderRadius: SoftRadius.md,
+    borderWidth: 1,
+    borderColor: SoftColors.accent,
+    backgroundColor: SoftColors.bgCard,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successSecondaryBtnText: {
+    ...SoftTypography.body,
+    fontWeight: '600',
+    color: SoftColors.accent,
+  },
+  successPrimaryBtn: {
+    flex: 1,
+    minHeight: 48,
+    paddingVertical: SoftSpacing.sm,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SoftShadows.sm,
+  },
   printErrorBlock: {
     width: '100%',
   },
@@ -1313,6 +1694,7 @@ const styles = StyleSheet.create({
   },
   printErrorActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: SoftSpacing.sm,
     justifyContent: 'center',
     marginTop: SoftSpacing.sm,

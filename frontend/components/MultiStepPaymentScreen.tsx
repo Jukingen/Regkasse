@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import paymentService, { type PaymentRequest } from '../services/api/paymentService';
+import { normalizeCartLineTaxTypeForPayment } from '../utils/paymentTaxType';
 import { getUserSettings } from '../services/api/userSettingsService';
 import { GUEST_CUSTOMER_ID } from '../services/api/customerService';
 import { PaymentCancelResponse } from '../types/cart';
@@ -172,9 +173,19 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
 
   // Ödeme onayı
   const handlePaymentConfirmation = async () => {
+    if (loading) return;
     setLoading(true);
     try {
-      const settings = await getUserSettings();
+      let settings;
+      try {
+        settings = await getUserSettings();
+      } catch {
+        setError(
+          'Kasseneinstellungen konnten nicht geladen werden. Bitte Verbindung prüfen oder erneut anmelden.'
+        );
+        setLoading(false);
+        return;
+      }
       const regId = settings.cashRegisterId?.trim();
       if (
         !regId ||
@@ -199,10 +210,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         items: cartItems.map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
-          taxType: item.product.taxType.toLowerCase() as
-            | 'standard'
-            | 'reduced'
-            | 'special'
+          taxType: normalizeCartLineTaxTypeForPayment(item.product?.taxType),
         })),
         payment: {
           method: selectedPaymentMethod!,

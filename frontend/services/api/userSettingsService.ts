@@ -1,5 +1,10 @@
 import { apiClient, TokenManager } from './config'; // ✅ YENİ: TokenManager import
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  readCashRegisterIdFromSettingsPayload,
+  resolveUserSettingsRecord,
+} from './normalizeUserSettingsResponse';
+import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
 
 // Kullanıcı ayarları interface'i - Kasa mantığına uygun
 export interface UserSettings {
@@ -60,19 +65,25 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     console.log('User settings request - token management via apiClient');
     
     // ✅ YENİ: apiClient otomatik header management
-    const response = await apiClient.get<UserSettings & { CashRegisterId?: string }>('/user/settings');
-    console.log('User settings API response:', response);
-    const cashRegisterId =
-      typeof response.cashRegisterId === 'string' && response.cashRegisterId.trim() !== ''
-        ? response.cashRegisterId
-        : typeof response.CashRegisterId === 'string'
-          ? response.CashRegisterId
-          : response.cashRegisterId;
-    return { ...response, cashRegisterId } as UserSettings;
+    const raw = await apiClient.get<unknown>('/user/settings');
+    console.log('User settings API response:', raw);
+    const source = resolveUserSettingsRecord(raw);
+    const flat = source as Record<string, unknown>;
+    debugPosPaymentTrace('settings_values', {
+      cashRegisterId: flat.cashRegisterId ?? flat.CashRegisterId ?? null,
+      userId: flat.userId ?? flat.UserId ?? null,
+      userNavNull: flat.user === null || flat.User === null,
+      topKeys: typeof flat === 'object' && flat ? Object.keys(flat).slice(0, 25) : [],
+    });
+    const id = readCashRegisterIdFromSettingsPayload(source);
+    const invalid = !id || id === '00000000-0000-0000-0000-000000000000';
+    return { ...(source as UserSettings), cashRegisterId: invalid ? undefined : id };
   } catch (error) {
     console.error('Error fetching user settings:', error);
-    // Varsayılan ayarları döndür
-    return getDefaultUserSettings();
+    debugPosPaymentTrace('settings_fetch_failed_throw', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw error instanceof Error ? error : new Error('User settings could not be loaded');
   }
 };
 
@@ -109,14 +120,11 @@ export const updateCashRegisterConfig = async (config: {
   receiptFooter?: string;
 }): Promise<UserSettings> => {
   try {
-    const response = await apiClient.put<UserSettings & { CashRegisterId?: string }>('/user/settings/cash-register', config);
-    const cashRegisterId =
-      typeof response.cashRegisterId === 'string' && response.cashRegisterId.trim() !== ''
-        ? response.cashRegisterId
-        : typeof response.CashRegisterId === 'string'
-          ? response.CashRegisterId
-          : response.cashRegisterId;
-    return { ...response, cashRegisterId } as UserSettings;
+    const raw = await apiClient.put<unknown>('/user/settings/cash-register', config);
+    const source = resolveUserSettingsRecord(raw);
+    const id = readCashRegisterIdFromSettingsPayload(source);
+    const invalid = !id || id === '00000000-0000-0000-0000-000000000000';
+    return { ...(source as UserSettings), cashRegisterId: invalid ? undefined : id };
   } catch (error) {
     console.error('Error updating cash register config:', error);
     throw new Error('Kasa konfigürasyonu güncellenemedi');

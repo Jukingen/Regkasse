@@ -1,4 +1,6 @@
 using System.Net.Http;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using KasseAPI_Final.Data;
@@ -38,6 +40,8 @@ namespace KasseAPI_Final.Services
         private readonly IReceiptService _receiptService;
         private readonly IAuditLogService _auditLogService;
         private readonly IFinanzOnlineMetrics? _finanzOnlineMetrics;
+        private readonly ICashRegisterResolutionService _cashRegisterResolution;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public PaymentService(
             AppDbContext context,
@@ -54,6 +58,8 @@ namespace KasseAPI_Final.Services
             Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile,
             Microsoft.Extensions.Options.IOptions<TseOptions> tseOptions,
             ILogger<PaymentService> logger,
+            ICashRegisterResolutionService cashRegisterResolution,
+            IHttpContextAccessor httpContextAccessor,
             IFinanzOnlineMetrics? finanzOnlineMetrics = null)
         {
             _context = context;
@@ -70,6 +76,8 @@ namespace KasseAPI_Final.Services
             _companyProfile = companyProfile.Value;
             _tseOptions = tseOptions.Value;
             _logger = logger;
+            _cashRegisterResolution = cashRegisterResolution;
+            _httpContextAccessor = httpContextAccessor;
             _finanzOnlineMetrics = finanzOnlineMetrics;
         }
 
@@ -209,25 +217,34 @@ namespace KasseAPI_Final.Services
                     {
                         Success = false,
                         Message = "CashRegisterId is required",
-                        Errors = { "CashRegisterId must be a non-empty GUID referencing an existing cash register." }
+                        Errors = { "CashRegisterId must be a non-empty GUID referencing an authorized open cash register." },
+                        DiagnosticCode = CashRegisterResolutionCodes.Required
                     };
                 }
 
-                var cashRegister = await _context.CashRegisters.AsNoTracking()
-                    .FirstOrDefaultAsync(r => r.Id == request.CashRegisterId);
-                if (cashRegister == null)
+                var principal = _httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal();
+                var registerValidation = await _cashRegisterResolution.ValidatePaymentRegisterAsync(
+                    userId,
+                    request.CashRegisterId,
+                    principal);
+                if (!registerValidation.Ok)
                 {
-                    _logger.LogWarning("Cash register not found for CashRegisterId {Id}", request.CashRegisterId);
+                    _logger.LogWarning(
+                        "Payment rejected: cash register policy. UserId={UserId} RegisterId={RegisterId} Code={Code}",
+                        userId,
+                        request.CashRegisterId,
+                        registerValidation.Code);
                     return new PaymentResult
                     {
                         Success = false,
-                        Message = "Cash register not found",
-                        Errors = { "No cash register exists for the given CashRegisterId." }
+                        Message = registerValidation.Message,
+                        Errors = { registerValidation.Message },
+                        DiagnosticCode = registerValidation.Code
                     };
                 }
 
-                var cashRegisterId = cashRegister.Id;
-                var registerNumber = cashRegister.RegisterNumber;
+                var cashRegisterId = registerValidation.ResolvedRegisterId!.Value;
+                var registerNumber = registerValidation.RegisterNumber!;
 
                 // TSE modu: Off = tseRequired yok sayılır, Demo = cihaz atlanır, Device = cihaz zorunlu
                 var effectiveTseRequired = request.Payment.TseRequired && !_tseOptions.IsOff;

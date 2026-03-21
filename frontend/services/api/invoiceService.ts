@@ -1,6 +1,6 @@
 import { apiClient, API_BASE_URL } from './config';
 import { unwrapApiResponseLayer } from './normalizePosPaymentMethods';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storage } from '../../utils/storage';
 
 /** Line item shape used by the POS invoices screen (mapped from Invoice.invoiceItems / PaymentItems JSON). */
 export interface PosInvoiceLine {
@@ -126,16 +126,28 @@ export async function getPosInvoiceDetail(id: string): Promise<PosInvoiceView> {
     return mapDetail(flat);
 }
 
+/** Thrown when GET /api/Invoice/{id}/pdf fails with a known HTTP status (auth, permission, not found). */
+export class InvoicePdfHttpError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message?: string) {
+    super(message ?? `PDF HTTP ${status}`);
+    this.name = 'InvoicePdfHttpError';
+    this.status = status;
+  }
+}
+
 /**
  * PDF for api/Invoice/{id}/pdf (supports POS payment id projection).
  */
 export async function downloadInvoicePdf(id: string): Promise<Blob> {
-    const response = await fetch(`${API_BASE_URL}/Invoice/${id}/pdf`, {
+    const token = await storage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/pdf`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${await AsyncStorage.getItem('token')}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!response.ok) {
-        throw new Error(`PDF download failed: ${response.status}`);
+        throw new InvoicePdfHttpError(response.status, `PDF download failed: ${response.status}`);
     }
     return await response.blob();
 }

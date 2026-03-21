@@ -50,58 +50,6 @@ function mapCartItem(item: any) {
   };
 }
 
-// Ürün kutusu: performans için React.memo ile optimize
-const CartItemBox = React.memo(({ mapped, onRemove, onQtyChange, processing }: any) => (
-  <View style={styles.itemBox}>
-    <View style={styles.itemHeader}>
-      <Text style={styles.itemName}>{mapped.product.name}</Text>
-      <TouchableOpacity
-        onPress={() => onRemove(mapped.id)}
-        disabled={processing}
-        style={styles.removeBtn}
-      >
-        <Ionicons name="trash" size={22} color="#fff" />
-      </TouchableOpacity>
-    </View>
-    <View style={styles.itemDetailsRow}>
-      <Text style={styles.detailText}>{t('cart.quantity', 'Miktar')}: <Text style={styles.bold}>{mapped.quantity}</Text></Text>
-      <Text style={styles.detailText}>{t('cart.unitPrice', 'Birim')}: <Text style={styles.bold}>{mapped.unitPrice.toFixed(2)} €</Text></Text>
-      <Text style={styles.detailText}>{t('cart.totalAmount', 'Toplam')}: <Text style={styles.bold}>{mapped.totalAmount.toFixed(2)} €</Text></Text>
-    </View>
-    {mapped.notes && (
-      <Text style={styles.extraOption}>{t('cart.notes', 'Not')}: {mapped.notes}</Text>
-    )}
-    <View style={styles.quantityRow}>
-      <TouchableOpacity
-        onPress={() => onQtyChange(mapped.id, mapped.quantity - 1)}
-        disabled={processing}
-        style={styles.qtyBtn}
-      >
-        <Ionicons name="remove-circle" size={28} color="#e74c3c" />
-      </TouchableOpacity>
-      <Text style={styles.quantity}>{mapped.quantity}</Text>
-      <TouchableOpacity
-        onPress={() => onQtyChange(mapped.id, mapped.quantity + 1)}
-        disabled={processing}
-        style={styles.qtyBtn}
-      >
-        <Ionicons name="add-circle" size={28} color="#27ae60" />
-      </TouchableOpacity>
-    </View>
-  </View>
-));
-
-// Tablo başlığı componenti
-const CartTableHeader = () => (
-  <View style={styles.tableHeaderRow}>
-    <Text style={styles.tableHeaderColName}>{t('cart.product', 'Ürün')}</Text>
-    <Text style={styles.tableHeaderColQty}>{t('cart.quantity', 'Miktar')}</Text>
-    <Text style={styles.tableHeaderColPrice}>{t('cart.unitPrice', 'Birim Fiyat')}</Text>
-    <Text style={styles.tableHeaderColTotal}>{t('cart.totalAmount', 'Toplam')}</Text>
-    <Text style={styles.tableHeaderColDelete}></Text>
-  </View>
-);
-
 const COLORS = {
   background: '#F7F8FA',
   card: '#FFFFFF',
@@ -275,13 +223,17 @@ const CartScreen: React.FC = () => {
     setShowPayment(true); // Ödeme ekranını aç
   };
 
-  // PaymentScreen onConfirm callback
-  const handlePaymentConfirm = async (payments: any) => {
+  // PaymentScreen: fiscal payment + print runs inside PaymentScreen; this runs after success.
+  const handlePaymentSuccess = async (paymentId: string) => {
     setShowPayment(false);
-    setCurrentPaymentSessionId(null); // Session ID'yi temizle
-    setLastPayments(payments); // Son ödemeyi kaydet (isteğe bağlı)
-    // TODO: Backend'e ödeme isteği gönder, fatura oluştur, vs.
-    Alert.alert(t('cart.paymentSuccess', 'Ödeme alındı'), `${t('cart.paymentDetails', 'Ödeme detayları')}: ${JSON.stringify(payments, null, 2)}\n${t('cart.split', 'Split')}: ${JSON.stringify(splitData, null, 2)}`);
+    setCurrentPaymentSessionId(null);
+    setLastPayments({ paymentId });
+    try {
+      await clearCart();
+    } catch (e) {
+      console.warn('[CartScreen] clearCart after payment failed:', e);
+    }
+    Alert.alert('Zahlung erfolgreich', `Beleg: ${paymentId}`);
   };
 
   // PaymentScreen onPaymentCancelled callback
@@ -443,11 +395,11 @@ const CartScreen: React.FC = () => {
   const safeHandleApplyCoupon = withNetworkError(handleApplyCoupon, t('cart.applyCoupon', 'Kupon uygula'));
   const safeHandleRemoveCoupon = withNetworkError(handleRemoveCoupon, t('cart.removeCoupon', 'Kupon kaldır'));
 
-  // Sepet toplamı ve alt bilgi değerleri - backend'den gelen gross model
-  const subtotal = cart?.subtotalGross ?? 0;
-  const vat = cart?.includedTaxTotal ?? 0;
+  // Sepet toplamı ve alt bilgi değerleri - backend'den gelen gross model (useApiCart: grandTotal / gross variants)
+  const subtotal = (cart as any)?.subtotalGross ?? (cart as any)?.subtotal ?? 0;
+  const vat = (cart as any)?.includedTaxTotal ?? (cart as any)?.vat ?? 0;
   const serviceFee = Math.round(subtotal * 0.1 * 100) / 100; // %10 servis bedeli örnek
-  const totalAmount = cart?.grandTotalGross ?? 0;
+  const totalAmount = (cart as any)?.grandTotalGross ?? (cart as any)?.grandTotal ?? 0;
   const discount = cart?.discount ?? 0;
 
   // Modern kart tasarımı ile ürün kutusu
@@ -583,10 +535,18 @@ const CartScreen: React.FC = () => {
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)' }}>
           <PaymentScreen
             totalAmount={totalAmount}
-            paymentSessionId={currentPaymentSessionId}
-            onConfirm={handlePaymentConfirm}
+            paymentSessionId={currentPaymentSessionId ?? undefined}
+            cartLines={cart.items.map((item: any) => ({
+              productId: item.productId ?? item.ProductId,
+              quantity: item.quantity ?? item.Quantity,
+              taxType: item.taxType ?? item.TaxType,
+            }))}
+            tableNumber={1}
+            onPaymentSuccess={handlePaymentSuccess}
+            onConfirm={() => {}}
             onCancel={() => setShowPayment(false)}
             onPaymentCancelled={handlePaymentCancelled}
+            cashRegisterResolutionActive={showPayment}
           />
         </View>
       </Modal>
@@ -830,7 +790,6 @@ const styles = StyleSheet.create({
   cardName: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },
   cardDetailsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
   cardDetail: { fontSize: 13, color: COLORS.textSoft },
-  bold: { fontWeight: 'bold', color: COLORS.text }, // yeni tanım (kart için)
   cardNote: { fontSize: 12, color: COLORS.textSoft, marginTop: 2, fontStyle: 'italic' },
   cardActionsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   cardQtyBtn: {

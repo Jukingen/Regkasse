@@ -92,6 +92,12 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Waiter_Has_CashRegisterView_ForPosSelection()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Waiter, AppPermissions.CashRegisterView));
+    }
+
+    [Fact]
     public void RoleHasPermission_SuperAdmin_Has_SystemCritical()
     {
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.SystemCritical));

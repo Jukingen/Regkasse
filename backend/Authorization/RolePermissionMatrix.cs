@@ -107,6 +107,8 @@ public static class RolePermissionMatrix
                 AppPermissions.CartView,
                 AppPermissions.SaleView, AppPermissions.SaleCreate,
                 AppPermissions.PaymentView, AppPermissions.PaymentTake,
+                // POS: list/select registers for self-assignment when multiple tills exist (payment still gated by resolver).
+                AppPermissions.CashRegisterView,
                 AppPermissions.ShiftView, AppPermissions.ShiftClose,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.KitchenView,

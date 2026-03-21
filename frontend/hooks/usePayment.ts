@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { paymentService, PaymentRequest, PaymentResponse, PaymentMethod } from '../services/api/paymentService';
-import { useAuth } from '../contexts/AuthContext';
-import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
+import { storage } from '../utils/storage';
+import { getPaymentErrorDisplayMessage, normalizePaymentError } from '../features/payment/paymentErrors';
+import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
 
 // Türkçe Açıklama: Ödeme işlemleri için hook - Backend API ile entegre çalışır
 export const usePayment = () => {
@@ -10,8 +11,6 @@ export const usePayment = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-
-  const { user } = useAuth();
 
   // Ödeme yöntemlerini getir
   const getPaymentMethods = useCallback(async () => {
@@ -40,37 +39,48 @@ export const usePayment = () => {
 
   // Ödeme işlemi
   const processPayment = useCallback(async (paymentRequest: PaymentRequest): Promise<PaymentResponse> => {
+    debugPosPaymentTrace('use_payment_hook_enter', {
+      cashRegisterId: paymentRequest.cashRegisterId,
+      itemCount: paymentRequest.items?.length ?? 0,
+    });
     try {
       setLoading(true);
       setError(null);
 
-      // Kullanıcı kimlik doğrulaması kontrol et
-      if (!user) {
-        throw new Error('Kullanıcı girişi yapılmamış');
+      // Align with apiClient: session is JWT in storage, not AuthContext user (can be briefly null during refresh).
+      const token = await storage.getItem('token');
+      if (!token) {
+        debugPosPaymentTrace('submit_blocked_missing_token', {});
+        throw new Error('Nicht angemeldet. Bitte erneut anmelden.');
       }
 
-      // Ödeme işlemini gerçekleştir
       const response = await paymentService.processPayment(paymentRequest);
 
       if (response.fiscalStatus === 'NON_FISCAL_PENDING') {
+        debugPosPaymentTrace('use_payment_non_fiscal_pending', { pendingQueueId: response.pendingQueueId });
         return response;
       }
 
       if (!response.success) {
-        throw new Error(response.error ?? 'Ödeme işlemi başarısız');
+        debugPosPaymentTrace('use_payment_service_reported_failure', {
+          error: response.error,
+          message: response.message,
+        });
+        throw new Error(response.error ?? 'Zahlung fehlgeschlagen');
       }
 
+      debugPosPaymentTrace('use_payment_hook_success', { paymentId: response.paymentId });
       return response;
     } catch (err) {
-      const errorMessage = isPaymentError(err)
-        ? getPaymentErrorMessage(err.code)
-        : (err instanceof Error ? err.message : 'Ödeme işlemi başarısız');
+      const normalized = normalizePaymentError(err);
+      const errorMessage = getPaymentErrorDisplayMessage(normalized);
       setError(errorMessage);
+      debugPosPaymentTrace('use_payment_hook_caught', { errorMessage });
       throw err;
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   // Fiş oluştur
   const createReceipt = useCallback(async (paymentId: string) => {

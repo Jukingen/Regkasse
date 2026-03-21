@@ -19,11 +19,14 @@ using KasseAPI_Final.Tse;
 using KasseAPI_Final.Swagger;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Configuration Binding
 builder.Services.Configure<CompanyProfileOptions>(builder.Configuration.GetSection(CompanyProfileOptions.SectionName));
+builder.Services.Configure<PosCashRegisterFeatureOptions>(
+    builder.Configuration.GetSection(PosCashRegisterFeatureOptions.SectionName));
 builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<AuditRetentionOptions>(builder.Configuration.GetSection(AuditRetentionOptions.SectionName));
@@ -242,6 +245,9 @@ builder.Services.AddScoped<IReceiptService, ReceiptService>();
 // builder.Services.AddScoped<ITestService, TestService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 builder.Services.AddScoped<IProductModifierValidationService, NoOpProductModifierValidationService>();
 builder.Services.AddScoped<IReceiptSequenceService, ReceiptSequenceService>();
+builder.Services.AddScoped<ICashRegisterResolutionService, CashRegisterResolutionService>();
+builder.Services.AddScoped<ICashRegisterShiftService, CashRegisterShiftService>();
+builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterReadinessService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi

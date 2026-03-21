@@ -6,6 +6,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -55,7 +56,9 @@ public class FinanzOnlineReconciliationTests
         var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, Options.Create(companyProfile));
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
-        return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, receiptSeqMock.Object, receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment);
+        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var httpAccessor = Mock.Of<IHttpContextAccessor>();
+        return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, receiptSeqMock.Object, receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment, cashRegResolver, httpAccessor);
     }
 
     /// <summary>Manually seed payment + invoice for retry tests (avoids full CreatePayment InMemory transaction/ReceiptService setup).</summary>

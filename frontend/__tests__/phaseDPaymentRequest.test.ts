@@ -3,21 +3,25 @@
  * Replicates PaymentModal payment-items build; contract tests prevent accidental reintroduction.
  */
 
-/** Same shape as PaymentModal: cartItems → payment items (productId, quantity, taxType only). */
+import { normalizePosPaymentItemsForRequest } from '../utils/paymentTaxType';
+
+/** Same shape as PaymentModal: cartItems → payment items (productId, quantity, taxType only). Mirrors paymentService boundary. */
 function buildPaymentItemsForPOS(
   cartItems: Array<{
     productId: string;
     quantity: number;
     qty?: number;
-    taxType?: string;
+    taxType?: string | number;
     modifiers?: Array<{ modifierId: string; name?: string; priceDelta?: number }>;
   }>
 ): Array<{ productId: string; quantity: number; taxType: string }> {
-  return cartItems.map(item => ({
-    productId: item.productId,
-    quantity: item.qty ?? item.quantity,
-    taxType: (item.taxType as 'standard' | 'reduced' | 'special') || 'standard',
-  }));
+  return normalizePosPaymentItemsForRequest(
+    cartItems.map((item) => ({
+      productId: item.productId,
+      quantity: item.qty ?? item.quantity,
+      taxType: item.taxType,
+    }))
+  );
 }
 
 describe('Phase D: payment request does not emit modifierIds/modifiers', () => {
@@ -62,5 +66,23 @@ describe('Phase D: payment request does not emit modifierIds/modifiers', () => {
       { productId: 'p1', quantity: 1, taxType: 'special', modifiers: [] },
     ]);
     expect(Object.keys(items[0]).sort()).toEqual(['productId', 'quantity', 'taxType']);
+  });
+
+  it('maps backend numeric TaxType (1–3) to payment API strings without throwing', () => {
+    const items = buildPaymentItemsForPOS([
+      { productId: 'a', quantity: 1, taxType: 1 },
+      { productId: 'b', quantity: 1, taxType: 2 },
+      { productId: 'c', quantity: 1, taxType: 3 },
+    ]);
+    expect(items.map((i) => i.taxType)).toEqual(['standard', 'reduced', 'special']);
+  });
+
+  it('maps unknown numeric/string taxType to standard without throwing', () => {
+    const items = buildPaymentItemsForPOS([
+      { productId: 'x', quantity: 1, taxType: 99 },
+      { productId: 'y', quantity: 1, taxType: null as unknown as undefined },
+      { productId: 'z', quantity: 1, taxType: 'unknown-label' },
+    ]);
+    expect(items.every((i) => i.taxType === 'standard')).toBe(true);
   });
 });

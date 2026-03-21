@@ -11,12 +11,15 @@ import type { PaymentTseInfo } from '../services/api/paymentService';
 
 interface PaymentSuccessQrProps {
   tse?: PaymentTseInfo | null;
+  /** Server-rendered PNG (GET /api/pos/payment/{id}/qr.png) when qrPayload is missing. */
+  qrPngDataUrl?: string | null;
   size?: number;
 }
 
-export function PaymentSuccessQr({ tse, size = 160 }: PaymentSuccessQrProps) {
+export function PaymentSuccessQr({ tse, qrPngDataUrl, size = 160 }: PaymentSuccessQrProps) {
   const { t } = useTranslation(['payment']);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [payloadQrFailed, setPayloadQrFailed] = useState(false);
 
   const qrPayload = tse?.qrPayload;
   const isDemoFiscal = tse?.isDemoFiscal === true;
@@ -24,16 +27,33 @@ export function PaymentSuccessQr({ tse, size = 160 }: PaymentSuccessQrProps) {
   useEffect(() => {
     if (!qrPayload) {
       setQrDataUrl(null);
+      setPayloadQrFailed(false);
       return;
     }
-    import('qrcode').then((QRCode) => {
-      QRCode.toDataURL(qrPayload, { width: size, margin: 2 })
-        .then((url: string) => setQrDataUrl(url))
-        .catch((err) => console.warn('[PaymentSuccessQr] QR toDataURL failed:', err));
-    });
+    setPayloadQrFailed(false);
+    let cancelled = false;
+    import('qrcode')
+      .then((QRCode) => QRCode.toDataURL(qrPayload, { width: size, margin: 2 }))
+      .then((url: string) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch((err) => {
+        console.warn('[PaymentSuccessQr] QR toDataURL failed:', err);
+        if (!cancelled) {
+          setQrDataUrl(null);
+          setPayloadQrFailed(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [qrPayload, size]);
 
-  if (!qrPayload) return null;
+  const imageUri = qrDataUrl || qrPngDataUrl || null;
+  if (!qrPayload && !qrPngDataUrl) return null;
+
+  const showPayloadGenerating = !!qrPayload && !imageUri && !payloadQrFailed;
+  const showPayloadFailed = !!qrPayload && payloadQrFailed && !qrPngDataUrl;
 
   return (
     <View style={styles.container}>
@@ -43,12 +63,20 @@ export function PaymentSuccessQr({ tse, size = 160 }: PaymentSuccessQrProps) {
         </View>
       )}
       <View style={styles.qrWrapper}>
-        {qrDataUrl ? (
-          <Image source={{ uri: qrDataUrl }} style={[styles.qrImage, { width: size, height: size }]} />
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={[styles.qrImage, { width: size, height: size }]} />
         ) : (
           <View style={[styles.qrPlaceholder, { width: size, height: size }]} />
         )}
       </View>
+      {showPayloadGenerating ? (
+        <Text style={styles.hintText}>RKSV-QR wird erzeugt…</Text>
+      ) : null}
+      {showPayloadFailed ? (
+        <Text style={styles.hintText}>
+          RKSV-QR aus Payload konnte nicht erzeugt werden. Die Zahlung ist gültig — nutzen Sie ggf. Beleg-PDF oder Druck.
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -84,6 +112,14 @@ const styles = StyleSheet.create({
   qrPlaceholder: {
     backgroundColor: '#f5f5f5',
     borderRadius: 4,
+  },
+  hintText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 12,
+    maxWidth: 280,
   },
 });
 

@@ -3,6 +3,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -116,6 +117,8 @@ public class PaymentModifierValidationIntegrationTests
 
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
+        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var httpAccessor = Mock.Of<IHttpContextAccessor>();
         return new PaymentService(
             context,
             paymentRepo,
@@ -130,7 +133,9 @@ public class PaymentModifierValidationIntegrationTests
             auditMock.Object,
             Options.Create(companyProfile),
             Options.Create(tseOptions),
-            loggerPayment);
+            loggerPayment,
+            cashRegResolver,
+            httpAccessor);
     }
 
     [Fact]
