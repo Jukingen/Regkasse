@@ -9,7 +9,11 @@ import {
   Alert,
 } from 'react-native';
 import { getUserSettings, updateCashRegisterConfig } from '../services/api/userSettingsService';
-import { listPosCashRegisters, type CashRegisterRow } from '../services/api/cashRegisterService';
+import {
+  fetchPosSelectableRegisters,
+  type CashRegisterSelectableRow,
+  type PosSelectableEmptyReason,
+} from '../services/api/cashRegisterService';
 import { isValidPosCashRegisterId } from '../utils/posCashRegister';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import {
@@ -29,9 +33,10 @@ export function CashRegisterAssignmentSection() {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [settingsLoadFailed, setSettingsLoadFailed] = useState(false);
   const [assignedId, setAssignedId] = useState<string | null>(null);
-  const [picklist, setPicklist] = useState<CashRegisterRow[]>([]);
+  const [picklist, setPicklist] = useState<CashRegisterSelectableRow[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [listFailureKind, setListFailureKind] = useState<RegisterListFailureKind | null>(null);
+  const [listEmptyReason, setListEmptyReason] = useState<PosSelectableEmptyReason>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [listRetryToken, setListRetryToken] = useState(0);
 
@@ -59,22 +64,26 @@ export function CashRegisterAssignmentSection() {
     if (loadingSettings || settingsLoadFailed) return;
     if (isValidPosCashRegisterId(assignedId)) {
       setPicklist([]);
+      setListEmptyReason(null);
       return;
     }
 
     let cancelled = false;
     setListLoading(true);
     setListFailureKind(null);
-    listPosCashRegisters()
-      .then((rows) => {
+    setListEmptyReason(null);
+    fetchPosSelectableRegisters()
+      .then(({ registers: rows, emptyReason }) => {
         if (!cancelled) {
           setPicklist(rows);
+          setListEmptyReason(emptyReason);
           setListFailureKind(null);
         }
       })
       .catch((e) => {
         if (!cancelled) {
           setPicklist([]);
+          setListEmptyReason(null);
           setListFailureKind(classifyRegisterListError(e));
         }
       })
@@ -110,6 +119,34 @@ export function CashRegisterAssignmentSection() {
       setSavingId(null);
     }
   };
+
+  const registerGateCtx = useMemo(
+    () =>
+      buildPosRegisterGateContext({
+        settingsLoadFailed,
+        registerListFailureKind: listFailureKind,
+        registerListLoading: listLoading,
+        registerPicklistCount: picklist.length,
+        registerListEmptyReason: listEmptyReason,
+        readiness: {
+          loading: posReadiness.loading,
+          error: !!posReadiness.error,
+          nextAction: posReadiness.data?.nextAction ?? null,
+          messageCode: posReadiness.data?.messageCode ?? null,
+        },
+      }),
+    [
+      settingsLoadFailed,
+      listFailureKind,
+      listLoading,
+      picklist.length,
+      listEmptyReason,
+      posReadiness.loading,
+      posReadiness.error,
+      posReadiness.data?.nextAction,
+      posReadiness.data?.messageCode,
+    ]
+  );
 
   if (loadingSettings) {
     return (

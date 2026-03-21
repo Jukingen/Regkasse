@@ -216,6 +216,7 @@ export default function PaymentModal({
     registerPicklist,
     registerListLoading,
     registerListFailureKind,
+    registerListEmptyReason,
     refetchRegisterList,
     savingRegisterId,
     hasValidCashRegisterId,
@@ -235,6 +236,7 @@ export default function PaymentModal({
         registerListFailureKind,
         registerListLoading,
         registerPicklistCount: registerPicklist.length,
+        registerListEmptyReason,
         readiness: {
           loading: posReadinessLoading,
           error: posReadinessError,
@@ -247,6 +249,7 @@ export default function PaymentModal({
       registerListFailureKind,
       registerListLoading,
       registerPicklist.length,
+      registerListEmptyReason,
       posReadinessLoading,
       posReadinessError,
       posReadinessNextAction,

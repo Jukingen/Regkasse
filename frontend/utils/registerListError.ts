@@ -1,5 +1,5 @@
 /**
- * Classifies GET /api/CashRegister failures for POS register-gate UX (CashRegisterView / network).
+ * Classifies GET /api/pos/cash-register/selectable failures for POS register-gate UX (auth / network).
  */
 
 export type RegisterListFailureKind = 'forbidden' | 'unauthorized' | 'network' | 'unknown';

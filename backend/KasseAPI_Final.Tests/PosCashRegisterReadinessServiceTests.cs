@@ -239,6 +239,149 @@ public class PosCashRegisterReadinessServiceTests
         Assert.Equal(PosCashRegisterReadinessMessageCodes.CashRegisterConflict, dto.MessageCode);
     }
 
+    /// <summary>
+    /// Payment-time validation must reject the same sole-register shift conflict ensure-ready surfaces (POS client may still POST the register id).
+    /// </summary>
+    [Fact]
+    public async Task SoleOpen_ByOtherUser_EnsureReadyConflict_ThenValidatePayment_Rejected()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.Users.Add(new ApplicationUser { Id = "u1", UserName = "u1", Email = "a@test", FirstName = "A", LastName = "B" });
+        ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u2",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var shift = new Mock<ICashRegisterShiftService>();
+        var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true, AutoOpenSoleClosedRegister = true });
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+        Assert.Equal("forbidden", dto.NextAction);
+        Assert.Equal(PosCashRegisterReadinessMessageCodes.CashRegisterConflict, dto.MessageCode);
+
+        var pay = await resolution.ValidatePaymentRegisterAsync("u1", regId, CashierPrincipal());
+        Assert.False(pay.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.Forbidden, pay.Code);
+    }
+
+    /// <summary>
+    /// Stale profile assignment to the effective register while another user holds the shift: ensure-ready forbids, payment must not succeed on that register id.
+    /// </summary>
+    [Fact]
+    public async Task StaleSettings_AssignedSoleOpen_ByOtherUser_EnsureReadyConflict_ThenValidatePayment_Rejected()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.Users.Add(new ApplicationUser { Id = "u1", UserName = "u1", Email = "a@test", FirstName = "A", LastName = "B" });
+        ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u2",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.UserSettings.Add(new UserSettings
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u1",
+            CashRegisterId = regId.ToString(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await ctx.SaveChangesAsync();
+
+        var shift = new Mock<ICashRegisterShiftService>();
+        var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true, AutoOpenSoleClosedRegister = true });
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+        Assert.Equal("forbidden", dto.NextAction);
+        Assert.Equal(PosCashRegisterReadinessMessageCodes.CashRegisterConflict, dto.MessageCode);
+
+        var pay = await resolution.ValidatePaymentRegisterAsync("u1", regId, CashierPrincipal());
+        Assert.False(pay.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.Forbidden, pay.Code);
+    }
+
+    /// <summary>
+    /// Multi-register: assigned effective register is open under another user — same conflict as readiness, payment POST must fail.
+    /// </summary>
+    [Fact]
+    public async Task AssignedOpen_ByOtherUser_EnsureReadyConflict_ThenValidatePayment_Rejected()
+    {
+        await using var ctx = CreateContext();
+        var rTaken = Guid.NewGuid();
+        var rOther = Guid.NewGuid();
+        ctx.Users.Add(new ApplicationUser { Id = "u1", UserName = "u1", Email = "a@test", FirstName = "A", LastName = "B" });
+        ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = rTaken,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u2",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = rOther,
+            RegisterNumber = "K2",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.UserSettings.Add(new UserSettings
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u1",
+            CashRegisterId = rTaken.ToString(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await ctx.SaveChangesAsync();
+
+        var shift = new Mock<ICashRegisterShiftService>();
+        var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true, AutoOpenSoleClosedRegister = false });
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+        Assert.Equal("forbidden", dto.NextAction);
+        Assert.Equal(PosCashRegisterReadinessMessageCodes.CashRegisterConflict, dto.MessageCode);
+
+        var pay = await resolution.ValidatePaymentRegisterAsync("u1", rTaken, CashierPrincipal());
+        Assert.False(pay.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.Forbidden, pay.Code);
+    }
+
     [Fact]
     public async Task NoRegister_Required()
     {

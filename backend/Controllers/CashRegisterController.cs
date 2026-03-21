@@ -12,6 +12,13 @@ using Microsoft.AspNetCore.Identity;
 
 namespace KasseAPI_Final.Controllers
 {
+    /// <summary>
+    /// Cash register <em>inventory</em> and shift operations (admin / back-office). Responses include all rows and statuses where applicable.
+    /// </summary>
+    /// <remarks>
+    /// POS self-assignment and payment picker must use <c>GET /api/pos/cash-register/selectable</c>
+    /// (<see cref="ICashRegisterResolutionService.ListSelectableForPosPickerAsync"/>) — not <c>GET /api/CashRegister</c>.
+    /// </remarks>
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
@@ -34,6 +41,7 @@ namespace KasseAPI_Final.Controllers
             _cashRegisterShift = cashRegisterShift;
         }
 
+        /// <summary>Full register inventory (open and closed). Not filtered for POS assignment.</summary>
         [HasPermission(AppPermissions.CashRegisterView)]
         [HttpGet]
         public async Task<IActionResult> GetCashRegisters()
@@ -95,19 +103,7 @@ namespace KasseAPI_Final.Controllers
                 };
 
                 _context.CashRegisters.Add(register);
-                await _context.SaveChangesAsync();
-
-                var registerTransaction = new CashRegisterTransaction
-                {
-                    CashRegisterId = register.Id,
-                    TransactionType = TransactionType.Open,
-                    Amount = model.StartingBalance,
-                    Description = "Başlangıç bakiyesi",
-                    UserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
-                    TransactionDate = DateTime.UtcNow
-                };
-
-                _context.CashRegisterTransactions.Add(registerTransaction);
+                // Do not insert TransactionType.Open here: register is Created as Closed. Shift open is logged by CashRegisterShiftService.TryOpenCashRegisterAsync.
                 await _context.SaveChangesAsync();
 
                 return CreatedAtAction(nameof(GetCashRegister), new { id = register.Id }, 
@@ -169,11 +165,12 @@ namespace KasseAPI_Final.Controllers
 
         [HasPermission(AppPermissions.ShiftClose)]
         [HttpPost("{id}/close")]
-        public async Task<IActionResult> CloseCashRegister(Guid id, [FromBody] CloseCashRegisterModel model)
+        public async Task<IActionResult> CloseCashRegister(Guid id, [FromBody] CloseCashRegisterModel model, CancellationToken cancellationToken = default)
         {
             try
             {
-                var register = await _context.CashRegisters.FindAsync(id);
+                var register = await _context.CashRegisters
+                    .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
                 if (register == null)
                 {
                     return NotFound(new { message = "Kasa bulunamadı" });
@@ -185,7 +182,9 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (register.CurrentUser?.Id != userId)
+                // Operational shift owner: scalar FK only (same source as ValidatePaymentRegisterAsync).
+                if (string.IsNullOrEmpty(userId) ||
+                    !string.Equals(register.CurrentUserId, userId, StringComparison.Ordinal))
                 {
                     return Forbid();
                 }
@@ -195,6 +194,7 @@ namespace KasseAPI_Final.Controllers
                 register.LastBalanceUpdate = DateTime.UtcNow;
                 register.UpdatedAt = DateTime.UtcNow;
                 register.CurrentUser = null;
+                register.CurrentUserId = null;
 
                 var transaction = new CashRegisterTransaction
                 {
@@ -203,11 +203,13 @@ namespace KasseAPI_Final.Controllers
                     Amount = model.ClosingBalance,
                     Description = "Kasa kapanışı",
                     UserId = userId,
-                    TransactionDate = DateTime.UtcNow
+                    TransactionDate = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
                 };
 
                 _context.CashRegisterTransactions.Add(transaction);
-                await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync(cancellationToken);
 
                 return Ok(new { message = "Kasa başarıyla kapatıldı" });
             }

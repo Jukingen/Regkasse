@@ -164,4 +164,43 @@ public class CashRegisterShiftServiceTests
         var regBState = await ctx.CashRegisters.AsNoTracking().FirstAsync(r => r.Id == regB);
         Assert.Equal(RegisterStatus.Closed, regBState.Status);
     }
+
+    [Fact]
+    public async Task Open_SetsCurrentUserId_OnSuccessfulOpen()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        const string actorId = "actor-1";
+        var user = new ApplicationUser
+        {
+            Id = actorId,
+            UserName = actorId,
+            Email = "a@test",
+            FirstName = "A",
+            LastName = "B"
+        };
+        var mgr = CreateUserManager(user);
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+
+        var result = await svc.TryOpenCashRegisterAsync(regId, actorId, 10m, "open", allowIdempotentSameUser: true, CancellationToken.None);
+        Assert.Equal(CashRegisterOpenKind.SuccessOpened, result.Kind);
+
+        var reg = await ctx.CashRegisters.AsNoTracking().SingleAsync(r => r.Id == regId);
+        Assert.Equal(RegisterStatus.Open, reg.Status);
+        Assert.Equal(actorId, reg.CurrentUserId);
+    }
 }

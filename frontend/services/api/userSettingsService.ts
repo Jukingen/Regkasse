@@ -127,7 +127,11 @@ export const updateCashRegisterConfig = async (config: {
     return { ...(source as UserSettings), cashRegisterId: invalid ? undefined : id };
   } catch (error) {
     console.error('Error updating cash register config:', error);
-    throw new Error('Kasa konfigürasyonu güncellenemedi');
+    // Preserve { status, data } from axios interceptor so callers can distinguish policy 4xx vs transient failures.
+    if (error && typeof error === 'object' && 'status' in error) {
+      throw error;
+    }
+    throw error instanceof Error ? error : new Error('Kasa konfigürasyonu güncellenemedi');
   }
 };
 

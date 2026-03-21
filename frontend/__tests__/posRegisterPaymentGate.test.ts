@@ -65,7 +65,7 @@ describe('computeRegisterGateBlockingPayment', () => {
     expect(ready).toBe(false);
   });
 
-  it('does not block when settings failed if ensure-ready is ready with valid id (server is source of truth)', () => {
+  it('does not block when settings failed if ensure-ready is ready with valid id (client gate; POST still uses ValidatePaymentRegisterAsync only)', () => {
     expect(
       computeRegisterGateBlockingPayment({
         enabled: true,
@@ -113,6 +113,22 @@ describe('computeRegisterGateBlockingPayment', () => {
     ).toBe(true);
   });
 
+  it('blocks when ensure-ready requires open_register (closed) even if client still holds a register id and picklist looked populated', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: false,
+        posReadinessLoading: false,
+        posReadinessError: false,
+        posReadinessNextAction: 'open_register',
+        posReadinessEffectiveRegisterId: '11111111-1111-1111-1111-111111111111',
+        effectiveCashRegisterIdForPayment: validId,
+      })
+    ).toBe(true);
+  });
+
   it('blocks when ensure-ready is forbidden even if profile/settings carry a valid register id (conflict / actor-already-open)', () => {
     expect(
       computeRegisterGateBlockingPayment({
@@ -124,6 +140,102 @@ describe('computeRegisterGateBlockingPayment', () => {
         posReadinessError: false,
         posReadinessNextAction: 'forbidden',
         posReadinessEffectiveRegisterId: validId,
+        effectiveCashRegisterIdForPayment: validId,
+      })
+    ).toBe(true);
+  });
+
+  it('blocks when ensure-ready is select_register and no payment register id (empty selectable / no assignment)', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: false,
+        posReadinessLoading: false,
+        posReadinessError: false,
+        posReadinessNextAction: 'select_register',
+        posReadinessEffectiveRegisterId: null,
+        effectiveCashRegisterIdForPayment: null,
+      })
+    ).toBe(true);
+  });
+
+  it('does not unblock select_register solely from profile id when ensure-ready still requires selection', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: false,
+        posReadinessLoading: false,
+        posReadinessError: false,
+        posReadinessNextAction: 'select_register',
+        posReadinessEffectiveRegisterId: null,
+        effectiveCashRegisterIdForPayment: validId,
+      })
+    ).toBe(true);
+  });
+
+  it('settings failed + readiness error + no register id: remains blocked', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: true,
+        posReadinessLoading: false,
+        posReadinessError: true,
+        posReadinessNextAction: undefined,
+        posReadinessEffectiveRegisterId: null,
+        effectiveCashRegisterIdForPayment: null,
+      })
+    ).toBe(true);
+  });
+
+  it('settings failed + readiness error + valid register id (server-accepted persist): does not block on settings alone', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: true,
+        posReadinessLoading: false,
+        posReadinessError: true,
+        posReadinessNextAction: undefined,
+        posReadinessEffectiveRegisterId: null,
+        effectiveCashRegisterIdForPayment: validId,
+      })
+    ).toBe(false);
+  });
+
+  it('ensure-ready off + settings failed + valid id: still blocked (no server waiver path)', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: false,
+        cashRegisterResolved: true,
+        settingsLoadFailed: true,
+        posReadinessLoading: false,
+        posReadinessError: true,
+        posReadinessNextAction: undefined,
+        posReadinessEffectiveRegisterId: null,
+        effectiveCashRegisterIdForPayment: validId,
+      })
+    ).toBe(true);
+  });
+
+  it('settings failed + select_register + valid id: still blocked until cached ensure-ready is ready (POST does not read nextAction)', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: true,
+        posReadinessLoading: false,
+        posReadinessError: false,
+        posReadinessNextAction: 'select_register',
+        posReadinessEffectiveRegisterId: null,
         effectiveCashRegisterIdForPayment: validId,
       })
     ).toBe(true);

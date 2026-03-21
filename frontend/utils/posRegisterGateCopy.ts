@@ -3,6 +3,7 @@
  * Align scenarios with backend codes where possible (see `mapBackendCashRegisterCodeToHint`).
  */
 
+import type { PosSelectableEmptyReason } from '../services/api/cashRegisterService';
 import type { RegisterListFailureKind } from './registerListError';
 
 /** Backend diagnostic codes from POST /api/pos/payment or PUT settings. */
@@ -28,6 +29,8 @@ export type PosRegisterGateContext = {
   registerListFailureKind: RegisterListFailureKind | null;
   registerListLoading: boolean;
   registerPicklistCount: number;
+  /** From GET /api/pos/cash-register/selectable when the list is empty (successful response). */
+  registerListEmptyReason: PosSelectableEmptyReason;
   /** POST /api/pos/cash-register/ensure-ready (POS entry). */
   posReadinessLoading?: boolean;
   posReadinessError?: boolean;
@@ -35,12 +38,17 @@ export type PosRegisterGateContext = {
   posReadinessMessageCode?: string | null;
 };
 
+function listFetchSucceeded(ctx: PosRegisterGateContext): boolean {
+  return !ctx.registerListLoading && ctx.registerListFailureKind == null;
+}
+
 /** Single object for payment/settings banners (avoids duplicated parameter lists in screens). */
 export function buildPosRegisterGateContext(input: {
   settingsLoadFailed: boolean;
   registerListFailureKind: RegisterListFailureKind | null;
   registerListLoading: boolean;
   registerPicklistCount: number;
+  registerListEmptyReason?: PosSelectableEmptyReason | null;
   readiness?: RegisterGateReadinessInput | null;
 }): PosRegisterGateContext {
   const r = input.readiness;
@@ -49,6 +57,7 @@ export function buildPosRegisterGateContext(input: {
     registerListFailureKind: input.registerListFailureKind,
     registerListLoading: input.registerListLoading,
     registerPicklistCount: input.registerPicklistCount,
+    registerListEmptyReason: input.registerListEmptyReason ?? null,
     posReadinessLoading: r?.loading,
     posReadinessError: r?.error,
     posReadinessNextAction: r?.nextAction ?? null,
@@ -94,11 +103,41 @@ export function registerGateBannerTitle(ctx: PosRegisterGateContext): string {
     return 'Keine Kasse im System';
   }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
+      return 'Keine Kasse im System';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
+      return 'Keine geöffnete Kasse';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
+      return 'Keine freie Kasse';
+    }
     return 'Kasse auswählen';
   }
   if (ctx.registerListLoading) return 'Kasse wird ermittelt…';
   if (ctx.registerPicklistCount > 1) return 'Kasse wählen';
   if (ctx.registerPicklistCount === 1) return 'Kasse wird zugewiesen…';
+  if (
+    listFetchSucceeded(ctx) &&
+    ctx.registerPicklistCount === 0 &&
+    ctx.registerListEmptyReason === 'no_registers'
+  ) {
+    return 'Keine Kasse im System';
+  }
+  if (
+    listFetchSucceeded(ctx) &&
+    ctx.registerPicklistCount === 0 &&
+    ctx.registerListEmptyReason === 'none_open'
+  ) {
+    return 'Keine geöffnete Kasse';
+  }
+  if (
+    listFetchSucceeded(ctx) &&
+    ctx.registerPicklistCount === 0 &&
+    ctx.registerListEmptyReason === 'none_selectable_for_user'
+  ) {
+    return 'Keine freie Kasse';
+  }
   if (ctx.registerListFailureKind === 'forbidden' || ctx.registerListFailureKind === 'unauthorized') {
     return 'Zahlung derzeit nicht möglich';
   }
@@ -122,6 +161,24 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
   if (ctx.posReadinessError) {
     return 'Die serverseitige Kassenbereitschaft konnte nicht geladen werden. Nutzen Sie „Kassenbereitschaft erneut versuchen“ oder warten Sie, bis die Profil-Einstellungen geladen sind.';
   }
+  if (ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.CONFLICT) {
+    return 'Diese Kasse ist bereits geöffnet und einer anderen Person zugewiesen (aktive Schicht). Beenden Sie die fremde Schicht nur mit Berechtigung, oder nutzen Sie eine andere Kasse / bitten Sie eine berechtigte Person.';
+  }
+  if (
+    ctx.posReadinessNextAction === 'none' &&
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REQUIRED
+  ) {
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
+      return 'Es ist noch keine Registrierkasse im System angelegt. Bitte wenden Sie sich an den Administrator, um eine Kasse anzulegen.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
+      return 'Es sind Registrierkassen vorhanden, aber keine ist geöffnet. Bitte in der Kassenverwaltung eine Schicht starten oder eine berechtigte Person bitten.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
+      return 'Geöffnete Kassen sind anderen Benutzern zugeordnet oder für Sie nicht sichtbar. Starten Sie eine eigene Schicht an einer freien Kasse, oder bitten Sie um die Berechtigung „Kassenansicht“ bzw. um Zuweisung.';
+    }
+    return 'Es ist keine verwendbare Kasse verfügbar. Legen Sie eine Kasse an, öffnen Sie sie (Schicht), oder weisen Sie in den Einstellungen zu.';
+  }
   if (ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.ACTOR_ALREADY_OPEN) {
     return 'Sie haben bereits eine andere Kasse geöffnet. Schließen Sie diese zuerst in der Kassenverwaltung, oder nutzen Sie dieselbe Kasse weiter.';
   }
@@ -134,6 +191,15 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
     if (ctx.registerListFailureKind === 'forbidden' || ctx.registerListFailureKind === 'unauthorized') {
       return 'Mehrere Kassen sind angelegt, aber hier keine Liste wählbar. Bitte in den Einstellungen zuweisen (falls möglich) oder den Administrator um Zuweisung / Berechtigung „Kassenansicht“ bitten.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
+      return 'Es ist noch keine Registrierkasse angelegt. Der Administrator muss zuerst eine Kasse anlegen.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
+      return 'Es sind Kassen vorhanden, aber keine ist geöffnet. Bitte zuerst in der Kassenverwaltung eine Schicht starten (Kasse öffnen).';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
+      return 'Geöffnete Kassen sind anderen Benutzern zugeordnet oder für Sie nicht wählbar. Starten Sie eine eigene Schicht an einer freien Kasse, oder bitten Sie um „Kassenansicht“ / Zuweisung durch den Administrator.';
     }
     return 'Mehrere Kassen: Bitte in den Einstellungen unter „Kasse“ eine Registrierkasse zuweisen. Ohne Zuweisung ist keine fiskal gültige Zahlung möglich.';
   }
@@ -160,6 +226,15 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
   }
   if (ctx.registerPicklistCount > 0) {
     return 'Es ist keine geöffnete Kasse verfügbar, oder die Zuordnung fehlt. Wählen Sie unten eine Kasse oder weisen Sie in den Einstellungen zu; ggf. Kasse zuerst öffnen.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
+    return 'Es ist noch keine Registrierkasse angelegt. Bitte Administrator — danach Kasse öffnen und ggf. in den Einstellungen zuweisen.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
+    return 'Alle Kassen sind geschlossen. Bitte zuerst in der Kassenverwaltung eine Schicht starten; ohne geöffnete Kasse ist keine Auswahl möglich.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
+    return 'Für Sie ist momentan keine geöffnete Kasse wählbar (fremde Schichten oder fehlende Sicht). Eigene Schicht an freier Kasse starten oder Administrator um Berechtigung / Zuweisung bitten.';
   }
   return 'Es ist keine verwendbare Kasse verfügbar. Legen Sie eine Kasse an, öffnen Sie sie (Schicht), oder weisen Sie in den Einstellungen zu — ohne wählbare Liste nur über Administrator/Einstellungen.';
 }
@@ -188,6 +263,15 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
     return '„Zahlen“ ist deaktiviert: Kassenbereitschaft fehlt — „Erneut versuchen“ oder Einstellungen prüfen.';
   }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
+      return '„Zahlen“ ist deaktiviert: noch keine Kasse im System — Administrator muss anlegen.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
+      return '„Zahlen“ ist deaktiviert: keine geöffnete Kasse — zuerst Schicht starten.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
+      return '„Zahlen“ ist deaktiviert: keine freie Kasse für Sie — eigene Schicht oder Administrator.';
+    }
     return '„Zahlen“ ist deaktiviert: Kasse in den Einstellungen zuweisen oder Administrator informieren.';
   }
   if (ctx.registerListLoading) return 'Kasse wird geladen… „Zahlen“ ist danach freigeschaltet, sobald eine Kasse feststeht.';
@@ -202,6 +286,15 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
   }
   if (ctx.registerPicklistCount > 0) {
     return '„Zahlen“ ist deaktiviert: keine verwendbare Kasse — unten wählen oder in den Einstellungen zuweisen.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
+    return '„Zahlen“ ist deaktiviert: keine Kasse im System.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
+    return '„Zahlen“ ist deaktiviert: alle Kassen geschlossen — Schicht starten.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
+    return '„Zahlen“ ist deaktiviert: keine freie Kasse (fremde Schicht / keine Sicht).';
   }
   return '„Zahlen“ ist deaktiviert: Kasse anlegen/öffnen oder in den Einstellungen zuweisen.';
 }
@@ -232,6 +325,15 @@ export function registerGateAlertMessage(ctx: PosRegisterGateContext): string {
     return 'Kassenbereitschaft nicht ladbar. Verbindung prüfen oder erneut versuchen.';
   }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
+      return 'Es ist noch keine Kasse angelegt. Bitte Administrator.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
+      return 'Bitte zuerst eine Kasse öffnen (Schicht). Ohne geöffnete Kasse ist keine Zuweisung möglich.';
+    }
+    if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
+      return 'Keine Kasse für Sie wählbar (fremde Schichten). Eigene Schicht starten oder Administrator bitten.';
+    }
     return 'Bitte weisen Sie in den Einstellungen eine Kasse zu, oder bitten Sie den Administrator — hier ist keine Auswahl verfügbar.';
   }
   if (ctx.registerPicklistCount > 0) {
@@ -245,6 +347,15 @@ export function registerGateAlertMessage(ctx: PosRegisterGateContext): string {
   }
   if (ctx.registerListFailureKind === 'network' || ctx.registerListFailureKind === 'unknown') {
     return 'Kassenliste nicht ladbar. Verbindung prüfen oder „Erneut laden“.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
+    return 'Noch keine Registrierkasse im System. Administrator informieren.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_open') {
+    return 'Alle Kassen sind geschlossen. Bitte zuerst eine Schicht starten.';
+  }
+  if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'none_selectable_for_user') {
+    return 'Keine freie Kasse für Sie. Eigene Schicht oder Berechtigung „Kassenansicht“ / Zuweisung.';
   }
   return 'Keine geöffnete Registrierkasse verfügbar oder zugewiesen. Kasse anlegen/öffnen oder zuweisen.';
 }

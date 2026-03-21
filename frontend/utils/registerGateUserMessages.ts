@@ -1,6 +1,7 @@
 /**
  * @deprecated Import from `posRegisterGateCopy` — kept for short-term re-exports.
  */
+import type { PosSelectableEmptyReason } from '../services/api/cashRegisterService';
 import type { RegisterListFailureKind } from './registerListError';
 import {
   type PosRegisterGateContext,
@@ -21,13 +22,15 @@ function toCtx(
   listLoading: boolean,
   picklistCount: number,
   settingsLoadFailed: boolean,
-  readiness?: RegisterGateReadinessInput | null
+  readiness?: RegisterGateReadinessInput | null,
+  registerListEmptyReason: PosSelectableEmptyReason | null = null
 ): PosRegisterGateContext {
   return buildPosRegisterGateContext({
     settingsLoadFailed,
     registerListFailureKind: failureKind,
     registerListLoading: listLoading,
     registerPicklistCount: picklistCount,
+    registerListEmptyReason,
     readiness: readiness ?? undefined,
   });
 }
@@ -38,9 +41,12 @@ export function registerGateBannerTitle(
   listLoading: boolean,
   picklistCount: number,
   settingsLoadFailed = false,
-  readiness: RegisterGateReadinessInput | null = null
+  readiness: RegisterGateReadinessInput | null = null,
+  registerListEmptyReason: PosSelectableEmptyReason | null = null
 ): string {
-  return titleFromCtx(toCtx(failureKind, listLoading, picklistCount, settingsLoadFailed, readiness));
+  return titleFromCtx(
+    toCtx(failureKind, listLoading, picklistCount, settingsLoadFailed, readiness, registerListEmptyReason)
+  );
 }
 
 export { registerGateBannerIntro };
@@ -50,9 +56,12 @@ export function registerGateBannerDetail(
   listLoading: boolean,
   picklistCount: number,
   settingsLoadFailed = false,
-  readiness: RegisterGateReadinessInput | null = null
+  readiness: RegisterGateReadinessInput | null = null,
+  registerListEmptyReason: PosSelectableEmptyReason | null = null
 ): string {
-  return detailFromCtx(toCtx(failureKind, listLoading, picklistCount, settingsLoadFailed, readiness));
+  return detailFromCtx(
+    toCtx(failureKind, listLoading, picklistCount, settingsLoadFailed, readiness, registerListEmptyReason)
+  );
 }
 
 export function registerGateFooterHint(
@@ -60,18 +69,22 @@ export function registerGateFooterHint(
   listLoading: boolean,
   picklistCount: number,
   settingsLoadFailed = false,
-  readiness: RegisterGateReadinessInput | null = null
+  readiness: RegisterGateReadinessInput | null = null,
+  registerListEmptyReason: PosSelectableEmptyReason | null = null
 ): string {
-  return footerFromCtx(toCtx(failureKind, listLoading, picklistCount, settingsLoadFailed, readiness));
+  return footerFromCtx(
+    toCtx(failureKind, listLoading, picklistCount, settingsLoadFailed, readiness, registerListEmptyReason)
+  );
 }
 
 export function registerGateAlertMessage(
   failureKind: RegisterListFailureKind | null,
   picklistCount: number,
   settingsLoadFailed = false,
-  readiness: RegisterGateReadinessInput | null = null
+  readiness: RegisterGateReadinessInput | null = null,
+  registerListEmptyReason: PosSelectableEmptyReason | null = null
 ): string {
   return alertFromCtx(
-    toCtx(failureKind, false, picklistCount, settingsLoadFailed, readiness)
+    toCtx(failureKind, false, picklistCount, settingsLoadFailed, readiness, registerListEmptyReason)
   );
 }

@@ -223,6 +223,9 @@ namespace KasseAPI_Final.Services
                 }
 
                 var principal = _httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal();
+                // Cash register: only ValidatePaymentRegisterAsync here — no IPosCashRegisterReadinessService / nextAction check.
+                // Shift and assignment rules are aligned with ensure-ready conflict policy; session DTO is client-only unless refreshed.
+                // AppPermissions.CashRegisterView does not bypass another user's shift at payment time (CashRegisterShiftOccupancy.IsHeldByOtherUser first).
                 var registerValidation = await _cashRegisterResolution.ValidatePaymentRegisterAsync(
                     userId,
                     request.CashRegisterId,

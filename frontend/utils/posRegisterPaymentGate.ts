@@ -1,8 +1,15 @@
 import { isValidPosCashRegisterId } from './posCashRegister';
 
 /**
- * Pure gate: when POS ensure-ready returns `ready` with a valid register id before
- * user settings finish loading, payment must not stay blocked on `cashRegisterResolved === false`.
+ * Pure client-side gate for disabling the POS pay action. It does not run on the server.
+ *
+ * Payment creation (`POST /api/pos/payment`) authorizes the body `CashRegisterId` only via
+ * `ICashRegisterResolutionService.ValidatePaymentRegisterAsync` (open register, shift conflict,
+ * assignment / sole-register rules). It does not call ensure-ready and does not consume `nextAction`.
+ *
+ * When `POS_ENSURE_READY_ON_ENTRY` is on, this gate additionally mirrors the last ensure-ready
+ * `nextAction` / `effectiveRegisterId` from the client cache so the UI stays aligned with session
+ * state and typical server rejection reasons — not because the payment endpoint enforces that DTO.
  */
 export type PosRegisterPaymentGateParams = {
   enabled: boolean;
@@ -26,7 +33,10 @@ export function computeRegisterGateBlockingPayment(p: PosRegisterPaymentGatePara
     !p.posReadinessError &&
     !hasValidCashRegisterId;
 
-  /** Server says POS is not payment-ready (conflict, closed, selection, etc.); block even if profile still has a GUID. */
+  /**
+   * Cached ensure-ready says not `ready` (conflict, closed, selection, etc.). Client blocks submit
+   * even if profile still holds a GUID; payment POST would still be judged only by ValidatePaymentRegisterAsync.
+   */
   const posReadinessDeniesPayment =
     p.posEnsureReadyOnEntry &&
     p.enabled &&
@@ -41,12 +51,19 @@ export function computeRegisterGateBlockingPayment(p: PosRegisterPaymentGatePara
     !p.posReadinessError;
 
   /**
-   * GET /user/settings carries profile + persisted cashRegisterId but is not part of the fiscal payment contract:
-   * POST /api/pos/payment validates the body register server-side. When ensure-ready already returned `ready`
-   * with a valid effectiveRegisterId, blocking on settings fetch failure only hurts POS without improving correctness.
+   * GET /user/settings is only for persisted assignment in the client; payment uses the register id on the POST body.
+   * Register authorization on POST is ValidatePaymentRegisterAsync (not ensure-ready / not nextAction).
+   *
+   * When ensure-ready already returned `ready` with a valid effectiveRegisterId, do not keep blocking on a failed
+   * settings GET (client UX only). When ensure-ready is enabled and settings failed but the client holds a valid id
+   * from a successful assignment PUT or readiness merge, likewise do not block solely on the failed settings GET.
+   * When ensure-ready is disabled, a failed settings fetch stays a hard client gate (no ensure-ready waive).
+   * `posReadinessDeniesPayment` applies cached ensure-ready `nextAction` on the client when the flag is on.
    */
   const settingsFailureBlocksPayment =
-    p.settingsLoadFailed && !readinessAllowsPaymentBeforeSettings;
+    p.settingsLoadFailed &&
+    !readinessAllowsPaymentBeforeSettings &&
+    (!hasValidCashRegisterId || !p.posEnsureReadyOnEntry);
 
   const settingsOrResolutionBlocking =
     settingsFailureBlocksPayment ||

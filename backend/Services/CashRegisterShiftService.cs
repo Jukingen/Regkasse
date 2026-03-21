@@ -111,6 +111,8 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
 
             register.Status = RegisterStatus.Open;
             register.CurrentUser = user;
+            // Always persist shift ownership on the FK column (payment + close authorize via CurrentUserId).
+            register.CurrentUserId = actorUserId;
             register.LastBalanceUpdate = DateTime.UtcNow;
             register.UpdatedAt = DateTime.UtcNow;
 

@@ -7,16 +7,23 @@ using Microsoft.EntityFrameworkCore;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Cash-register model (explicit):
+/// Cash-register model (explicit). Operational shift occupancy is centralized in <see cref="CashRegisterShiftOccupancy"/> and reused by
+/// <see cref="ListSelectableRegistersAsync"/>, <see cref="ApplySoleOpenRegisterAutoAssignmentIfNeededAsync"/>, <see cref="ValidatePaymentRegisterAsync"/>,
+/// and <see cref="PosCashRegisterReadinessService"/> (ensure-ready).
 /// - <see cref="UserSettings.CashRegisterId"/> = persisted POS payment preference / assignment for the user.
 /// - <see cref="CashRegister.CurrentUserId"/> = operational shift ownership (who opened the register).
-/// Payment is allowed when the register exists, <see cref="RegisterStatus.Open"/>, and one of:
-/// settings assignment matches requested id, or shift owner matches user, or exactly one register row exists in the DB and the payment targets that register (sole-register payment fallback).
+/// - <see cref="AppPermissions.CashRegisterView"/> widens <see cref="ValidateAssignmentChangeAsync"/> only: an open register on another
+/// user&apos;s shift may still be saved as assignment (e.g. waiter default register). <see cref="ListSelectableRegistersAsync"/> still filters
+/// those rows out of the self-service picker; <see cref="ValidatePaymentRegisterAsync"/> always rejects payment on them for the non-owner.
+/// Payment is allowed when the register exists, <see cref="RegisterStatus.Open"/>, and no other user holds the operational shift
+/// (<see cref="CashRegister.CurrentUserId"/>). Settings assignment and sole-register rules apply only after that occupancy check:
+/// they never override another user&apos;s shift (same conflict semantics as <see cref="PosCashRegisterReadinessService"/>, separate code path).
 /// </summary>
 /// <remarks>
 /// <see cref="ApplySoleOpenRegisterAutoAssignmentIfNeededAsync"/> is separate: it persists settings only when there is
-/// exactly one <see cref="CashRegister"/> row <em>and</em> that row is already <see cref="RegisterStatus.Open"/>.
-/// It does not use “count of open registers”; a closed sole register is not auto-assigned here (POS ensure-ready may open it and persist elsewhere).
+/// exactly one <see cref="CashRegister"/> row <em>and</em> that row is already <see cref="RegisterStatus.Open"/>
+/// and the register is not on another user&apos;s shift (<see cref="CashRegister.CurrentUserId"/>).
+/// A closed sole register is not auto-assigned here (POS ensure-ready may open it and persist elsewhere).
 /// </remarks>
 public sealed class CashRegisterResolutionService : ICashRegisterResolutionService
 {
@@ -55,6 +62,16 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
                 "Sole cash register {RegisterId} is not Open (status {Status}); skipping auto-assignment for user {UserId}",
                 only.Id,
                 only.Status,
+                userId);
+            return;
+        }
+
+        if (CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, only.CurrentUserId))
+        {
+            _logger.LogInformation(
+                "Sole cash register {RegisterId} is on shift user {ShiftUserId}; skipping auto-assignment for user {UserId}",
+                only.Id,
+                only.CurrentUserId,
                 userId);
             return;
         }
@@ -118,6 +135,10 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <paramref name="principal"/> is currently unused in the body; occupancy is evaluated before assignment/sole fallbacks so that
+    /// <see cref="AppPermissions.CashRegisterView"/> (or any future claim) cannot authorize payment on another user&apos;s shift.
+    /// </remarks>
     public async Task<CashRegisterResolutionValidationResult> ValidatePaymentRegisterAsync(
         string userId,
         Guid requestedRegisterId,
@@ -149,6 +170,18 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
                 "Cash register is closed or not usable for payment.");
         }
 
+        // Another user's operational shift blocks payment — never overridden by settings assignment or sole-register fallback.
+        var shiftOccupantId = register.CurrentUserId;
+        if (CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, shiftOccupantId))
+        {
+            return CashRegisterResolutionValidationResult.Failure(
+                CashRegisterResolutionCodes.Forbidden,
+                "Cash register is in use by another user.");
+        }
+
+        var shiftHeldByCurrentUser = !string.IsNullOrEmpty(shiftOccupantId) &&
+                                     string.Equals(shiftOccupantId, userId, StringComparison.Ordinal);
+
         var settings = await _context.UserSettings
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
@@ -160,13 +193,10 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             assignedGuid != Guid.Empty &&
             assignedGuid == requestedRegisterId;
 
-        var shiftMatches = !string.IsNullOrEmpty(register.CurrentUserId) &&
-                           string.Equals(register.CurrentUserId, userId, StringComparison.Ordinal);
-
         var totalRegisters = await _context.CashRegisters.AsNoTracking().CountAsync(cancellationToken);
         var soleRegisterMatches = totalRegisters == 1 && register.Id == requestedRegisterId;
 
-        if (assignedMatches || shiftMatches || soleRegisterMatches)
+        if (shiftHeldByCurrentUser || soleRegisterMatches || assignedMatches)
         {
             return CashRegisterResolutionValidationResult.Success(register.Id, register.RegisterNumber);
         }
@@ -184,6 +214,11 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// POS clients consume this via <see cref="ListSelectableForPosPickerAsync"/> (<c>GET /api/pos/cash-register/selectable</c>).
+    /// Rows that are <see cref="RegisterStatus.Open"/> but held on shift by another user (<see cref="CashRegister.CurrentUserId"/>)
+    /// are omitted for every principal so the picker never surfaces payment-dead options (inventory-style listing stays on admin APIs).
+    /// </remarks>
     public async Task<IReadOnlyList<CashRegisterSelectableRow>> ListSelectableRegistersAsync(
         string userId,
         ClaimsPrincipal principal,
@@ -195,9 +230,11 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             .OrderBy(r => r.RegisterNumber)
             .ToListAsync(cancellationToken);
 
+        var usableOpen = open.Where(r => CashRegisterShiftOccupancy.UserMayOperateOpenRegisterShift(userId, r.CurrentUserId)).ToList();
+
         if (PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterView))
         {
-            return open
+            return usableOpen
                 .Select(r => new CashRegisterSelectableRow
                 {
                     Id = r.Id,
@@ -208,9 +245,9 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         }
 
         var total = await _context.CashRegisters.AsNoTracking().CountAsync(cancellationToken);
-        if (total == 1 && open.Count == 1)
+        if (total == 1 && usableOpen.Count == 1)
         {
-            var r = open[0];
+            var r = usableOpen[0];
             return new List<CashRegisterSelectableRow>
             {
                 new()
@@ -222,7 +259,7 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             };
         }
 
-        return open
+        return usableOpen
             .Where(r => !string.IsNullOrEmpty(r.CurrentUserId) &&
                         string.Equals(r.CurrentUserId, userId, StringComparison.Ordinal))
             .Select(r => new CashRegisterSelectableRow
@@ -234,6 +271,38 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             .ToList();
     }
 
+    /// <inheritdoc />
+    public async Task<PosSelectableListResult> ListSelectableForPosPickerAsync(
+        string userId,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken = default)
+    {
+        var registers = await ListSelectableRegistersAsync(userId, principal, cancellationToken);
+        if (registers.Count > 0)
+        {
+            return new PosSelectableListResult { Registers = registers, EmptyReason = null };
+        }
+
+        var total = await _context.CashRegisters.AsNoTracking().CountAsync(cancellationToken);
+        if (total == 0)
+        {
+            return new PosSelectableListResult { Registers = registers, EmptyReason = "no_registers" };
+        }
+
+        var openCount = await _context.CashRegisters
+            .AsNoTracking()
+            .CountAsync(r => r.Status == RegisterStatus.Open, cancellationToken);
+
+        var reason = openCount == 0 ? "none_open" : "none_selectable_for_user";
+        return new PosSelectableListResult { Registers = registers, EmptyReason = reason };
+    }
+
+    /// <summary>
+    /// Assignment API gate for <see cref="ValidateAssignmentChangeAsync"/> (not payment, not picker).
+    /// <see cref="AppPermissions.CashRegisterView"/> returns true for any <see cref="RegisterStatus.Open"/> register after existence/open checks —
+    /// including when <see cref="CashRegister.CurrentUserId"/> is another user — so roles like waiter can persist a default register id even
+    /// when they cannot yet pay on it. POS picker uses <see cref="CashRegisterShiftOccupancy.UserMayOperateOpenRegisterShift"/> first and never lists those rows.
+    /// </summary>
     private async Task<bool> CanUserSelectRegisterForAssignmentAsync(
         string userId,
         CashRegister register,
@@ -244,11 +313,7 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             return true;
 
         var total = await _context.CashRegisters.AsNoTracking().CountAsync(cancellationToken);
-        if (total == 1)
-            return true;
-
-        return !string.IsNullOrEmpty(register.CurrentUserId) &&
-               string.Equals(register.CurrentUserId, userId, StringComparison.Ordinal);
+        return CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView(userId, register, total);
     }
 
     private static bool IsMissingOrEmptyGuid(string? cashRegisterId)
@@ -257,4 +322,5 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             return true;
         return Guid.TryParse(cashRegisterId.Trim(), out var g) && g == Guid.Empty;
     }
+
 }

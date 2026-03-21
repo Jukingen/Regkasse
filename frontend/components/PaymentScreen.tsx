@@ -109,6 +109,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
     registerPicklist,
     registerListLoading,
     registerListFailureKind,
+    registerListEmptyReason,
     refetchRegisterList,
     savingRegisterId,
     hasValidCashRegisterId,
@@ -128,6 +129,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         registerListFailureKind,
         registerListLoading,
         registerPicklistCount: registerPicklist.length,
+        registerListEmptyReason,
         readiness: {
           loading: posReadinessLoading,
           error: posReadinessError,
@@ -140,6 +142,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
       registerListFailureKind,
       registerListLoading,
       registerPicklist.length,
+      registerListEmptyReason,
       posReadinessLoading,
       posReadinessError,
       posReadinessNextAction,

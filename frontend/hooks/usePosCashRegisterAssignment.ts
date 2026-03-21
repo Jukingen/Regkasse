@@ -4,7 +4,11 @@ import { Alert } from 'react-native';
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { getUserSettings, updateCashRegisterConfig } from '../services/api/userSettingsService';
-import { listPosCashRegisters, type CashRegisterRow } from '../services/api/cashRegisterService';
+import {
+  fetchPosSelectableRegisters,
+  type CashRegisterSelectableRow,
+  type PosSelectableEmptyReason,
+} from '../services/api/cashRegisterService';
 import { isValidPosCashRegisterId } from '../utils/posCashRegister';
 import { computeRegisterGateBlockingPayment } from '../utils/posRegisterPaymentGate';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
@@ -12,24 +16,42 @@ import {
   classifyRegisterListError,
   type RegisterListFailureKind,
 } from '../utils/registerListError';
+import {
+  cashRegisterPersistFailureAlertDe,
+  isCashRegisterAssignmentRejectedByBackend,
+  shouldRetainOptimisticCashRegisterAfterPersistFailure,
+} from '../utils/cashRegisterAssignmentPersistPolicy';
+import { shouldFetchPosSelectableRegisterList } from '../utils/posRegisterAssignmentFetchPolicy';
 
 /**
- * Resolves cash register for POST /api/pos/payment: POS ensure-ready (layout) + user settings + optional list/auto-assign.
+ * Builds the `CashRegisterId` sent on POS payment: merges ensure-ready (when enabled), GET /user/settings,
+ * and `fetchPosSelectableRegisters` → `POS_SELECTABLE_REGISTERS_PATH` (see `shouldFetchPosSelectableRegisterList`).
+ * Picklist rows are server-filtered: open, not on another user's shift (closed rows are never returned);
+ * auto-persist runs when exactly one selectable row is returned.
+ *
+ * The payment API does not re-run ensure-ready; it validates the body id via ValidatePaymentRegisterAsync.
  */
 export function usePosCashRegisterAssignment(enabled: boolean) {
   const posReadiness = usePosRegisterReadiness();
   const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
   const [cashRegisterResolved, setCashRegisterResolved] = useState(false);
-  const [registerPicklist, setRegisterPicklist] = useState<CashRegisterRow[]>([]);
+  const [registerPicklist, setRegisterPicklist] = useState<CashRegisterSelectableRow[]>([]);
   const [registerListLoading, setRegisterListLoading] = useState(false);
   const [savingRegisterId, setSavingRegisterId] = useState<string | null>(null);
-  /** Set when GET /CashRegister fails; null means last fetch succeeded or not yet failed. */
+  /** Set when GET /pos/cash-register/selectable fails; null means last fetch succeeded or not yet failed. */
   const [registerListFailureKind, setRegisterListFailureKind] =
     useState<RegisterListFailureKind | null>(null);
+  /** Server hint when selectable list is empty (successful GET). */
+  const [registerListEmptyReason, setRegisterListEmptyReason] =
+    useState<PosSelectableEmptyReason>(null);
   const [registerListRetryToken, setRegisterListRetryToken] = useState(0);
   const [settingsRetryToken, setSettingsRetryToken] = useState(0);
   const [settingsLoadFailed, setSettingsLoadFailed] = useState(false);
   const prevResolvedRef = useRef(false);
+  const readinessSnapshotRef = useRef(posReadiness.data);
+  useEffect(() => {
+    readinessSnapshotRef.current = posReadiness.data;
+  }, [posReadiness.data]);
 
   const refetchRegisterList = useCallback(() => {
     setRegisterListRetryToken((n) => n + 1);
@@ -46,6 +68,7 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
       setCashRegisterId(null);
       setCashRegisterResolved(false);
       setRegisterPicklist([]);
+      setRegisterListEmptyReason(null);
       setRegisterListLoading(false);
       setRegisterListFailureKind(null);
       setRegisterListRetryToken(0);
@@ -98,46 +121,57 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
   }, [cashRegisterResolved, cashRegisterId]);
 
   useEffect(() => {
-    const readinessReady =
-      posReadiness.data?.nextAction === 'ready' &&
-      isValidPosCashRegisterId(posReadiness.data.effectiveRegisterId ?? null);
+    const fetchList = shouldFetchPosSelectableRegisterList({
+      enabled,
+      cashRegisterResolved,
+      cashRegisterId,
+      readinessNextAction: posReadiness.data?.nextAction ?? null,
+      readinessEffectiveRegisterId: posReadiness.data?.effectiveRegisterId ?? null,
+      settingsLoadFailed,
+      posEnsureReadyOnEntry: POS_ENSURE_READY_ON_ENTRY,
+      posReadinessLoading: posReadiness.loading,
+      posReadinessError: !!posReadiness.error,
+    });
 
-    if (!enabled || !cashRegisterResolved || settingsLoadFailed || cashRegisterId || readinessReady) {
-      if (!enabled) setRegisterPicklist([]);
+    if (!fetchList) {
+      if (!enabled) {
+        setRegisterPicklist([]);
+        setRegisterListEmptyReason(null);
+      }
       return;
     }
 
     let cancelled = false;
     setRegisterListLoading(true);
     setRegisterListFailureKind(null);
+    setRegisterListEmptyReason(null);
     debugPosPaymentTrace('register_list_load_start', {});
 
-    listPosCashRegisters()
-      .then(async (rows) => {
+    fetchPosSelectableRegisters()
+      .then(async ({ registers: rows, emptyReason }) => {
         if (cancelled) return;
         setRegisterPicklist(rows);
+        setRegisterListEmptyReason(emptyReason);
         setRegisterListFailureKind(null);
-        debugPosPaymentTrace('register_list_loaded', { count: rows.length });
+        debugPosPaymentTrace('register_list_loaded', { count: rows.length, emptyReason });
 
+        // Single selectable row from /pos/cash-register/selectable → safe implicit assignment after persist.
         if (rows.length !== 1) return;
 
         const onlyId = rows[0]?.id?.trim();
         if (!onlyId) return;
 
         try {
-          if (!cancelled) setCashRegisterId(onlyId);
           const updated = await updateCashRegisterConfig({ cashRegisterId: onlyId });
           if (cancelled) return;
           const next = updated.cashRegisterId?.trim();
           if (next && next !== '00000000-0000-0000-0000-000000000000') {
             setCashRegisterId(next);
-          } else {
-            setCashRegisterId(onlyId);
           }
         } catch (e) {
           if (!cancelled) {
             console.warn('[usePosCashRegisterAssignment] Auto-assign single cash register failed:', e);
-            setCashRegisterId(onlyId);
+            void posReadiness.refresh();
           }
         }
       })
@@ -150,6 +184,7 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
         });
         if (!cancelled) {
           setRegisterPicklist([]);
+          setRegisterListEmptyReason(null);
           setRegisterListFailureKind(kind);
         }
       })
@@ -160,11 +195,22 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, cashRegisterResolved, settingsLoadFailed, cashRegisterId, registerListRetryToken, posReadiness.data]);
+  }, [
+    enabled,
+    cashRegisterResolved,
+    settingsLoadFailed,
+    cashRegisterId,
+    registerListRetryToken,
+    posReadiness.data,
+    posReadiness.loading,
+    posReadiness.error,
+    posReadiness.refresh,
+  ]);
 
   const handlePersistCashRegister = useCallback(async (id: string) => {
     const trimmed = id.trim();
     if (!trimmed) return;
+    const revertTo = cashRegisterId;
     setSavingRegisterId(trimmed);
     setCashRegisterId(trimmed);
     try {
@@ -178,15 +224,26 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
       Alert.alert('Gespeichert', 'Kasse wurde zugewiesen.');
     } catch (e) {
       console.warn('[usePosCashRegisterAssignment] Failed to persist cash register:', e);
-      setCashRegisterId(trimmed);
-      Alert.alert(
-        'Hinweis',
-        'Kasse konnte nicht im Profil gespeichert werden. Die gewählte Kasse wird für diese Sitzung trotzdem für die Zahlung verwendet.'
-      );
+      const snap = readinessSnapshotRef.current;
+      const retain = shouldRetainOptimisticCashRegisterAfterPersistFailure(e, {
+        nextAction: snap?.nextAction,
+        effectiveRegisterId: snap?.effectiveRegisterId,
+        attemptedRegisterId: trimmed,
+      });
+      if (retain) {
+        setCashRegisterId(trimmed);
+      } else {
+        setCashRegisterId(revertTo);
+      }
+      if (!retain) {
+        void posReadiness.refresh();
+      }
+      const { title, message } = cashRegisterPersistFailureAlertDe(e, retain);
+      Alert.alert(title, message);
     } finally {
       setSavingRegisterId(null);
     }
-  }, []);
+  }, [cashRegisterId, posReadiness.refresh]);
 
   const effectiveCashRegisterIdForPayment = useMemo(() => {
     if (isValidPosCashRegisterId(cashRegisterId)) return cashRegisterId!.trim();
@@ -217,6 +274,7 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
     registerPicklist,
     registerListLoading,
     registerListFailureKind,
+    registerListEmptyReason,
     refetchRegisterList,
     savingRegisterId,
     hasValidCashRegisterId,

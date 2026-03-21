@@ -298,6 +298,11 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.LastBalanceUpdate).IsRequired();
                 entity.Property(e => e.Status).IsRequired();
                 entity.Property(e => e.CurrentUserId).HasMaxLength(450);
+                entity.HasOne(e => e.CurrentUser)
+                    .WithMany(u => u.CashRegisters)
+                    .HasForeignKey(e => e.CurrentUserId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.SetNull);
                 
                 entity.HasIndex(e => e.RegisterNumber).IsUnique();
                 entity.HasIndex(e => e.Status);

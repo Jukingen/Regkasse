@@ -1,4 +1,4 @@
-// POS entry: server-side effective register + optional auto-open (single-register).
+// Cached POST /api/pos/cash-register/ensure-ready: effective register, nextAction, optional auto-open. Not invoked by payment POST.
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';

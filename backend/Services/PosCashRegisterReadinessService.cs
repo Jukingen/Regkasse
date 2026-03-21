@@ -8,6 +8,9 @@ using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
+/// <summary>
+/// Implements ensure-ready session DTO and optional auto-open. Payment requests do not call this type; see <see cref="CashRegisterResolutionService.ValidatePaymentRegisterAsync"/>.
+/// </summary>
 public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessService
 {
     private readonly AppDbContext _context;
@@ -96,8 +99,9 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
 
         if (effectiveRegister.Status == RegisterStatus.Open)
         {
-            if (!string.IsNullOrEmpty(effectiveRegister.CurrentUserId) &&
-                !string.Equals(effectiveRegister.CurrentUserId, userId, StringComparison.Ordinal))
+            // Same occupancy predicate as payment / picker / sole auto-assign (<see cref="CashRegisterShiftOccupancy.IsHeldByOtherUser"/>).
+            // AppPermissions.CashRegisterView does not relax this path (it only widens manual assignment API and closed-register auto-open eligibility).
+            if (CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, effectiveRegister.CurrentUserId))
             {
                 dto.NextAction = "forbidden";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterConflict;
@@ -141,8 +145,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             return dto;
         }
 
-        if (!string.IsNullOrEmpty(effectiveRegister.CurrentUserId) &&
-            !string.Equals(effectiveRegister.CurrentUserId, userId, StringComparison.Ordinal))
+        if (CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, effectiveRegister.CurrentUserId))
         {
             dto.NextAction = "forbidden";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterConflict;
@@ -268,8 +271,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         };
 
         if (effective.Status == RegisterStatus.Open &&
-            !string.IsNullOrEmpty(effective.CurrentUserId) &&
-            !string.Equals(effective.CurrentUserId, userId, StringComparison.Ordinal))
+            CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, effective.CurrentUserId))
         {
             dto.NextAction = "forbidden";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterConflict;

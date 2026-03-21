@@ -43,6 +43,12 @@ public static class AppPermissions
     public const string DiscountApply = "discount.apply";
 
     // --- CashRegister, Cashdrawer, Shift ---
+    /// <summary>
+    /// Broader cash-register awareness for POS (e.g. waiter): relaxes <em>settings assignment</em> validation so an open register
+    /// on another user&apos;s shift may still be stored as the user&apos;s persisted cash-register assignment (preference / routing).
+    /// Does <strong>not</strong> relax operational shift ownership: payment validation, POS picker listing, and ensure-ready conflict
+    /// checks still treat another user&apos;s open shift as blocking for payment and &quot;ready&quot; session state.
+    /// </summary>
     public const string CashRegisterView = "cashregister.view";
     public const string CashRegisterManage = "cashregister.manage";
     public const string CashdrawerOpen = "cashdrawer.open";
