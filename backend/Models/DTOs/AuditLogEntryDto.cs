@@ -4,7 +4,6 @@ namespace KasseAPI_Final.Models.DTOs
 {
     /// <summary>
     /// Audit log entry for API response. Mirrors AuditLog entity plus resolved actor display info.
-    /// Backward compatible: userId and userRole remain; actorUserId/actorDisplayName/actorRole added for UI.
     /// </summary>
     public class AuditLogEntryDto
     {
@@ -43,12 +42,8 @@ namespace KasseAPI_Final.Models.DTOs
         public string? PaymentMethod { get; set; }
         public string? TseSignature { get; set; }
 
-        /// <summary>Actor who performed the action (same as UserId; explicit for API clarity).</summary>
-        public string ActorUserId { get; set; } = string.Empty;
         /// <summary>Resolved display name (e.g. FirstName LastName) when available; null if not resolved.</summary>
         public string? ActorDisplayName { get; set; }
-        /// <summary>Role of the actor at time of action (same as UserRole; optional explicit field).</summary>
-        public string? ActorRole { get; set; }
 
         // Enterprise audit event fields
         /// <summary>Typed action for user-lifecycle/role events; null for legacy or other events.</summary>

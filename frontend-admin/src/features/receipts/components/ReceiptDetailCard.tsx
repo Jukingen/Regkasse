@@ -39,7 +39,9 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                 <Tag>{receipt.cashRegisterId}</Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Cashier">
-                {receipt.cashierId || '—'}
+                {(receipt.cashierDisplayName && receipt.cashierDisplayName.trim()) ||
+                    receipt.cashierId ||
+                    '—'}
             </Descriptions.Item>
             <Descriptions.Item label="Payment ID">
                 {receipt.paymentId ? (

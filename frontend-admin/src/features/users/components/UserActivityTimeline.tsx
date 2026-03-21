@@ -1,7 +1,7 @@
 /**
  * User activity timeline – enterprise UX.
  * GET api/AuditLog/user/{userId} with server-side pagination and date range.
- * Actor: actorDisplayName with fallback to actorUserId. Diff viewer modal for structured changes.
+ * Actor: actorDisplayName with fallback to userId. Diff viewer modal for structured changes.
  * Invariant 4: Never render sensitive fields (diff uses whitelist only).
  * Invariant 5: Gracefully handle incomplete historical records (null actor, missing timestamp/action/description;
  * use EMPTY_PLACEHOLDER and safe fallbacks so UI never crashes on legacy or partial data).
@@ -83,7 +83,6 @@ function getAuditDiffLabel(key: string): string {
 /** Entry may include extended API fields (actorDisplayName, changes). */
 type AuditEntry = AuditLogType & {
     actorDisplayName?: string | null;
-    actorUserId?: string | null;
     changes?: string | null;
 };
 
@@ -100,11 +99,9 @@ function getActorDisplay(record: AuditEntry): string {
     const name = (record.actorDisplayName != null && String(record.actorDisplayName).trim())
         ? String(record.actorDisplayName).trim()
         : null;
-    const uid = (record.actorUserId != null && String(record.actorUserId).trim())
-        ? String(record.actorUserId).trim()
-        : (record.userId != null && String(record.userId).trim())
-            ? String(record.userId).trim()
-            : null;
+    const uid = (record.userId != null && String(record.userId).trim())
+        ? String(record.userId).trim()
+        : null;
     return name ?? uid ?? EMPTY_PLACEHOLDER;
 }
 

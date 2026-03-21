@@ -16,9 +16,13 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ receipt }) => 
         grandTotal,
         date,
         receiptNumber,
-        cashierName,
+        cashierId,
+        cashierDisplayName,
         kassenID,
     } = receipt;
+
+    const cashierLine =
+        (cashierDisplayName && cashierDisplayName.trim()) || (cashierId && cashierId.trim()) || '—';
 
     const formatDate = (dateStr: string) => {
         try {
@@ -44,7 +48,7 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ receipt }) => 
                     <Text style={styles.metaText}>Beleg-Nr: {receiptNumber}</Text>
                     <Text style={styles.metaText}>Datum: {formatDate(date)}</Text>
                     <Text style={styles.metaText}>Kassen-ID: {kassenID}</Text>
-                    <Text style={styles.metaText}>Kassierer: {cashierName}</Text>
+                    <Text style={styles.metaText}>Kassierer: {cashierLine}</Text>
                 </View>
             </View>
 

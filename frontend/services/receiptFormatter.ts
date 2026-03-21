@@ -138,7 +138,7 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
         <div class="meta-info">
           <div>Beleg: ${data.receiptNumber}</div>
           <div>Datum: ${new Date(data.date).toLocaleString('de-AT')}</div>
-          <div>Kasse: ${data.kassenID} | Kassierer: ${data.cashierName}</div>
+          <div>Kasse: ${data.kassenID} | Kassierer: ${(data.cashierDisplayName && data.cashierDisplayName.trim()) || (data.cashierId && data.cashierId.trim()) || '—'}</div>
         </div>
         <table>
           <thead>

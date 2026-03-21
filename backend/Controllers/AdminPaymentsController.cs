@@ -7,6 +7,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -260,7 +261,7 @@ public class AdminPaymentsController : ControllerBase
     [HasPermission(AppPermissions.RefundCreate)]
     public async Task<ActionResult<AdminPaymentActionResponse>> Refund(Guid id, [FromBody] RefundPaymentRequest request)
     {
-        var userId = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "User not authenticated", code = "UNAUTHORIZED" });
 

@@ -8,6 +8,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using KasseAPI_Final.Security;
 using Microsoft.AspNetCore.Identity;
 
 namespace KasseAPI_Final.Controllers
@@ -169,7 +170,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Forbid();

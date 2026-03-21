@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
-using System.Security.Claims;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -30,7 +30,7 @@ public class LegalHoldController : ControllerBase
     {
         if (request.FromDate > request.ToDate)
             return BadRequest(new { error = "FromDate must be on or before ToDate." });
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userId = User.GetActorUserId();
         var hold = await _legalHoldService.CreateAsync(request.FromDate, request.ToDate, request.Reason, userId);
         return CreatedAtAction(nameof(GetById), new { id = hold.Id }, ToDto(hold));
     }

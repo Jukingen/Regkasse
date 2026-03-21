@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -124,8 +125,8 @@ public class OfflineIntentCoverageController : ControllerBase
                     deviceIdCoveragePercent, sequenceCoveragePercent, thresholdPercent, total);
                 if (_guardOptions.WriteAlertToAuditLog && _auditLogService != null)
                 {
-                    var userId = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
-                    var userRole = User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Admin";
+                    var userId = User.GetActorUserId() ?? "system";
+                    var userRole = User.GetActorRole() ?? "Admin";
                     _ = _auditLogService.LogSystemOperationAsync(
                         "OfflineCoverageLow",
                         "OfflineIntentCoverage",

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Security;
 
 namespace KasseAPI_Final.Controllers.Base
 {
@@ -23,18 +23,12 @@ namespace KasseAPI_Final.Controllers.Base
         /// <summary>
         /// Kullanıcı ID'sini al
         /// </summary>
-        protected string? GetCurrentUserId()
-        {
-            return User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        }
+        protected string? GetCurrentUserId() => User.GetActorUserId();
 
         /// <summary>
         /// Kullanıcı rolünü al
         /// </summary>
-        protected string? GetCurrentUserRole()
-        {
-            return User.FindFirst(ClaimTypes.Role)?.Value;
-        }
+        protected string? GetCurrentUserRole() => User.GetActorRole();
 
         /// <summary>
         /// Kullanıcının belirli role sahip olup olmadığını kontrol et

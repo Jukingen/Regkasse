@@ -19,11 +19,10 @@ import { Ionicons } from '@expo/vector-icons';
 import paymentService, { type PaymentRequest } from '../services/api/paymentService';
 import { normalizeCartLineTaxTypeForPayment } from '../utils/paymentTaxType';
 import { getUserSettings } from '../services/api/userSettingsService';
-import { GUEST_CUSTOMER_ID } from '../services/api/customerService';
+import { resolveWalkInCustomerId } from '../constants/walkInCustomer';
 import { PaymentCancelResponse } from '../types/cart';
 
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext';
 
 // Ödeme adımları enum'u
 enum PaymentStep {
@@ -67,7 +66,6 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
   tableNumber
 }) => {
   const { t } = useTranslation(['payment', 'common']);
-  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState<PaymentStep>(PaymentStep.CUSTOMER_SELECTION);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -219,9 +217,8 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
             PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)
               ?.requiresTSE || false
         },
-        customerId: customerId?.trim() ? customerId : GUEST_CUSTOMER_ID,
+        customerId: customerId?.trim() ? customerId : await resolveWalkInCustomerId(),
         tableNumber: tableNumber,
-        cashierId: user?.id || 'UNKNOWN',
         totalAmount: totalAmount,
         cashRegisterId: regId,
         idempotencyKey

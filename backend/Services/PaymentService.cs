@@ -6,6 +6,7 @@ using Npgsql;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Data.Repositories;
 using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
@@ -92,31 +93,9 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                _logger.LogInformation("Creating payment for customer {CustomerId} by user {UserId}", request.CustomerId, userId);
+                PaymentActorConstraints.EnsurePrincipalDerivedActor(userId);
 
-                // Identity first: never trust body cashierId for who pays. Mismatch → 403 CASHIER_ID_MISMATCH only
-                // (avoids conflating payload drift with demo rejection on the authenticated user).
-                var payloadCashierId = (request.CashierId ?? string.Empty).Trim();
-                var placeholderCashierIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    "UNKNOWN", "current-user", ""
-                };
-                if (!placeholderCashierIds.Contains(payloadCashierId) &&
-                    !string.Equals(payloadCashierId, userId, StringComparison.Ordinal))
-                {
-                    _logger.LogWarning(
-                        "Payment rejected: CashierId mismatch. AuthenticatedUserId={AuthenticatedUserId} PayloadCashierId={PayloadCashierId} RejectionCode={RejectionCode}",
-                        userId,
-                        request.CashierId ?? "",
-                        "CASHIER_ID_MISMATCH");
-                    return new PaymentResult
-                    {
-                        Success = false,
-                        Message = "CashierId must match the authenticated user",
-                        Errors = { "Payment identity mismatch: cashierId must equal the signed-in user id." },
-                        DiagnosticCode = "CASHIER_ID_MISMATCH"
-                    };
-                }
+                _logger.LogInformation("Creating payment for customer {CustomerId} by user {UserId}", request.CustomerId, userId);
 
                 // Demo gate uses authenticated user only (resolved by userId — same as JWT). Single resolved user.
                 var user = await _userService.GetUserByIdAsync(userId);
@@ -124,10 +103,9 @@ namespace KasseAPI_Final.Services
                 {
                     var rejectionReason = DemoUserHelper.GetDemoRejectionReason(user) ?? "DEMO_UNKNOWN";
                     _logger.LogWarning(
-                        "Payment demo rejection: AuthenticatedUserId={AuthenticatedUserId} AuthenticatedUserEmail={AuthenticatedUserEmail} PayloadCashierId={PayloadCashierId} ResolvedUserId={ResolvedUserId} ResolvedUserEmail={ResolvedUserEmail} ResolvedUserRole={ResolvedUserRole} ResolvedUserIsDemo={ResolvedUserIsDemo} RejectionCode={RejectionCode}",
+                        "Payment demo rejection: AuthenticatedUserId={AuthenticatedUserId} AuthenticatedUserEmail={AuthenticatedUserEmail} ResolvedUserId={ResolvedUserId} ResolvedUserEmail={ResolvedUserEmail} ResolvedUserRole={ResolvedUserRole} ResolvedUserIsDemo={ResolvedUserIsDemo} RejectionCode={RejectionCode}",
                         userId,
                         user?.Email ?? "",
-                        request.CashierId ?? "",
                         user?.Id ?? "",
                         user?.Email ?? "",
                         user?.Role ?? "",
@@ -153,6 +131,12 @@ namespace KasseAPI_Final.Services
                         Errors = { "Customer not found" }
                     };
                 }
+
+                var resolvedCustomerKind = CustomerKindResolver.ResolveFromCustomerId(customer.Id, request.CustomerKind);
+                _logger.LogDebug(
+                    "Payment create resolved CustomerKind={CustomerKind} for CustomerId={CustomerId}",
+                    resolvedCustomerKind,
+                    customer.Id);
 
                 // Idempotency: normalized key; duplicate requests return existing payment (no duplicate creation). Enforced by unique index on idempotency_key.
                 var idempotencyKey = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim();
@@ -664,13 +648,15 @@ namespace KasseAPI_Final.Services
                     {
                         try
                         {
-                            var sigResult = await _tseService.CreateInvoiceSignatureAsync(
-                                cashRegisterId,
-                                preReceiptNumber,
-                                payment.TotalAmount,
-                                registerNumber,
-                                taxDetailsJson: JsonSerializer.Serialize(taxDetails),
-                                dbTransaction: transaction);
+                            var sigResult = await FiscalTseSigning.SignAsync(
+                                _tseService,
+                                new FiscalSigningRequest(
+                                    cashRegisterId,
+                                    preReceiptNumber,
+                                    payment.TotalAmount,
+                                    registerNumber,
+                                    TaxDetailsJson: JsonSerializer.Serialize(taxDetails),
+                                    DbTransaction: transaction));
                             payment.TseSignature = sigResult.CompactJws;
                             payment.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
                             _logger.LogInformation("TSE signature generated for payment {PaymentId}", payment.Id);
@@ -1552,13 +1538,15 @@ namespace KasseAPI_Final.Services
                 TseSignatureResult sigResult;
                 try
                 {
-                    sigResult = await _tseService.CreateInvoiceSignatureAsync(
-                        cashRegisterId,
-                        stornoBelegNr,
-                        storno.TotalAmount,
-                        registerNumber,
-                        taxDetailsJson: JsonSerializer.Serialize(stornoTaxDetails),
-                        dbTransaction: dbTx);
+                    sigResult = await FiscalTseSigning.SignAsync(
+                        _tseService,
+                        new FiscalSigningRequest(
+                            cashRegisterId,
+                            stornoBelegNr,
+                            storno.TotalAmount,
+                            registerNumber,
+                            TaxDetailsJson: JsonSerializer.Serialize(stornoTaxDetails),
+                            DbTransaction: dbTx));
                 }
                 catch (Exception ex)
                 {
@@ -1704,10 +1692,9 @@ namespace KasseAPI_Final.Services
                 {
                     var rejectionReason = DemoUserHelper.GetDemoRejectionReason(user) ?? "DEMO_UNKNOWN";
                     _logger.LogWarning(
-                        "Payment refund demo rejection: AuthenticatedUserId={AuthenticatedUserId} AuthenticatedUserEmail={AuthenticatedUserEmail} PayloadCashierId={PayloadCashierId} ResolvedUserId={ResolvedUserId} ResolvedUserEmail={ResolvedUserEmail} ResolvedUserRole={ResolvedUserRole} ResolvedUserIsDemo={ResolvedUserIsDemo} RejectionCode={RejectionCode} PaymentId={PaymentId}",
+                        "Payment refund demo rejection: AuthenticatedUserId={AuthenticatedUserId} AuthenticatedUserEmail={AuthenticatedUserEmail} ResolvedUserId={ResolvedUserId} ResolvedUserEmail={ResolvedUserEmail} ResolvedUserRole={ResolvedUserRole} ResolvedUserIsDemo={ResolvedUserIsDemo} RejectionCode={RejectionCode} PaymentId={PaymentId}",
                         userId,
                         user?.Email ?? "",
-                        "",
                         user?.Id ?? "",
                         user?.Email ?? "",
                         user?.Role ?? "",
@@ -1890,13 +1877,15 @@ namespace KasseAPI_Final.Services
                     TseSignatureResult sigResult;
                     try
                     {
-                        sigResult = await _tseService.CreateInvoiceSignatureAsync(
-                            refundCashRegisterId,
-                            refundBelegNr,
-                            refund.TotalAmount,
-                            refundRegisterNumber,
-                            taxDetailsJson: JsonSerializer.Serialize(refundTaxDetails),
-                            dbTransaction: refundTx);
+                        sigResult = await FiscalTseSigning.SignAsync(
+                            _tseService,
+                            new FiscalSigningRequest(
+                                refundCashRegisterId,
+                                refundBelegNr,
+                                refund.TotalAmount,
+                                refundRegisterNumber,
+                                TaxDetailsJson: JsonSerializer.Serialize(refundTaxDetails),
+                                DbTransaction: refundTx));
                     }
                     catch (Exception ex)
                     {
@@ -2186,12 +2175,14 @@ namespace KasseAPI_Final.Services
                 var regForSign = await _context.CashRegisters.FirstOrDefaultAsync(r => r.Id == payment.CashRegisterId)
                     ?? throw new InvalidOperationException($"Cash register {payment.CashRegisterId} not found.");
 
-                var sigResult = await _tseService.CreateInvoiceSignatureAsync(
-                    payment.CashRegisterId,
-                    payment.ReceiptNumber ?? payment.Id.ToString(),
-                    payment.TotalAmount,
-                    regForSign.RegisterNumber,
-                    taxDetailsJson: payment.TaxDetails?.RootElement.GetRawText());
+                var sigResult = await FiscalTseSigning.SignAsync(
+                    _tseService,
+                    new FiscalSigningRequest(
+                        payment.CashRegisterId,
+                        payment.ReceiptNumber ?? payment.Id.ToString(),
+                        payment.TotalAmount,
+                        regForSign.RegisterNumber,
+                        TaxDetailsJson: payment.TaxDetails?.RootElement.GetRawText()));
                 var signature = sigResult.CompactJws;
 
                 _logger.LogInformation("TSE signature generated successfully for payment {PaymentId}: {Signature}", 

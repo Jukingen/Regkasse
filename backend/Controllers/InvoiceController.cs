@@ -6,6 +6,8 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Fiscal;
+using KasseAPI_Final.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
@@ -665,7 +667,7 @@ namespace KasseAPI_Final.Controllers
                 if (existingCreditNote)
                     return Conflict("A credit note already exists for this invoice.");
 
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
 
                 // Sprint 3: Allocate fiscal BelegNr for storno (credit note) and sign with TSE
                 if (original.CashRegisterId == Guid.Empty)
@@ -683,14 +685,16 @@ namespace KasseAPI_Final.Controllers
                     var taxDetailsJson = original.TaxDetails?.RootElement.ValueKind == JsonValueKind.Object
                         ? original.TaxDetails.RootElement.GetRawText()
                         : "{}";
-                    var sigResult = await _tseService.CreateInvoiceSignatureAsync(
-                        cashRegisterId,
-                        stornoBelegNr,
-                        negatedTotal,
-                        kassenId,
-                        prevSignatureValue: null,
-                        timestamp: tseTimestamp,
-                        taxDetailsJson: taxDetailsJson);
+                    var sigResult = await FiscalTseSigning.SignAsync(
+                        _tseService,
+                        new FiscalSigningRequest(
+                            cashRegisterId,
+                            stornoBelegNr,
+                            negatedTotal,
+                            kassenId,
+                            PrevSignatureValue: null,
+                            Timestamp: tseTimestamp,
+                            TaxDetailsJson: taxDetailsJson));
                     tseSignature = sigResult.CompactJws;
                     _logger.LogInformation("TSE signature generated for storno BelegNr {BelegNr}", stornoBelegNr);
                 }

@@ -58,7 +58,8 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
         customerName.trim(),
         customerPhone.trim() || undefined,
         notes.trim() || undefined,
-        cart.cartId
+        cart.cartId,
+        cart.customerId
       );
 
       setLoading(false);

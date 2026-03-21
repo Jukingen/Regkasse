@@ -1,3 +1,4 @@
+using KasseAPI_Final.Constants;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,15 +6,13 @@ namespace KasseAPI_Final.Data
 {
     public static class CustomerSeedData
     {
-        // Well-known guest customer ID for walk-in sales
-        public static readonly Guid GUEST_CUSTOMER_ID = 
-            new Guid("00000000-0000-0000-0000-000000000001");
+        public static readonly Guid GUEST_CUSTOMER_ID = WalkInCustomerConstants.GuestCustomerId;
         
         public static async Task SeedGuestCustomerAsync(AppDbContext context)
         {
             // Check if guest customer already exists
             var existingGuest = await context.Customers
-                .FirstOrDefaultAsync(c => c.Id == GUEST_CUSTOMER_ID);
+                .FirstOrDefaultAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId);
             
             if (existingGuest != null)
             {
@@ -22,7 +21,7 @@ namespace KasseAPI_Final.Data
             
             var guestCustomer = new Customer
             {
-                Id = GUEST_CUSTOMER_ID,
+                Id = WalkInCustomerConstants.GuestCustomerId,
                 Name = "Walk-in Customer",
                 CustomerNumber = "GUEST-000",
                 Email = "walkin@system.local",

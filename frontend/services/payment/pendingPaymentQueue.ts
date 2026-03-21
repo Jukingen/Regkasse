@@ -16,7 +16,6 @@ export interface PendingPaymentPayload {
   items: { productId: string; quantity: number; taxType: string }[];
   payment: { method: string; tseRequired: boolean; amount?: number };
   tableNumber: number;
-  cashierId: string;
   totalAmount: number;
   cashRegisterId: string;
   steuernummer?: string;

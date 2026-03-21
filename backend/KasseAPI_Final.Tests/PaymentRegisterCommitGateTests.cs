@@ -89,7 +89,7 @@ public class PaymentRegisterCommitGateTests
             .ReturnsAsync((Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction _, Guid _, string reg, DateTime d) =>
                 $"AT-{reg}-{d:yyyyMMdd}-{++seqCallCount}");
 
-        var receiptService = new ReceiptService(context, new Mock<ILogger<ReceiptService>>().Object, tseMock.Object, Options.Create(companyProfile));
+        var receiptService = new ReceiptService(context, new Mock<ILogger<ReceiptService>>().Object, tseMock.Object, Options.Create(companyProfile), Mock.Of<IUserService>());
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(),
@@ -185,7 +185,6 @@ public class PaymentRegisterCommitGateTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = regId,
@@ -238,7 +237,6 @@ public class PaymentRegisterCommitGateTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = regId,

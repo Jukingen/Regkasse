@@ -43,9 +43,7 @@ namespace KasseAPI_Final.Models.DTOs
                 Amount = log.Amount,
                 PaymentMethod = log.PaymentMethod,
                 TseSignature = log.TseSignature,
-                ActorUserId = log.UserId,
                 ActorDisplayName = actorDisplayName ?? log.ActorDisplayName,
-                ActorRole = log.UserRole,
                 ActionType = log.ActionType,
                 Changes = log.Changes,
                 Metadata = log.Metadata

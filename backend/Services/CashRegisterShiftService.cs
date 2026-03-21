@@ -24,7 +24,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
     /// <inheritdoc />
     public async Task<CashRegisterOpenResult> TryOpenCashRegisterAsync(
         Guid registerId,
-        string actorUserId,
+        string shiftOperatorUserId,
         decimal openingBalance,
         string transactionDescription,
         bool allowIdempotentSameUser,
@@ -47,7 +47,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
 
             if (register.Status == RegisterStatus.Open)
             {
-                if (string.Equals(register.CurrentUserId, actorUserId, StringComparison.Ordinal))
+                if (string.Equals(register.CurrentUserId, shiftOperatorUserId, StringComparison.Ordinal))
                 {
                     if (allowIdempotentSameUser)
                     {
@@ -70,17 +70,17 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
             }
 
             if (!string.IsNullOrEmpty(register.CurrentUserId) &&
-                !string.Equals(register.CurrentUserId, actorUserId, StringComparison.Ordinal))
+                !string.Equals(register.CurrentUserId, shiftOperatorUserId, StringComparison.Ordinal))
             {
                 await transaction.RollbackAsync(cancellationToken);
                 return CashRegisterOpenResult.ConflictOtherUser();
             }
 
-            var user = await _userManager.FindByIdAsync(actorUserId);
+            var user = await _userManager.FindByIdAsync(shiftOperatorUserId);
             if (user == null)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                _logger.LogWarning("Open cash register: actor user {UserId} not found", actorUserId);
+                _logger.LogWarning("Open cash register: shift operator user {UserId} not found", shiftOperatorUserId);
                 return CashRegisterOpenResult.NotFound();
             }
 
@@ -90,7 +90,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                     r => r.Id != registerId
                         && r.Status == RegisterStatus.Open
                         && r.CurrentUserId != null
-                        && string.Equals(r.CurrentUserId, actorUserId, StringComparison.Ordinal),
+                        && string.Equals(r.CurrentUserId, shiftOperatorUserId, StringComparison.Ordinal),
                     cancellationToken);
 
             if (actorHasOtherOpenRegister)
@@ -99,14 +99,14 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                 _logger.LogWarning(
                     "Open cash register {RegisterId} rejected: user {UserId} already has another open register",
                     registerId,
-                    actorUserId);
+                    shiftOperatorUserId);
                 return CashRegisterOpenResult.ActorAlreadyHasOtherOpenRegister();
             }
 
             register.Status = RegisterStatus.Open;
             register.CurrentUser = user;
             // Always persist shift ownership on the FK column (payment + close authorize via CurrentUserId).
-            register.CurrentUserId = actorUserId;
+            register.CurrentUserId = shiftOperatorUserId;
             register.LastBalanceUpdate = DateTime.UtcNow;
             register.UpdatedAt = DateTime.UtcNow;
 
@@ -119,7 +119,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                 Description = transactionDescription.Length > 500
                     ? transactionDescription[..500]
                     : transactionDescription,
-                UserId = actorUserId,
+                UserId = shiftOperatorUserId,
                 TransactionDate = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true
@@ -132,7 +132,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
             _logger.LogInformation(
                 "Cash register {RegisterId} opened by user {UserId} (idempotent={Idempotent})",
                 registerId,
-                actorUserId,
+                shiftOperatorUserId,
                 allowIdempotentSameUser);
 
             return CashRegisterOpenResult.Opened(register.RegisterNumber);
@@ -152,7 +152,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
     /// </remarks>
     public async Task<CashRegisterCloseResult> TryCloseCashRegisterAsync(
         Guid registerId,
-        string actorUserId,
+        string shiftOperatorUserId,
         decimal closingBalance,
         CancellationToken cancellationToken = default)
     {
@@ -177,8 +177,8 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                 return CashRegisterCloseResult.AlreadyClosed();
             }
 
-            if (string.IsNullOrEmpty(actorUserId) ||
-                !string.Equals(register.CurrentUserId, actorUserId, StringComparison.Ordinal))
+            if (string.IsNullOrEmpty(shiftOperatorUserId) ||
+                !string.Equals(register.CurrentUserId, shiftOperatorUserId, StringComparison.Ordinal))
             {
                 await transaction.RollbackAsync(cancellationToken);
                 return CashRegisterCloseResult.Forbidden();
@@ -197,7 +197,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                 TransactionType = TransactionType.Close,
                 Amount = closingBalance,
                 Description = "Kasa kapanışı",
-                UserId = actorUserId,
+                UserId = shiftOperatorUserId,
                 TransactionDate = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true
@@ -207,7 +207,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            _logger.LogInformation("Cash register {RegisterId} closed by user {UserId}", registerId, actorUserId);
+            _logger.LogInformation("Cash register {RegisterId} closed by user {UserId}", registerId, shiftOperatorUserId);
             return CashRegisterCloseResult.Success();
         }
         catch (Exception ex)

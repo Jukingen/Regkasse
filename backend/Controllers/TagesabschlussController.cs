@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Models;
-using System.Security.Claims;
+using KasseAPI_Final.Security;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -33,7 +33,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
@@ -72,7 +72,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
@@ -111,7 +111,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
@@ -149,7 +149,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
@@ -209,7 +209,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });

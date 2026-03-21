@@ -8,6 +8,7 @@
 import type { OrderItemRequest } from './orderItemRequest';
 
 export interface CreateOrderRequest {
+  customerId?: string;
   /** @nullable */
   customerName?: string | null;
   /** @nullable */

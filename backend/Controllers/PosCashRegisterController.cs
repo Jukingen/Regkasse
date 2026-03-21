@@ -1,5 +1,5 @@
-using System.Security.Claims;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -39,8 +39,7 @@ public sealed class PosCashRegisterController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<PosCashRegisterContextDto>> EnsureReady(CancellationToken cancellationToken)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst("user_id")?.Value;
+        var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
         {
             _logger.LogWarning("EnsureReady: no user id in claims");
@@ -65,8 +64,7 @@ public sealed class PosCashRegisterController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<object>> ListSelectable(CancellationToken cancellationToken)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                     ?? User.FindFirst("user_id")?.Value;
+        var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
         {
             _logger.LogWarning("ListSelectable: no user id in claims");

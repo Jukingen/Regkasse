@@ -6,6 +6,7 @@ using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Middleware;
 using System.Security.Claims;
@@ -48,8 +49,8 @@ namespace KasseAPI_Final.Controllers
             _logger = logger;
         }
 
-        private string? GetCurrentUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        private string GetCurrentUserRole() => User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
+        private string? GetCurrentUserId() => User.GetActorUserId();
+        private string GetCurrentUserRole() => User.GetActorRole() ?? "Unknown";
 
         /// <summary>Returns 403 if current user is not SuperAdmin. Used for role permission update and role delete.</summary>
         private bool IsCurrentUserSuperAdmin()

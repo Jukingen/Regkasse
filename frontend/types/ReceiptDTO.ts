@@ -3,7 +3,8 @@ export interface ReceiptDTO {
     receiptId: string; // Unique ID (UUID)
     receiptNumber: string; // Belegnummer (e.g. 12345)
     date: string; // ISO string
-    cashierName: string;
+    cashierId: string;
+    cashierDisplayName?: string;
     tableNumber?: number; // Optional
 
     company: {

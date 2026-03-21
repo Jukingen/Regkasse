@@ -53,7 +53,7 @@ public class FinanzOnlineReconciliationTests
         receiptSeqMock.Setup(x => x.AllocateNextBelegNrInTransactionAsync(It.IsAny<IDbContextTransaction>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>()))
             .ReturnsAsync((IDbContextTransaction _, Guid _, string r, DateTime d) => $"AT-{r}-{d:yyyyMMdd}-{++seq}");
         var loggerReceipt = new Mock<ILogger<ReceiptService>>().Object;
-        var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, Options.Create(companyProfile));
+        var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, Options.Create(companyProfile), Mock.Of<IUserService>());
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
         var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>());
@@ -77,7 +77,6 @@ public class FinanzOnlineReconciliationTests
             CustomerId = customerId,
             CustomerName = "C",
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 10m,
             TaxAmount = 1m,
             PaymentMethodRaw = "0",

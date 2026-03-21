@@ -11,7 +11,7 @@ public interface ICashRegisterShiftService
     /// </summary>
     Task<CashRegisterOpenResult> TryOpenCashRegisterAsync(
         Guid registerId,
-        string actorUserId,
+        string shiftOperatorUserId,
         decimal openingBalance,
         string transactionDescription,
         bool allowIdempotentSameUser,
@@ -22,7 +22,7 @@ public interface ICashRegisterShiftService
     /// </summary>
     Task<CashRegisterCloseResult> TryCloseCashRegisterAsync(
         Guid registerId,
-        string actorUserId,
+        string shiftOperatorUserId,
         decimal closingBalance,
         CancellationToken cancellationToken = default);
 }

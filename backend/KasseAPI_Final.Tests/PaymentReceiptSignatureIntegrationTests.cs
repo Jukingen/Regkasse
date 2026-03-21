@@ -78,7 +78,8 @@ public class PaymentReceiptSignatureIntegrationTests
             context,
             Mock.Of<ILogger<ReceiptService>>(),
             tseService,
-            Options.Create(companyProfile));
+            Options.Create(companyProfile),
+            Mock.Of<IUserService>());
 
         var customer = new Customer { Id = Guid.NewGuid(), Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true };
         context.Customers.Add(customer);

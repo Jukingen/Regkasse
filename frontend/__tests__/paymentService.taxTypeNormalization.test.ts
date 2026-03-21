@@ -50,7 +50,6 @@ function baseRequest(overrides: Partial<PaymentRequest> = {}): PaymentRequest {
     ],
     payment: { method: 'cash', tseRequired: false, amount: 10 },
     tableNumber: 1,
-    cashierId: 'cashier-1',
     totalAmount: 10,
     cashRegisterId: '22222222-2222-2222-2222-222222222222',
     idempotencyKey: 'test-key-1',

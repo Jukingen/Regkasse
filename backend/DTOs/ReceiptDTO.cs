@@ -40,7 +40,8 @@ namespace KasseAPI_Final.DTOs
         public DateTime Date { get; set; }
         /// <summary>When the receipt row was persisted (may differ slightly from issued-at).</summary>
         public DateTime ReceiptPersistedAtUtc { get; set; }
-        public string CashierName { get; set; } = string.Empty;
+        public string CashierId { get; set; } = string.Empty;
+        public string? CashierDisplayName { get; set; }
         public int? TableNumber { get; set; } // Optional
         public string KassenID { get; set; } = string.Empty; // Cash Register ID
 

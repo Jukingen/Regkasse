@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
@@ -44,8 +45,8 @@ public class AdminUsersController : ControllerBase
         _logger = logger;
     }
 
-    private string? ActorId => User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    private string ActorRole => User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
+    private string? ActorId => User.GetActorUserId();
+    private string ActorRole => User.GetActorRole() ?? "Unknown";
 
     private static AdminUserDto ToDto(ApplicationUser u) => new()
     {

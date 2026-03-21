@@ -74,11 +74,13 @@ export const orderService = {
     customerName?: string,
     customerPhone?: string,
     notes?: string,
-    cartId?: string
+    cartId?: string,
+    customerId?: string
   ): Promise<OrderResponse> {
     const orderRequest: CreateOrderRequest = {
       tableNumber,
       waiterName,
+      customerId,
       customerName,
       customerPhone,
       notes,

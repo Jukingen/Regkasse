@@ -1,9 +1,9 @@
-using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 
 namespace KasseAPI_Final.Controllers;
@@ -65,8 +65,8 @@ public class FiscalExportController : ControllerBase
 
             try
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "unknown";
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
+                var userId = User.GetActorUserId() ?? "unknown";
+                var userRole = User.GetActorRole() ?? "Unknown";
                 await _auditLogService.LogSystemOperationAsync(
                     "FiscalExportRequested",
                     "FiscalExport",

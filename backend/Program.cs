@@ -20,6 +20,7 @@ using KasseAPI_Final.Swagger;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -136,7 +137,7 @@ builder.Services.AddAuthentication(options =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             var correlationId = context.HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
-            var userId = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var userId = context.HttpContext.User.GetActorUserId() ?? "unknown";
             logger.LogWarning(
                 "403 Forbidden (auth handler): correlationId={CorrelationId}, userId={UserId}, path={Path}",
                 correlationId, userId, context.HttpContext.Request.Path);

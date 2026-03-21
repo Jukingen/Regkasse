@@ -27,6 +27,12 @@ export interface CartItem {
   isModified: boolean;
 }
 
+export interface Cart {
+  cartId?: string;
+  items: CartItem[];
+  customerId?: string;
+}
+
 export interface Order {
   id: string;
   items: CartItem[];

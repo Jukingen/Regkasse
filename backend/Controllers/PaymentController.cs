@@ -139,10 +139,6 @@ namespace KasseAPI_Final.Controllers
                         responseData);
                 }
 
-                // Include non-sensitive diagnosticCode in details when present (demo rejection etc.)
-                // CashierId mismatch is identity violation — 403; other failures stay 400.
-                if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == "CASHIER_ID_MISMATCH")
-                    return ErrorResponse(result.Message, 403, new { code = "CASHIER_ID_MISMATCH", errors = result.Errors, diagnosticCode = result.DiagnosticCode });
                 if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == CashRegisterResolutionCodes.Forbidden)
                     return StatusCode(403, new { success = false, message = result.Message, code = result.DiagnosticCode, details = new { errors = result.Errors } });
                 if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == "BENEFIT_DAILY_ALLOWANCE_CONFLICT")

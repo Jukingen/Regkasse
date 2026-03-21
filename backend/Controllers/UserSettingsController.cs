@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Security;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using System;
@@ -38,7 +39,7 @@ namespace KasseAPI_Final.Controllers
                 // Debug: Tüm claims'leri logla
                 _logger.LogInformation("User claims: {Claims}", string.Join(", ", User.Claims.Select(c => $"{c.Type}: {c.Value}")));
                 
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 _logger.LogInformation("Extracted userId from NameIdentifier: {UserId}", userId);
                 
                 // Alternatif olarak user_id custom claim'den de dene
@@ -88,12 +89,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
-                {
-                    userId = User.FindFirst("user_id")?.Value;
-                }
-
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     _logger.LogWarning("Bootstrap user settings: no user ID in claims");
@@ -119,7 +115,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new { message = "User not authenticated" });
@@ -195,7 +191,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new { message = "User not authenticated" });
@@ -235,7 +231,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new { message = "User not authenticated" });
@@ -294,7 +290,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new { message = "User not authenticated" });
@@ -338,7 +334,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new { message = "User not authenticated" });
@@ -382,7 +378,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
                     return Unauthorized(new { message = "User not authenticated" });

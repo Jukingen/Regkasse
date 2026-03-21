@@ -28,13 +28,20 @@ namespace KasseAPI_Final.Services
         private readonly ILogger<ReceiptService> _logger;
         private readonly ITseService _tseService;
         private readonly CompanyProfileOptions _companyProfile;
+        private readonly IUserService _userService;
 
-        public ReceiptService(AppDbContext context, ILogger<ReceiptService> logger, ITseService tseService, Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile)
+        public ReceiptService(
+            AppDbContext context,
+            ILogger<ReceiptService> logger,
+            ITseService tseService,
+            Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile,
+            IUserService userService)
         {
             _context = context;
             _logger = logger;
             _tseService = tseService;
             _companyProfile = companyProfile.Value;
+            _userService = userService;
         }
 
         /// <summary>Returns persisted receipt by ReceiptId or PaymentId. No lazy generation.</summary>
@@ -46,7 +53,7 @@ namespace KasseAPI_Final.Services
                 .Include(r => r.Payment)!.ThenInclude(p => p!.OfflineTransaction)
                 .FirstOrDefaultAsync(r => r.ReceiptId == receiptId || r.PaymentId == receiptId);
 
-            return receipt != null ? MapToDTO(receipt) : null;
+            return receipt != null ? await MapToDtoAsync(receipt) : null;
         }
 
         /// <inheritdoc />
@@ -58,7 +65,7 @@ namespace KasseAPI_Final.Services
                 .Include(r => r.Payment)
                 .FirstOrDefaultAsync(r => r.PaymentId == paymentId);
 
-            return receipt != null ? MapToDTO(receipt) : null;
+            return receipt != null ? await MapToDtoAsync(receipt) : null;
         }
 
         public async Task<ReceiptDTO> CreateReceiptFromPaymentAsync(Guid paymentId)
@@ -72,7 +79,7 @@ namespace KasseAPI_Final.Services
 
             if (existingReceipt != null)
             {
-                return MapToDTO(existingReceipt);
+                return await MapToDtoAsync(existingReceipt);
             }
 
             // 2. Fetch payment (using repository or context)
@@ -215,7 +222,7 @@ namespace KasseAPI_Final.Services
                 SignatureValue = signatureValue,
                 QrData = qrPayload
             };
-            return MapToDTO(newReceipt, signatureDto);
+            return await MapToDtoAsync(newReceipt, signatureDto);
         }
 
         /// <inheritdoc />
@@ -426,8 +433,18 @@ namespace KasseAPI_Final.Services
             return last?.SignatureValue ?? string.Empty;
         }
 
-        private ReceiptDTO MapToDTO(Receipt receipt, ReceiptSignatureDTO? explicitSig = null)
+        private async Task<ReceiptDTO> MapToDtoAsync(Receipt receipt, ReceiptSignatureDTO? explicitSig = null)
         {
+            var cashierIdStr = receipt.CashierId ?? string.Empty;
+            string? cashierDisplay = null;
+            if (!string.IsNullOrEmpty(cashierIdStr))
+            {
+                var appUser = await _userService.GetUserByIdAsync(cashierIdStr).ConfigureAwait(false);
+                var n = appUser?.Name?.Trim();
+                if (!string.IsNullOrEmpty(n))
+                    cashierDisplay = n;
+            }
+
             var header = new ReceiptHeaderDTO
             {
                 ShopName = _companyProfile.CompanyName,
@@ -473,7 +490,8 @@ namespace KasseAPI_Final.Services
                 ReceiptNumber = receipt.ReceiptNumber,
                 Date = receipt.IssuedAt,
                 ReceiptPersistedAtUtc = receipt.CreatedAt,
-                CashierName = receipt.CashierId ?? "Unknown",
+                CashierId = cashierIdStr,
+                CashierDisplayName = cashierDisplay,
                 KassenID = _context.CashRegisters.AsNoTracking()
                     .Where(r => r.Id == receipt.CashRegisterId)
                     .Select(r => r.RegisterNumber)

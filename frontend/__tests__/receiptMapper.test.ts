@@ -5,7 +5,8 @@ const mockReceiptDTO: ReceiptDTO = {
     receiptId: 'test-id',
     receiptNumber: '12345',
     date: '2023-01-01T12:00:00Z',
-    cashierName: 'Test Cashier',
+    cashierId: 'user-1',
+    cashierDisplayName: 'Test Cashier',
     company: {
         name: 'Test Company',
         address: 'Test Address',
@@ -52,7 +53,7 @@ describe('receiptMapper', () => {
         expect(result.tseSignature).toBe(mockReceiptDTO.signature.value);
 
         // Verify Cashier and Kasse
-        expect(result.cashierName).toBe(mockReceiptDTO.cashierName);
+        expect(result.cashierName).toBe(mockReceiptDTO.cashierDisplayName);
         expect(result.kasseId).toBe(mockReceiptDTO.kassenID);
     });
 });

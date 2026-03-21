@@ -133,7 +133,6 @@ namespace KasseAPI_Final.Controllers
 						TseRequired = tseRequired
 					},
 					TableNumber = 1,
-					CashierId = "test-controller",
 					TotalAmount = product.Price,
 					Steuernummer = steuernummer,
 					CashRegisterId = cashRegister.Id,

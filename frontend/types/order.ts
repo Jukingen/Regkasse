@@ -1,6 +1,8 @@
 // Order ve OrderItem için TypeScript interface'leri
 // Backend'deki Order ve OrderItem modelleri ile uyumlu
 
+import type { CustomerKind } from './customerKind';
+
 export interface OrderItem {
   id?: string;
   productId: string;
@@ -49,6 +51,8 @@ export enum OrderStatus {
 export interface CreateOrderRequest {
   tableNumber: string;
   waiterName: string;
+  customerId?: string;
+  customerKind?: CustomerKind;
   customerName?: string;
   customerPhone?: string;
   notes?: string;

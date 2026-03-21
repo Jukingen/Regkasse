@@ -81,6 +81,7 @@ export interface ReceiptDetailDto {
     receiptNumber: string;
     issuedAt: string;
     cashierId: string | null;
+    cashierDisplayName?: string | null;
     cashRegisterId: string;
     subTotal: number;
     taxTotal: number;

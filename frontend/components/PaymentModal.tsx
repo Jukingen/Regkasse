@@ -24,7 +24,8 @@ import { usePayment } from '../hooks/usePayment';
 import { paymentService, PaymentRequest, PaymentItem } from '../services/api/paymentService';
 import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
 import { cartService } from '../services/api/cartService';
-import { customerService, GUEST_CUSTOMER_ID, type BenefitEligibilityPreviewResponse } from '../services/api/customerService';
+import { customerService, isWalkInCustomerId, type BenefitEligibilityPreviewResponse } from '../services/api/customerService';
+import { WALK_IN_CUSTOMER_ID_FALLBACK } from '../constants/walkInCustomer';
 import { validateAmount } from '../utils/validation';
 import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignment';
 import { receiptPrinter } from '../services/receiptPrinter';
@@ -35,7 +36,6 @@ import type { ReceiptDTO } from '../types/ReceiptDTO';
 import type { PosPaymentMethodCode } from '../services/api/paymentService';
 import { downloadInvoicePdf, InvoicePdfHttpError } from '../services/api/invoiceService';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
-import { resolveCashierIdForPayment } from '../utils/paymentSessionUser';
 import {
   buildPosRegisterGateContext,
   registerGateAlertMessage,
@@ -127,7 +127,8 @@ function normalizeReceiptDto(r: any): ReceiptDTO {
     receiptId: r.receiptId ?? r.ReceiptId ?? '',
     receiptNumber: r.receiptNumber ?? r.ReceiptNumber ?? '',
     date: r.date ?? r.Date ?? new Date().toISOString(),
-    cashierName: r.cashierName ?? r.CashierName ?? '',
+    cashierId: r.cashierId ?? r.CashierId ?? '',
+    cashierDisplayName: r.cashierDisplayName ?? r.CashierDisplayName ?? undefined,
     tableNumber: r.tableNumber ?? r.TableNumber,
     company: r.company ?? r.Company ?? { name: '', address: '', taxNumber: '' },
     kassenID: r.kassenID ?? r.KassenID ?? '',
@@ -183,7 +184,7 @@ export default function PaymentModal({
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'voucher' | 'transfer'>('cash');
   const [amountReceived, setAmountReceived] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
-  const [guestCustomerId, setGuestCustomerId] = useState<string>(GUEST_CUSTOMER_ID);
+  const [guestCustomerId, setGuestCustomerId] = useState<string>(WALK_IN_CUSTOMER_ID_FALLBACK);
   // State for Purchase Flow
   type PurchaseState = 'input' | 'processing' | 'printing' | 'completed' | 'print_error';
   const [purchaseState, setPurchaseState] = useState<PurchaseState>('input');
@@ -368,7 +369,7 @@ export default function PaymentModal({
     visible &&
     !!customerId &&
     customerId !== '00000000-0000-0000-0000-000000000000' &&
-    customerId !== GUEST_CUSTOMER_ID &&
+    !isWalkInCustomerId(customerId) &&
     Array.isArray(cartItems) &&
     cartItems.length > 0;
 
@@ -620,11 +621,6 @@ export default function PaymentModal({
         ? customerId
         : guestCustomerId;
 
-      const cashierId = await resolveCashierIdForPayment(user?.id);
-      if (!user?.id && cashierId !== 'UNKNOWN') {
-        debugPosPaymentTrace('submit_auth_user_null_using_jwt_cashier', { cashierId: cashierId.slice(0, 8) + '…' });
-      }
-
       // 4. Build payment request: flat items (one PaymentItem per cart line). Phase D: no modifierIds emission; add-ons = product lines only.
       // Guard: flat items only — do not add modifierIds or modifiers (one item per cart line).
       // taxType: paymentService.processPayment normalizes all items before POST / queue
@@ -655,7 +651,6 @@ export default function PaymentModal({
           amount: selectedPaymentMethod === 'cash' ? parseFloat(amountReceived) : undefined
         },
         tableNumber: resolvedTableNumber,
-        cashierId,
         totalAmount: totalAmount,
         cashRegisterId,
         notes: notes || `Tisch ${resolvedTableNumber} - ${new Date().toLocaleString('de-DE')}`,
@@ -666,7 +661,6 @@ export default function PaymentModal({
       setPurchaseState('processing');
       debugPosPaymentTrace('process_payment_called', {
         cashRegisterId: paymentRequest.cashRegisterId,
-        cashierId: paymentRequest.cashierId,
         itemCount: paymentItems.length,
         method: paymentRequest.payment.method,
         tseRequired: paymentRequest.payment.tseRequired,

@@ -6,6 +6,7 @@ using Npgsql;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Services;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -98,19 +99,42 @@ namespace KasseAPI_Final.Controllers
                 // Benzersiz order_id oluştur
                 var orderId = GenerateOrderId();
                 
-                // Sipariş oluştur
                 var order = new Order
                 {
                     OrderId = orderId,
                     TableNumber = request.TableNumber,
                     WaiterName = request.WaiterName,
-                    CustomerName = request.CustomerName,
                     CustomerPhone = request.CustomerPhone,
                     Notes = request.Notes,
                     OrderDate = DateTime.UtcNow,
                     Status = OrderStatus.Pending,
                     IdempotencyKey = key
                 };
+
+                if (request.CustomerId.HasValue && request.CustomerId.Value != Guid.Empty)
+                {
+                    var linkedCustomer = await _context.Customers.AsNoTracking()
+                        .FirstOrDefaultAsync(c => c.Id == request.CustomerId.Value && c.IsActive);
+                    if (linkedCustomer == null)
+                    {
+                        return BadRequest(new { message = $"Customer with ID {request.CustomerId} not found" });
+                    }
+
+                    var orderCustomerKind = CustomerKindResolver.ResolveFromCustomerId(linkedCustomer.Id, request.CustomerKind);
+                    _logger.LogDebug(
+                        "CreateOrder linked customer CustomerKind={CustomerKind} CustomerId={CustomerId}",
+                        orderCustomerKind,
+                        linkedCustomer.Id);
+
+                    order.CustomerId = linkedCustomer.Id;
+                    order.CustomerName = linkedCustomer.Name;
+                }
+                else
+                {
+                    var anonymousKind = request.CustomerKind ?? CustomerKind.WalkIn;
+                    _logger.LogDebug("CreateOrder guest/name-only path CustomerKind={CustomerKind}", anonymousKind);
+                    order.CustomerName = request.CustomerName;
+                }
 
                 // Order items oluştur ve hesaplamaları yap
                 var orderItems = new List<OrderItem>();
@@ -310,6 +334,11 @@ namespace KasseAPI_Final.Controllers
     {
         public int? TableNumber { get; set; }
         public string? WaiterName { get; set; }
+        public Guid? CustomerId { get; set; }
+
+        /// <summary>Optional explicit customer classification for the order.</summary>
+        public CustomerKind? CustomerKind { get; set; }
+
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
         public string? Notes { get; set; }

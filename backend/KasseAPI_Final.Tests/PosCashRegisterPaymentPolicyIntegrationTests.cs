@@ -75,7 +75,8 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
             context,
             Mock.Of<ILogger<ReceiptService>>(),
             tseMock.Object,
-            Options.Create(companyProfile));
+            Options.Create(companyProfile),
+            userMock.Object);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(),
@@ -168,7 +169,6 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = openId,

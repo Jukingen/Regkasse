@@ -13,20 +13,19 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../contexts/AuthContext';
 import paymentService, {
   type PaymentItem,
   type PaymentRequest,
   type PosPaymentMethodCode,
 } from '../services/api/paymentService';
 import { cartService } from '../services/api/cartService';
-import { customerService, GUEST_CUSTOMER_ID } from '../services/api/customerService';
+import { customerService } from '../services/api/customerService';
+import { WALK_IN_CUSTOMER_ID_FALLBACK } from '../constants/walkInCustomer';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignment';
 import { validateAmount } from '../utils/validation';
 import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
 import { PaymentCancelResponse } from '../types/cart';
-import { resolveCashierIdForPayment } from '../utils/paymentSessionUser';
 import {
   buildPosRegisterGateContext,
   registerGateAlertMessage,
@@ -100,7 +99,6 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
   onPaymentCancelled,
   cashRegisterResolutionActive = true,
 }) => {
-  const { user } = useAuth();
   const {
     cashRegisterId,
     cashRegisterResolved,
@@ -159,7 +157,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
   });
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
-  const [guestCustomerId, setGuestCustomerId] = useState<string>(GUEST_CUSTOMER_ID);
+  const [guestCustomerId, setGuestCustomerId] = useState<string>(WALK_IN_CUSTOMER_ID_FALLBACK);
 
   const enteredTotal = (Object.values(payments) as string[]).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
 
@@ -167,7 +165,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
     customerService
       .getGuestCustomer()
       .then((id) => setGuestCustomerId(id))
-      .catch(() => setGuestCustomerId(GUEST_CUSTOMER_ID));
+      .catch(() => setGuestCustomerId(WALK_IN_CUSTOMER_ID_FALLBACK));
   }, []);
 
   const handleChange = (method: PaymentMethodKey, value: string) => {
@@ -283,8 +281,6 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2, 15)}`;
 
-      const cashierId = await resolveCashierIdForPayment(user?.id);
-
       const paymentRequest: PaymentRequest = {
         customerId: guestCustomerId,
         items: paymentItems,
@@ -294,7 +290,6 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
           amount: dominant === 'cash' ? parseFloat(payments.cash) || enteredTotal : undefined,
         },
         tableNumber: tableNumber || 1,
-        cashierId,
         totalAmount,
         cashRegisterId,
         notes: `Tisch ${tableNumber} - ${new Date().toLocaleString('de-DE')}`,

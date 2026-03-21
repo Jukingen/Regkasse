@@ -13,7 +13,7 @@ import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle, Pressable }
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CartDisplay } from '../../components/CartDisplay';
-import { customerService, GUEST_CUSTOMER_ID } from '../../services/api/customerService';
+import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
 import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
 import EmployeeIdentificationSheet from '../../components/EmployeeIdentificationSheet';
@@ -260,7 +260,7 @@ export default function CashRegisterScreen() {
   // Fetch benefit-summary when sale customer changes (skip guest); request guard to avoid race.
   useEffect(() => {
     const customerId = saleCustomer?.id ?? null;
-    if (!customerId || customerId === GUEST_CUSTOMER_ID) {
+    if (!customerId || isWalkInCustomerId(customerId)) {
       setBenefitSummaryCount(null);
       benefitFetchRef.current = null;
       return;

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Constants;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
@@ -80,6 +81,14 @@ namespace KasseAPI_Final.Controllers
             {
                 return HandleException(ex, $"GetByEmail with email {email}");
             }
+        }
+
+        [HttpGet("walk-in")]
+        public IActionResult GetWalkInCustomerId()
+        {
+            return SuccessResponse(
+                new { customerId = WalkInCustomerConstants.GuestCustomerId },
+                "Walk-in customer id");
         }
 
         /// <summary>

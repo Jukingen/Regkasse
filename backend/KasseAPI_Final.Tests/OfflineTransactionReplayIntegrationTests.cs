@@ -60,7 +60,8 @@ public class OfflineTransactionReplayIntegrationTests
             context,
             new Mock<ILogger<ReceiptService>>().Object,
             tseMock.Object,
-            Options.Create(companyProfile));
+            Options.Create(companyProfile),
+            userMock.Object);
 
         var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>());
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
@@ -218,7 +219,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = cashRegisterId,
@@ -428,7 +428,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = cashRegisterId,
@@ -627,7 +626,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = cashRegisterId,
@@ -752,7 +750,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = cashRegisterId,
@@ -884,7 +881,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             Steuernummer = "ATU12345678",
             CashRegisterId = cashRegisterId,
             Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
@@ -898,7 +894,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = baseRequest.CustomerId,
             TableNumber = baseRequest.TableNumber,
-            CashierId = baseRequest.CashierId,
             Steuernummer = baseRequest.Steuernummer,
             CashRegisterId = baseRequest.CashRegisterId,
             Payment = baseRequest.Payment,
@@ -911,7 +906,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = baseRequest.CustomerId,
             TableNumber = baseRequest.TableNumber,
-            CashierId = baseRequest.CashierId,
             Steuernummer = baseRequest.Steuernummer,
             CashRegisterId = baseRequest.CashRegisterId,
             Payment = baseRequest.Payment,
@@ -1053,7 +1047,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = cashRegisterId,
@@ -1206,7 +1199,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = cashRegisterId,
@@ -1376,7 +1368,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = cashRegisterId,
@@ -1518,7 +1509,6 @@ public class OfflineTransactionReplayIntegrationTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = cashRegisterId,

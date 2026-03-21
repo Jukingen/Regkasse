@@ -5,6 +5,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Fiscal;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -159,12 +160,14 @@ namespace KasseAPI_Final.Controllers
                 if (cashReg == null)
                     return BadRequest(new { message = "TSE device KassenId does not match a cash register" });
 
-                var sigResult = await _tseService.CreateInvoiceSignatureAsync(
-                    tseDevice.KassenId,
-                    request.InvoiceNumber,
-                    request.TotalAmount,
-                    cashReg.RegisterNumber,
-                    taxDetailsJson: request.TaxDetails);
+                var sigResult = await FiscalTseSigning.SignAsync(
+                    _tseService,
+                    new FiscalSigningRequest(
+                        tseDevice.KassenId,
+                        request.InvoiceNumber,
+                        request.TotalAmount,
+                        cashReg.RegisterNumber,
+                        TaxDetailsJson: request.TaxDetails));
                 string tseSignature = sigResult.CompactJws;
                 
                 if (!string.IsNullOrEmpty(tseSignature))

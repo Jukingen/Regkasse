@@ -23,6 +23,7 @@ import {
   type PendingPaymentPayload,
 } from '../payment/pendingPaymentQueue';
 import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
+import type { CustomerKind } from '../../types/customerKind';
 
 export type { PendingPaymentEntry } from '../payment/pendingPaymentQueue';
 
@@ -48,10 +49,8 @@ export interface PaymentRequest {
     tseRequired: boolean;
     amount?: number; // Opsiyonel
   };
-  // Yeni eklenen alanlar
-  tableNumber: number; // Masa numarası
-  cashierId: string; // Kasiyer ID
-  totalAmount: number; // Toplam tutar
+  tableNumber: number;
+  totalAmount: number;
 
   steuernummer?: string;
   /** Required: cash register row UUID from user settings (Kasse). */
@@ -61,6 +60,9 @@ export interface PaymentRequest {
 
   /** Optional idempotency key for this payment attempt. Same key on retry returns existing payment. */
   idempotencyKey?: string;
+
+  /** Optional explicit customer classification (server infers when omitted). */
+  customerKind?: CustomerKind;
 }
 
 /** Backend'den gelen TSE/QR bilgisi - payment.tse */
@@ -298,7 +300,10 @@ class PaymentService {
         grandTotal?: number;
         payments?: Array<{ method?: string }>;
         date?: string;
-        cashierName?: string;
+        cashierId?: string;
+        CashierId?: string;
+        cashierDisplayName?: string;
+        CashierDisplayName?: string;
         taxRates?: Array<{ taxAmount?: number; rate?: number }>;
       }>(`/Receipts/by-payment/${paymentId}`);
 
@@ -323,7 +328,10 @@ class PaymentService {
         total: d.grandTotal ?? 0,
         paymentMethod: d.payments?.[0]?.method ?? 'cash',
         timestamp: d.date ?? new Date().toISOString(),
-        cashierId: d.cashierName ?? ''
+        cashierId:
+          d.cashierId ??
+          d.CashierId ??
+          ''
       };
     } catch (e) {
       console.error('[Receipt] Persisted receipt not available:', e);

@@ -122,7 +122,8 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             ctx,
             Mock.Of<ILogger<ReceiptService>>(),
             tse,
-            Options.Create(TestCompany));
+            Options.Create(TestCompany),
+            userMock.Object);
 
         var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
@@ -175,7 +176,6 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         {
             CustomerId = customerId,
             TableNumber = 1,
-            CashierId = "u1",
             TotalAmount = 6.90m,
             Steuernummer = "ATU12345678",
             CashRegisterId = cashRegisterId,

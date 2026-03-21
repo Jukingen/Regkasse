@@ -67,7 +67,8 @@ class ReceiptPrinter {
       receiptId: data.ReceiptId || data.receiptId || '',
       receiptNumber: data.ReceiptNumber || data.receiptNumber || 'Unknown',
       date: data.Date || data.date || new Date().toISOString(),
-      cashierName: data.CashierName || data.cashierName || 'Unknown',
+      cashierId: data.cashierId || data.CashierId || '',
+      cashierDisplayName: data.cashierDisplayName ?? data.CashierDisplayName,
       tableNumber: data.TableNumber || data.tableNumber,
       kassenID: data.KassenID || data.kassenID || 'Unknown',
 
@@ -134,7 +135,10 @@ class ReceiptPrinter {
         receiptNumber: receiptData.receiptNumber,
         date: new Date(receiptData.date).toLocaleDateString('de-AT'),
         time: new Date(receiptData.date).toLocaleTimeString('de-AT'),
-        cashier: receiptData.cashierName,
+        cashier:
+          (receiptData.cashierDisplayName && receiptData.cashierDisplayName.trim()) ||
+          (receiptData.cashierId && receiptData.cashierId.trim()) ||
+          '—',
         paymentMethod: receiptData.payments[0]?.method || 'cash',
         items: receiptData.items.map(item => ({
           name: item.name,

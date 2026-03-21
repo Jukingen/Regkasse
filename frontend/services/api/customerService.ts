@@ -1,4 +1,9 @@
 import { apiClient } from './config';
+import {
+  isWalkInCustomerId,
+  resolveWalkInCustomerId,
+  WALK_IN_CUSTOMER_ID_FALLBACK,
+} from '../../constants/walkInCustomer';
 
 export interface Customer {
   id: string;
@@ -66,8 +71,8 @@ export interface BenefitEligibilityPreviewItemRequest {
   quantity: number;
 }
 
-// Well-known guest customer ID (must match backend CustomerSeedData)
-export const GUEST_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
+export const GUEST_CUSTOMER_ID = WALK_IN_CUSTOMER_ID_FALLBACK;
+export { isWalkInCustomerId, resolveWalkInCustomerId, WALK_IN_CUSTOMER_ID_FALLBACK };
 
 class CustomerService {
   private baseUrl = '/Customer';
@@ -108,20 +113,8 @@ class CustomerService {
     }
   }
 
-  // Get guest customer (walk-in)
   async getGuestCustomer(): Promise<string> {
-    try {
-      // Try to fetch guest customer to validate it exists
-      const customer = await this.getById(GUEST_CUSTOMER_ID);
-      if (customer && customer.id) {
-        return customer.id;
-      }
-    } catch (error) {
-      console.warn('[CustomerService] Guest customer not found in DB, using hardcoded ID');
-    }
-
-    // Fallback to hardcoded ID if fetch fails
-    return GUEST_CUSTOMER_ID;
+    return resolveWalkInCustomerId();
   }
 
   // Create new customer

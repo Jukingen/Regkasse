@@ -6,6 +6,7 @@ export const mapReceiptDtoToInvoice = (dto: ReceiptDTO): Invoice => {
         id: dto.receiptId,
         receiptNumber: dto.receiptNumber,
         createdAt: dto.date,
+        invoiceDate: dto.date,
         invoiceType: InvoiceType.Standard,
         paymentDetails: {
             paymentMethod: dto.payments?.[0]?.method || 'cash',
@@ -53,7 +54,10 @@ export const mapReceiptDtoToInvoice = (dto: ReceiptDTO): Invoice => {
         qrCode: dto.signature?.qrData || '',
         status: 'Completed' as any,
         footerText: dto.footerText,
-        cashierName: dto.cashierName,
+        cashierName:
+            (dto.cashierDisplayName && dto.cashierDisplayName.trim()) ||
+            (dto.cashierId && dto.cashierId.trim()) ||
+            '',
         kasseId: dto.kassenID
     };
 };
