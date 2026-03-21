@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Ensures a UserSettings row exists (same defaults as UserSettingsController GET bootstrap).
+/// Ensures a UserSettings row exists (defaults shared with <c>GET api/user/settings</c> first-time create and POST <c>api/user/settings/bootstrap</c>).
 /// </summary>
 public static class UserSettingsBootstrap
 {

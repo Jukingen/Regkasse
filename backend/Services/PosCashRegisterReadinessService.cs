@@ -59,11 +59,13 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             .OrderBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
+        var operationalRegisterCount = CashRegisterPosOperationalCardinality.CountOperationalRegisters(registers);
+
         var (effectiveRegister, resolution) = ResolveEffectiveRegister(userSettings, registers);
 
-        if (registers.Count == 0)
+        if (registers.Count == 0 || operationalRegisterCount == 0)
         {
-            return new PosCashRegisterContextDto
+            return StampPreferred(new PosCashRegisterContextDto
             {
                 EffectiveRegisterId = null,
                 Resolution = "none",
@@ -71,20 +73,20 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 AutoOpened = false,
                 NextAction = "none",
                 MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterRequired
-            };
+            }, userSettings);
         }
 
         if (effectiveRegister == null)
         {
-            return new PosCashRegisterContextDto
+            return StampPreferred(new PosCashRegisterContextDto
             {
                 EffectiveRegisterId = null,
                 Resolution = "none",
                 RegisterStatus = null,
                 AutoOpened = false,
-                NextAction = registers.Count > 1 ? "select_register" : "none",
+                NextAction = operationalRegisterCount > 1 ? "select_register" : "none",
                 MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterRequired
-            };
+            }, userSettings);
         }
 
         var dto = new PosCashRegisterContextDto
@@ -105,19 +107,19 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             {
                 dto.NextAction = "forbidden";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterConflict;
-                return dto;
+                return StampPreferred(dto, userSettings);
             }
 
             dto.NextAction = "ready";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady;
-            return dto;
+            return StampPreferred(dto, userSettings);
         }
 
         if (effectiveRegister.Status != RegisterStatus.Closed)
         {
             dto.NextAction = "open_register";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterClosed;
-            return dto;
+            return StampPreferred(dto, userSettings);
         }
 
         var hasShiftOpen = PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.ShiftOpen);
@@ -125,16 +127,18 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         {
             dto.NextAction = "open_register";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterForbidden;
-            return dto;
+            return StampPreferred(dto, userSettings);
         }
 
-        var sole = registers.Count == 1;
+        var isSingleOperational = CashRegisterPosOperationalCardinality.IsSingleOperationalRegisterMode(registers);
+        var singleOperational = CashRegisterPosOperationalCardinality.GetSingleOperationalRegisterOrNull(registers);
         var soleEligible = opts.AutoOpenSoleClosedRegister &&
-                           sole &&
-                           effectiveRegister.Id == registers[0].Id;
+                           isSingleOperational &&
+                           singleOperational != null &&
+                           effectiveRegister.Id == singleOperational.Id;
 
         var assignedEligible = opts.AutoOpenAssignedClosedRegister &&
-                               !sole &&
+                               !isSingleOperational &&
                                string.Equals(resolution, "settings", StringComparison.OrdinalIgnoreCase) &&
                                PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterView);
 
@@ -142,14 +146,14 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         {
             dto.NextAction = "open_register";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterClosed;
-            return dto;
+            return StampPreferred(dto, userSettings);
         }
 
         if (CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, effectiveRegister.CurrentUserId))
         {
             dto.NextAction = "forbidden";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterConflict;
-            return dto;
+            return StampPreferred(dto, userSettings);
         }
 
         var openResult = await _shift.TryOpenCashRegisterAsync(
@@ -175,7 +179,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                     effectiveRegister.Id,
                     userId,
                     soleEligible ? "sole" : "assigned");
-                return dto;
+                return StampPreferred(dto, userSettings);
 
             case CashRegisterOpenKind.SuccessIdempotentAlreadyOpen:
                 dto.AutoOpened = false;
@@ -183,30 +187,30 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 dto.NextAction = "ready";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady;
                 await PersistAssignmentAfterOpenAsync(userSettings, effectiveRegister.Id, userId, cancellationToken);
-                return dto;
+                return StampPreferred(dto, userSettings);
 
             case CashRegisterOpenKind.FailedConflictOtherUser:
                 dto.NextAction = "forbidden";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterConflict;
-                return dto;
+                return StampPreferred(dto, userSettings);
 
             case CashRegisterOpenKind.FailedActorAlreadyHasOtherOpenRegister:
                 dto.NextAction = "forbidden";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterActorAlreadyOpenElsewhere;
-                return dto;
+                return StampPreferred(dto, userSettings);
 
             case CashRegisterOpenKind.FailedNotFound:
                 dto.EffectiveRegisterId = null;
                 dto.RegisterStatus = null;
                 dto.NextAction = "none";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterNotFound;
-                return dto;
+                return StampPreferred(dto, userSettings);
 
             case CashRegisterOpenKind.FailedInvalidState:
             default:
                 dto.NextAction = "open_register";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterClosed;
-                return dto;
+                return StampPreferred(dto, userSettings);
         }
     }
 
@@ -240,25 +244,27 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             .OrderBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        if (registers.Count == 0)
+        var operationalRegisterCount = CashRegisterPosOperationalCardinality.CountOperationalRegisters(registers);
+
+        if (registers.Count == 0 || operationalRegisterCount == 0)
         {
-            return new PosCashRegisterContextDto
+            return StampPreferred(new PosCashRegisterContextDto
             {
                 Resolution = "none",
                 NextAction = "none",
                 MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterRequired
-            };
+            }, userSettings);
         }
 
         var (effective, resolution) = ResolveEffectiveRegister(userSettings, registers);
         if (effective == null)
         {
-            return new PosCashRegisterContextDto
+            return StampPreferred(new PosCashRegisterContextDto
             {
                 Resolution = "none",
-                NextAction = registers.Count > 1 ? "select_register" : "none",
+                NextAction = operationalRegisterCount > 1 ? "select_register" : "none",
                 MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterRequired
-            };
+            }, userSettings);
         }
 
         var dto = new PosCashRegisterContextDto
@@ -275,18 +281,35 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         {
             dto.NextAction = "forbidden";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterConflict;
-            return dto;
+            return StampPreferred(dto, userSettings);
         }
 
         if (effective.Status == RegisterStatus.Open)
         {
             dto.NextAction = "ready";
-            return dto;
+            return StampPreferred(dto, userSettings);
         }
 
         dto.NextAction = "open_register";
         dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterClosed;
+        return StampPreferred(dto, userSettings);
+    }
+
+    private static PosCashRegisterContextDto StampPreferred(PosCashRegisterContextDto dto, UserSettings? userSettings)
+    {
+        dto.PreferredRegisterId = NormalizePersistedPreferenceRegisterId(userSettings?.CashRegisterId);
         return dto;
+    }
+
+    /// <summary>
+    /// Normalized echo of <see cref="UserSettings.CashRegisterId"/>; null when unset or not a non-empty GUID string.
+    /// </summary>
+    private static string? NormalizePersistedPreferenceRegisterId(string? raw)
+    {
+        var t = raw?.Trim();
+        if (string.IsNullOrEmpty(t)) return null;
+        if (!Guid.TryParse(t, out var g) || g == Guid.Empty) return null;
+        return g.ToString("D");
     }
 
     private static (CashRegister? Register, string Resolution) ResolveEffectiveRegister(
@@ -306,10 +329,14 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 resolution = "settings";
         }
 
-        if (effective == null && registers.Count == 1)
+        if (effective == null)
         {
-            effective = registers[0];
-            resolution = "sole_register";
+            var singleOperational = CashRegisterPosOperationalCardinality.GetSingleOperationalRegisterOrNull(registers);
+            if (singleOperational != null)
+            {
+                effective = singleOperational;
+                resolution = "sole_register";
+            }
         }
 
         return (effective, resolution);

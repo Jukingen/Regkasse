@@ -32,4 +32,22 @@ describe('POS register assignment sources', () => {
     expect(src).not.toMatch(/apiClient\.get\(\s*['"]\/?CashRegister/);
     expect(src).not.toMatch(/['"]\/api\/CashRegister['"]/);
   });
+
+  it('assignment hook awaits refreshAsync after successful cash-register persist (stale nextAction fix)', () => {
+    const src = read('hooks/usePosCashRegisterAssignment.ts');
+    expect(src).toMatch(/await\s+updateCashRegisterConfig\(/);
+    expect(src).toMatch(/await\s+posReadiness\.refreshAsync\(\)/);
+  });
+
+  it('settings assignment section awaits refreshAsync after successful persist', () => {
+    const src = read('components/CashRegisterAssignmentSection.tsx');
+    expect(src).toMatch(/await\s+updateCashRegisterConfig\(/);
+    expect(src).toMatch(/await\s+posReadiness\.refreshAsync\(\)/);
+  });
+
+  it('readiness provider exposes refreshAsync for awaited ensure-ready round-trip', () => {
+    const src = read('contexts/PosRegisterReadinessContext.tsx');
+    expect(src).toMatch(/refreshAsync:\s*\(\)\s*=>\s*Promise<void>/);
+    expect(src).toContain('refreshWaitersRef');
+  });
 });

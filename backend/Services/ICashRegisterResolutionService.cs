@@ -56,6 +56,17 @@ public interface ICashRegisterResolutionService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Payment commit gate: re-evaluates the same invariants as <see cref="ValidatePaymentRegisterAsync"/> on a fresh read of the register row
+    /// after acquiring <c>SELECT … FOR UPDATE</c> on PostgreSQL (via <see cref="CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync"/>).
+    /// Must be called only while an EF Core database transaction is active on the same <c>AppDbContext</c> instance as this service.
+    /// </summary>
+    Task<CashRegisterResolutionValidationResult> ValidatePaymentRegisterForCommitAsync(
+        string userId,
+        Guid requestedRegisterId,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Domain projection: open registers the current user may select for POS assignment (self-service picker), after
     /// <see cref="AppPermissions.CashRegisterView"/> / sole-register / shift-ownership rules. Closed and maintenance/disabled rows are excluded.
     /// Registers open on another user&apos;s shift are excluded for all principals (including <see cref="AppPermissions.CashRegisterView"/>)

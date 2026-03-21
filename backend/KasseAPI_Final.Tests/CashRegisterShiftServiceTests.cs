@@ -203,4 +203,103 @@ public class CashRegisterShiftServiceTests
         Assert.Equal(RegisterStatus.Open, reg.Status);
         Assert.Equal(actorId, reg.CurrentUserId);
     }
+
+    [Fact]
+    public async Task Close_Owner_Succeeds_ClearsShift_AndWritesCloseTransaction()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        const string ownerId = "u1";
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 50,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = ownerId,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var mgr = CreateUserManager(new ApplicationUser { Id = ownerId, UserName = ownerId, Email = "u@test" });
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+
+        var result = await svc.TryCloseCashRegisterAsync(regId, ownerId, 42m, CancellationToken.None);
+        Assert.Equal(CashRegisterCloseKind.Success, result.Kind);
+
+        var reg = await ctx.CashRegisters.AsNoTracking().SingleAsync(r => r.Id == regId);
+        Assert.Equal(RegisterStatus.Closed, reg.Status);
+        Assert.Null(reg.CurrentUserId);
+        Assert.Equal(42m, reg.CurrentBalance);
+
+        var closeTx = await ctx.CashRegisterTransactions
+            .AsNoTracking()
+            .SingleAsync(t => t.CashRegisterId == regId && t.TransactionType == TransactionType.Close);
+        Assert.Equal(42m, closeTx.Amount);
+        Assert.Equal(ownerId, closeTx.UserId);
+    }
+
+    [Fact]
+    public async Task Close_NonOwner_ReturnsForbidden_DoesNotMutate()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        const string ownerId = "owner-1";
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 50,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = ownerId,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var mgr = CreateUserManager(new ApplicationUser { Id = "other", UserName = "o", Email = "o@test" });
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+
+        var result = await svc.TryCloseCashRegisterAsync(regId, "other", 1m, CancellationToken.None);
+        Assert.Equal(CashRegisterCloseKind.FailedForbidden, result.Kind);
+
+        var reg = await ctx.CashRegisters.AsNoTracking().SingleAsync(r => r.Id == regId);
+        Assert.Equal(RegisterStatus.Open, reg.Status);
+        Assert.Equal(ownerId, reg.CurrentUserId);
+        Assert.False(await ctx.CashRegisterTransactions.AnyAsync(t => t.CashRegisterId == regId && t.TransactionType == TransactionType.Close));
+    }
+
+    [Fact]
+    public async Task Close_AlreadyClosed_ReturnsAlreadyClosed()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CurrentUserId = null,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var mgr = CreateUserManager(new ApplicationUser { Id = "u1", UserName = "u1", Email = "u@test" });
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+
+        var result = await svc.TryCloseCashRegisterAsync(regId, "u1", 0m, CancellationToken.None);
+        Assert.Equal(CashRegisterCloseKind.FailedAlreadyClosed, result.Kind);
+    }
 }

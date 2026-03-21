@@ -7,8 +7,8 @@ namespace KasseAPI_Final.Services;
 /// Single source for operational shift occupancy on a cash register (<see cref="CashRegister.CurrentUserId"/>).
 /// </summary>
 /// <remarks>
-/// <para><strong>Shared model (four paths)</strong>: selectable POS list, sole open auto-assignment, ensure-ready open-register branch,
-/// and <see cref="CashRegisterResolutionService.ValidatePaymentRegisterAsync"/> all treat &quot;non-empty CurrentUserId ≠ caller&quot; as a
+/// <para><strong>Shared model</strong>: selectable POS list, sole open auto-assignment, ensure-ready open-register branch,
+/// <see cref="CashRegisterResolutionService.ValidatePaymentRegisterAsync"/>, and <see cref="CashRegisterResolutionService.ValidatePaymentRegisterForCommitAsync"/> treat &quot;non-empty CurrentUserId ≠ caller&quot; as a
 /// hard conflict for operational use (payment / ready / picker row / auto-assign).</para>
 /// <para><strong>Exception (fifth path)</strong>: <see cref="CashRegisterResolutionService.ValidateAssignmentChangeAsync"/> uses the same
 /// predicates when the principal lacks <see cref="AppPermissions.CashRegisterView"/>; with that permission, assignment may still persist
@@ -33,14 +33,17 @@ public static class CashRegisterShiftOccupancy
 
     /// <summary>
     /// Manual assignment without <see cref="AppPermissions.CashRegisterView"/>: same occupancy rules as picker filtering for multi-register
-    /// (must hold the shift on that register); sole register allows unclaimed or self (matches sole auto-assign eligibility).
+    /// (must hold the shift on that register); single operational register mode allows unclaimed or self (matches sole auto-assign eligibility).
     /// </summary>
+    /// <param name="operationalRegisterCountForPos">
+    /// Count of registers that participate in POS operational cardinality (see <see cref="CashRegisterPosOperationalCardinality"/>), not raw table row count.
+    /// </param>
     public static bool MayAssignRegisterWithoutCashRegisterView(
         string userId,
         CashRegister register,
-        int totalRegisterCount)
+        int operationalRegisterCountForPos)
     {
-        if (totalRegisterCount == 1)
+        if (operationalRegisterCountForPos == 1)
             return UserMayOperateOpenRegisterShift(userId, register.CurrentUserId);
 
         return !string.IsNullOrEmpty(register.CurrentUserId) &&

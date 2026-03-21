@@ -3,8 +3,22 @@ namespace KasseAPI_Final.Services;
 /// <summary>
 /// JSON contract for POS cash-register readiness (POST /api/pos/cash-register/ensure-ready).
 /// </summary>
+/// <remarks>
+/// <para><see cref="PreferredRegisterId"/> is an echo of persisted <c>UserSettings.CashRegisterId</c> (preference only).</para>
+/// <para><see cref="EffectiveRegisterId"/> is the register row this readiness pass resolved for UX (settings match, or sole-register fallback).
+/// It is not a standalone payment authorization; payment POST validates the body id with occupancy and policy rules.</para>
+/// </remarks>
 public sealed class PosCashRegisterContextDto
 {
+    /// <summary>
+    /// Persisted user preference from <c>UserSettings.CashRegisterId</c> when it is a non-empty GUID string; otherwise null.
+    /// Does not imply the register is operable for payment (see <see cref="EffectiveRegisterId"/>, <c>nextAction</c>, <c>messageCode</c>).
+    /// </summary>
+    public string? PreferredRegisterId { get; set; }
+
+    /// <summary>
+    /// Register id the readiness pipeline attached to this response (resolved from preference and/or sole-register rules).
+    /// </summary>
     public string? EffectiveRegisterId { get; set; }
     public string Resolution { get; set; } = "none";
     public string? RegisterStatus { get; set; }

@@ -177,6 +177,36 @@ describe('computeRegisterGateBlockingPayment', () => {
     ).toBe(true);
   });
 
+  it('after readiness cache cleared for refetch (null nextAction), valid register id unblocks pay (post-assignment refresh path)', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: false,
+        posReadinessLoading: true,
+        posReadinessError: false,
+        posReadinessNextAction: null,
+        posReadinessEffectiveRegisterId: null,
+        effectiveCashRegisterIdForPayment: validId,
+      })
+    ).toBe(false);
+
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: false,
+        posReadinessLoading: false,
+        posReadinessError: false,
+        posReadinessNextAction: null,
+        posReadinessEffectiveRegisterId: null,
+        effectiveCashRegisterIdForPayment: validId,
+      })
+    ).toBe(false);
+  });
+
   it('settings failed + readiness error + no register id: remains blocked', () => {
     expect(
       computeRegisterGateBlockingPayment({
@@ -239,5 +269,71 @@ describe('computeRegisterGateBlockingPayment', () => {
         effectiveCashRegisterIdForPayment: validId,
       })
     ).toBe(true);
+  });
+
+  describe('temporal: stale ensure-ready snapshot vs post-assignment refresh (no sleeps)', () => {
+    it('manual assignment merged id does not unblock while cached nextAction is forbidden (stale readiness)', () => {
+      expect(
+        computeRegisterGateBlockingPayment({
+          enabled: true,
+          posEnsureReadyOnEntry: true,
+          cashRegisterResolved: true,
+          settingsLoadFailed: false,
+          posReadinessLoading: false,
+          posReadinessError: false,
+          posReadinessNextAction: 'forbidden',
+          posReadinessEffectiveRegisterId: validId,
+          effectiveCashRegisterIdForPayment: validId,
+        })
+      ).toBe(true);
+    });
+
+    it('after refresh fix: same payment id with nextAction ready enables pay (was blocked only by stale cache)', () => {
+      expect(
+        computeRegisterGateBlockingPayment({
+          enabled: true,
+          posEnsureReadyOnEntry: true,
+          cashRegisterResolved: true,
+          settingsLoadFailed: false,
+          posReadinessLoading: false,
+          posReadinessError: false,
+          posReadinessNextAction: 'ready',
+          posReadinessEffectiveRegisterId: validId,
+          effectiveCashRegisterIdForPayment: validId,
+        })
+      ).toBe(false);
+    });
+
+    it('manual assignment id present but select_register cache still blocks until ensure-ready refetch', () => {
+      expect(
+        computeRegisterGateBlockingPayment({
+          enabled: true,
+          posEnsureReadyOnEntry: true,
+          cashRegisterResolved: true,
+          settingsLoadFailed: false,
+          posReadinessLoading: false,
+          posReadinessError: false,
+          posReadinessNextAction: 'select_register',
+          posReadinessEffectiveRegisterId: null,
+          effectiveCashRegisterIdForPayment: validId,
+        })
+      ).toBe(true);
+    });
+
+    it('after refresh fix: select_register cleared to ready with effective id unblocks', () => {
+      expect(
+        computeRegisterGateBlockingPayment({
+          enabled: true,
+          posEnsureReadyOnEntry: true,
+          cashRegisterResolved: true,
+          settingsLoadFailed: false,
+          posReadinessLoading: false,
+          posReadinessError: false,
+          posReadinessNextAction: 'ready',
+          posReadinessEffectiveRegisterId: validId,
+          effectiveCashRegisterIdForPayment: validId,
+        })
+      ).toBe(false);
+    });
   });
 });

@@ -28,6 +28,7 @@ namespace KasseAPI_Final.Models
         [Required]
         public RegisterStatus Status { get; set; }
 
+        /// <summary>Operational shift owner (who opened this register). Not the same as per-user preference in UserSettings.</summary>
         public string? CurrentUserId { get; set; }
 
         // Navigation properties

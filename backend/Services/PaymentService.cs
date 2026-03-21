@@ -246,8 +246,7 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                var cashRegisterId = registerValidation.ResolvedRegisterId!.Value;
-                var registerNumber = registerValidation.RegisterNumber!;
+                // Authoritative register id/number come from commit gate inside the fiscal transaction (row lock).
 
                 // TSE modu: Off = tseRequired yok sayılır, Demo = cihaz atlanır, Device = cihaz zorunlu
                 var effectiveTseRequired = request.Payment.TseRequired && !_tseOptions.IsOff;
@@ -276,88 +275,154 @@ namespace KasseAPI_Final.Services
                     }
                 }
 
-                // Ürün kontrolü ve stok güncelleme. Tek hesap motoru: CartMoneyHelper (gross model).
-                var paymentItems = new List<PaymentItem>();
-                var productIdToCategoryId = new Dictionary<Guid, Guid>();
-                decimal totalAmount = 0;
-                decimal totalTaxAmount = 0;
-                var taxDetails = new Dictionary<string, decimal>();
+                Guid cashRegisterId;
+                string registerNumber;
 
-                foreach (var itemRequest in request.Items)
+                PaymentDetails? committedPayment = null;
+                Invoice? committedInvoice = null;
+
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    var product = await _context.Products
-                        .Include(p => p.CategoryNavigation)
-                        .FirstOrDefaultAsync(p => p.Id == itemRequest.ProductId);
-                    if (product == null)
+                    if (idempotencyKey != null)
                     {
+                        var existingByKeyInTx = await _context.PaymentDetails.AsNoTracking()
+                            .FirstOrDefaultAsync(p => p.IdempotencyKey == idempotencyKey);
+                        if (existingByKeyInTx != null)
+                        {
+                            var invoiceExistsInTx = await _context.Invoices.AsNoTracking()
+                                .AnyAsync(i => i.SourcePaymentId == existingByKeyInTx.Id);
+                            _logger.LogInformation("Idempotency: returning existing payment {PaymentId} for key {Key}", existingByKeyInTx.Id, idempotencyKey);
+                            await transaction.RollbackAsync();
+                            var (qrInTx, demoInTx, providerInTx) = await BuildQrPayloadAndFlagsAsync(existingByKeyInTx, !string.IsNullOrEmpty(existingByKeyInTx.TseSignature));
+                            return new PaymentResult
+                            {
+                                Success = true,
+                                Message = "Payment created successfully",
+                                Payment = existingByKeyInTx,
+                                PaymentId = existingByKeyInTx.Id,
+                                TseSignature = existingByKeyInTx.TseSignature,
+                                QrPayload = qrInTx,
+                                IsDemoFiscal = demoInTx,
+                                TseProvider = providerInTx,
+                                InvoicePersisted = invoiceExistsInTx
+                            };
+                        }
+                    }
+
+                    var registerCommitValidation = await _cashRegisterResolution.ValidatePaymentRegisterForCommitAsync(
+                        userId,
+                        request.CashRegisterId,
+                        principal);
+                    if (!registerCommitValidation.Ok)
+                    {
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        _logger.LogWarning(
+                            "Payment rejected at commit gate: cash register policy. UserId={UserId} RegisterId={RegisterId} Code={Code}",
+                            userId,
+                            request.CashRegisterId,
+                            registerCommitValidation.Code);
                         return new PaymentResult
                         {
                             Success = false,
-                            Message = "Product not found",
-                            Errors = { $"Product with ID {itemRequest.ProductId} not found" }
+                            Message = registerCommitValidation.Message,
+                            Errors = { registerCommitValidation.Message },
+                            DiagnosticCode = registerCommitValidation.Code
                         };
                     }
 
-                    if (product.CategoryNavigation == null)
-                    {
-                        return new PaymentResult
-                        {
-                            Success = false,
-                            Message = "Product category missing",
-                            Errors = { $"Product {product.Name} has no category" }
-                        };
-                    }
+                    cashRegisterId = registerCommitValidation.ResolvedRegisterId!.Value;
+                    registerNumber = registerCommitValidation.RegisterNumber!;
 
-                    // Phase 2: Sellable add-ons are product-only payment lines; no stock deduction (stok düşülmez).
-                    // Stock is updated in memory on tracked entities; persisted in a single transaction with payment/invoice/receipt (no per-product UpdateAsync).
-                    if (!product.IsSellableAddOn)
+                    // Ürün kontrolü ve stok güncelleme. Tek hesap motoru: CartMoneyHelper (gross model).
+                    var paymentItems = new List<PaymentItem>();
+                    var productIdToCategoryId = new Dictionary<Guid, Guid>();
+                    decimal totalAmount = 0;
+                    decimal totalTaxAmount = 0;
+                    var taxDetails = new Dictionary<string, decimal>();
+
+                    foreach (var itemRequest in request.Items)
                     {
-                        if (product.StockQuantity < itemRequest.Quantity)
+                        var product = await _context.Products
+                            .Include(p => p.CategoryNavigation)
+                            .FirstOrDefaultAsync(p => p.Id == itemRequest.ProductId);
+                        if (product == null)
                         {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
                             return new PaymentResult
                             {
                                 Success = false,
-                                Message = "Insufficient stock",
-                                Errors = { $"Insufficient stock for product {product.Name}" }
+                                Message = "Product not found",
+                                Errors = { $"Product with ID {itemRequest.ProductId} not found" }
                             };
                         }
-                        product.StockQuantity -= itemRequest.Quantity;
-                        product.UpdatedAt = DateTime.UtcNow;
+
+                        if (product.CategoryNavigation == null)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Product category missing",
+                                Errors = { $"Product {product.Name} has no category" }
+                            };
+                        }
+
+                        // Phase 2: Sellable add-ons are product-only payment lines; no stock deduction (stok düşülmez).
+                        // Stock is updated in memory on tracked entities; persisted in a single transaction with payment/invoice/receipt (no per-product UpdateAsync).
+                        if (!product.IsSellableAddOn)
+                        {
+                            if (product.StockQuantity < itemRequest.Quantity)
+                            {
+                                await transaction.RollbackAsync();
+                                _context.ChangeTracker.Clear();
+                                return new PaymentResult
+                                {
+                                    Success = false,
+                                    Message = "Insufficient stock",
+                                    Errors = { $"Insufficient stock for product {product.Name}" }
+                                };
+                            }
+                            product.StockQuantity -= itemRequest.Quantity;
+                            product.UpdatedAt = DateTime.UtcNow;
+                        }
+
+                        // VAT oranı kategoriden (yüzde: 10, 20); tek rounding noktası CartMoneyHelper. decimal only.
+                        var vatRatePercent = product.CategoryNavigation.VatRate;
+                        var line = CartMoneyHelper.ComputeLine(product.Price, itemRequest.Quantity, vatRatePercent);
+                        totalAmount += line.LineGross;
+                        totalTaxAmount += line.LineTax;
+
+                        var paymentItem = new PaymentItem
+                        {
+                            ProductId = product.Id,
+                            ProductName = product.Name,
+                            Quantity = itemRequest.Quantity,
+                            UnitPrice = line.UnitPriceGross,
+                            TotalPrice = line.LineGross,
+                            TaxType = line.TaxType,
+                            TaxRate = line.TaxRate,
+                            TaxAmount = line.LineTax,
+                            LineNet = line.LineNet
+                        };
+
+                        // Add-ons are separate payment items (productId). ModifierIds/Modifiers in request are not used for new writes.
+                        paymentItems.Add(paymentItem);
+                        productIdToCategoryId[product.Id] = product.CategoryId;
+
+                        var taxKey = line.TaxType.ToString().ToLowerInvariant();
+                        if (!taxDetails.ContainsKey(taxKey))
+                            taxDetails[taxKey] = 0;
+                        taxDetails[taxKey] += line.LineTax;
                     }
 
-                    // VAT oranı kategoriden (yüzde: 10, 20); tek rounding noktası CartMoneyHelper. decimal only.
-                    var vatRatePercent = product.CategoryNavigation.VatRate;
-                    var line = CartMoneyHelper.ComputeLine(product.Price, itemRequest.Quantity, vatRatePercent);
-                    totalAmount += line.LineGross;
-                    totalTaxAmount += line.LineTax;
-
-                    var paymentItem = new PaymentItem
-                    {
-                        ProductId = product.Id,
-                        ProductName = product.Name,
-                        Quantity = itemRequest.Quantity,
-                        UnitPrice = line.UnitPriceGross,
-                        TotalPrice = line.LineGross,
-                        TaxType = line.TaxType,
-                        TaxRate = line.TaxRate,
-                        TaxAmount = line.LineTax,
-                        LineNet = line.LineNet
-                    };
-
-                    // Add-ons are separate payment items (productId). ModifierIds/Modifiers in request are not used for new writes.
-                    paymentItems.Add(paymentItem);
-                    productIdToCategoryId[product.Id] = product.CategoryId;
-
-                    var taxKey = line.TaxType.ToString().ToLowerInvariant();
-                    if (!taxDetails.ContainsKey(taxKey))
-                        taxDetails[taxKey] = 0;
-                    taxDetails[taxKey] += line.LineTax;
-                }
-
-                // Resolve effective percentage discount: assigned benefit (Priority then highest %) first, else Customer.DiscountPercentage fallback. Single discount only.
-                decimal effectivePct = 0;
-                var now = DateTime.UtcNow;
-                var assignedPercentage = await _context.BenefitAssignments
+                    // Resolve effective percentage discount: assigned benefit (Priority then highest %) first, else Customer.DiscountPercentage fallback. Single discount only.
+                    decimal effectivePct = 0;
+                    var now = DateTime.UtcNow;
+                    var assignedPercentage = await _context.BenefitAssignments
                     .Where(ba => ba.CustomerId == customer.Id && ba.IsActive
                         && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now))
                     .Include(ba => ba.BenefitDefinition)
@@ -550,6 +615,8 @@ namespace KasseAPI_Final.Services
                     _logger.LogWarning(
                         "Payment total mismatch: calculated={Calculated}, request={Request}. Rejecting for fiscal integrity.",
                         totalAmount, request.TotalAmount);
+                    await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
                     return new PaymentResult
                     {
                         Success = false,
@@ -558,38 +625,10 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                // Idempotency (pre-transaction): same key check again in case of race; return existing payment to avoid duplicate.
-                if (idempotencyKey != null)
-                {
-                    var existingByKey = await _context.PaymentDetails.AsNoTracking()
-                        .FirstOrDefaultAsync(p => p.IdempotencyKey == idempotencyKey);
-                    if (existingByKey != null)
-                    {
-                        var invoiceExists = await _context.Invoices.AsNoTracking()
-                            .AnyAsync(i => i.SourcePaymentId == existingByKey.Id);
-                        _logger.LogInformation("Idempotency: returning existing payment {PaymentId} for key {Key}", existingByKey.Id, idempotencyKey);
-                        var (qr, demo, provider) = await BuildQrPayloadAndFlagsAsync(existingByKey, !string.IsNullOrEmpty(existingByKey.TseSignature));
-                        return new PaymentResult
-                        {
-                            Success = true,
-                            Message = "Payment created successfully",
-                            Payment = existingByKey,
-                            PaymentId = existingByKey.Id,
-                            TseSignature = existingByKey.TseSignature,
-                            QrPayload = qr,
-                            IsDemoFiscal = demo,
-                            TseProvider = provider,
-                            InvoicePersisted = invoiceExists
-                        };
-                    }
-                }
-
-                // Single database transaction: BelegNr allocation + payment + invoice + receipt + stock updates commit together; any failure rolls back all.
+                // Single database transaction: register row lock + stock + BelegNr + payment + invoice + receipt commit together.
                 PaymentDetails? payment = null;
                 Invoice? posInvoice = null;
-                await using var transaction = await _context.Database.BeginTransactionAsync();
-                try
-                {
+
                     // Sprint 1: Allocate BelegNr within this transaction so it commits or rolls back with payment/invoice/receipt/stock.
                     var preReceiptNumber = await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(transaction, cashRegisterId, registerNumber, DateTime.UtcNow);
 
@@ -640,6 +679,7 @@ namespace KasseAPI_Final.Services
                         {
                             _logger.LogError(ex, "Failed to generate TSE signature for payment {PaymentId}", payment.Id);
                             await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
                             return new PaymentResult
                             {
                                 Success = false,
@@ -689,16 +729,21 @@ namespace KasseAPI_Final.Services
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
+
+                    committedPayment = payment!;
+                    committedInvoice = posInvoice!;
                 }
                 catch (DbUpdateConcurrencyException ex)
                 {
                     await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
                     _logger.LogWarning(ex, "Daily allowance concurrency conflict for customer {CustomerId} during payment creation", request.CustomerId);
                     return ToDailyAllowanceConflictResult();
                 }
                 catch (DbUpdateException ex) when (IsIdempotencyKeyViolation(ex))
                 {
                     await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
                     if (idempotencyKey != null)
                     {
                         var existing = await _context.PaymentDetails.AsNoTracking()
@@ -728,106 +773,113 @@ namespace KasseAPI_Final.Services
                 catch (DbUpdateException ex) when (IsBenefitDailyUsageConflict(ex))
                 {
                     await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
                     _logger.LogWarning(ex, "Daily allowance unique constraint race for customer {CustomerId} during payment creation", request.CustomerId);
                     return ToDailyAllowanceConflictResult();
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
                     _logger.LogError(ex, "Fiscal transaction failed for payment; Payment, Invoice, Receipt, and stock updates rolled back");
                     throw;
                 }
 
-                var createdPayment = payment!;
-                var createdInvoice = posInvoice!;
-                _logger.LogInformation("Payment created successfully: {PaymentId} for customer {CustomerId} (Invoice {InvoiceId}, Receipt in same transaction)",
-                    createdPayment.Id, customer.Id, createdInvoice.Id);
-
-                // Audit: append-only, after successful commit. Best-effort; failure does not roll back payment.
-                var paymentAuditCorrelation = offlineReplayBatchCorrelationId?.ToString("N");
-                await LogPaymentAuditAsync("PaymentCreated", "Payment", createdPayment.Id, userId,
-                    amount: createdPayment.TotalAmount,
-                    paymentMethod: createdPayment.PaymentMethodRaw,
-                    tseSignature: createdPayment.TseSignature,
-                    correlationId: paymentAuditCorrelation,
-                    responseData: new
-                    {
-                        createdPayment.Id,
-                        createdPayment.ReceiptNumber,
-                        createdPayment.TotalAmount,
-                        createdPayment.CashRegisterId,
-                        CreatedAt = createdPayment.CreatedAt,
-                        offlineReplayBatchCorrelationId = offlineReplayBatchCorrelationId
-                    });
-
-                var persistedReceipt = await _context.Receipts.AsNoTracking()
-                    .FirstOrDefaultAsync(r => r.PaymentId == createdPayment.Id);
-                if (persistedReceipt != null)
+                if (committedPayment != null && committedInvoice != null)
                 {
-                    await LogPaymentAuditAsync("ReceiptPersisted", "Receipt", persistedReceipt.ReceiptId, userId,
+                    var createdPayment = committedPayment;
+                    var createdInvoice = committedInvoice;
+                    _logger.LogInformation("Payment created successfully: {PaymentId} for customer {CustomerId} (Invoice {InvoiceId}, Receipt in same transaction)",
+                        createdPayment.Id, customer.Id, createdInvoice.Id);
+
+                    // Audit: append-only, after successful commit. Best-effort; failure does not roll back payment.
+                    var paymentAuditCorrelation = offlineReplayBatchCorrelationId?.ToString("N");
+                    await LogPaymentAuditAsync("PaymentCreated", "Payment", createdPayment.Id, userId,
                         amount: createdPayment.TotalAmount,
+                        paymentMethod: createdPayment.PaymentMethodRaw,
                         tseSignature: createdPayment.TseSignature,
                         correlationId: paymentAuditCorrelation,
-                        description: "Canonical fiscal receipt persisted with payment",
                         responseData: new
                         {
-                            persistedReceipt.ReceiptId,
-                            persistedReceipt.ReceiptNumber,
-                            PaymentId = createdPayment.Id,
+                            createdPayment.Id,
+                            createdPayment.ReceiptNumber,
+                            createdPayment.TotalAmount,
                             createdPayment.CashRegisterId,
+                            CreatedAt = createdPayment.CreatedAt,
                             offlineReplayBatchCorrelationId = offlineReplayBatchCorrelationId
                         });
-                }
 
-                // FinanzOnline: best-effort after commit; failure does not roll back DB. Persist reconciliation state.
-                if (effectiveTseRequired)
-                {
-                    try
+                    var persistedReceipt = await _context.Receipts.AsNoTracking()
+                        .FirstOrDefaultAsync(r => r.PaymentId == createdPayment.Id);
+                    if (persistedReceipt != null)
                     {
-                        _finanzOnlineMetrics?.IncrementSubmitTotal();
-                        var foResult = await _finanzOnlineService.SubmitInvoiceAsync(createdInvoice).ConfigureAwait(false);
-                        await UpdatePaymentFinanzOnlineStateAsync(createdPayment.Id, foResult, isRetry: false,
-                            userIdForAudit: userId,
-                            correlationIdForAudit: offlineReplayBatchCorrelationId?.ToString("N")).ConfigureAwait(false);
-                        if (foResult.Success)
-                            _logger.LogInformation("Invoice sent to FinanzOnline: {InvoiceId}, ReferenceId={RefId}", createdInvoice.Id, foResult.ReferenceId);
-                        else
+                        await LogPaymentAuditAsync("ReceiptPersisted", "Receipt", persistedReceipt.ReceiptId, userId,
+                            amount: createdPayment.TotalAmount,
+                            tseSignature: createdPayment.TseSignature,
+                            correlationId: paymentAuditCorrelation,
+                            description: "Canonical fiscal receipt persisted with payment",
+                            responseData: new
+                            {
+                                persistedReceipt.ReceiptId,
+                                persistedReceipt.ReceiptNumber,
+                                PaymentId = createdPayment.Id,
+                                createdPayment.CashRegisterId,
+                                offlineReplayBatchCorrelationId = offlineReplayBatchCorrelationId
+                            });
+                    }
+
+                    // FinanzOnline: best-effort after commit; failure does not roll back DB. Persist reconciliation state.
+                    if (effectiveTseRequired)
+                    {
+                        try
                         {
-                            _finanzOnlineMetrics?.IncrementSubmitFailed(foResult.FailureKind);
-                            _logger.LogWarning("FinanzOnline submit failed for Invoice {InvoiceId}: {Error}, FailureKind={Kind}", createdInvoice.Id, foResult.ErrorMessage, foResult.FailureKind);
+                            _finanzOnlineMetrics?.IncrementSubmitTotal();
+                            var foResult = await _finanzOnlineService.SubmitInvoiceAsync(createdInvoice).ConfigureAwait(false);
+                            await UpdatePaymentFinanzOnlineStateAsync(createdPayment.Id, foResult, isRetry: false,
+                                userIdForAudit: userId,
+                                correlationIdForAudit: offlineReplayBatchCorrelationId?.ToString("N")).ConfigureAwait(false);
+                            if (foResult.Success)
+                                _logger.LogInformation("Invoice sent to FinanzOnline: {InvoiceId}, ReferenceId={RefId}", createdInvoice.Id, foResult.ReferenceId);
+                            else
+                            {
+                                _finanzOnlineMetrics?.IncrementSubmitFailed(foResult.FailureKind);
+                                _logger.LogWarning("FinanzOnline submit failed for Invoice {InvoiceId}: {Error}, FailureKind={Kind}", createdInvoice.Id, foResult.ErrorMessage, foResult.FailureKind);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            var kind = ClassifyFinanzOnlineFailure(ex);
+                            _finanzOnlineMetrics?.IncrementSubmitFailed(kind);
+                            _logger.LogWarning(ex, "Failed to send invoice to FinanzOnline: {InvoiceId}", createdInvoice.Id);
+                            await UpdatePaymentFinanzOnlineStateAsync(createdPayment.Id, new FinanzOnlineSubmitResponse
+                            {
+                                Success = false,
+                                ErrorMessage = ex.Message,
+                                SubmittedAt = DateTime.UtcNow,
+                                Status = "Failed",
+                                FailureKind = kind
+                            }, isRetry: false,
+                                userIdForAudit: userId,
+                                correlationIdForAudit: offlineReplayBatchCorrelationId?.ToString("N")).ConfigureAwait(false);
                         }
                     }
-                    catch (Exception ex)
+
+                    var (qrPayload, isDemoFiscal, tseProvider) = await BuildQrPayloadAndFlagsAsync(createdPayment, effectiveTseRequired);
+                    return new PaymentResult
                     {
-                        var kind = ClassifyFinanzOnlineFailure(ex);
-                        _finanzOnlineMetrics?.IncrementSubmitFailed(kind);
-                        _logger.LogWarning(ex, "Failed to send invoice to FinanzOnline: {InvoiceId}", createdInvoice.Id);
-                        await UpdatePaymentFinanzOnlineStateAsync(createdPayment.Id, new FinanzOnlineSubmitResponse
-                        {
-                            Success = false,
-                            ErrorMessage = ex.Message,
-                            SubmittedAt = DateTime.UtcNow,
-                            Status = "Failed",
-                            FailureKind = kind
-                        }, isRetry: false,
-                            userIdForAudit: userId,
-                            correlationIdForAudit: offlineReplayBatchCorrelationId?.ToString("N")).ConfigureAwait(false);
-                    }
+                        Success = true,
+                        Message = "Payment created successfully",
+                        Payment = createdPayment,
+                        PaymentId = createdPayment.Id,
+                        TseSignature = createdPayment.TseSignature,
+                        QrPayload = qrPayload,
+                        IsDemoFiscal = isDemoFiscal,
+                        TseProvider = tseProvider,
+                        InvoicePersisted = true
+                    };
                 }
 
-                var (qrPayload, isDemoFiscal, tseProvider) = await BuildQrPayloadAndFlagsAsync(createdPayment, effectiveTseRequired);
-                return new PaymentResult
-                {
-                    Success = true,
-                    Message = "Payment created successfully",
-                    Payment = createdPayment,
-                    PaymentId = createdPayment.Id,
-                    TseSignature = createdPayment.TseSignature,
-                    QrPayload = qrPayload,
-                    IsDemoFiscal = isDemoFiscal,
-                    TseProvider = tseProvider,
-                    InvoicePersisted = true
-                };
+                throw new InvalidOperationException("Payment fiscal transaction finished without a committed payment result.");
             }
             catch (Exception ex)
             {

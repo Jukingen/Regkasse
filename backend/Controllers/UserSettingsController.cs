@@ -61,68 +61,54 @@ namespace KasseAPI_Final.Controllers
 
                 if (userSettings == null)
                 {
-                    // Varsayılan ayarları oluştur
-                    userSettings = new UserSettings
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        
-                        // Dil ve lokalizasyon ayarları (Avusturya için)
-                        Language = "de-DE",
-                        Currency = "EUR",
-                        DateFormat = "DD.MM.YYYY",
-                        TimeFormat = "24h",
-                        
-                        // Kasa konfigürasyonu
-                        DefaultTaxRate = 20, // Avusturya standart vergi oranı
-                        EnableDiscounts = true,
-                        EnableCoupons = true,
-                        AutoPrintReceipts = false,
-                        ReceiptHeader = "Registrierkasse - Kassenbeleg",
-                        ReceiptFooter = "Vielen Dank für Ihren Einkauf!",
-                        
-                        // TSE ayarları
-                        FinanzOnlineEnabled = false,
-                        
-                        // Güvenlik ayarları
-                        SessionTimeout = 30, // 30 dakika
-                        RequirePinForRefunds = true,
-                        MaxDiscountPercentage = 50,
-                        
-                        // Görünüm ayarları
-                        Theme = "light",
-                        CompactMode = false,
-                        ShowProductImages = true,
-                        
-                        // Bildirim ayarları
-                        EnableNotifications = true,
-                        LowStockAlert = true,
-                        
-                        // Varsayılan değerler
-                        DefaultPaymentMethod = "mixed",
-                        DefaultTableNumber = "1",
-                        DefaultWaiterName = "Kasiyer",
-                        
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow
-                    };
-
+                    userSettings = UserSettingsBootstrap.CreateDefaultRow(userId);
                     _context.UserSettings.Add(userSettings);
                     await _context.SaveChangesAsync();
-                    
+
                     _logger.LogInformation("Created default user settings for user: {UserId}", userId);
                 }
 
-                // ApplySoleOpenRegisterAutoAssignmentIfNeededAsync: persists CashRegisterId only when the DB has exactly one
-                // cash_registers row (any status) AND that row is RegisterStatus.Open. It does not mean "exactly one open
-                // register" when multiple rows exist (two rows => no assignment here, regardless of how many are open).
-                await _cashRegisterResolution.ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(userSettings, userId);
-
+                // GET is read-only for register assignment and other orchestration. Use POST .../bootstrap after login
+                // or POS POST .../ensure-ready for sole-register auto-assignment when eligible.
                 return Ok(userSettings);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting user settings");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Ensures a <see cref="UserSettings"/> row exists and applies sole-operational-register auto-assignment when eligible.
+        /// Prefer after login or before relying on persisted <c>CashRegisterId</c>; <see cref="GetUserSettings"/> does not run this.
+        /// </summary>
+        [HttpPost("bootstrap")]
+        public async Task<ActionResult<UserSettings>> BootstrapUserSettings()
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    userId = User.FindFirst("user_id")?.Value;
+                }
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("Bootstrap user settings: no user ID in claims");
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var userSettings = await UserSettingsBootstrap.GetOrCreateTrackedUserSettingsAsync(_context, userId);
+                await _cashRegisterResolution.ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(userSettings, userId);
+
+                _logger.LogInformation("Bootstrapped user settings for user: {UserId}", userId);
+                return Ok(userSettings);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error bootstrapping user settings");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }

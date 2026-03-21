@@ -16,6 +16,15 @@ public interface ICashRegisterShiftService
         string transactionDescription,
         bool allowIdempotentSameUser,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Closes an open register for the operational shift owner. Uses the same row lock strategy as <see cref="TryOpenCashRegisterAsync"/> on PostgreSQL.
+    /// </summary>
+    Task<CashRegisterCloseResult> TryCloseCashRegisterAsync(
+        Guid registerId,
+        string actorUserId,
+        decimal closingBalance,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -60,4 +69,32 @@ public enum CashRegisterOpenKind
     FailedConflictOtherUser,
     FailedActorAlreadyHasOtherOpenRegister,
     FailedInvalidState,
+}
+
+/// <summary>
+/// Outcome of a shift close attempt.
+/// </summary>
+public sealed class CashRegisterCloseResult
+{
+    public CashRegisterCloseKind Kind { get; init; }
+
+    public static CashRegisterCloseResult Success() =>
+        new() { Kind = CashRegisterCloseKind.Success };
+
+    public static CashRegisterCloseResult NotFound() =>
+        new() { Kind = CashRegisterCloseKind.FailedNotFound };
+
+    public static CashRegisterCloseResult AlreadyClosed() =>
+        new() { Kind = CashRegisterCloseKind.FailedAlreadyClosed };
+
+    public static CashRegisterCloseResult Forbidden() =>
+        new() { Kind = CashRegisterCloseKind.FailedForbidden };
+}
+
+public enum CashRegisterCloseKind
+{
+    Success,
+    FailedNotFound,
+    FailedAlreadyClosed,
+    FailedForbidden,
 }

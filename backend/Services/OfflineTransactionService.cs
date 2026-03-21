@@ -402,6 +402,11 @@ public class OfflineTransactionService : IOfflineTransactionService
                         offlineTransactionId: offline.Id,
                         offlineReplayBatchCorrelationId: replayBatchCorrelationId).ConfigureAwait(false);
 
+                    // CreatePaymentAsync may call ChangeTracker.Clear() on fiscal rollback; re-load so offline row updates persist.
+                    offline = await _context.OfflineTransactions
+                        .FirstAsync(x => x.Id == offline.Id)
+                        .ConfigureAwait(false);
+
                     if (paymentResult.Success && paymentResult.PaymentId.HasValue)
                     {
                         offline.Status = OfflineTransactionStatus.Synced;
@@ -467,6 +472,10 @@ public class OfflineTransactionService : IOfflineTransactionService
                 }
                 catch (Exception ex)
                 {
+                    offline = await _context.OfflineTransactions
+                        .FirstAsync(x => x.Id == offline.Id)
+                        .ConfigureAwait(false);
+
                     _logger.LogWarning(
                         ex,
                         "Offline replay exception for OfflineTransactionId={OfflineId}, ReplayBatchCorrelationId={ReplayBatchCorrelationId}",

@@ -9,7 +9,7 @@ namespace KasseAPI_Final.Controllers;
 
 /// <summary>
 /// POS session cash-register readiness (nextAction, effective register, optional auto-open). Not called by payment creation;
-/// payment authorizes <c>CashRegisterId</c> via <see cref="ICashRegisterResolutionService.ValidatePaymentRegisterAsync"/>.
+/// payment authorizes <c>CashRegisterId</c> via <see cref="ICashRegisterResolutionService.ValidatePaymentRegisterAsync"/> and re-validates at DB commit via <see cref="ICashRegisterResolutionService.ValidatePaymentRegisterForCommitAsync"/>.
 /// </summary>
 [Authorize]
 [ApiController]

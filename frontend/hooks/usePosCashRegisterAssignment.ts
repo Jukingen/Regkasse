@@ -24,8 +24,9 @@ import {
 import { shouldFetchPosSelectableRegisterList } from '../utils/posRegisterAssignmentFetchPolicy';
 
 /**
- * Builds the `CashRegisterId` sent on POS payment: merges ensure-ready (when enabled), GET /user/settings,
- * and `fetchPosSelectableRegisters` → `POS_SELECTABLE_REGISTERS_PATH` (see `shouldFetchPosSelectableRegisterList`).
+ * Builds the `CashRegisterId` sent on POS payment: merges ensure-ready (when enabled), GET /user/settings (read-only;
+ * login runs POST /user/settings/bootstrap for sole-assign), and `fetchPosSelectableRegisters` → `POS_SELECTABLE_REGISTERS_PATH`
+ * (see `shouldFetchPosSelectableRegisterList`).
  * Picklist rows are server-filtered: open, not on another user's shift (closed rows are never returned);
  * auto-persist runs when exactly one selectable row is returned.
  *
@@ -60,7 +61,7 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
   const retryUserSettingsLoad = useCallback(() => {
     setSettingsLoadFailed(false);
     setSettingsRetryToken((n) => n + 1);
-    posReadiness.refresh();
+    void posReadiness.refreshAsync();
   }, [posReadiness]);
 
   useEffect(() => {
@@ -168,10 +169,11 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
           if (next && next !== '00000000-0000-0000-0000-000000000000') {
             setCashRegisterId(next);
           }
+          await posReadiness.refreshAsync();
         } catch (e) {
           if (!cancelled) {
             console.warn('[usePosCashRegisterAssignment] Auto-assign single cash register failed:', e);
-            void posReadiness.refresh();
+            void posReadiness.refreshAsync();
           }
         }
       })
@@ -205,6 +207,7 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
     posReadiness.loading,
     posReadiness.error,
     posReadiness.refresh,
+    posReadiness.refreshAsync,
   ]);
 
   const handlePersistCashRegister = useCallback(async (id: string) => {
@@ -221,6 +224,7 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
       } else {
         setCashRegisterId(trimmed);
       }
+      await posReadiness.refreshAsync();
       Alert.alert('Gespeichert', 'Kasse wurde zugewiesen.');
     } catch (e) {
       console.warn('[usePosCashRegisterAssignment] Failed to persist cash register:', e);
@@ -236,14 +240,14 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
         setCashRegisterId(revertTo);
       }
       if (!retain) {
-        void posReadiness.refresh();
+        void posReadiness.refreshAsync();
       }
       const { title, message } = cashRegisterPersistFailureAlertDe(e, retain);
       Alert.alert(title, message);
     } finally {
       setSavingRegisterId(null);
     }
-  }, [cashRegisterId, posReadiness.refresh]);
+  }, [cashRegisterId, posReadiness.refreshAsync]);
 
   const effectiveCashRegisterIdForPayment = useMemo(() => {
     if (isValidPosCashRegisterId(cashRegisterId)) return cashRegisterId!.trim();

@@ -39,11 +39,15 @@ public class CashRegisterControllerCloseTests
 
     private static CashRegisterController CreateController(AppDbContext ctx, string authenticatedUserId)
     {
+        var shift = new CashRegisterShiftService(
+            ctx,
+            CreateTestUserManager(),
+            Mock.Of<ILogger<CashRegisterShiftService>>());
         var c = new CashRegisterController(
             Mock.Of<ILogger<CashRegisterController>>(),
             ctx,
             CreateTestUserManager(),
-            Mock.Of<ICashRegisterShiftService>());
+            shift);
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

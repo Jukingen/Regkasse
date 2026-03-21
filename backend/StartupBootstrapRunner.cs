@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,8 +13,8 @@ namespace KasseAPI_Final
 {
     /// <summary>
     /// Orchestrates all startup bootstrap responsibilities: database migration,
-    /// pending migration gate, role/user seeding, demo data, product seed, guest customer seed.
-    /// No behavior change — extraction only for clarity and future W1-T02/T03 work.
+    /// pending migration gate, role/user seeding, demo data, product seed, guest customer seed,
+    /// and (Development only) a minimal POS cash register when <c>cash_registers</c> is empty.
     /// </summary>
     public static class StartupBootstrapRunner
     {
@@ -53,6 +54,16 @@ namespace KasseAPI_Final
             context = serviceProvider.GetRequiredService<AppDbContext>();
             await SeedData.SeedProductsAsync(context);
             await CustomerSeedData.SeedGuestCustomerAsync(context);
+
+            var webEnv = serviceProvider.GetService<IWebHostEnvironment>();
+            if (webEnv != null && webEnv.IsDevelopment())
+            {
+                var cashRegisterLogger = serviceProvider.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("KasseAPI_Final.Data.CashRegisterBootstrapSeed");
+                await CashRegisterBootstrapSeed.EnsureMinimalOperationalCashRegisterWhenTableEmptyAsync(
+                    context,
+                    cashRegisterLogger);
+            }
 
             Console.WriteLine("Database seeding completed successfully");
         }

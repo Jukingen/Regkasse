@@ -108,6 +108,7 @@ export function CashRegisterAssignmentSection() {
       } else {
         setAssignedId(t);
       }
+      await posReadiness.refreshAsync();
       Alert.alert('Gespeichert', 'Kasse wurde zugewiesen.');
     } catch (e) {
       console.warn('[CashRegisterAssignmentSection] save failed', e);

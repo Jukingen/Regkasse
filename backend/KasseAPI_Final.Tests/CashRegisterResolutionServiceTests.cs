@@ -41,6 +41,144 @@ public class CashRegisterResolutionServiceTests
     }
 
     [Fact]
+    public async Task ApplySoleOpenRegisterAutoAssignmentIfNeeded_AssignsWhenSingleOperationalOpen_EvenWithDisabledRow()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "ARCH",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Disabled,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        var us = new UserSettings
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u1",
+            CashRegisterId = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        ctx.UserSettings.Add(us);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        await svc.ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(us, "u1");
+
+        Assert.Equal(regId.ToString(), us.CashRegisterId);
+    }
+
+    [Fact]
+    public async Task ApplySoleOpenRegisterAutoAssignmentIfNeeded_AssignsWhenSingleOperationalOpen_EvenWithMaintenanceRow()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "MNT",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Maintenance,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        var us = new UserSettings
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u1",
+            CashRegisterId = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        ctx.UserSettings.Add(us);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        await svc.ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(us, "u1");
+
+        Assert.Equal(regId.ToString(), us.CashRegisterId);
+    }
+
+    [Fact]
+    public async Task ApplySoleOpenRegisterAutoAssignmentIfNeeded_AssignsWhenSingleOperationalOpen_EvenWithInactiveClosedRow()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "OLD",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = false
+        });
+        var us = new UserSettings
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u1",
+            CashRegisterId = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        ctx.UserSettings.Add(us);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        await svc.ApplySoleOpenRegisterAutoAssignmentIfNeededAsync(us, "u1");
+
+        Assert.Equal(regId.ToString(), us.CashRegisterId);
+    }
+
+    [Fact]
     public async Task ApplySoleOpenRegisterAutoAssignmentIfNeeded_AssignsWhenExactlyOneDbRow_AndThatRegisterIsOpen()
     {
         await using var ctx = CreateContext();
@@ -204,6 +342,144 @@ public class CashRegisterResolutionServiceTests
 
         Assert.True(r.Ok);
         Assert.Equal(regId, r.ResolvedRegisterId);
+    }
+
+    [Fact]
+    public async Task ValidatePaymentRegister_SingleOperationalOpen_AllowsWithoutSettings_WhenSecondRowIsDisabled()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u1",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "X",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Disabled,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidatePaymentRegisterAsync("u1", regId, new ClaimsPrincipal());
+
+        Assert.True(r.Ok);
+        Assert.Equal(regId, r.ResolvedRegisterId);
+    }
+
+    [Fact]
+    public async Task ValidatePaymentRegister_SingleOperationalOpen_AllowsWithoutSettings_WhenSecondRowIsMaintenance()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u1",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "MNT",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Maintenance,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidatePaymentRegisterAsync("u1", regId, new ClaimsPrincipal());
+
+        Assert.True(r.Ok);
+        Assert.Equal(regId, r.ResolvedRegisterId);
+    }
+
+    [Fact]
+    public async Task ValidatePaymentRegister_ConfiguredDefault_WorksWhenTwoOperationalRowsAndThirdIsDisabled()
+    {
+        await using var ctx = CreateContext();
+        var rDefault = Guid.NewGuid();
+        var rOther = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = rDefault,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u1",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = rOther,
+            RegisterNumber = "K2",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "OLD",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Disabled,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.UserSettings.Add(new UserSettings
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u1",
+            CashRegisterId = rDefault.ToString(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var r = await svc.ValidatePaymentRegisterAsync("u1", rDefault, new ClaimsPrincipal());
+
+        Assert.True(r.Ok);
+        Assert.Equal(rDefault, r.ResolvedRegisterId);
     }
 
     [Fact]
@@ -553,6 +829,84 @@ public class CashRegisterResolutionServiceTests
 
         Assert.Single(list);
         Assert.Equal(onlyId, list[0].Id);
+    }
+
+    [Fact]
+    public async Task ListSelectableRegisters_SingleOperationalOpen_ReturnsOneRow_WithoutCashRegisterView_WhenSecondRowDisabled()
+    {
+        await using var ctx = CreateContext();
+        var onlyId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = onlyId,
+            RegisterNumber = "K1",
+            Location = "A",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u1",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "X",
+            Location = "B",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Disabled,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var principal = PrincipalWithAppPermissions(AppPermissions.CartView);
+        var list = await svc.ListSelectableRegistersAsync("u1", principal);
+
+        Assert.Single(list);
+        Assert.Equal(onlyId, list[0].Id);
+    }
+
+    [Fact]
+    public async Task ListSelectableForPosPicker_OnlyNonOperationalRows_EmptyReasonNoRegisters()
+    {
+        await using var ctx = CreateContext();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "D1",
+            Location = "A",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Disabled,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "M1",
+            Location = "B",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Maintenance,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var principal = PrincipalWithAppPermissions(AppPermissions.CartView, AppPermissions.CashRegisterView);
+        var result = await svc.ListSelectableForPosPickerAsync("u1", principal);
+
+        Assert.Empty(result.Registers);
+        Assert.Equal("no_registers", result.EmptyReason);
     }
 
     [Fact]

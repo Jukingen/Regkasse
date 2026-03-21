@@ -33,13 +33,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            var provider = _context.Database.ProviderName ?? string.Empty;
-            if (provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
-            {
-                await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"""SELECT 1 FROM cash_registers WHERE id = {registerId} FOR UPDATE""",
-                    cancellationToken);
-            }
+            await CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync(_context, registerId, cancellationToken);
 
             var register = await _context.CashRegisters
                 .Include(r => r.CurrentUser)
@@ -147,6 +141,79 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
         {
             await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "TryOpenCashRegisterAsync failed for register {RegisterId}", registerId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Same row-lock entry as <see cref="TryOpenCashRegisterAsync"/> and payment commit authorization
+    /// (<see cref="CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync"/>): evaluate invariants on the locked register row inside the transaction.
+    /// </remarks>
+    public async Task<CashRegisterCloseResult> TryCloseCashRegisterAsync(
+        Guid registerId,
+        string actorUserId,
+        decimal closingBalance,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync(_context, registerId, cancellationToken);
+
+            var register = await _context.CashRegisters
+                .Include(r => r.CurrentUser)
+                .FirstOrDefaultAsync(r => r.Id == registerId, cancellationToken);
+
+            if (register == null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return CashRegisterCloseResult.NotFound();
+            }
+
+            if (register.Status == RegisterStatus.Closed)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return CashRegisterCloseResult.AlreadyClosed();
+            }
+
+            if (string.IsNullOrEmpty(actorUserId) ||
+                !string.Equals(register.CurrentUserId, actorUserId, StringComparison.Ordinal))
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return CashRegisterCloseResult.Forbidden();
+            }
+
+            register.Status = RegisterStatus.Closed;
+            register.CurrentBalance = closingBalance;
+            register.LastBalanceUpdate = DateTime.UtcNow;
+            register.UpdatedAt = DateTime.UtcNow;
+            register.CurrentUser = null;
+            register.CurrentUserId = null;
+
+            var closeTx = new CashRegisterTransaction
+            {
+                CashRegisterId = register.Id,
+                TransactionType = TransactionType.Close,
+                Amount = closingBalance,
+                Description = "Kasa kapanışı",
+                UserId = actorUserId,
+                TransactionDate = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            _context.CashRegisterTransactions.Add(closeTx);
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation("Cash register {RegisterId} closed by user {UserId}", registerId, actorUserId);
+            return CashRegisterCloseResult.Success();
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "TryCloseCashRegisterAsync failed for register {RegisterId}", registerId);
             throw;
         }
     }

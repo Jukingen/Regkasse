@@ -8,7 +8,7 @@ namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// Cash-register model (explicit). Operational shift occupancy is centralized in <see cref="CashRegisterShiftOccupancy"/> and reused by
-/// <see cref="ListSelectableRegistersAsync"/>, <see cref="ApplySoleOpenRegisterAutoAssignmentIfNeededAsync"/>, <see cref="ValidatePaymentRegisterAsync"/>,
+/// <see cref="ListSelectableRegistersAsync"/>, <see cref="ApplySoleOpenRegisterAutoAssignmentIfNeededAsync"/>, <see cref="ValidatePaymentRegisterAsync"/>, <see cref="ValidatePaymentRegisterForCommitAsync"/>,
 /// and <see cref="PosCashRegisterReadinessService"/> (ensure-ready).
 /// - <see cref="UserSettings.CashRegisterId"/> = persisted POS payment preference / assignment for the user.
 /// - <see cref="CashRegister.CurrentUserId"/> = operational shift ownership (who opened the register).
@@ -20,10 +20,10 @@ namespace KasseAPI_Final.Services;
 /// they never override another user&apos;s shift (same conflict semantics as <see cref="PosCashRegisterReadinessService"/>, separate code path).
 /// </summary>
 /// <remarks>
-/// <see cref="ApplySoleOpenRegisterAutoAssignmentIfNeededAsync"/> is separate: it persists settings only when there is
-/// exactly one <see cref="CashRegister"/> row <em>and</em> that row is already <see cref="RegisterStatus.Open"/>
+/// <see cref="ApplySoleOpenRegisterAutoAssignmentIfNeededAsync"/> is separate: it persists settings only when POS operational cardinality is
+/// exactly one register (<see cref="CashRegisterPosOperationalCardinality"/>) <em>and</em> that register is already <see cref="RegisterStatus.Open"/>
 /// and the register is not on another user&apos;s shift (<see cref="CashRegister.CurrentUserId"/>).
-/// A closed sole register is not auto-assigned here (POS ensure-ready may open it and persist elsewhere).
+/// A closed sole operational register is not auto-assigned here (POS ensure-ready may open it and persist elsewhere).
 /// </remarks>
 public sealed class CashRegisterResolutionService : ICashRegisterResolutionService
 {
@@ -52,10 +52,9 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             .OrderBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        if (registers.Count != 1)
+        var only = CashRegisterPosOperationalCardinality.GetSingleOperationalRegisterOrNull(registers);
+        if (only == null)
             return;
-
-        var only = registers[0];
         if (only.Status != RegisterStatus.Open)
         {
             _logger.LogInformation(
@@ -145,6 +144,7 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         ClaimsPrincipal principal,
         CancellationToken cancellationToken = default)
     {
+        _ = principal;
         if (requestedRegisterId == Guid.Empty)
         {
             return CashRegisterResolutionValidationResult.Failure(
@@ -156,6 +156,62 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == requestedRegisterId, cancellationToken);
 
+        var settings = await _context.UserSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
+
+        var operationalRegisterCount = await _context.CashRegisters.AsNoTracking()
+            .WhereCountsTowardPosOperationalCardinality()
+            .CountAsync(cancellationToken);
+
+        return EvaluatePaymentRegisterPolicy(userId, requestedRegisterId, register, settings, operationalRegisterCount);
+    }
+
+    /// <inheritdoc />
+    public async Task<CashRegisterResolutionValidationResult> ValidatePaymentRegisterForCommitAsync(
+        string userId,
+        Guid requestedRegisterId,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken = default)
+    {
+        _ = principal;
+        if (requestedRegisterId == Guid.Empty)
+        {
+            return CashRegisterResolutionValidationResult.Failure(
+                CashRegisterResolutionCodes.Required,
+                "CashRegisterId is required.");
+        }
+
+        await CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync(
+            _context,
+            requestedRegisterId,
+            cancellationToken);
+
+        var register = await _context.CashRegisters
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == requestedRegisterId, cancellationToken);
+
+        var settings = await _context.UserSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
+
+        var operationalRegisterCount = await _context.CashRegisters.AsNoTracking()
+            .WhereCountsTowardPosOperationalCardinality()
+            .CountAsync(cancellationToken);
+
+        return EvaluatePaymentRegisterPolicy(userId, requestedRegisterId, register, settings, operationalRegisterCount);
+    }
+
+    /// <summary>
+    /// Single policy implementation for payment-time register authorization (pre-check and commit gate).
+    /// </summary>
+    private static CashRegisterResolutionValidationResult EvaluatePaymentRegisterPolicy(
+        string userId,
+        Guid requestedRegisterId,
+        CashRegister? register,
+        UserSettings? settings,
+        int operationalRegisterCount)
+    {
         if (register == null)
         {
             return CashRegisterResolutionValidationResult.Failure(
@@ -170,7 +226,6 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
                 "Cash register is closed or not usable for payment.");
         }
 
-        // Another user's operational shift blocks payment — never overridden by settings assignment or sole-register fallback.
         var shiftOccupantId = register.CurrentUserId;
         if (CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, shiftOccupantId))
         {
@@ -182,10 +237,6 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         var shiftHeldByCurrentUser = !string.IsNullOrEmpty(shiftOccupantId) &&
                                      string.Equals(shiftOccupantId, userId, StringComparison.Ordinal);
 
-        var settings = await _context.UserSettings
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
-
         var assignedRaw = settings?.CashRegisterId?.Trim();
         var assignedMatches =
             !string.IsNullOrEmpty(assignedRaw) &&
@@ -193,19 +244,18 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             assignedGuid != Guid.Empty &&
             assignedGuid == requestedRegisterId;
 
-        var totalRegisters = await _context.CashRegisters.AsNoTracking().CountAsync(cancellationToken);
-        var soleRegisterMatches = totalRegisters == 1 && register.Id == requestedRegisterId;
+        var soleRegisterMatches = operationalRegisterCount == 1 && register.Id == requestedRegisterId;
 
         if (shiftHeldByCurrentUser || soleRegisterMatches || assignedMatches)
         {
             return CashRegisterResolutionValidationResult.Success(register.Id, register.RegisterNumber);
         }
 
-        if (totalRegisters > 1 && IsMissingOrEmptyGuid(settings?.CashRegisterId))
+        if (operationalRegisterCount > 1 && IsMissingOrEmptyGuid(settings?.CashRegisterId))
         {
             return CashRegisterResolutionValidationResult.Failure(
                 CashRegisterResolutionCodes.SelectionRequired,
-                "Multiple cash registers exist; assign one in settings or use your shift register.");
+                "Multiple operational cash registers exist; assign one in settings or use your shift register.");
         }
 
         return CashRegisterResolutionValidationResult.Failure(
@@ -244,8 +294,10 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
                 .ToList();
         }
 
-        var total = await _context.CashRegisters.AsNoTracking().CountAsync(cancellationToken);
-        if (total == 1 && usableOpen.Count == 1)
+        var operationalTotal = await _context.CashRegisters.AsNoTracking()
+            .WhereCountsTowardPosOperationalCardinality()
+            .CountAsync(cancellationToken);
+        if (operationalTotal == 1 && usableOpen.Count == 1)
         {
             var r = usableOpen[0];
             return new List<CashRegisterSelectableRow>
@@ -280,21 +332,65 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         var registers = await ListSelectableRegistersAsync(userId, principal, cancellationToken);
         if (registers.Count > 0)
         {
+            _logger.LogDebug(
+                "PosSelectable resolved: UserId={UserId} returnedCount={Count} emptyReason=null hasCashRegisterView={HasView}",
+                userId,
+                registers.Count,
+                PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterView));
             return new PosSelectableListResult { Registers = registers, EmptyReason = null };
         }
 
-        var total = await _context.CashRegisters.AsNoTracking().CountAsync(cancellationToken);
-        if (total == 0)
-        {
-            return new PosSelectableListResult { Registers = registers, EmptyReason = "no_registers" };
-        }
-
-        var openCount = await _context.CashRegisters
+        var totalRows = await _context.CashRegisters.AsNoTracking().CountAsync(cancellationToken);
+        var operationalTotal = await _context.CashRegisters.AsNoTracking()
+            .WhereCountsTowardPosOperationalCardinality()
+            .CountAsync(cancellationToken);
+        var openRows = await _context.CashRegisters
             .AsNoTracking()
             .CountAsync(r => r.Status == RegisterStatus.Open, cancellationToken);
+        var openUnclaimedOrSelf = await _context.CashRegisters
+            .AsNoTracking()
+            .Where(r => r.Status == RegisterStatus.Open &&
+                        (r.CurrentUserId == null || r.CurrentUserId == userId))
+            .CountAsync(cancellationToken);
+        var hasCashRegisterView =
+            PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterView);
 
-        var reason = openCount == 0 ? "none_open" : "none_selectable_for_user";
-        return new PosSelectableListResult { Registers = registers, EmptyReason = reason };
+        string emptyReason;
+        if (operationalTotal == 0)
+        {
+            emptyReason = "no_registers";
+        }
+        else
+        {
+            var openCount = openRows;
+            emptyReason = openCount == 0 ? "none_open" : "none_selectable_for_user";
+        }
+
+        _logger.LogInformation(
+            "PosSelectable empty: UserId={UserId} totalRows={TotalRows} operationalRows={OperationalRows} openRows={OpenRows} openRowsUnclaimedOrSelf={OpenUnclaimedOrSelf} selectableReturned=0 emptyReason={EmptyReason} hasCashRegisterView={HasView}. " +
+            "Operational = active + (Open or Closed); picker lists Open only; non-operational = Maintenance/Disabled or inactive.",
+            userId,
+            totalRows,
+            operationalTotal,
+            openRows,
+            openUnclaimedOrSelf,
+            emptyReason,
+            hasCashRegisterView);
+
+        if (totalRows > 0 && operationalTotal == 0)
+        {
+            var excluded = await _context.CashRegisters.AsNoTracking()
+                .OrderBy(r => r.RegisterNumber)
+                .Select(r => new { r.Id, r.RegisterNumber, StatusCode = (int)r.Status, r.IsActive })
+                .Take(25)
+                .ToListAsync(cancellationToken);
+            _logger.LogInformation(
+                "PosSelectable: all {TotalRows} cash_registers rows excluded from operational cardinality (sample): {@ExcludedSample}",
+                totalRows,
+                excluded);
+        }
+
+        return new PosSelectableListResult { Registers = registers, EmptyReason = emptyReason };
     }
 
     /// <summary>
@@ -312,8 +408,10 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         if (PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterView))
             return true;
 
-        var total = await _context.CashRegisters.AsNoTracking().CountAsync(cancellationToken);
-        return CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView(userId, register, total);
+        var operationalTotal = await _context.CashRegisters.AsNoTracking()
+            .WhereCountsTowardPosOperationalCardinality()
+            .CountAsync(cancellationToken);
+        return CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView(userId, register, operationalTotal);
     }
 
     private static bool IsMissingOrEmptyGuid(string? cashRegisterId)

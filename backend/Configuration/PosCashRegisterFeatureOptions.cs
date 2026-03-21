@@ -9,7 +9,7 @@ public sealed class PosCashRegisterFeatureOptions
 
     /// <summary>
     /// When true, POST ensure-ready may auto-open a closed register (per other flags), persist assignment after open,
-    /// and run <c>ApplySoleOpenRegisterAutoAssignmentIfNeededAsync</c> (settings write only when exactly one register row exists and it is already Open).
+    /// and run <c>ApplySoleOpenRegisterAutoAssignmentIfNeededAsync</c> (settings write when POS operational cardinality is one and that register is already Open).
     /// When false, endpoint returns read-only resolution (no settings mutation, no open).
     /// </summary>
     public bool EffectiveDefaultOnPosEntry { get; set; } = true;

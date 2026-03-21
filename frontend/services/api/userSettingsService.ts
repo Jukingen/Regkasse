@@ -87,6 +87,35 @@ export const getUserSettings = async (): Promise<UserSettings> => {
   }
 };
 
+/**
+ * POST /user/settings/bootstrap — creates UserSettings row if missing and applies sole-register auto-assignment when eligible.
+ * Does not replace GET for routine reads; use after login (see getUserSettingsAfterLogin) or when explicit initialization is required.
+ */
+export const bootstrapUserSettings = async (): Promise<UserSettings> => {
+  const raw = await apiClient.post<unknown>('/user/settings/bootstrap', {});
+  const source = resolveUserSettingsRecord(raw);
+  const flat = source as Record<string, unknown>;
+  debugPosPaymentTrace('settings_bootstrap_values', {
+    cashRegisterId: flat.cashRegisterId ?? flat.CashRegisterId ?? null,
+    userId: flat.userId ?? flat.UserId ?? null,
+  });
+  const id = readCashRegisterIdFromSettingsPayload(source);
+  const invalid = !id || id === '00000000-0000-0000-0000-000000000000';
+  return { ...(source as UserSettings), cashRegisterId: invalid ? undefined : id };
+};
+
+/**
+ * Preferred path after login: bootstrap (explicit mutation + sole assign), then GET if bootstrap is unavailable (older API).
+ */
+export const getUserSettingsAfterLogin = async (): Promise<UserSettings> => {
+  try {
+    return await bootstrapUserSettings();
+  } catch (error) {
+    console.warn('[userSettings] bootstrap failed, falling back to GET /user/settings', error);
+    return getUserSettings();
+  }
+};
+
 // Kullanıcı ayarlarını güncelle
 export const updateUserSettings = async (settings: Partial<UserSettings>): Promise<UserSettings> => {
   try {

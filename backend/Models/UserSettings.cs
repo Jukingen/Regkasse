@@ -26,7 +26,7 @@ namespace KasseAPI_Final.Models
         [StringLength(10)]
         public string TimeFormat { get; set; } = "24h";
 
-        // Kasa konfigürasyonu
+        // POS: persisted register preference only (not operational shift; payment authority is POST body + DB validation).
         [StringLength(100)]
         public string? CashRegisterId { get; set; }
 

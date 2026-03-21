@@ -37,9 +37,9 @@ public class CashRegisterShiftOccupancyTests
         var self = new CashRegister { CurrentUserId = "u1" };
         var other = new CashRegister { CurrentUserId = "u2" };
 
-        Assert.True(CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView("u1", unclaimed, totalRegisterCount: 1));
-        Assert.True(CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView("u1", self, totalRegisterCount: 1));
-        Assert.False(CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView("u1", other, totalRegisterCount: 1));
+        Assert.True(CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView("u1", unclaimed, operationalRegisterCountForPos: 1));
+        Assert.True(CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView("u1", self, operationalRegisterCountForPos: 1));
+        Assert.False(CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView("u1", other, operationalRegisterCountForPos: 1));
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class CashRegisterShiftOccupancyTests
         var unclaimed = new CashRegister { CurrentUserId = null };
         var self = new CashRegister { CurrentUserId = "u1" };
 
-        Assert.False(CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView("u1", unclaimed, totalRegisterCount: 2));
-        Assert.True(CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView("u1", self, totalRegisterCount: 2));
+        Assert.False(CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView("u1", unclaimed, operationalRegisterCountForPos: 2));
+        Assert.True(CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView("u1", self, operationalRegisterCountForPos: 2));
     }
 }

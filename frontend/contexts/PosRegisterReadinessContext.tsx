@@ -1,5 +1,5 @@
 // Cached POST /api/pos/cash-register/ensure-ready: effective register, nextAction, optional auto-open. Not invoked by payment POST.
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { postEnsurePosCashRegisterReady } from '../services/api/posCashRegisterReadinessService';
@@ -13,6 +13,10 @@ export type PosRegisterReadinessContextValue = {
   error: Error | null;
   /** Re-run ensure-ready (e.g. after network recovery). */
   refresh: () => void;
+  /**
+   * Await a full ensure-ready round-trip (e.g. after PUT user cash-register) so payment gate does not read stale nextAction.
+   */
+  refreshAsync: () => Promise<void>;
 };
 
 const PosRegisterReadinessContext = createContext<PosRegisterReadinessContextValue>({
@@ -20,6 +24,7 @@ const PosRegisterReadinessContext = createContext<PosRegisterReadinessContextVal
   loading: false,
   error: null,
   refresh: () => {},
+  refreshAsync: async () => {},
 });
 
 export function usePosRegisterReadiness(): PosRegisterReadinessContextValue {
@@ -32,22 +37,38 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [token, setToken] = useState(0);
+  const refreshWaitersRef = useRef<(() => void)[]>([]);
 
   const refresh = useCallback(() => {
     setToken((n) => n + 1);
   }, []);
+
+  const refreshAsync = useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        refreshWaitersRef.current.push(resolve);
+        setToken((n) => n + 1);
+      }),
+    []
+  );
 
   useEffect(() => {
     if (!POS_ENSURE_READY_ON_ENTRY || !isAuthenticated || !user?.id) {
       setData(null);
       setLoading(false);
       setError(null);
+      const waiters = refreshWaitersRef.current;
+      refreshWaitersRef.current = [];
+      waiters.forEach((w) => w());
       return;
     }
 
     let cancelled = false;
     setLoading(true);
     setError(null);
+    // Drop stale nextAction/effectiveRegisterId while a new ensure-ready runs so payment gate is not stuck on
+    // pre-assignment states after a successful PUT /user/settings cash-register (see usePosCashRegisterAssignment).
+    setData(null);
 
     void (async () => {
       try {
@@ -64,6 +85,11 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
         if (!cancelled) {
           setLoading(false);
         }
+        if (!cancelled) {
+          const waiters = refreshWaitersRef.current;
+          refreshWaitersRef.current = [];
+          waiters.forEach((w) => w());
+        }
       }
     })();
 
@@ -78,8 +104,9 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
       loading,
       error,
       refresh,
+      refreshAsync,
     }),
-    [data, loading, error, refresh]
+    [data, loading, error, refresh, refreshAsync]
   );
 
   return (

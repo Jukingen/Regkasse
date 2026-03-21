@@ -169,49 +169,30 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var register = await _context.CashRegisters
-                    .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-                if (register == null)
-                {
-                    return NotFound(new { message = "Kasa bulunamadı" });
-                }
-
-                if (register.Status == RegisterStatus.Closed)
-                {
-                    return BadRequest(new { message = "Kasa zaten kapalı" });
-                }
-
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                // Operational shift owner: scalar FK only (same source as ValidatePaymentRegisterAsync).
-                if (string.IsNullOrEmpty(userId) ||
-                    !string.Equals(register.CurrentUserId, userId, StringComparison.Ordinal))
+                if (string.IsNullOrEmpty(userId))
                 {
                     return Forbid();
                 }
 
-                register.Status = RegisterStatus.Closed;
-                register.CurrentBalance = model.ClosingBalance;
-                register.LastBalanceUpdate = DateTime.UtcNow;
-                register.UpdatedAt = DateTime.UtcNow;
-                register.CurrentUser = null;
-                register.CurrentUserId = null;
+                var result = await _cashRegisterShift.TryCloseCashRegisterAsync(
+                    id,
+                    userId,
+                    model.ClosingBalance,
+                    cancellationToken);
 
-                var transaction = new CashRegisterTransaction
+                return result.Kind switch
                 {
-                    CashRegisterId = register.Id,
-                    TransactionType = TransactionType.Close,
-                    Amount = model.ClosingBalance,
-                    Description = "Kasa kapanışı",
-                    UserId = userId,
-                    TransactionDate = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
-                    IsActive = true
+                    CashRegisterCloseKind.Success =>
+                        Ok(new { message = "Kasa başarıyla kapatıldı" }),
+                    CashRegisterCloseKind.FailedNotFound =>
+                        NotFound(new { message = "Kasa bulunamadı" }),
+                    CashRegisterCloseKind.FailedAlreadyClosed =>
+                        BadRequest(new { message = "Kasa zaten kapalı" }),
+                    CashRegisterCloseKind.FailedForbidden =>
+                        Forbid(),
+                    _ => StatusCode(500, new { message = "Kasa kapatılırken bir hata oluştu" })
                 };
-
-                _context.CashRegisterTransactions.Add(transaction);
-                await _context.SaveChangesAsync(cancellationToken);
-
-                return Ok(new { message = "Kasa başarıyla kapatıldı" });
             }
             catch (Exception ex)
             {

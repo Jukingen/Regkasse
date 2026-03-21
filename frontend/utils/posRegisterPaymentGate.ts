@@ -34,8 +34,10 @@ export function computeRegisterGateBlockingPayment(p: PosRegisterPaymentGatePara
     !hasValidCashRegisterId;
 
   /**
-   * Cached ensure-ready says not `ready` (conflict, closed, selection, etc.). Client blocks submit
-   * even if profile still holds a GUID; payment POST would still be judged only by ValidatePaymentRegisterAsync.
+   * Cached ensure-ready says not `ready` (conflict, closed, selection, etc.). Client blocks submit when that
+   * cache is present. After a successful cash-register assignment, the readiness provider clears this DTO and
+   * re-fetches ensure-ready so stale `select_register` / `open_register` does not block forever.
+   * Payment POST remains authoritative (server `ValidatePaymentRegisterAsync` only).
    */
   const posReadinessDeniesPayment =
     p.posEnsureReadyOnEntry &&

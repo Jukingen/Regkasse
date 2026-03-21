@@ -32,4 +32,15 @@ describe('parsePosCashRegisterContextDto', () => {
     expect(dto.nextAction).toBe('open_register');
     expect(dto.messageCode).toBe('CASH_REGISTER_CLOSED');
   });
+
+  it('reads preferredRegisterId (persisted preference echo)', () => {
+    const id = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const dto = parsePosCashRegisterContextDto({
+      preferredRegisterId: id,
+      effectiveRegisterId: id,
+      nextAction: 'forbidden',
+      messageCode: 'CASH_REGISTER_CONFLICT',
+    });
+    expect(dto.preferredRegisterId).toBe(id);
+  });
 });

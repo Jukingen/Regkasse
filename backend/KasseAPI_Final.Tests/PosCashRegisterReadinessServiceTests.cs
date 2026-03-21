@@ -93,10 +93,73 @@ public class PosCashRegisterReadinessServiceTests
         Assert.True(dto.AutoOpened);
         Assert.Equal(PosCashRegisterReadinessMessageCodes.CashRegisterAutoOpened, dto.MessageCode);
         Assert.Equal(regId.ToString(), dto.EffectiveRegisterId);
+        Assert.Equal(regId.ToString("D"), dto.PreferredRegisterId);
 
         var reg = await ctx.CashRegisters.AsNoTracking().FirstAsync(r => r.Id == regId);
         Assert.Equal(RegisterStatus.Open, reg.Status);
         Assert.Equal("u1", reg.CurrentUserId);
+    }
+
+    [Fact]
+    public async Task SoleClosed_WithMaintenanceRow_StillAutoOpens_WhenSingleOperational()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "MNT",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Maintenance,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.Users.Add(new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        });
+        await ctx.SaveChangesAsync();
+
+        var store = new Mock<Microsoft.AspNetCore.Identity.IUserStore<ApplicationUser>>();
+        var mgr = new Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>(
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
+
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var features = new PosCashRegisterFeatureOptions
+        {
+            EffectiveDefaultOnPosEntry = true,
+            AutoOpenSoleClosedRegister = true,
+            DefaultAutoOpenOpeningBalance = 0
+        };
+        var sut = CreateSut(ctx, shift, features);
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+
+        Assert.Equal("ready", dto.NextAction);
+        Assert.True(dto.AutoOpened);
+        Assert.Equal(PosCashRegisterReadinessMessageCodes.CashRegisterAutoOpened, dto.MessageCode);
+        Assert.Equal(regId.ToString(), dto.EffectiveRegisterId);
     }
 
     // Sole closed → ensure-ready auto-opens → payment authorization allows same register (server-side mirror of Zahlen prerequisites).
@@ -237,6 +300,8 @@ public class PosCashRegisterReadinessServiceTests
 
         Assert.Equal("forbidden", dto.NextAction);
         Assert.Equal(PosCashRegisterReadinessMessageCodes.CashRegisterConflict, dto.MessageCode);
+        Assert.Null(dto.PreferredRegisterId);
+        Assert.Equal(regId.ToString("D"), dto.EffectiveRegisterId);
     }
 
     /// <summary>
@@ -317,6 +382,8 @@ public class PosCashRegisterReadinessServiceTests
         var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
         Assert.Equal("forbidden", dto.NextAction);
         Assert.Equal(PosCashRegisterReadinessMessageCodes.CashRegisterConflict, dto.MessageCode);
+        Assert.Equal(regId.ToString("D"), dto.PreferredRegisterId);
+        Assert.Equal(regId.ToString("D"), dto.EffectiveRegisterId);
 
         var pay = await resolution.ValidatePaymentRegisterAsync("u1", regId, CashierPrincipal());
         Assert.False(pay.Ok);
@@ -376,6 +443,7 @@ public class PosCashRegisterReadinessServiceTests
         var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
         Assert.Equal("forbidden", dto.NextAction);
         Assert.Equal(PosCashRegisterReadinessMessageCodes.CashRegisterConflict, dto.MessageCode);
+        Assert.Equal(rTaken.ToString("D"), dto.PreferredRegisterId);
 
         var pay = await resolution.ValidatePaymentRegisterAsync("u1", rTaken, CashierPrincipal());
         Assert.False(pay.Ok);
@@ -386,6 +454,33 @@ public class PosCashRegisterReadinessServiceTests
     public async Task NoRegister_Required()
     {
         await using var ctx = CreateContext();
+        var shift = new Mock<ICashRegisterShiftService>();
+        var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true });
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+
+        Assert.Equal("none", dto.NextAction);
+        Assert.Equal(PosCashRegisterReadinessMessageCodes.CashRegisterRequired, dto.MessageCode);
+    }
+
+    [Fact]
+    public async Task OnlyNonOperationalRows_ReadinessRequired_LikeEmptyTable()
+    {
+        await using var ctx = CreateContext();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            RegisterNumber = "D1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Disabled,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
         var shift = new Mock<ICashRegisterShiftService>();
         var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true });
 

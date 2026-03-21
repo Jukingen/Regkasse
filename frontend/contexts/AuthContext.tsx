@@ -8,7 +8,7 @@ import i18n from '../i18n';
 import * as authService from '../services/api/authService';
 import { handleAPIError } from '../services/errorService';
 import { isAuthError, AuthAppError } from '../features/auth/authErrors';
-import { getUserSettings } from '../services/api/userSettingsService';
+import { getUserSettingsAfterLogin } from '../services/api/userSettingsService';
 import { authTrace } from '../utils/authTrace';
 // CRITICAL FIX: useTranslation hook'unu kaldırdık - infinite loop'a neden oluyordu
 
@@ -657,8 +657,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const savedToken = await storage.getItem('token');
                 console.log('Saved token before user settings request:', !!savedToken, 'length:', savedToken?.length);
 
-                const userSettings = await getUserSettings();
-                console.log('User settings fetched successfully:', userSettings);
+                const userSettings = await getUserSettingsAfterLogin();
+                console.log('User settings loaded after login (bootstrap or GET fallback):', userSettings);
 
                 if (userSettings?.language) {
                     // CRITICAL FIX: Dil değiştirme işlemini optimize et

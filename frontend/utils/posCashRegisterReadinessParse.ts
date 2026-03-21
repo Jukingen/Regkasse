@@ -1,6 +1,8 @@
 /** Normalized POST /api/pos/cash-register/ensure-ready body (no HTTP deps — safe for Jest). */
 
 export type PosCashRegisterContextDto = {
+  /** Echo of persisted UserSettings preference (GUID); not payment authorization by itself. */
+  preferredRegisterId?: string | null;
   effectiveRegisterId?: string | null;
   resolution?: string;
   registerStatus?: string | null;
@@ -25,6 +27,7 @@ export function parsePosCashRegisterContextDto(body: unknown): PosCashRegisterCo
     return {};
   }
   return {
+    preferredRegisterId: pickString(body, 'preferredRegisterId', 'PreferredRegisterId'),
     effectiveRegisterId: pickString(body, 'effectiveRegisterId', 'EffectiveRegisterId'),
     resolution: pickString(body, 'resolution', 'Resolution') ?? 'none',
     registerStatus: pickString(body, 'registerStatus', 'RegisterStatus'),
