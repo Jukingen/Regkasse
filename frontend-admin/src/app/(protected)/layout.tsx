@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, ReactNode } from 'react';
-import { Layout, Menu, Button, theme, Dropdown, Avatar, Drawer, Grid, Spin, MenuProps } from 'antd';
+import React, { useState, useEffect, useMemo, useLayoutEffect, useCallback, useRef, ReactNode } from 'react';
+import { Layout, Menu, Button, theme, Dropdown, Avatar, Drawer, Grid, MenuProps } from 'antd';
 import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
@@ -15,7 +15,7 @@ import {
     SafetyOutlined,
     CalendarOutlined,
 } from '@ant-design/icons';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 // import { usePostApiAuthLogout } from '@/api/generated/auth/auth'; // Replaced by useAuth
 import { AuthGate } from '@/shared/auth/AuthGate';
@@ -24,6 +24,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { canViewUsers, canShowRksvMenu } from '@/features/auth/constants/roles';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
+import { buildRksvMenuGroups, getRksvOpenSubgroupKeys } from '@/shared/rksvMenuModel';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -37,7 +38,6 @@ export default function DashboardLayout({
     const [drawerVisible, setDrawerVisible] = useState(false);
     // const [isLoadingAuth, setIsLoadingAuth] = useState(true); // Handled by AuthGuard
     const screens = useBreakpoint();
-    const router = useRouter();
     const pathname = usePathname();
     const { user, logout } = useAuth();
     const permissions = user?.permissions ?? [];
@@ -55,80 +55,104 @@ export default function DashboardLayout({
         }
     }, [isMobile]);
 
-    const allMenuItems = [
-        { key: '/dashboard', icon: <DashboardOutlined />, label: <Link href="/dashboard">Dashboard</Link> },
-        { key: '/invoices', icon: <FileTextOutlined />, label: <Link href="/invoices">Invoices</Link> },
-        { key: '/products', icon: <FileTextOutlined />, label: <Link href="/products">Products</Link> },
-        { key: '/modifier-groups', icon: <FileTextOutlined />, label: <Link href="/modifier-groups">Add-on-Gruppen</Link> },
-        { key: '/categories', icon: <FileTextOutlined />, label: <Link href="/categories">Categories</Link> },
-        { key: '/customers', icon: <UserOutlined />, label: <Link href="/customers">Customers</Link> },
-        { key: '/benefit-definitions', icon: <FileTextOutlined />, label: <Link href="/benefit-definitions">Vorteile (Definitionen)</Link> },
-        { key: '/benefit-assignments', icon: <FileTextOutlined />, label: <Link href="/benefit-assignments">Vorteile (Zuweisungen)</Link> },
-        { key: '/receipts', icon: <FileTextOutlined />, label: <Link href="/receipts">Receipts</Link> },
-        { key: '/receipt-templates', icon: <FileTextOutlined />, label: <Link href="/receipt-templates">Receipt Templates</Link> },
-        { key: '/receipt-generate', icon: <FileTextOutlined />, label: <Link href="/receipt-generate">Belegvorschau</Link> },
-        { key: '/audit-logs', icon: <SafetyCertificateOutlined />, label: <Link href="/audit-logs">Audit Logs</Link> },
-        { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">Payments</Link> },
-        {
-          key: '/tagesabschluss',
-          icon: <CalendarOutlined />,
-          label: <Link href="/tagesabschluss">Tagesabschluss</Link>,
-        },
-        { key: '/users', icon: <UserOutlined />, label: <Link href="/users">Users</Link> },
-        { key: '/settings', icon: <SettingOutlined />, label: <Link href="/settings">Settings</Link> },
-        {
-            key: '/rksv',
-            icon: <SafetyOutlined />,
-            label: 'RKSV',
-            children: [
-                {
-                    key: '/rksv/operations',
-                    label: <Link href="/rksv">RKSV Operations</Link>,
-                },
-                { key: '/rksv/status', label: <Link href="/rksv/status">General Status</Link> },
-                { key: '/rksv/cmc-certificate', label: <Link href="/rksv/cmc-certificate">CMC / Certificate</Link> },
-                {
-                    key: '/rksv/verifications',
-                    label: <Link href="/rksv/verifications">{OPERATOR_VERIFICATIONS_COPY.navMenuLabel}</Link>,
-                },
-                { key: '/rksv/finanz-online-operations', label: <Link href="/rksv/finanz-online-operations">FinanzOnline Operations</Link> },
-                { key: '/rksv/finanz-online-queue', label: <Link href="/rksv/finanz-online-queue">FinanzOnline Abgleich</Link> },
-                {
-                    key: '/rksv/fiscal-export-diagnostics',
-                    label: <Link href="/rksv/fiscal-export-diagnostics">Fiscal-Export Diagnose</Link>,
-                },
-                {
-                    key: '/rksv/integrity',
-                    label: <Link href="/rksv/integrity">Datenintegrität (Support)</Link>,
-                },
-                {
-                    key: '/rksv/replay-batch',
-                    label: <Link href="/rksv/replay-batch">Replay-Batch (Correlation)</Link>,
-                },
-                {
-                    key: '/rksv/incident',
-                    label: <Link href="/rksv/incident">Incident (Correlation-ID)</Link>,
-                },
-                {
-                    key: '/rksv/payload-hash-conflicts',
-                    label: <Link href="/rksv/payload-hash-conflicts">Payload-Hash Konflikte</Link>,
-                },
-                {
-                    key: '/rksv/offline-intent-coverage',
-                    label: <Link href="/rksv/offline-intent-coverage">Offline Intent Coverage</Link>,
-                },
-            ],
-        },
-    ];
+    const rksvGroups = useMemo(
+        () => buildRksvMenuGroups(OPERATOR_VERIFICATIONS_COPY.navMenuLabel),
+        [],
+    );
 
-    // When permissions exist, menu is permission-based; else role fallback for /users and /rksv
-    const menuItems = usePermissionFirst
-        ? allMenuItems.filter((item) => isMenuItemAllowed(item.key, permissions))
-        : allMenuItems.filter((item) => {
+    const rksvMenuSubtree = useMemo(
+        () =>
+            rksvGroups.map((g) => ({
+                key: `rksv-grp-${g.id}`,
+                label: g.groupLabel,
+                children: g.items.map((item) => ({
+                    key: item.key,
+                    label: <Link href={item.href}>{item.label}</Link>,
+                })),
+            })),
+        [rksvGroups],
+    );
+
+    const allMenuItems = useMemo(
+        () => [
+            { key: '/dashboard', icon: <DashboardOutlined />, label: <Link href="/dashboard">Dashboard</Link> },
+            { key: '/invoices', icon: <FileTextOutlined />, label: <Link href="/invoices">Invoices</Link> },
+            { key: '/products', icon: <FileTextOutlined />, label: <Link href="/products">Products</Link> },
+            { key: '/modifier-groups', icon: <FileTextOutlined />, label: <Link href="/modifier-groups">Add-on-Gruppen</Link> },
+            { key: '/categories', icon: <FileTextOutlined />, label: <Link href="/categories">Categories</Link> },
+            { key: '/customers', icon: <UserOutlined />, label: <Link href="/customers">Customers</Link> },
+            { key: '/benefit-definitions', icon: <FileTextOutlined />, label: <Link href="/benefit-definitions">Vorteile (Definitionen)</Link> },
+            { key: '/benefit-assignments', icon: <FileTextOutlined />, label: <Link href="/benefit-assignments">Vorteile (Zuweisungen)</Link> },
+            { key: '/receipts', icon: <FileTextOutlined />, label: <Link href="/receipts">Receipts</Link> },
+            { key: '/receipt-templates', icon: <FileTextOutlined />, label: <Link href="/receipt-templates">Receipt Templates</Link> },
+            { key: '/receipt-generate', icon: <FileTextOutlined />, label: <Link href="/receipt-generate">Belegvorschau</Link> },
+            { key: '/audit-logs', icon: <SafetyCertificateOutlined />, label: <Link href="/audit-logs">Audit Logs</Link> },
+            { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">Payments</Link> },
+            {
+                key: '/tagesabschluss',
+                icon: <CalendarOutlined />,
+                label: <Link href="/tagesabschluss">Tagesabschluss</Link>,
+            },
+            { key: '/users', icon: <UserOutlined />, label: <Link href="/users">Users</Link> },
+            { key: '/settings', icon: <SettingOutlined />, label: <Link href="/settings">Settings</Link> },
+            {
+                key: '/rksv',
+                icon: <SafetyOutlined />,
+                label: 'RKSV',
+                children: rksvMenuSubtree,
+            },
+        ],
+        [rksvMenuSubtree],
+    );
+
+    const canSeeRksv = useMemo(() => {
+        if (usePermissionFirst) return isMenuItemAllowed('/rksv', permissions);
+        return canShowRksvMenu(user?.role ?? '');
+    }, [usePermissionFirst, permissions, user?.role]);
+
+    const menuItems = useMemo(() => {
+        if (usePermissionFirst) {
+            return allMenuItems.filter((item) => isMenuItemAllowed(item.key, permissions));
+        }
+        return allMenuItems.filter((item) => {
             if (item.key === '/users') return canViewUsers(user?.role ?? '');
             if (item.key === '/rksv') return canShowRksvMenu(user?.role ?? '');
             return true;
         });
+    }, [allMenuItems, usePermissionFirst, permissions, user?.role]);
+
+    const [openKeys, setOpenKeys] = useState<string[]>([]);
+    const rksvNavBootstrapped = useRef(false);
+
+    const applyRksvOpenForPath = useCallback(
+        (p: string) => {
+            if (!p.startsWith('/rksv')) return;
+            setOpenKeys((prev) => {
+                const nonRksv = prev.filter((k) => k !== '/rksv' && !k.startsWith('rksv-grp-'));
+                return [...nonRksv, '/rksv', ...getRksvOpenSubgroupKeys(p, rksvGroups)];
+            });
+        },
+        [rksvGroups],
+    );
+
+    useLayoutEffect(() => {
+        if (!canSeeRksv) return;
+        const p = pathname ?? '';
+
+        if (!rksvNavBootstrapped.current) {
+            rksvNavBootstrapped.current = true;
+            if (p.startsWith('/rksv')) {
+                applyRksvOpenForPath(p);
+            } else {
+                setOpenKeys((prev) => (prev.includes('/rksv') ? prev : [...prev, '/rksv']));
+            }
+            return;
+        }
+
+        if (p.startsWith('/rksv')) {
+            applyRksvOpenForPath(p);
+        }
+    }, [pathname, canSeeRksv, applyRksvOpenForPath]);
 
     const userMenu: MenuProps = {
         items: [
@@ -162,7 +186,8 @@ export default function DashboardLayout({
                 theme="light"
                 mode="inline"
                 selectedKeys={menuSelectedKeys}
-                defaultOpenKeys={(usePermissionFirst ? isMenuItemAllowed('/rksv', permissions) : canShowRksvMenu(user?.role ?? '')) ? ['/rksv'] : []}
+                openKeys={openKeys}
+                onOpenChange={setOpenKeys}
                 items={menuItems}
                 onClick={() => {
                     if (isMobile) setDrawerVisible(false);

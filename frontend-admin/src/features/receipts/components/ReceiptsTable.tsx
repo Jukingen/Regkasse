@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Table, Button, Tag } from 'antd';
+import { Table, Button, Tag, Typography, Space } from 'antd';
 import { EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
@@ -33,63 +33,89 @@ interface ReceiptsTableProps {
 
 const columns: ColumnsType<ReceiptListItemDto> = [
     {
-        title: 'Receipt No.',
-        dataIndex: 'receiptNumber',
-        key: 'receiptNumber',
-        render: (text: string) => <span style={{ fontWeight: 600 }}>{text}</span>,
-    },
-    {
-        title: 'Issued At',
+        title: 'Receipt',
         dataIndex: 'issuedAt',
-        key: 'issuedAt',
+        key: 'receipt',
         sorter: true,
-        render: (date: string) => dayjs(date).format('DD.MM.YYYY HH:mm'),
+        width: 210,
+        render: (_: string, row: ReceiptListItemDto) => (
+            <Space direction="vertical" size={0}>
+                <Typography.Text strong ellipsis style={{ maxWidth: 200, display: 'block' }}>
+                    {row.receiptNumber}
+                </Typography.Text>
+                <Typography.Text
+                    type="secondary"
+                    style={{ fontSize: 12, fontVariantNumeric: 'tabular-nums' }}
+                >
+                    {dayjs(row.issuedAt).format('DD.MM.YYYY HH:mm')}
+                </Typography.Text>
+            </Space>
+        ),
     },
     {
         title: 'Kasse (FK)',
         dataIndex: 'cashRegisterId',
         key: 'cashRegisterFk',
+        width: 160,
         ellipsis: true,
         render: (_: string, row) =>
             row.cashRegisterId ? (
-                <span title={row.cashRegisterId}>
-                    <Tag style={{ fontFamily: 'monospace', fontSize: 11 }}>{row.cashRegisterId}</Tag>
-                </span>
+                <Typography.Text type="secondary" style={{ fontFamily: 'monospace', fontSize: 11 }} ellipsis>
+                    {row.cashRegisterId}
+                </Typography.Text>
             ) : (
-                <span>—</span>
+                <Typography.Text type="secondary">—</Typography.Text>
             ),
     },
     {
         title: 'Kassen-ID (Anzeige)',
         dataIndex: 'registerDisplayNumber',
         key: 'registerDisplayNumber',
+        width: 120,
         render: (_: string | undefined, row) => {
             const disp = formatRegisterDisplayLabel(row.registerDisplayNumber);
-            return disp === '—' ? <span>—</span> : <Tag>{disp}</Tag>;
+            return disp === '—' ? (
+                <Typography.Text type="secondary">—</Typography.Text>
+            ) : (
+                <Tag>{disp}</Tag>
+            );
         },
     },
     {
         title: 'Kassierer (Id)',
         dataIndex: 'cashierId',
         key: 'cashierId',
-        render: (text: string | null) => text || '—',
+        width: 120,
+        ellipsis: true,
+        render: (text: string | null) => (
+            <Typography.Text type="secondary" ellipsis>
+                {text || '—'}
+            </Typography.Text>
+        ),
     },
     {
         title: 'Grand Total',
         dataIndex: 'grandTotal',
         key: 'grandTotal',
         align: 'right',
+        width: 120,
         sorter: true,
-        render: (val: number) => formatEUR(val),
+        render: (val: number) => (
+            <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {formatEUR(val)}
+            </Typography.Text>
+        ),
     },
     {
-        title: 'Actions',
+        title: 'Next',
         key: 'actions',
-        width: 100,
+        width: 108,
+        fixed: 'right',
+        align: 'right' as const,
         render: (_: unknown, record: ReceiptListItemDto) => (
             <Link href={`/receipts/${record.receiptId}`}>
-                <Button size="small" icon={<EyeOutlined />}>
-                    View
+                <Button type="primary" size="small" icon={<EyeOutlined />}>
+                    Open
                 </Button>
             </Link>
         ),
@@ -132,7 +158,9 @@ export default function ReceiptsTable({
                 showSizeChanger: true,
                 pageSizeOptions: ['10', '25', '50', '100'],
                 showTotal: (total, range) => `${range[0]}–${range[1]} of ${total} receipts`,
+                hideOnSinglePage: false,
             }}
+            scroll={{ x: 1100 }}
             locale={emptyText ? { emptyText } : undefined}
             style={{
                 opacity: isPlaceholderData ? 0.6 : 1,

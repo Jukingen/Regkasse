@@ -6,8 +6,9 @@
  */
 
 import React, { useState } from 'react';
-import { Button, Modal, Form, Input, InputNumber, Switch, message, Collapse, Tabs, Select, Popconfirm } from 'antd';
+import { Button, Modal, Form, Input, InputNumber, Switch, message, Collapse, Tabs, Select, Popconfirm, Space, Card, Spin, Typography } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getModifierGroups,
@@ -224,19 +225,33 @@ export default function ModifierGroupsPage() {
   });
 
   return (
-    <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>Add-on-Gruppen</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setGroupModalOpen(true)}>
-          Gruppe anlegen
-        </Button>
-      </div>
-      <p style={{ color: '#666', marginBottom: 16 }}>
-        Hier verwalten Sie Gruppen (z. B. Saucen, Extras) und deren Add-on-Produkte. Mit „Bearbeiten“ ändern Sie Gruppennamen und Sortierung. Mit „+ Produkt“ fügen Sie verkaufbare Add-on-Produkte zu einer Gruppe hinzu. Welche Gruppen pro Produkt angezeigt werden, legen Sie auf der Produktseite fest.
-      </p>
+    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <AdminPageHeader
+        title="Add-on-Gruppen"
+        breadcrumbs={[
+          { title: 'Dashboard', href: '/dashboard' },
+          { title: 'Add-on-Gruppen' },
+        ]}
+        actions={
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setGroupModalOpen(true)}>
+            Gruppe anlegen
+          </Button>
+        }
+      >
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          Hier verwalten Sie Gruppen (z. B. Saucen, Extras) und deren Add-on-Produkte. Mit „Bearbeiten“ ändern Sie Gruppennamen und Sortierung. Mit „+ Produkt“ fügen Sie verkaufbare Add-on-Produkte zu einer Gruppe hinzu. Welche Gruppen pro Produkt angezeigt werden, legen Sie auf der Produktseite fest.
+        </Typography.Paragraph>
+      </AdminPageHeader>
 
       {isLoading ? (
-        <div style={{ padding: 24, textAlign: 'center' }}>Laden…</div>
+        <Card>
+          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+            <Spin size="large" />
+            <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
+              Add-on-Gruppen werden geladen…
+            </Typography.Paragraph>
+          </div>
+        </Card>
       ) : (
         <Collapse items={items} defaultActiveKey={groups.map((g) => g.id)} />
       )}
@@ -348,6 +363,6 @@ export default function ModifierGroupsPage() {
           ]}
         />
       </Modal>
-    </div>
+    </Space>
   );
 }

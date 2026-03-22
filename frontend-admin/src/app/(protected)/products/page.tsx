@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
-import { Button, Table, Space, message, Tag, Input, Popconfirm, Tooltip, Alert, Empty, Modal, InputNumber } from 'antd';
+import { Button, Table, Space, message, Tag, Input, Popconfirm, Alert, Empty, Modal, InputNumber, Typography, Flex, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, StockOutlined } from '@ant-design/icons';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useProducts, useProductFilters } from '@/features/products/hooks/useProducts';
 import { Product } from '@/api/generated/model';
-import { mapApiProductToUi, mapUiProductToApi } from '@/features/products/utils/productMapper';
+import { mapApiProductToUi, mapUiProductToApi, taxTypeToLabel } from '@/features/products/utils/productMapper';
 import ProductForm, { type ProductFormSubmitValues } from '@/features/products/components/ProductForm';
 import { ColumnType } from 'antd/es/table';
 
@@ -153,67 +154,130 @@ export default function ProductsPage() {
 
     const columns: ColumnType<Product>[] = [
         {
-            title: 'Name',
-            dataIndex: 'name',
-            key: 'name',
-            render: (text: string) => <span style={{ fontWeight: 600 }}>{text}</span>,
-        },
-        {
-            title: 'Category',
-            dataIndex: 'category',
-            key: 'category',
+            title: 'Product',
+            key: 'product',
+            ellipsis: true,
+            width: 260,
+            render: (_: unknown, record: Product) => {
+                const desc = record.description?.trim();
+                const bc = record.barcode?.trim();
+                const rksv = record.rksvProductType?.trim();
+                const tipLines: string[] = [];
+                if (desc) tipLines.push(desc);
+                if (bc) tipLines.push(`Barcode: ${bc}`);
+                if (rksv) tipLines.push(`RKSV type: ${rksv}`);
+                if (record.taxExemptionReason?.trim()) {
+                    tipLines.push(`Tax exemption: ${record.taxExemptionReason.trim()}`);
+                }
+                const tip =
+                    tipLines.length > 0 ? (
+                        <div style={{ whiteSpace: 'pre-wrap', maxWidth: 400 }}>{tipLines.join('\n\n')}</div>
+                    ) : undefined;
+                const cell = (
+                    <Space direction="vertical" size={0} style={{ width: '100%', maxWidth: 320 }}>
+                        <Typography.Text strong ellipsis style={{ display: 'block' }}>
+                            {record.name || '—'}
+                        </Typography.Text>
+                        {bc ? (
+                            <Typography.Text
+                                type="secondary"
+                                ellipsis
+                                style={{ display: 'block', fontSize: 12, fontFamily: 'monospace' }}
+                            >
+                                {bc}
+                            </Typography.Text>
+                        ) : null}
+                    </Space>
+                );
+                return tip ? <Tooltip title={tip}>{cell}</Tooltip> : cell;
+            },
         },
         {
             title: 'Price',
             dataIndex: 'price',
             key: 'price',
-            render: (price: number) => `€${Number(price).toFixed(2)}`,
+            width: 100,
+            align: 'right',
+            render: (price: number) => (
+                <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
+                    €{Number(price).toFixed(2)}
+                </Typography.Text>
+            ),
         },
         {
             title: 'Stock',
             dataIndex: 'stockQuantity',
             key: 'stockQuantity',
+            width: 120,
             render: (qty: number, record: Product) => {
                 const min = Number(record.minStockLevel) ?? 0;
                 const isLow = Number(qty) <= min;
-                return (
-                    <Tag color={isLow ? 'red' : 'green'}>
-                        {Number(qty)} {record.unit || 'pcs'}
+                const unit = record.unit || 'pcs';
+                const tag = (
+                    <Tag color={isLow ? 'red' : 'green'} style={{ marginInlineEnd: 0 }}>
+                        {Number(qty)} {unit}
                     </Tag>
                 );
+                return (
+                    <Tooltip title={`Min. stock level: ${min} ${unit}. Highlighted when quantity is at or below minimum.`}>
+                        {tag}
+                    </Tooltip>
+                );
             },
-        },
-        {
-            title: 'Tax',
-            dataIndex: 'taxRate',
-            key: 'taxRate',
-            render: (rate: number) => `${Number(rate)}%`,
         },
         {
             title: 'Status',
             dataIndex: 'isActive',
             key: 'isActive',
+            width: 96,
             render: (isActive: boolean) => (
                 <Tag color={isActive ? 'blue' : 'default'}>{isActive ? 'Active' : 'Inactive'}</Tag>
             ),
         },
         {
+            title: 'Category',
+            dataIndex: 'category',
+            key: 'category',
+            width: 140,
+            ellipsis: true,
+            render: (text: string) => (
+                <Typography.Text type="secondary" ellipsis={{ tooltip: true }}>
+                    {text?.trim() || '—'}
+                </Typography.Text>
+            ),
+        },
+        {
+            title: 'Tax',
+            key: 'tax',
+            width: 120,
+            align: 'right',
+            render: (_: unknown, record: Product) => {
+                const rate = Number(record.taxRate ?? 0);
+                const label = taxTypeToLabel(Number(record.taxType ?? 1));
+                const short = `${rate}%`;
+                return (
+                    <Tooltip title={label}>
+                        <Typography.Text type="secondary" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {short}
+                        </Typography.Text>
+                    </Tooltip>
+                );
+            },
+        },
+        {
             title: 'Actions',
             key: 'actions',
+            width: 220,
+            fixed: 'right',
             align: 'right',
             render: (_: unknown, record: Product) => (
-                <Space>
-                    <Tooltip title="Edit">
-                        <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
-                    </Tooltip>
-                    <Tooltip title="Adjust stock">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<StockOutlined />}
-                            onClick={() => openStockModal(record)}
-                        />
-                    </Tooltip>
+                <Space size="small" wrap>
+                    <Button type="primary" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
+                        Edit
+                    </Button>
+                    <Button type="default" size="small" icon={<StockOutlined />} onClick={() => openStockModal(record)}>
+                        Stock
+                    </Button>
                     <Popconfirm
                         title="Delete product?"
                         description="This action cannot be undone."
@@ -221,15 +285,9 @@ export default function ProductsPage() {
                         okText="Yes"
                         cancelText="No"
                     >
-                        <Tooltip title="Delete">
-                            <Button
-                                type="text"
-                                size="small"
-                                danger
-                                icon={<DeleteOutlined />}
-                                loading={deleteMutation.isPending}
-                            />
-                        </Tooltip>
+                        <Button type="default" size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
+                            Delete
+                        </Button>
                     </Popconfirm>
                 </Space>
             ),
@@ -237,45 +295,60 @@ export default function ProductsPage() {
     ];
 
     return (
-        <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Space>
-                    <Input.Search
-                        placeholder="Search products..."
-                        allowClear
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onSearch={(v) => setSearchTerm(v)}
-                        style={{ width: 300 }}
-                        value={searchTerm}
-                    />
-                </Space>
-                <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                    New Product
-                </Button>
-            </div>
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <AdminPageHeader
+                title="Products"
+                breadcrumbs={[
+                    { title: 'Dashboard', href: '/dashboard' },
+                    { title: 'Products' },
+                ]}
+                actions={
+                    <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
+                        <Input.Search
+                            placeholder="Search products..."
+                            allowClear
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onSearch={(v) => setSearchTerm(v)}
+                            style={{ width: 280, maxWidth: '100%' }}
+                            value={searchTerm}
+                        />
+                        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                            New Product
+                        </Button>
+                    </Flex>
+                }
+            >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                    Search by product name; at least {MIN_SEARCH_LENGTH} characters trigger a server request.
+                </Typography.Paragraph>
+            </AdminPageHeader>
 
-            {isError && (
+            {isError ? (
                 <Alert
                     type="error"
                     message="Failed to load products"
                     description={error instanceof Error ? error.message : 'Unknown error'}
+                    showIcon
                     action={
                         <Button size="small" onClick={() => refetch()}>
                             Retry
                         </Button>
                     }
-                    style={{ marginBottom: 16 }}
                 />
-            )}
+            ) : null}
 
-            <Table
-                columns={columns}
-                dataSource={products}
-                rowKey="id"
-                loading={isLoading}
-                pagination={pagination}
-                locale={{ emptyText: <Empty description="No products" /> }}
-            />
+            {!isError ? (
+                <Table<Product>
+                    columns={columns}
+                    dataSource={products}
+                    rowKey="id"
+                    loading={isLoading}
+                    pagination={pagination}
+                    size="middle"
+                    scroll={{ x: 1100 }}
+                    locale={{ emptyText: <Empty description="No products" /> }}
+                />
+            ) : null}
 
             <ProductForm
                 visible={formVisible}
@@ -305,6 +378,6 @@ export default function ProductsPage() {
                     </div>
                 )}
             </Modal>
-        </div>
+        </Space>
     );
 }

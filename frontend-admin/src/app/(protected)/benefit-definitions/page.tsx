@@ -31,6 +31,7 @@ import {
 } from '@/api/admin/benefit-definitions';
 import { useAdminCategoriesList } from '@/api/admin/categories';
 import { useQueryClient } from '@tanstack/react-query';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 
 const BENEFIT_KIND_LABELS: Record<AppliedBenefitKind, string> = {
   [AppliedBenefitKind.PercentageDiscount]: 'Prozent-Rabatt',
@@ -183,27 +184,33 @@ export default function BenefitDefinitionsPage() {
   ];
 
   return (
-    <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <h2 style={{ margin: 0 }}>Vorteile (Definitionen)</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          Neue Definition
-        </Button>
-      </div>
+    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <AdminPageHeader
+        title="Vorteile (Definitionen)"
+        breadcrumbs={[
+          { title: 'Dashboard', href: '/dashboard' },
+          { title: 'Vorteile (Definitionen)' },
+        ]}
+        actions={
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Neue Definition
+          </Button>
+        }
+      />
 
-      {listQuery.isError && (
+      {listQuery.isError ? (
         <Alert
           type="error"
           message="Laden fehlgeschlagen"
           description={listQuery.error?.message}
+          showIcon
           action={
             <Button size="small" onClick={() => listQuery.refetch()}>
               Erneut versuchen
             </Button>
           }
-          style={{ marginBottom: 16 }}
         />
-      )}
+      ) : null}
 
       <Table
         columns={columns}
@@ -298,6 +305,6 @@ export default function BenefitDefinitionsPage() {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </Space>
   );
 }

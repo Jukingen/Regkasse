@@ -115,7 +115,7 @@ describe('mapCoverageSummaryToHealth', () => {
       total: 0,
     };
     expect(mapCoverageSummaryToHealth(data)).toBe('healthy');
-    expect(buildCoverageCardCopy(data, 'healthy').summaryLine).toContain('0 Samples');
+    expect(buildCoverageCardCopy(data, 'healthy').summaryLine).toContain('0 Datensätze');
   });
 });
 

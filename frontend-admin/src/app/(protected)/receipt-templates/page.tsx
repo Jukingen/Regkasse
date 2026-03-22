@@ -72,7 +72,7 @@ export default function ReceiptTemplatesPage() {
 
             <AdminPageHeader
                 title="Receipt Templates"
-                breadcrumbs={[{ title: 'Dashboard', href: '/' }, { title: 'Receipt Templates' }]}
+                breadcrumbs={[{ title: 'Dashboard', href: '/dashboard' }, { title: 'Receipt Templates' }]}
                 actions={
                     canManage ? (
                         <Link href="/receipt-templates/new">

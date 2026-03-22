@@ -483,7 +483,12 @@ export default function UsersPage() {
                         placeholder={usersCopy.searchPlaceholder}
                         allowClear
                         value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setSearchInput(v);
+                            // Keep list query in sync when the field is cleared (X or delete), same pattern as Customers.
+                            if (!v) setSearchTerm('');
+                        }}
                         onSearch={(v) => setSearchTerm(v ?? '')}
                         style={{ width: 260 }}
                         enterButton={<SearchOutlined />}

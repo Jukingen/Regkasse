@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 import type { Category, CreateCategoryRequest, UpdateCategoryRequest } from '@/api/generated/model';
-import { Button, Table, Space, message, Popconfirm, Tooltip, Empty, Spin, Input, Alert } from 'antd';
+import { Button, Table, Space, message, Popconfirm, Empty, Spin, Input, Alert, Typography, Flex } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import type { CategoryWithVat } from '@/features/categories/types';
 import type { CategoryFormSubmitValues } from '@/features/categories/components/CategoryForm';
@@ -178,20 +179,21 @@ export default function CategoriesPage() {
         {
             title: 'Actions',
             key: 'actions',
+            width: 200,
             align: 'right',
             render: (_: unknown, record: CategoryWithVat) => (
-                <Space>
-                    <Tooltip title="Edit">
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<EditOutlined />}
-                            onClick={() => {
-                                setEditingCategory(record);
-                                setFormVisible(true);
-                            }}
-                        />
-                    </Tooltip>
+                <Space size="small" wrap>
+                    <Button
+                        type="default"
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => {
+                            setEditingCategory(record);
+                            setFormVisible(true);
+                        }}
+                    >
+                        Edit
+                    </Button>
                     <Popconfirm
                         title="Delete category?"
                         description="Products linked to this category may be affected."
@@ -199,66 +201,83 @@ export default function CategoriesPage() {
                         okText="Yes"
                         cancelText="No"
                     >
-                        <Tooltip title="Delete">
-                            <Button
-                                type="text"
-                                size="small"
-                                danger
-                                icon={<DeleteOutlined />}
-                                loading={deleteMutation.isPending && deleteMutation.variables?.id === record.id}
-                            />
-                        </Tooltip>
+                        <Button
+                            type="default"
+                            size="small"
+                            danger
+                            icon={<DeleteOutlined />}
+                            loading={deleteMutation.isPending && deleteMutation.variables?.id === record.id}
+                        >
+                            Delete
+                        </Button>
                     </Popconfirm>
                 </Space>
             ),
         },
     ];
 
-    return (
-        <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                <Input.Search
-                    placeholder="Search categories..."
-                    allowClear
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onSearch={(v) => setSearchTerm(v)}
-                    style={{ width: 280, maxWidth: '100%' }}
-                />
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                        setEditingCategory(null);
-                        setFormVisible(true);
-                    }}
-                >
-                    New Category
-                </Button>
-            </div>
+    const openCreate = () => {
+        setEditingCategory(null);
+        setFormVisible(true);
+    };
 
-            {isError && (
+    return (
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <AdminPageHeader
+                title="Categories"
+                breadcrumbs={[
+                    { title: 'Dashboard', href: '/dashboard' },
+                    { title: 'Categories' },
+                ]}
+                actions={
+                    <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
+                        <Input.Search
+                            placeholder="Search categories..."
+                            allowClear
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onSearch={(v) => setSearchTerm(v)}
+                            style={{ width: 280, maxWidth: '100%' }}
+                        />
+                        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                            New Category
+                        </Button>
+                    </Flex>
+                }
+            >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                    Search filters categories as you type (short delay before the request runs). Expand a row to see products in that category.
+                </Typography.Paragraph>
+            </AdminPageHeader>
+
+            {isError ? (
                 <Alert
                     type="error"
                     message="Failed to load categories"
                     description={error instanceof Error ? error.message : 'Unknown error'}
-                    action={<Button size="small" onClick={() => refetch()}>Retry</Button>}
-                    style={{ marginBottom: 16 }}
+                    showIcon
+                    action={
+                        <Button size="small" onClick={() => refetch()}>
+                            Retry
+                        </Button>
+                    }
                 />
-            )}
+            ) : null}
 
-            <Table
-                columns={columns}
-                dataSource={listForTable}
-                rowKey="id"
-                loading={isLoading}
-                pagination={{ pageSize: 10, showSizeChanger: true }}
-                locale={{ emptyText: <Empty description="No categories" /> }}
-                expandable={{
-                    expandedRowRender: (record) => record.id ? <CategoryProducts categoryId={record.id} /> : null,
-                    rowExpandable: () => true,
-                }}
-            />
+            {!isError ? (
+                <Table
+                    columns={columns}
+                    dataSource={listForTable}
+                    rowKey="id"
+                    loading={isLoading}
+                    pagination={{ pageSize: 10, showSizeChanger: true }}
+                    locale={{ emptyText: <Empty description="No categories" /> }}
+                    expandable={{
+                        expandedRowRender: (record) => record.id ? <CategoryProducts categoryId={record.id} /> : null,
+                        rowExpandable: () => true,
+                    }}
+                />
+            ) : null}
 
             <CategoryForm
                 visible={formVisible}
@@ -270,6 +289,6 @@ export default function CategoriesPage() {
                 onSubmit={editingCategory ? handleUpdate : handleCreate}
                 loading={createMutation.isPending || updateMutation.isPending}
             />
-        </div>
+        </Space>
     );
 }

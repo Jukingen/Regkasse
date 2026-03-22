@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, Table, Tag, Typography, Switch, Space, Alert, Tooltip } from 'antd';
+import { Card, Table, Tag, Typography, Switch, Space, Alert, Tooltip, Collapse } from 'antd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -30,25 +30,48 @@ import {
 export default function RksvVerificationsPage() {
     const searchParams = useSearchParams();
     const correlationId = searchParams?.get('correlationId') ?? undefined;
+    const useCorrelation = !!correlationId;
 
-    const { data, isLoading } = useGetApiAuditLog({ page: 1, pageSize: 100 });
+    const [page, setPage] = React.useState(1);
+    const [pageSize, setPageSize] = React.useState(50);
+    const [corrPage, setCorrPage] = React.useState(1);
+    const [corrPageSize, setCorrPageSize] = React.useState(50);
+
+    const [offlineOriginOnly, setOfflineOriginOnly] = React.useState(false);
+    const [failedReplayOnly, setFailedReplayOnly] = React.useState(false);
+    const [suspiciousTimingOnly, setSuspiciousTimingOnly] = React.useState(false);
+
+    React.useEffect(() => {
+        setPage(1);
+    }, [correlationId]);
+
+    React.useEffect(() => {
+        setCorrPage(1);
+    }, [correlationId, offlineOriginOnly, failedReplayOnly, suspiciousTimingOnly]);
+
+    React.useEffect(() => {
+        if (useCorrelation) return;
+        setPage(1);
+    }, [useCorrelation, offlineOriginOnly, failedReplayOnly, suspiciousTimingOnly]);
+
+    const { data, isLoading } = useGetApiAuditLog(
+        { page, pageSize },
+        { query: { enabled: !useCorrelation } },
+    );
     const { data: correlationData, isLoading: correlationLoading } = useGetApiAuditLogCorrelationCorrelationId(
         correlationId ?? '',
         { query: { enabled: !!correlationId } },
     );
 
-    const useCorrelation = !!correlationId;
-    const list = useCorrelation ? (correlationData?.auditLogs ?? []) : (data?.auditLogs ?? []);
+    const list = React.useMemo(
+        () => (useCorrelation ? (correlationData?.auditLogs ?? []) : (data?.auditLogs ?? [])),
+        [useCorrelation, correlationData?.auditLogs, data?.auditLogs],
+    );
     const isLoadingList = useCorrelation ? correlationLoading : isLoading;
 
     const signatureEntries = React.useMemo(() => {
-        const base = useCorrelation ? list : (data?.auditLogs ?? []);
-        return base.filter((e: AuditLogEntryDto) => auditLogMatchesVerificationsKeywordSample(e));
-    }, [useCorrelation, list, data?.auditLogs]);
-
-    const [offlineOriginOnly, setOfflineOriginOnly] = React.useState(false);
-    const [failedReplayOnly, setFailedReplayOnly] = React.useState(false);
-    const [suspiciousTimingOnly, setSuspiciousTimingOnly] = React.useState(false);
+        return list.filter((e: AuditLogEntryDto) => auditLogMatchesVerificationsKeywordSample(e));
+    }, [list]);
 
     const filteredEntries = React.useMemo(() => {
         return signatureEntries.filter((e: AuditLogEntryDto) => {
@@ -82,6 +105,63 @@ export default function RksvVerificationsPage() {
     const apiRows = list.length;
     const keywordRows = signatureEntries.length;
     const displayedRows = filteredEntries.length;
+
+    /**
+     * Server-driven total for Ant Design async pagination.
+     * When totalCount is omitted but the current page is full, allow "next" without implying a known global total.
+     */
+    const serverPaginationListTotal = React.useMemo(() => {
+        if (useCorrelation) return filteredEntries.length;
+        const floor = (page - 1) * pageSize + apiRows;
+        const totalCount = data?.totalCount;
+        if (totalCount != null) {
+            return totalCount;
+        }
+        const maybeMore = apiRows === pageSize && apiRows > 0;
+        return maybeMore ? floor + 1 : Math.max(floor, apiRows);
+    }, [useCorrelation, filteredEntries.length, data?.totalCount, page, pageSize, apiRows]);
+
+    const totalCountKnownForFooter =
+        !useCorrelation && data != null && data.totalCount !== undefined && data.totalCount !== null;
+
+    const showPaginationQuickJumper =
+        !useCorrelation && data?.totalPages != null && data.totalPages > 4;
+
+    const tablePagination = useCorrelation
+        ? {
+              current: corrPage,
+              pageSize: corrPageSize,
+              total: filteredEntries.length,
+              showSizeChanger: true as const,
+              pageSizeOptions: ['25', '50', '100'],
+              hideOnSinglePage: false,
+              showTotal: (_total: number, range: [number, number]) =>
+                  OPERATOR_VERIFICATIONS_COPY.verificationsCorrelationPaginationShowTotal(range, filteredEntries.length),
+              onChange: (p: number, ps: number) => {
+                  setCorrPage(p);
+                  setCorrPageSize(ps);
+              },
+          }
+        : {
+              current: page,
+              pageSize,
+              total: serverPaginationListTotal,
+              showSizeChanger: true as const,
+              pageSizeOptions: ['25', '50', '100'],
+              hideOnSinglePage: false,
+              showQuickJumper: showPaginationQuickJumper,
+              showTotal: (_total: number, range: [number, number]) =>
+                  OPERATOR_VERIFICATIONS_COPY.verificationsServerPaginationShowTotal(
+                      range,
+                      displayedRows,
+                      apiRows,
+                      totalCountKnownForFooter ? data!.totalCount! : undefined,
+                  ),
+              onChange: (p: number, ps: number) => {
+                  setPage(p);
+                  setPageSize(ps);
+              },
+          };
 
     const columns = [
         {
@@ -223,21 +303,12 @@ export default function RksvVerificationsPage() {
             </AdminPageHeader>
 
             <Card>
-                {!correlationId ? (
-                    <Alert
-                        type="info"
-                        showIcon
-                        style={{ marginBottom: 16 }}
-                        message={OPERATOR_VERIFICATIONS_COPY.correlationFilterHintTitle}
-                        description={OPERATOR_VERIFICATIONS_COPY.correlationFilterHintBody}
-                    />
-                ) : null}
                 {correlationId && (
                     <Alert
                         type="info"
                         showIcon
                         message={OPERATOR_VERIFICATIONS_COPY.filteredBannerTitle}
-                        style={{ marginBottom: 16 }}
+                        style={{ marginBottom: 12 }}
                         description={
                             <Space direction="vertical" size={10} style={{ width: '100%' }}>
                                 <Space wrap align="center">
@@ -281,26 +352,79 @@ export default function RksvVerificationsPage() {
                     />
                 )}
 
-                <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
-                    {useCorrelation
-                        ? OPERATOR_VERIFICATIONS_COPY.filteredSummary(apiRows, keywordRows, displayedRows)
-                        : OPERATOR_VERIFICATIONS_COPY.unfilteredSummary(apiRows, keywordRows, displayedRows)}
-                </Typography.Paragraph>
-                <Typography.Paragraph type="secondary" style={{ marginBottom: 12, fontSize: 12 }}>
-                    {OPERATOR_VERIFICATIONS_COPY.keywordSampleFootnote}
+                <Typography.Paragraph style={{ marginBottom: 10 }}>
+                    <Typography.Text strong>
+                        {useCorrelation
+                            ? OPERATOR_VERIFICATIONS_COPY.verificationsPrimaryStripCorrelation(
+                                  displayedRows,
+                                  keywordRows,
+                                  apiRows,
+                              )
+                            : OPERATOR_VERIFICATIONS_COPY.verificationsPrimaryStripList(
+                                  displayedRows,
+                                  keywordRows,
+                                  apiRows,
+                                  { totalCount: data?.totalCount ?? undefined },
+                              )}
+                    </Typography.Text>
                 </Typography.Paragraph>
 
-                <Alert
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 16 }}
-                    message="Vertragsgrenze"
-                    description={
-                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                            {RKSv_ADMIN_CONTRACT_GAPS.verificationsAuditVsSignatureDebug}{' '}
-                            {RKSv_ADMIN_CONTRACT_GAPS.receiptSignatureDebugResponse}
-                        </Typography.Text>
-                    }
+                <Collapse
+                    bordered={false}
+                    ghost
+                    size="small"
+                    style={{ marginBottom: 12 }}
+                    items={[
+                        {
+                            key: 'context',
+                            label: OPERATOR_VERIFICATIONS_COPY.verificationsContextCollapseTitle,
+                            children: (
+                                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                                    {!useCorrelation ? (
+                                        <>
+                                            <div>
+                                                <Typography.Text strong style={{ display: 'block', marginBottom: 4, fontSize: 12 }}>
+                                                    {OPERATOR_VERIFICATIONS_COPY.correlationFilterHintTitle}
+                                                </Typography.Text>
+                                                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                                    {OPERATOR_VERIFICATIONS_COPY.correlationFilterHintBody}
+                                                </Typography.Paragraph>
+                                            </div>
+                                            <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                                {OPERATOR_VERIFICATIONS_COPY.verificationsCollapseApiPageLine(
+                                                    data?.page ?? page,
+                                                    data?.pageSize ?? pageSize,
+                                                    data?.totalPages,
+                                                )}
+                                            </Typography.Paragraph>
+                                            <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                                {OPERATOR_VERIFICATIONS_COPY.verificationsServerPaginationNote}
+                                            </Typography.Paragraph>
+                                            {!isLoadingList &&
+                                            data != null &&
+                                            (data.totalCount === undefined || data.totalCount === null) ? (
+                                                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                                    {OPERATOR_VERIFICATIONS_COPY.verificationsTotalCountOmittedNote}
+                                                </Typography.Paragraph>
+                                            ) : null}
+                                        </>
+                                    ) : (
+                                        <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                            {OPERATOR_VERIFICATIONS_COPY.verificationsClientPaginationNote}
+                                        </Typography.Paragraph>
+                                    )}
+                                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                        {OPERATOR_VERIFICATIONS_COPY.keywordSampleFootnote}
+                                    </Typography.Paragraph>
+                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                        <strong>Vertragsgrenze:</strong>{' '}
+                                        {RKSv_ADMIN_CONTRACT_GAPS.verificationsAuditVsSignatureDebug}{' '}
+                                        {RKSv_ADMIN_CONTRACT_GAPS.receiptSignatureDebugResponse}
+                                    </Typography.Text>
+                                </Space>
+                            ),
+                        },
+                    ]}
                 />
 
                 <Space direction="horizontal" wrap style={{ marginBottom: 12 }}>
@@ -317,14 +441,55 @@ export default function RksvVerificationsPage() {
                         <Switch checked={suspiciousTimingOnly} onChange={setSuspiciousTimingOnly} />
                     </Space>
                 </Space>
+                {!isLoadingList && apiRows > 0 && displayedRows === 0 ? (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: 12 }}
+                        message={OPERATOR_VERIFICATIONS_COPY.verificationsNoRowsAfterFiltersTitle}
+                        description={OPERATOR_VERIFICATIONS_COPY.verificationsNoRowsAfterFiltersBody(apiRows)}
+                    />
+                ) : null}
+                {!isLoadingList &&
+                apiRows > 0 &&
+                displayedRows > 0 &&
+                (keywordRows < apiRows || displayedRows < keywordRows) ? (
+                    <div
+                        style={{
+                            marginBottom: 10,
+                            paddingLeft: 10,
+                            borderLeft: '3px solid rgba(0, 0, 0, 0.12)',
+                        }}
+                    >
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            <Typography.Text strong style={{ fontSize: 12 }}>
+                                {OPERATOR_VERIFICATIONS_COPY.verificationsPartialScopeAlertTitle}:{' '}
+                            </Typography.Text>
+                            {OPERATOR_VERIFICATIONS_COPY.verificationsPartialScopeNote(
+                                apiRows,
+                                keywordRows,
+                                displayedRows,
+                            )}
+                        </Typography.Text>
+                    </div>
+                ) : null}
                 <Table
                     columns={columns}
                     dataSource={filteredEntries}
                     loading={isLoadingList}
                     rowKey={(r) => r.id ?? `${r.timestamp ?? ''}-${r.action ?? ''}-${r.entityId ?? ''}`}
-                    pagination={false}
+                    pagination={tablePagination}
                     size="small"
-                    scroll={{ x: 1200 }}
+                    sticky
+                    scroll={{ x: 1200, y: 'calc(100vh - 420px)' }}
+                    locale={{
+                        emptyText:
+                            apiRows === 0
+                                ? useCorrelation
+                                    ? OPERATOR_VERIFICATIONS_COPY.verificationsTableEmptyCorrelation
+                                    : OPERATOR_VERIFICATIONS_COPY.verificationsTableEmptyNoRawRows
+                                : OPERATOR_VERIFICATIONS_COPY.verificationsTableEmptyAllFiltered,
+                    }}
                 />
             </Card>
         </>

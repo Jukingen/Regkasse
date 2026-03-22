@@ -1,16 +1,17 @@
 'use client';
 
-import React, { Suspense } from 'react';
-import { Card, Typography, Spin, Alert, Button } from 'antd';
+import React, { Suspense, useMemo } from 'react';
+import { Space, Spin, Alert, Button, Tooltip, Typography } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useReceiptSearchParams } from '@/features/receipts/hooks/useReceiptSearchParams';
 import { useReceiptListQuery } from '@/features/receipts/hooks/useReceiptListQuery';
 import ReceiptsFilterBar from '@/features/receipts/components/ReceiptsFilterBar';
 import ReceiptsTable from '@/features/receipts/components/ReceiptsTable';
 import type { ReceiptListItemDto, ReceiptListParams } from '@/features/receipts/types/receipts';
-
-const { Title } = Typography;
 
 /** Extract user-facing error message from API/network error */
 function getReceiptListErrorMessage(error: unknown): string {
@@ -57,11 +58,62 @@ function ReceiptsPageContent() {
     const isEmpty = !isLoading && !isError && (!data?.items?.length);
     const emptyText = isEmpty ? 'No receipts found. Try adjusting filters.' : undefined;
 
-    return (
-        <Card>
-            <Title level={3} style={{ marginBottom: 16 }}>Receipts</Title>
+    const scopeSummary = useMemo(() => {
+        const p = data?.page ?? params.page;
+        const ps = data?.pageSize ?? params.pageSize;
+        const tc = data?.totalCount;
+        const parts = [
+            `Page ${p} · ${ps} per page`,
+            tc != null ? `${tc.toLocaleString()} receipts (API)` : 'total not loaded',
+        ];
+        if (params.receiptNumber?.trim()) {
+            parts.push(`receipt # «${params.receiptNumber.trim()}»`);
+        }
+        if (params.cashRegisterId?.trim()) {
+            parts.push(`register ${params.cashRegisterId.trim()}`);
+        }
+        if (params.cashierId?.trim()) {
+            parts.push(`cashier ${params.cashierId.trim()}`);
+        }
+        if (params.issuedFrom && params.issuedTo) {
+            parts.push(
+                `${dayjs(params.issuedFrom).format('DD.MM.YYYY')}–${dayjs(params.issuedTo).format('DD.MM.YYYY')}`,
+            );
+        } else {
+            parts.push('no date range');
+        }
+        if (params.sort) {
+            parts.push(`sort ${params.sort}`);
+        }
+        return parts.join(' · ');
+    }, [data?.page, data?.pageSize, data?.totalCount, params]);
 
-            {isError && (
+    return (
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <AdminPageHeader
+                title="Receipts"
+                breadcrumbs={[
+                    { title: 'Dashboard', href: '/dashboard' },
+                    { title: 'Receipts' },
+                ]}
+                actions={
+                    <Tooltip title="Reload data from server (list may be cached).">
+                        <Button
+                            icon={<ReloadOutlined />}
+                            onClick={() => refetch()}
+                            loading={isLoading}
+                        >
+                            Refresh
+                        </Button>
+                    </Tooltip>
+                }
+            >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                    Server-filtered receipt list. Narrow results with the filters below, then review rows in the table.
+                </Typography.Paragraph>
+            </AdminPageHeader>
+
+            {isError ? (
                 <Alert
                     type="error"
                     message="Failed to load receipts"
@@ -72,9 +124,8 @@ function ReceiptsPageContent() {
                             Try again
                         </Button>
                     }
-                    style={{ marginBottom: 16 }}
                 />
-            )}
+            ) : null}
 
             <ReceiptsFilterBar
                 initialValues={params}
@@ -83,7 +134,26 @@ function ReceiptsPageContent() {
                 loading={isLoading}
             />
 
-            {!isError && (
+            {!isError ? (
+                <Typography.Paragraph
+                    type="secondary"
+                    style={{
+                        marginBottom: 0,
+                        marginTop: 8,
+                        fontSize: 12,
+                        padding: '8px 12px',
+                        background: 'var(--ant-color-fill-quaternary)',
+                        borderRadius: 6,
+                    }}
+                >
+                    <Typography.Text strong style={{ fontSize: 12 }}>
+                        Active scope:{' '}
+                    </Typography.Text>
+                    {scopeSummary}
+                </Typography.Paragraph>
+            ) : null}
+
+            {!isError ? (
                 <ReceiptsTable
                     data={data?.items ?? []}
                     loading={isLoading}
@@ -98,8 +168,8 @@ function ReceiptsPageContent() {
                     onTableChange={handleTableChange}
                     emptyText={emptyText}
                 />
-            )}
-        </Card>
+            ) : null}
+        </Space>
     );
 }
 
@@ -109,7 +179,13 @@ function ReceiptsPageContent() {
  */
 export default function ReceiptsPage() {
     return (
-        <Suspense fallback={<Spin style={{ display: 'block', margin: '80px auto' }} />}>
+        <Suspense
+            fallback={
+                <div style={{ padding: 80, textAlign: 'center' }}>
+                    <Spin size="large" tip="Loading receipts…" />
+                </div>
+            }
+        >
             <ReceiptsPageContent />
         </Suspense>
     );

@@ -44,7 +44,7 @@ export function buildPayloadHashCardCopy(
   }
   const lines: string[] = [
     `Gescannt: ${data.scanned}`,
-    `Mismatch (Runtime): ${data.runtimeMismatchCount ?? 0}`,
+    `Abweichung (Laufzeit): ${data.runtimeMismatchCount ?? 0}`,
     `Konfliktgruppen: ${data.conflictGroups?.length ?? 0}`,
     `Mismatch-Quote: ${(data.mismatchRatioPercent ?? 0).toFixed(2)}%`,
   ];
@@ -78,23 +78,24 @@ export function buildCoverageCardCopy(
   if (level === 'unavailable' || data == null) {
     return {
       summaryLine:
-        'Coverage-API fehlgeschlagen — kein Signal (nicht gleichbedeutend mit „keine Probleme“).',
+        'Abdeckungs-API fehlgeschlagen — kein Signal (nicht gleichbedeutend mit „keine Probleme“).',
       detailLines: [],
     };
   }
   const lines: string[] = [
-    `Samples (Zeitraum): ${data.total ?? 0}`,
-    `DeviceId: ${(data.deviceIdCoveragePercent ?? 0).toFixed(1)}%`,
+    `Datensätze (Zeitraum): ${data.total ?? 0}`,
+    `Geräte-ID: ${(data.deviceIdCoveragePercent ?? 0).toFixed(1)}%`,
     `Sequenz: ${(data.sequenceCoveragePercent ?? 0).toFixed(1)}%`,
   ];
-  if (data.alertReason) lines.push(`Alert: ${data.alertReason}`);
+  if (data.alertReason) lines.push(`Hinweis: ${data.alertReason}`);
   const total = data.total ?? 0;
   let summaryLine =
-    'Coverage laut API im grünen Bereich (letzte 24h UTC, siehe Detailseite für Filter).';
-  if (level === 'critical') summaryLine = 'Coverage-Alert laut API — Details prüfen.';
-  else if (level === 'warning') summaryLine = 'Coverage unter Schwellen — Details prüfen.';
+    'Abdeckung laut API im grünen Bereich (letzte 24 h UTC, siehe Detailseite für Filter).';
+  if (level === 'critical') summaryLine = 'Abdeckungsalarm laut API — Details prüfen.';
+  else if (level === 'warning') summaryLine = 'Abdeckung unter Schwellen — Details prüfen.';
   else if (total === 0) {
-    summaryLine = '0 Samples im Zeitraum — kein Coverage-Signal (nicht „alles in Ordnung“).';
+    summaryLine =
+      '0 Datensätze im Zeitraum — kein Abdeckungssignal (nicht „alles in Ordnung“).';
   }
   return { summaryLine, detailLines: lines };
 }
@@ -120,15 +121,18 @@ export function buildFinanzOnlineCardCopy(
     };
   }
   const lines = [
-    `Submits gesamt: ${data.submitTotal}`,
+    `Übermittlungen gesamt: ${data.submitTotal}`,
     `Fehlgeschlagen: ${data.submitFailedTotal}`,
-    `Permanent: ${data.submitFailedPermanent}`,
-    `Transient: ${data.submitFailedTransient}`,
+    `Permanent fehlgeschlagen: ${data.submitFailedPermanent}`,
+    `Vorübergehend fehlgeschlagen: ${data.submitFailedTransient}`,
     `Unbekannt: ${data.submitFailedUnknown}`,
   ];
-  let summaryLine = 'Laut Metriken-API: keine fehlgeschlagenen Submits (Zähler).';
-  if (level === 'critical') summaryLine = 'Permanente FO-Submit-Fehler laut Metriken — Abgleich prüfen.';
-  else if (level === 'warning') summaryLine = 'Fehlgeschlagene Submits laut Metriken — Abgleich prüfen.';
+  let summaryLine = 'Laut Metriken-API: keine fehlgeschlagenen Übermittlungen (Zähler).';
+  if (level === 'critical') {
+    summaryLine = 'Permanente FinanzOnline-Übermittlungsfehler laut Metriken — Abgleich prüfen.';
+  } else if (level === 'warning') {
+    summaryLine = 'Fehlgeschlagene Übermittlungen laut Metriken — Abgleich prüfen.';
+  }
   return { summaryLine, detailLines: lines };
 }
 
@@ -152,12 +156,14 @@ export function buildReplaySummaryCardCopy(
     };
   }
   const lines = [
-    `Backlog: ${data.replayBacklogCount ?? 0} (Pending ${data.replayPendingCount ?? 0}, Failed ${data.replayFailedCount ?? 0})`,
-    `Final-Failure-Audit (Fenster): ${data.replayFinalFailureAuditCount ?? 0}`,
+    `Rückstand: ${data.replayBacklogCount ?? 0} (ausstehend ${data.replayPendingCount ?? 0}, fehlgeschlagen ${data.replayFailedCount ?? 0})`,
+    `Final-Failure-Prüfung (Fenster): ${data.replayFinalFailureAuditCount ?? 0}`,
     `OFFLINE_SYNCED (Fenster): ${data.replaySyncedAuditCount ?? 0}`,
   ];
-  let summaryLine = `Replay unauffällig im ${data.windowHours ?? 24}h-Fenster.`;
-  if (level === 'critical') summaryLine = 'Replay-Risiko erhöht (Backlog oder Final-Failure-Audit).';
+  let summaryLine = `Replay unauffällig im ${data.windowHours ?? 24}-h-Fenster.`;
+  if (level === 'critical') {
+    summaryLine = 'Replay-Risiko erhöht (Rückstand oder Final-Failure-Prüfung).';
+  }
   else if (level === 'warning') summaryLine = 'Replay benötigt Aufmerksamkeit (offene/fehlgeschlagene Elemente).';
   return { summaryLine, detailLines: lines };
 }
@@ -182,14 +188,14 @@ export function buildExportRiskCardCopy(
   const risk = data.exportRisk;
   const lines = [
     `Risiken gesamt: ${risk?.totalRiskCount ?? 0}`,
-    `Seq duplicate/non-monotonic: ${risk?.sequenceDuplicateCount ?? 0}/${risk?.sequenceNonMonotonicCount ?? 0}`,
-    `Orphan refunds: ${risk?.orphanRefundCount ?? 0}`,
-    `Payments ohne Invoice: ${risk?.paymentWithoutInvoiceCount ?? 0}`,
+    `Sequenz Dupl./nicht monoton: ${risk?.sequenceDuplicateCount ?? 0}/${risk?.sequenceNonMonotonicCount ?? 0}`,
+    `Verwaiste Erstattungen: ${risk?.orphanRefundCount ?? 0}`,
+    `Zahlungen ohne Rechnung: ${risk?.paymentWithoutInvoiceCount ?? 0}`,
   ];
   const summaryLine =
     level === 'critical'
       ? 'Export-/Integritätsrisiken vorhanden — Integritätsseite prüfen.'
-      : 'Keine Export-/Integritätsrisiken im Summary-Check.';
+      : 'Keine Export-/Integritätsrisiken im Übersichts-Check.';
   return { summaryLine, detailLines: lines };
 }
 

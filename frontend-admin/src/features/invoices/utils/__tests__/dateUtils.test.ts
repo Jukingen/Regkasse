@@ -68,17 +68,17 @@ describe('validateDateRange', () => {
         const to = dayjs('2025-06-01');
         const result = validateDateRange(from, to);
         expect(result).not.toBeNull();
-        expect(result).toContain('before');
+        expect(result).toContain('liegen');
     });
 
     it('returns error for invalid from date', () => {
         const from = dayjs('not-a-date');
-        expect(validateDateRange(from, null)).toContain('Invalid');
+        expect(validateDateRange(from, null)).toContain('Ungültig');
     });
 
     it('returns error for invalid to date', () => {
         const to = dayjs('not-a-date');
-        expect(validateDateRange(null, to)).toContain('Invalid');
+        expect(validateDateRange(null, to)).toContain('Ungültig');
     });
 
     it('handles DST spring-forward day (CET→CEST)', () => {

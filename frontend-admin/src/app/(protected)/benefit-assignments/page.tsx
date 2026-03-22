@@ -32,6 +32,7 @@ import {
 import { useAdminBenefitDefinitionsList } from '@/api/admin/benefit-definitions';
 import { useGetApiCustomer } from '@/api/generated/customer/customer';
 import { useQueryClient } from '@tanstack/react-query';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 
 export default function BenefitAssignmentsPage() {
   const queryClient = useQueryClient();
@@ -178,27 +179,33 @@ export default function BenefitAssignmentsPage() {
   ];
 
   return (
-    <div style={{ padding: 24, background: '#fff', borderRadius: 8 }}>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <h2 style={{ margin: 0 }}>Vorteile (Zuweisungen)</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          Neue Zuweisung
-        </Button>
-      </div>
+    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <AdminPageHeader
+        title="Vorteile (Zuweisungen)"
+        breadcrumbs={[
+          { title: 'Dashboard', href: '/dashboard' },
+          { title: 'Vorteile (Zuweisungen)' },
+        ]}
+        actions={
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+            Neue Zuweisung
+          </Button>
+        }
+      />
 
-      {listQuery.isError && (
+      {listQuery.isError ? (
         <Alert
           type="error"
           message="Laden fehlgeschlagen"
           description={listQuery.error?.message}
+          showIcon
           action={
             <Button size="small" onClick={() => listQuery.refetch()}>
               Erneut versuchen
             </Button>
           }
-          style={{ marginBottom: 16 }}
         />
-      )}
+      ) : null}
 
       <Table
         columns={columns}
@@ -248,6 +255,6 @@ export default function BenefitAssignmentsPage() {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </Space>
   );
 }

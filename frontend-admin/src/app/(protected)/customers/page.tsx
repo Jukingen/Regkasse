@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button, message, Space, Input } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 import CustomerList from '@/features/customers/components/CustomerList';
@@ -117,7 +117,7 @@ export default function CustomersPage() {
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
                 title="Customers"
-                breadcrumbs={[{ title: 'Dashboard', href: '/' }, { title: 'Customers' }]}
+                breadcrumbs={[{ title: 'Dashboard', href: '/dashboard' }, { title: 'Customers' }]}
                 actions={
                     <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
                         New Customer
@@ -135,6 +135,7 @@ export default function CustomersPage() {
                     onSearch={(val) => setParam('search', val || undefined)}
                     style={{ width: 300 }}
                     allowClear
+                    enterButton={<SearchOutlined />}
                 />
             </AdminPageHeader>
 

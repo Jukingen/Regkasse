@@ -25,8 +25,8 @@ export function validateDateRange(
     from: dayjs.Dayjs | null | undefined,
     to: dayjs.Dayjs | null | undefined
 ): string | null {
-    if (from && !from.isValid()) return 'Invalid start date';
-    if (to && !to.isValid()) return 'Invalid end date';
-    if (from && to && from.isAfter(to)) return 'Start date must be before or equal to end date';
+    if (from && !from.isValid()) return 'Ungültiges Startdatum';
+    if (to && !to.isValid()) return 'Ungültiges Enddatum';
+    if (from && to && from.isAfter(to)) return 'Startdatum muss vor oder am Enddatum liegen';
     return null;
 }

@@ -32,7 +32,7 @@ export default function GenerateReceiptPage() {
         <React.Fragment>
             <AdminPageHeader
                 title="Belegvorschau erzeugen"
-                breadcrumbs={[{ title: 'Dashboard', href: '/' }, { title: 'Belegvorschau erzeugen' }]}
+                breadcrumbs={[{ title: 'Dashboard', href: '/dashboard' }, { title: 'Belegvorschau erzeugen' }]}
             />
 
             <Alert

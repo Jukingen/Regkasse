@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, Tabs, message, Row, Col, InputNumber, Switch, Divider, Spin, Descriptions, Typography } from 'antd';
+import { Form, Input, Button, Card, Tabs, message, Row, Col, InputNumber, Switch, Divider, Spin, Descriptions, Typography, Alert, Empty } from 'antd';
 import { SaveOutlined, LockOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
@@ -17,8 +17,18 @@ import { customInstance } from '@/lib/axios';
 
 const ATU_REGEX = /^ATU\d{8}$/;
 
+/** User-facing load error text; avoids dumping unknown error shapes raw into the UI */
+function getSettingsLoadErrorDescription(err: unknown): string {
+    if (err instanceof Error && err.message.trim()) return err.message.trim();
+    const normalized = (err as { normalized?: { message?: string } })?.normalized;
+    if (normalized?.message?.trim()) return normalized.message.trim();
+    const msg = (err as { message?: string })?.message;
+    if (typeof msg === 'string' && msg.trim()) return msg.trim();
+    return 'Unable to load company settings. Check your connection and try again.';
+}
+
 export default function SettingsPage() {
-    const { data: settings, isLoading, error } = useGetApiCompanySettings();
+    const { data: settings, isLoading, isError, error, refetch, isFetching, isSuccess } = useGetApiCompanySettings();
     const updateMutation = usePutApiCompanySettings();
     const [form] = Form.useForm<SettingsFormValues>();
 
@@ -38,23 +48,69 @@ export default function SettingsPage() {
         }
     };
 
+    const headerBreadcrumbs = [
+        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'Settings' },
+    ] as const;
+
     if (isLoading) {
         return (
-            <div style={{ textAlign: 'center', padding: 50 }}>
-                <Spin size="large" />
-            </div>
+            <SpaceWrapper>
+                <AdminPageHeader title="Company Settings" breadcrumbs={[...headerBreadcrumbs]} />
+                <Card>
+                    <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+                        <Spin size="large" />
+                        <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
+                            Loading company settings…
+                        </Typography.Paragraph>
+                    </div>
+                </Card>
+            </SpaceWrapper>
         );
     }
 
-    if (error) {
-        return <div>Error loading settings</div>;
+    if (isError) {
+        return (
+            <SpaceWrapper>
+                <AdminPageHeader title="Company Settings" breadcrumbs={[...headerBreadcrumbs]} />
+                <Alert
+                    type="error"
+                    message="Failed to load company settings"
+                    description={getSettingsLoadErrorDescription(error)}
+                    showIcon
+                    action={
+                        <Button size="small" type="primary" onClick={() => refetch()} loading={isFetching}>
+                            Retry
+                        </Button>
+                    }
+                />
+            </SpaceWrapper>
+        );
+    }
+
+    if (isSuccess && settings == null) {
+        return (
+            <SpaceWrapper>
+                <AdminPageHeader title="Company Settings" breadcrumbs={[...headerBreadcrumbs]} />
+                <Card>
+                    <Empty
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                        description="No company settings were returned."
+                    >
+                        <Button type="primary" onClick={() => refetch()} loading={isFetching}>
+                            Reload
+                        </Button>
+                    </Empty>
+                </Card>
+            </SpaceWrapper>
+        );
     }
 
     return (
         <SpaceWrapper>
             <AdminPageHeader
                 title="Company Settings"
-                breadcrumbs={[{ title: 'Dashboard', href: '/' }, { title: 'Settings' }]}
+                breadcrumbs={[...headerBreadcrumbs]}
                 actions={
                     <Button
                         type="primary"
