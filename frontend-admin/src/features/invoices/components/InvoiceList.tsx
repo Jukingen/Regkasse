@@ -26,6 +26,10 @@ import { getInvoicesList, getInvoicePdf, createCreditNote, exportInvoices as orv
 import { coerceInvoiceListSortField, type InvoiceListParams, type InvoiceListSortBy } from '../types';
 import { normalizeInvoiceItemsForDisplay } from '@/shared/contract/invoiceInvoiceItemsDisplay';
 import {
+    formatInvoiceDataProvenanceForDisplay,
+    readOptionalInvoiceDataProvenance,
+} from '@/shared/contract/invoiceDetailResponseExtensions';
+import {
     getAxiosResponseDataString,
     getAxiosResponseStatus,
     isAntdFormValidateError,
@@ -34,6 +38,7 @@ import {
     analyzeRegisterFkField,
     formatRegisterDisplayLabel,
     parseAuthoritativeRegisterGuid,
+    toLinkSafeRegisterRowId,
 } from '@/shared/utils/registerIdentity';
 import {
     buildFinanzOnlineQueueInvestigationHref,
@@ -187,6 +192,7 @@ export const InvoiceList: React.FC = () => {
         await queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.base });
     };
 
+    /** `cashRegisterId`: raw API register FK from Invoice (may be non-UUID); only link-safe subset is written to the URL. */
     const openReconciliationHandoffModal = (args: {
         title: string;
         messageText: string;
@@ -199,8 +205,11 @@ export const InvoiceList: React.FC = () => {
         toUtc?: string;
         footerHint?: string;
     }) => {
+        const registerForUrl = toLinkSafeRegisterRowId(args.cashRegisterId);
+        const registerRawTrimmed = args.cashRegisterId?.trim();
+        const registerFilterOmitted = Boolean(registerRawTrimmed) && !registerForUrl;
         const link = buildFinanzOnlineQueueInvestigationHref({
-            registerRowId: args.cashRegisterId,
+            registerRowId: registerForUrl,
             focusPaymentId: args.focusPaymentId,
             investigationBatchCorrelationId: args.investigationBatchCorrelationId,
             fromUtc: args.fromUtc,
@@ -224,6 +233,11 @@ export const InvoiceList: React.FC = () => {
                         <Typography.Text>
                             SubmittedAt: {dayjs(args.submittedAt).isValid() ? dayjs(args.submittedAt).format('DD.MM.YYYY HH:mm:ss') : args.submittedAt}
                         </Typography.Text>
+                    ) : null}
+                    {registerFilterOmitted ? (
+                        <Typography.Paragraph type="warning" style={{ marginBottom: 0, fontSize: 12 }}>
+                            {OPERATOR_INVOICE_COPY.reconciliationHandoffRegisterFilterOmitted}
+                        </Typography.Paragraph>
                     ) : null}
                     <Typography.Text type="secondary">
                         {args.footerHint || OPERATOR_INVOICE_COPY.reconciliationHandoffFooter}
@@ -515,7 +529,7 @@ export const InvoiceList: React.FC = () => {
                     okText: 'Zum Abgleich',
                     onOk: () => {
                         const link = buildFinanzOnlineQueueInvestigationHref({
-                            registerRowId: invoice.cashRegisterId,
+                            registerRowId: toLinkSafeRegisterRowId(invoice.cashRegisterId),
                             focusPaymentId: invoice.sourcePaymentId ?? invoice.id,
                             investigationBatchCorrelationId: invoice.correlationId ?? undefined,
                             fromUtc: invoiceDate.startOf('day').toISOString(),
@@ -549,7 +563,7 @@ export const InvoiceList: React.FC = () => {
                 onOk: () => {
                     const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
                     const link = buildFinanzOnlineQueueInvestigationHref({
-                        registerRowId: invoice.cashRegisterId,
+                        registerRowId: toLinkSafeRegisterRowId(invoice.cashRegisterId),
                         focusPaymentId: invoice.sourcePaymentId ?? invoice.id,
                         investigationBatchCorrelationId: invoice.correlationId ?? undefined,
                         fromUtc: invoiceDate.startOf('day').toISOString(),
@@ -965,6 +979,8 @@ export const InvoiceList: React.FC = () => {
                         {(() => {
                             const detailRegFk = analyzeRegisterFkField(detailInvoice.cashRegisterId);
                             const itemsDisplay = normalizeInvoiceItemsForDisplay(detailInvoice.invoiceItems);
+                            const invoiceDataProvenanceRaw = readOptionalInvoiceDataProvenance(detailInvoice);
+                            const detailCorrelationTrimmed = detailInvoice.correlationId?.trim() ?? '';
 
                             const detailDate = dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).isValid()
                                 ? dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).format('DD.MM.YYYY HH:mm')
@@ -1033,10 +1049,10 @@ export const InvoiceList: React.FC = () => {
                                             {detailRegFk.linkSafeUuid ? (
                                                 <Link
                                                     href={buildFinanzOnlineQueueInvestigationHref({
-                                                        registerRowId: detailInvoice.cashRegisterId,
+                                                        registerRowId: detailRegFk.linkSafeUuid,
                                                         focusPaymentId: detailInvoice.sourcePaymentId,
                                                         investigationBatchCorrelationId:
-                                                            detailInvoice.correlationId ?? undefined,
+                                                            detailCorrelationTrimmed || undefined,
                                                     })}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
@@ -1070,13 +1086,13 @@ export const InvoiceList: React.FC = () => {
                                                 <Typography.Text type="secondary">
                                                     {OPERATOR_INVOICE_COPY.correlationPathsLabel}:
                                                 </Typography.Text>
-                                                {detailInvoice.correlationId ? (
+                                                {detailCorrelationTrimmed ? (
                                                     <>
                                                         <Typography.Text code copyable>
-                                                            {detailInvoice.correlationId}
+                                                            {detailCorrelationTrimmed}
                                                         </Typography.Text>
                                                         <Link
-                                                            href={buildIncidentInvestigationHref(detailInvoice.correlationId)}
+                                                            href={buildIncidentInvestigationHref(detailCorrelationTrimmed)}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                         >
@@ -1084,7 +1100,7 @@ export const InvoiceList: React.FC = () => {
                                                         </Link>
                                                         <Typography.Text type="secondary">·</Typography.Text>
                                                         <Link
-                                                            href={buildReplayBatchDetailHref(detailInvoice.correlationId)}
+                                                            href={buildReplayBatchDetailHref(detailCorrelationTrimmed)}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                         >
@@ -1097,7 +1113,19 @@ export const InvoiceList: React.FC = () => {
                                             </Space>
                                         </Space>
                                         <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0, fontSize: 12 }}>
-                                            <strong>Herkunft:</strong> {OPERATOR_INVOICE_COPY.detailProvenanceFooter}
+                                            {invoiceDataProvenanceRaw ? (
+                                                <>
+                                                    <strong>Herkunft (Antwort):</strong>{' '}
+                                                    {formatInvoiceDataProvenanceForDisplay(invoiceDataProvenanceRaw)}
+                                                    <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 11 }}>
+                                                        {OPERATOR_INVOICE_COPY.detailProvenanceUntypedApiNote}
+                                                    </Typography.Text>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <strong>Herkunft:</strong> {OPERATOR_INVOICE_COPY.detailProvenanceFooter}
+                                                </>
+                                            )}
                                         </Typography.Paragraph>
                                         {(detailInvoice.status === InvoiceStatus.NUMBER_1 || detailInvoice.status === InvoiceStatus.NUMBER_2) && (
                                             <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
@@ -1148,10 +1176,10 @@ export const InvoiceList: React.FC = () => {
                                                         <div>
                                                             <Link
                                                                 href={buildFinanzOnlineQueueInvestigationHref({
-                                                                    registerRowId: detailInvoice.cashRegisterId,
+                                                                    registerRowId: detailRegFk.linkSafeUuid,
                                                                     focusPaymentId: detailInvoice.sourcePaymentId,
                                                                     investigationBatchCorrelationId:
-                                                                        detailInvoice.correlationId ?? undefined,
+                                                                        detailCorrelationTrimmed || undefined,
                                                                 })}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"

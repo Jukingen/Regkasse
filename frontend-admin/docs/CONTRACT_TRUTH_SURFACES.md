@@ -23,9 +23,44 @@ These UI areas must stay aligned with **Orval-generated** types under `src/api/g
 - Single spec consumed by Orval (see `orval.config.*` in repo).
 - Do not add parallel “admin DTO” interfaces for the same endpoints; extend the spec and regenerate.
 
+## Register identity field map (semantic)
+
+| Field / param | Source (DTO or UI) | Meaning | Class |
+|---------------|-------------------|---------|--------|
+| `cashRegisterId` | `Invoice`, `InvoiceListItemDto`, `ReceiptDTO` / list item, `FinanzOnlineReconciliationItemDto`, FO join on incident | Backend register FK / `cash_registers` row id as string; **may be non-UUID** | Authoritative raw FK (show always when present) |
+| `kassenId` | `Invoice`, `InvoiceListItemDto` | Display / RegisterNumber-style text for operators | Display-only (never sole input to FO URL filter) |
+| `kassenID` | `ReceiptDTO` (detail) | Same role as kassen display; mapped to `registerDisplayNumber` in forensics | Display-only |
+| `registerDisplayNumber` | `ReceiptDetailDto`, list row (optional) | View-model display slot; list often empty until OpenAPI adds list field | Display-only / unknown |
+| `registerRowId` (helper arg) | Passed into `buildFinanzOnlineQueuePath` / `buildFinanzOnlineQueueInvestigationHref` | Must be API `cashRegisterId` string; only **link-safe** subset is serialized as query `cashRegisterId` | Use `toLinkSafeRegisterRowId(apiCashRegisterId)` at call sites |
+| Query `cashRegisterId` | FO queue URL → `finanz-online-queue` page | Machine filter: only set from `parseAuthoritativeRegisterGuid` | Authoritative when present |
+| `focusPaymentId` (query) | Investigation hrefs | Payment UUID for row highlight; same UUID gate as register | Authoritative when accepted |
+| `investigationBatchCorrelationId` | Investigation hrefs | Opaque operator context; truncated; **not** a register id | Context-only (not FK) |
+| Replay batch register column | `FinanzOnlineReconciliationItemDto` via `foByPayment` | FO row’s `cashRegisterId`; badge `derived_from_foreign_row` | Authoritative raw from joined row; link policy same as above |
+
+Policy module: `src/shared/utils/registerIdentity.ts`. View helpers: `viewInvoiceListRegister`, `viewFinanzReconciliationRegister` in `rksvAdminTruth.ts`.
+
 ## Response-only / weakly typed fields (today)
 
 | Area | Field | Notes |
 |------|--------|--------|
 | Invoice detail | `invoiceItems` | OpenAPI: `unknown \| null`. Display via `shared/contract/invoiceInvoiceItemsDisplay.ts`. |
 | Invoice list | `sortBy` / `sortDir` | Generated list params use `string`; frontend narrows with `INVOICE_LIST_SORT_FIELDS` until enum is in spec. |
+| Receipt signature debug | whole response | OpenAPI types GET `/api/Receipts/{id}/signature-debug` as `unknown`; forensics normalizes with runtime checks only. |
+| Invoice detail | `invoiceDataProvenance` | Backend may serialize `Persisted` / `DerivedFromPayment` before the OpenAPI `Invoice` schema lists it; UI reads via `shared/contract/invoiceDetailResponseExtensions.ts` until Orval includes the field. |
+
+## Release gate — truth-critical admin (practical rules)
+
+1. **Block merge (or fail CI)** if `npm run generate:api` produces a diff in `src/api/generated/**` that was not committed after a backend OpenAPI change touching invoice list/detail, FO reconciliation, incident aggregate, replay batch, receipts, or audit-log correlation endpoints. Treat uncommitted generated output as contract drift.
+2. **Fail loudly in development:** use React Query devtools during QA on these routes; keep load-failure `Alert` patterns instead of silent empty tables.
+3. **Safe UI degradation:** placeholders (`—`), omitting deep links when UUID policy fails, `normalizeInvoiceItemsForDisplay` parse-error branch, and “OpenAPI: unknown” copy for line items — honest degradation, not invented DTO fields.
+4. **Do not merge** new `as any` / unchecked widening casts on truth surfaces without a tracked OpenAPI follow-up in `RKSv_ADMIN_CONTRACT_GAPS` or removal after regeneration.
+5. **Before release:** run `npm run test:truth-surfaces` and `npm run test:contract`; spot-check `docs/RKSV_TRUTH_SURFACES_QA_CHECKLIST.md` for cross-links.
+
+## Contract-sensitive components (quick checklist)
+
+- [ ] `InvoiceList.tsx` — `viewInvoiceListRegister`, `normalizeInvoiceItemsForDisplay`, `buildFinanzOnlineQueueInvestigationHref`; sort via `coerceInvoiceListSortField`.
+- [ ] `finanz-online-queue/page.tsx` — `viewFinanzReconciliationRegister` + investigation href builders.
+- [ ] `incident/page.tsx` — typed Orval aggregate; `parseReplayMeta` only for unstructured audit JSON (documented).
+- [ ] `replay-batch/[correlationId]/page.tsx` — `viewReplayBatchTraceIds` + shared link builders.
+- [ ] `verifications/page.tsx` — correlation filter + shared investigation links.
+- [ ] `forensics-client.ts` — `ReceiptDTO` mapping; signature-debug response until OpenAPI is typed.

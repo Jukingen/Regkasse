@@ -33,6 +33,8 @@ export function buildVerificationsAuditHref(correlationIdRaw: string): string {
 
 /**
  * FinanzOnline reconciliation list path plus optional investigation hints.
+ * `registerRowId`: API `cashRegisterId` string; only values passing `parseAuthoritativeRegisterGuid` appear as
+ * query `cashRegisterId` (prefer passing `toLinkSafeRegisterRowId(apiFk)` from `registerIdentity` at call sites).
  * `focusPaymentId` is only accepted when it passes the same non-nil UUID check as register row ids.
  * `investigationBatchCorrelationId` is echoed for operator context — it does not filter the reconciliation API.
  */

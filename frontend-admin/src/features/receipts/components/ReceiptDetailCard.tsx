@@ -9,6 +9,7 @@ import {
     analyzeRegisterFkField,
     buildFinanzOnlineQueuePath,
     formatRegisterDisplayLabel,
+    toLinkSafeRegisterRowId,
 } from '@/shared/utils/registerIdentity';
 import dayjs from 'dayjs';
 import { OPERATOR_LINK_LABELS, OPERATOR_REGISTER_LINK_COPY } from '@/shared/operatorTruthCopy';
@@ -56,7 +57,9 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                 {regFk.linkSafeUuid ? (
                     <div style={{ marginTop: 8 }}>
                         <Link
-                            href={buildFinanzOnlineQueuePath({ registerRowId: receipt.cashRegisterId })}
+                            href={buildFinanzOnlineQueuePath({
+                                registerRowId: toLinkSafeRegisterRowId(receipt.cashRegisterId),
+                            })}
                             target="_blank"
                             rel="noopener noreferrer"
                         >

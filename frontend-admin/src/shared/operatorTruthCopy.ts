@@ -226,8 +226,14 @@ export const OPERATOR_INVOICE_COPY = {
     invalidRegisterOnlyCheckboxLabel: 'Nur ohne gültige Register-UUID (kein Link-FK)',
     reconciliationHandoffFooter:
         'Öffnet die FinanzOnline-Abgleichsansicht mit Filtern. Gültige Payment- und Batch-Correlation-IDs werden in der URL als Kontext bzw. Fokus mitgeführt — siehe Hinweis auf der Abgleichsseite.',
+    /** Shown when invoice.cashRegisterId is non-empty but not a link-safe non-nil UUID — URL omits cashRegisterId query. */
+    reconciliationHandoffRegisterFilterOmitted:
+        'Hinweis: Der Register-FK dieser Rechnung ist nicht link-sicher (kein gültiger Nicht-Nil-UUID). Die Abgleich-URL setzt daher keinen cashRegisterId-Filter; Zahlungs- und Batch-Kontext in der URL bleiben erhalten.',
     detailProvenanceFooter:
-        'Verknüpfungen nutzen cashRegisterId (Maschinenbezug), nicht kassenId. Ob die Zeile rein persistiert oder aus Zahlung abgeleitet ist, liefert das API-Detail derzeit nicht als eigenes Feld — siehe Vertragslücken in der technischen Doku.',
+        'Ohne typisiertes Feld invoiceDataProvenance im OpenAPI-Client bleibt Persistenz vs. Zahlungsableitung unscharf (keine Heuristik aus anderen Feldern). Verknüpfungen nutzen cashRegisterId (Maschinenbezug), nicht kassenId — siehe Vertragslücken.',
+    /** Shown when JSON still carries invoiceDataProvenance before Orval schema catch-up. */
+    detailProvenanceUntypedApiNote:
+        'Wert aus API-Antwort; im generierten Client noch nicht als Pflichtfeld typisiert.',
     detailRegisterMachineLabel: 'Register (Maschinenbezug)',
     detailFoLinkWithContext: 'FinanzOnline-Abgleich (mit URL-Kontext)',
     detailFoLinkRegisterOnly: 'FinanzOnline-Abgleich (diese Kasse, mit URL-Kontext)',

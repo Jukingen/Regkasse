@@ -4,6 +4,7 @@ import {
     analyzeRegisterFkField,
     buildFinanzOnlineQueuePath,
     parseAuthoritativeRegisterGuid,
+    toLinkSafeRegisterRowId,
 } from '@/shared/utils/registerIdentity';
 
 describe('analyzeRegisterFkField', () => {
@@ -35,6 +36,16 @@ describe('analyzeRegisterFkField', () => {
         expect(a.rawTrimmed).toBe(id);
         expect(a.linkSafeUuid).toBe(id);
         expect(a.isRawPresentButNotLinkSafe).toBe(false);
+    });
+});
+
+describe('toLinkSafeRegisterRowId', () => {
+    it('matches parseAuthoritativeRegisterGuid (never treats display text as link input)', () => {
+        expect(toLinkSafeRegisterRowId('KASSE-1')).toBeUndefined();
+        expect(toLinkSafeRegisterRowId(undefined)).toBeUndefined();
+        const id = '11111111-1111-4111-8111-111111111111';
+        expect(toLinkSafeRegisterRowId(id)).toBe(id);
+        expect(toLinkSafeRegisterRowId(id)).toBe(parseAuthoritativeRegisterGuid(id));
     });
 });
 

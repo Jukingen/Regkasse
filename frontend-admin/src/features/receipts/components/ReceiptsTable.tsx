@@ -4,7 +4,7 @@ import React from 'react';
 import { Table, Button, Tag } from 'antd';
 import { EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
-import type { SorterResult } from 'antd/es/table/interface';
+import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import type { ReceiptListItemDto } from '@/features/receipts/types/receipts';
 import { formatEUR } from '@/shared/utils/currency';
 import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
@@ -26,7 +26,7 @@ interface ReceiptsTableProps {
     emptyText?: string;
     onTableChange: (
         pagination: TablePaginationConfig,
-        filters: Record<string, any>,
+        filters: Record<string, FilterValue | null>,
         sorter: SorterResult<ReceiptListItemDto> | SorterResult<ReceiptListItemDto>[],
     ) => void;
 }

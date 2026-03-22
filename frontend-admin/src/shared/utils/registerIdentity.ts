@@ -56,6 +56,16 @@ export function parseAuthoritativeRegisterGuid(value?: string | null): string | 
     return GUID_RE.test(v) ? v : undefined;
 }
 
+/**
+ * Pass this as `registerRowId` into {@link buildFinanzOnlineQueuePath} and
+ * {@link buildFinanzOnlineQueueInvestigationHref} at call sites that hold an API `cashRegisterId` string.
+ * Never pass `kassenId`, `kassenID`, or `registerNumber` here. Equivalent to {@link parseAuthoritativeRegisterGuid}
+ * but names the intent: URL builders must not receive display identifiers as if they were authoritative FKs.
+ */
+export function toLinkSafeRegisterRowId(apiCashRegisterFkField?: string | null): string | undefined {
+    return parseAuthoritativeRegisterGuid(apiCashRegisterFkField);
+}
+
 /** True when no usable FK exists for register-scoped navigation or machine filters. */
 export function isMissingAuthoritativeRegisterId(value?: string | null): boolean {
     return !parseAuthoritativeRegisterGuid(value);

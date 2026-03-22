@@ -34,6 +34,11 @@ function toListItem(row: NonNullable<ReceiptListItemDtoPagedResult['items']>[num
   };
 }
 
+/**
+ * Maps Orval {@link ReceiptDTO} into {@link ReceiptDetailDto} (admin view model in `features/receipts/types`).
+ * Contract rules: `cashRegisterId` stays the API machine/FK string; `kassenID` → `registerDisplayNumber` only
+ * (display / RKSV text). Do not copy `kassenID` into `cashRegisterId` or infer register links from display fields.
+ */
 export function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
   const issued = d.date ?? '';
   const persisted = d.receiptPersistedAtUtc ?? issued;
@@ -112,9 +117,14 @@ export async function getReceiptByPaymentForensics(paymentId: string): Promise<R
   return mapReceiptDtoToDetail(data);
 }
 
+/** OpenAPI returns `unknown` for this endpoint — narrow before reading optional keys (see RKSv_ADMIN_CONTRACT_GAPS.receiptSignatureDebugResponse). */
+function isPlainJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function normalizeReceiptSignaturePayload(raw: unknown): PaymentSignatureDebugPayload {
-  if (raw == null || typeof raw !== 'object') return { steps: [], compactJws: null };
-  const o = raw as Record<string, unknown>;
+  if (!isPlainJsonObject(raw)) return { steps: [], compactJws: null };
+  const o = raw;
   const verifyResult = typeof o.verifyResult === 'string' ? o.verifyResult.toUpperCase() : 'WARN';
   const hasSig = typeof o.signatureValue === 'string' && o.signatureValue.length > 0;
   const steps: SignatureDiagnosticStepDto[] = [

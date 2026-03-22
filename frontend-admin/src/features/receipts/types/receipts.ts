@@ -1,6 +1,7 @@
 /**
- * Receipt DTOs — manual types matching the API contract.
- * List: GET /api/Receipts/list. Detail: GET /api/Receipts/{id} (mapped from ReceiptDTO in hook).
+ * Receipt admin view types. List/detail payloads are ultimately defined by Orval (`ReceiptListItemDto`, `ReceiptDTO`);
+ * this file holds the **mapped** list row and detail shapes used by tables/cards (`mapReceiptDtoToDetail`, `toListItem`).
+ * Do not treat these interfaces as a parallel OpenAPI contract — regenerate Orval when the backend changes.
  */
 
 // ---------------------------------------------------------------------------
@@ -81,7 +82,9 @@ export interface ReceiptTaxLineDto {
     grossAmount: number;
 }
 
-/** Full receipt detail (includes items + taxLines) */
+/**
+ * Detail view model produced from generated `ReceiptDTO` (not a duplicate backend DTO).
+ */
 export interface ReceiptDetailDto {
     receiptId: string;
     paymentId: string | null;

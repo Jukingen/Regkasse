@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { Card, Typography, Spin, Alert, Button } from 'antd';
 import type { TablePaginationConfig } from 'antd/es/table';
-import type { SorterResult } from 'antd/es/table/interface';
+import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import { useReceiptSearchParams } from '@/features/receipts/hooks/useReceiptSearchParams';
 import { useReceiptListQuery } from '@/features/receipts/hooks/useReceiptListQuery';
 import ReceiptsFilterBar from '@/features/receipts/components/ReceiptsFilterBar';
@@ -32,7 +32,7 @@ function ReceiptsPageContent() {
     /** Handle Ant Table onChange for pagination + sorting */
     const handleTableChange = (
         pagination: TablePaginationConfig,
-        _filters: Record<string, any>,
+        _filters: Record<string, FilterValue | null>,
         sorter: SorterResult<ReceiptListItemDto> | SorterResult<ReceiptListItemDto>[],
     ) => {
         const single = Array.isArray(sorter) ? sorter[0] : sorter;

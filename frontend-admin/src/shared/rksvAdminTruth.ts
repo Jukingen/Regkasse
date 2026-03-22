@@ -8,6 +8,10 @@ import type { FinanzOnlineReconciliationItemDto } from '@/api/generated/model/fi
 import type { InvoiceListItemDto } from '@/api/generated/model/invoiceListItemDto';
 import type { ReplayBatchDetailResponse } from '@/api/generated/model/replayBatchDetailResponse';
 import {
+    buildIncidentInvestigationHref,
+    buildVerificationsAuditHref,
+} from '@/shared/investigationNavigation';
+import {
     analyzeRegisterFkField,
     formatRegisterDisplayLabel,
 } from '@/shared/utils/registerIdentity';
@@ -21,13 +25,15 @@ export const RKSv_ADMIN_CONTRACT_GAPS = {
     invoiceListRowOrigin:
         'Add listRowOrigin (e.g. PersistedInvoice | PaymentDerivedListRow) to InvoiceListItemDto in OpenAPI.',
     invoiceDetailProvenance:
-        'Expose invoice row provenance (persisted vs payment-derived) on Invoice detail DTO if operators need it.',
+        'Add invoiceDataProvenance (backend: Persisted | DerivedFromPayment on GET, including synthesized invoice rows) to the OpenAPI Invoice schema so Orval types it — UI must not infer provenance from heuristics when this field is missing from the contract.',
     receiptListRegisterDisplay:
         'Add optional display-only register label (RegisterNumber / RKSV text) to ReceiptListItemDto, distinct from cashRegisterId.',
     replayBatchPaymentRegisterFk:
         'Add optional cashRegisterId (or linked FinanzOnline row id) on ReplayBatchPaymentItemDto so register is not inferred only via FO join.',
     finanzReconciliationRegisterDisplay:
         'Optional register display label on FinanzOnlineReconciliationItemDto alongside cashRegisterId UUID.',
+    receiptSignatureDebugResponse:
+        'Type GET /api/Receipts/{id}/signature-debug response in OpenAPI (verifyResult, signatureValue, message, …) so Orval replaces `unknown` and forensics UI does not rely on loose property reads.',
 } as const;
 
 export type InvoiceListRegisterView = {
@@ -46,6 +52,7 @@ export function viewInvoiceListRegister(row: InvoiceListItemDto): InvoiceListReg
     return {
         apiCashRegisterId: reg.rawTrimmed,
         kassenDisplay: formatRegisterDisplayLabel(row.kassenId),
+        /** Same as `toLinkSafeRegisterRowId(row.cashRegisterId)` — never derived from `kassenId`. */
         finanzQueueRegisterRowId: reg.linkSafeUuid,
         registerFkRawNotLinkSafe: reg.isRawPresentButNotLinkSafe,
     };
@@ -59,6 +66,7 @@ export function viewFinanzReconciliationRegister(row: FinanzOnlineReconciliation
     const reg = analyzeRegisterFkField(row.cashRegisterId);
     return {
         apiCashRegisterId: reg.rawTrimmed,
+        /** Same as `toLinkSafeRegisterRowId(row.cashRegisterId)`. */
         finanzQueueRegisterRowId: reg.linkSafeUuid,
         registerFkRawNotLinkSafe: reg.isRawPresentButNotLinkSafe,
     };
@@ -94,10 +102,10 @@ export function viewReplayBatchTraceIds(
         batchCorrelationId,
         auditCorrelationId,
         incidentDeepLink: batchCorrelationId
-            ? `/rksv/incident?correlationId=${encodeURIComponent(batchCorrelationId)}`
+            ? buildIncidentInvestigationHref(batchCorrelationId)
             : undefined,
         verificationsDeepLink: verificationsCorrelation
-            ? `/rksv/verifications?correlationId=${encodeURIComponent(verificationsCorrelation)}`
+            ? buildVerificationsAuditHref(verificationsCorrelation)
             : undefined,
     };
 }

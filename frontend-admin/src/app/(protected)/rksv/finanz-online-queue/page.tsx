@@ -30,7 +30,7 @@ import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { parseAuthoritativeRegisterGuid } from '@/shared/utils/registerIdentity';
+import { parseAuthoritativeRegisterGuid, toLinkSafeRegisterRowId } from '@/shared/utils/registerIdentity';
 import {
     buildFinanzOnlineQueueInvestigationHref,
     buildIncidentInvestigationHref,
@@ -478,7 +478,7 @@ export default function FinanzOnlineReconciliationPage() {
                                 <Typography.Text type="secondary">·</Typography.Text>
                                 <Link
                                     href={buildFinanzOnlineQueueInvestigationHref({
-                                        registerRowId: cashRegisterId,
+                                        registerRowId: toLinkSafeRegisterRowId(cashRegisterId),
                                         focusPaymentId,
                                         investigationBatchCorrelationId,
                                         fromUtc: dateRange[0]?.toISOString(),

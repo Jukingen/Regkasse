@@ -34,6 +34,7 @@ export default function RksvVerificationsPage() {
     const list = useCorrelation ? (correlationData?.auditLogs ?? []) : (data?.auditLogs ?? []);
     const isLoadingList = useCorrelation ? correlationLoading : isLoading;
 
+    /** Client-side keyword filter only — not guaranteed by OpenAPI enums; backend action renames would narrow results silently. */
     const signatureEntries =
         (useCorrelation ? list : data?.auditLogs)?.filter(
             (e: AuditLogEntryDto) =>

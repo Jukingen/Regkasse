@@ -12,6 +12,7 @@ import {
     buildReplayBatchDetailHref,
     buildVerificationsAuditHref,
 } from '@/shared/investigationNavigation';
+import { toLinkSafeRegisterRowId } from '@/shared/utils/registerIdentity';
 import {
     viewFinanzReconciliationRegister,
     viewInvoiceListRegister,
@@ -37,6 +38,14 @@ describe('truth: invoice list register (OpenAPI InvoiceListItemDto)', () => {
         expect(v.apiCashRegisterId).toBe('REG-DISPLAY-ONLY');
         expect(v.finanzQueueRegisterRowId).toBeUndefined();
         expect(v.registerFkRawNotLinkSafe).toBe(true);
+    });
+
+    it('finanzQueueRegisterRowId equals toLinkSafeRegisterRowId(cashRegisterId), never kassenId', () => {
+        const id = '22222222-2222-4222-8222-222222222222';
+        const row: InvoiceListItemDto = { cashRegisterId: id, kassenId: 'SHOULD-NOT-MATTER' };
+        const v = viewInvoiceListRegister(row);
+        expect(v.finanzQueueRegisterRowId).toBe(toLinkSafeRegisterRowId(row.cashRegisterId));
+        expect(toLinkSafeRegisterRowId(row.kassenId ?? undefined)).not.toBe(id);
     });
 });
 

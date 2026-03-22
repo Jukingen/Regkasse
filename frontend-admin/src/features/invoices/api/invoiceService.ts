@@ -1,8 +1,13 @@
 import { customInstance } from '@/lib/axios';
-import { getApiInvoiceList } from '@/api/generated/invoice/invoice';
+import { getApiInvoiceList, postApiInvoiceIdCreditNote } from '@/api/generated/invoice/invoice';
+import type { CreateCreditNoteRequest } from '@/api/generated/model/createCreditNoteRequest';
 import type { GetApiInvoiceListParams } from '@/api/generated/model/getApiInvoiceListParams';
+import type { Invoice } from '@/api/generated/model/invoice';
 import type { InvoiceListItemDtoPagedResult } from '@/api/generated/model/invoiceListItemDtoPagedResult';
 import type { InvoiceListParams } from '../types';
+
+/** Alias for callers — same shape as Orval `CreateCreditNoteRequest`. */
+export type CreateCreditNoteBody = CreateCreditNoteRequest;
 
 function toListParams(params: InvoiceListParams): GetApiInvoiceListParams {
     return {
@@ -40,16 +45,7 @@ export const getInvoicePdf = (id: string): Promise<Blob> => {
     });
 };
 
-// Credit note / storno
-export interface CreateCreditNoteBody {
-    reasonCode: string;
-    reasonText: string;
+/** Credit note — Orval-typed POST /api/Invoice/{id}/credit-note (returns `Invoice` per OpenAPI). */
+export function createCreditNote(id: string, body: CreateCreditNoteBody): Promise<Invoice> {
+    return postApiInvoiceIdCreditNote(id, body);
 }
-
-export const createCreditNote = (id: string, body: CreateCreditNoteBody) => {
-    return customInstance<unknown>({
-        url: `/api/Invoice/${id}/credit-note`,
-        method: 'POST',
-        data: body,
-    });
-};
