@@ -30,17 +30,19 @@ export const RECEIPT_LIST_DEFAULTS: ReceiptListParams = {
 // List Response
 // ---------------------------------------------------------------------------
 
-/** Single receipt in the paginated list */
+/**
+ * Single receipt in the paginated list (mapped from Orval ReceiptListItemDto).
+ * Optional display register label is not in the current OpenAPI list item — reserved for a future field
+ * (see RKSv_ADMIN_CONTRACT_GAPS.receiptListRegisterDisplay).
+ */
 export interface ReceiptListItemDto {
     receiptId: string;
     receiptNumber: string;
     issuedAt: string;
     cashierId: string | null;
-    /** FK to cash_registers row (UUID string). Legacy list field name kept for compatibility. */
+    /** Value from GET /api/Receipts/list cashRegisterId (may be empty if API omits it). */
     cashRegisterId: string;
-    /** Same as cashRegisterId when API sends explicit Guid field. */
-    cashRegisterEntityId?: string;
-    /** RegisterNumber / RKSV display id (not the FK). */
+    /** Populated only when backend adds a distinct display field to the list contract. */
     registerDisplayNumber?: string;
     subTotal: number;
     taxTotal: number;

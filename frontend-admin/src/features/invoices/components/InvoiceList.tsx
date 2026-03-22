@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty, Form, Checkbox, Typography } from 'antd';
+import { Table, Button, Input, Select, DatePicker, Space, Tag, Card, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty, Form, Checkbox, Typography, Divider, Collapse } from 'antd';
 import { SearchOutlined, DownloadOutlined, ReloadOutlined, EyeOutlined, PrinterOutlined, CloudUploadOutlined, RollbackOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -11,26 +11,48 @@ import type { SorterResult } from 'antd/es/table/interface';
 import { useDebounce } from '@/hooks/useDebounce';
 import { normalizeFromDate, normalizeToDate, validateDateRange } from '../utils/dateUtils';
 
-// Orval-generated hooks and types (detail, duplicate, export — NOT list)
+// Orval-generated hooks and types
 import {
     useGetApiInvoiceId,
     getGetApiInvoiceIdQueryKey,
     getApiInvoiceId,
 } from '@/api/generated/invoice/invoice';
 import { postApiAdminFinanzonlineReconciliationRetryPaymentId } from '@/api/generated/admin/admin';
-import type { Invoice, PaymentMethod, InvoiceStatus } from '@/api/generated/model';
+import type { Invoice, InvoiceListItemDto, InvoiceListItemDtoPagedResult, PaymentMethod } from '@/api/generated/model';
+import { DocumentType, InvoiceStatus } from '@/api/generated/model';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 
-// POS-backed list — uses /api/Invoice/pos-list
 import { getInvoicesList, getInvoicePdf, createCreditNote, exportInvoices as orvalExportInvoices } from '../api/invoiceService';
-import type { ExtendedInvoiceListItem } from '../api/invoiceService';
-import type { InvoiceListParams } from '../types';
+import { coerceInvoiceListSortField, type InvoiceListParams, type InvoiceListSortBy } from '../types';
+import { normalizeInvoiceItemsForDisplay } from '@/shared/contract/invoiceInvoiceItemsDisplay';
 import {
-    buildFinanzOnlineQueuePath,
+    getAxiosResponseDataString,
+    getAxiosResponseStatus,
+    isAntdFormValidateError,
+} from '@/shared/contract/httpErrorShape';
+import {
+    analyzeRegisterFkField,
     formatRegisterDisplayLabel,
-    isMissingAuthoritativeRegisterId,
     parseAuthoritativeRegisterGuid,
 } from '@/shared/utils/registerIdentity';
+import {
+    buildFinanzOnlineQueueInvestigationHref,
+    buildIncidentInvestigationHref,
+    buildReplayBatchDetailHref,
+} from '@/shared/investigationNavigation';
+import { RKSv_ADMIN_CONTRACT_GAPS, viewInvoiceListRegister } from '@/shared/rksvAdminTruth';
+import { AdminTruthBadge } from '@/shared/adminTruthBadges';
+import {
+    OperatorBusinessSection,
+    OperatorSummaryStrip,
+    OperatorTechnicalSection,
+} from '@/shared/operatorTriageLayout';
+import {
+    OPERATOR_INVOICE_COPY,
+    OPERATOR_LINK_LABELS,
+    OPERATOR_REGISTER_LINK_COPY,
+    OPERATOR_SHARED_COPY,
+} from '@/shared/operatorTruthCopy';
 
 const { RangePicker } = DatePicker;
 
@@ -58,12 +80,23 @@ const getPaymentMethodLabel = (method?: PaymentMethod) => {
     }
 };
 
+/** Display-only: does not coerce API values into fake DTOs. */
+function displayScalar(v: unknown): string {
+    if (v === null || v === undefined || v === '') {
+        return '-';
+    }
+    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+        return String(v);
+    }
+    return '-';
+}
 
-const listRowOriginLabel = (origin?: string | null) => {
-    if (origin === 'PaymentDerivedListRow') return { text: 'Zahlung (Liste)', color: 'blue' as const };
-    if (origin === 'PersistedInvoice') return { text: 'Rechnung (DB)', color: 'green' as const };
-    return { text: origin || '—', color: 'default' as const };
-};
+function escapeCsvScalar(v: unknown): string {
+    if (v === null || v === undefined || v === '') {
+        return '';
+    }
+    return `"${String(v).replace(/"/g, '""')}"`;
+}
 
 export const InvoiceList: React.FC = () => {
     const queryClient = useQueryClient();
@@ -80,7 +113,7 @@ export const InvoiceList: React.FC = () => {
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
     const [cashRegisterIdFilter, setCashRegisterIdFilter] = useState<string | undefined>(undefined);
     const [invalidRegisterOnly, setInvalidRegisterOnly] = useState(false);
-    const [sortField, setSortField] = useState<string>('invoiceDate');
+    const [sortField, setSortField] = useState<InvoiceListSortBy>('invoiceDate');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [exportLoading, setExportLoading] = useState(false);
     const [batchLoading, setBatchLoading] = useState(false);
@@ -104,6 +137,11 @@ export const InvoiceList: React.FC = () => {
         return validateDateRange(dateRange[0], dateRange[1]);
     }, [dateRange]);
 
+    const registerListFilterAnalysis = useMemo(
+        () => analyzeRegisterFkField(cashRegisterIdFilter),
+        [cashRegisterIdFilter],
+    );
+
     // Query Params — manual type matching POS-list endpoint
     const queryParams: InvoiceListParams = useMemo(() => ({
         page: pagination.current,
@@ -112,23 +150,25 @@ export const InvoiceList: React.FC = () => {
         status: statusFilter,
         from: dateRange?.[0] ? normalizeFromDate(dateRange[0]) : undefined,
         to: dateRange?.[1] ? normalizeToDate(dateRange[1]) : undefined,
-        sortBy: sortField as InvoiceListParams['sortBy'],
-        sortDir: sortOrder as InvoiceListParams['sortDir'],
+        sortBy: sortField,
+        sortDir: sortOrder,
         cashRegisterId: cashRegisterIdFilter,
     }), [pagination.current, pagination.pageSize, debouncedSearch, statusFilter, dateRange, sortField, sortOrder, cashRegisterIdFilter]);
 
-    // Data Fetching — POS-backed via invoiceService
-    const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
+    const { data, isLoading, isFetching, isError, error: listQueryError, refetch } = useQuery<
+        InvoiceListItemDtoPagedResult,
+        Error
+    >({
         queryKey: ['invoices', queryParams],
         queryFn: () => getInvoicesList(queryParams),
-        placeholderData: (previousData: any) => previousData,
+        placeholderData: (previousData) => previousData,
         enabled: !dateRangeError,
     });
 
     const displayedItems = useMemo(() => {
         const items = data?.items || [];
         if (invalidRegisterOnly) {
-            return items.filter((item) => isMissingAuthoritativeRegisterId(item.cashRegisterId));
+            return items.filter((item) => !viewInvoiceListRegister(item).finanzQueueRegisterRowId);
         }
         return items;
     }, [data?.items, invalidRegisterOnly]);
@@ -153,12 +193,16 @@ export const InvoiceList: React.FC = () => {
         submissionId?: string | null;
         submittedAt?: string | null;
         cashRegisterId?: string;
+        focusPaymentId?: string | null;
+        investigationBatchCorrelationId?: string | null;
         fromUtc?: string;
         toUtc?: string;
         footerHint?: string;
     }) => {
-        const link = buildFinanzOnlineQueuePath({
+        const link = buildFinanzOnlineQueueInvestigationHref({
             registerRowId: args.cashRegisterId,
+            focusPaymentId: args.focusPaymentId,
+            investigationBatchCorrelationId: args.investigationBatchCorrelationId,
             fromUtc: args.fromUtc,
             toUtc: args.toUtc,
         });
@@ -182,7 +226,7 @@ export const InvoiceList: React.FC = () => {
                         </Typography.Text>
                     ) : null}
                     <Typography.Text type="secondary">
-                        {args.footerHint || 'Öffnet die FinanzOnline-Abgleichsansicht mit relevanten Filtern.'}
+                        {args.footerHint || OPERATOR_INVOICE_COPY.reconciliationHandoffFooter}
                     </Typography.Text>
                 </Space>
             ),
@@ -191,7 +235,7 @@ export const InvoiceList: React.FC = () => {
 
 
     // Handlers
-    const handleTableChange: TableProps<ExtendedInvoiceListItem>['onChange'] = (
+    const handleTableChange: TableProps<InvoiceListItemDto>['onChange'] = (
         newPagination,
         filters,
         sorter
@@ -200,9 +244,9 @@ export const InvoiceList: React.FC = () => {
         if (Array.isArray(sorter)) {
             // multisort not supported yet
         } else {
-            const s = sorter as SorterResult<ExtendedInvoiceListItem>;
+            const s = sorter as SorterResult<InvoiceListItemDto>;
             if (s.field) {
-                setSortField(s.field as string);
+                setSortField(coerceInvoiceListSortField(s.field));
                 setSortOrder(s.order === 'ascend' ? 'asc' : 'desc');
             } else {
                 setSortField('invoiceDate');
@@ -223,13 +267,13 @@ export const InvoiceList: React.FC = () => {
             setCreditNoteVisible(false);
             creditNoteForm.resetFields();
             refetch();
-        } catch (err: any) {
-            const status = err?.response?.status;
+        } catch (err: unknown) {
+            const status = getAxiosResponseStatus(err);
             if (status === 409) {
                 message.warning('A credit note already exists for this invoice.');
             } else if (status === 400) {
-                message.error(err?.response?.data || 'Invalid request.');
-            } else if (err?.errorFields) {
+                message.error(getAxiosResponseDataString(err) ?? 'Invalid request.');
+            } else if (isAntdFormValidateError(err)) {
                 // form validation error — ignore, form shows inline
             } else {
                 message.error('Failed to create credit note.');
@@ -272,15 +316,14 @@ export const InvoiceList: React.FC = () => {
         let success = 0;
         let fail = 0;
         const lines = [
-            'InvoiceNumber;InvoiceDate;CustomerName;CompanyName;TotalAmount;Status;DocumentType;OriginalInvoiceId;KassenIdDisplay;CashRegisterFk;TseSignature',
+            'InvoiceNumber;InvoiceDate;CustomerName;CompanyName;TotalAmount;Status;DocumentType;OriginalInvoiceId;KassenIdDisplay;CashRegisterId;TseSignature',
         ];
 
         for (const key of selectedRowKeys) {
             try {
                 const i = await getApiInvoiceId(key.toString());
-                const escapeCsv = (v: any) => v ? `"${String(v).replace(/"/g, '""')}"` : '';
                 lines.push(
-                    `${i.invoiceNumber};${dayjs(i.invoiceDate).format('YYYY-MM-DD HH:mm')};${escapeCsv(i.customerName)};${escapeCsv(i.companyName)};${i.totalAmount};${i.status};${(i as any).documentType || ''};${(i as any).originalInvoiceId || ''};${i.kassenId || ''};${parseAuthoritativeRegisterGuid(i.cashRegisterId) ?? ''};${escapeCsv(i.tseSignature)}`
+                    `${i.invoiceNumber};${dayjs(i.invoiceDate).format('YYYY-MM-DD HH:mm')};${escapeCsvScalar(i.customerName)};${escapeCsvScalar(i.companyName)};${i.totalAmount};${i.status};${i.documentType ?? ''};${i.originalInvoiceId ?? ''};${i.kassenId ?? ''};${i.cashRegisterId ?? ''};${escapeCsvScalar(i.tseSignature)}`
                 );
                 success++;
             } catch {
@@ -316,6 +359,8 @@ export const InvoiceList: React.FC = () => {
                 let skipped = 0;
                 let alreadySubmitted = 0;
                 const attemptedRows: Array<{ cashRegisterId?: string; invoiceDate?: string }> = [];
+                let handoffFocusPaymentId: string | undefined;
+                let handoffBatchCorrelation: string | undefined;
                 for (const key of selectedRowKeys) {
                     try {
                         const inv = await getApiInvoiceId(key.toString());
@@ -337,6 +382,13 @@ export const InvoiceList: React.FC = () => {
                                     parseAuthoritativeRegisterGuid(inv.cashRegisterId) ?? undefined,
                                 invoiceDate: inv.invoiceDate,
                             });
+                            if (!handoffFocusPaymentId) {
+                                const fp = parseAuthoritativeRegisterGuid(inv.sourcePaymentId ?? inv.id);
+                                if (fp) handoffFocusPaymentId = fp;
+                            }
+                            if (!handoffBatchCorrelation && inv.correlationId?.trim()) {
+                                handoffBatchCorrelation = inv.correlationId.trim();
+                            }
                         } else {
                             fail++;
                         }
@@ -361,6 +413,8 @@ export const InvoiceList: React.FC = () => {
                         title: 'Batch-Reconciliation abgeschlossen',
                         messageText: `${success} Rechnung/Payment-Zeilen verarbeitet. Bitte den aktuellen Abgleichsstatus prüfen.`,
                         cashRegisterId: firstRegister,
+                        focusPaymentId: handoffFocusPaymentId,
+                        investigationBatchCorrelationId: handoffBatchCorrelation,
                         fromUtc: minDate.startOf('day').toISOString(),
                         toUtc: maxDate.endOf('day').toISOString(),
                         footerHint: `Erfolg: ${success}, Fehlgeschlagen: ${fail}, Übersprungen: ${skipped}, Bereits submitted: ${alreadySubmitted}`,
@@ -409,8 +463,8 @@ export const InvoiceList: React.FC = () => {
             window.open(blobUrl, '_blank');
             // Clean up after a delay so the new tab can load
             setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
-        } catch (err: any) {
-            const status = err?.response?.status;
+        } catch (err: unknown) {
+            const status = getAxiosResponseStatus(err);
             if (status === 401) {
                 message.error('Session expired. Please log in again.');
             } else if (status === 404) {
@@ -441,6 +495,8 @@ export const InvoiceList: React.FC = () => {
                     submissionId: data.referenceId || null,
                     submittedAt: data.submittedAt || null,
                     cashRegisterId: invoice.cashRegisterId,
+                    focusPaymentId: invoice.sourcePaymentId ?? invoice.id,
+                    investigationBatchCorrelationId: invoice.correlationId ?? undefined,
                     fromUtc: invoiceDate.startOf('day').toISOString(),
                     toUtc: invoiceDate.endOf('day').toISOString(),
                 });
@@ -458,8 +514,10 @@ export const InvoiceList: React.FC = () => {
                     ),
                     okText: 'Zum Abgleich',
                     onOk: () => {
-                        const link = buildFinanzOnlineQueuePath({
+                        const link = buildFinanzOnlineQueueInvestigationHref({
                             registerRowId: invoice.cashRegisterId,
+                            focusPaymentId: invoice.sourcePaymentId ?? invoice.id,
+                            investigationBatchCorrelationId: invoice.correlationId ?? undefined,
                             fromUtc: invoiceDate.startOf('day').toISOString(),
                             toUtc: invoiceDate.endOf('day').toISOString(),
                         });
@@ -469,17 +527,18 @@ export const InvoiceList: React.FC = () => {
             }
             refetch();
             if (selectedInvoiceId) {
-                queryClient.invalidateQueries({ queryKey: getGetApiInvoiceIdQueryKey(selectedInvoiceId) } as any);
+                void queryClient.invalidateQueries({ queryKey: getGetApiInvoiceIdQueryKey(selectedInvoiceId) });
             }
             void invalidateReconciliationViews();
-        } catch (err: any) {
+        } catch (err: unknown) {
             message.error('Error running reconciliation retry');
             Modal.error({
                 title: 'Reconciliation Fehler',
                 content: (
                     <Space direction="vertical" size={8}>
                         <Typography.Text>
-                            {err?.response?.data?.message || 'Fehler beim Auslösen des Reconciliation-Retry.'}
+                            {getAxiosResponseDataString(err) ??
+                                'Fehler beim Auslösen des Reconciliation-Retry.'}
                         </Typography.Text>
                         <Typography.Text type="secondary">
                             Du kannst direkt zur Abgleichsansicht wechseln, um den aktuellen Zustand zu prüfen.
@@ -489,8 +548,10 @@ export const InvoiceList: React.FC = () => {
                 okText: 'Zum Abgleich',
                 onOk: () => {
                     const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
-                    const link = buildFinanzOnlineQueuePath({
+                    const link = buildFinanzOnlineQueueInvestigationHref({
                         registerRowId: invoice.cashRegisterId,
+                        focusPaymentId: invoice.sourcePaymentId ?? invoice.id,
+                        investigationBatchCorrelationId: invoice.correlationId ?? undefined,
                         fromUtc: invoiceDate.startOf('day').toISOString(),
                         toUtc: invoiceDate.endOf('day').toISOString(),
                     });
@@ -501,22 +562,23 @@ export const InvoiceList: React.FC = () => {
     };
 
     // Columns
-    const columns: TableProps<ExtendedInvoiceListItem>['columns'] = [
+    const columns: TableProps<InvoiceListItemDto>['columns'] = [
         {
             title: 'Invoice #',
             dataIndex: 'invoiceNumber',
             key: 'invoiceNumber',
             sorter: true,
             render: (text, record) => {
-                const missingFk = isMissingAuthoritativeRegisterId(record.cashRegisterId);
+                const reg = viewInvoiceListRegister(record);
+                const missingFk = !reg.finanzQueueRegisterRowId;
                 return (
-                    <Space size={4}>
+                    <Space size={4} wrap>
                         <span style={{ fontWeight: 500 }}>{text}</span>
-                        {record.documentType === 1 && <Tag color="purple" style={{ fontSize: 10 }}>CN</Tag>}
-                        {missingFk && (
-                            <Tooltip title="Kein gültiger Register-FK (cash_registers.Id). Die Anzeige-Kassen-ID allein reicht nicht für Verknüpfungen.">
-                                <Tag color="warning" style={{ fontSize: 10 }}>Ohne Register-FK</Tag>
-                            </Tooltip>
+                        {record.documentType === DocumentType.NUMBER_1 && <Tag color="purple" style={{ fontSize: 10 }}>CN</Tag>}
+                        {missingFk ? (
+                            <AdminTruthBadge kind="link_incomplete" />
+                        ) : (
+                            <AdminTruthBadge kind="authoritative_api" />
                         )}
                     </Space>
                 );
@@ -542,26 +604,22 @@ export const InvoiceList: React.FC = () => {
             key: 'kassenId',
             width: 120,
             ellipsis: true,
-            render: (text: string | null | undefined, record) => (
-                <Tooltip
-                    title={
-                        record.cashRegisterId
-                            ? `Register FK (links): ${record.cashRegisterId}`
-                            : 'No register FK — Anzeige only'
-                    }
-                >
-                    <span>{text?.trim() || '—'}</span>
-                </Tooltip>
-            ),
-        },
-        {
-            title: 'Datensatz',
-            dataIndex: 'listRowOrigin',
-            key: 'listRowOrigin',
-            width: 150,
-            render: (origin: string | undefined) => {
-                const { text, color } = listRowOriginLabel(origin);
-                return <Tag color={color}>{text}</Tag>;
+            render: (text: string | null | undefined, record) => {
+                const apiFk = viewInvoiceListRegister(record).apiCashRegisterId;
+                return (
+                    <Space size={4} wrap align="center">
+                        <Tooltip
+                            title={
+                                apiFk
+                                    ? `Register-FK (Rohwert aus API-Liste): ${apiFk}`
+                                    : 'Kein cashRegisterId im List-DTO — Spalte zeigt nur Anzeigetext.'
+                            }
+                        >
+                            <span>{text?.trim() || '—'}</span>
+                        </Tooltip>
+                        <AdminTruthBadge kind="display_only_label" />
+                    </Space>
+                );
             },
         },
         {
@@ -579,14 +637,56 @@ export const InvoiceList: React.FC = () => {
             key: 'status',
             sorter: true,
             width: 120,
-            render: (status: InvoiceStatus) => {
-                const info = InvoiceStatusMap[status as unknown as number] || { label: 'Unknown', color: 'default' };
+            render: (status: InvoiceStatus | undefined) => {
+                const code = status ?? InvoiceStatus.NUMBER_0;
+                const info = InvoiceStatusMap[code] || { label: 'Unknown', color: 'default' };
                 return (
                     <Tag color={info.color}>
                         {info.label}
                     </Tag>
                 );
             }
+        },
+        {
+            title: (
+                <Tooltip title="Vorschau der TSE-Signatur; vollständiger Wert im Detaildialog.">
+                    <span>TSE (Präfix)</span>
+                </Tooltip>
+            ),
+            key: 'tsePrefix',
+            width: 100,
+            ellipsis: true,
+            render: (_: unknown, record: InvoiceListItemDto) => {
+                const t = record.tseSignature?.trim();
+                if (!t) return <Typography.Text type="secondary">—</Typography.Text>;
+                const shortT = t.length > 28 ? `${t.slice(0, 28)}…` : t;
+                return (
+                    <Tooltip title={t}>
+                        <Typography.Text code style={{ fontSize: 10 }} ellipsis>
+                            {shortT}
+                        </Typography.Text>
+                    </Tooltip>
+                );
+            },
+        },
+        {
+            title: (
+                <Tooltip title="originalInvoiceId laut API-Liste (Gutschrift/Storno).">
+                    <span>Storno-Ref</span>
+                </Tooltip>
+            ),
+            dataIndex: 'originalInvoiceId',
+            key: 'originalInvoiceId',
+            width: 108,
+            ellipsis: true,
+            render: (v: string | null | undefined) =>
+                v?.trim() ? (
+                    <Typography.Text code copyable ellipsis style={{ maxWidth: 100 }}>
+                        {v}
+                    </Typography.Text>
+                ) : (
+                    <Typography.Text type="secondary">—</Typography.Text>
+                ),
         },
         {
             title: 'Actions',
@@ -609,7 +709,8 @@ export const InvoiceList: React.FC = () => {
                         />
                     </Tooltip>
                     {/* Credit note only for Paid(2) or Sent(1) invoices that are not already credit notes */}
-                    {(record.status as unknown as number === 2 || record.status as unknown as number === 1) && record.documentType !== 1 && (
+                    {(record.status === InvoiceStatus.NUMBER_2 || record.status === InvoiceStatus.NUMBER_1) &&
+                        record.documentType !== DocumentType.NUMBER_1 && (
                         <Tooltip title="Create Credit Note">
                             <Button
                                 icon={<RollbackOutlined />}
@@ -627,9 +728,20 @@ export const InvoiceList: React.FC = () => {
         },
     ];
 
-    const statusOptions = Object.entries(InvoiceStatusMap).map(([key, val]) => ({
-        label: val.label,
-        value: Number(key) as InvoiceStatus
+    const statusOptions = (
+        [
+            InvoiceStatus.NUMBER_0,
+            InvoiceStatus.NUMBER_1,
+            InvoiceStatus.NUMBER_2,
+            InvoiceStatus.NUMBER_3,
+            InvoiceStatus.NUMBER_4,
+            InvoiceStatus.NUMBER_5,
+            InvoiceStatus.NUMBER_6,
+            InvoiceStatus.NUMBER_7,
+        ] as const
+    ).map((value) => ({
+        label: InvoiceStatusMap[value]?.label ?? String(value),
+        value,
     }));
 
     const selectedRow = data?.items?.find((item) => item.id === selectedInvoiceId);
@@ -697,24 +809,31 @@ export const InvoiceList: React.FC = () => {
                         </Col>
                         <Col xs={24} sm={8} md={5}>
                             <Input
-                                placeholder="Kassen-UUID oder RegisterNumber"
+                                placeholder="Register-UUID (cash_registers.Id)"
                                 value={cashRegisterIdFilter}
                                 onChange={(e) => { setCashRegisterIdFilter(e.target.value || undefined); setPagination(p => ({ ...p, current: 1 })); }}
                                 allowClear
                             />
+                            <Typography.Text type="secondary" style={{ display: 'block', fontSize: 11, marginTop: 4 }}>
+                                {OPERATOR_INVOICE_COPY.registerListFilterApiFootnote}
+                            </Typography.Text>
                             <div style={{ marginTop: 8 }}>
                                 <Checkbox
                                     checked={invalidRegisterOnly}
                                     onChange={e => setInvalidRegisterOnly(e.target.checked)}
                                 >
-                                    Nur ohne Register-FK (UUID)
+                                    {OPERATOR_INVOICE_COPY.invalidRegisterOnlyCheckboxLabel}
                                 </Checkbox>
                             </div>
                         </Col>
                         <Col xs={24} sm={16} md={7}>
                             <RangePicker
                                 style={{ width: '100%' }}
-                                onChange={(dates) => setDateRange(dates as any)}
+                                onChange={(dates) =>
+                                    setDateRange(
+                                        dates && dates[0] && dates[1] ? [dates[0], dates[1]] : null
+                                    )
+                                }
                                 status={dateRangeError ? 'error' : undefined}
                             />
                             {dateRangeError && (
@@ -722,7 +841,9 @@ export const InvoiceList: React.FC = () => {
                             )}
                         </Col>
                         <Col xs={24} sm={8} md={2} style={{ textAlign: 'right' }}>
-                            <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching} />
+                            <Tooltip title={OPERATOR_SHARED_COPY.refetchHintToolbar}>
+                                <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching} />
+                            </Tooltip>
                         </Col>
                     </Row>
 
@@ -735,25 +856,41 @@ export const InvoiceList: React.FC = () => {
                                     setCashRegisterIdFilter(undefined);
                                     setPagination(p => ({ ...p, current: 1 }));
                                 }}
-                                color="blue"
+                                color={registerListFilterAnalysis.linkSafeUuid ? 'geekblue' : 'orange'}
                             >
-                                Register (FK oder Nr.): {cashRegisterIdFilter}
+                                {registerListFilterAnalysis.linkSafeUuid
+                                    ? 'Register (UUID): '
+                                    : 'Register (API-Rohfilter): '}
+                                {cashRegisterIdFilter}
                             </Tag>
                             <Button type="link" size="small" onClick={() => { setCashRegisterIdFilter(undefined); setPagination(p => ({ ...p, current: 1 })); }}>Clear Filter</Button>
                         </div>
+                    )}
+
+                    {registerListFilterAnalysis.isRawPresentButNotLinkSafe && (
+                        <Alert
+                            type="warning"
+                            showIcon
+                            message={OPERATOR_INVOICE_COPY.registerFilterInvalidTitle}
+                            description={OPERATOR_INVOICE_COPY.registerFilterInvalidDescription}
+                        />
                     )}
 
                     {/* Error State */}
                     {isError && (
                         <Alert
                             type="error"
-                            message="Failed to load invoices"
-                            description="An unexpected error occurred while loading invoices. Please try again."
+                            message={OPERATOR_SHARED_COPY.loadFailedList}
+                            description={
+                                listQueryError instanceof Error
+                                    ? listQueryError.message
+                                    : OPERATOR_SHARED_COPY.unknownErrorDetail
+                            }
                             showIcon
                             closable
                             action={
                                 <Button size="small" onClick={() => refetch()}>
-                                    Retry
+                                    {OPERATOR_SHARED_COPY.retryLoadShort}
                                 </Button>
                             }
                         />
@@ -775,7 +912,7 @@ export const InvoiceList: React.FC = () => {
                         loading={isLoading || isFetching}
                         onChange={handleTableChange}
                         size="middle"
-                        scroll={{ x: 800 }}
+                        scroll={{ x: 1020 }}
                         locale={{
                             emptyText: isLoading ? undefined : (
                                 <Empty
@@ -817,86 +954,106 @@ export const InvoiceList: React.FC = () => {
                         </Button>
                     )
                 ]}
-                width={800}
+                width={880}
             >
                 {detailLoading ? (
-                    <div style={{ textAlign: 'center', padding: '20px' }}>Loading details...</div>
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                        {OPERATOR_SHARED_COPY.loadingInvoiceDetail}
+                    </div>
                 ) : detailInvoice ? (
                     <React.Fragment>
                         {(() => {
-                            const safe = (v: any) => (v === null || v === undefined || v === '') ? "-" : v;
+                            const detailRegFk = analyzeRegisterFkField(detailInvoice.cashRegisterId);
+                            const itemsDisplay = normalizeInvoiceItemsForDisplay(detailInvoice.invoiceItems);
 
-                            let itemsObj: any[] = [];
-                            try {
-                                if (typeof detailInvoice.invoiceItems === 'string') {
-                                    itemsObj = JSON.parse(detailInvoice.invoiceItems);
-                                } else if (Array.isArray(detailInvoice.invoiceItems)) {
-                                    itemsObj = detailInvoice.invoiceItems;
-                                } else if (detailInvoice.invoiceItems) {
-                                    itemsObj = [detailInvoice.invoiceItems];
-                                }
-                            } catch (e) { }
+                            const detailDate = dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).isValid()
+                                ? dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).format('DD.MM.YYYY HH:mm')
+                                : null;
+
+                            const positionsLabel =
+                                itemsDisplay.kind === 'parse_error'
+                                    ? 'JSON-Fehler'
+                                    : itemsDisplay.kind === 'unsupported_primitive'
+                                      ? `Typ ${itemsDisplay.primitive}`
+                                      : itemsDisplay.rows.length > 0
+                                        ? `${itemsDisplay.rows.length} Zeilen`
+                                        : 'leer / Rohpayload';
 
                             return (
-                                <Descriptions bordered column={2} size="small">
-                                    <Descriptions.Item label="Date">{safe(dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).isValid() ? dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).format('DD.MM.YYYY HH:mm') : null)}</Descriptions.Item>
-                                    <Descriptions.Item label="Status">
-                                        <Tag color={InvoiceStatusMap[detailInvoice.status as unknown as number]?.color || 'default'}>
-                                            {InvoiceStatusMap[detailInvoice.status as unknown as number]?.label || safe(detailInvoice.status)}
-                                        </Tag>
-                                    </Descriptions.Item>
-
-                                    <Descriptions.Item label="Kunde (Snapshot)" span={2}>
-                                        {safe(detailInvoice.customerName)} <br />
-                                        {safe(detailInvoice.customerAddress)} <br />
-                                        {safe(detailInvoice.customerTaxNumber)}
-                                    </Descriptions.Item>
-
-                                    <Descriptions.Item label="Company" span={2}>
-                                        {safe(detailInvoice.companyName)} <br />
-                                        {safe(detailInvoice.companyTaxNumber)}
-                                    </Descriptions.Item>
-
-                                    <Descriptions.Item label="Total Amount">€ {safe((detailInvoice.totalAmount ?? 0).toFixed(2))}</Descriptions.Item>
-                                    <Descriptions.Item label="Tax Amount">€ {safe((detailInvoice.taxAmount ?? 0).toFixed(2))}</Descriptions.Item>
-
-                                    <Descriptions.Item label="Register (FK, nur Maschine)" span={2}>
-                                        <Typography.Text code copyable>
-                                            {safe(detailInvoice.cashRegisterId)}
-                                        </Typography.Text>
-                                        {parseAuthoritativeRegisterGuid(detailInvoice.cashRegisterId) ? (
-                                            <div style={{ marginTop: 8 }}>
+                                <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                                    <OperatorSummaryStrip>
+                                        <Space wrap size={[16, 12]} align="start">
+                                            <div>
+                                                <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                                    Rechnung
+                                                </Typography.Text>
+                                                <Space size={6}>
+                                                    <Typography.Text strong>{displayScalar(detailInvoice.invoiceNumber)}</Typography.Text>
+                                                    {detailInvoice.documentType === DocumentType.NUMBER_1 ? (
+                                                        <Tag color="purple">Gutschrift</Tag>
+                                                    ) : null}
+                                                </Space>
+                                            </div>
+                                            <div>
+                                                <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                                    Status
+                                                </Typography.Text>
+                                                <Tag color={InvoiceStatusMap[detailInvoice.status]?.color || 'default'}>
+                                                    {InvoiceStatusMap[detailInvoice.status]?.label || displayScalar(detailInvoice.status)}
+                                                </Tag>
+                                            </div>
+                                            <div>
+                                                <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                                    Datum
+                                                </Typography.Text>
+                                                <Typography.Text>{displayScalar(detailDate)}</Typography.Text>
+                                            </div>
+                                            <div>
+                                                <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                                    Brutto
+                                                </Typography.Text>
+                                                <Typography.Text strong>
+                                                    € {displayScalar((detailInvoice.totalAmount ?? 0).toFixed(2))}
+                                                </Typography.Text>
+                                            </div>
+                                        </Space>
+                                        <Divider style={{ margin: '12px 0' }} />
+                                        <Space wrap align="center" size={8}>
+                                            <Typography.Text type="secondary">
+                                                {OPERATOR_INVOICE_COPY.detailRegisterMachineLabel}:
+                                            </Typography.Text>
+                                            {detailRegFk.linkSafeUuid ? (
+                                                <AdminTruthBadge kind="authoritative_api" />
+                                            ) : (
+                                                <AdminTruthBadge kind="link_incomplete" />
+                                            )}
+                                            <Typography.Text code copyable style={{ maxWidth: 320 }} ellipsis>
+                                                {displayScalar(detailInvoice.cashRegisterId)}
+                                            </Typography.Text>
+                                            {detailRegFk.linkSafeUuid ? (
                                                 <Link
-                                                    href={buildFinanzOnlineQueuePath({
+                                                    href={buildFinanzOnlineQueueInvestigationHref({
                                                         registerRowId: detailInvoice.cashRegisterId,
+                                                        focusPaymentId: detailInvoice.sourcePaymentId,
+                                                        investigationBatchCorrelationId:
+                                                            detailInvoice.correlationId ?? undefined,
                                                     })}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                 >
-                                                    FinanzOnline-Abgleich (diese Kasse)
+                                                    {OPERATOR_INVOICE_COPY.detailFoLinkWithContext}
                                                 </Link>
-                                            </div>
-                                        ) : (
-                                            <Typography.Text type="secondary" style={{ display: 'block', marginTop: 6, fontSize: 12 }}>
-                                                Kein gültiger Register-FK — Abgleich nicht eingrenzbar.
-                                            </Typography.Text>
-                                        )}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="Kassen-ID / Nummer (Anzeige)" span={2}>
-                                        {formatRegisterDisplayLabel(detailInvoice.kassenId)}
-                                    </Descriptions.Item>
-
-                                    <Descriptions.Item label="Payment Method">{safe(getPaymentMethodLabel(detailInvoice.paymentMethod))}</Descriptions.Item>
-                                    <Descriptions.Item label="TSE Signature" span={2} style={{ wordBreak: 'break-all', fontFamily: 'monospace', fontSize: 10 }}>
-                                        {safe(detailInvoice.tseSignature)}
-                                    </Descriptions.Item>
-                                    <Descriptions.Item label="Verknüpfte Entitäten" span={2}>
-                                        <Space direction="vertical" size={4}>
-                                            <Space>
-                                                <Typography.Text type="secondary">Payment:</Typography.Text>
+                                            ) : null}
+                                        </Space>
+                                        <Divider style={{ margin: '12px 0' }} />
+                                        <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                                            <Space wrap align="center">
+                                                <Typography.Text type="secondary">Zahlung (Reconciliation):</Typography.Text>
                                                 {detailInvoice.sourcePaymentId ? (
                                                     <>
-                                                        <Typography.Text code copyable>{detailInvoice.sourcePaymentId}</Typography.Text>
+                                                        <Typography.Text code copyable>
+                                                            {detailInvoice.sourcePaymentId}
+                                                        </Typography.Text>
                                                         <Link
                                                             href={`/payments?paymentId=${encodeURIComponent(detailInvoice.sourcePaymentId)}`}
                                                             target="_blank"
@@ -906,67 +1063,199 @@ export const InvoiceList: React.FC = () => {
                                                         </Link>
                                                     </>
                                                 ) : (
+                                                    <Typography.Text type="secondary">— kein Payment verknüpft</Typography.Text>
+                                                )}
+                                            </Space>
+                                            <Space wrap align="center">
+                                                <Typography.Text type="secondary">
+                                                    {OPERATOR_INVOICE_COPY.correlationPathsLabel}:
+                                                </Typography.Text>
+                                                {detailInvoice.correlationId ? (
+                                                    <>
+                                                        <Typography.Text code copyable>
+                                                            {detailInvoice.correlationId}
+                                                        </Typography.Text>
+                                                        <Link
+                                                            href={buildIncidentInvestigationHref(detailInvoice.correlationId)}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            {OPERATOR_LINK_LABELS.incidentAggregate}
+                                                        </Link>
+                                                        <Typography.Text type="secondary">·</Typography.Text>
+                                                        <Link
+                                                            href={buildReplayBatchDetailHref(detailInvoice.correlationId)}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            {OPERATOR_LINK_LABELS.replayBatchDetail}
+                                                        </Link>
+                                                    </>
+                                                ) : (
                                                     <Typography.Text type="secondary">—</Typography.Text>
                                                 )}
                                             </Space>
-                                            <Space>
-                                                <Typography.Text type="secondary">Rechnung:</Typography.Text>
-                                                <Typography.Text code copyable>{safe(detailInvoice.invoiceNumber)}</Typography.Text>
-                                            </Space>
-                                            {detailInvoice.correlationId ? (
-                                                <Space>
-                                                    <Typography.Text type="secondary">Correlation:</Typography.Text>
-                                                    <Typography.Text code copyable>{detailInvoice.correlationId}</Typography.Text>
-                                                    <Link
-                                                        href={`/rksv/incident?correlationId=${encodeURIComponent(detailInvoice.correlationId)}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        Incident
-                                                    </Link>
-                                                </Space>
-                                            ) : null}
                                         </Space>
-                                    </Descriptions.Item>
+                                        <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0, fontSize: 12 }}>
+                                            <strong>Herkunft:</strong> {OPERATOR_INVOICE_COPY.detailProvenanceFooter}
+                                        </Typography.Paragraph>
+                                        {(detailInvoice.status === InvoiceStatus.NUMBER_1 || detailInvoice.status === InvoiceStatus.NUMBER_2) && (
+                                            <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
+                                                <strong>Retry:</strong> FinanzOnline-Reconciliation über Schaltfläche unten im Dialog
+                                                (Footer).
+                                            </Typography.Paragraph>
+                                        )}
+                                    </OperatorSummaryStrip>
 
-                                    <Descriptions.Item label="Items (JSON)" span={2}>
-                                        <div style={{ marginBottom: 8, fontWeight: 'bold' }}>
-                                            {itemsObj.length > 0 ? `${itemsObj.length} items` : 'No items'}
-                                        </div>
-                                        {itemsObj.length > 0 ? (
-                                            <pre style={{ maxHeight: 200, overflow: 'auto', fontSize: 11, margin: 0 }}>
-                                                {JSON.stringify(itemsObj, null, 2)}
-                                            </pre>
-                                        ) : detailInvoice.invoiceItems ? (
-                                            <pre style={{ maxHeight: 200, overflow: 'auto', fontSize: 11, margin: 0 }}>
-                                                {JSON.stringify(detailInvoice.invoiceItems, null, 2)}
-                                            </pre>
-                                        ) : null}
-                                    </Descriptions.Item>
-                                </Descriptions>
+                                    <OperatorBusinessSection>
+                                        <Descriptions bordered column={2} size="small">
+                                            <Descriptions.Item label="Kunde (Snapshot)" span={2}>
+                                                {displayScalar(detailInvoice.customerName)} <br />
+                                                {displayScalar(detailInvoice.customerAddress)} <br />
+                                                {displayScalar(detailInvoice.customerTaxNumber)}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="Company" span={2}>
+                                                {displayScalar(detailInvoice.companyName)} <br />
+                                                {displayScalar(detailInvoice.companyTaxNumber)}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="Total Amount">
+                                                € {displayScalar((detailInvoice.totalAmount ?? 0).toFixed(2))}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="Tax Amount">
+                                                € {displayScalar((detailInvoice.taxAmount ?? 0).toFixed(2))}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="Register (FK, nur Maschine)" span={2}>
+                                                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                                                    {detailRegFk.isRawPresentButNotLinkSafe ? (
+                                                        <Alert
+                                                            type="warning"
+                                                            showIcon
+                                                            message={OPERATOR_REGISTER_LINK_COPY.uuidNotLinkSafeTitle}
+                                                            description={OPERATOR_REGISTER_LINK_COPY.uuidNotLinkSafeDescription}
+                                                        />
+                                                    ) : null}
+                                                    <Space wrap>
+                                                        {detailRegFk.linkSafeUuid ? (
+                                                            <AdminTruthBadge kind="authoritative_api" />
+                                                        ) : (
+                                                            <AdminTruthBadge kind="link_incomplete" />
+                                                        )}
+                                                    </Space>
+                                                    <Typography.Text code copyable>
+                                                        {displayScalar(detailInvoice.cashRegisterId)}
+                                                    </Typography.Text>
+                                                    {detailRegFk.linkSafeUuid ? (
+                                                        <div>
+                                                            <Link
+                                                                href={buildFinanzOnlineQueueInvestigationHref({
+                                                                    registerRowId: detailInvoice.cashRegisterId,
+                                                                    focusPaymentId: detailInvoice.sourcePaymentId,
+                                                                    investigationBatchCorrelationId:
+                                                                        detailInvoice.correlationId ?? undefined,
+                                                                })}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                            >
+                                                                {OPERATOR_INVOICE_COPY.detailFoLinkRegisterOnly}
+                                                            </Link>
+                                                        </div>
+                                                    ) : (
+                                                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                            {detailRegFk.rawTrimmed
+                                                                ? OPERATOR_REGISTER_LINK_COPY.noMachineUuidHint
+                                                                : OPERATOR_REGISTER_LINK_COPY.missingRegisterFkInApiHint}
+                                                        </Typography.Text>
+                                                    )}
+                                                </Space>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="Kassen-ID / Nummer (Anzeige)" span={2}>
+                                                <Space wrap align="center">
+                                                    <AdminTruthBadge kind="display_only_label" />
+                                                    <span>{formatRegisterDisplayLabel(detailInvoice.kassenId)}</span>
+                                                </Space>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="Payment Method" span={2}>
+                                                {displayScalar(getPaymentMethodLabel(detailInvoice.paymentMethod))}
+                                            </Descriptions.Item>
+                                        </Descriptions>
+                                    </OperatorBusinessSection>
+
+                                    <OperatorTechnicalSection>
+                                        <Collapse
+                                            bordered={false}
+                                            items={[
+                                                {
+                                                    key: 'tse',
+                                                    label: 'TSE-Signatur (Rohfeld)',
+                                                    children: (
+                                                        <Typography.Paragraph
+                                                            code
+                                                            copyable
+                                                            style={{
+                                                                wordBreak: 'break-all',
+                                                                fontFamily: 'monospace',
+                                                                fontSize: 11,
+                                                                marginBottom: 0,
+                                                            }}
+                                                        >
+                                                            {displayScalar(detailInvoice.tseSignature)}
+                                                        </Typography.Paragraph>
+                                                    ),
+                                                },
+                                                {
+                                                    key: 'items',
+                                                    label: `Positionen / Artikel (OpenAPI: unknown) — ${positionsLabel}`,
+                                                    children: (
+                                                        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                                                            <Alert
+                                                                type="info"
+                                                                showIcon
+                                                                message={OPERATOR_INVOICE_COPY.contractInvoiceItemsTitle}
+                                                                description={RKSv_ADMIN_CONTRACT_GAPS.invoiceDetailInvoiceItems}
+                                                            />
+                                                            {itemsDisplay.kind === 'parse_error' ? (
+                                                                <Alert
+                                                                    type="warning"
+                                                                    showIcon
+                                                                    message="invoiceItems konnte nicht als JSON gelesen werden"
+                                                                    description={itemsDisplay.message}
+                                                                />
+                                                            ) : null}
+                                                            {itemsDisplay.kind === 'unsupported_primitive' ? (
+                                                                <Alert
+                                                                    type="warning"
+                                                                    showIcon
+                                                                    message="Unerwarteter Laufzeit-Typ"
+                                                                    description={`Erhalten: ${itemsDisplay.primitive}`}
+                                                                />
+                                                            ) : null}
+                                                            {itemsDisplay.kind === 'rows' && itemsDisplay.rows.length > 0 ? (
+                                                                <pre
+                                                                    style={{
+                                                                        maxHeight: 240,
+                                                                        overflow: 'auto',
+                                                                        fontSize: 11,
+                                                                        margin: 0,
+                                                                        background: '#f5f5f5',
+                                                                        padding: 12,
+                                                                    }}
+                                                                >
+                                                                    {JSON.stringify(itemsDisplay.rows, null, 2)}
+                                                                </pre>
+                                                            ) : itemsDisplay.kind === 'rows' ? (
+                                                                <Typography.Text type="secondary">
+                                                                    Keine Positionsdaten (leer oder null laut Normalisierung).
+                                                                </Typography.Text>
+                                                            ) : null}
+                                                        </Space>
+                                                    ),
+                                                },
+                                            ]}
+                                        />
+                                    </OperatorTechnicalSection>
+                                </Space>
                             );
                         })()}
-                        <Alert
-                            type="info"
-                            showIcon
-                            style={{ marginTop: 12 }}
-                            message="Hinweis zur Datenquelle"
-                            description={
-                                (detailInvoice as { invoiceDataProvenance?: string }).invoiceDataProvenance ===
-                                'DerivedFromPayment' ? (
-                                    <span>
-                                        Diese Ansicht wurde aus der <strong>Zahlung</strong> abgeleitet (keine
-                                        eigene Rechnungszeile in <code>invoices</code>). Für Buchhaltung ggf. Backfill
-                                        nutzen.
-                                    </span>
-                                ) : (
-                                    <span>
-                                        Persistierte Rechnung aus der Datenbank (<code>invoices</code>). Verknüpfungen
-                                        nutzen den Register-FK (UUID), nicht die Anzeige-Kassen-ID.
-                                    </span>
-                                )
-                            }
-                        />
                     </React.Fragment>
                 ) : (
                     <Empty description="No details found or failed to load." />

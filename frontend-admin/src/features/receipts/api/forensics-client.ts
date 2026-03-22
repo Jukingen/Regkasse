@@ -19,23 +19,14 @@ import type {
   SignatureDebugApiResponse,
   SignatureDiagnosticStepDto,
 } from '@/features/receipts/types/signature-debug';
-import { parseAuthoritativeRegisterGuid } from '@/shared/utils/registerIdentity';
-
 function toListItem(row: NonNullable<ReceiptListItemDtoPagedResult['items']>[number]): ReceiptListItemDto {
-  const ext = row as typeof row & {
-    cashRegisterEntityId?: string;
-    registerDisplayNumber?: string;
-  };
-  const fk =
-    parseAuthoritativeRegisterGuid(ext.cashRegisterEntityId ?? ext.cashRegisterId) ?? '';
   return {
     receiptId: row.receiptId ?? '',
     receiptNumber: row.receiptNumber ?? '',
     issuedAt: row.issuedAt ?? '',
     cashierId: row.cashierId ?? null,
-    cashRegisterEntityId: fk,
-    cashRegisterId: fk,
-    registerDisplayNumber: ext.registerDisplayNumber ?? '',
+    cashRegisterId: row.cashRegisterId?.trim() ?? '',
+    registerDisplayNumber: undefined,
     subTotal: row.subTotal ?? 0,
     taxTotal: row.taxTotal ?? 0,
     grandTotal: row.grandTotal ?? 0,
@@ -46,10 +37,7 @@ function toListItem(row: NonNullable<ReceiptListItemDtoPagedResult['items']>[num
 export function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
   const issued = d.date ?? '';
   const persisted = d.receiptPersistedAtUtc ?? issued;
-  const displayReg =
-    (d as ReceiptDTO & { displayRegisterNumber?: string | null }).displayRegisterNumber ??
-    d.kassenID ??
-    '';
+  const displayReg = d.kassenID?.trim() || undefined;
   return {
     receiptId: d.receiptId ?? '',
     paymentId: d.paymentId ?? null,
@@ -57,7 +45,7 @@ export function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
     issuedAt: issued,
     cashierId: d.cashierId ?? null,
     cashierDisplayName: d.cashierDisplayName ?? null,
-    cashRegisterId: parseAuthoritativeRegisterGuid(d.cashRegisterId) ?? '',
+    cashRegisterId: d.cashRegisterId?.trim() ?? '',
     registerDisplayNumber: displayReg,
     subTotal: d.subTotal ?? 0,
     taxTotal: d.taxAmount ?? 0,

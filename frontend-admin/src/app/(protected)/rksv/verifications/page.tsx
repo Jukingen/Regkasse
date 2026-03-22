@@ -1,12 +1,24 @@
 'use client';
 
 import React from 'react';
-import { Card, Table, Tag, Typography, Switch, Space, Alert } from 'antd';
+import { Card, Table, Tag, Typography, Switch, Space, Alert, Tooltip } from 'antd';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useGetApiAuditLog, useGetApiAuditLogCorrelationCorrelationId } from '@/api/generated/audit-log/audit-log';
 import type { AuditLogEntryDto } from '@/api/generated/model';
 import dayjs from 'dayjs';
+import { AdminTruthBadge, adminTruthTooltip } from '@/shared/adminTruthBadges';
+import {
+    buildFinanzOnlineQueueInvestigationHref,
+    buildIncidentInvestigationHref,
+    buildReplayBatchDetailHref,
+} from '@/shared/investigationNavigation';
+import {
+    OPERATOR_LINK_LABELS,
+    OPERATOR_SHARED_COPY,
+    OPERATOR_VERIFICATIONS_COPY,
+} from '@/shared/operatorTruthCopy';
 
 export default function RksvVerificationsPage() {
     const searchParams = useSearchParams();
@@ -118,14 +130,55 @@ export default function RksvVerificationsPage() {
                 {correlationId && (
                     <Alert
                         type="info"
-                        message={`Log-Trace für Correlation-ID: ${correlationId}`}
+                        showIcon
+                        message={OPERATOR_VERIFICATIONS_COPY.filteredBannerTitle}
                         style={{ marginBottom: 16 }}
+                        description={
+                            <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                                <Space wrap align="center">
+                                    <Tooltip title={adminTruthTooltip('diagnostic_support')}>
+                                        <span>
+                                            <AdminTruthBadge kind="diagnostic_support" />
+                                        </span>
+                                    </Tooltip>
+                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                        {OPERATOR_VERIFICATIONS_COPY.diagnosticLine}
+                                    </Typography.Text>
+                                </Space>
+                                <Typography.Text code copyable>
+                                    {correlationId}
+                                </Typography.Text>
+                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                    <strong>{OPERATOR_SHARED_COPY.investigateFurtherLabel}:</strong>
+                                </Typography.Text>
+                                <Space wrap split={<Typography.Text type="secondary">·</Typography.Text>}>
+                                    {[
+                                        <Link key="inc" href={buildIncidentInvestigationHref(correlationId)}>
+                                            {OPERATOR_LINK_LABELS.incidentAggregate}
+                                        </Link>,
+                                        <Link key="rb" href={buildReplayBatchDetailHref(correlationId)}>
+                                            {OPERATOR_LINK_LABELS.replayBatchDetail}
+                                        </Link>,
+                                        <Link
+                                            key="fo"
+                                            href={buildFinanzOnlineQueueInvestigationHref({
+                                                investigationBatchCorrelationId: correlationId,
+                                            })}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {OPERATOR_LINK_LABELS.finanzQueueContext}
+                                        </Link>,
+                                    ]}
+                                </Space>
+                            </Space>
+                        }
                     />
                 )}
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
                     {useCorrelation
-                        ? `Audit-Logs für Replay-Batch-Correlation (${list.length} Einträge).`
-                        : 'Signatur-, Zahlungs- und Offline-Replay-Audit (OFFLINE_CREATED / OFFLINE_SYNCED, max. 100).'}
+                        ? OPERATOR_VERIFICATIONS_COPY.filteredIntro(list.length)
+                        : OPERATOR_VERIFICATIONS_COPY.unfilteredIntro}
                 </Typography.Paragraph>
 
                 <Space direction="horizontal" wrap style={{ marginBottom: 12 }}>

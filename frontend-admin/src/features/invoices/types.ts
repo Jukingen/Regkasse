@@ -22,6 +22,22 @@ export type PagedResult<T> = {
     totalPages?: number;
 };
 
+/** Must match table `dataIndex` / API expectations; keep in sync when OpenAPI documents allowed sort keys. */
+export const INVOICE_LIST_SORT_FIELDS = ['invoiceDate', 'invoiceNumber', 'totalAmount', 'status'] as const;
+export type InvoiceListSortBy = (typeof INVOICE_LIST_SORT_FIELDS)[number];
+
+export function coerceInvoiceListSortField(field: unknown): InvoiceListSortBy {
+    if (
+        field === 'invoiceDate' ||
+        field === 'invoiceNumber' ||
+        field === 'totalAmount' ||
+        field === 'status'
+    ) {
+        return field;
+    }
+    return 'invoiceDate';
+}
+
 // Manual params type kept for backward compat with invoiceService.ts
 export interface InvoiceListParams {
     page?: number;
@@ -30,7 +46,7 @@ export interface InvoiceListParams {
     to?: string; // ISO Date
     status?: _InvoiceStatus;
     query?: string;
-    sortBy?: 'invoiceDate' | 'invoiceNumber' | 'totalAmount' | 'status';
+    sortBy?: InvoiceListSortBy;
     sortDir?: 'asc' | 'desc';
     cashRegisterId?: string;
 }

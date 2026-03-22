@@ -1,117 +1,34 @@
 import { customInstance } from '@/lib/axios';
-import { InvoiceListParams, PagedResult } from '../types';
-import type { InvoiceListItemDto } from '@/api/generated/model/invoiceListItemDto';
-import type { DocumentType } from '@/api/generated/model/documentType';
-import { normalizeRegisterDisplayLabel, parseAuthoritativeRegisterGuid } from '@/shared/utils/registerIdentity';
+import { getApiInvoiceList } from '@/api/generated/invoice/invoice';
+import type { GetApiInvoiceListParams } from '@/api/generated/model/getApiInvoiceListParams';
+import type { InvoiceListItemDtoPagedResult } from '@/api/generated/model/invoiceListItemDtoPagedResult';
+import type { InvoiceListParams } from '../types';
 
-// Extend Orval type with credit-note fields from backend
-export interface ExtendedInvoiceListItem extends InvoiceListItemDto {
-    documentType?: DocumentType;        // 0 = Invoice, 1 = CreditNote
-    originalInvoiceId?: string;
-    /** PersistedInvoice | PaymentDerivedListRow — from API listRowOrigin */
-    listRowOrigin?: string;
-}
-
-// Raw PascalCase shapes from .NET backend
-interface RawPagedResult {
-    Items?: RawInvoiceItem[];
-    Page?: number;
-    PageSize?: number;
-    TotalCount?: number;
-    TotalPages?: number;
-    // camelCase fallbacks
-    items?: RawInvoiceItem[];
-    page?: number;
-    pageSize?: number;
-    totalCount?: number;
-    totalPages?: number;
-}
-
-interface RawInvoiceItem {
-    Id?: string;
-    InvoiceNumber?: string;
-    InvoiceDate?: string;
-    CustomerName?: string;
-    CompanyName?: string;
-    TotalAmount?: number;
-    Status?: number;
-    KassenId?: string;
-    CashRegisterId?: string;
-    TseSignature?: string;
-    DocumentType?: number;
-    OriginalInvoiceId?: string;
-    ListRowOrigin?: string;
-
-    // camelCase fallbacks
-    id?: string;
-    invoiceNumber?: string;
-    invoiceDate?: string;
-    customerName?: string;
-    companyName?: string;
-    totalAmount?: number;
-    status?: number;
-    kassenId?: string;
-    cashRegisterId?: string;
-    tseSignature?: string;
-    documentType?: number;
-    originalInvoiceId?: string;
-    listRowOrigin?: string;
-}
-
-export function normalizeId(id: string | null | undefined): string | undefined {
-    if (!id || id.trim() === '') return undefined;
-    if (id === '00000000-0000-0000-0000-000000000000') return undefined; // Filter out zero GUIDs
-    return id;
-}
-
-function normalizeItem(raw: RawInvoiceItem): ExtendedInvoiceListItem {
-    const displayKassen = normalizeRegisterDisplayLabel(raw.kassenId ?? raw.KassenId);
-    const authoritativeRegisterId = parseAuthoritativeRegisterGuid(
-        raw.cashRegisterId ?? raw.CashRegisterId
-    );
+function toListParams(params: InvoiceListParams): GetApiInvoiceListParams {
     return {
-        id: normalizeId(raw.id ?? raw.Id),
-        invoiceNumber: raw.invoiceNumber ?? raw.InvoiceNumber,
-        invoiceDate: raw.invoiceDate ?? raw.InvoiceDate,
-        customerName: raw.customerName ?? raw.CustomerName,
-        companyName: raw.companyName ?? raw.CompanyName,
-        totalAmount: raw.totalAmount ?? raw.TotalAmount,
-        status: (raw.status ?? raw.Status) as any,
-        cashRegisterId: authoritativeRegisterId,
-        kassenId: displayKassen,
-        tseSignature: raw.tseSignature ?? raw.TseSignature,
-        documentType: (raw.documentType ?? raw.DocumentType) as DocumentType | undefined,
-        originalInvoiceId: normalizeId(raw.originalInvoiceId ?? raw.OriginalInvoiceId),
-        listRowOrigin: raw.listRowOrigin ?? raw.ListRowOrigin,
+        page: params.page,
+        pageSize: params.pageSize,
+        from: params.from,
+        to: params.to,
+        status: params.status,
+        query: params.query,
+        sortBy: params.sortBy,
+        sortDir: params.sortDir,
+        cashRegisterId: params.cashRegisterId,
     };
 }
 
-function normalizePagedResult(raw: RawPagedResult): PagedResult<ExtendedInvoiceListItem> {
-    const rawItems = raw.items ?? raw.Items ?? [];
-    return {
-        items: rawItems.map(normalizeItem),
-        page: raw.page ?? raw.Page,
-        pageSize: raw.pageSize ?? raw.PageSize,
-        totalCount: raw.totalCount ?? raw.TotalCount,
-        totalPages: raw.totalPages ?? raw.TotalPages,
-    };
+/** Invoice list — Orval-typed GET /api/Invoice/list (no client-side PascalCase normalization). */
+export async function getInvoicesList(params: InvoiceListParams): Promise<InvoiceListItemDtoPagedResult> {
+    return getApiInvoiceList(toListParams(params));
 }
-
-export const getInvoicesList = async (params: InvoiceListParams): Promise<PagedResult<ExtendedInvoiceListItem>> => {
-    const raw = await customInstance<RawPagedResult>({
-        url: `/api/Invoice/list`,
-        method: 'GET',
-        params
-    });
-    return normalizePagedResult(raw);
-};
 
 export const exportInvoices = (params: Omit<InvoiceListParams, 'page' | 'pageSize'>) => {
     return customInstance<Blob>({
         url: `/api/Invoice/export`,
         method: 'GET',
         params,
-        responseType: 'blob'
+        responseType: 'blob',
     });
 };
 
@@ -130,7 +47,7 @@ export interface CreateCreditNoteBody {
 }
 
 export const createCreditNote = (id: string, body: CreateCreditNoteBody) => {
-    return customInstance<any>({
+    return customInstance<unknown>({
         url: `/api/Invoice/${id}/credit-note`,
         method: 'POST',
         data: body,

@@ -1,5 +1,7 @@
 # Role Management – Manual QA Checklist
 
+**Related:** Truth-critical RKSV/invoice/reconciliation QA — `docs/RKSV_TRUTH_SURFACES_QA_CHECKLIST.md` (same operational style: loading/error/empty, mutations, invalidation, negative paths).
+
 **Test coverage (automated):** Backend: 13 RoleManagementTests (system role delete 400, assigned users 409, SuperAdmin-only 403, invalid key 400, role not found 404, empty permissions 200, catalog). Frontend: useRolesWithPermissions, usePermissionsCatalog, roleManagementApi (update/delete/save fail), rolePresets (preset apply, dirty, manual override), validateCatalogAlignment, roleManagementDrawer.logic (delete next selection, dirty-state, system role). Users page test mock updated for new gateway exports; one existing test (reset password flow) may still fail in CI—see edge cases.
 
 ## Backend (API)

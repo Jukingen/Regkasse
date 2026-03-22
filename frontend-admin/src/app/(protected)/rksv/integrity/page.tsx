@@ -22,6 +22,7 @@ import {
 import { ReloadOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
+import { OPERATOR_LINK_LABELS } from '@/shared/operatorTruthCopy';
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { getApiAdminIntegrity } from '@/api/generated/admin/admin';
@@ -93,7 +94,8 @@ export default function IntegrityReportPage() {
             Nur Konsistenzprüfungen im gewählten Zeitraum (Belegnummern/Sequenzen, Erstattungen, Zahlungen ohne
             Rechnungsbezug). Für Kettendiagnose siehe{' '}
             <Link href="/rksv/fiscal-export-diagnostics">Fiscal-Export Diagnose</Link>, für Offline-Replay{' '}
-            <Link href="/rksv/incident">Incident</Link> / <Link href="/rksv/replay-batch">Replay-Batch</Link>, FO-Queue{' '}
+            <Link href="/rksv/incident">{OPERATOR_LINK_LABELS.incidentAggregate}</Link> /{' '}
+            <Link href="/rksv/replay-batch">{OPERATOR_LINK_LABELS.replayBatch}</Link>, FO-Queue{' '}
             <Link href="/rksv/finanz-online-queue">FinanzOnline Abgleich</Link>, Hash-Konflikte{' '}
             <Link href="/rksv/payload-hash-conflicts">Payload-Hash</Link>.
           </span>

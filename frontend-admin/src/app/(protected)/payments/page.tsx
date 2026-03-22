@@ -23,6 +23,7 @@ import {
   Collapse,
 } from 'antd';
 import { CreditCardOutlined, InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { OPERATOR_LINK_LABELS } from '@/shared/operatorTruthCopy';
 import {
   postApiAdminPaymentsIdCancel,
   postApiAdminPaymentsIdRefund,
@@ -448,14 +449,14 @@ export default function PaymentsPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        Incident
+                        {OPERATOR_LINK_LABELS.incidentAggregate}
                       </Link>
                       <Link
                         href={`/rksv/replay-batch/${encodeURIComponent(safeOperationalDetail.offlineReplayBatchCorrelationId)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
-                        Replay-Batch
+                        {OPERATOR_LINK_LABELS.replayBatchDetail}
                       </Link>
                     </Space>
                   ) : (

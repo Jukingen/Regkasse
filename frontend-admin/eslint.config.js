@@ -38,4 +38,18 @@ export default [
       'react-hooks/exhaustive-deps': 'warn',
     },
   },
+  {
+    files: [
+      'src/app/(protected)/rksv/**/*.{ts,tsx}',
+      'src/features/invoices/**/*.{ts,tsx}',
+      'src/shared/rksvAdminTruth.ts',
+      'src/shared/investigationNavigation.ts',
+      'src/shared/foReconciliationRowTriage.ts',
+      'src/shared/contract/**/*.{ts,tsx}',
+    ],
+    rules: {
+      // Release-quality gate: new explicit-any on truth surfaces should be reviewed (fix or justify).
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
 ]

@@ -2,15 +2,16 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Descriptions, Tag, Typography } from 'antd';
+import { Alert, Descriptions, Tag, Typography } from 'antd';
 import type { ReceiptDetailDto } from '@/features/receipts/types/receipts';
 import { formatEUR } from '@/shared/utils/currency';
 import {
+    analyzeRegisterFkField,
     buildFinanzOnlineQueuePath,
     formatRegisterDisplayLabel,
-    parseAuthoritativeRegisterGuid,
 } from '@/shared/utils/registerIdentity';
 import dayjs from 'dayjs';
+import { OPERATOR_LINK_LABELS, OPERATOR_REGISTER_LINK_COPY } from '@/shared/operatorTruthCopy';
 
 const { Text } = Typography;
 
@@ -22,6 +23,7 @@ interface ReceiptDetailCardProps {
  * Header card showing receipt metadata (number, dates, totals, signature info).
  */
 export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
+    const regFk = analyzeRegisterFkField(receipt.cashRegisterId);
     return (
         <Descriptions
             bordered
@@ -41,17 +43,30 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                     : dayjs(receipt.createdAt).format('DD.MM.YYYY HH:mm:ss')}
             </Descriptions.Item>
             <Descriptions.Item label="Register (FK, nur Maschine)">
+                {regFk.isRawPresentButNotLinkSafe ? (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: 8 }}
+                        message="API-Registerwert ohne link-sichere UUID"
+                        description="Wert wird unverändert angezeigt. Deep-Link zur Abgleichsseite ist deaktiviert, damit kein falscher Identifier in der URL landet."
+                    />
+                ) : null}
                 <Text code copyable>{receipt.cashRegisterId || '—'}</Text>
-                {parseAuthoritativeRegisterGuid(receipt.cashRegisterId) ? (
+                {regFk.linkSafeUuid ? (
                     <div style={{ marginTop: 8 }}>
                         <Link
                             href={buildFinanzOnlineQueuePath({ registerRowId: receipt.cashRegisterId })}
                             target="_blank"
                             rel="noopener noreferrer"
                         >
-                            FinanzOnline-Abgleich (diese Kasse)
+                            {OPERATOR_LINK_LABELS.finanzQueueThisRegister}
                         </Link>
                     </div>
+                ) : regFk.rawTrimmed ? (
+                    <Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 12 }}>
+                        {OPERATOR_REGISTER_LINK_COPY.noMachineUuidHint}
+                    </Text>
                 ) : null}
             </Descriptions.Item>
             <Descriptions.Item label="Kassen-ID / Nummer (Anzeige)">
