@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * FinanzOnline Reconciliation Console — list, filter, retry FO submission state.
- * Replaces the old queue/status screen; uses GET/POST /api/admin/finanzonline-reconciliation.
+ * FinanzOnline Reconciliation — mixed surface: investigation (list, filters, metrics, drill-down context)
+ * plus remediation (POST retry per payment). Operational truth is read path; mutations are isolated in row actions.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -30,7 +30,11 @@ import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { parseAuthoritativeRegisterGuid, toLinkSafeRegisterRowId } from '@/shared/utils/registerIdentity';
+import {
+    parseAuthoritativePaymentGuid,
+    parseAuthoritativeRegisterGuid,
+    toLinkSafeRegisterRowId,
+} from '@/shared/utils/registerIdentity';
 import {
     buildFinanzOnlineQueueInvestigationHref,
     buildIncidentInvestigationHref,
@@ -56,7 +60,9 @@ import { OperatorBusinessSection, OperatorSummaryStrip } from '@/shared/operator
 import {
     finanzOnlineRetryUiPresentation,
     getFinanzOnlineRetryUiState,
+    isFinanzOnlineRetryButtonContract,
 } from '@/shared/foReconciliationRowTriage';
+import { finanzOnlineRowTechnicalResponseSummary } from '@/shared/finanzOnlineReconciliationTruth';
 import {
     OPERATOR_FO_QUEUE_COPY,
     OPERATOR_INVESTIGATION_CONTEXT_COPY,
@@ -120,13 +126,13 @@ export default function FinanzOnlineReconciliationPage() {
     /** Client-side row highlight only; omitted from URL if not a valid payment UUID. */
     const focusPaymentId = useMemo(() => {
         const raw = searchParams?.get('focusPaymentId');
-        return parseAuthoritativeRegisterGuid(raw) ?? undefined;
+        return parseAuthoritativePaymentGuid(raw) ?? undefined;
     }, [searchParams]);
 
     const rejectedFocusPaymentParam = useMemo(() => {
         const raw = searchParams?.get('focusPaymentId');
         if (raw == null || raw.trim() === '') return undefined;
-        return parseAuthoritativeRegisterGuid(raw) ? undefined : raw.trim();
+        return parseAuthoritativePaymentGuid(raw) ? undefined : raw.trim();
     }, [searchParams]);
 
     /** Display-only batch correlation carried across screens; does not change reconciliation API params. */
@@ -290,20 +296,21 @@ export default function FinanzOnlineReconciliationPage() {
                     <span>Fehler (Kurz)</span>
                 </Tooltip>
             ),
-            dataIndex: 'finanzOnlineError',
             key: 'finanzOnlineError',
             width: 140,
             ellipsis: true,
-            render: (v: string | null) =>
-                v ? (
-                    <Tooltip title={v}>
+            render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => {
+                const summary = finanzOnlineRowTechnicalResponseSummary(r);
+                return summary ? (
+                    <Tooltip title={summary}>
                         <Typography.Text type="danger" ellipsis style={{ maxWidth: 132 }}>
-                            {v}
+                            {summary}
                         </Typography.Text>
                     </Tooltip>
                 ) : (
                     '—'
-                ),
+                );
+            },
         },
         {
             title: 'Referenz (FO)',
@@ -343,11 +350,9 @@ export default function FinanzOnlineReconciliationPage() {
                         <Typography.Text
                             code
                             copyable={{ text: v.apiCashRegisterId }}
-                            style={{ fontSize: 11 }}
+                            style={{ fontSize: 11, wordBreak: 'break-all', maxWidth: 200 }}
                         >
-                            {v.finanzQueueRegisterRowId
-                                ? `${v.apiCashRegisterId.slice(0, 8)}…`
-                                : v.apiCashRegisterId}
+                            {v.apiCashRegisterId}
                         </Typography.Text>
                         <AdminTruthBadge
                             kind={registerDeepLinkEligibleBadgeKind({
@@ -369,10 +374,7 @@ export default function FinanzOnlineReconciliationPage() {
             width: 100,
             fixed: 'right' as const,
             render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => {
-                const canRetry =
-                    r.finanzOnlineStatus === 'Pending' ||
-                    r.finanzOnlineStatus === 'Failed' ||
-                    r.finanzOnlineStatus === 'NeedsReconciliation';
+                const canRetry = isFinanzOnlineRetryButtonContract(r);
                 const paymentId = r.paymentId ?? '';
                 const loading = retryingId === paymentId;
                 return canRetry && paymentId ? (
@@ -563,6 +565,9 @@ export default function FinanzOnlineReconciliationPage() {
                 <Typography.Paragraph type="secondary" style={{ marginTop: 14, marginBottom: 0, fontSize: 12 }}>
                     {OPERATOR_FO_QUEUE_COPY.summaryReconciliationParagraph}
                 </Typography.Paragraph>
+                <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
+                    {OPERATOR_FO_QUEUE_COPY.metricsFailureKindScope}
+                </Typography.Paragraph>
             </OperatorSummaryStrip>
 
             <OperatorBusinessSection
@@ -639,7 +644,7 @@ export default function FinanzOnlineReconciliationPage() {
                             showTotal: (total) => `Gesamt: ${total}`,
                         }}
                         size="small"
-                        scroll={{ x: 1420 }}
+                        scroll={{ x: 1480 }}
                         expandable={{
                             expandedRowRender: (record) => (
                                 <div style={{ padding: '4px 8px 12px', background: '#fafafa' }}>
@@ -676,12 +681,32 @@ export default function FinanzOnlineReconciliationPage() {
                                                 '—'
                                             )}
                                         </Descriptions.Item>
-                                        <Descriptions.Item label="Hinweis (DTO-Lücken)">
-                                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                                Keine Correlation-ID, kein Actor/Initiator und keine serverseitige
-                                                Fehlerklasse (transient/permanent) pro Zeile in{' '}
-                                                <Typography.Text code>FinanzOnlineReconciliationItemDto</Typography.Text>.
-                                            </Typography.Text>
+                                    </Descriptions>
+                                    <Typography.Text strong style={{ fontSize: 12, display: 'block', marginTop: 16 }}>
+                                        {OPERATOR_FO_QUEUE_COPY.contractTruthPanelTitle}
+                                    </Typography.Text>
+                                    <Descriptions bordered size="small" column={1} style={{ marginTop: 8 }}>
+                                        <Descriptions.Item label={OPERATOR_FO_QUEUE_COPY.contractTruthInDtoTitle}>
+                                            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
+                                                {OPERATOR_FO_QUEUE_COPY.contractTruthInDtoBullets.map((line) => (
+                                                    <li key={line}>
+                                                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                            {line}
+                                                        </Typography.Text>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </Descriptions.Item>
+                                        <Descriptions.Item label={OPERATOR_FO_QUEUE_COPY.contractTruthNotInDtoTitle}>
+                                            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
+                                                {OPERATOR_FO_QUEUE_COPY.contractTruthNotInDtoBullets.map((line) => (
+                                                    <li key={line}>
+                                                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                            {line}
+                                                        </Typography.Text>
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </Descriptions.Item>
                                     </Descriptions>
                                 </div>

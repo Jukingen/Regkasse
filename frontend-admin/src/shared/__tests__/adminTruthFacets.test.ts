@@ -4,6 +4,7 @@ import {
     invoiceProvenanceUiFacet,
     registerDeepLinkEligibleBadgeKind,
 } from '@/shared/adminTruthFacets';
+import { viewFinanzReconciliationRegister } from '@/shared/rksvAdminTruth';
 
 describe('registerDeepLinkEligibleBadgeKind', () => {
     it('authoritative_api only when linkSafeUuid is set', () => {
@@ -12,6 +13,21 @@ describe('registerDeepLinkEligibleBadgeKind', () => {
             registerDeepLinkEligibleBadgeKind({
                 linkSafeUuid: '11111111-1111-4111-8111-111111111111',
             }),
+        ).toBe('authoritative_api');
+    });
+
+    it('matches FinanzOnline reconciliation register view (raw FK may differ from link-safe UUID)', () => {
+        const nonUuidRow = viewFinanzReconciliationRegister({ cashRegisterId: 'KASSE-LABEL-ONLY' });
+        expect(nonUuidRow.apiCashRegisterId).toBe('KASSE-LABEL-ONLY');
+        expect(
+            registerDeepLinkEligibleBadgeKind({ linkSafeUuid: nonUuidRow.finanzQueueRegisterRowId }),
+        ).toBe('link_incomplete');
+
+        const uuidRow = viewFinanzReconciliationRegister({
+            cashRegisterId: '11111111-1111-4111-8111-111111111111',
+        });
+        expect(
+            registerDeepLinkEligibleBadgeKind({ linkSafeUuid: uuidRow.finanzQueueRegisterRowId }),
         ).toBe('authoritative_api');
     });
 });

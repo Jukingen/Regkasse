@@ -13,12 +13,19 @@ import {
     buildFinanzOnlineQueueInvestigationHref,
     buildIncidentInvestigationHref,
     buildReplayBatchDetailHref,
+    buildVerificationsAuditHref,
 } from '@/shared/investigationNavigation';
 import {
     OPERATOR_LINK_LABELS,
     OPERATOR_SHARED_COPY,
     OPERATOR_VERIFICATIONS_COPY,
 } from '@/shared/operatorTruthCopy';
+import { RKSv_ADMIN_CONTRACT_GAPS } from '@/shared/rksvAdminTruth';
+import {
+    auditLogMatchesVerificationsKeywordSample,
+    viewAuditLogEntityDeepLinks,
+    viewAuditLogStatusPresentation,
+} from '@/shared/verificationsAuditView';
 
 export default function RksvVerificationsPage() {
     const searchParams = useSearchParams();
@@ -27,23 +34,17 @@ export default function RksvVerificationsPage() {
     const { data, isLoading } = useGetApiAuditLog({ page: 1, pageSize: 100 });
     const { data: correlationData, isLoading: correlationLoading } = useGetApiAuditLogCorrelationCorrelationId(
         correlationId ?? '',
-        { query: { enabled: !!correlationId } }
+        { query: { enabled: !!correlationId } },
     );
 
     const useCorrelation = !!correlationId;
     const list = useCorrelation ? (correlationData?.auditLogs ?? []) : (data?.auditLogs ?? []);
     const isLoadingList = useCorrelation ? correlationLoading : isLoading;
 
-    /** Client-side keyword filter only — not guaranteed by OpenAPI enums; backend action renames would narrow results silently. */
-    const signatureEntries =
-        (useCorrelation ? list : data?.auditLogs)?.filter(
-            (e: AuditLogEntryDto) =>
-                e.action?.toLowerCase().includes('signature') ||
-                e.action?.toLowerCase().includes('offline') ||
-                e.entityType?.toLowerCase().includes('receipt') ||
-                e.entityType?.toLowerCase().includes('payment') ||
-                e.entityType?.toLowerCase().includes('offlinetransaction')
-        ) ?? (useCorrelation ? list : []);
+    const signatureEntries = React.useMemo(() => {
+        const base = useCorrelation ? list : (data?.auditLogs ?? []);
+        return base.filter((e: AuditLogEntryDto) => auditLogMatchesVerificationsKeywordSample(e));
+    }, [useCorrelation, list, data?.auditLogs]);
 
     const [offlineOriginOnly, setOfflineOriginOnly] = React.useState(false);
     const [failedReplayOnly, setFailedReplayOnly] = React.useState(false);
@@ -78,35 +79,125 @@ export default function RksvVerificationsPage() {
         });
     }, [signatureEntries, offlineOriginOnly, failedReplayOnly, suspiciousTimingOnly]);
 
+    const apiRows = list.length;
+    const keywordRows = signatureEntries.length;
+    const displayedRows = filteredEntries.length;
+
     const columns = [
         {
-            title: 'Timestamp',
-            dataIndex: 'timestamp',
-            key: 'timestamp',
-            width: 180,
-            render: (ts: string) => dayjs(ts).format('DD.MM.YYYY HH:mm:ss'),
+            title: (
+                <Tooltip title={OPERATOR_VERIFICATIONS_COPY.correlationColumnTooltip}>
+                    <span>Correlation</span>
+                </Tooltip>
+            ),
+            key: 'correlationId',
+            width: 200,
+            render: (_: unknown, r: AuditLogEntryDto) => {
+                const c = r.correlationId?.trim();
+                if (!c) return <Typography.Text type="secondary">—</Typography.Text>;
+                return (
+                    <Space direction="vertical" size={2}>
+                        <Typography.Text code copyable ellipsis style={{ maxWidth: 180 }}>
+                            {c}
+                        </Typography.Text>
+                        <Link href={buildVerificationsAuditHref(c)}>{OPERATOR_VERIFICATIONS_COPY.filterByThisCorrelationLabel}</Link>
+                    </Space>
+                );
+            },
         },
         {
-            title: 'User',
+            title: (
+                <Tooltip title={OPERATOR_VERIFICATIONS_COPY.rowSourceBadgeTooltip}>
+                    <span>Quelle</span>
+                </Tooltip>
+            ),
+            key: 'source',
+            width: 110,
+            render: () => (
+                <Tooltip title={OPERATOR_VERIFICATIONS_COPY.rowSourceBadgeTooltip}>
+                    <Tag>{OPERATOR_VERIFICATIONS_COPY.rowSourceBadgeShort}</Tag>
+                </Tooltip>
+            ),
+        },
+        {
+            title: 'Zeit',
+            dataIndex: 'timestamp',
+            key: 'timestamp',
+            width: 168,
+            render: (ts: string) => (ts ? dayjs(ts).format('DD.MM.YYYY HH:mm:ss') : '—'),
+        },
+        {
+            title: 'Benutzer',
             key: 'userName',
+            width: 120,
             render: (_: unknown, r: AuditLogEntryDto) => r.actorDisplayName ?? r.userId ?? '—',
         },
         {
-            title: 'Action',
+            title: 'Aktion',
             dataIndex: 'action',
             key: 'action',
+            width: 200,
             render: (a: string | null | undefined) => <Tag color="blue">{a ?? '—'}</Tag>,
         },
         {
-            title: 'Entity',
+            title: 'Entität',
             dataIndex: 'entityType',
             key: 'entityType',
+            width: 110,
+        },
+        {
+            title: 'Entity-ID',
+            dataIndex: 'entityId',
+            key: 'entityId',
+            width: 120,
+            ellipsis: true,
+            render: (id: string | null | undefined) =>
+                id?.trim() ? (
+                    <Typography.Text code copyable ellipsis>
+                        {id}
+                    </Typography.Text>
+                ) : (
+                    '—'
+                ),
+        },
+        {
+            title: (
+                <Tooltip title={OPERATOR_VERIFICATIONS_COPY.linksColumnTooltip}>
+                    <span>Deep-Links</span>
+                </Tooltip>
+            ),
+            key: 'links',
+            width: 160,
+            render: (_: unknown, r: AuditLogEntryDto) => {
+                const { paymentListHref, receiptDetailHref } = viewAuditLogEntityDeepLinks(r);
+                if (!paymentListHref && !receiptDetailHref) {
+                    return <Typography.Text type="secondary">—</Typography.Text>;
+                }
+                return (
+                    <Space direction="vertical" size={4}>
+                        {paymentListHref ? (
+                            <Link href={paymentListHref} target="_blank" rel="noopener noreferrer">
+                                Zahlung
+                            </Link>
+                        ) : null}
+                        {receiptDetailHref ? (
+                            <Link href={receiptDetailHref} target="_blank" rel="noopener noreferrer">
+                                Beleg
+                            </Link>
+                        ) : null}
+                    </Space>
+                );
+            },
         },
         {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
-            render: (s: string) => <Tag color={s === 'Success' ? 'green' : 'red'}>{s ?? '—'}</Tag>,
+            width: 130,
+            render: (_: unknown, r: AuditLogEntryDto) => {
+                const p = viewAuditLogStatusPresentation(r.status);
+                return <Tag color={p.antColor}>{p.label}</Tag>;
+            },
         },
         {
             title: 'Details',
@@ -119,11 +210,11 @@ export default function RksvVerificationsPage() {
     return (
         <>
             <AdminPageHeader
-                title="Last 100 Verification Results"
+                title={OPERATOR_VERIFICATIONS_COPY.pageTitle}
                 breadcrumbs={[
                     { title: 'Dashboard', href: '/dashboard' },
                     { title: 'RKSV', href: '/rksv' },
-                    { title: 'Verifications' },
+                    { title: OPERATOR_VERIFICATIONS_COPY.breadcrumbTitle },
                 ]}
             />
 
@@ -176,11 +267,28 @@ export default function RksvVerificationsPage() {
                         }
                     />
                 )}
-                <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
                     {useCorrelation
-                        ? OPERATOR_VERIFICATIONS_COPY.filteredIntro(list.length)
-                        : OPERATOR_VERIFICATIONS_COPY.unfilteredIntro}
+                        ? OPERATOR_VERIFICATIONS_COPY.filteredSummary(apiRows, keywordRows, displayedRows)
+                        : OPERATOR_VERIFICATIONS_COPY.unfilteredSummary(apiRows, keywordRows, displayedRows)}
                 </Typography.Paragraph>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 12, fontSize: 12 }}>
+                    {OPERATOR_VERIFICATIONS_COPY.keywordSampleFootnote}
+                </Typography.Paragraph>
+
+                <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                    message="Vertragsgrenze"
+                    description={
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {RKSv_ADMIN_CONTRACT_GAPS.verificationsAuditVsSignatureDebug}{' '}
+                            {RKSv_ADMIN_CONTRACT_GAPS.receiptSignatureDebugResponse}
+                        </Typography.Text>
+                    }
+                />
 
                 <Space direction="horizontal" wrap style={{ marginBottom: 12 }}>
                     <Space direction="horizontal">
@@ -198,11 +306,12 @@ export default function RksvVerificationsPage() {
                 </Space>
                 <Table
                     columns={columns}
-                    dataSource={useCorrelation ? list : filteredEntries}
+                    dataSource={filteredEntries}
                     loading={isLoadingList}
-                    rowKey={(r) => r.id ?? r.timestamp ?? r.createdAt ?? ''}
+                    rowKey={(r) => r.id ?? `${r.timestamp ?? ''}-${r.action ?? ''}-${r.entityId ?? ''}`}
                     pagination={false}
                     size="small"
+                    scroll={{ x: 1200 }}
                 />
             </Card>
         </>

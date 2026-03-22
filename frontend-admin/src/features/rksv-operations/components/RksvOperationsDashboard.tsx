@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * RKSV operations landing: parallel lightweight summaries, isolated per-card errors, drilldown links.
+ * RKSV operations landing: read-only investigation tiles (drill-down links). Uses POST analyze only as a
+ * snapshot query for the payload-hash card — no repair or payment mutations on this page.
  */
 
 import { useCallback, useMemo, useState } from 'react';

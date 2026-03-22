@@ -52,6 +52,15 @@ describe('buildFinanzOnlineQueueInvestigationHref', () => {
         });
         expect(href).not.toContain('focusPaymentId=');
     });
+
+    it('omits cashRegisterId when registerRowId is not link-safe (display text must not enter URL)', () => {
+        const href = buildFinanzOnlineQueueInvestigationHref({
+            registerRowId: 'KASSE-DISPLAY-1',
+            focusPaymentId: '22222222-2222-4222-8222-222222222222',
+        });
+        expect(href).not.toContain('cashRegisterId=');
+        expect(href).toContain('focusPaymentId=');
+    });
 });
 
 describe('truncateInvestigationContextToken', () => {

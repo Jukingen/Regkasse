@@ -9,7 +9,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:contract": "vitest run src/shared/contract src/shared/__tests__ src/features/invoices/utils/__tests__/invoiceListSort.test.ts",
-    "test:truth-surfaces": "vitest run src/shared/__tests__/adminTruthSurfaces.package.test.ts src/shared/__tests__/adminTruthFacets.test.ts src/shared/__tests__/truthSurfaceBehavior.test.ts src/shared/__tests__/investigationNavigation.test.ts src/shared/utils/__tests__/registerIdentity.test.ts src/shared/__tests__/foReconciliationRowTriage.test.ts src/shared/__tests__/adminTruthBadge.semantic.test.tsx src/shared/__tests__/rksvAdminTruth.test.ts src/shared/__tests__/adminTruthBadges.test.ts",
+    "test:truth-surfaces": "vitest run src/shared/__tests__/adminTruthSurfaces.package.test.ts src/shared/__tests__/adminTruthFacets.test.ts src/shared/__tests__/truthSurfaceBehavior.test.ts src/shared/__tests__/investigationNavigation.test.ts src/shared/utils/__tests__/registerIdentity.test.ts src/shared/__tests__/foReconciliationRowTriage.test.ts src/shared/__tests__/finanzOnlineReconciliationTruth.test.ts src/shared/__tests__/adminTruthBadge.semantic.test.tsx src/shared/__tests__/rksvAdminTruth.test.ts src/shared/__tests__/adminTruthBadges.test.ts src/shared/__tests__/verificationsAuditView.test.ts",
     "test:watch": "vitest",
     "generate:api": "orval"
   },

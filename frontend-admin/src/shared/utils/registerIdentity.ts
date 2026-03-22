@@ -57,6 +57,14 @@ export function parseAuthoritativeRegisterGuid(value?: string | null): string | 
 }
 
 /**
+ * Same strict non-nil UUID rule as {@link parseAuthoritativeRegisterGuid}, for payment row ids in URLs
+ * (e.g. `focusPaymentId`). Never use display labels or receipt numbers here.
+ */
+export function parseAuthoritativePaymentGuid(value?: string | null): string | undefined {
+    return parseAuthoritativeRegisterGuid(value);
+}
+
+/**
  * Pass this as `registerRowId` into {@link buildFinanzOnlineQueuePath} and
  * {@link buildFinanzOnlineQueueInvestigationHref} at call sites that hold an API `cashRegisterId` string.
  * Never pass `kassenId`, `kassenID`, or `registerNumber` here. Equivalent to {@link parseAuthoritativeRegisterGuid}

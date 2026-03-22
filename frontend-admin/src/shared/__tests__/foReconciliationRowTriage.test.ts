@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { finanzOnlineRetryUiPresentation, getFinanzOnlineRetryUiState } from '@/shared/foReconciliationRowTriage';
+import type { FinanzOnlineReconciliationItemDto } from '@/api/generated/model/finanzOnlineReconciliationItemDto';
+import {
+    finanzOnlineRetryUiPresentation,
+    getFinanzOnlineRetryUiState,
+    isFinanzOnlineRetryButtonContract,
+} from '@/shared/foReconciliationRowTriage';
 
 describe('getFinanzOnlineRetryUiState', () => {
     it('returns empty for nullish or blank', () => {
@@ -26,6 +31,41 @@ describe('getFinanzOnlineRetryUiState', () => {
     it('contract: backend status "Success" is not treated as retry_available (no Erneut senden mirror)', () => {
         expect(getFinanzOnlineRetryUiState('Success')).toBe('other_status');
         expect(finanzOnlineRetryUiPresentation('other_status').tooltip).toMatch(/Retry-Button-Liste/i);
+    });
+});
+
+describe('isFinanzOnlineRetryButtonContract', () => {
+    it('requires non-empty paymentId and retry_available status', () => {
+        const ok: FinanzOnlineReconciliationItemDto = {
+            paymentId: '22222222-2222-4222-8222-222222222222',
+            finanzOnlineStatus: 'Failed',
+        };
+        expect(isFinanzOnlineRetryButtonContract(ok)).toBe(true);
+    });
+
+    it('is false when paymentId missing', () => {
+        expect(
+            isFinanzOnlineRetryButtonContract({
+                finanzOnlineStatus: 'Failed',
+            }),
+        ).toBe(false);
+    });
+
+    it('is false when status is Submitted', () => {
+        expect(
+            isFinanzOnlineRetryButtonContract({
+                paymentId: '22222222-2222-4222-8222-222222222222',
+                finanzOnlineStatus: 'Submitted',
+            }),
+        ).toBe(false);
+    });
+
+    it('matches Erneut senden status set exactly', () => {
+        expect(isFinanzOnlineRetryButtonContract({ paymentId: 'p', finanzOnlineStatus: 'Pending' })).toBe(true);
+        expect(isFinanzOnlineRetryButtonContract({ paymentId: 'p', finanzOnlineStatus: 'NeedsReconciliation' })).toBe(
+            true,
+        );
+        expect(isFinanzOnlineRetryButtonContract({ paymentId: 'p', finanzOnlineStatus: 'Success' })).toBe(false);
     });
 });
 

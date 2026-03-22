@@ -135,7 +135,7 @@ export default function FinanzOnlineOperationsPage() {
 
         <Col xs={24} lg={12}>
           <Card
-            title="Konfiguration (read-only) & Verbindungstest"
+            title="Konfiguration (nur Anzeige) & Verbindungstest (API-Aufruf)"
             size="small"
             extra={
               <Button loading={testMutation.isPending} onClick={() => testMutation.mutate()} type="primary">

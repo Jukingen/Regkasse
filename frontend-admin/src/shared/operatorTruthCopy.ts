@@ -116,14 +116,33 @@ export const OPERATOR_FO_QUEUE_COPY = {
         'Filter steuern die serverseitige Liste. Kasse nur als gültige UUID aus Stammdaten wählen, damit Deep-Links und API-Filter übereinstimmen.',
     summaryReconciliationParagraph:
         'Zeilen mit Status Pending, Failed oder NeedsReconciliation können mit Erneut senden erneut an FinanzOnline angestoßen werden — das spiegelt nur die UI-/Statuslogik, keine zusätzliche Backend-Garantie. Referenz- und Fehlertexte je Zeile prüfen. Abgleichszeilen enthalten keine Correlation-ID; Zuordnung zu Incident/Replay über andere Ansichten oder den URL-Kontext (investigationBatchCorrelationId).',
+    metricsFailureKindScope:
+        'Transient / Permanent / Unbekannt oben sind Laufzeit-Zähler aus der Metrik-API — keine zeilenweise Fehlerklasse in der Abgleichsliste.',
     /** Retry UI honesty */
     foStatusColumnTooltip:
         'FinanzOnline-Status aus der Abgleich-API (keine eigene Fehlerklassifikation im Datenmodell).',
     foActionColumnTooltip:
         'Spiegelt nur, ob in dieser Ansicht der Button »Erneut senden« erscheint — kein separates Backend-Feld „retryable“ und keine Terminalitäts-Garantie.',
     foTimelineColumnTooltip:
-        'createdAt = Zeitpunkt der Abgleichszeile; Retries / letzter Versuch = finanzOnlineRetryCount / finanzOnlineLastAttemptAtUtc (API-Rohfelder).',
-    foErrorShortTooltip: 'Kurzfassung; vollständiger Text unter »Zeile erweitern«.',
+        'createdAt = Zeitpunkt der Zahlungs-/Abgleichszeile; finanzOnlineRetryCount = Anzahl Versuche; finanzOnlineLastAttemptAtUtc = Zeitpunkt des letzten Sendeversuchs (unabhängig vom Ergebnis — es gibt kein separates letztes Erfolgs-/Fehlerdatum im Listen-DTO).',
+    foErrorShortTooltip:
+        'finanzOnlineError = einzige technische Servermeldung in diesem Listen-DTO (kein separates Roh-HTTP-/Payload-Feld). Kurzfassung in der Tabelle; vollständiger Text unter »Zeile erweitern«.',
+    contractTruthPanelTitle: 'Listen-Vertrag: was die API je Zeile liefert',
+    contractTruthInDtoTitle: 'Im DTO vorhanden (Rohfelder)',
+    contractTruthNotInDtoTitle: 'Nicht im Listen-DTO (OpenAPI) — keine UI-Erfindung',
+    contractTruthInDtoBullets: [
+        'finanzOnlineStatus, finanzOnlineError, finanzOnlineReferenceId',
+        'finanzOnlineRetryCount, finanzOnlineLastAttemptAtUtc (ein Zeitstempel für den letzten Versuch, alle Outcomes)',
+        'paymentId, receiptNumber, totalAmount, cashRegisterId, createdAt',
+    ],
+    contractTruthNotInDtoBullets: [
+        'Keine Correlation-ID pro Zeile (nur URL-Kontext investigationBatchCorrelationId zwischen Oberflächen).',
+        'Keine Fehlerklasse pro Zeile (transient/permanent) — nur Metrik-Aggregat oben.',
+        'Kein FinanzOnline-Umgebungs- oder Betriebsmodus-Feld in dieser Liste.',
+        'Kein separates letztes Erfolgs- bzw. letztes Fehler-Datum.',
+        'Kein separates Roh-Antwortfeld neben finanzOnlineError.',
+        'Kein explizites retryable-Feld — »Erneut senden« folgt nur Status + vorhandener paymentId.',
+    ],
 } as const;
 
 // --- FinanzOnline retry row (mirrors button, not server terminality) ---
@@ -195,13 +214,29 @@ export const OPERATOR_REPLAY_COPY = {
 // --- Verifications (audit list) ---
 
 export const OPERATOR_VERIFICATIONS_COPY = {
-    filteredBannerTitle: 'Audit-Logs (gefiltert, Correlation-Parameter)',
+    /** Page header — not a dedicated “verification results” pipeline */
+    pageTitle: 'RKSV Audit-Spur (Signatur / Offline)',
+    breadcrumbTitle: 'Audit-Spur',
+    /** Sidebar / RKSV submenu */
+    navMenuLabel: 'Audit-Spur (Signatur/Offline)',
+    filteredBannerTitle: 'Audit-Logs (Correlation-Filter aktiv)',
     diagnosticLine:
-        'Diagnose-Ansicht: keine Ersatz für Incident-Aggregat oder Abgleichstabelle — nur Audit-Ereignisse nach Correlation.',
-    unfilteredIntro:
-        'Signatur-, Zahlungs- und Offline-Replay-Audit (OFFLINE_CREATED / OFFLINE_SYNCED, max. 100 Einträge).',
-    filteredIntro: (count: number) =>
-        `Audit-Logs für die gewählte Correlation (${count} Einträge in dieser Antwort — nicht als vollständige Systemabdeckung interpretieren).`,
+        'Diagnose-Ansicht: kein Ersatz für Incident-Aggregat oder Abgleichstabelle — nur Audit-Ereignisse aus der Audit-API.',
+    /** Stichwort-Filter auf dem Client; keine typisierten Verification-Result-Objekte */
+    keywordSampleFootnote:
+        'Die Tabelle zeigt eine Stichprobe: Audit-Einträge, deren Aktion oder Entitätstyp Schlüsselwörter wie signatur, offline, receipt, payment enthält. Backend-Änderungen an Aktionsnamen können Treffer still verändern.',
+    unfilteredSummary: (apiRows: number, keywordRows: number, displayedRows: number) =>
+        `Letzte Seite der Audit-API (pageSize=100): ${apiRows} Zeilen geladen · nach Stichwort-Stichprobe ${keywordRows} Zeilen · mit Zusatzfiltern angezeigt ${displayedRows}.`,
+    filteredSummary: (apiRows: number, keywordRows: number, displayedRows: number) =>
+        `Audit-API gefiltert nach Correlation: ${apiRows} Zeilen in der Antwort · nach Stichwort-Stichprobe ${keywordRows} · angezeigt (inkl. Schalter) ${displayedRows}.`,
+    rowSourceBadgeShort: 'Audit-API',
+    rowSourceBadgeTooltip:
+        'Zeile stammt aus GET /api/AuditLog (Orval: AuditLogEntryDto). Kein separater Verification-Result-Endpunkt und keine Signatur-Debug-Antwort auf dieser Seite.',
+    linksColumnTooltip:
+        'Links nur bei Payment/Receipt und nur wenn entityId eine gültige Nicht-Nil-UUID ist (gleiche UUID-Policy wie Register-Deep-Links).',
+    correlationColumnTooltip:
+        'correlationId aus der Audit-Zeile. Link setzt den Correlation-Query auf dieser Seite (ersetzt die aktuelle Filterung).',
+    filterByThisCorrelationLabel: 'Diese Correlation',
 } as const;
 
 // --- Register deep-link honesty (shared wherever cashRegisterId / FK is shown) ---
@@ -252,5 +287,6 @@ export const OPERATOR_LINK_LABELS = {
     finanzQueueContext: 'FinanzOnline-Abgleich (Kontext)',
     /** FO queue opened with register filter only (no investigation URL context) */
     finanzQueueThisRegister: 'FinanzOnline-Abgleich (diese Kasse)',
-    verificationsAudit: 'Verifications (Audit)',
+    /** Opens audit-spur page with correlation query */
+    verificationsAudit: 'Audit-Spur (Correlation)',
 } as const;

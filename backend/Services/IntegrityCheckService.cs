@@ -56,11 +56,18 @@ public class IntegrityCheckService : IIntegrityCheckService
             .Select(r => r.ReceiptNumber)
             .ToListAsync();
 
-        var allNumbers = paymentNumbers.Concat(receiptNumbers).Distinct().ToList();
-        var grouped = allNumbers.GroupBy(x => x).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
-        duplicateBelegNrs.AddRange(grouped);
+        // Multiset of all receipt numbers in scope (payments + receipts). Do not Distinct before duplicate detection.
+        var combinedReceiptNumbers = paymentNumbers.Concat(receiptNumbers).ToList();
+        var duplicateKeys = combinedReceiptNumbers
+            .GroupBy(x => x, StringComparer.Ordinal)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+        duplicateBelegNrs.AddRange(duplicateKeys);
 
-        var parsed = allNumbers
+        // Monotonic sequence check: one logical Belegnr per string; duplicates must not double-count sequence steps.
+        var distinctForSequence = combinedReceiptNumbers.Distinct(StringComparer.Ordinal).ToList();
+        var parsed = distinctForSequence
             .Select(n => (Number: n, Match: BelegNrRegex.Match(n)))
             .Where(x => x.Match.Success)
             .Select(x => (x.Number, KassenId: x.Match.Groups[1].Value, DateStr: x.Match.Groups[2].Value, Seq: int.Parse(x.Match.Groups[3].Value)))

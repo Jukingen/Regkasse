@@ -136,7 +136,12 @@ export default function IntegrityReportPage() {
           {hasAnyIssue ? (
             <Alert type="warning" showIcon style={{ marginBottom: 16 }} message="Auffälligkeiten im gewählten Umfang" />
           ) : (
-            <Alert type="success" showIcon style={{ marginBottom: 16 }} message="Keine Treffer in den Hauptkategorien" />
+            <Alert
+              type="success"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="Keine Treffer in den Hauptkategorien (gewählter Zeitraum)"
+            />
           )}
 
           <Row gutter={[16, 16]}>

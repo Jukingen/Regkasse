@@ -32,8 +32,12 @@ export const RKSv_ADMIN_CONTRACT_GAPS = {
         'Add optional cashRegisterId (or linked FinanzOnline row id) on ReplayBatchPaymentItemDto so register is not inferred only via FO join.',
     finanzReconciliationRegisterDisplay:
         'Optional register display label on FinanzOnlineReconciliationItemDto alongside cashRegisterId UUID.',
+    finanzReconciliationRowTruthFields:
+        'Extend FinanzOnlineReconciliationItemDto with optional correlationId, failureKind (or error class), environment/mode, lastSuccessAtUtc/lastFailureAtUtc, raw provider response excerpt, and explicit retryable when backend can expose them — list DTO currently only has status, error text, reference, last attempt, retry count.',
     receiptSignatureDebugResponse:
         'Type GET /api/Receipts/{id}/signature-debug response in OpenAPI (verifyResult, signatureValue, message, …) so Orval replaces `unknown` and forensics UI does not rely on loose property reads.',
+    verificationsAuditVsSignatureDebug:
+        'RKSV Audit-Spur (/rksv/verifications) uses only GET /api/AuditLog; do not present it as the same contract as receipt signature-debug — keep surfaces and copy separate until OpenAPI ties them explicitly.',
 } as const;
 
 export type InvoiceListRegisterView = {

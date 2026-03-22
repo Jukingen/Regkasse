@@ -4,7 +4,7 @@
  * register FKs into URLs. Extra query keys on the FO queue are UI-only (documented on that page).
  */
 
-import { buildFinanzOnlineQueuePath, parseAuthoritativeRegisterGuid } from '@/shared/utils/registerIdentity';
+import { buildFinanzOnlineQueuePath, parseAuthoritativePaymentGuid } from '@/shared/utils/registerIdentity';
 
 const MAX_INVESTIGATION_CONTEXT_LEN = 256;
 
@@ -35,7 +35,7 @@ export function buildVerificationsAuditHref(correlationIdRaw: string): string {
  * FinanzOnline reconciliation list path plus optional investigation hints.
  * `registerRowId`: API `cashRegisterId` string; only values passing `parseAuthoritativeRegisterGuid` appear as
  * query `cashRegisterId` (prefer passing `toLinkSafeRegisterRowId(apiFk)` from `registerIdentity` at call sites).
- * `focusPaymentId` is only accepted when it passes the same non-nil UUID check as register row ids.
+ * `focusPaymentId` is only accepted when it passes {@link parseAuthoritativePaymentGuid}.
  * `investigationBatchCorrelationId` is echoed for operator context — it does not filter the reconciliation API.
  */
 export function buildFinanzOnlineQueueInvestigationHref(opts: {
@@ -55,7 +55,7 @@ export function buildFinanzOnlineQueueInvestigationHref(opts: {
     const qIndex = base.indexOf('?');
     const path = qIndex >= 0 ? base.slice(0, qIndex) : base;
     const params = new URLSearchParams(qIndex >= 0 ? base.slice(qIndex + 1) : '');
-    const pay = parseAuthoritativeRegisterGuid(opts.focusPaymentId);
+    const pay = parseAuthoritativePaymentGuid(opts.focusPaymentId);
     if (pay) params.set('focusPaymentId', pay);
     const ctx = opts.investigationBatchCorrelationId?.trim();
     if (ctx) params.set('investigationBatchCorrelationId', truncateInvestigationContextToken(ctx));

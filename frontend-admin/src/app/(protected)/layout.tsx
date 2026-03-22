@@ -23,6 +23,7 @@ import { PermissionRouteGuard } from '@/shared/auth/PermissionRouteGuard';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { canViewUsers, canShowRksvMenu } from '@/features/auth/constants/roles';
+import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -86,7 +87,10 @@ export default function DashboardLayout({
                 },
                 { key: '/rksv/status', label: <Link href="/rksv/status">General Status</Link> },
                 { key: '/rksv/cmc-certificate', label: <Link href="/rksv/cmc-certificate">CMC / Certificate</Link> },
-                { key: '/rksv/verifications', label: <Link href="/rksv/verifications">Last 100 Verifications</Link> },
+                {
+                    key: '/rksv/verifications',
+                    label: <Link href="/rksv/verifications">{OPERATOR_VERIFICATIONS_COPY.navMenuLabel}</Link>,
+                },
                 { key: '/rksv/finanz-online-operations', label: <Link href="/rksv/finanz-online-operations">FinanzOnline Operations</Link> },
                 { key: '/rksv/finanz-online-queue', label: <Link href="/rksv/finanz-online-queue">FinanzOnline Abgleich</Link> },
                 {

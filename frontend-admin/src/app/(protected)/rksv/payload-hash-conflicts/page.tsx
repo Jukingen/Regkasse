@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * Payload-Hash conflict triage — read-only. Analyze shows ConflictGroups and RepairableItems;
- * CSV export; no repair on this page.
+ * Payload-Hash conflicts — mixed surface: investigation (analyze, tables, CSV export) plus remediation
+ * (repair dry-run / apply). Permissions unchanged; repair requires elevated rights on the API.
  */
 
 import React, { useMemo, useState } from 'react';

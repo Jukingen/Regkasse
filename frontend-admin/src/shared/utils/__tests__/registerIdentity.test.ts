@@ -3,6 +3,7 @@ import {
     NIL_REGISTER_UUID,
     analyzeRegisterFkField,
     buildFinanzOnlineQueuePath,
+    parseAuthoritativePaymentGuid,
     parseAuthoritativeRegisterGuid,
     toLinkSafeRegisterRowId,
 } from '@/shared/utils/registerIdentity';
@@ -66,5 +67,14 @@ describe('buildFinanzOnlineQueuePath', () => {
 describe('parseAuthoritativeRegisterGuid', () => {
     it('rejects UUID with wrong variant nibble', () => {
         expect(parseAuthoritativeRegisterGuid('11111111-1111-4111-c111-111111111111')).toBeUndefined();
+    });
+});
+
+describe('parseAuthoritativePaymentGuid', () => {
+    it('matches register UUID rule (payment focus ids use the same strict check)', () => {
+        const id = '33333333-3333-4333-8333-333333333333';
+        expect(parseAuthoritativePaymentGuid(id)).toBe(id);
+        expect(parseAuthoritativePaymentGuid(id)).toBe(parseAuthoritativeRegisterGuid(id));
+        expect(parseAuthoritativePaymentGuid('receipt-123')).toBeUndefined();
     });
 });
