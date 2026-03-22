@@ -33,6 +33,7 @@ import {
   postApiFinanzOnlineTestConnection,
 } from '@/api/generated/finanz-online/finanz-online';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import { OPERATOR_FO_OPERATIONS_PAGE_COPY } from '@/shared/operatorTruthCopy';
 
 function statusColor(isConnected: boolean | undefined): string {
   if (isConnected === true) return 'green';
@@ -85,11 +86,11 @@ export default function FinanzOnlineOperationsPage() {
   return (
     <>
       <AdminPageHeader
-        title="FinanzOnline Operations"
+        title={OPERATOR_FO_OPERATIONS_PAGE_COPY.pageTitle}
         breadcrumbs={[
           { title: 'Dashboard', href: '/dashboard' },
           { title: 'RKSV', href: '/rksv' },
-          { title: 'FinanzOnline Operations' },
+          { title: OPERATOR_FO_OPERATIONS_PAGE_COPY.breadcrumbTitle },
         ]}
         actions={
           <Button
@@ -102,8 +103,8 @@ export default function FinanzOnlineOperationsPage() {
       />
 
       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-        Diagnose/Support Konsole fuer FinanzOnline. Mutierende Rekonsolidierung bleibt in{' '}
-        <Link href="/rksv/finanz-online-queue">FinanzOnline Abgleich</Link>.
+        {OPERATOR_FO_OPERATIONS_PAGE_COPY.introLead}{' '}
+        <Link href="/rksv/finanz-online-queue">{OPERATOR_FO_OPERATIONS_PAGE_COPY.introAbgleichLinkLabel}</Link>.
       </Typography.Paragraph>
 
       <Row gutter={[16, 16]}>

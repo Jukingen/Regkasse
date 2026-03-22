@@ -7,6 +7,10 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { useGetApiTseStatus } from '@/api/generated/tse/tse';
 import { useGetApiFinanzOnlineStatus } from '@/api/generated/finanz-online/finanz-online';
 import Link from 'next/link';
+import {
+    OPERATOR_FO_SUMMARY_SCREEN_COPY,
+    OPERATOR_RKSV_GENERAL_STATUS_COPY,
+} from '@/shared/operatorTruthCopy';
 
 export default function RksvStatusPage() {
     const { data: tseStatus, isLoading: tseLoading, error: tseError } = useGetApiTseStatus();
@@ -31,6 +35,19 @@ export default function RksvStatusPage() {
                     { title: 'RKSV', href: '/rksv' },
                     { title: 'General Status' },
                 ]}
+            />
+
+            <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message={OPERATOR_RKSV_GENERAL_STATUS_COPY.pageScopeAlertMessage}
+                description={
+                    <Typography.Paragraph style={{ marginBottom: 0 }}>
+                        {OPERATOR_RKSV_GENERAL_STATUS_COPY.pageScopeAlertDescriptionBeforeLink}{' '}
+                        <Link href="/rksv/finanz-online-queue">{OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}</Link>.
+                    </Typography.Paragraph>
+                }
             />
 
             {tseError && (
@@ -74,8 +91,16 @@ export default function RksvStatusPage() {
                         />
                         {foStatus?.pendingInvoices !== undefined && <p style={{ marginTop: 8 }}>Pending invoices: {foStatus.pendingInvoices}</p>}
                         {foStatus?.lastSync && <p>Last sync: {foStatus.lastSync}</p>}
-                        <Typography.Paragraph style={{ marginTop: 8, marginBottom: 0 }}>
-                            <Link href="/rksv/finanz-online-operations">Open FinanzOnline Operations</Link>
+                        <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 4, fontSize: 12 }}>
+                            {OPERATOR_FO_SUMMARY_SCREEN_COPY.connectionMetricsNotPaymentRowTruth}
+                        </Typography.Paragraph>
+                        <Typography.Paragraph style={{ marginBottom: 4 }}>
+                            <Link href="/rksv/finanz-online-queue">{OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}</Link>
+                        </Typography.Paragraph>
+                        <Typography.Paragraph style={{ marginBottom: 0 }}>
+                            <Link href="/rksv/finanz-online-operations">
+                                {OPERATOR_FO_SUMMARY_SCREEN_COPY.operationsSupportingLinkLabel}
+                            </Link>
                         </Typography.Paragraph>
                     </Card>
                 </Col>

@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * Payload-Hash conflicts — mixed surface: investigation (analyze, tables, CSV export) plus remediation
- * (repair dry-run / apply). Permissions unchanged; repair requires elevated rights on the API.
+ * Payload-Hash conflicts — mixed surface: Tabs separate read-only investigation (analyze, export, tables)
+ * from the Eingriff (repair dry-run / apply). Permissions unchanged; repair requires elevated rights on the API.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -22,6 +22,7 @@ import {
   message,
   Typography,
   Modal,
+  Tabs,
 } from 'antd';
 import { ReloadOutlined, DownloadOutlined, ToolOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -57,6 +58,7 @@ export default function PayloadHashConflictsPage() {
   const [maxRows, setMaxRows] = useState(10_000);
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
   const [lastRepairResult, setLastRepairResult] = useState<OfflinePayloadHashRepairResult | null>(null);
+  const [activeTab, setActiveTab] = useState('investigation');
 
   const analyzeParams = useMemo(
     () => ({ maxRows, cashRegisterId: cashRegisterId ?? undefined }),
@@ -226,48 +228,12 @@ export default function PayloadHashConflictsPage() {
           { title: 'RKSV', href: '/rksv' },
           { title: 'Payload-Hash Konflikte' },
         ]}
-        actions={
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-              Analyse neu
-            </Button>
-            <Button
-              icon={<DownloadOutlined />}
-              loading={downloadCsvMutation.isPending}
-              onClick={() => downloadCsvMutation.mutate()}
-            >
-              CSV exportieren
-            </Button>
-            <Button
-              icon={<ToolOutlined />}
-              onClick={() => dryRunMutation.mutate()}
-              loading={dryRunMutation.isPending}
-              disabled={!canRepair || applyMutation.isPending}
-            >
-              Repair Dry-Run
-            </Button>
-            <Button
-              danger
-              icon={<SafetyOutlined />}
-              loading={applyMutation.isPending}
-              disabled={!canRepair || dryRunMutation.isPending}
-              onClick={() => {
-                Modal.confirm({
-                  title: 'Repair wirklich anwenden?',
-                  content:
-                    'Diese Aktion schreibt payload_hash Werte in der Datenbank. Bitte erst Dry-Run prüfen. Fortfahren?',
-                  okText: 'Ja, Repair anwenden',
-                  okButtonProps: { danger: true },
-                  cancelText: 'Abbrechen',
-                  onOk: () => applyMutation.mutate(),
-                });
-              }}
-            >
-              Repair anwenden
-            </Button>
-          </Space>
-        }
       />
+
+      <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+        Gemischte Oberfläche: Untersuchung (Analyse, Tabellen, Export) und separater Eingriff (Repair). Parameter
+        (max. Zeilen, Kasse) gelten für beide Bereiche.
+      </Typography.Paragraph>
 
       {error && (
         <Alert
@@ -312,123 +278,199 @@ export default function PayloadHashConflictsPage() {
         </Space>
       </Card>
 
-      {!canRepair && (
-        <Alert
-          type="warning"
-          message="Repair-Aktionen gesperrt"
-          description="Für Dry-Run und Repair ist die Berechtigung system.critical erforderlich."
-          style={{ marginBottom: 16 }}
-          showIcon
-        />
-      )}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={[
+          {
+            key: 'investigation',
+            label: 'Untersuchung & Export',
+            children: (
+              <>
+                <Space wrap style={{ marginBottom: 16 }}>
+                  <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
+                    Analyse neu
+                  </Button>
+                  <Button
+                    icon={<DownloadOutlined />}
+                    loading={downloadCsvMutation.isPending}
+                    onClick={() => downloadCsvMutation.mutate()}
+                  >
+                    CSV exportieren
+                  </Button>
+                </Space>
+                {isLoading && !result ? (
+                  <Card>
+                    <Spin tip="Analyse läuft…" size="large" />
+                  </Card>
+                ) : result ? (
+                  <>
+                    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                      <Col xs={24} sm={12} md={6}>
+                        <Card size="small">
+                          <Statistic title="Gescannt" value={result.scanned} />
+                        </Card>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <Card size="small">
+                          <Statistic title="Mismatch" value={result.runtimeMismatchCount} />
+                        </Card>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <Card size="small">
+                          <Statistic title="Reparierbar (ohne Konflikt)" value={result.repairableNoConflictCount} />
+                        </Card>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <Card size="small">
+                          <Statistic title="Konflikt (übersprungen)" value={result.skippedWouldConflictCount} />
+                        </Card>
+                      </Col>
+                    </Row>
 
-      {lastRepairResult && (
-        <Card
-          size="small"
-          title={lastRepairResult.dryRun ? 'Letztes Repair-Ergebnis (Dry-Run)' : 'Letztes Repair-Ergebnis (Apply)'}
-          style={{ marginBottom: 16 }}
-        >
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12} md={4}>
-              <Statistic title="Gescannt" value={lastRepairResult.scanned} />
-            </Col>
-            <Col xs={24} sm={12} md={4}>
-              <Statistic title="Aktualisiert" value={lastRepairResult.updated} />
-            </Col>
-            <Col xs={24} sm={12} md={4}>
-              <Statistic title="Konflikt übersprungen" value={lastRepairResult.skippedConflict} />
-            </Col>
-            <Col xs={24} sm={12} md={4}>
-              <Statistic title="Bereits aligned" value={lastRepairResult.skippedAlreadyAligned} />
-            </Col>
-            <Col xs={24} sm={12} md={4}>
-              <Statistic title="Null Payload" value={lastRepairResult.skippedNullPayload} />
-            </Col>
-            <Col xs={24} sm={12} md={4}>
-              <Statistic title="Normalize-Fehler" value={lastRepairResult.skippedNormalizeError} />
-            </Col>
-          </Row>
-        </Card>
-      )}
+                    {result.legacyDataQualityRiskHigh && result.warningMessage && (
+                      <Alert
+                        type="warning"
+                        message="Risiko: Legacy-Datenqualität"
+                        description={result.warningMessage}
+                        style={{ marginBottom: 16 }}
+                        showIcon
+                      />
+                    )}
 
-      {isLoading && !result ? (
-        <Card>
-          <Spin tip="Analyse läuft…" size="large" />
-        </Card>
-      ) : result ? (
-        <>
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} sm={12} md={6}>
-              <Card size="small">
-                <Statistic title="Gescannt" value={result.scanned} />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card size="small">
-                <Statistic title="Mismatch" value={result.runtimeMismatchCount} />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card size="small">
-                <Statistic title="Reparierbar (ohne Konflikt)" value={result.repairableNoConflictCount} />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Card size="small">
-                <Statistic title="Konflikt (übersprungen)" value={result.skippedWouldConflictCount} />
-              </Card>
-            </Col>
-          </Row>
+                    <Card size="small" title={`Konfliktgruppen (${conflictGroups.length})`} style={{ marginBottom: 16 }}>
+                      {conflictGroups.length === 0 ? (
+                        <Typography.Text type="secondary">Keine Konflikte in diesem Scope.</Typography.Text>
+                      ) : (
+                        <Table
+                          columns={conflictColumns}
+                          dataSource={conflictGroups}
+                          rowKey={(r) => `${r.cashRegisterId}-${r.canonicalHash}-${r.skipReason}`}
+                          pagination={{ pageSize: 20, showTotal: (t) => `Gesamt: ${t}` }}
+                          size="small"
+                          scroll={{ x: 900 }}
+                        />
+                      )}
+                    </Card>
 
-          {result.legacyDataQualityRiskHigh && result.warningMessage && (
-            <Alert
-              type="warning"
-              message="Risiko: Legacy-Datenqualität"
-              description={result.warningMessage}
-              style={{ marginBottom: 16 }}
-              showIcon
-            />
-          )}
+                    <Card size="small" title={`Reparierbare Einträge (${repairableItems.length})`}>
+                      {repairableItems.length === 0 ? (
+                        <Typography.Text type="secondary">Keine reparierbaren Einträge in diesem Scope.</Typography.Text>
+                      ) : (
+                        <Table
+                          columns={repairableColumns}
+                          dataSource={repairableItems}
+                          rowKey="rowId"
+                          pagination={{ pageSize: 20, showTotal: (t) => `Gesamt: ${t}` }}
+                          size="small"
+                          scroll={{ x: 600 }}
+                        />
+                      )}
+                    </Card>
 
-          <Card size="small" title={`Konfliktgruppen (${conflictGroups.length})`} style={{ marginBottom: 16 }}>
-            {conflictGroups.length === 0 ? (
-              <Typography.Text type="secondary">Keine Konflikte in diesem Scope.</Typography.Text>
-            ) : (
-              <Table
-                columns={conflictColumns}
-                dataSource={conflictGroups}
-                rowKey={(r) => `${r.cashRegisterId}-${r.canonicalHash}-${r.skipReason}`}
-                pagination={{ pageSize: 20, showTotal: (t) => `Gesamt: ${t}` }}
-                size="small"
-                scroll={{ x: 900 }}
-              />
-            )}
-          </Card>
-
-          <Card size="small" title={`Reparierbare Einträge (${repairableItems.length})`}>
-            {repairableItems.length === 0 ? (
-              <Typography.Text type="secondary">Keine reparierbaren Einträge in diesem Scope.</Typography.Text>
-            ) : (
-              <Table
-                columns={repairableColumns}
-                dataSource={repairableItems}
-                rowKey="rowId"
-                pagination={{ pageSize: 20, showTotal: (t) => `Gesamt: ${t}` }}
-                size="small"
-                scroll={{ x: 600 }}
-              />
-            )}
-          </Card>
-
-          <Alert
-            type="info"
-            message="Analyse / Dry-Run / Apply"
-            description="Analyse und CSV bleiben read-only. Repair Dry-Run simuliert nur. Repair anwenden schreibt nur konfliktfreie payload_hash Aktualisierungen und erfordert system.critical."
-            style={{ marginTop: 16 }}
-            showIcon
-          />
-        </>
-      ) : null}
+                    <Alert
+                      type="info"
+                      message="Untersuchung (read-only)"
+                      description="Analyse und CSV-Export ändern keine Daten. Repair (Dry-Run / Anwenden) liegt im Tab Eingriff (Repair)."
+                      style={{ marginTop: 16 }}
+                      showIcon
+                    />
+                  </>
+                ) : (
+                  <Typography.Text type="secondary">
+                    Bitte mit den Parametern oben eine Analyse ausführen.
+                  </Typography.Text>
+                )}
+              </>
+            ),
+          },
+          {
+            key: 'repair',
+            label: 'Eingriff (Repair)',
+            children: (
+              <>
+                <Alert
+                  type="error"
+                  showIcon
+                  message="Gefahrenbereich / Eingriff"
+                  description="Dry-Run und Repair nutzen dieselben Endpunkte wie zuvor. Apply schreibt in die Datenbank — zuerst im Tab Untersuchung analysieren."
+                  style={{ marginBottom: 16 }}
+                />
+                {!canRepair && (
+                  <Alert
+                    type="warning"
+                    message="Repair-Aktionen gesperrt"
+                    description="Für Dry-Run und Repair ist die Berechtigung system.critical erforderlich."
+                    style={{ marginBottom: 16 }}
+                    showIcon
+                  />
+                )}
+                <Space wrap style={{ marginBottom: 16 }}>
+                  <Button
+                    icon={<ToolOutlined />}
+                    onClick={() => dryRunMutation.mutate()}
+                    loading={dryRunMutation.isPending}
+                    disabled={!canRepair || applyMutation.isPending}
+                  >
+                    Repair Dry-Run
+                  </Button>
+                  <Button
+                    danger
+                    icon={<SafetyOutlined />}
+                    loading={applyMutation.isPending}
+                    disabled={!canRepair || dryRunMutation.isPending}
+                    onClick={() => {
+                      Modal.confirm({
+                        title: 'Repair wirklich anwenden?',
+                        content:
+                          'Diese Aktion schreibt payload_hash Werte in der Datenbank. Bitte erst Dry-Run prüfen. Fortfahren?',
+                        okText: 'Ja, Repair anwenden',
+                        okButtonProps: { danger: true },
+                        cancelText: 'Abbrechen',
+                        onOk: () => applyMutation.mutate(),
+                      });
+                    }}
+                  >
+                    Repair anwenden
+                  </Button>
+                </Space>
+                {lastRepairResult && (
+                  <Card
+                    size="small"
+                    title={
+                      lastRepairResult.dryRun
+                        ? 'Letztes Repair-Ergebnis (Dry-Run)'
+                        : 'Letztes Repair-Ergebnis (Apply)'
+                    }
+                    style={{ marginBottom: 16 }}
+                  >
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24} sm={12} md={4}>
+                        <Statistic title="Gescannt" value={lastRepairResult.scanned} />
+                      </Col>
+                      <Col xs={24} sm={12} md={4}>
+                        <Statistic title="Aktualisiert" value={lastRepairResult.updated} />
+                      </Col>
+                      <Col xs={24} sm={12} md={4}>
+                        <Statistic title="Konflikt übersprungen" value={lastRepairResult.skippedConflict} />
+                      </Col>
+                      <Col xs={24} sm={12} md={4}>
+                        <Statistic title="Bereits aligned" value={lastRepairResult.skippedAlreadyAligned} />
+                      </Col>
+                      <Col xs={24} sm={12} md={4}>
+                        <Statistic title="Null Payload" value={lastRepairResult.skippedNullPayload} />
+                      </Col>
+                      <Col xs={24} sm={12} md={4}>
+                        <Statistic title="Normalize-Fehler" value={lastRepairResult.skippedNormalizeError} />
+                      </Col>
+                    </Row>
+                  </Card>
+                )}
+              </>
+            ),
+          },
+        ]}
+      />
     </>
   );
 }

@@ -64,6 +64,7 @@ import {
 } from '@/shared/foReconciliationRowTriage';
 import { finanzOnlineRowTechnicalResponseSummary } from '@/shared/finanzOnlineReconciliationTruth';
 import {
+    OPERATOR_FO_OPERATIONS_PAGE_COPY,
     OPERATOR_FO_QUEUE_COPY,
     OPERATOR_INVESTIGATION_CONTEXT_COPY,
     OPERATOR_LINK_LABELS,
@@ -419,9 +420,15 @@ export default function FinanzOnlineReconciliationPage() {
                 }
             />
 
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                {OPERATOR_FO_QUEUE_COPY.pagePrimaryOperationalTruthLead}
+            </Typography.Paragraph>
+
             <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-                Verwandt:{' '}
-                <Link href="/rksv/finanz-online-operations">FinanzOnline Operations</Link>
+                {OPERATOR_FO_QUEUE_COPY.relatedSupportingLabel}:{' '}
+                <Link href="/rksv/finanz-online-operations">
+                    {OPERATOR_FO_OPERATIONS_PAGE_COPY.breadcrumbTitle}
+                </Link>
                 {' · '}
                 <Link href="/rksv/integrity">Datenintegrität (Support)</Link>
                 {' · '}

@@ -103,6 +103,9 @@ export const OPERATOR_INVESTIGATION_CONTEXT_COPY = {
 // --- FinanzOnline reconciliation queue ---
 
 export const OPERATOR_FO_QUEUE_COPY = {
+    pagePrimaryOperationalTruthLead:
+        'Primäre operative Oberfläche für FinanzOnline je Zahlung: serverseitig gefilterte Abgleichstabelle und Zeilenaktionen (siehe Vertrags- und Metrik-Hinweise auf dieser Seite).',
+    relatedSupportingLabel: 'Verwandt (unterstützend / Diagnose)',
     queryRejectedRegisterTitle: 'Register-Parameter ungültig',
     queryRejectedRegisterDescription: (raw: string) =>
         `«${raw}» ist keine gültige Register-UUID — wird nicht als Kassenfilter gesetzt (verhindert irreführende Deep-Links).`,
@@ -143,6 +146,36 @@ export const OPERATOR_FO_QUEUE_COPY = {
         'Kein separates Roh-Antwortfeld neben finanzOnlineError.',
         'Kein explizites retryable-Feld — »Erneut senden« folgt nur Status + vorhandener paymentId.',
     ],
+} as const;
+
+/**
+ * FO high-level surfaces: connection/status API and dashboard metrics — not row-level reconciliation.
+ */
+export const OPERATOR_FO_SUMMARY_SCREEN_COPY = {
+    connectionMetricsNotPaymentRowTruth:
+        'Verbindung und diese Kennzahlen ersetzen keinen zahlungsbezogenen Zeilen-Abgleich (operativ).',
+    abgleichPrimaryLinkLabel: 'FinanzOnline-Abgleich (Zahlungs-/Zeilenebene)',
+    /** General Status card: secondary link to integration/diagnostics route */
+    operationsSupportingLinkLabel: 'FinanzOnline Operations (Integration & Diagnose)',
+    dashboardMetricsCardTitle: 'FinanzOnline · Metrik-Snapshot',
+    dashboardMetricsCardFootnote:
+        'Nur aggregierte Metriken — keine vollständige Abgleichsliste. Für Zahlungs-/Zeilenebene den Abgleich öffnen.',
+} as const;
+
+/** RKSV General Status: connection/summary APIs only */
+export const OPERATOR_RKSV_GENERAL_STATUS_COPY = {
+    pageScopeAlertMessage: 'Nur Schnittstellen-Übersicht',
+    pageScopeAlertDescriptionBeforeLink:
+        'TSE- und FinanzOnline-Karten zeigen Felder der jeweiligen Status-APIs — nicht die zahlungsbezogene Abgleichsliste. Für operative Zeilenebene:',
+} as const;
+
+/** FinanzOnline Operations route: integration/diagnostics (not primary reconciliation list) */
+export const OPERATOR_FO_OPERATIONS_PAGE_COPY = {
+    pageTitle: 'FinanzOnline — Integration & Diagnose',
+    breadcrumbTitle: 'FinanzOnline Integration & Diagnose',
+    introLead:
+        'Unterstützende Oberfläche: Integration, Konfiguration, Verbindungstest, Fehler- und Rechnungsverlauf — nicht die primäre Abgleichsliste. Operative Zahlungswahrheit:',
+    introAbgleichLinkLabel: 'FinanzOnline-Abgleich',
 } as const;
 
 // --- FinanzOnline retry row (mirrors button, not server terminality) ---
@@ -216,6 +249,9 @@ export const OPERATOR_REPLAY_COPY = {
 export const OPERATOR_VERIFICATIONS_COPY = {
     /** Page header — not a dedicated “verification results” pipeline */
     pageTitle: 'RKSV Audit-Spur (Signatur / Offline)',
+    /** Shown under title — investigation framing */
+    pageSubtitle:
+        'Untersuchung über Audit-Logs (AuditLogEntryDto) — keine kanonische Verification-Result-Liste und keine Signatur-Debug-Antwort auf dieser Seite.',
     breadcrumbTitle: 'Audit-Spur',
     /** Sidebar / RKSV submenu */
     navMenuLabel: 'Audit-Spur (Signatur/Offline)',
@@ -237,6 +273,11 @@ export const OPERATOR_VERIFICATIONS_COPY = {
     correlationColumnTooltip:
         'correlationId aus der Audit-Zeile. Link setzt den Correlation-Query auf dieser Seite (ersetzt die aktuelle Filterung).',
     filterByThisCorrelationLabel: 'Diese Correlation',
+    correlationFilterHintTitle: 'Correlation eingrenzen',
+    correlationFilterHintBody:
+        'Nutzen Sie den Link «Diese Correlation» in einer Zeile oder setzen Sie die URL-Query correlationId. Die Audit-API liefert dann GET /api/AuditLog/correlation/{id} für dieselbe Correlation.',
+    deepLinkPaymentLabel: 'Zahlungen (paymentId-Filter)',
+    deepLinkReceiptLabel: 'Belegdetail',
 } as const;
 
 // --- Register deep-link honesty (shared wherever cashRegisterId / FK is shown) ---

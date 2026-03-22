@@ -103,4 +103,17 @@ describe('OPERATOR_VERIFICATIONS_COPY (no misleading pipeline title)', () => {
         expect(t).not.toContain('verification results');
         expect(t).toContain('audit');
     });
+
+    it('subtitle states audit investigation and denies canonical verification results on this page', () => {
+        const s = OPERATOR_VERIFICATIONS_COPY.pageSubtitle.toLowerCase();
+        expect(s).toContain('audit');
+        expect(s).toContain('auditlogentrydto');
+        expect(s).toContain('keine');
+        expect(s).toContain('verification');
+    });
+
+    it('deep-link labels name entity scope without inventing API fields', () => {
+        expect(OPERATOR_VERIFICATIONS_COPY.deepLinkPaymentLabel.toLowerCase()).toContain('paymentid');
+        expect(OPERATOR_VERIFICATIONS_COPY.deepLinkReceiptLabel.toLowerCase()).toContain('beleg');
+    });
 });

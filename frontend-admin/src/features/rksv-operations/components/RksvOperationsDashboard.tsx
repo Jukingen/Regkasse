@@ -48,6 +48,7 @@ import {
   mapReplaySummaryToHealth,
   type OfflineIntentCoverageSummaryInput,
 } from '../normalizers';
+import { OPERATOR_FO_SUMMARY_SCREEN_COPY } from '@/shared/operatorTruthCopy';
 import type { OpsHealthLevel } from '../types';
 import type { GetApiAdminOfflineIntentCoverageParams, GetApiAdminOperationsSummaryParams } from '@/api/generated/model';
 
@@ -253,14 +254,14 @@ export function RksvOperationsDashboard() {
         </Col>
         <Col xs={24} sm={12} lg={8}>
           <OpsHealthCard
-            title="FinanzOnline (Metriken)"
+            title={OPERATOR_FO_SUMMARY_SCREEN_COPY.dashboardMetricsCardTitle}
             level={foLevel}
             loading={foQuery.isLoading}
             summaryLine={foCopy.summaryLine}
             detailLines={foCopy.detailLines}
             ctaHref="/rksv/finanz-online-queue"
             ctaLabel="FinanzOnline Abgleich"
-            footnote="Zähler aus Metriken-API — bei „OK“ trotzdem Liste prüfen wenn Zweifel."
+            footnote={OPERATOR_FO_SUMMARY_SCREEN_COPY.dashboardMetricsCardFootnote}
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>

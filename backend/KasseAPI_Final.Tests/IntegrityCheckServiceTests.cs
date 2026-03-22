@@ -129,4 +129,38 @@ public class IntegrityCheckServiceTests
         Assert.Equal(0, report.SequenceIssues.DuplicateReceiptNumberCount);
         Assert.Equal(0, report.SequenceIssues.NonMonotonicSequenceCount);
     }
+
+    /// <summary>
+    /// Multiset must count every occurrence from PaymentDetails and Receipts before duplicate grouping —
+    /// three copies of the same string must still yield one duplicate key (regression guard).
+    /// </summary>
+    [Fact]
+    public async Task DuplicateReceiptNumbers_ThreeOccurrencesSameString_OneDuplicateKey()
+    {
+        using var ctx = CreateContext();
+        var (regId, customerId) = await SeedCashRegisterAndCustomer(ctx);
+        var day = new DateTime(2024, 7, 1, 10, 0, 0, DateTimeKind.Utc);
+        const string sharedNr = "AT-R1-20240701-9";
+        var p1 = CreatePayment(customerId, regId, sharedNr, day);
+        var p2 = CreatePayment(customerId, regId, sharedNr, day.AddMinutes(1));
+        ctx.PaymentDetails.AddRange(p1, p2);
+        ctx.Receipts.Add(new Receipt
+        {
+            ReceiptId = Guid.NewGuid(),
+            PaymentId = p1.Id,
+            ReceiptNumber = sharedNr,
+            IssuedAt = day,
+            CashRegisterId = regId,
+            SubTotal = 8m,
+            TaxTotal = 1m,
+            GrandTotal = 9m,
+        });
+        await ctx.SaveChangesAsync();
+
+        var report = await CreateService(ctx).GetReportAsync(new DateTime(2024, 7, 1), new DateTime(2024, 7, 2), includeDetails: true);
+
+        Assert.Equal(1, report.SequenceIssues.DuplicateReceiptNumberCount);
+        Assert.NotNull(report.SequenceIssues.DuplicateReceiptNumbers);
+        Assert.Contains(sharedNr, report.SequenceIssues.DuplicateReceiptNumbers);
+    }
 }

@@ -177,12 +177,12 @@ export default function RksvVerificationsPage() {
                     <Space direction="vertical" size={4}>
                         {paymentListHref ? (
                             <Link href={paymentListHref} target="_blank" rel="noopener noreferrer">
-                                Zahlung
+                                {OPERATOR_VERIFICATIONS_COPY.deepLinkPaymentLabel}
                             </Link>
                         ) : null}
                         {receiptDetailHref ? (
                             <Link href={receiptDetailHref} target="_blank" rel="noopener noreferrer">
-                                Beleg
+                                {OPERATOR_VERIFICATIONS_COPY.deepLinkReceiptLabel}
                             </Link>
                         ) : null}
                     </Space>
@@ -216,9 +216,22 @@ export default function RksvVerificationsPage() {
                     { title: 'RKSV', href: '/rksv' },
                     { title: OPERATOR_VERIFICATIONS_COPY.breadcrumbTitle },
                 ]}
-            />
+            >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                    {OPERATOR_VERIFICATIONS_COPY.pageSubtitle}
+                </Typography.Paragraph>
+            </AdminPageHeader>
 
             <Card>
+                {!correlationId ? (
+                    <Alert
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                        message={OPERATOR_VERIFICATIONS_COPY.correlationFilterHintTitle}
+                        description={OPERATOR_VERIFICATIONS_COPY.correlationFilterHintBody}
+                    />
+                ) : null}
                 {correlationId && (
                     <Alert
                         type="info"
