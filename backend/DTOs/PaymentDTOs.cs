@@ -6,7 +6,9 @@ using KasseAPI_Final.Models;
 namespace KasseAPI_Final.DTOs
 {
     /// <summary>
-    /// Yeni ödeme oluşturma request'i
+    /// POS payment create request. Authoritative inputs: <see cref="CustomerId"/>, <see cref="Items"/>, <see cref="Payment"/>, <see cref="CashRegisterId"/> (register FK).
+    /// <see cref="TotalAmount"/> is a client gross hint; the server recomputes totals from catalog pricing and rejects on mismatch (not authoritative).
+    /// <see cref="Steuernummer"/> is optional; when empty or invalid, the server substitutes from company profile — do not treat the raw request field as sole fiscal authority.
     /// </summary>
     public class CreatePaymentRequest
     {
@@ -19,15 +21,15 @@ namespace KasseAPI_Final.DTOs
         [Required]
         public PaymentMethodRequest Payment { get; set; } = new();
         
-        // Yeni eklenen alanlar
         [Required]
-        public int TableNumber { get; set; } // Masa numarası
+        public int TableNumber { get; set; }
         
+        /// <summary>Client-reported gross total for parity check only; persisted totals come from server calculation.</summary>
         [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Total amount must be greater than 0")]
-        public decimal TotalAmount { get; set; } // Toplam tutar
+        public decimal TotalAmount { get; set; }
         
-        // Austrian fiscal fields. When empty, backend fills from CompanyProfile / DefaultKassenId.
+        /// <summary>Optional UID hint (ATU########). Normalized from company profile when omitted or invalid after validation rules.</summary>
         [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer must be in format ATU12345678")]
         public string? Steuernummer { get; set; }
 

@@ -7,6 +7,7 @@ import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { SorterResult } from 'antd/es/table/interface';
 import type { ReceiptListItemDto } from '@/features/receipts/types/receipts';
 import { formatEUR } from '@/shared/utils/currency';
+import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 
@@ -45,13 +46,30 @@ const columns: ColumnsType<ReceiptListItemDto> = [
         render: (date: string) => dayjs(date).format('DD.MM.YYYY HH:mm'),
     },
     {
-        title: 'Cash Register',
+        title: 'Kasse (FK)',
         dataIndex: 'cashRegisterId',
-        key: 'cashRegisterId',
-        render: (text: string) => <Tag>{text}</Tag>,
+        key: 'cashRegisterFk',
+        ellipsis: true,
+        render: (_: string, row) =>
+            row.cashRegisterId ? (
+                <span title={row.cashRegisterId}>
+                    <Tag style={{ fontFamily: 'monospace', fontSize: 11 }}>{row.cashRegisterId}</Tag>
+                </span>
+            ) : (
+                <span>—</span>
+            ),
     },
     {
-        title: 'Cashier',
+        title: 'Kassen-ID (Anzeige)',
+        dataIndex: 'registerDisplayNumber',
+        key: 'registerDisplayNumber',
+        render: (_: string | undefined, row) => {
+            const disp = formatRegisterDisplayLabel(row.registerDisplayNumber);
+            return disp === '—' ? <span>—</span> : <Tag>{disp}</Tag>;
+        },
+    },
+    {
+        title: 'Kassierer (Id)',
         dataIndex: 'cashierId',
         key: 'cashierId',
         render: (text: string | null) => text || '—',

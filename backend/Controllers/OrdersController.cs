@@ -133,6 +133,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     var anonymousKind = request.CustomerKind ?? CustomerKind.WalkIn;
                     _logger.LogDebug("CreateOrder guest/name-only path CustomerKind={CustomerKind}", anonymousKind);
+                    // Display snapshot only when no CustomerId — not an authenticated actor identifier.
                     order.CustomerName = request.CustomerName;
                 }
 
@@ -330,15 +331,21 @@ namespace KasseAPI_Final.Controllers
     }
 
     // DTOs
+    /// <summary>
+    /// Kitchen/order create payload. <see cref="WaiterName"/> is a display snapshot only (no user FK on <see cref="Order"/>).
+    /// Identity for auditing is the authenticated principal on the API, not these name fields.
+    /// </summary>
     public class CreateOrderRequest
     {
         public int? TableNumber { get; set; }
+        /// <summary>Display-only waiter name on the order ticket; not used for authorization.</summary>
         public string? WaiterName { get; set; }
         public Guid? CustomerId { get; set; }
 
         /// <summary>Optional explicit customer classification for the order.</summary>
         public CustomerKind? CustomerKind { get; set; }
 
+        /// <summary>Free-text or walk-in label when <see cref="CustomerId"/> is absent; not a substitute for authenticated user id.</summary>
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
         public string? Notes { get; set; }

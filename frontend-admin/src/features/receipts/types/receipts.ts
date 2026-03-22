@@ -36,7 +36,12 @@ export interface ReceiptListItemDto {
     receiptNumber: string;
     issuedAt: string;
     cashierId: string | null;
+    /** FK to cash_registers row (UUID string). Legacy list field name kept for compatibility. */
     cashRegisterId: string;
+    /** Same as cashRegisterId when API sends explicit Guid field. */
+    cashRegisterEntityId?: string;
+    /** RegisterNumber / RKSV display id (not the FK). */
+    registerDisplayNumber?: string;
     subTotal: number;
     taxTotal: number;
     grandTotal: number;
@@ -82,7 +87,10 @@ export interface ReceiptDetailDto {
     issuedAt: string;
     cashierId: string | null;
     cashierDisplayName?: string | null;
+    /** cash_registers.Id (UUID). */
     cashRegisterId: string;
+    /** CashRegisters.RegisterNumber / receipt line display (not the FK). */
+    registerDisplayNumber?: string;
     subTotal: number;
     taxTotal: number;
     grandTotal: number;

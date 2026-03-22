@@ -5,6 +5,11 @@ import Link from 'next/link';
 import { Descriptions, Tag, Typography } from 'antd';
 import type { ReceiptDetailDto } from '@/features/receipts/types/receipts';
 import { formatEUR } from '@/shared/utils/currency';
+import {
+    buildFinanzOnlineQueuePath,
+    formatRegisterDisplayLabel,
+    parseAuthoritativeRegisterGuid,
+} from '@/shared/utils/registerIdentity';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
@@ -35,10 +40,28 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                     ? dayjs(receipt.receiptPersistedAtUtc).format('DD.MM.YYYY HH:mm:ss')
                     : dayjs(receipt.createdAt).format('DD.MM.YYYY HH:mm:ss')}
             </Descriptions.Item>
-            <Descriptions.Item label="Cash Register">
-                <Tag>{receipt.cashRegisterId}</Tag>
+            <Descriptions.Item label="Register (FK, nur Maschine)">
+                <Text code copyable>{receipt.cashRegisterId || '—'}</Text>
+                {parseAuthoritativeRegisterGuid(receipt.cashRegisterId) ? (
+                    <div style={{ marginTop: 8 }}>
+                        <Link
+                            href={buildFinanzOnlineQueuePath({ registerRowId: receipt.cashRegisterId })}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            FinanzOnline-Abgleich (diese Kasse)
+                        </Link>
+                    </div>
+                ) : null}
             </Descriptions.Item>
-            <Descriptions.Item label="Cashier">
+            <Descriptions.Item label="Kassen-ID / Nummer (Anzeige)">
+                {formatRegisterDisplayLabel(receipt.registerDisplayNumber) === '—' ? (
+                    <Text type="secondary">—</Text>
+                ) : (
+                    <Tag>{formatRegisterDisplayLabel(receipt.registerDisplayNumber)}</Tag>
+                )}
+            </Descriptions.Item>
+            <Descriptions.Item label="Kassierer (Snapshot)">
                 {(receipt.cashierDisplayName && receipt.cashierDisplayName.trim()) ||
                     receipt.cashierId ||
                     '—'}

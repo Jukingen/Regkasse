@@ -592,7 +592,7 @@ namespace KasseAPI_Final.Services
                 if (snapshotList.Count > 0)
                     appliedBenefitsSnapshot = JsonDocument.Parse(JsonSerializer.Serialize(snapshotList));
 
-                // Authoritative total check: reject if client total differs from backend-calculated total (prevents drift and manipulation).
+                // Fiscal total authority: `totalAmount` is computed from catalog lines (and benefits); `request.TotalAmount` is only a client parity probe — persisted rows use `totalAmount`.
                 const decimal amountTolerance = 0.01m;
                 if (Math.Abs(totalAmount - request.TotalAmount) > amountTolerance)
                 {

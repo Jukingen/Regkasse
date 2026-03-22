@@ -29,6 +29,7 @@ import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { parseAuthoritativeRegisterGuid } from '@/shared/utils/registerIdentity';
 import {
     getApiAdminFinanzonlineReconciliation,
     getApiAdminFinanzonlineReconciliationMetrics,
@@ -79,7 +80,7 @@ export default function FinanzOnlineReconciliationPage() {
     }, [searchParams]);
     const initialCashRegisterId = useMemo(() => {
         const raw = searchParams?.get('cashRegisterId');
-        return raw || undefined;
+        return parseAuthoritativeRegisterGuid(raw) ?? undefined;
     }, [searchParams]);
     const initialDateRange = useMemo<[Dayjs | null, Dayjs | null]>(() => {
         const from = searchParams?.get('fromUtc');
@@ -99,7 +100,8 @@ export default function FinanzOnlineReconciliationPage() {
             status: statusFilter.length ? statusFilter.join(',') : undefined,
             limit: 200,
         };
-        if (cashRegisterId) p.cashRegisterId = cashRegisterId;
+        const fk = parseAuthoritativeRegisterGuid(cashRegisterId);
+        if (fk) p.cashRegisterId = fk;
         if (dateRange[0]) p.fromUtc = dateRange[0].toISOString();
         if (dateRange[1]) p.toUtc = dateRange[1].endOf('day').toISOString();
         return p;

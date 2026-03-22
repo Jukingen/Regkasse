@@ -112,10 +112,12 @@ namespace KasseAPI_Final.Controllers
                         CompanyName = i.CompanyName,
                         TotalAmount = i.TotalAmount,
                         Status = i.Status,
+                        CashRegisterId = i.CashRegisterId,
                         KassenId = i.KassenId,
                         TseSignature = i.TseSignature,
                         DocumentType = i.DocumentType,
-                        OriginalInvoiceId = i.OriginalInvoiceId
+                        OriginalInvoiceId = i.OriginalInvoiceId,
+                        ListRowOrigin = "PersistedInvoice"
                     })
                     .ToListAsync();
 
@@ -214,8 +216,10 @@ namespace KasseAPI_Final.Controllers
                         CompanyName = string.Empty,
                         TotalAmount = p.TotalAmount,
                         Status = InvoiceStatus.Paid, // POS transactions are always completed/paid
+                        CashRegisterId = p.CashRegisterId,
                         KassenId = _context.CashRegisters.Where(cr => cr.Id == p.CashRegisterId).Select(cr => cr.RegisterNumber).FirstOrDefault() ?? "",
-                        TseSignature = p.TseSignature
+                        TseSignature = p.TseSignature,
+                        ListRowOrigin = "PaymentDerivedListRow"
                     })
                     .ToListAsync();
 
@@ -408,7 +412,8 @@ namespace KasseAPI_Final.Controllers
                         PaymentMethod = posInvoice.PaymentMethod,
                         InvoiceItems = posInvoice.PaymentItems,
                         TaxDetails = posInvoice.TaxDetails,
-                        IsActive = true
+                        IsActive = true,
+                        InvoiceDataProvenance = "DerivedFromPayment"
                     };
                 }
 

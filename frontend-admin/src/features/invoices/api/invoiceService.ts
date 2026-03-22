@@ -2,11 +2,14 @@ import { customInstance } from '@/lib/axios';
 import { InvoiceListParams, PagedResult } from '../types';
 import type { InvoiceListItemDto } from '@/api/generated/model/invoiceListItemDto';
 import type { DocumentType } from '@/api/generated/model/documentType';
+import { normalizeRegisterDisplayLabel, parseAuthoritativeRegisterGuid } from '@/shared/utils/registerIdentity';
 
 // Extend Orval type with credit-note fields from backend
 export interface ExtendedInvoiceListItem extends InvoiceListItemDto {
     documentType?: DocumentType;        // 0 = Invoice, 1 = CreditNote
     originalInvoiceId?: string;
+    /** PersistedInvoice | PaymentDerivedListRow — from API listRowOrigin */
+    listRowOrigin?: string;
 }
 
 // Raw PascalCase shapes from .NET backend
@@ -37,6 +40,7 @@ interface RawInvoiceItem {
     TseSignature?: string;
     DocumentType?: number;
     OriginalInvoiceId?: string;
+    ListRowOrigin?: string;
 
     // camelCase fallbacks
     id?: string;
@@ -51,6 +55,7 @@ interface RawInvoiceItem {
     tseSignature?: string;
     documentType?: number;
     originalInvoiceId?: string;
+    listRowOrigin?: string;
 }
 
 export function normalizeId(id: string | null | undefined): string | undefined {
@@ -60,6 +65,10 @@ export function normalizeId(id: string | null | undefined): string | undefined {
 }
 
 function normalizeItem(raw: RawInvoiceItem): ExtendedInvoiceListItem {
+    const displayKassen = normalizeRegisterDisplayLabel(raw.kassenId ?? raw.KassenId);
+    const authoritativeRegisterId = parseAuthoritativeRegisterGuid(
+        raw.cashRegisterId ?? raw.CashRegisterId
+    );
     return {
         id: normalizeId(raw.id ?? raw.Id),
         invoiceNumber: raw.invoiceNumber ?? raw.InvoiceNumber,
@@ -68,10 +77,12 @@ function normalizeItem(raw: RawInvoiceItem): ExtendedInvoiceListItem {
         companyName: raw.companyName ?? raw.CompanyName,
         totalAmount: raw.totalAmount ?? raw.TotalAmount,
         status: (raw.status ?? raw.Status) as any,
-        kassenId: normalizeId(raw.cashRegisterId ?? raw.CashRegisterId ?? raw.kassenId ?? raw.KassenId),
+        cashRegisterId: authoritativeRegisterId,
+        kassenId: displayKassen,
         tseSignature: raw.tseSignature ?? raw.TseSignature,
         documentType: (raw.documentType ?? raw.DocumentType) as DocumentType | undefined,
         originalInvoiceId: normalizeId(raw.originalInvoiceId ?? raw.OriginalInvoiceId),
+        listRowOrigin: raw.listRowOrigin ?? raw.ListRowOrigin,
     };
 }
 

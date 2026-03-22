@@ -20,11 +20,14 @@ namespace KasseAPI_Final.Models
 
         [Required]
         [MaxLength(450)]
-        public string UserId { get; set; } = string.Empty; // RKSV: Hangi kullanıcının siparişi
+        /// <summary>Authenticated user FK for this table order row (actor / owner).</summary>
+        public string UserId { get; set; } = string.Empty;
 
+        /// <summary>Display-only waiter label copied from cart; authorization uses <see cref="UserId"/>.</summary>
         [MaxLength(100)]
         public string? WaiterName { get; set; }
 
+        /// <summary>Customer display snapshot; not the authenticated API user.</summary>
         [MaxLength(100)]
         public string? CustomerName { get; set; }
 

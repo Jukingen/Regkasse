@@ -12,6 +12,7 @@ namespace KasseAPI_Final.DTOs
         public Guid ReceiptId { get; set; } // UUID
         /// <summary>Source payment row for this fiscal receipt (navigation / forensic).</summary>
         public Guid PaymentId { get; set; }
+        /// <summary>Authoritative cash register identity: FK to <c>cash_registers.Id</c> (same value stored on receipt row).</summary>
         public Guid CashRegisterId { get; set; }
         /// <summary>When this receipt is a reversal: original sale payment id.</summary>
         public Guid? OriginalPaymentId { get; set; }
@@ -43,7 +44,10 @@ namespace KasseAPI_Final.DTOs
         public string CashierId { get; set; } = string.Empty;
         public string? CashierDisplayName { get; set; }
         public int? TableNumber { get; set; } // Optional
-        public string KassenID { get; set; } = string.Empty; // Cash Register ID
+        /// <summary>RKSV / receipt display register id: <c>CashRegisters.RegisterNumber</c>, not the register row GUID. Same text as <see cref="DisplayRegisterNumber"/>.</summary>
+        public string KassenID { get; set; } = string.Empty;
+        /// <summary>Explicit alias for <see cref="KassenID"/> (display register number). Kept alongside legacy <c>kassenID</c> JSON for clarity.</summary>
+        public string DisplayRegisterNumber { get; set; } = string.Empty;
 
         public ReceiptCompanyDTO Company { get; set; } = new();
         public ReceiptHeaderDTO Header { get; set; } = new(); // Optional extra header info

@@ -383,7 +383,9 @@ namespace KasseAPI_Final.Services
                     ReceiptNumber = r.ReceiptNumber,
                     IssuedAt = r.IssuedAt,
                     CashierId = r.CashierId,
+                    CashRegisterEntityId = r.CashRegisterId,
                     CashRegisterId = r.CashRegisterId.ToString(),
+                    RegisterDisplayNumber = _context.CashRegisters.Where(cr => cr.Id == r.CashRegisterId).Select(cr => cr.RegisterNumber).FirstOrDefault() ?? string.Empty,
                     SubTotal = r.SubTotal,
                     TaxTotal = r.TaxTotal,
                     GrandTotal = r.GrandTotal,
@@ -471,6 +473,11 @@ namespace KasseAPI_Final.Services
             var pay = receipt.Payment;
             var traceKind = pay?.IsStorno == true ? "Storno" : pay?.IsRefund == true ? "Refund" : null;
 
+            var registerDisplay = await _context.CashRegisters.AsNoTracking()
+                .Where(reg => reg.Id == receipt.CashRegisterId)
+                .Select(reg => reg.RegisterNumber)
+                .FirstOrDefaultAsync().ConfigureAwait(false) ?? receipt.CashRegisterId.ToString();
+
             var off = pay?.OfflineTransaction;
             return new ReceiptDTO
             {
@@ -492,10 +499,8 @@ namespace KasseAPI_Final.Services
                 ReceiptPersistedAtUtc = receipt.CreatedAt,
                 CashierId = cashierIdStr,
                 CashierDisplayName = cashierDisplay,
-                KassenID = _context.CashRegisters.AsNoTracking()
-                    .Where(r => r.Id == receipt.CashRegisterId)
-                    .Select(r => r.RegisterNumber)
-                    .FirstOrDefault() ?? receipt.CashRegisterId.ToString(),
+                KassenID = registerDisplay,
+                DisplayRegisterNumber = registerDisplay,
                 TableNumber = receipt.Payment?.TableNumber,
                 
                 Company = company,

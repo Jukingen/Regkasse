@@ -6,6 +6,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Security;
 using System.Security.Claims;
 
 namespace KasseAPI_Final.Controllers
@@ -37,7 +38,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -93,6 +94,7 @@ namespace KasseAPI_Final.Controllers
                         CartId = newCart.CartId,
                         TableNumber = newCart.TableNumber,
                         WaiterName = newCart.WaiterName,
+                        ActorUserId = userId,
                         CustomerId = newCart.CustomerId,
                         Notes = newCart.Notes,
                         Status = newCart.Status,
@@ -149,7 +151,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 // ✅ Token'dan kullanıcı ID'sini al
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -187,7 +189,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -238,7 +240,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -402,7 +404,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 // ✅ Token'dan kullanıcı ID'sini al
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -460,7 +462,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -546,7 +548,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 // ✅ Token'dan kullanıcı ID'sini al
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -584,7 +586,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 // ✅ Token'dan kullanıcı ID'sini al
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -619,7 +621,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 // ✅ Token'dan kullanıcı ID'sini al
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -652,7 +654,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -730,7 +732,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
                 
                 if (string.IsNullOrEmpty(userId))
@@ -817,7 +819,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var userId = User.GetActorUserId() ?? "Unknown";
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Unknown";
 
                 _logger.LogInformation("Resetting cart after payment: CartId={CartId}, UserId={UserId}, UserRole={UserRole}", 
@@ -933,7 +935,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -972,7 +974,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -1017,7 +1019,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
                 
                 if (string.IsNullOrEmpty(userId))
@@ -1131,7 +1133,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
@@ -1319,7 +1321,7 @@ namespace KasseAPI_Final.Controllers
             }
             catch (Exception ex)
             {
-                var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var userIdStr = User.GetActorUserId() ?? "Unknown";
                 var errorStr = ex.ToString();
                 var innerMsg = ex.InnerException?.Message ?? ex.Message;
 
@@ -1358,7 +1360,7 @@ namespace KasseAPI_Final.Controllers
         // Helper: Get cart item with ownership validation
         private async Task<(CartItem? Item, Cart? Cart, string? UserId, string? Error)> GetOwnedCartItemAsync(Guid itemId)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.GetActorUserId();
             if (string.IsNullOrEmpty(userId))
                 return (null, null, null, "User not authenticated");
 
@@ -1518,6 +1520,7 @@ namespace KasseAPI_Final.Controllers
                 CartId = cart.CartId,
                 TableNumber = cart.TableNumber,
                 WaiterName = cart.WaiterName,
+                ActorUserId = cart.UserId,
                 CustomerId = cart.CustomerId,
                 Notes = cart.Notes,
                 Status = cart.Status,
@@ -1538,6 +1541,7 @@ namespace KasseAPI_Final.Controllers
     public class CreateCartRequest
     {
         public int? TableNumber { get; set; }
+        /// <summary>Display-only waiter/cashier label; cart owner remains the authenticated user.</summary>
         public string? WaiterName { get; set; }
         public string? CustomerId { get; set; }
         public string? Notes { get; set; }
@@ -1549,6 +1553,7 @@ namespace KasseAPI_Final.Controllers
         public Guid ProductId { get; set; }
         public int Quantity { get; set; }
         public int? TableNumber { get; set; }
+        /// <summary>Display-only label; does not change which user owns the cart.</summary>
         public string? WaiterName { get; set; }
         public string? Notes { get; set; }
         /// <summary>Phase 2 legacy: Prefer flat cart (add-on = separate add-item). Still accepted for backward compat.</summary>
@@ -1578,12 +1583,15 @@ namespace KasseAPI_Final.Controllers
         public string? Notes { get; set; }
     }
 
-    /// <summary>API sözleşmesi: Tüm fiyatlar GROSS (inkl. MwSt.)</summary>
+    /// <summary>API contract: all line prices are GROSS (inkl. MwSt.).</summary>
     public class CartResponse
     {
         public string CartId { get; set; } = string.Empty;
         public int? TableNumber { get; set; }
+        /// <summary>Display-only label (e.g. waiter). Not used for authorization; cart owner is <see cref="ActorUserId"/>.</summary>
         public string? WaiterName { get; set; }
+        /// <summary>Authenticated POS user id (JWT actor) owning this cart row.</summary>
+        public string ActorUserId { get; set; } = string.Empty;
         public Guid? CustomerId { get; set; }
         public string? Notes { get; set; }
         public CartStatus Status { get; set; }

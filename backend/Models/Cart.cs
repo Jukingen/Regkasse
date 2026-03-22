@@ -12,6 +12,7 @@ namespace KasseAPI_Final.Models
 
         public int? TableNumber { get; set; }
 
+        /// <summary>Optional display label only; cart ownership is <see cref="UserId"/> (authenticated actor).</summary>
         [MaxLength(100)]
         public string? WaiterName { get; set; }
 
@@ -53,6 +54,8 @@ namespace KasseAPI_Final.Models
         public string CartId { get; set; } = string.Empty;
         public int? TableNumber { get; set; }
         public string? WaiterName { get; set; }
+        /// <summary>Mirror of cart <see cref="Cart.UserId"/> when this DTO is used.</summary>
+        public string? ActorUserId { get; set; }
         public Guid? CustomerId { get; set; }
         public string? Notes { get; set; }
         public CartStatus Status { get; set; }
@@ -82,6 +85,7 @@ namespace KasseAPI_Final.Models
     public class CreateCartRequest
     {
         public int? TableNumber { get; set; }
+        /// <summary>Display-only label; server assigns cart owner from JWT.</summary>
         public string? WaiterName { get; set; }
         public string? CustomerId { get; set; }
         public string? Notes { get; set; }

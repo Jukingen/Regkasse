@@ -25,6 +25,12 @@ import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import { getInvoicesList, getInvoicePdf, createCreditNote, exportInvoices as orvalExportInvoices } from '../api/invoiceService';
 import type { ExtendedInvoiceListItem } from '../api/invoiceService';
 import type { InvoiceListParams } from '../types';
+import {
+    buildFinanzOnlineQueuePath,
+    formatRegisterDisplayLabel,
+    isMissingAuthoritativeRegisterId,
+    parseAuthoritativeRegisterGuid,
+} from '@/shared/utils/registerIdentity';
 
 const { RangePicker } = DatePicker;
 
@@ -53,12 +59,10 @@ const getPaymentMethodLabel = (method?: PaymentMethod) => {
 };
 
 
-const isInvalidRegister = (k?: string | null) => {
-    if (!k || k.trim() === '') return true;
-    if (k === '00000000-0000-0000-0000-000000000000') return true;
-    const guidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
-    if (!guidRegex.test(k)) return true;
-    return false;
+const listRowOriginLabel = (origin?: string | null) => {
+    if (origin === 'PaymentDerivedListRow') return { text: 'Zahlung (Liste)', color: 'blue' as const };
+    if (origin === 'PersistedInvoice') return { text: 'Rechnung (DB)', color: 'green' as const };
+    return { text: origin || '—', color: 'default' as const };
 };
 
 export const InvoiceList: React.FC = () => {
@@ -124,7 +128,7 @@ export const InvoiceList: React.FC = () => {
     const displayedItems = useMemo(() => {
         const items = data?.items || [];
         if (invalidRegisterOnly) {
-            return items.filter(item => isInvalidRegister(item.kassenId));
+            return items.filter((item) => isMissingAuthoritativeRegisterId(item.cashRegisterId));
         }
         return items;
     }, [data?.items, invalidRegisterOnly]);
@@ -143,20 +147,6 @@ export const InvoiceList: React.FC = () => {
         await queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.base });
     };
 
-    const buildReconciliationLink = (
-        cashRegisterId?: string,
-        fromUtc?: string,
-        toUtc?: string,
-        statusCsv: string = 'Pending,Failed,NeedsReconciliation,Submitted'
-    ) => {
-        const params = new URLSearchParams();
-        params.set('status', statusCsv);
-        if (cashRegisterId) params.set('cashRegisterId', cashRegisterId);
-        if (fromUtc) params.set('fromUtc', fromUtc);
-        if (toUtc) params.set('toUtc', toUtc);
-        return `/rksv/finanz-online-queue?${params.toString()}`;
-    };
-
     const openReconciliationHandoffModal = (args: {
         title: string;
         messageText: string;
@@ -167,7 +157,11 @@ export const InvoiceList: React.FC = () => {
         toUtc?: string;
         footerHint?: string;
     }) => {
-        const link = buildReconciliationLink(args.cashRegisterId, args.fromUtc, args.toUtc);
+        const link = buildFinanzOnlineQueuePath({
+            registerRowId: args.cashRegisterId,
+            fromUtc: args.fromUtc,
+            toUtc: args.toUtc,
+        });
         Modal.success({
             title: args.title,
             okText: 'Zur Abgleichsseite',
@@ -277,13 +271,17 @@ export const InvoiceList: React.FC = () => {
         setBatchLoading(true);
         let success = 0;
         let fail = 0;
-        const lines = ['InvoiceNumber;InvoiceDate;CustomerName;CompanyName;TotalAmount;Status;DocumentType;OriginalInvoiceId;KassenId;TseSignature'];
+        const lines = [
+            'InvoiceNumber;InvoiceDate;CustomerName;CompanyName;TotalAmount;Status;DocumentType;OriginalInvoiceId;KassenIdDisplay;CashRegisterFk;TseSignature',
+        ];
 
         for (const key of selectedRowKeys) {
             try {
                 const i = await getApiInvoiceId(key.toString());
                 const escapeCsv = (v: any) => v ? `"${String(v).replace(/"/g, '""')}"` : '';
-                lines.push(`${i.invoiceNumber};${dayjs(i.invoiceDate).format('YYYY-MM-DD HH:mm')};${escapeCsv(i.customerName)};${escapeCsv(i.companyName)};${i.totalAmount};${i.status};${(i as any).documentType || ''};${(i as any).originalInvoiceId || ''};${i.kassenId || ''};${escapeCsv(i.tseSignature)}`);
+                lines.push(
+                    `${i.invoiceNumber};${dayjs(i.invoiceDate).format('YYYY-MM-DD HH:mm')};${escapeCsv(i.customerName)};${escapeCsv(i.companyName)};${i.totalAmount};${i.status};${(i as any).documentType || ''};${(i as any).originalInvoiceId || ''};${i.kassenId || ''};${parseAuthoritativeRegisterGuid(i.cashRegisterId) ?? ''};${escapeCsv(i.tseSignature)}`
+                );
                 success++;
             } catch {
                 fail++;
@@ -335,7 +333,8 @@ export const InvoiceList: React.FC = () => {
                                 alreadySubmitted++;
                             }
                             attemptedRows.push({
-                                cashRegisterId: inv.kassenId || undefined,
+                                cashRegisterId:
+                                    parseAuthoritativeRegisterGuid(inv.cashRegisterId) ?? undefined,
                                 invoiceDate: inv.invoiceDate,
                             });
                         } else {
@@ -441,7 +440,7 @@ export const InvoiceList: React.FC = () => {
                     messageText: `${uiMessage} Status jetzt im Abgleich prüfen.`,
                     submissionId: data.referenceId || null,
                     submittedAt: data.submittedAt || null,
-                    cashRegisterId: invoice.kassenId || undefined,
+                    cashRegisterId: invoice.cashRegisterId,
                     fromUtc: invoiceDate.startOf('day').toISOString(),
                     toUtc: invoiceDate.endOf('day').toISOString(),
                 });
@@ -459,12 +458,11 @@ export const InvoiceList: React.FC = () => {
                     ),
                     okText: 'Zum Abgleich',
                     onOk: () => {
-                        const link = buildReconciliationLink(
-                            invoice.kassenId || undefined,
-                            invoiceDate.startOf('day').toISOString(),
-                            invoiceDate.endOf('day').toISOString(),
-                            'Pending,Failed,NeedsReconciliation,Submitted'
-                        );
+                        const link = buildFinanzOnlineQueuePath({
+                            registerRowId: invoice.cashRegisterId,
+                            fromUtc: invoiceDate.startOf('day').toISOString(),
+                            toUtc: invoiceDate.endOf('day').toISOString(),
+                        });
                         window.open(link, '_blank', 'noopener,noreferrer');
                     },
                 });
@@ -491,12 +489,11 @@ export const InvoiceList: React.FC = () => {
                 okText: 'Zum Abgleich',
                 onOk: () => {
                     const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
-                    const link = buildReconciliationLink(
-                        invoice.kassenId || undefined,
-                        invoiceDate.startOf('day').toISOString(),
-                        invoiceDate.endOf('day').toISOString(),
-                        'Pending,Failed,NeedsReconciliation,Submitted'
-                    );
+                    const link = buildFinanzOnlineQueuePath({
+                        registerRowId: invoice.cashRegisterId,
+                        fromUtc: invoiceDate.startOf('day').toISOString(),
+                        toUtc: invoiceDate.endOf('day').toISOString(),
+                    });
                     window.open(link, '_blank', 'noopener,noreferrer');
                 },
             });
@@ -511,14 +508,14 @@ export const InvoiceList: React.FC = () => {
             key: 'invoiceNumber',
             sorter: true,
             render: (text, record) => {
-                const invalid = isInvalidRegister(record.kassenId);
+                const missingFk = isMissingAuthoritativeRegisterId(record.cashRegisterId);
                 return (
                     <Space size={4}>
                         <span style={{ fontWeight: 500 }}>{text}</span>
                         {record.documentType === 1 && <Tag color="purple" style={{ fontSize: 10 }}>CN</Tag>}
-                        {invalid && (
-                            <Tooltip title="Invalid or Missing Register Link">
-                                <Tag color="warning" style={{ fontSize: 10 }}>Invalid Link</Tag>
+                        {missingFk && (
+                            <Tooltip title="Kein gültiger Register-FK (cash_registers.Id). Die Anzeige-Kassen-ID allein reicht nicht für Verknüpfungen.">
+                                <Tag color="warning" style={{ fontSize: 10 }}>Ohne Register-FK</Tag>
                             </Tooltip>
                         )}
                     </Space>
@@ -534,10 +531,38 @@ export const InvoiceList: React.FC = () => {
             render: (date) => dayjs(date).format('DD.MM.YYYY HH:mm'),
         },
         {
-            title: 'Customer',
+            title: 'Kunde (Snapshot)',
             dataIndex: 'customerName',
             key: 'customerName',
             render: (text) => text || '-',
+        },
+        {
+            title: 'Kassen-ID (Anzeige)',
+            dataIndex: 'kassenId',
+            key: 'kassenId',
+            width: 120,
+            ellipsis: true,
+            render: (text: string | null | undefined, record) => (
+                <Tooltip
+                    title={
+                        record.cashRegisterId
+                            ? `Register FK (links): ${record.cashRegisterId}`
+                            : 'No register FK — Anzeige only'
+                    }
+                >
+                    <span>{text?.trim() || '—'}</span>
+                </Tooltip>
+            ),
+        },
+        {
+            title: 'Datensatz',
+            dataIndex: 'listRowOrigin',
+            key: 'listRowOrigin',
+            width: 150,
+            render: (origin: string | undefined) => {
+                const { text, color } = listRowOriginLabel(origin);
+                return <Tag color={color}>{text}</Tag>;
+            },
         },
         {
             title: 'Total',
@@ -672,7 +697,7 @@ export const InvoiceList: React.FC = () => {
                         </Col>
                         <Col xs={24} sm={8} md={5}>
                             <Input
-                                placeholder="KassenID / Register ID"
+                                placeholder="Kassen-UUID oder RegisterNumber"
                                 value={cashRegisterIdFilter}
                                 onChange={(e) => { setCashRegisterIdFilter(e.target.value || undefined); setPagination(p => ({ ...p, current: 1 })); }}
                                 allowClear
@@ -682,7 +707,7 @@ export const InvoiceList: React.FC = () => {
                                     checked={invalidRegisterOnly}
                                     onChange={e => setInvalidRegisterOnly(e.target.checked)}
                                 >
-                                    Invalid Register Link
+                                    Nur ohne Register-FK (UUID)
                                 </Checkbox>
                             </div>
                         </Col>
@@ -712,7 +737,7 @@ export const InvoiceList: React.FC = () => {
                                 }}
                                 color="blue"
                             >
-                                KassenID: {cashRegisterIdFilter}
+                                Register (FK oder Nr.): {cashRegisterIdFilter}
                             </Tag>
                             <Button type="link" size="small" onClick={() => { setCashRegisterIdFilter(undefined); setPagination(p => ({ ...p, current: 1 })); }}>Clear Filter</Button>
                         </div>
@@ -821,7 +846,7 @@ export const InvoiceList: React.FC = () => {
                                         </Tag>
                                     </Descriptions.Item>
 
-                                    <Descriptions.Item label="Customer" span={2}>
+                                    <Descriptions.Item label="Kunde (Snapshot)" span={2}>
                                         {safe(detailInvoice.customerName)} <br />
                                         {safe(detailInvoice.customerAddress)} <br />
                                         {safe(detailInvoice.customerTaxNumber)}
@@ -834,6 +859,32 @@ export const InvoiceList: React.FC = () => {
 
                                     <Descriptions.Item label="Total Amount">€ {safe((detailInvoice.totalAmount ?? 0).toFixed(2))}</Descriptions.Item>
                                     <Descriptions.Item label="Tax Amount">€ {safe((detailInvoice.taxAmount ?? 0).toFixed(2))}</Descriptions.Item>
+
+                                    <Descriptions.Item label="Register (FK, nur Maschine)" span={2}>
+                                        <Typography.Text code copyable>
+                                            {safe(detailInvoice.cashRegisterId)}
+                                        </Typography.Text>
+                                        {parseAuthoritativeRegisterGuid(detailInvoice.cashRegisterId) ? (
+                                            <div style={{ marginTop: 8 }}>
+                                                <Link
+                                                    href={buildFinanzOnlineQueuePath({
+                                                        registerRowId: detailInvoice.cashRegisterId,
+                                                    })}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    FinanzOnline-Abgleich (diese Kasse)
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            <Typography.Text type="secondary" style={{ display: 'block', marginTop: 6, fontSize: 12 }}>
+                                                Kein gültiger Register-FK — Abgleich nicht eingrenzbar.
+                                            </Typography.Text>
+                                        )}
+                                    </Descriptions.Item>
+                                    <Descriptions.Item label="Kassen-ID / Nummer (Anzeige)" span={2}>
+                                        {formatRegisterDisplayLabel(detailInvoice.kassenId)}
+                                    </Descriptions.Item>
 
                                     <Descriptions.Item label="Payment Method">{safe(getPaymentMethodLabel(detailInvoice.paymentMethod))}</Descriptions.Item>
                                     <Descriptions.Item label="TSE Signature" span={2} style={{ wordBreak: 'break-all', fontFamily: 'monospace', fontSize: 10 }}>
@@ -895,6 +946,27 @@ export const InvoiceList: React.FC = () => {
                                 </Descriptions>
                             );
                         })()}
+                        <Alert
+                            type="info"
+                            showIcon
+                            style={{ marginTop: 12 }}
+                            message="Hinweis zur Datenquelle"
+                            description={
+                                (detailInvoice as { invoiceDataProvenance?: string }).invoiceDataProvenance ===
+                                'DerivedFromPayment' ? (
+                                    <span>
+                                        Diese Ansicht wurde aus der <strong>Zahlung</strong> abgeleitet (keine
+                                        eigene Rechnungszeile in <code>invoices</code>). Für Buchhaltung ggf. Backfill
+                                        nutzen.
+                                    </span>
+                                ) : (
+                                    <span>
+                                        Persistierte Rechnung aus der Datenbank (<code>invoices</code>). Verknüpfungen
+                                        nutzen den Register-FK (UUID), nicht die Anzeige-Kassen-ID.
+                                    </span>
+                                )
+                            }
+                        />
                     </React.Fragment>
                 ) : (
                     <Empty description="No details found or failed to load." />

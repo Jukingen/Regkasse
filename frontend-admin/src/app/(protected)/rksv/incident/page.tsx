@@ -215,7 +215,7 @@ export default function IncidentInvestigationPage() {
             },
         },
         {
-            title: 'Kasse',
+            title: 'Kasse (FK)',
             key: 'register',
             render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
                 const fo = foByPayment.get(String(r.paymentId));

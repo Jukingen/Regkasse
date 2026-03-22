@@ -136,6 +136,12 @@ namespace KasseAPI_Final.Models
 
         [StringLength(500)]
         public string? StornoReasonText { get; set; }
+
+        /// <summary>
+        /// API-only (not mapped): <c>Persisted</c> = loaded from <c>invoices</c>; <c>DerivedFromPayment</c> = response synthesized from <c>PaymentDetails</c> when no invoice row exists (GET by id fallback). Does not change persistence or signing.
+        /// </summary>
+        [NotMapped]
+        public string InvoiceDataProvenance { get; set; } = "Persisted";
     }
 
     public enum InvoiceStatus

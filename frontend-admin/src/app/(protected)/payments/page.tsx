@@ -386,7 +386,7 @@ export default function PaymentsPage() {
                 <Descriptions.Item label="Zahlungsart (Roh)">
                   {fmtDetail(paymentDetailData.paymentMethodRaw ?? paymentDetailData.method)}
                 </Descriptions.Item>
-                <Descriptions.Item label="Kasse (UUID)">
+                <Descriptions.Item label="Kasse (FK, UUID)">
                   <Typography.Text code copyable>
                     {fmtDetail(paymentDetailData.cashRegisterId)}
                   </Typography.Text>
