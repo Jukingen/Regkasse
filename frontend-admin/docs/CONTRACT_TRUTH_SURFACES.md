@@ -39,6 +39,22 @@ These UI areas must stay aligned with **Orval-generated** types under `src/api/g
 
 Policy module: `src/shared/utils/registerIdentity.ts`. View helpers: `viewInvoiceListRegister`, `viewFinanzReconciliationRegister` in `rksvAdminTruth.ts`.
 
+## Admin truth model matrix (screens × concepts)
+
+Rows are truth-critical surfaces; columns are **independent** facets (not a single rolled-up status). Compose UI from multiple facets where needed.
+
+| Concept | Invoice list/detail | FO queue | Incident | Replay batch detail | Verifications |
+|--------|---------------------|----------|----------|----------------------|---------------|
+| **Record origin** | Invoice DTO / list item (Orval) | FO reconciliation row | Incident aggregate (`getApiAdminIncidents…`) | Replay batch detail DTO | Audit log list / correlation filter |
+| **Provenance (invoice row)** | `invoiceProvenanceUiFacet` → explicit JSON `invoiceDataProvenance` **or** documented OpenAPI gap | N/A (FO status, not invoice provenance) | N/A | N/A | N/A |
+| **Authoritative id availability** | `cashRegisterId` raw always shown when present; UUID subset for links | Same on row DTO | FO join supplies `cashRegisterId` on payment row | Batch `correlationId` / `auditCorrelationId` for trace links | `correlationId` query drives filtered list |
+| **Display-only identifier** | `kassenId` + badge `display_only_label` | Register column is FK text (truncated when UUID); no separate display field in DTO | N/A in FO column | N/A | N/A |
+| **Deep-link safe (register)** | `registerDeepLinkEligibleBadgeKind` + `toLinkSafeRegisterRowId` / `viewInvoiceListRegister` | Same badge helper on reconciliation column | FO-derived cell: `derived_from_foreign_row` + same UUID rules for links | FO context link often **without** register param | FO link usually context-only |
+| **Joined / aggregate / diagnostic** | List row is direct DTO | Direct DTO | Replay payments **joined** to FO → derived badge | Aggregate batch + observability counts | Diagnostic: `diagnostic_support` + client keyword filter (non-contract) |
+| **Incomplete contract / fallback** | `invoiceItems` unknown; provenance footer; register link omitted if FK not UUID | Empty FK → `—` + `link_incomplete` | Missing FO → short path | Verifications link fallback copy when audit id missing | Filter semantics = best-effort |
+
+Shared facet module: `src/shared/adminTruthFacets.ts` (register deep-link badge + invoice provenance facet). Register analysis remains in `registerIdentity.ts` / `rksvAdminTruth.ts`.
+
 ## Response-only / weakly typed fields (today)
 
 | Area | Field | Notes |
@@ -64,3 +80,4 @@ Policy module: `src/shared/utils/registerIdentity.ts`. View helpers: `viewInvoic
 - [ ] `replay-batch/[correlationId]/page.tsx` — `viewReplayBatchTraceIds` + shared link builders.
 - [ ] `verifications/page.tsx` — correlation filter + shared investigation links.
 - [ ] `forensics-client.ts` — `ReceiptDTO` mapping; signature-debug response until OpenAPI is typed.
+- [ ] `adminTruthFacets.ts` — invoice provenance facet + register deep-link badge helper; keep incident `derived_from_foreign_row` composition separate.

@@ -25,10 +25,7 @@ import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import { getInvoicesList, getInvoicePdf, createCreditNote, exportInvoices as orvalExportInvoices } from '../api/invoiceService';
 import { coerceInvoiceListSortField, type InvoiceListParams, type InvoiceListSortBy } from '../types';
 import { normalizeInvoiceItemsForDisplay } from '@/shared/contract/invoiceInvoiceItemsDisplay';
-import {
-    formatInvoiceDataProvenanceForDisplay,
-    readOptionalInvoiceDataProvenance,
-} from '@/shared/contract/invoiceDetailResponseExtensions';
+import { invoiceProvenanceUiFacet, registerDeepLinkEligibleBadgeKind } from '@/shared/adminTruthFacets';
 import {
     getAxiosResponseDataString,
     getAxiosResponseStatus,
@@ -584,16 +581,15 @@ export const InvoiceList: React.FC = () => {
             sorter: true,
             render: (text, record) => {
                 const reg = viewInvoiceListRegister(record);
-                const missingFk = !reg.finanzQueueRegisterRowId;
                 return (
                     <Space size={4} wrap>
                         <span style={{ fontWeight: 500 }}>{text}</span>
                         {record.documentType === DocumentType.NUMBER_1 && <Tag color="purple" style={{ fontSize: 10 }}>CN</Tag>}
-                        {missingFk ? (
-                            <AdminTruthBadge kind="link_incomplete" />
-                        ) : (
-                            <AdminTruthBadge kind="authoritative_api" />
-                        )}
+                        <AdminTruthBadge
+                            kind={registerDeepLinkEligibleBadgeKind({
+                                linkSafeUuid: reg.finanzQueueRegisterRowId,
+                            })}
+                        />
                     </Space>
                 );
             }
@@ -979,7 +975,7 @@ export const InvoiceList: React.FC = () => {
                         {(() => {
                             const detailRegFk = analyzeRegisterFkField(detailInvoice.cashRegisterId);
                             const itemsDisplay = normalizeInvoiceItemsForDisplay(detailInvoice.invoiceItems);
-                            const invoiceDataProvenanceRaw = readOptionalInvoiceDataProvenance(detailInvoice);
+                            const provenanceFacet = invoiceProvenanceUiFacet(detailInvoice);
                             const detailCorrelationTrimmed = detailInvoice.correlationId?.trim() ?? '';
 
                             const detailDate = dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).isValid()
@@ -1038,11 +1034,9 @@ export const InvoiceList: React.FC = () => {
                                             <Typography.Text type="secondary">
                                                 {OPERATOR_INVOICE_COPY.detailRegisterMachineLabel}:
                                             </Typography.Text>
-                                            {detailRegFk.linkSafeUuid ? (
-                                                <AdminTruthBadge kind="authoritative_api" />
-                                            ) : (
-                                                <AdminTruthBadge kind="link_incomplete" />
-                                            )}
+                                            <AdminTruthBadge
+                                                kind={registerDeepLinkEligibleBadgeKind(detailRegFk)}
+                                            />
                                             <Typography.Text code copyable style={{ maxWidth: 320 }} ellipsis>
                                                 {displayScalar(detailInvoice.cashRegisterId)}
                                             </Typography.Text>
@@ -1113,10 +1107,10 @@ export const InvoiceList: React.FC = () => {
                                             </Space>
                                         </Space>
                                         <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0, fontSize: 12 }}>
-                                            {invoiceDataProvenanceRaw ? (
+                                            {provenanceFacet.kind === 'explicit_backend_string' ? (
                                                 <>
                                                     <strong>Herkunft (Antwort):</strong>{' '}
-                                                    {formatInvoiceDataProvenanceForDisplay(invoiceDataProvenanceRaw)}
+                                                    {provenanceFacet.operatorLabel}
                                                     <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 11 }}>
                                                         {OPERATOR_INVOICE_COPY.detailProvenanceUntypedApiNote}
                                                     </Typography.Text>
@@ -1163,11 +1157,9 @@ export const InvoiceList: React.FC = () => {
                                                         />
                                                     ) : null}
                                                     <Space wrap>
-                                                        {detailRegFk.linkSafeUuid ? (
-                                                            <AdminTruthBadge kind="authoritative_api" />
-                                                        ) : (
-                                                            <AdminTruthBadge kind="link_incomplete" />
-                                                        )}
+                                                        <AdminTruthBadge
+                                                            kind={registerDeepLinkEligibleBadgeKind(detailRegFk)}
+                                                        />
                                                     </Space>
                                                     <Typography.Text code copyable>
                                                         {displayScalar(detailInvoice.cashRegisterId)}

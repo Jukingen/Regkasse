@@ -36,6 +36,7 @@ import {
     buildIncidentInvestigationHref,
     buildReplayBatchDetailHref,
 } from '@/shared/investigationNavigation';
+import { registerDeepLinkEligibleBadgeKind } from '@/shared/adminTruthFacets';
 import { viewFinanzReconciliationRegister } from '@/shared/rksvAdminTruth';
 import { AdminTruthBadge, adminTruthTooltip } from '@/shared/adminTruthBadges';
 import {
@@ -349,7 +350,9 @@ export default function FinanzOnlineReconciliationPage() {
                                 : v.apiCashRegisterId}
                         </Typography.Text>
                         <AdminTruthBadge
-                            kind={v.finanzQueueRegisterRowId ? 'authoritative_api' : 'link_incomplete'}
+                            kind={registerDeepLinkEligibleBadgeKind({
+                                linkSafeUuid: v.finanzQueueRegisterRowId,
+                            })}
                         />
                         {v.registerFkRawNotLinkSafe ? (
                             <Typography.Text type="secondary" style={{ fontSize: 11 }}>

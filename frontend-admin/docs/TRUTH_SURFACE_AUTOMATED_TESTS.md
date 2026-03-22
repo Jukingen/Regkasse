@@ -18,6 +18,7 @@ Catch regressions where admin UI would: hide backend FK text, treat display labe
 | `adminTruthBadges.test.ts` | Every kind has non-empty copy; no `success` color for lineage |
 | `contract/*` | `invoiceItems` unknown shaping; Axios error narrowing |
 | `invoiceListSort.test.ts` | Unknown table sort field does not pass through to API params |
+| `adminTruthFacets.test.ts` | `registerDeepLinkEligibleBadgeKind`; `invoiceProvenanceUiFacet` explicit vs contract-gap |
 
 ## Not covered here (integration / E2E)
 
