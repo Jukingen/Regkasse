@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import { Card, Col, Row, Statistic, DatePicker, Table, Spin, Typography } from 'antd';
 import { DollarOutlined, ShoppingOutlined, UserOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { useI18n } from '@/i18n/I18nProvider';
 import {
     useGetApiReportsSales,
     useGetApiReportsProducts,
@@ -16,6 +17,7 @@ import dayjs from 'dayjs';
 const { RangePicker } = DatePicker;
 
 export default function DashboardPage() {
+    const { t } = useI18n();
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
         dayjs().startOf('month'),
         dayjs().endOf('month')
@@ -53,8 +55,8 @@ export default function DashboardPage() {
     return (
         <div style={{ paddingBottom: 24 }}>
             <AdminPageHeader
-                title="Übersicht"
-                breadcrumbs={[ADMIN_OVERVIEW_CRUMB]}
+                title={t('nav.overview')}
+                breadcrumbs={[adminOverviewCrumb(t)]}
                 actions={
                     <RangePicker
                         value={dateRange}

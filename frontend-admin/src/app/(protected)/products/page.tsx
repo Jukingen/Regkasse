@@ -5,18 +5,20 @@ import { keepPreviousData } from '@tanstack/react-query';
 import { Button, Table, Space, message, Tag, Input, Popconfirm, Alert, Empty, Modal, InputNumber, Typography, Flex, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, StockOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 import { useProducts, useProductFilters } from '@/features/products/hooks/useProducts';
 import { Product } from '@/api/generated/model';
 import { mapApiProductToUi, mapUiProductToApi, taxTypeToLabel } from '@/features/products/utils/productMapper';
 import ProductForm, { type ProductFormSubmitValues } from '@/features/products/components/ProductForm';
 import { ColumnType } from 'antd/es/table';
+import { useI18n } from '@/i18n/I18nProvider';
 
 const SEARCH_DEBOUNCE_MS = 400;
 const MIN_SEARCH_LENGTH = 2;
 
 export default function ProductsPage() {
+    const { t } = useI18n();
     const { filters } = useProductFilters();
     const [page, setPage] = useState(() => Number(filters.page) || 1);
     const [pageSize, setPageSize] = useState(() => Number(filters.pageSize) || 10);
@@ -86,11 +88,11 @@ export default function ProductsPage() {
             if (createdId && values.modifierGroupIds?.length) {
                 await setModifierGroupsMutation.mutateAsync({ productId: createdId, modifierGroupIds: values.modifierGroupIds });
             }
-            message.success('Produkt angelegt.');
+            message.success(t('products.messages.createSuccess'));
             setFormVisible(false);
             invalidateList();
         } catch (err) {
-            message.error('Produkt konnte nicht angelegt werden.');
+            message.error(t('products.messages.createError'));
             throw err;
         }
     };
@@ -107,14 +109,12 @@ export default function ProductsPage() {
             if (values.modifierGroupIds !== undefined) {
                 await setModifierGroupsMutation.mutateAsync({ productId: editingProduct.id, modifierGroupIds: values.modifierGroupIds });
             }
-            message.success(
-                result?.fromPayload ? 'Gespeichert. Liste wird aktualisiert.' : 'Produkt aktualisiert.',
-            );
+            message.success(result?.fromPayload ? t('products.messages.updateSuccessRefreshing') : t('products.messages.updateSuccess'));
             setFormVisible(false);
             setEditingProduct(null);
             invalidateList();
         } catch (err) {
-            message.error('Produkt konnte nicht aktualisiert werden.');
+            message.error(t('products.messages.updateError'));
             throw err;
         }
     };
@@ -122,10 +122,10 @@ export default function ProductsPage() {
     const handleDelete = async (id: string) => {
         try {
             await deleteMutation.mutateAsync({ id });
-            message.success('Produkt gelöscht.');
+            message.success(t('products.messages.deleteSuccess'));
             invalidateList();
         } catch {
-            message.error('Produkt konnte nicht gelöscht werden.');
+            message.error(t('products.messages.deleteError'));
         }
     };
 
@@ -148,17 +148,17 @@ export default function ProductsPage() {
         if (!stockModalProduct?.id) return;
         try {
             await stockMutation.mutateAsync({ id: stockModalProduct.id, data: { quantity: stockQuantity } });
-            message.success('Lagerbestand aktualisiert.');
+            message.success(t('products.messages.stockUpdateSuccess'));
             setStockModalProduct(null);
             invalidateList();
         } catch {
-            message.error('Lagerbestand konnte nicht aktualisiert werden.');
+            message.error(t('products.messages.stockUpdateError'));
         }
     };
 
     const columns: ColumnType<Product>[] = [
         {
-            title: 'Product',
+            title: t('products.table.product'),
             key: 'product',
             ellipsis: true,
             width: 260,
@@ -169,7 +169,7 @@ export default function ProductsPage() {
                 const taxExempt = record.taxExemptionReason?.trim();
                 const tipLines: string[] = [];
                 if (desc) tipLines.push(desc);
-                if (taxExempt) tipLines.push(`Tax exemption: ${taxExempt}`);
+                if (taxExempt) tipLines.push(`${t('products.table.taxExemption')}: ${taxExempt}`);
                 const tipExtra =
                     tipLines.length > 0 ? (
                         <div style={{ whiteSpace: 'pre-wrap', maxWidth: 400 }}>{tipLines.join('\n\n')}</div>
@@ -191,7 +191,7 @@ export default function ProductsPage() {
                         ) : null}
                         {rksv ? (
                             <Typography.Text type="secondary" ellipsis style={{ display: 'block', fontSize: 11 }}>
-                                RKSV: {rksv}
+                                {t('products.table.rksvLabel')}: {rksv}
                             </Typography.Text>
                         ) : null}
                     </Space>
@@ -200,7 +200,7 @@ export default function ProductsPage() {
             },
         },
         {
-            title: 'Price',
+            title: t('products.table.price'),
             dataIndex: 'price',
             key: 'price',
             width: 100,
@@ -212,14 +212,14 @@ export default function ProductsPage() {
             ),
         },
         {
-            title: 'Stock',
+            title: t('products.table.stock'),
             dataIndex: 'stockQuantity',
             key: 'stockQuantity',
             width: 120,
             render: (qty: number, record: Product) => {
                 const min = Number(record.minStockLevel) ?? 0;
                 const isLow = Number(qty) <= min;
-                const unit = record.unit || 'pcs';
+                const unit = record.unit || t('products.table.unitPieces');
                 const tag = (
                     <Tag color={isLow ? 'red' : 'green'} style={{ marginInlineEnd: 0 }}>
                         {Number(qty)} {unit}
@@ -229,24 +229,26 @@ export default function ProductsPage() {
                     <Space direction="vertical" size={0}>
                         {tag}
                         <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                            Min: {min} {unit}
-                            {isLow && min > 0 ? ' · ≤ Min' : ''}
+                            {t('products.table.minLabel')}: {min} {unit}
+                            {isLow && min > 0 ? ` · ${t('products.table.minReached')}` : ''}
                         </Typography.Text>
                     </Space>
                 );
             },
         },
         {
-            title: 'Status',
+            title: t('products.table.status'),
             dataIndex: 'isActive',
             key: 'isActive',
             width: 96,
             render: (isActive: boolean) => (
-                <Tag color={isActive ? 'blue' : 'default'}>{isActive ? 'Active' : 'Inactive'}</Tag>
+                <Tag color={isActive ? 'blue' : 'default'}>
+                    {isActive ? t('products.table.active') : t('products.table.inactive')}
+                </Tag>
             ),
         },
         {
-            title: 'Category',
+            title: t('products.table.category'),
             dataIndex: 'category',
             key: 'category',
             width: 140,
@@ -258,7 +260,7 @@ export default function ProductsPage() {
             ),
         },
         {
-            title: 'Tax',
+            title: t('products.table.tax'),
             key: 'tax',
             width: 120,
             align: 'right',
@@ -282,7 +284,7 @@ export default function ProductsPage() {
             },
         },
         {
-            title: 'Aktionen',
+            title: t('products.table.actions'),
             key: 'actions',
             width: 220,
             fixed: 'right',
@@ -290,20 +292,20 @@ export default function ProductsPage() {
             render: (_: unknown, record: Product) => (
                 <Space size="small" wrap>
                     <Button type="primary" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
-                        Bearbeiten
+                            {t('products.actions.edit')}
                     </Button>
                     <Button type="default" size="small" icon={<StockOutlined />} onClick={() => openStockModal(record)}>
-                        Lager
+                            {t('products.actions.stock')}
                     </Button>
                     <Popconfirm
-                        title="Produkt löschen?"
-                        description="Dieser Vorgang kann nicht rückgängig gemacht werden."
+                        title={t('products.actions.deleteConfirmTitle')}
+                        description={t('products.actions.deleteConfirmDescription')}
                         onConfirm={() => record.id && handleDelete(record.id)}
-                        okText="Ja"
-                        cancelText="Nein"
+                        okText={t('common.buttons.yes')}
+                        cancelText={t('common.buttons.no')}
                     >
                         <Button type="default" size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
-                            Löschen
+                            {t('products.actions.delete')}
                         </Button>
                     </Popconfirm>
                 </Space>
@@ -314,12 +316,12 @@ export default function ProductsPage() {
     return (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
-                title={ADMIN_NAV_LABELS.products}
-                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.products }]}
+                title={t('products.page.title')}
+                breadcrumbs={[adminOverviewCrumb(t), { title: t('products.page.title') }]}
                 actions={
                     <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
                         <Input.Search
-                            placeholder="Produkte suchen …"
+                            placeholder={t('products.page.searchPlaceholder')}
                             allowClear
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onSearch={(v) => setSearchTerm(v)}
@@ -327,25 +329,25 @@ export default function ProductsPage() {
                             value={searchTerm}
                         />
                         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                            Neues Produkt
+                            {t('products.page.newProduct')}
                         </Button>
                     </Flex>
                 }
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    Suche nach Produktname; mindestens {MIN_SEARCH_LENGTH} Zeichen lösen eine Serverabfrage aus.
+                    {t('products.page.searchHint', { min: MIN_SEARCH_LENGTH })}
                 </Typography.Paragraph>
             </AdminPageHeader>
 
             {isError ? (
                 <Alert
                     type="error"
-                    message="Produkte konnten nicht geladen werden"
-                    description={error instanceof Error ? error.message : 'Unknown error'}
+                    message={t('products.page.loadErrorTitle')}
+                    description={error instanceof Error ? error.message : t('common.messages.unknownError')}
                     showIcon
                     action={
                         <Button size="small" onClick={() => refetch()}>
-                            Erneut versuchen
+                            {t('common.buttons.retry')}
                         </Button>
                     }
                 />
@@ -360,7 +362,7 @@ export default function ProductsPage() {
                     pagination={pagination}
                     size="middle"
                     scroll={{ x: 1100 }}
-                    locale={{ emptyText: <Empty description="Keine Produkte für diese Suche oder Seite." /> }}
+                    locale={{ emptyText: <Empty description={t('products.page.empty')} /> }}
                 />
             ) : null}
 
@@ -373,12 +375,12 @@ export default function ProductsPage() {
             />
 
             <Modal
-                title="Adjust stock"
+                title={t('products.stockModal.title')}
                 open={!!stockModalProduct}
                 onOk={handleStockSave}
                 onCancel={() => setStockModalProduct(null)}
                 confirmLoading={stockMutation.isPending}
-                okText="Save"
+                okText={t('common.buttons.save')}
             >
                 {stockModalProduct && (
                     <div style={{ marginTop: 8 }}>

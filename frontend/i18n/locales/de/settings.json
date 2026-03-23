@@ -8,5 +8,69 @@
   "systemTheme": "System",
   "german": "Deutsch",
   "english": "Englisch",
-  "turkish": "Türkçe"
+  "turkish": "Türkçe",
+  "other_settings": "Weitere Einstellungen",
+  "coming_soon": "Kommt bald",
+  "offlineQueue": {
+    "title": "Offline-Warteschlange",
+    "description": "Ausstehende Zahlungen anzeigen, erneut senden oder alle synchronisieren.",
+    "open": "Warteschlange öffnen"
+  },
+  "languageSelector": {
+    "de": "Deutsch",
+    "en": "English",
+    "tr": "Turkce",
+    "changeFailed": "Sprache konnte nicht gewechselt werden."
+  },
+  "registerGate": {
+    "banner": {
+      "intro": "Für eine fiskal gültige Zahlung ist eine verwendbare Registrierkasse (geöffnet) und Zuordnung erforderlich."
+    }
+  },
+  "registerAssignment": {
+    "title": "Registrierkasse (POS)",
+    "intro": "Für fiskal gültige Zahlungen muss eine geöffnete Kasse zugewiesen sein. Die Auswahl wird im Profil gespeichert.",
+    "assignedPrefix": "Aktuell zugewiesen:",
+    "retry": "Erneut versuchen",
+    "retryReadiness": "Kassenbereitschaft erneut versuchen",
+    "reloadList": "Kassenliste erneut laden",
+    "change": "Andere Kasse wählen",
+    "savedTitle": "Gespeichert",
+    "savedMessage": "Kasse wurde zugewiesen.",
+    "saveErrorTitle": "Fehler",
+    "saveErrorMessage": "Zuweisung wurde vom Server abgelehnt (ungültige Kasse, keine Berechtigung oder Kasse nicht geöffnet)."
+  },
+  "cashRegister": {
+    "summaryTitle": "Zusammenfassung",
+    "categoryTitle": "Kategorie",
+    "personalLabel": "Personal:",
+    "personalNone": "Keiner",
+    "change": "Ändern",
+    "remove": "Entfernen",
+    "assign": "Setzen",
+    "benefitSingle": "🎁 Vorteil aktiv",
+    "benefitMultiple": "🎁 {{count}} Vorteile aktiv",
+    "criticalStrip": "Tisch {{tableId}} · {{itemCount}} Artikel · GESAMT {{total}}",
+    "errors": {
+      "selectTableFirst": "Bitte zuerst Tisch wählen.",
+      "invalidTable": "Ungültige Tischnummer",
+      "tableSwitchFailed": "Tischwechsel fehlgeschlagen",
+      "updateFailed": "Aktualisierung fehlgeschlagen",
+      "removeItemFailed": "Artikel konnte nicht entfernt werden.",
+      "clearTableFailed": "Tisch {{tableId}} konnte nicht geleert werden",
+      "emptyCart": "Warenkorb ist leer. Bitte zuerst Artikel hinzufügen.",
+      "addOnFailed": "Add-on konnte nicht hinzugefügt werden.",
+      "addFailed": "Fehler beim Hinzufügen"
+    },
+    "success": {
+      "addedToTable": "{{name}} zu Tisch {{tableId}} hinzugefügt",
+      "added": "{{name}} hinzugefügt",
+      "itemRemoved": "Artikel entfernt",
+      "cartCleared": "Warenkorb für Tisch {{tableId}} geleert",
+      "tableCleared": "Tisch {{tableId}} geleert"
+    },
+    "info": {
+      "switchingToTable": "Zu Tisch {{tableId}} wechseln"
+    }
+  }
 }

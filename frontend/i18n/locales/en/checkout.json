@@ -24,5 +24,104 @@
   "outOfStock": "Out of Stock",
   "subtotal": "Subtotal",
   "tax": "Tax",
-  "discount": "Discount"
+  "discount": "Discount",
+  "posFlow": {
+    "section": {
+      "category": "Category",
+      "summary": "Summary"
+    },
+    "summaryStrip": "Table {{table}} · {{itemCount}} items · TOTAL {{total}}",
+    "personal": {
+      "label": "Staff:",
+      "change": "Change",
+      "remove": "Remove",
+      "none": "None",
+      "set": "Set",
+      "benefitSingle": "🎁 Benefit active",
+      "benefitMultiple": "🎁 {{count}} benefits active"
+    },
+    "benefit": {
+      "blockedReasons": {
+        "dailyLimit": "Daily limit reached",
+        "noEligibleItems": "No eligible items in the cart",
+        "quantityNotReached": "Minimum quantity not reached",
+        "quantityNotReachedDetail": "{{count}} more item(s) needed for the promotion",
+        "fallback": "Benefit cannot be applied right now"
+      }
+    },
+    "toast": {
+      "selectTableFirst": "Please select a table first.",
+      "productAddedToTable": "{{name}} added to table {{table}}",
+      "productAddError": "{{name}}: {{reason}}",
+      "addOnAdded": "{{name}} added",
+      "addOnAddFailed": "Could not add add-on.",
+      "baseProductAdded": "{{name}} added",
+      "addingFailed": "Adding failed",
+      "invalidTableNumber": "Invalid table number",
+      "switchingToTable": "Switching to table {{table}}",
+      "tableSwitchFailed": "Table switch failed",
+      "updateFailed": "Update failed",
+      "itemRemoved": "Item removed",
+      "itemRemoveFailed": "Could not remove item.",
+      "cartClearedForTable": "Cart cleared for table {{table}}",
+      "tableClearFailed": "Could not clear table {{table}}",
+      "tableCleared": "Table {{table}} cleared",
+      "tableClearGenericFailed": "Could not clear table",
+      "emptyCart": "Cart is empty. Please add items first."
+    },
+    "payment": {
+      "title": "Payment methods",
+      "totalLabel": "Total",
+      "enteredTotalLabel": "Entered total",
+      "placeholderAmount": "0.00",
+      "cancelReasonByCashier": "Cancelled by cashier",
+      "loadingRegisterSettings": "Loading cash register settings...",
+      "errors": {
+        "insufficientAmount": "Insufficient payment amount.",
+        "missingTableNumber": "Table number is missing.",
+        "emptyCart": "Cart is empty.",
+        "invalidAmount": "Invalid amount.",
+        "invalidAmountDetailed": "Invalid amount (must be greater than 0.01 €).",
+        "cartLoadFailed": "Could not load cart. Please try again.",
+        "cartLoadFailedRefresh": "Could not load cart. Please refresh the page or try again.",
+        "completeCartFailed": "Payment ok, but cart could not be completed. Please inform the administrator.",
+        "printFailed": "Payment ok, printing failed.",
+        "genericFailed": "Payment failed. Please try again.",
+        "fiscalNotConfirmed": "Payment not fiscally confirmed",
+        "failed": "Payment failed"
+      },
+      "alerts": {
+        "hintTitle": "Notice",
+        "errorTitle": "Error",
+        "paymentNotPossibleTitle": "Payment not possible",
+        "paymentCancelledTitle": "Payment cancelled",
+        "cancelPaymentTitle": "Cancel payment",
+        "cancelPaymentConfirm": "Do you really want to cancel this payment?",
+        "cancelFailed": "Cancellation failed. Please try again.",
+        "cancelRequestFailed": "Cancelling payment failed.",
+        "fiscalPending": "No register connection. The payment is not fiscally posted and is queued.",
+        "invoiceReconcileAttention": "Payment successful. Receipt reconciliation still requires your attention."
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "cancelNo": "No",
+        "cancelYes": "Yes, cancel"
+      },
+      "cancelSummary": "The payment was cancelled.\n\nReason: {{reason}}\nBy: {{cancelledBy}}\nTime: {{cancelledAt}}",
+      "retryActions": {
+        "retrySettings": "Retry cash register settings",
+        "retryReadiness": "Retry register readiness",
+        "reloadRegisterList": "Reload register list"
+      },
+      "pdfErrors": {
+        "title": "Receipt PDF",
+        "paymentSucceededPrefix": "Payment was successful.",
+        "unauthorized": "{{prefix}} Session expired or invalid. Please sign in again and retry “Receipt PDF”.",
+        "forbidden": "{{prefix}} No permission for PDF export. QR and print remain available. Ask an administrator if needed (InvoiceView).",
+        "notFound": "{{prefix}} PDF was not found. Please try again later or contact an administrator.",
+        "httpGeneric": "{{prefix}} PDF could not be loaded (HTTP {{status}}). Please try again later."
+      }
+    }
+  }
 }

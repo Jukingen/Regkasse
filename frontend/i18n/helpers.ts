@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { SUPPORTED_TEXT_LOCALES } from './localeUtils';
 
 /**
  * i18n kullanımını kolaylaştırmak için yardımcı hook
@@ -14,7 +15,7 @@ export const useI18n = () => {
   /**
    * Desteklenen dilleri döndürür
    */
-  const getSupportedLanguages = () => ['de', 'en', 'tr'];
+  const getSupportedLanguages = () => [...SUPPORTED_TEXT_LOCALES];
   
   /**
    * Dil değiştirir

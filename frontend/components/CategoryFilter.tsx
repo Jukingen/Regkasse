@@ -38,7 +38,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
   selectedCategoryId,
   onCategoryChange,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['products']);
   const insets = useSafeAreaInsets();
 
   return (
@@ -58,7 +58,11 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
         ]}
         onPress={() => onCategoryChange(null)}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityLabel={selectedCategoryId === null ? t('categories.all') + ', ausgewählt' : t('categories.all')}
+        accessibilityLabel={
+          selectedCategoryId === null
+            ? `${t('products:all')}, ${t('products:a11y.selected')}`
+            : t('products:all')
+        }
         accessibilityRole="button"
         accessibilityState={{ selected: selectedCategoryId === null }}
       >
@@ -68,7 +72,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
           color={selectedCategoryId === null ? SoftColors.textInverse : SoftColors.textPrimary}
         />
         <Text style={[styles.chipText, selectedCategoryId === null && styles.chipTextSelected]} numberOfLines={1} ellipsizeMode="tail">
-          {t('categories.all')}
+          {t('products:all')}
         </Text>
       </Pressable>
       {categories.map((cat) => {
@@ -84,7 +88,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = ({
             ]}
             onPress={() => onCategoryChange(cat.id)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel={isSelected ? `${cat.name}, ausgewählt` : cat.name}
+            accessibilityLabel={isSelected ? `${cat.name}, ${t('products:a11y.selected')}` : cat.name}
             accessibilityRole="button"
             accessibilityState={{ selected: isSelected }}
           >

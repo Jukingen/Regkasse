@@ -14,7 +14,11 @@
     "test:coverage": "jest --coverage",
     "test:debug": "jest --verbose --detectOpenHandles",
     "clean": "expo start --clear --reset-cache",
-    "reset": "rm -rf node_modules && npm install && expo start --clear"
+    "reset": "rm -rf node_modules && npm install && expo start --clear",
+    "i18n:export-csv": "node ../localization/scripts/export-translations.mjs --app frontend",
+    "i18n:import-csv": "node ../localization/scripts/import-translations.mjs --app frontend",
+    "i18n:validate": "node ../localization/scripts/validate-translations.mjs --app frontend",
+    "i18n:boundary": "node ../localization/scripts/check-translation-boundary.mjs --app frontend"
   },
   "dependencies": {
     "@babel/runtime": "^7.27.1",

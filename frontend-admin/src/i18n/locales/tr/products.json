@@ -1,0 +1,47 @@
+{
+  "page": {
+    "title": "Ürünler",
+    "searchPlaceholder": "Ürün ara …",
+    "newProduct": "Yeni ürün",
+    "searchHint": "Ürün adına göre arama yapın; en az {{min}} karakter sunucu sorgusu tetikler.",
+    "loadErrorTitle": "Ürünler yüklenemedi",
+    "empty": "Bu arama veya sayfa için ürün bulunamadı."
+  },
+  "table": {
+    "product": "Urun",
+    "price": "Fiyat",
+    "stock": "Stok",
+    "status": "Durum",
+    "category": "Kategori",
+    "tax": "Vergi",
+    "actions": "Islemler",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "unitPieces": "adet",
+    "minLabel": "Min",
+    "minReached": "<= min",
+    "taxExemption": "Vergi muafiyeti",
+    "rksvLabel": "RKSV"
+  },
+  "actions": {
+    "edit": "Duzenle",
+    "stock": "Stok",
+    "delete": "Sil",
+    "deleteConfirmTitle": "Urun silinsin mi?",
+    "deleteConfirmDescription": "Bu islem geri alinamaz."
+  },
+  "stockModal": {
+    "title": "Stok ayarla"
+  },
+  "messages": {
+    "createSuccess": "Ürün oluşturuldu.",
+    "createError": "Ürün oluşturulamadı.",
+    "updateSuccess": "Ürün güncellendi.",
+    "updateSuccessRefreshing": "Kaydedildi. Liste güncelleniyor.",
+    "updateError": "Ürün güncellenemedi.",
+    "deleteSuccess": "Ürün silindi.",
+    "deleteError": "Ürün silinemedi.",
+    "stockUpdateSuccess": "Stok güncellendi.",
+    "stockUpdateError": "Stok güncellenemedi."
+  }
+}

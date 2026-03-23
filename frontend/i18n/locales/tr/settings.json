@@ -8,5 +8,69 @@
   "systemTheme": "Sistem",
   "german": "Almanca",
   "english": "İngilizce",
-  "turkish": "Türkçe"
+  "turkish": "Türkçe",
+  "other_settings": "Diğer Ayarlar",
+  "coming_soon": "Yakında",
+  "offlineQueue": {
+    "title": "Çevrimdışı Kuyruk",
+    "description": "Bekleyen ödemeleri görüntüleyin, tekrar gönderin veya tümünü senkronize edin.",
+    "open": "Kuyruğu Aç"
+  },
+  "languageSelector": {
+    "de": "Almanca",
+    "en": "Ingilizce",
+    "tr": "Turkce",
+    "changeFailed": "Dil degistirilemedi."
+  },
+  "registerGate": {
+    "banner": {
+      "intro": "Mali açıdan geçerli bir ödeme için kullanılabilir bir yazar kasa (açık) ve atama gereklidir."
+    }
+  },
+  "registerAssignment": {
+    "title": "Yazar Kasa (POS)",
+    "intro": "Mali açıdan geçerli ödemeler için açık bir kasa atanmış olmalıdır. Seçim profilde saklanır.",
+    "assignedPrefix": "Şu an atanmış:",
+    "retry": "Tekrar dene",
+    "retryReadiness": "Kasa hazırlığını tekrar dene",
+    "reloadList": "Kasa listesini yeniden yükle",
+    "change": "Başka kasa seç",
+    "savedTitle": "Kaydedildi",
+    "savedMessage": "Kasa atandı.",
+    "saveErrorTitle": "Hata",
+    "saveErrorMessage": "Atama sunucu tarafından reddedildi (geçersiz kasa, yetki yok veya kasa açık değil)."
+  },
+  "cashRegister": {
+    "summaryTitle": "Özet",
+    "categoryTitle": "Kategori",
+    "personalLabel": "Personel:",
+    "personalNone": "Yok",
+    "change": "Değiştir",
+    "remove": "Kaldır",
+    "assign": "Ata",
+    "benefitSingle": "🎁 Avantaj aktif",
+    "benefitMultiple": "🎁 {{count}} avantaj aktif",
+    "criticalStrip": "Masa {{tableId}} · {{itemCount}} ürün · TOPLAM {{total}}",
+    "errors": {
+      "selectTableFirst": "Lütfen önce masa seçin.",
+      "invalidTable": "Geçersiz masa numarası",
+      "tableSwitchFailed": "Masa değiştirilemedi",
+      "updateFailed": "Güncelleme başarısız",
+      "removeItemFailed": "Ürün kaldırılamadı.",
+      "clearTableFailed": "{{tableId}} numaralı masa boşaltılamadı",
+      "emptyCart": "Sepet boş. Önce ürün ekleyin.",
+      "addOnFailed": "Ek ürün eklenemedi.",
+      "addFailed": "Ürün ekleme başarısız"
+    },
+    "success": {
+      "addedToTable": "{{name}} {{tableId}} numaralı masaya eklendi",
+      "added": "{{name}} eklendi",
+      "itemRemoved": "Ürün kaldırıldı",
+      "cartCleared": "{{tableId}} numaralı masanın sepeti temizlendi",
+      "tableCleared": "{{tableId}} numaralı masa temizlendi"
+    },
+    "info": {
+      "switchingToTable": "{{tableId}} numaralı masaya geçiliyor"
+    }
+  }
 }

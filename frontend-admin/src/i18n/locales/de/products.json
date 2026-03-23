@@ -1,0 +1,47 @@
+{
+  "page": {
+    "title": "Produkte",
+    "searchPlaceholder": "Produkte suchen …",
+    "newProduct": "Neues Produkt",
+    "searchHint": "Suche nach Produktname; mindestens {{min}} Zeichen lösen eine Serverabfrage aus.",
+    "loadErrorTitle": "Produkte konnten nicht geladen werden",
+    "empty": "Keine Produkte für diese Suche oder Seite."
+  },
+  "table": {
+    "product": "Produkt",
+    "price": "Preis",
+    "stock": "Lager",
+    "status": "Status",
+    "category": "Kategorie",
+    "tax": "Steuer",
+    "actions": "Aktionen",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "unitPieces": "Stk",
+    "minLabel": "Min",
+    "minReached": "≤ Min",
+    "taxExemption": "Steuerbefreiung",
+    "rksvLabel": "RKSV"
+  },
+  "actions": {
+    "edit": "Bearbeiten",
+    "stock": "Lager",
+    "delete": "Löschen",
+    "deleteConfirmTitle": "Produkt löschen?",
+    "deleteConfirmDescription": "Dieser Vorgang kann nicht rückgängig gemacht werden."
+  },
+  "stockModal": {
+    "title": "Lager anpassen"
+  },
+  "messages": {
+    "createSuccess": "Produkt angelegt.",
+    "createError": "Produkt konnte nicht angelegt werden.",
+    "updateSuccess": "Produkt aktualisiert.",
+    "updateSuccessRefreshing": "Gespeichert. Liste wird aktualisiert.",
+    "updateError": "Produkt konnte nicht aktualisiert werden.",
+    "deleteSuccess": "Produkt gelöscht.",
+    "deleteError": "Produkt konnte nicht gelöscht werden.",
+    "stockUpdateSuccess": "Lagerbestand aktualisiert.",
+    "stockUpdateError": "Lagerbestand konnte nicht aktualisiert werden."
+  }
+}

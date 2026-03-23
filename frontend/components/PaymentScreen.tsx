@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import paymentService, {
   type PaymentItem,
   type PaymentRequest,
@@ -30,19 +31,19 @@ import {
   buildPosRegisterGateContext,
   registerGateAlertMessage,
   registerGateBannerDetail,
-  registerGateBannerIntro,
   registerGateBannerTitle,
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
+import { getFormattingLocaleForTextLocale } from '../i18n/localeUtils';
 
 // Desteklenen ödeme yöntemleri ve ikon adları
 type PaymentMethodKey = 'cash' | 'card' | 'voucher' | 'contactless' | 'transfer';
-const PAYMENT_METHODS: { key: PaymentMethodKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'cash', label: 'Bargeld', icon: 'cash' },
-  { key: 'card', label: 'Kreditkarte', icon: 'card' },
-  { key: 'voucher', label: 'Gutschein', icon: 'pricetag' },
-  { key: 'transfer', label: 'Überweisung', icon: 'swap-horizontal' },
-  { key: 'contactless', label: 'Kontaktlos', icon: 'wifi' },
+const PAYMENT_METHODS: { key: PaymentMethodKey; labelKey: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'cash', labelKey: 'payment:methods.cash', icon: 'cash' },
+  { key: 'card', labelKey: 'payment:methods.card', icon: 'card' },
+  { key: 'voucher', labelKey: 'payment:methods.voucher', icon: 'pricetag' },
+  { key: 'transfer', labelKey: 'payment:methods.transfer', icon: 'swap-horizontal' },
+  { key: 'contactless', labelKey: 'payment:methods.contactless', icon: 'wifi' },
 ];
 
 /** One line per cart row for POST /api/pos/payment (same contract as PaymentModal). */
@@ -99,6 +100,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
   onPaymentCancelled,
   cashRegisterResolutionActive = true,
 }) => {
+  const { t, i18n } = useTranslation(['checkout', 'payment', 'common', 'settings']);
   const {
     cashRegisterId,
     cashRegisterResolved,
@@ -180,17 +182,17 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
     }
 
     Alert.alert(
-      'Zahlung abbrechen',
-      'Möchten Sie diese Zahlung wirklich abbrechen?',
+      t('checkout:posFlow.payment.alerts.cancelPaymentTitle'),
+      t('checkout:posFlow.payment.alerts.cancelPaymentConfirm'),
       [
-        { text: 'Nein', style: 'cancel' },
+        { text: t('checkout:posFlow.payment.buttons.cancelNo'), style: 'cancel' },
         {
-          text: 'Ja, abbrechen',
+          text: t('checkout:posFlow.payment.buttons.cancelYes'),
           style: 'destructive',
           onPress: async () => {
             setProcessing(true);
             try {
-              const cancelResponse = await paymentService.cancelPayment(paymentSessionId, 'Kasiyer tarafından iptal edildi');
+              const cancelResponse = await paymentService.cancelPayment(paymentSessionId, t('checkout:posFlow.payment.cancelReasonByCashier'));
 
               const ok = cancelResponse && (cancelResponse as { success?: boolean }).success !== false;
 
@@ -200,16 +202,22 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
                 }
 
                 Alert.alert(
-                  'Zahlung abgebrochen',
-                  `Die Zahlung wurde storniert.\n\nGrund: ${cancelResponse.cancellationReason}\nVon: ${cancelResponse.cancelledBy}\nZeit: ${new Date(cancelResponse.cancelledAt).toLocaleString('de-DE')}`,
-                  [{ text: 'OK', onPress: () => onCancel() }]
+                  t('checkout:posFlow.payment.alerts.paymentCancelledTitle'),
+                  t('checkout:posFlow.payment.cancelSummary', {
+                    reason: cancelResponse.cancellationReason,
+                    cancelledBy: cancelResponse.cancelledBy,
+                    cancelledAt: new Date(cancelResponse.cancelledAt).toLocaleString(
+                      getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language)
+                    ),
+                  }),
+                  [{ text: t('common:ok'), onPress: () => onCancel() }]
                 );
               } else {
-                Alert.alert('Fehler', 'Stornierung der Zahlung fehlgeschlagen.');
+                Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), t('checkout:posFlow.payment.alerts.cancelRequestFailed'));
               }
             } catch (err) {
               console.error('Payment cancellation error:', err);
-              Alert.alert('Fehler', 'Stornierung fehlgeschlagen. Bitte erneut versuchen.');
+              Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), t('checkout:posFlow.payment.alerts.cancelFailed'));
             } finally {
               setProcessing(false);
             }
@@ -224,30 +232,30 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
     if (processing) return;
     setError('');
     if (enteredTotal < totalAmount) {
-      setError('Zahlungsbetrag unzureichend.');
+      setError(t('checkout:posFlow.payment.errors.insufficientAmount'));
       return;
     }
     if (!tableNumber) {
-      Alert.alert('Fehler', 'Tischnummer fehlt.');
+      Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), t('checkout:posFlow.payment.errors.missingTableNumber'));
       return;
     }
     if (!cartLines.length) {
-      setError('Warenkorb ist leer.');
+      setError(t('checkout:posFlow.payment.errors.emptyCart'));
       return;
     }
     if (!cashRegisterResolved) {
-      setError('Kasseneinstellungen werden geladen…');
+      setError(t('checkout:posFlow.payment.loadingRegisterSettings'));
       return;
     }
     if (!hasValidCashRegisterId || !cashRegisterId) {
       Alert.alert(
-        'Zahlung nicht möglich',
+        t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'),
         registerGateAlertMessage(registerGateCtx)
       );
       return;
     }
     if (!validateAmount(totalAmount)) {
-      setError('Ungültiger Betrag.');
+      setError(t('checkout:posFlow.payment.errors.invalidAmount'));
       return;
     }
 
@@ -262,7 +270,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         currentCartId = cart.cartId;
       } catch (cartErr) {
         console.error('[PaymentScreen] Cart fetch failed:', cartErr);
-        Alert.alert('Fehler', 'Warenkorb konnte nicht geladen werden. Bitte erneut versuchen.');
+        Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), t('checkout:posFlow.payment.errors.cartLoadFailed'));
         return;
       }
 
@@ -292,7 +300,9 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         tableNumber: tableNumber || 1,
         totalAmount,
         cashRegisterId,
-        notes: `Tisch ${tableNumber} - ${new Date().toLocaleString('de-DE')}`,
+        notes: `Tisch ${tableNumber} - ${new Date().toLocaleString(
+          getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language),
+        )}`,
         idempotencyKey,
       };
 
@@ -300,8 +310,8 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
       if (response.fiscalStatus === 'NON_FISCAL_PENDING') {
         Alert.alert(
-          'Hinweis',
-          'Keine Verbindung zur Kasse. Die Zahlung ist nicht fiscal verbucht und steht in der Warteschlange.'
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.alerts.fiscalPending')
         );
         return;
       }
@@ -313,16 +323,16 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
       ) {
         const msg =
           response.fiscalStatus === 'FAILED'
-            ? response.message || response.error || 'Zahlung nicht fiscal bestätigt'
-            : response.message || response.error || 'Zahlung fehlgeschlagen';
-        Alert.alert('Zahlung fehlgeschlagen', msg);
+            ? response.message || response.error || t('checkout:posFlow.payment.errors.fiscalNotConfirmed')
+            : response.message || response.error || t('checkout:posFlow.payment.errors.failed');
+        Alert.alert(t('checkout:posFlow.payment.errors.failed'), msg);
         return;
       }
 
       if (response.invoicePersisted === false) {
         Alert.alert(
-          'Hinweis',
-          'Zahlung erfolgreich. Die Belegabstimmung erfordert jedoch Ihre Aufmerksamkeit.'
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.alerts.invoiceReconcileAttention')
         );
       }
 
@@ -330,7 +340,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         await cartService.completeCart(currentCartId, '');
       } catch (completeErr) {
         console.error('[PaymentScreen] completeCart failed:', completeErr);
-        Alert.alert('Hinweis', 'Zahlung OK, Warenkorb konnte nicht abgeschlossen werden. Bitte Administrator informieren.');
+        Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.completeCartFailed'));
       }
 
       try {
@@ -345,7 +355,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         });
       } catch (printErr) {
         console.error('[PaymentScreen] Print failed:', printErr);
-        Alert.alert('Hinweis', 'Zahlung OK, Druck fehlgeschlagen.');
+        Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.printFailed'));
       }
 
       onPaymentSuccess?.(response.paymentId);
@@ -355,9 +365,9 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         ? getPaymentErrorMessage(e.code)
         : e instanceof Error
           ? e.message
-          : 'Zahlung fehlgeschlagen. Bitte erneut versuchen.';
+          : t('checkout:posFlow.payment.errors.genericFailed');
       setError(message);
-      Alert.alert('Fehler', message);
+      Alert.alert(t('checkout:posFlow.payment.alerts.errorTitle'), message);
     } finally {
       setProcessing(false);
     }
@@ -365,8 +375,8 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
-      <Text style={styles.title}>Zahlungsarten</Text>
-      <Text style={styles.total}>Gesamt: {totalAmount.toFixed(2)} €</Text>
+      <Text style={styles.title}>{t('checkout:posFlow.payment.title')}</Text>
+      <Text style={styles.total}>{t('checkout:posFlow.payment.totalLabel')}: {totalAmount.toFixed(2)} €</Text>
 
       {isRegisterGateBlockingPayment ? (
         <View style={styles.registerBanner}>
@@ -374,7 +384,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
             {registerGateBannerTitle(registerGateCtx)}
           </Text>
           {!registerListLoading && !posReadinessLoading ? (
-            <Text style={[styles.registerBannerMuted, { marginBottom: 4 }]}>{registerGateBannerIntro()}</Text>
+            <Text style={[styles.registerBannerMuted, { marginBottom: 4 }]}>{t('settings:registerGate.banner.intro')}</Text>
           ) : null}
           <Text style={styles.registerBannerText}>
             {registerGateBannerDetail(registerGateCtx)}
@@ -396,31 +406,31 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
             </View>
           ) : settingsLoadFailed ? (
             <TouchableOpacity onPress={retryUserSettingsLoad} accessibilityRole="button">
-              <Text style={styles.registerRetryLink}>Kasseneinstellungen erneut versuchen</Text>
+              <Text style={styles.registerRetryLink}>{t('checkout:posFlow.payment.retryActions.retrySettings')}</Text>
             </TouchableOpacity>
           ) : posReadinessError ? (
             <TouchableOpacity onPress={() => refreshPosReadiness()} accessibilityRole="button">
-              <Text style={styles.registerRetryLink}>Kassenbereitschaft erneut versuchen</Text>
+              <Text style={styles.registerRetryLink}>{t('checkout:posFlow.payment.retryActions.retryReadiness')}</Text>
             </TouchableOpacity>
           ) : registerListFailureKind === 'network' || registerListFailureKind === 'unknown' ? (
             <TouchableOpacity onPress={refetchRegisterList} accessibilityRole="button">
-              <Text style={styles.registerRetryLink}>Kassenliste erneut laden</Text>
+              <Text style={styles.registerRetryLink}>{t('checkout:posFlow.payment.retryActions.reloadRegisterList')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
       ) : null}
 
       {!cashRegisterResolved ? (
-        <Text style={styles.registerBannerMuted}>Kasseneinstellungen werden geladen…</Text>
+        <Text style={styles.registerBannerMuted}>{t('checkout:posFlow.payment.loadingRegisterSettings')}</Text>
       ) : null}
       {PAYMENT_METHODS.map((method) => (
         <View key={method.key} style={styles.methodRow}>
           <Ionicons name={method.icon} size={22} color="#1976d2" style={{ marginRight: 8 }} />
-          <Text style={styles.methodLabel}>{method.label}</Text>
+          <Text style={styles.methodLabel}>{t(method.labelKey)}</Text>
           <TextInput
             style={styles.input}
             keyboardType="decimal-pad"
-            placeholder="0.00"
+            placeholder={t('checkout:posFlow.payment.placeholderAmount')}
             value={payments[method.key]}
             onChangeText={(val) => handleChange(method.key as PaymentMethodKey, val)}
             editable={!processing}
@@ -430,13 +440,13 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
       ))}
       <View style={styles.summaryRow}>
         <Text style={enteredTotal < totalAmount ? styles.missing : styles.ok}>
-          Eingegeben gesamt: {enteredTotal.toFixed(2)} €
+          {t('checkout:posFlow.payment.enteredTotalLabel')}: {enteredTotal.toFixed(2)} €
         </Text>
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <View style={styles.buttonRow}>
         <TouchableOpacity style={styles.cancelBtn} onPress={handlePaymentCancel} disabled={processing}>
-          <Text style={styles.buttonText}>Abbrechen</Text>
+          <Text style={styles.buttonText}>{t('checkout:posFlow.payment.buttons.cancel')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
@@ -453,7 +463,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
               : undefined
           }
         >
-          <Text style={styles.buttonText}>Bestätigen</Text>
+          <Text style={styles.buttonText}>{t('checkout:posFlow.payment.buttons.confirm')}</Text>
         </TouchableOpacity>
       </View>
       {isRegisterGateBlockingPayment ? (

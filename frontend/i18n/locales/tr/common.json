@@ -35,5 +35,7 @@
   "validationError": "Doğrulama hatası",
   "permissionDenied": "İzin reddedildi",
   "unauthorized": "Yetkisiz Erişim",
-  "noAccess": "Bu ekrana erişim yetkiniz bulunmamaktadır"
+  "noAccess": "Bu ekrana erişim yetkiniz bulunmamaktadır",
+  "tableRestoring": "Masalar geri yukleniyor",
+  "table": "Masa"
 }

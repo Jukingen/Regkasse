@@ -38,7 +38,8 @@ import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { canViewUsers, canShowRksvMenu } from '@/features/auth/constants/roles';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import { buildRksvMenuGroups, getRksvOpenSubgroupKeys } from '@/shared/rksvMenuModel';
-import { ADMIN_NAV_GROUP_LABELS, ADMIN_NAV_LABELS } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_GROUP_LABEL_KEYS, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
+import { useI18n } from '@/i18n/I18nProvider';
 import {
     ADMIN_SIDEBAR_GROUP_KEYS,
     collectSelectableRouteKeysFromMenuItems,
@@ -64,6 +65,7 @@ export default function DashboardLayout({
     const screens = useBreakpoint();
     const pathname = usePathname();
     const { user, logout } = useAuth();
+    const { t } = useI18n();
     const permissions = user?.permissions ?? EMPTY_PERMISSIONS;
     const usePermissionFirst = permissions.length > 0;
     const {
@@ -99,82 +101,82 @@ export default function DashboardLayout({
 
     const allMenuItems = useMemo(
         () => [
-            { key: '/dashboard', icon: <DashboardOutlined />, label: <Link href="/dashboard">{ADMIN_NAV_LABELS.overview}</Link> },
-            { key: '/invoices', icon: <FileDoneOutlined />, label: <Link href="/invoices">{ADMIN_NAV_LABELS.invoices}</Link> },
+            { key: '/dashboard', icon: <DashboardOutlined />, label: <Link href="/dashboard">{t(ADMIN_NAV_LABEL_KEYS.overview)}</Link> },
+            { key: '/invoices', icon: <FileDoneOutlined />, label: <Link href="/invoices">{t(ADMIN_NAV_LABEL_KEYS.invoices)}</Link> },
             {
                 key: ADMIN_SIDEBAR_GROUP_KEYS.sortiment,
                 icon: <AppstoreOutlined />,
-                label: ADMIN_NAV_GROUP_LABELS.sortiment,
+                label: t(ADMIN_NAV_GROUP_LABEL_KEYS.sortiment),
                 children: [
-                    { key: '/products', icon: <ShoppingOutlined />, label: <Link href="/products">{ADMIN_NAV_LABELS.products}</Link> },
-                    { key: '/categories', icon: <FolderOutlined />, label: <Link href="/categories">{ADMIN_NAV_LABELS.categories}</Link> },
+                    { key: '/products', icon: <ShoppingOutlined />, label: <Link href="/products">{t(ADMIN_NAV_LABEL_KEYS.products)}</Link> },
+                    { key: '/categories', icon: <FolderOutlined />, label: <Link href="/categories">{t(ADMIN_NAV_LABEL_KEYS.categories)}</Link> },
                     {
                         key: '/modifier-groups',
                         icon: <GroupOutlined />,
-                        label: <Link href="/modifier-groups">{ADMIN_NAV_LABELS.modifierGroups}</Link>,
+                        label: <Link href="/modifier-groups">{t(ADMIN_NAV_LABEL_KEYS.modifierGroups)}</Link>,
                     },
                 ],
             },
             {
                 key: ADMIN_SIDEBAR_GROUP_KEYS.kundenVorteile,
                 icon: <UsergroupAddOutlined />,
-                label: ADMIN_NAV_GROUP_LABELS.kundenVorteile,
+                label: t(ADMIN_NAV_GROUP_LABEL_KEYS.kundenVorteile),
                 children: [
-                    { key: '/customers', icon: <UserOutlined />, label: <Link href="/customers">{ADMIN_NAV_LABELS.customers}</Link> },
+                    { key: '/customers', icon: <UserOutlined />, label: <Link href="/customers">{t(ADMIN_NAV_LABEL_KEYS.customers)}</Link> },
                     {
                         key: '/benefit-definitions',
                         icon: <GiftOutlined />,
-                        label: <Link href="/benefit-definitions">{ADMIN_NAV_LABELS.benefitDefinitions}</Link>,
+                        label: <Link href="/benefit-definitions">{t(ADMIN_NAV_LABEL_KEYS.benefitDefinitions)}</Link>,
                     },
                     {
                         key: '/benefit-assignments',
                         icon: <TagOutlined />,
-                        label: <Link href="/benefit-assignments">{ADMIN_NAV_LABELS.benefitAssignments}</Link>,
+                        label: <Link href="/benefit-assignments">{t(ADMIN_NAV_LABEL_KEYS.benefitAssignments)}</Link>,
                     },
                 ],
             },
             {
                 key: ADMIN_SIDEBAR_GROUP_KEYS.kasseBelege,
                 icon: <ShopOutlined />,
-                label: ADMIN_NAV_GROUP_LABELS.kasseBelege,
+                label: t(ADMIN_NAV_GROUP_LABEL_KEYS.kasseBelege),
                 children: [
-                    { key: '/receipts', icon: <FileSearchOutlined />, label: <Link href="/receipts">{ADMIN_NAV_LABELS.receipts}</Link> },
-                    { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">{ADMIN_NAV_LABELS.payments}</Link> },
+                    { key: '/receipts', icon: <FileSearchOutlined />, label: <Link href="/receipts">{t(ADMIN_NAV_LABEL_KEYS.receipts)}</Link> },
+                    { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">{t(ADMIN_NAV_LABEL_KEYS.payments)}</Link> },
                     {
                         key: '/tagesabschluss',
                         icon: <CalendarOutlined />,
-                        label: <Link href="/tagesabschluss">{ADMIN_NAV_LABELS.tagesabschluss}</Link>,
+                        label: <Link href="/tagesabschluss">{t(ADMIN_NAV_LABEL_KEYS.tagesabschluss)}</Link>,
                     },
                     {
                         key: '/receipt-templates',
                         icon: <SnippetsOutlined />,
-                        label: <Link href="/receipt-templates">{ADMIN_NAV_LABELS.receiptTemplates}</Link>,
+                        label: <Link href="/receipt-templates">{t(ADMIN_NAV_LABEL_KEYS.receiptTemplates)}</Link>,
                     },
                     {
                         key: '/receipt-generate',
                         icon: <EyeOutlined />,
-                        label: <Link href="/receipt-generate">{ADMIN_NAV_LABELS.receiptGenerate}</Link>,
+                        label: <Link href="/receipt-generate">{t(ADMIN_NAV_LABEL_KEYS.receiptGenerate)}</Link>,
                     },
                 ],
             },
-            { key: '/audit-logs', icon: <SafetyCertificateOutlined />, label: <Link href="/audit-logs">{ADMIN_NAV_LABELS.auditLogs}</Link> },
+            { key: '/audit-logs', icon: <SafetyCertificateOutlined />, label: <Link href="/audit-logs">{t(ADMIN_NAV_LABEL_KEYS.auditLogs)}</Link> },
             {
                 key: ADMIN_SIDEBAR_GROUP_KEYS.verwaltung,
                 icon: <ToolOutlined />,
-                label: ADMIN_NAV_GROUP_LABELS.verwaltung,
+                label: t(ADMIN_NAV_GROUP_LABEL_KEYS.verwaltung),
                 children: [
-                    { key: '/users', icon: <TeamOutlined />, label: <Link href="/users">{ADMIN_NAV_LABELS.users}</Link> },
-                    { key: '/settings', icon: <SettingOutlined />, label: <Link href="/settings">{ADMIN_NAV_LABELS.settings}</Link> },
+                    { key: '/users', icon: <TeamOutlined />, label: <Link href="/users">{t(ADMIN_NAV_LABEL_KEYS.users)}</Link> },
+                    { key: '/settings', icon: <SettingOutlined />, label: <Link href="/settings">{t(ADMIN_NAV_LABEL_KEYS.settings)}</Link> },
                 ],
             },
             {
                 key: '/rksv',
                 icon: <SafetyOutlined />,
-                label: ADMIN_NAV_GROUP_LABELS.rksv,
+                label: t(ADMIN_NAV_GROUP_LABEL_KEYS.rksv),
                 children: rksvMenuSubtree,
             },
         ],
-        [rksvMenuSubtree],
+        [rksvMenuSubtree, t],
     );
 
     const canSeeRksv = useMemo(() => {
@@ -255,7 +257,7 @@ export default function DashboardLayout({
         items: [
             {
                 key: 'profile',
-                label: ADMIN_NAV_LABELS.myProfile,
+                label: t(ADMIN_NAV_LABEL_KEYS.myProfile),
                 icon: <UserOutlined />,
             },
             {
@@ -263,7 +265,7 @@ export default function DashboardLayout({
             },
             {
                 key: 'logout',
-                label: ADMIN_NAV_LABELS.logout,
+                label: t(ADMIN_NAV_LABEL_KEYS.logout),
                 icon: <LogoutOutlined />,
                 onClick: () => logout(),
             },
@@ -273,7 +275,7 @@ export default function DashboardLayout({
     const SidebarContent = (
         <>
             <div style={{ height: 64, margin: 16, background: 'rgba(0, 0, 0, 0.05)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                {collapsed ? 'RK' : 'REGKASSE ADMIN'}
+                {collapsed ? t('adminShell.branding.sidebarCompact') : t('adminShell.branding.sidebarExpanded')}
             </div>
             <Menu
                 theme="light"
@@ -300,7 +302,7 @@ export default function DashboardLayout({
                 )}
 
                 <Drawer
-                    title="Regkasse Admin"
+                    title={t('adminShell.branding.drawerTitle')}
                     placement="left"
                     onClose={() => setDrawerVisible(false)}
                     open={drawerVisible}
@@ -317,11 +319,11 @@ export default function DashboardLayout({
                             aria-label={
                                 isMobile
                                     ? drawerVisible
-                                        ? 'Navigationsmenü schließen'
-                                        : 'Navigationsmenü öffnen'
+                                        ? t('adminShell.aria.closeNav')
+                                        : t('adminShell.aria.openNav')
                                     : collapsed
-                                      ? 'Seitenleiste ausklappen'
-                                      : 'Seitenleiste einklappen'
+                                      ? t('adminShell.aria.expandSidebar')
+                                      : t('adminShell.aria.collapseSidebar')
                             }
                             aria-expanded={isMobile ? drawerVisible : undefined}
                             icon={isMobile ? (drawerVisible ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />) : (collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />)}
@@ -335,7 +337,7 @@ export default function DashboardLayout({
                         <Dropdown menu={userMenu} placement="bottomRight">
                             <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <Avatar icon={<UserOutlined />} />
-                                {!isMobile && <span>{user?.firstName ? `${user.firstName} ${user.lastName}` : 'Admin User'}</span>}
+                                {!isMobile && <span>{user?.firstName ? `${user.firstName} ${user.lastName}` : t('adminShell.branding.fallbackUserName')}</span>}
                             </div>
                         </Dropdown>
                     </Header>

@@ -1,0 +1,10 @@
+{
+  "page": {
+    "title": "User management",
+    "accessDeniedTitle": "Access denied",
+    "accessDeniedDescription": "Only users with the \"View users\" permission (for example SuperAdmin or Manager) can open this page.",
+    "createUser": "Create user",
+    "createRole": "Create role",
+    "manageRoles": "Manage roles"
+  }
+}

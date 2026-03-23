@@ -41,5 +41,8 @@
   "category": "Kategori",
   "supplier": "Tedarikçi",
   "reorderLevel": "Yeniden Sipariş Seviyesi",
-  "currentStock": "Mevcut Stok"
+  "currentStock": "Mevcut Stok",
+  "a11y": {
+    "selected": "seçili"
+  }
 }

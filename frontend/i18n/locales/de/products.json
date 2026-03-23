@@ -41,5 +41,8 @@
   "category": "Kategorie",
   "supplier": "Lieferant",
   "reorderLevel": "Nachbestellungsgrenze",
-  "currentStock": "Aktueller Bestand"
+  "currentStock": "Aktueller Bestand",
+  "a11y": {
+    "selected": "ausgewählt"
+  }
 }

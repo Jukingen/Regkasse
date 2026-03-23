@@ -1,0 +1,47 @@
+{
+  "title": "Rechnungen",
+  "emptyList": "Keine Rechnungen gefunden",
+  "detailTitle": "Rechnungsdetail",
+  "invoiceNo": "Rechnungsnr.",
+  "date": "Datum",
+  "time": "Uhrzeit",
+  "customer": "Kunde",
+  "paymentMethod": "Zahlungsmethode",
+  "status": "Status",
+  "total": "Gesamt",
+  "tax": "Steuer",
+  "printed": "Gedruckt",
+  "yes": "Ja",
+  "no": "Nein",
+  "company": "Unternehmen",
+  "products": "Produkte",
+  "item": "Artikel",
+  "quantity": "Menge",
+  "unit": "Einheit",
+  "tseSignature": "TSE-Signatur",
+  "kassenId": "Kassen-ID",
+  "taxNumber": "Steuernummer",
+  "pdfDialogTitle": "Rechnungs-PDF",
+  "loading": "Rechnungen werden geladen...",
+  "detailLoading": "Details werden geladen...",
+  "errors": {
+    "loadInvoices": "Beim Laden der Rechnungen ist ein Fehler aufgetreten",
+    "loadDetail": "Beim Laden der Rechnungsdetails ist ein Fehler aufgetreten",
+    "downloadPdf": "Beim Herunterladen des PDFs ist ein Fehler aufgetreten"
+  },
+  "statusLabels": {
+    "paid": "Bezahlt",
+    "pending": "Ausstehend",
+    "draft": "Entwurf",
+    "cancelled": "Storniert",
+    "unknown": "Unbekannt"
+  },
+  "actions": {
+    "downloadPdf": "PDF herunterladen"
+  },
+  "stats": {
+    "totalInvoices": "Gesamtrechnungen",
+    "totalRevenue": "Gesamtumsatz",
+    "pending": "Ausstehend"
+  }
+}

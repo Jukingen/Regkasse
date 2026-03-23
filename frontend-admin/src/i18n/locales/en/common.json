@@ -1,0 +1,22 @@
+{
+  "breadcrumb": {
+    "overview": "Overview"
+  },
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "yes": "Yes",
+    "no": "No",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit"
+  },
+  "messages": {
+    "unknownError": "Unknown error"
+  },
+  "operator": {
+    "refetchHintToolbar": "Refresh data manually (cache may be stale)."
+  }
+}

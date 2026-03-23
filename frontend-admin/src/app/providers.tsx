@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import React, { useState, ReactNode } from 'react';
+import { I18nProvider } from '@/i18n';
 
 export default function QueryProvider({ children }: { children: ReactNode }) {
     // Standard Next.js 14 pattern for QueryClient stability
@@ -23,9 +24,11 @@ export default function QueryProvider({ children }: { children: ReactNode }) {
     });
 
     return (
-        <QueryClientProvider client={queryClient}>
-            {children}
-            <ReactQueryDevtools initialIsOpen={false} />
-        </QueryClientProvider>
+        <I18nProvider>
+            <QueryClientProvider client={queryClient}>
+                {children}
+                <ReactQueryDevtools initialIsOpen={false} />
+            </QueryClientProvider>
+        </I18nProvider>
     );
 }

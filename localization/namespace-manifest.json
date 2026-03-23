@@ -1,0 +1,44 @@
+{
+  "$schema": "./namespace-manifest.schema.json",
+  "version": 1,
+  "defaultLocale": "de",
+  "locales": ["de", "en", "tr"],
+  "reservedPrefixes": ["product.", "category.", "modifier."],
+  "keyPattern": "^[a-z0-9][a-zA-Z0-9_]*(\\.[a-zA-Z0-9_]+)*$",
+  "targetKeyPattern": "^[a-z0-9]+(?:_[a-z0-9]+)*(?:\\.[a-z0-9]+(?:_[a-z0-9]+)*)*$",
+  "orphanNamespacePolicy": "warning",
+  "apps": {
+    "frontend": {
+      "localesDir": "frontend/i18n/locales",
+      "csvPath": "localization/out/frontend.csv",
+      "namespaces": [
+        "auth",
+        "checkout",
+        "common",
+        "customers",
+        "employees",
+        "invoices",
+        "navigation",
+        "orders",
+        "payment",
+        "products",
+        "reports",
+        "settings",
+        "system",
+        "tables"
+      ]
+    },
+    "frontend-admin": {
+      "localesDir": "frontend-admin/src/i18n/locales",
+      "csvPath": "localization/out/frontend-admin.csv",
+      "namespaces": [
+        "admin-shell",
+        "common",
+        "nav",
+        "users",
+        "settings",
+        "products"
+      ]
+    }
+  }
+}

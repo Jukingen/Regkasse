@@ -6,13 +6,13 @@ import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '../i18n';
 
 const LANGUAGES = [
-  { code: 'de', label: 'Deutsch' },
-  { code: 'en', label: 'English' },
-  { code: 'tr', label: 'Türkçe' },
+  { code: 'de', key: 'settings:languageSelector.de' },
+  { code: 'en', key: 'settings:languageSelector.en' },
+  { code: 'tr', key: 'settings:languageSelector.tr' },
 ];
 
 const LanguageSelector = () => {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation(['settings']);
 
   // CRITICAL FIX: currentLang'i useMemo ile optimize et
   const currentLang = useMemo(() => i18n.language, [i18n.language]);
@@ -27,9 +27,10 @@ const LanguageSelector = () => {
     try {
       await changeLanguage(code);
     } catch (error) {
-      console.error('Dil değiştirme hatası:', error);
+      console.error('Language change failed:', error);
+      console.warn(t('settings:languageSelector.changeFailed'));
     }
-  }, [currentLang]);
+  }, [currentLang, t]);
 
   // CRITICAL FIX: LANGUAGES array'ini useMemo ile optimize et
   const languageButtons = useMemo(() =>
@@ -40,12 +41,12 @@ const LanguageSelector = () => {
         onPress={() => handleSelect(lang.code)}
         accessibilityRole="radio"
         accessibilityState={{ selected: currentLang === lang.code }}
-        accessibilityLabel={lang.label}
+        accessibilityLabel={t(lang.key)}
         activeOpacity={0.85}
       >
-        <Text style={[styles.text, currentLang === lang.code && styles.selectedText]}>{lang.label}</Text>
+        <Text style={[styles.text, currentLang === lang.code && styles.selectedText]}>{t(lang.key)}</Text>
       </TouchableOpacity>
-    )), [currentLang, handleSelect]);
+    )), [currentLang, handleSelect, t]);
 
   return (
     <View style={styles.row} accessibilityRole="radiogroup">

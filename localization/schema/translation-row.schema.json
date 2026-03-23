@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://regkasse.local/schemas/localization/translation-row.schema.json",
+  "title": "TranslationRow",
+  "type": "object",
+  "required": ["app", "namespace", "key", "description", "de", "en", "tr", "status", "notes"],
+  "properties": {
+    "app": {
+      "type": "string",
+      "minLength": 1
+    },
+    "namespace": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_\\-]*$"
+    },
+    "key": {
+      "type": "string",
+      "pattern": "^[a-z][a-zA-Z0-9]*(\\.[a-z][a-zA-Z0-9]*)*$"
+    },
+    "description": {
+      "type": "string"
+    },
+    "de": {
+      "type": "string"
+    },
+    "en": {
+      "type": "string"
+    },
+    "tr": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["new", "translated", "reviewed", "deprecated", ""]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

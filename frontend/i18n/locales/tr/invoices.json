@@ -1,0 +1,47 @@
+{
+  "title": "Faturalar",
+  "emptyList": "Fatura bulunamadı",
+  "detailTitle": "Fatura Detayı",
+  "invoiceNo": "Fatura No",
+  "date": "Tarih",
+  "time": "Saat",
+  "customer": "Müşteri",
+  "paymentMethod": "Ödeme Yöntemi",
+  "status": "Durum",
+  "total": "Toplam",
+  "tax": "Vergi",
+  "printed": "Yazdırıldı",
+  "yes": "Evet",
+  "no": "Hayır",
+  "company": "Şirket",
+  "products": "Ürünler",
+  "item": "Kalem",
+  "quantity": "Adet",
+  "unit": "Birim",
+  "tseSignature": "TSE-İmzası",
+  "kassenId": "Kasa ID",
+  "taxNumber": "Vergi Numarası",
+  "pdfDialogTitle": "Fatura PDF",
+  "loading": "Faturalar yükleniyor...",
+  "detailLoading": "Detaylar yükleniyor...",
+  "errors": {
+    "loadInvoices": "Faturalar yüklenirken bir hata oluştu",
+    "loadDetail": "Fatura detayı yüklenirken bir hata oluştu",
+    "downloadPdf": "PDF indirilirken bir hata oluştu"
+  },
+  "statusLabels": {
+    "paid": "Ödendi",
+    "pending": "Beklemede",
+    "draft": "Taslak",
+    "cancelled": "İptal",
+    "unknown": "Bilinmiyor"
+  },
+  "actions": {
+    "downloadPdf": "PDF İndir"
+  },
+  "stats": {
+    "totalInvoices": "Toplam Fatura",
+    "totalRevenue": "Toplam Ciro",
+    "pending": "Bekleyen"
+  }
+}

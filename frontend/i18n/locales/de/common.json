@@ -35,5 +35,7 @@
   "validationError": "Validierungsfehler",
   "permissionDenied": "Zugriff verweigert",
   "unauthorized": "Nicht autorisiert",
-  "noAccess": "Sie haben keinen Zugriff auf diesen Bildschirm"
+  "noAccess": "Sie haben keinen Zugriff auf diesen Bildschirm",
+  "tableRestoring": "Tische werden wiederhergestellt",
+  "table": "Tisch"
 }

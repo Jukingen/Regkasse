@@ -1,0 +1,4 @@
+"app","namespace","key","description","de","en","tr","status","notes"
+"frontend-admin","common","buttons.save","Primary save action in forms","Speichern","Save","Kaydet","reviewed","Used in settings and product forms"
+"frontend-admin","users","page.title","Users page title","Benutzerverwaltung","User management","Kullanıcı yönetimi","translated","Keep concise for header"
+"frontend","checkout","posFlow.toast.selectTableFirst","POS flow guard before cart action","Bitte zuerst Tisch wählen.","Please select a table first.","Lütfen önce masa seçin.","translated","Shown in cashier toast"

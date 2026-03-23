@@ -1,0 +1,22 @@
+{
+  "overview": "Genel bakış",
+  "invoices": "Faturalar",
+  "products": "Ürünler",
+  "modifierGroups": "Ek grup",
+  "categories": "Kategoriler",
+  "customers": "Müşteriler",
+  "benefitDefinitions": "Avantajlar (tanımlar)",
+  "benefitAssignments": "Avantajlar (atamalar)",
+  "receipts": "Fişler",
+  "receiptTemplates": "Fiş şablonları",
+  "receiptGenerate": "Fiş önizleme",
+  "auditLogs": "Denetim günlüğü",
+  "payments": "Ödemeler",
+  "tagesabschluss": "Gün sonu",
+  "users": "Kullanıcılar",
+  "settings": "Ayarlar",
+  "myProfile": "Profilim",
+  "logout": "Çıkış yap",
+  "rksvOperationsOverview": "RKSV genel bakış",
+  "finanzOnlineAbgleich": "FinanzOnline mutabakatı"
+}

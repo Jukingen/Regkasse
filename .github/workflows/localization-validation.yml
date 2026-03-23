@@ -1,0 +1,311 @@
+name: Localization Validation
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "Rollout phase (phase1|phase2|phase3)"
+        required: false
+        default: "phase1"
+
+jobs:
+  localization:
+    runs-on: ubuntu-latest
+    env:
+      DEFAULT_BOUNDARY_PHASE: phase1
+      # rollout policy:
+      # phase1: frontend soft, frontend-admin strict, boundary warn-only
+      # phase2: frontend soft, frontend-admin strict, admin boundary strict
+      # phase3: frontend strict, frontend-admin strict, all boundary strict
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install frontend-admin dependencies
+        working-directory: frontend-admin
+        run: npm ci
+
+      - name: Resolve rollout phase
+        id: phase
+        shell: bash
+        run: |
+          phase="${{ github.event.inputs.phase || vars.LOCALIZATION_BOUNDARY_PHASE || env.DEFAULT_BOUNDARY_PHASE }}"
+          if [[ "$phase" != "phase1" && "$phase" != "phase2" && "$phase" != "phase3" ]]; then
+            echo "Unknown phase '$phase'. Allowed: phase1|phase2|phase3"
+            exit 1
+          fi
+          echo "value=$phase" >> "$GITHUB_OUTPUT"
+          echo "Boundary rollout phase: $phase"
+
+      - name: Resolve enforcement modes
+        id: policy
+        shell: bash
+        run: |
+          phase="${{ steps.phase.outputs.value }}"
+          frontend_mode="soft"
+          admin_mode="strict"
+          frontend_boundary_warn="true"
+          admin_boundary_warn="true"
+          frontend_key_mode="compat"
+          admin_key_mode="compat"
+
+          if [[ "$phase" == "phase2" ]]; then
+            admin_boundary_warn="false"
+          fi
+          if [[ "$phase" == "phase3" ]]; then
+            frontend_mode="strict"
+            frontend_boundary_warn="false"
+            admin_boundary_warn="false"
+            frontend_key_mode="target"
+            admin_key_mode="target"
+          fi
+
+          echo "frontend_mode=$frontend_mode" >> "$GITHUB_OUTPUT"
+          echo "admin_mode=$admin_mode" >> "$GITHUB_OUTPUT"
+          echo "frontend_boundary_warn=$frontend_boundary_warn" >> "$GITHUB_OUTPUT"
+          echo "admin_boundary_warn=$admin_boundary_warn" >> "$GITHUB_OUTPUT"
+          echo "frontend_key_mode=$frontend_key_mode" >> "$GITHUB_OUTPUT"
+          echo "admin_key_mode=$admin_key_mode" >> "$GITHUB_OUTPUT"
+
+          echo "Policy => phase=$phase, frontend=$frontend_mode/$frontend_key_mode, admin=$admin_mode/$admin_key_mode, frontendBoundaryWarn=$frontend_boundary_warn, adminBoundaryWarn=$admin_boundary_warn"
+
+      - name: JSON parse check (hard fail)
+        shell: bash
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const manifest = JSON.parse(fs.readFileSync('localization/namespace-manifest.json', 'utf8'));
+          const failures = [];
+          for (const [appId, app] of Object.entries(manifest.apps)) {
+            for (const locale of manifest.locales) {
+              for (const ns of app.namespaces) {
+                const file = path.join(process.cwd(), app.localesDir, locale, `${ns}.json`);
+                try {
+                  const raw = fs.readFileSync(file, 'utf8');
+                  JSON.parse(raw);
+                } catch (e) {
+                  failures.push(`${appId}:${locale}/${ns}.json parse error -> ${e.message}`);
+                }
+              }
+            }
+          }
+          if (failures.length) {
+            console.error('JSON parse failures:');
+            failures.forEach((f) => console.error(`- ${f}`));
+            process.exit(1);
+          }
+          console.log('JSON parse check passed.');
+          EOF
+
+      - name: Validate translations (frontend-admin strict)
+        shell: bash
+        run: node localization/scripts/validate-translations.mjs --app frontend-admin --keyMode "${{ steps.policy.outputs.admin_key_mode }}"
+
+      - name: Validate translations (frontend soft rollout)
+        if: steps.policy.outputs.frontend_mode != 'strict'
+        continue-on-error: true
+        shell: bash
+        run: node localization/scripts/validate-translations.mjs --app frontend --keyMode "${{ steps.policy.outputs.frontend_key_mode }}"
+
+      - name: Validate translations (frontend strict)
+        if: steps.policy.outputs.frontend_mode == 'strict'
+        shell: bash
+        run: node localization/scripts/validate-translations.mjs --app frontend --keyMode "${{ steps.policy.outputs.frontend_key_mode }}"
+
+      - name: Export matrix CSV (frontend-admin strict)
+        shell: bash
+        run: node localization/scripts/export-translations.mjs --app frontend-admin
+
+      - name: Export matrix CSV (frontend soft rollout)
+        if: steps.policy.outputs.frontend_mode != 'strict'
+        continue-on-error: true
+        shell: bash
+        run: node localization/scripts/export-translations.mjs --app frontend
+
+      - name: Export matrix CSV (frontend strict)
+        if: steps.policy.outputs.frontend_mode == 'strict'
+        shell: bash
+        run: node localization/scripts/export-translations.mjs --app frontend
+
+      - name: Import dry-run (frontend-admin strict)
+        shell: bash
+        run: node localization/scripts/import-translations.mjs --app frontend-admin --dry-run
+
+      - name: Import dry-run (frontend soft rollout)
+        if: steps.policy.outputs.frontend_mode != 'strict'
+        continue-on-error: true
+        shell: bash
+        run: node localization/scripts/import-translations.mjs --app frontend --dry-run
+
+      - name: Import dry-run (frontend strict)
+        if: steps.policy.outputs.frontend_mode == 'strict'
+        shell: bash
+        run: node localization/scripts/import-translations.mjs --app frontend --dry-run
+
+      - name: Boundary check (frontend-admin)
+        shell: bash
+        run: |
+          if [[ "${{ steps.policy.outputs.admin_boundary_warn }}" == "true" ]]; then
+            node localization/scripts/check-translation-boundary.mjs --app frontend-admin --warn-only true
+          else
+            node localization/scripts/check-translation-boundary.mjs --app frontend-admin
+          fi
+
+      - name: Boundary check (frontend soft rollout)
+        if: steps.policy.outputs.frontend_mode != 'strict'
+        continue-on-error: true
+        shell: bash
+        run: node localization/scripts/check-translation-boundary.mjs --app frontend --warn-only true
+
+      - name: Boundary check (frontend strict)
+        if: steps.policy.outputs.frontend_mode == 'strict'
+        shell: bash
+        run: |
+          if [[ "${{ steps.policy.outputs.frontend_boundary_warn }}" == "true" ]]; then
+            node localization/scripts/check-translation-boundary.mjs --app frontend --warn-only true
+          else
+            node localization/scripts/check-translation-boundary.mjs --app frontend
+          fi
+
+      - name: Compare boundary baseline (phase2+)
+        if: steps.phase.outputs.value != 'phase1'
+        shell: bash
+        run: |
+          node localization/scripts/compare-boundary-baseline.mjs \
+            --baseline localization/baseline/boundary-baseline.json \
+            --report localization/out/reports/boundary-report.frontend.json \
+            --out localization/out/reports/boundary-compare-report.frontend.json
+          node localization/scripts/compare-boundary-baseline.mjs \
+            --baseline localization/baseline/boundary-baseline.json \
+            --report localization/out/reports/boundary-report.frontend-admin.json \
+            --out localization/out/reports/boundary-compare-report.frontend-admin.json
+
+      - name: Upload localization reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: localization-reports
+          path: |
+            localization/out/reports/*.json
+            localization/out/reports/*.txt
+            localization/out/*.csv
+            localization/examples/sample-translations.csv
+          if-no-files-found: warn
+
+      - name: Add PR summary
+        if: always()
+        shell: bash
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          const summaryFile = process.env.GITHUB_STEP_SUMMARY;
+          const phase = '${{ steps.phase.outputs.value }}';
+          const frontendMode = '${{ steps.policy.outputs.frontend_mode }}';
+          const adminMode = '${{ steps.policy.outputs.admin_mode }}';
+          const frontendBoundaryWarn = '${{ steps.policy.outputs.frontend_boundary_warn }}';
+          const adminBoundaryWarn = '${{ steps.policy.outputs.admin_boundary_warn }}';
+          const frontendKeyMode = '${{ steps.policy.outputs.frontend_key_mode }}';
+          const adminKeyMode = '${{ steps.policy.outputs.admin_key_mode }}';
+          const reports = [
+            'localization/out/reports/boundary-report.frontend.json',
+            'localization/out/reports/boundary-report.frontend-admin.json',
+            'localization/out/reports/validate-report.frontend.json',
+            'localization/out/reports/validate-report.frontend-admin.json',
+            'localization/out/reports/export-report.frontend.json',
+            'localization/out/reports/export-report.frontend-admin.json',
+            'localization/out/reports/import-report.frontend.json',
+            'localization/out/reports/import-report.frontend-admin.json',
+            'localization/out/reports/boundary-compare-report.frontend.json',
+            'localization/out/reports/boundary-compare-report.frontend-admin.json',
+          ];
+          const lines = [];
+          lines.push('## Localization enforcement summary');
+          lines.push(`- phase: \`${phase}\``);
+          lines.push(`- frontend mode: \`${frontendMode}\``);
+          lines.push(`- frontend-admin mode: \`${adminMode}\``);
+          lines.push(`- frontend key mode: \`${frontendKeyMode}\``);
+          lines.push(`- frontend-admin key mode: \`${adminKeyMode}\``);
+          lines.push(`- frontend boundary warn-only: \`${frontendBoundaryWarn}\``);
+          lines.push(`- frontend-admin boundary warn-only: \`${adminBoundaryWarn}\``);
+          lines.push('');
+          lines.push('### CI policy matrix');
+          lines.push('| Rule | Phase 1 | Phase 2 | Phase 3 |');
+          lines.push('| --- | --- | --- | --- |');
+          lines.push('| invalid JSON parse | hard fail | hard fail | hard fail |');
+          lines.push('| duplicate keys / missing de / reserved prefix / invalid namespace | frontend warn-only, admin hard fail | frontend warn-only, admin hard fail | hard fail (both) |');
+          lines.push('| invalid key naming (target mode) | warning (compat) | warning (compat) | hard fail (target) |');
+          lines.push('| missing en/tr | warning | warning | warning |');
+          lines.push('| dynamic translation key usage (boundary) | warning | admin hard fail, frontend warning | hard fail (both) |');
+
+          let aggregateFailures = 0;
+          let aggregateWarnings = 0;
+          const topRuleCounts = new Map();
+
+          const classifyFailure = (entry) => {
+            const msg = String(entry || '');
+            if (msg.includes('parse error') || msg.includes('Invalid JSON')) return 'invalid_json_parse';
+            if (msg.includes('duplicate key') || msg.includes('duplicate tuple') || msg.includes('Duplicate tuple')) return 'duplicate_key';
+            if (msg.includes('missing de value') || msg.includes('Missing required "de" text')) return 'missing_de';
+            if (msg.includes('reserved prefix')) return 'reserved_prefix';
+            if (msg.includes('namespace') && (msg.includes('allowlist') || msg.includes('not allowed'))) return 'invalid_namespace';
+            if (msg.includes('key regex') || msg.includes('target key policy violation') || msg.includes('Invalid key format')) return 'invalid_key_naming';
+            if (msg.includes('NO_T_') || msg.includes('PRODUCTS_DOMAIN_LIKE_KEY')) return 'dynamic_translation_key';
+            return 'other';
+          };
+
+          for (const reportPath of reports) {
+            if (!fs.existsSync(reportPath)) continue;
+            const raw = fs.readFileSync(reportPath, 'utf8');
+            const json = JSON.parse(raw);
+            const name = path.basename(reportPath);
+            const failures = Array.isArray(json.failures) ? json.failures.length : (json.summary?.failureCount ?? 0);
+            const warnings = Array.isArray(json.warnings) ? json.warnings.length : (json.summary?.warningCount ?? 0);
+            const violations = Array.isArray(json.violations) ? json.violations.length : (json.currentCount ?? 0);
+            const newCount = Number(json.newCount ?? 0);
+            lines.push(`- ${name}: failures=${failures}, warnings=${warnings}, violations=${violations}, new=${newCount}`);
+            aggregateFailures += Number(failures || 0);
+            aggregateWarnings += Number(warnings || 0);
+
+            if (Array.isArray(json.failures)) {
+              for (const entry of json.failures) {
+                const bucket = classifyFailure(entry);
+                topRuleCounts.set(bucket, (topRuleCounts.get(bucket) || 0) + 1);
+              }
+            }
+            if (Array.isArray(json.violations)) {
+              for (const v of json.violations) {
+                const code = v?.code ? String(v.code).toLowerCase() : classifyFailure(v?.message || '');
+                topRuleCounts.set(code, (topRuleCounts.get(code) || 0) + 1);
+              }
+            }
+          }
+          lines.push('');
+          lines.push('### Validation totals');
+          lines.push(`- failureCount: ${aggregateFailures}`);
+          lines.push(`- warningCount: ${aggregateWarnings}`);
+          const topRules = [...topRuleCounts.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+          lines.push('- top rule violations:');
+          if (topRules.length === 0) {
+            lines.push('  - none');
+          } else {
+            for (const [rule, count] of topRules) {
+              lines.push(`  - ${rule}: ${count}`);
+            }
+          }
+          fs.appendFileSync(summaryFile, `${lines.join('\n')}\n`);
+          EOF

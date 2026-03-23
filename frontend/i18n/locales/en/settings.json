@@ -8,5 +8,69 @@
   "systemTheme": "System",
   "german": "German",
   "english": "English",
-  "turkish": "Turkish"
+  "turkish": "Turkish",
+  "other_settings": "Other Settings",
+  "coming_soon": "Coming Soon",
+  "offlineQueue": {
+    "title": "Offline Queue",
+    "description": "View pending payments, retry them, or sync all.",
+    "open": "Open Queue"
+  },
+  "languageSelector": {
+    "de": "Deutsch",
+    "en": "English",
+    "tr": "Turkce",
+    "changeFailed": "Language could not be changed."
+  },
+  "registerGate": {
+    "banner": {
+      "intro": "A usable cash register (open) and assignment are required for a fiscally valid payment."
+    }
+  },
+  "registerAssignment": {
+    "title": "Cash Register (POS)",
+    "intro": "A currently open register must be assigned for fiscally valid payments. The selection is saved in the profile.",
+    "assignedPrefix": "Currently assigned:",
+    "retry": "Try again",
+    "retryReadiness": "Retry register readiness",
+    "reloadList": "Reload register list",
+    "change": "Choose another register",
+    "savedTitle": "Saved",
+    "savedMessage": "Register has been assigned.",
+    "saveErrorTitle": "Error",
+    "saveErrorMessage": "Assignment was rejected by the server (invalid register, missing permission, or register is not open)."
+  },
+  "cashRegister": {
+    "summaryTitle": "Summary",
+    "categoryTitle": "Category",
+    "personalLabel": "Staff:",
+    "personalNone": "None",
+    "change": "Change",
+    "remove": "Remove",
+    "assign": "Assign",
+    "benefitSingle": "🎁 Benefit active",
+    "benefitMultiple": "🎁 {{count}} benefits active",
+    "criticalStrip": "Table {{tableId}} · {{itemCount}} items · TOTAL {{total}}",
+    "errors": {
+      "selectTableFirst": "Please select a table first.",
+      "invalidTable": "Invalid table number",
+      "tableSwitchFailed": "Table switch failed",
+      "updateFailed": "Update failed",
+      "removeItemFailed": "Failed to remove item.",
+      "clearTableFailed": "Table {{tableId}} could not be cleared",
+      "emptyCart": "Cart is empty. Add items first.",
+      "addOnFailed": "Failed to add add-on.",
+      "addFailed": "Failed to add item"
+    },
+    "success": {
+      "addedToTable": "{{name}} added to table {{tableId}}",
+      "added": "{{name}} added",
+      "itemRemoved": "Item removed",
+      "cartCleared": "Cart for table {{tableId}} cleared",
+      "tableCleared": "Table {{tableId}} cleared"
+    },
+    "info": {
+      "switchingToTable": "Switching to table {{tableId}}"
+    }
+  }
 }

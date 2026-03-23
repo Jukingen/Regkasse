@@ -1,0 +1,10 @@
+{
+  "page": {
+    "title": "Benutzerverwaltung",
+    "accessDeniedTitle": "Zugriff verweigert",
+    "accessDeniedDescription": "Nur mit Berechtigung \"Benutzer anzeigen\" (z. B. SuperAdmin, Manager) können Sie diese Seite öffnen.",
+    "createUser": "Benutzer anlegen",
+    "createRole": "Rolle anlegen",
+    "manageRoles": "Rollen verwalten"
+  }
+}

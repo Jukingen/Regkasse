@@ -25,11 +25,11 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
         <Text style={styles.headerTitle}>{t('checkout:title')}</Text>
         {selectedTable > 0 && (
           <View style={styles.tableBadge}>
-            <Text style={styles.tableBadgeText}>{t('common:table', 'Tisch')} {selectedTable}</Text>
+            <Text style={styles.tableBadgeText}>{t('common:table')} {selectedTable}</Text>
           </View>
         )}
         {recoveryLoading && (
-          <View style={styles.recoveryBadge} accessibilityLabel="Tische werden wiederhergestellt">
+          <View style={styles.recoveryBadge} accessibilityLabel={t('common:tableRestoring')}>
             <Text style={styles.recoveryText} accessibilityElementsHidden>🔄</Text>
           </View>
         )}

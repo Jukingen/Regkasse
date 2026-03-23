@@ -1,0 +1,52 @@
+{
+  "page": {
+    "title": "Şirket ayarları",
+    "loading": "Şirket ayarları yükleniyor…",
+    "loadErrorTitle": "Şirket ayarları yüklenemedi",
+    "loadErrorFallback": "Şirket ayarları yüklenemedi. Bağlantıyı kontrol edip yeniden deneyin.",
+    "empty": "Hiç şirket ayarı dönmedi.",
+    "saveChanges": "Değişiklikleri kaydet",
+    "saveFailed": "Kaydetme başarısız oldu."
+  },
+  "tabs": {
+    "general": "Genel bilgiler",
+    "localization": "Bolge ve bicimlendirme",
+    "finanzOnline": "FinanzOnline",
+    "tse": "TSE",
+    "password": "Sifrem"
+  },
+  "changePassword": {
+    "title": "Sifremi degistir",
+    "currentPassword": "Mevcut sifre",
+    "currentPasswordRequired": "Mevcut sifre zorunludur",
+    "newPassword": "Yeni sifre (en az 8 karakter, buyuk/kucuk harf, sayi, ozel karakter)",
+    "newPasswordRequired": "Yeni sifre zorunludur",
+    "minLength": "En az 8 karakter",
+    "confirmPassword": "Yeni sifreyi onayla",
+    "confirmRequired": "Lutfen yeni sifreyi onaylayin",
+    "confirmMismatch": "Sifreler eslesmiyor.",
+    "submit": "Sifreyi degistir",
+    "success": "Sifre degistirildi.",
+    "errorFallback": "Sifre degistirilemedi."
+  },
+  "form": {
+    "general": {
+      "cardTitle": "Sirket ve iletisim"
+    },
+    "localization": {
+      "cardTitle": "Bolge ve bicimlendirme"
+    },
+    "finanzOnline": {
+      "credentialsCardTitle": "Kimlik bilgileri ve baglanti",
+      "deliveryCardTitle": "Gonderim",
+      "validationCardTitle": "Dogrulama ve tekrarlar",
+      "runtimeCardTitle": "Calisma durumu (salt okunur)",
+      "runtimeCardDescription": "Calisma durumu backend'den gelir. Bu alanlar salt okunurdur ve “Degisiklikleri kaydet” ile yazilmaz.",
+      "lastSyncLabel": "Son FinanzOnline senkronizasyonu",
+      "pendingInvoicesLabel": "Bekleyen faturalar"
+    },
+    "tse": {
+      "cardTitle": "TSE (Teknik guvenlik cihazi)"
+    }
+  }
+}

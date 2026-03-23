@@ -14,9 +14,12 @@ export default function SettingsScreen() {
   // CRITICAL FIX: Translation değerlerini useMemo ile cache'le
   const translations = useMemo(() => ({
     settings: t('settings:title'),
-    otherSettings: t('settings:other_settings', 'Other Settings'),
-    comingSoon: t('settings:coming_soon', 'Coming Soon'),
-    logout: t('auth:logout')
+    otherSettings: t('settings:other_settings'),
+    comingSoon: t('settings:coming_soon'),
+    logout: t('auth:logout'),
+    offlineQueueTitle: t('settings:offlineQueue.title'),
+    offlineQueueDescription: t('settings:offlineQueue.description'),
+    offlineQueueOpen: t('settings:offlineQueue.open'),
   }), [t]);
 
   return (
@@ -32,15 +35,15 @@ export default function SettingsScreen() {
         <CashRegisterAssignmentSection />
       </View>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Offline-Warteschlange</Text>
+        <Text style={styles.sectionTitle}>{translations.offlineQueueTitle}</Text>
         <Text style={styles.description}>
-          Ausstehende Zahlungen anzeigen, erneut senden oder alle synchronisieren.
+          {translations.offlineQueueDescription}
         </Text>
         <TouchableOpacity
           style={styles.queueLinkButton}
           onPress={() => router.push('/(screens)/offline-queue' as any)}
         >
-          <Text style={styles.queueLinkText}>Warteschlange öffnen</Text>
+          <Text style={styles.queueLinkText}>{translations.offlineQueueOpen}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.section}>

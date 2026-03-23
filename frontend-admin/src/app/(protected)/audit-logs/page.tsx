@@ -12,8 +12,9 @@ import dayjs from 'dayjs';
 import { viewAuditLogStatusPresentation } from '@/shared/verificationsAuditView';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
+import { useI18n } from '@/i18n';
 
 const { RangePicker } = DatePicker;
 
@@ -49,6 +50,7 @@ const ACTION_OPTIONS = [
 ];
 
 export default function AuditLogsPage() {
+    const { t } = useI18n();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
@@ -292,11 +294,11 @@ export default function AuditLogsPage() {
     return (
         <AdminPageShell>
             <AdminPageHeader
-                title={ADMIN_NAV_LABELS.auditLogs}
-                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.auditLogs }]}
+                title={t(ADMIN_NAV_LABEL_KEYS.auditLogs)}
+                breadcrumbs={[adminOverviewCrumb(t), { title: t(ADMIN_NAV_LABEL_KEYS.auditLogs) }]}
                 actions={
                     <Space wrap>
-                        <Tooltip title={OPERATOR_SHARED_COPY.refetchHintToolbar}>
+                        <Tooltip title={t('common.operator.refetchHintToolbar')}>
                             <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
                                 {OPERATOR_SHARED_COPY.toolbarRefresh}
                             </Button>

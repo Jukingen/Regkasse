@@ -14,12 +14,17 @@ import {
   Modal,
 } from 'react-native';
 
-import { useTranslation } from '../../i18n';
+import { useTranslation } from 'react-i18next';
 import * as InvoiceService from '../../services/api/invoiceService';
 import type { PosInvoiceView } from '../../services/api/invoiceService';
+import { getFormattingLocaleForTextLocale } from '../../i18n/localeUtils';
 
 export default function InvoicesScreen() {
-  const { t } = useTranslation(['invoices', 'common']);
+  const { t, i18n } = useTranslation(['invoices', 'common']);
+  const uiLocale = useMemo(() => {
+    return getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language);
+  }, [i18n.language, i18n.resolvedLanguage]);
+
   const [invoices, setInvoices] = useState<PosInvoiceView[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -42,8 +47,8 @@ export default function InvoicesScreen() {
       const data = await InvoiceService.getPosInvoices(1, 100);
       setInvoices(data);
     } catch (error) {
-      console.error('Faturalar yüklenirken hata:', error);
-      Alert.alert('Hata', 'Faturalar yüklenirken bir hata oluştu');
+      console.error('Invoice loading failed:', error);
+      Alert.alert(t('common:error'), t('invoices:errors.loadInvoices'));
     } finally {
       setLoading(false);
     }
@@ -67,8 +72,8 @@ export default function InvoicesScreen() {
       const full = await InvoiceService.getPosInvoiceDetail(row.id);
       setSelectedInvoice(full);
     } catch (error) {
-      console.error('Fatura detayı yüklenirken hata:', error);
-      Alert.alert('Hata', 'Fatura detayı yüklenirken bir hata oluştu');
+      console.error('Invoice detail loading failed:', error);
+      Alert.alert(t('common:error'), t('invoices:errors.loadDetail'));
       setModalVisible(false);
       setSelectedInvoice(null);
     } finally {
@@ -86,11 +91,11 @@ export default function InvoicesScreen() {
       });
       await Sharing.shareAsync(fileUri, {
         mimeType: 'application/pdf',
-        dialogTitle: 'Fatura PDF',
+        dialogTitle: t('invoices:pdfDialogTitle'),
       });
     } catch (error) {
-      console.error('PDF indirilirken hata:', error);
-      Alert.alert('Hata', 'PDF indirilirken bir hata oluştu');
+      console.error('Invoice PDF download failed:', error);
+      Alert.alert(t('common:error'), t('invoices:errors.downloadPdf'));
     }
   };
 
@@ -120,11 +125,20 @@ export default function InvoicesScreen() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    const normalized = String(status || '').toLowerCase();
+    if (normalized === 'paid') return t('invoices:statusLabels.paid');
+    if (normalized === 'pending') return t('invoices:statusLabels.pending');
+    if (normalized === 'draft') return t('invoices:statusLabels.draft');
+    if (normalized === 'cancelled') return t('invoices:statusLabels.cancelled');
+    return t('invoices:statusLabels.unknown');
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Faturalar yükleniyor...</Text>
+        <Text style={styles.loadingText}>{t('invoices:loading')}</Text>
       </View>
     );
   }
@@ -169,7 +183,7 @@ export default function InvoicesScreen() {
               <View style={styles.invoiceHeader}>
                 <Text style={styles.invoiceNumber}>{invoice.receiptNumber}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(invoice.status) }]}>
-                  <Text style={styles.statusText}>{invoice.status}</Text>
+                  <Text style={styles.statusText}>{getStatusLabel(invoice.status)}</Text>
                 </View>
               </View>
 
@@ -178,7 +192,7 @@ export default function InvoicesScreen() {
                   {invoice.customer?.firstName} {invoice.customer?.lastName}
                 </Text>
                 <Text style={styles.invoiceDate}>
-                  {new Date(invoice.invoiceDate).toLocaleDateString('tr-TR')}
+                  {new Date(invoice.invoiceDate).toLocaleDateString(uiLocale)}
                 </Text>
                 <Text style={styles.invoiceAmount}>€{invoice.totalAmount?.toFixed(2)}</Text>
               </View>
@@ -205,6 +219,7 @@ export default function InvoicesScreen() {
             {detailLoading ? (
               <View style={{ padding: 24, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#007AFF" />
+                <Text style={styles.loadingText}>{t('invoices:detailLoading')}</Text>
               </View>
             ) : selectedInvoice ? (
               <ScrollView style={styles.modalBody}>
@@ -213,21 +228,21 @@ export default function InvoicesScreen() {
 
                 <Text style={styles.detailLabel}>{t('invoices:date')}:</Text>
                 <Text style={styles.detailValue}>
-                  {new Date(selectedInvoice.invoiceDate).toLocaleDateString('tr-TR')}
+                  {new Date(selectedInvoice.invoiceDate).toLocaleDateString(uiLocale)}
                 </Text>
 
                 <Text style={styles.detailLabel}>{t('invoices:time')}:</Text>
                 <Text style={styles.detailValue}>
-                  {new Date(selectedInvoice.invoiceDate).toLocaleTimeString('tr-TR')}
+                  {new Date(selectedInvoice.invoiceDate).toLocaleTimeString(uiLocale)}
                 </Text>
 
-                <Text style={styles.detailLabel}>TSE-Signatur:</Text>
+                <Text style={styles.detailLabel}>{t('invoices:tseSignature')}:</Text>
                 <Text style={styles.detailValue}>{selectedInvoice.tseSignature || '-'}</Text>
 
-                <Text style={styles.detailLabel}>Kassen-ID:</Text>
+                <Text style={styles.detailLabel}>{t('invoices:kassenId')}:</Text>
                 <Text style={styles.detailValue}>{selectedInvoice.kassenId || '-'}</Text>
 
-                <Text style={styles.detailLabel}>Steuernummer:</Text>
+                <Text style={styles.detailLabel}>{t('invoices:taxNumber')}:</Text>
                 <Text style={styles.detailValue}>{selectedInvoice.taxNumber || '-'}</Text>
 
                 <Text style={styles.detailLabel}>{t('invoices:customer')}:</Text>
@@ -239,7 +254,7 @@ export default function InvoicesScreen() {
                 <Text style={styles.detailValue}>{selectedInvoice.paymentMethod || '-'}</Text>
 
                 <Text style={styles.detailLabel}>{t('invoices:status')}:</Text>
-                <Text style={styles.detailValue}>{selectedInvoice.status}</Text>
+                <Text style={styles.detailValue}>{getStatusLabel(selectedInvoice.status)}</Text>
 
                 <Text style={styles.detailLabel}>{t('invoices:total')}:</Text>
                 <Text style={styles.detailValue}>€{selectedInvoice.totalAmount?.toFixed(2)}</Text>

@@ -24,5 +24,104 @@
   "outOfStock": "Stokta yok",
   "subtotal": "Ara toplam",
   "tax": "Vergi",
-  "discount": "İndirim"
+  "discount": "İndirim",
+  "posFlow": {
+    "section": {
+      "category": "Kategori",
+      "summary": "Özet"
+    },
+    "summaryStrip": "Masa {{table}} · {{itemCount}} ürün · TOPLAM {{total}}",
+    "personal": {
+      "label": "Personel:",
+      "change": "Değiştir",
+      "remove": "Kaldır",
+      "none": "Yok",
+      "set": "Ata",
+      "benefitSingle": "🎁 Avantaj aktif",
+      "benefitMultiple": "🎁 {{count}} avantaj aktif"
+    },
+    "benefit": {
+      "blockedReasons": {
+        "dailyLimit": "Günlük limit aşıldı",
+        "noEligibleItems": "Sepette uygun ürün yok",
+        "quantityNotReached": "Minimum miktar sağlanmadı",
+        "quantityNotReachedDetail": "Kampanya için {{count}} ürün daha gerekli",
+        "fallback": "Avantaj şu an uygulanamıyor"
+      }
+    },
+    "toast": {
+      "selectTableFirst": "Lütfen önce masa seçin.",
+      "productAddedToTable": "{{name}} {{table}} numaralı masaya eklendi",
+      "productAddError": "{{name}}: {{reason}}",
+      "addOnAdded": "{{name}} eklendi",
+      "addOnAddFailed": "Ek ürün eklenemedi.",
+      "baseProductAdded": "{{name}} eklendi",
+      "addingFailed": "Ekleme başarısız oldu",
+      "invalidTableNumber": "Geçersiz masa numarası",
+      "switchingToTable": "{{table}} numaralı masaya geçiliyor",
+      "tableSwitchFailed": "Masa değiştirilemedi",
+      "updateFailed": "Güncelleme başarısız oldu",
+      "itemRemoved": "Ürün kaldırıldı",
+      "itemRemoveFailed": "Ürün kaldırılamadı.",
+      "cartClearedForTable": "{{table}} numaralı masa sepeti temizlendi",
+      "tableClearFailed": "{{table}} numaralı masa temizlenemedi",
+      "tableCleared": "{{table}} numaralı masa temizlendi",
+      "tableClearGenericFailed": "Masa temizlenemedi",
+      "emptyCart": "Sepet boş. Lütfen önce ürün ekleyin."
+    },
+    "payment": {
+      "title": "Odeme yontemleri",
+      "totalLabel": "Toplam",
+      "enteredTotalLabel": "Girilen toplam",
+      "placeholderAmount": "0.00",
+      "cancelReasonByCashier": "Kasiyer tarafindan iptal edildi",
+      "loadingRegisterSettings": "Yazar kasa ayarlari yukleniyor...",
+      "errors": {
+        "insufficientAmount": "Odeme tutari yetersiz.",
+        "missingTableNumber": "Masa numarasi eksik.",
+        "emptyCart": "Sepet bos.",
+        "invalidAmount": "Gecersiz tutar.",
+        "invalidAmountDetailed": "Gecersiz tutar (0,01 € degerinden buyuk olmalidir).",
+        "cartLoadFailed": "Sepet yuklenemedi. Lutfen tekrar deneyin.",
+        "cartLoadFailedRefresh": "Sepet yuklenemedi. Lutfen sayfayi yenileyin veya tekrar deneyin.",
+        "completeCartFailed": "Odeme tamam, ancak sepet kapatilamadi. Lutfen yoneticiye bilgi verin.",
+        "printFailed": "Odeme tamam, yazdirma basarisiz.",
+        "genericFailed": "Odeme basarisiz. Lutfen tekrar deneyin.",
+        "fiscalNotConfirmed": "Odeme mali olarak dogrulanmadi",
+        "failed": "Odeme basarisiz"
+      },
+      "alerts": {
+        "hintTitle": "Bilgi",
+        "errorTitle": "Hata",
+        "paymentNotPossibleTitle": "Odeme mumkun degil",
+        "paymentCancelledTitle": "Odeme iptal edildi",
+        "cancelPaymentTitle": "Odemeyi iptal et",
+        "cancelPaymentConfirm": "Bu odemeyi gercekten iptal etmek istiyor musunuz?",
+        "cancelFailed": "Iptal basarisiz. Lutfen tekrar deneyin.",
+        "cancelRequestFailed": "Odeme iptali basarisiz oldu.",
+        "fiscalPending": "Kasa baglantisi yok. Odeme mali olarak islenmedi ve kuyruga alindi.",
+        "invoiceReconcileAttention": "Odeme basarili. Fis mutabakati hala dikkatinizi gerektiriyor."
+      },
+      "buttons": {
+        "cancel": "Iptal",
+        "confirm": "Onayla",
+        "cancelNo": "Hayir",
+        "cancelYes": "Evet, iptal et"
+      },
+      "cancelSummary": "Odeme iptal edildi.\n\nNeden: {{reason}}\nIptal eden: {{cancelledBy}}\nSaat: {{cancelledAt}}",
+      "retryActions": {
+        "retrySettings": "Kasa ayarlarini tekrar dene",
+        "retryReadiness": "Kasa hazirligini tekrar dene",
+        "reloadRegisterList": "Kasa listesini yeniden yukle"
+      },
+      "pdfErrors": {
+        "title": "Fiş PDF",
+        "paymentSucceededPrefix": "Ödeme başarılı oldu.",
+        "unauthorized": "{{prefix}} Oturum süresi doldu veya geçersiz. Lütfen tekrar giriş yapın ve «Fiş PDF»yi yeniden deneyin.",
+        "forbidden": "{{prefix}} PDF dışa aktarma izni yok. QR ve yazdırma kullanılabilir. Gerekirse yöneticiye danışın (InvoiceView).",
+        "notFound": "{{prefix}} PDF bulunamadı. Daha sonra tekrar deneyin veya yöneticiye bildirin.",
+        "httpGeneric": "{{prefix}} PDF yüklenemedi (HTTP {{status}}). Daha sonra tekrar deneyin."
+      }
+    }
+  }
 }

@@ -1,0 +1,21 @@
+{
+  "branding": {
+    "drawerTitle": "Regkasse Admin",
+    "sidebarCompact": "RK",
+    "sidebarExpanded": "REGKASSE ADMIN",
+    "fallbackUserName": "Admin User"
+  },
+  "aria": {
+    "openNav": "Navigationsmenü öffnen",
+    "closeNav": "Navigationsmenü schließen",
+    "expandSidebar": "Seitenleiste ausklappen",
+    "collapseSidebar": "Seitenleiste einklappen"
+  },
+  "group": {
+    "kasseBelege": "Kasse & Belege",
+    "sortiment": "Sortiment",
+    "kundenVorteile": "Kunden & Vorteile",
+    "verwaltung": "Verwaltung",
+    "rksv": "RKSV"
+  }
+}

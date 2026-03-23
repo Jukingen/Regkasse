@@ -35,5 +35,7 @@
   "validationError": "Validation error",
   "permissionDenied": "Permission denied",
   "unauthorized": "Unauthorized Access",
-  "noAccess": "You don't have access to this screen"
+  "noAccess": "You don't have access to this screen",
+  "tableRestoring": "Restoring tables",
+  "table": "Table"
 }

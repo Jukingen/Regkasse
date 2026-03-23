@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 import i18n from '../i18n';
+import { DEFAULT_TEXT_LOCALE, normalizeTextLocale } from '../i18n/localeUtils';
 import * as authService from '../services/api/authService';
 import { handleAPIError } from '../services/errorService';
 import { isAuthError, AuthAppError } from '../features/auth/authErrors';
@@ -661,26 +662,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.log('User settings loaded after login (bootstrap or GET fallback):', userSettings);
 
                 if (userSettings?.language) {
-                    // CRITICAL FIX: Dil değiştirme işlemini optimize et
+                    // Map API language (e.g. de-DE) to i18n text locale (de | en | tr)
+                    const next = normalizeTextLocale(userSettings.language);
                     const currentLang = i18n.language;
-                    if (currentLang !== userSettings.language) {
-                        await i18n.changeLanguage(userSettings.language);
-                        console.log('Language changed to:', userSettings.language);
+                    if (normalizeTextLocale(currentLang) !== next) {
+                        await i18n.changeLanguage(next);
+                        console.log('Language changed to:', next);
                     }
                 } else {
-                    // Varsayılan dil olarak de-DE kullan (Avusturya Almancası)
                     const currentLang = i18n.language;
-                    if (currentLang !== 'de-DE') {
-                        await i18n.changeLanguage('de-DE');
-                        console.log('Default language set: de-DE');
+                    if (currentLang !== DEFAULT_TEXT_LOCALE) {
+                        await i18n.changeLanguage(DEFAULT_TEXT_LOCALE);
+                        console.log('Default language set:', DEFAULT_TEXT_LOCALE);
                     }
                 }
             } catch (err) {
                 console.warn('Kullanıcı ayarları backendden alınamadı, varsayılan dil kullanılıyor:', err);
-                // Varsayılan dil olarak de-DE kullan
                 const currentLang = i18n.language;
-                if (currentLang !== 'de-DE') {
-                    await i18n.changeLanguage('de-DE');
+                if (currentLang !== DEFAULT_TEXT_LOCALE) {
+                    await i18n.changeLanguage(DEFAULT_TEXT_LOCALE);
                 }
             }
 

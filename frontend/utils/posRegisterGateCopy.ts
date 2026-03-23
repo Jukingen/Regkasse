@@ -147,10 +147,6 @@ export function registerGateBannerTitle(ctx: PosRegisterGateContext): string {
   return 'Keine Kasse verfügbar';
 }
 
-export function registerGateBannerIntro(): string {
-  return 'Für eine fiskal gültige Zahlung ist eine verwendbare Registrierkasse (geöffnet) und Zuordnung erforderlich.';
-}
-
 export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
   if (ctx.settingsLoadFailed) {
     return 'Die Kasseneinstellungen konnten nicht vom Server geladen werden. Prüfen Sie die Verbindung und tippen Sie auf „Erneut versuchen“, oder melden Sie sich erneut an.';

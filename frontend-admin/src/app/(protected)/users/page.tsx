@@ -26,7 +26,7 @@ import {
 } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import {
     UserOutlined,
     EditOutlined,
@@ -39,7 +39,6 @@ import {
     ClearOutlined,
 } from '@ant-design/icons';
 import Link from 'next/link';
-import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
@@ -47,6 +46,7 @@ import { useUsersList } from '@/features/users/hooks/useUsersList';
 import { useRoles } from '@/features/users/hooks/useRoles';
 import { useRolesWithPermissions } from '@/features/users/hooks/useRolesWithPermissions';
 import { usePermissionsCatalog } from '@/features/users/hooks/usePermissionsCatalog';
+import { useI18n } from '@/i18n/I18nProvider';
 import {
     listQueryKey,
     rolesQueryKey,
@@ -114,6 +114,7 @@ const modalFormRulesContext = {
 };
 
 export default function UsersPage() {
+    const { t, formatLocale } = useI18n();
     const [roleFilter, setRoleFilter] = useState<string | undefined>();
     const [statusFilter, setStatusFilter] = useState<boolean | undefined>(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -161,7 +162,7 @@ export default function UsersPage() {
             `Seite ${pagination?.page ?? page}`,
             `${pagination?.pageSize ?? pageSize} pro Seite`,
             pagination?.totalCount != null
-                ? `${pagination.totalCount.toLocaleString('de-DE')} gesamt (API)`
+                ? `${pagination.totalCount.toLocaleString(formatLocale)} gesamt (API)`
                 : usersCopy.scopeTotalLoading,
         ];
         if (searchTerm.trim()) {
@@ -178,7 +179,7 @@ export default function UsersPage() {
             );
         }
         return parts.join(' · ');
-    }, [pagination, page, pageSize, searchTerm, roleFilter, statusFilter]);
+    }, [pagination, page, pageSize, searchTerm, roleFilter, statusFilter, formatLocale]);
 
     const resetAllFilters = useCallback(() => {
         setSearchInput('');
@@ -456,7 +457,7 @@ export default function UsersPage() {
             title: usersCopy.lastLogin,
             dataIndex: 'lastLoginAt',
             key: 'lastLoginAt',
-            render: (v: string | null) => (v ? new Date(v).toLocaleString('de-DE') : '—'),
+            render: (v: string | null) => (v ? new Date(v).toLocaleString(formatLocale) : '—'),
         },
         {
             title: usersCopy.actions,
@@ -519,14 +520,14 @@ export default function UsersPage() {
         return (
             <AdminPageShell>
                 <AdminPageHeader
-                    title={usersCopy.title}
-                    breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: usersCopy.title }]}
+                    title={t('users.page.title')}
+                    breadcrumbs={[adminOverviewCrumb(t), { title: t('users.page.title') }]}
                 />
                 <Alert
                     type="warning"
                     showIcon
-                    message={usersCopy.accessDenied}
-                    description="Nur mit Berechtigung „Benutzer anzeigen“ (z. B. SuperAdmin, Manager) können Sie diese Seite öffnen."
+                    message={t('users.page.accessDeniedTitle')}
+                    description={t('users.page.accessDeniedDescription')}
                 />
             </AdminPageShell>
         );
@@ -535,28 +536,28 @@ export default function UsersPage() {
     return (
         <AdminPageShell>
             <AdminPageHeader
-                title={usersCopy.title}
-                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: usersCopy.title }]}
+                title={t('users.page.title')}
+                breadcrumbs={[adminOverviewCrumb(t), { title: t('users.page.title') }]}
                 actions={
                     <Space wrap>
-                        <Tooltip title={OPERATOR_SHARED_COPY.refetchHintToolbar}>
+                        <Tooltip title={t('common.operator.refetchHintToolbar')}>
                             <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
                                 {usersCopy.actionRefresh}
                             </Button>
                         </Tooltip>
                         {policy.canCreate && (
                             <Button type="primary" icon={<UserOutlined />} onClick={() => setCreateOpen(true)}>
-                                {usersCopy.createUser}
+                                {t('users.page.createUser')}
                             </Button>
                         )}
                         {policy.canCreateRole && (
                             <Button icon={<UserOutlined />} onClick={() => setCreateRoleOpen(true)}>
-                                {usersCopy.createRole}
+                                {t('users.page.createRole')}
                             </Button>
                         )}
                         {canManageRoles && (
                             <Button type="default" onClick={() => setRoleManagementDrawerOpen(true)}>
-                                {usersCopy.manageRoles}
+                                {t('users.page.manageRoles')}
                             </Button>
                         )}
                     </Space>
@@ -700,7 +701,7 @@ export default function UsersPage() {
                         if (total <= 0) return usersCopy.paginationZeroResults;
                         const from = range[0] ?? 0;
                         const to = range[1] ?? 0;
-                        return `${from.toLocaleString('de-DE')}–${to.toLocaleString('de-DE')} von ${total.toLocaleString('de-DE')}`;
+                        return `${from.toLocaleString(formatLocale)}–${to.toLocaleString(formatLocale)} von ${total.toLocaleString(formatLocale)}`;
                     },
                     onChange: (newPage, newPageSize) => {
                         setPage(newPage);

@@ -2,6 +2,13 @@
 
 Bu proje, çok dilli destek için kategorize edilmiş ve düzenli bir i18n yapısı kullanır.
 
+## Stabilization notes (POS)
+
+- **Canonical resources**: JSON files under `locales/{de,en,tr}/*.json` (namespace per file). CSV is not source of truth.
+- **Text vs formatting locale**: UI language codes are `de` | `en` | `tr` (`localeUtils.ts`). `Intl` / `toLocaleString` should use `getFormattingLocaleForTextLocale(...)` (maps e.g. `de` → `de-AT`, `en` → `en-US`). Shared helpers: `formatting.ts` (`formatDateTime`, `formatNumber`, …).
+- **`products` vs `catalog_ui`**: Both namespaces point to the same `products.json` bundle (alias for future rename); prefer `products:*` keys in code.
+- **Domain data**: Do not pass `product.name`, `category.name`, or modifier names through `t()` — render raw API/catalog strings.
+
 ## 📁 Dosya Yapısı
 
 ```

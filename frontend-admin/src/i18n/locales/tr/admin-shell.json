@@ -1,0 +1,21 @@
+{
+  "branding": {
+    "drawerTitle": "Regkasse Admin",
+    "sidebarCompact": "RK",
+    "sidebarExpanded": "REGKASSE ADMIN",
+    "fallbackUserName": "Admin User"
+  },
+  "aria": {
+    "openNav": "Gezinme menüsünü aç",
+    "closeNav": "Gezinme menüsünü kapat",
+    "expandSidebar": "Kenar çubuğunu genişlet",
+    "collapseSidebar": "Kenar çubuğunu daralt"
+  },
+  "group": {
+    "kasseBelege": "Kasa ve fişler",
+    "sortiment": "Katalog",
+    "kundenVorteile": "Müşteriler ve avantajlar",
+    "verwaltung": "Yönetim",
+    "rksv": "RKSV"
+  }
+}

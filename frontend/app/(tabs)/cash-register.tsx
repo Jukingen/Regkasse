@@ -11,6 +11,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { CartDisplay } from '../../components/CartDisplay';
 import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
@@ -76,6 +77,7 @@ function POSSummaryBlock({
   onOpenEmployeeSheet,
   onClearEmployee,
   benefitSummaryCount,
+  t,
 }: {
   activeTableId: number;
   summaryTotals: { itemCount: number; grandTotalGross: number };
@@ -95,20 +97,21 @@ function POSSummaryBlock({
   onClearEmployee?: () => void;
   /** Assignment count from benefit-summary; show badge when > 0. */
   benefitSummaryCount?: number | null;
+  t: (key: string, options?: Record<string, string | number>) => string;
 }) {
   const showBenefitBadge = (benefitSummaryCount ?? 0) > 0;
   const benefitBadgeText =
     (benefitSummaryCount ?? 0) === 1
-      ? '🎁 Vorteil aktiv'
+      ? t('checkout:posFlow.personal.benefitSingle')
       : (benefitSummaryCount ?? 0) > 1
-        ? `🎁 ${benefitSummaryCount} Vorteile aktiv`
+        ? t('checkout:posFlow.personal.benefitMultiple', { count: benefitSummaryCount ?? 0 })
         : '';
   return (
     <View style={[styles.summaryBlock, { paddingBottom }]}>
-      <SectionHeader step="4" title="Zusammenfassung" rowStyle={styles.summaryBlockHeader} titleStyle={styles.summaryBlockTitle} />
+      <SectionHeader step="4" title={t('checkout:posFlow.section.summary')} rowStyle={styles.summaryBlockHeader} titleStyle={styles.summaryBlockTitle} />
       {onOpenEmployeeSheet && (
         <View style={styles.personalStrip}>
-          <Text style={styles.personalLabel}>Personal:</Text>
+          <Text style={styles.personalLabel}>{t('checkout:posFlow.personal.label')}</Text>
           {saleCustomer ? (
             <>
               <Text style={styles.personalValue} numberOfLines={1}>{saleCustomer.name}</Text>
@@ -116,17 +119,17 @@ function POSSummaryBlock({
                 <Text style={styles.benefitBadge} numberOfLines={1}>{benefitBadgeText}</Text>
               ) : null}
               <Pressable style={styles.personalBtn} onPress={onOpenEmployeeSheet}>
-                <Text style={styles.personalBtnText}>Ändern</Text>
+                <Text style={styles.personalBtnText}>{t('checkout:posFlow.personal.change')}</Text>
               </Pressable>
               <Pressable style={styles.personalBtn} onPress={onClearEmployee}>
-                <Text style={styles.personalBtnText}>Entfernen</Text>
+                <Text style={styles.personalBtnText}>{t('checkout:posFlow.personal.remove')}</Text>
               </Pressable>
             </>
           ) : (
             <>
-              <Text style={styles.personalValue}>Keiner</Text>
+              <Text style={styles.personalValue}>{t('checkout:posFlow.personal.none')}</Text>
               <Pressable style={styles.personalSetzenBtn} onPress={onOpenEmployeeSheet}>
-                <Text style={styles.personalSetzenText}>Setzen</Text>
+                <Text style={styles.personalSetzenText}>{t('checkout:posFlow.personal.set')}</Text>
               </Pressable>
             </>
           )}
@@ -134,7 +137,11 @@ function POSSummaryBlock({
       )}
       <View style={styles.criticalStrip}>
         <Text style={styles.criticalStripText} numberOfLines={1} ellipsizeMode="tail">
-          Tisch {activeTableId} · {summaryTotals.itemCount} Artikel · GESAMT {formatPrice(summaryTotals.grandTotalGross)}
+          {t('checkout:posFlow.summaryStrip', {
+            table: activeTableId,
+            itemCount: summaryTotals.itemCount,
+            total: formatPrice(summaryTotals.grandTotalGross),
+          })}
         </Text>
       </View>
       <CartDisplay
@@ -165,14 +172,15 @@ function POSSummaryBlock({
 function usePOSOrderFlow(
   addItem: (productId: string, qty?: number, options?: { productName?: string; unitPrice?: number }) => Promise<void>,
   activeTableId: number,
-  addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void
+  addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void,
+  t: (key: string, options?: Record<string, string | number>) => string
 ) {
   const [pendingModifiersByProduct, setPendingModifiersByProduct] = useState<Record<string, SelectedModifier[]>>({});
 
   const handleAddProduct = useCallback(
     async (product: Product) => {
       if (!activeTableId) {
-        addToast('error', 'Bitte zuerst Tisch wählen', 3000);
+        addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
         return;
       }
       try {
@@ -180,23 +188,23 @@ function usePOSOrderFlow(
           productName: product.name,
           unitPrice: product.price ?? 0,
         });
-        addToast('success', `${product.name} zu Tisch ${activeTableId} hinzugefügt`, 2000);
+        addToast('success', t('checkout:posFlow.toast.productAddedToTable', { name: product.name, table: activeTableId }), 2000);
         setPendingModifiersByProduct((prev) => {
           const next = { ...prev };
           delete next[product.id];
           return next;
         });
       } catch (error: any) {
-        addToast('error', `${product.name}: ${error?.message || 'Fehler'}`, 5000);
+        addToast('error', t('checkout:posFlow.toast.productAddError', { name: product.name, reason: error?.message || t('common:error') }), 5000);
       }
     },
-    [addItem, activeTableId, addToast]
+    [addItem, activeTableId, addToast, t]
   );
 
   const handleAddAddOn = useCallback(
     async (addOn: AddOnSelection) => {
       if (!activeTableId) {
-        addToast('error', 'Bitte zuerst Tisch wählen', 3000);
+        addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
         return;
       }
       try {
@@ -204,12 +212,12 @@ function usePOSOrderFlow(
           productName: addOn.productName,
           unitPrice: addOn.price,
         });
-        addToast('success', `${addOn.productName} hinzugefügt`, 2000);
+        addToast('success', t('checkout:posFlow.toast.addOnAdded', { name: addOn.productName }), 2000);
       } catch (e: any) {
-        addToast('error', e?.message ?? 'Add-on konnte nicht hinzugefügt werden.', 3000);
+        addToast('error', e?.message ?? t('checkout:posFlow.toast.addOnAddFailed'), 3000);
       }
     },
-    [activeTableId, addItem, addToast]
+    [activeTableId, addItem, addToast, t]
   );
 
   return {
@@ -220,6 +228,7 @@ function usePOSOrderFlow(
 }
 
 export default function CashRegisterScreen() {
+  const { t } = useTranslation(['checkout', 'common']);
   const { categories } = useProductsUnified();
   const { toasts, addToast, removeToast } = useCashRegister();
   const {
@@ -305,7 +314,7 @@ export default function CashRegisterScreen() {
     pendingModifiersByProduct,
     handleAddProduct,
     handleAddAddOn,
-  } = usePOSOrderFlow(addItem, activeTableId, addToast);
+  } = usePOSOrderFlow(addItem, activeTableId, addToast, t);
   /** Merged modifier selection per product: last cart line or pending (for inline chips). */
   const selectedModifiersForProduct = useMemo(() => {
     const out: Record<string, SelectedModifier[]> = {};
@@ -326,9 +335,9 @@ export default function CashRegisterScreen() {
     async (base: { productId: string; productName: string; price: number }, addOns: { productId: string; productName: string; price: number }[]) => {
       try {
         await addItemWithAddOns(base.productId, base.productName, base.price, addOns);
-        addToast('success', `${base.productName} hinzugefügt`, 2000);
+        addToast('success', t('checkout:posFlow.toast.baseProductAdded', { name: base.productName }), 2000);
       } catch (e: any) {
-        addToast('error', e?.message ?? 'Fehler beim Hinzufügen', 3000);
+        addToast('error', e?.message ?? t('checkout:posFlow.toast.addingFailed'), 3000);
       }
       setModifierSheetProduct(null);
     },
@@ -355,7 +364,7 @@ export default function CashRegisterScreen() {
   // Contract: User can always switch table; having items on current table must not block.
   const handleTableSelect = useCallback(async (tableNumber: number) => {
     if (!tableNumber || tableNumber < 1 || tableNumber > 10) {
-      addToast('error', 'Ungültige Tischnummer', 3000);
+      addToast('error', t('checkout:posFlow.toast.invalidTableNumber'), 3000);
       return;
     }
 
@@ -375,10 +384,10 @@ export default function CashRegisterScreen() {
           setTimeout(() => reject(new Error('Table switch timeout')), 6000)
         ),
       ]);
-      addToast('info', `Zu Tisch ${tableNumber} wechseln`, 2000);
+      addToast('info', t('checkout:posFlow.toast.switchingToTable', { table: tableNumber }), 2000);
     } catch (error) {
       console.error('❌ Masa seçim hatası:', error);
-      addToast('error', 'Tischwechsel fehlgeschlagen', 3000);
+      addToast('error', t('checkout:posFlow.toast.tableSwitchFailed'), 3000);
     } finally {
       clearTimeout(loadingTimeout);
       setTimeout(clearLoading, 300);
@@ -398,7 +407,7 @@ export default function CashRegisterScreen() {
     try {
       await updateItemQuantityByItemId(itemId, newQty);
     } catch (err: any) {
-      addToast('error', 'Aktualisierung fehlgeschlagen', 2000);
+      addToast('error', t('checkout:posFlow.toast.updateFailed'), 2000);
     }
   }, [activeTableId, getCartForTable, updateItemQuantityByItemId, addToast]);
 
@@ -406,32 +415,32 @@ export default function CashRegisterScreen() {
     if (!activeTableId) return;
     try {
       await removeByItemId(itemId);
-      addToast('success', 'Artikel entfernt', 2000);
+      addToast('success', t('checkout:posFlow.toast.itemRemoved'), 2000);
     } catch {
-      addToast('error', 'Artikel konnte nicht entfernt werden.', 3000);
+      addToast('error', t('checkout:posFlow.toast.itemRemoveFailed'), 3000);
     }
   }, [activeTableId, removeByItemId, addToast]);
 
   const handleClearCart = useCallback(async () => {
     if (!activeTableId) {
-      addToast('error', 'Bitte zuerst Tisch wählen.', 3000);
+      addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
       return;
     }
 
     try {
       await clearCart(activeTableId);
-      addToast('success', `Warenkorb für Tisch ${activeTableId} geleert`, 2000);
+      addToast('success', t('checkout:posFlow.toast.cartClearedForTable', { table: activeTableId }), 2000);
 
     } catch (err) {
       console.error(`❌ Error clearing table ${activeTableId}:`, err);
-      addToast('error', `Tisch ${activeTableId} konnte nicht geleert werden`, 3000);
+      addToast('error', t('checkout:posFlow.toast.tableClearFailed', { table: activeTableId }), 3000);
     }
   }, [activeTableId, clearCart, addToast]);
 
   const handleClearAllTables = useCallback(async () => {
     try {
       if (!activeTableId) {
-        addToast('error', 'Bitte zuerst Tisch wählen.', 3000);
+        addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
         return;
       }
 
@@ -445,22 +454,22 @@ export default function CashRegisterScreen() {
       // ❌ REMOVED: switchTable(1); - This was forcing the UI to jump to table 1
       // ✅ Behavior: UI stays on the same table (targetTableId)
 
-      addToast('success', `Tisch ${targetTableId} geleert`, 3000);
+      addToast('success', t('checkout:posFlow.toast.tableCleared', { table: targetTableId }), 3000);
 
     } catch (err: any) {
       console.error('❌ Error clearing table:', err);
-      addToast('error', err?.message ?? 'Tisch konnte nicht geleert werden', 3000);
+      addToast('error', err?.message ?? t('checkout:posFlow.toast.tableClearGenericFailed'), 3000);
     }
   }, [activeTableId, clearCart, addToast]);
 
   const handlePayment = useCallback(() => {
     if (!cart?.items?.length) {
-      addToast('warning', 'Warenkorb ist leer. Bitte zuerst Artikel hinzufügen.', 3000);
+      addToast('warning', t('checkout:posFlow.toast.emptyCart'), 3000);
       return;
     }
 
     if (!activeTableId) {
-      addToast('error', 'Bitte zuerst Tisch wählen.', 3000);
+      addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
       return;
     }
     setIsPaymentModalVisible(true);
@@ -525,7 +534,7 @@ export default function CashRegisterScreen() {
 
             {/* Step 2: Category – flow: Tisch → Kategorie → Produkte → Zusammenfassung */}
             <View style={styles.categorySection}>
-              <SectionHeader step="2" title="Kategorie" />
+              <SectionHeader step="2" title={t('checkout:posFlow.section.category')} />
               <CategoryFilter
                 categories={categories}
                 selectedCategoryId={selectedCategoryId}
@@ -553,6 +562,7 @@ export default function CashRegisterScreen() {
             onOpenEmployeeSheet={() => setEmployeeSheetVisible(true)}
             onClearEmployee={() => setSaleCustomer(null)}
             benefitSummaryCount={benefitSummaryCount}
+            t={t}
           />
         } 
       />

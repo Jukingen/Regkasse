@@ -11,7 +11,11 @@
     "test:contract": "vitest run src/shared/contract src/shared/__tests__ src/features/invoices/utils/__tests__/invoiceListSort.test.ts",
     "test:truth-surfaces": "vitest run src/shared/__tests__/adminTruthSurfaces.package.test.ts src/shared/__tests__/adminTruthFacets.test.ts src/shared/__tests__/truthSurfaceBehavior.test.ts src/shared/__tests__/investigationNavigation.test.ts src/shared/utils/__tests__/registerIdentity.test.ts src/shared/__tests__/foReconciliationRowTriage.test.ts src/shared/__tests__/finanzOnlineReconciliationTruth.test.ts src/shared/__tests__/adminTruthBadge.semantic.test.tsx src/shared/__tests__/rksvAdminTruth.test.ts src/shared/__tests__/adminTruthBadges.test.ts src/shared/__tests__/verificationsAuditView.test.ts",
     "test:watch": "vitest",
-    "generate:api": "orval"
+    "generate:api": "orval",
+    "i18n:export-csv": "node ../localization/scripts/export-translations.mjs --app frontend-admin",
+    "i18n:import-csv": "node ../localization/scripts/import-translations.mjs --app frontend-admin",
+    "i18n:validate": "node ../localization/scripts/validate-translations.mjs --app frontend-admin",
+    "i18n:boundary": "node ../localization/scripts/check-translation-boundary.mjs --app frontend-admin"
   },
   "dependencies": {
     "@ant-design/nextjs-registry": "^1.0.0",

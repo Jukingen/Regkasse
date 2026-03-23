@@ -1,0 +1,22 @@
+{
+  "breadcrumb": {
+    "overview": "Genel bakış"
+  },
+  "buttons": {
+    "save": "Kaydet",
+    "cancel": "İptal",
+    "yes": "Evet",
+    "no": "Hayır",
+    "retry": "Tekrar dene",
+    "refresh": "Yenile",
+    "close": "Kapat",
+    "delete": "Sil",
+    "edit": "Düzenle"
+  },
+  "messages": {
+    "unknownError": "Bilinmeyen hata"
+  },
+  "operator": {
+    "refetchHintToolbar": "Verileri manuel yenileyin (onbellek eski olabilir)."
+  }
+}

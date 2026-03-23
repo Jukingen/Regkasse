@@ -1,0 +1,52 @@
+{
+  "page": {
+    "title": "Company settings",
+    "loading": "Loading company settings…",
+    "loadErrorTitle": "Could not load company settings",
+    "loadErrorFallback": "Could not load company settings. Check the connection and try again.",
+    "empty": "No company settings were returned.",
+    "saveChanges": "Save changes",
+    "saveFailed": "Saving failed."
+  },
+  "tabs": {
+    "general": "General information",
+    "localization": "Region & formatting",
+    "finanzOnline": "FinanzOnline",
+    "tse": "TSE",
+    "password": "My password"
+  },
+  "changePassword": {
+    "title": "Change my password",
+    "currentPassword": "Current password",
+    "currentPasswordRequired": "Current password is required",
+    "newPassword": "New password (min. 8 chars, upper/lowercase, number, special char)",
+    "newPasswordRequired": "New password is required",
+    "minLength": "At least 8 characters",
+    "confirmPassword": "Confirm new password",
+    "confirmRequired": "Please confirm the new password",
+    "confirmMismatch": "Passwords do not match.",
+    "submit": "Change password",
+    "success": "Password has been changed.",
+    "errorFallback": "Password could not be changed."
+  },
+  "form": {
+    "general": {
+      "cardTitle": "Company & contact"
+    },
+    "localization": {
+      "cardTitle": "Region & formatting"
+    },
+    "finanzOnline": {
+      "credentialsCardTitle": "Credentials & connectivity",
+      "deliveryCardTitle": "Submission",
+      "validationCardTitle": "Validation & retries",
+      "runtimeCardTitle": "Runtime status (read-only)",
+      "runtimeCardDescription": "Runtime status from backend. These fields are read-only and are not written by “Save changes”.",
+      "lastSyncLabel": "Last FinanzOnline synchronization",
+      "pendingInvoicesLabel": "Pending invoices"
+    },
+    "tse": {
+      "cardTitle": "TSE (Technical security device)"
+    }
+  }
+}

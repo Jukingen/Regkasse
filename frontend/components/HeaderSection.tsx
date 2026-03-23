@@ -29,7 +29,7 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({
   onShowTableManager,
   onQuickAction,
 }) => {
-  const { t } = useTranslation(['checkout', 'header', 'common']);
+  const { t } = useTranslation(['checkout', 'common']);
 
   return (
     <View style={styles.header}>
@@ -47,7 +47,7 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({
           onPress={onShowOrderManager}
         >
           <Ionicons name="time-outline" size={18} color="white" />
-          <Text style={styles.headerActionText}>{t('header:orders', 'Bestellungen')}</Text>
+          <Text style={styles.headerActionText}>{t('checkout:header.orders', 'Bestellungen')}</Text>
           {pendingOrdersCount > 0 && (
             <View style={styles.headerBadge}>
               <Text style={styles.headerBadgeText}>{pendingOrdersCount}</Text>
@@ -61,7 +61,7 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({
           onPress={onShowFavoritesManager}
         >
           <Ionicons name="heart-outline" size={18} color="white" />
-          <Text style={styles.headerActionText}>{t('header:favorites', 'Favoriten')}</Text>
+          <Text style={styles.headerActionText}>{t('checkout:header.favorites', 'Favoriten')}</Text>
         </TouchableOpacity>
 
         {/* Ausstehende Bestellungen Butonu */}
@@ -70,7 +70,7 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({
           onPress={() => onQuickAction('orders')}
         >
           <Ionicons name="list-outline" size={18} color="white" />
-          <Text style={styles.headerActionText}>{t('header:pending', 'Ausstehende')}</Text>
+          <Text style={styles.headerActionText}>{t('checkout:header.pending', 'Ausstehende')}</Text>
           {pendingOrdersCount > 0 && (
             <View style={styles.headerBadge}>
               <Text style={styles.headerBadgeText}>{pendingOrdersCount}</Text>
@@ -84,7 +84,7 @@ const HeaderSection: React.FC<HeaderSectionProps> = ({
           onPress={onShowTableManager}
         >
           <Ionicons name="grid-outline" size={18} color="white" />
-          <Text style={styles.headerActionText}>{t('header:tables', 'Tische')}</Text>
+          <Text style={styles.headerActionText}>{t('checkout:header.tables', 'Tische')}</Text>
         </TouchableOpacity>
       </View>
     </View>

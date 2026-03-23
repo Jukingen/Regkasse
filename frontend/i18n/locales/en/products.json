@@ -41,5 +41,8 @@
   "category": "Category",
   "supplier": "Supplier",
   "reorderLevel": "Reorder Level",
-  "currentStock": "Current Stock"
+  "currentStock": "Current Stock",
+  "a11y": {
+    "selected": "selected"
+  }
 }

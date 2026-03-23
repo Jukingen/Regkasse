@@ -1,22 +1,29 @@
-/**
- * Format price in Austrian EUR format (de-AT)
- * Examples:
- * - 16.50 → "€ 16,50"
- * - 1234.56 → "€ 1.234,56"
- * - null → "€ 0,00"
- */
-export const formatPrice = (amount: number | null | undefined): string => {
-    if (amount === null || amount === undefined || isNaN(amount)) {
-        return '€ 0,00'; // Safe fallback
-    }
+import { DEFAULT_FORMAT_LOCALE } from '../i18n/localeUtils';
 
-    return new Intl.NumberFormat('de-AT', {
-        style: 'currency',
-        currency: 'EUR',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(amount);
-};
+/**
+ * Format price in EUR using an Intl locale (default: Austrian formatting for POS).
+ * Pass `intlLocale` from `getFormattingLocaleForTextLocale(i18n.language)` when UI language differs.
+ */
+export function formatPrice(
+  amount: number | null | undefined,
+  intlLocale: string = DEFAULT_FORMAT_LOCALE
+): string {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return new Intl.NumberFormat(intlLocale, {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(0);
+  }
+
+  return new Intl.NumberFormat(intlLocale, {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
 
 /**
  * Format percentage (e.g., tax rate)

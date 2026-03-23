@@ -1,0 +1,10 @@
+{
+  "page": {
+    "title": "Kullanıcı yönetimi",
+    "accessDeniedTitle": "Erişim reddedildi",
+    "accessDeniedDescription": "Bu sayfayı yalnızca \"Kullanıcıları görüntüle\" izni olan kullanıcılar (ör. SuperAdmin, Manager) açabilir.",
+    "createUser": "Kullanıcı oluştur",
+    "createRole": "Rol oluştur",
+    "manageRoles": "Rolleri yönet"
+  }
+}

@@ -16,6 +16,9 @@ import {
 } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
+import { getFormattingLocaleForTextLocale } from '../i18n/localeUtils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { formatPrice } from '../utils/formatPrice';
@@ -40,39 +43,38 @@ import {
   buildPosRegisterGateContext,
   registerGateAlertMessage,
   registerGateBannerDetail,
-  registerGateBannerIntro,
   registerGateBannerTitle,
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
 
-/** Known blocked reason codes (must match backend BenefitBlockedReasonCodes). Used for stable German UI text only. */
-const BLOCKED_REASON_DE: Record<string, string> = {
-  DailyLimitReached: 'Tageslimit erreicht',
-  NoEligibleItems: 'Keine passenden Artikel im Warenkorb',
-  QuantityNotReached: 'Mindestmenge nicht erreicht',
-};
-
-/** Neutral German fallback when code is unknown or invalid. Never show raw code or empty. */
-const BLOCKED_REASON_FALLBACK_DE = 'Vorteil derzeit nicht anwendbar';
-
 /**
- * Map backend blocked reason to short German text for UI. Fail-safe: unknown codes and invalid input
- * return a neutral German message; backend message is not used for display (may be English).
+ * Map backend blocked reason to short UI text. Fail-safe: unknown codes return neutral fallback;
+ * backend message is not used for display (may be English).
  */
-function formatBlockedReason(b: {
-  blockedReasonCode?: string | null;
-  message?: string | null;
-  requiredMoreQuantity?: number | null;
-}): string {
+function formatBlockedReason(
+  t: TFunction,
+  b: {
+    blockedReasonCode?: string | null;
+    message?: string | null;
+    requiredMoreQuantity?: number | null;
+  }
+): string {
   const code = typeof b?.blockedReasonCode === 'string' ? b.blockedReasonCode.trim() : '';
-  if (!code) return BLOCKED_REASON_FALLBACK_DE;
+  if (!code) return t('checkout:posFlow.benefit.blockedReasons.fallback');
 
   if (code === 'QuantityNotReached' && typeof b?.requiredMoreQuantity === 'number' && b.requiredMoreQuantity > 0) {
-    return `Noch ${b.requiredMoreQuantity} Artikel für Aktion nötig`;
+    return t('checkout:posFlow.benefit.blockedReasons.quantityNotReachedDetail', {
+      count: b.requiredMoreQuantity,
+    });
   }
 
-  const known = BLOCKED_REASON_DE[code];
-  return known ?? BLOCKED_REASON_FALLBACK_DE;
+  const known: Record<string, string> = {
+    DailyLimitReached: 'checkout:posFlow.benefit.blockedReasons.dailyLimit',
+    NoEligibleItems: 'checkout:posFlow.benefit.blockedReasons.noEligibleItems',
+    QuantityNotReached: 'checkout:posFlow.benefit.blockedReasons.quantityNotReached',
+  };
+  const key = known[code];
+  return key ? t(key) : t('checkout:posFlow.benefit.blockedReasons.fallback');
 }
 
 /** ReceiptDTO veya payment response'taki receipt → ReceiptSummary formatı. */
@@ -180,6 +182,7 @@ export default function PaymentModal({
   customerId = '00000000-0000-0000-0000-000000000000', // Default Guid formatında
   tableNumber
 }: PaymentModalProps) {
+  const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings']);
   const { user } = useAuth();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'voucher' | 'transfer'>('cash');
   const [amountReceived, setAmountReceived] = useState<string>('');
@@ -494,38 +497,38 @@ export default function PaymentModal({
         });
         await Sharing.shareAsync(fileUri, {
           mimeType: 'application/pdf',
-          dialogTitle: 'Beleg PDF',
+          dialogTitle: t('invoices:pdfDialogTitle'),
         });
       }
     } catch (e) {
       console.warn('[PaymentModal] PDF open failed:', e);
       if (e instanceof InvoicePdfHttpError) {
-        const ok = 'Die Zahlung war erfolgreich.';
+        const prefix = t('checkout:posFlow.payment.pdfErrors.paymentSucceededPrefix');
         if (e.status === 401) {
           Alert.alert(
-            'Beleg-PDF',
-            `${ok} Anmeldung abgelaufen oder ungültig. Bitte erneut anmelden und „Beleg-PDF“ erneut versuchen.`
+            t('checkout:posFlow.payment.pdfErrors.title'),
+            t('checkout:posFlow.payment.pdfErrors.unauthorized', { prefix })
           );
         } else if (e.status === 403) {
           Alert.alert(
-            'Beleg-PDF',
-            `${ok} Keine Berechtigung für PDF-Export. QR-Code und Druck bleiben nutzbar. Bei Bedarf den Administrator bitten (Berechtigung „Rechnung ansehen“ / InvoiceView).`
+            t('checkout:posFlow.payment.pdfErrors.title'),
+            t('checkout:posFlow.payment.pdfErrors.forbidden', { prefix })
           );
         } else if (e.status === 404) {
           Alert.alert(
-            'Beleg-PDF',
-            `${ok} PDF wurde nicht gefunden. Bitte später erneut versuchen oder den Administrator informieren.`
+            t('checkout:posFlow.payment.pdfErrors.title'),
+            t('checkout:posFlow.payment.pdfErrors.notFound', { prefix })
           );
         } else {
           Alert.alert(
-            'Beleg-PDF',
-            `${ok} PDF konnte nicht geladen werden (HTTP ${e.status}). Bitte später erneut versuchen.`
+            t('checkout:posFlow.payment.pdfErrors.title'),
+            t('checkout:posFlow.payment.pdfErrors.httpGeneric', { prefix, status: e.status })
           );
         }
       } else {
         Alert.alert(
-          'Hinweis',
-          'Die Zahlung war erfolgreich. Beleg-PDF konnte nicht geöffnet werden. Bitte später erneut versuchen.'
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.errors.printFailed')
         );
       }
     } finally {
@@ -561,7 +564,7 @@ export default function PaymentModal({
 
       if (cartItems.length === 0) {
         debugPosPaymentTrace('submit_blocked_empty_cart', {});
-        Alert.alert('Hinweis', 'Der Warenkorb ist leer.');
+        Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.emptyCart'));
         return;
       }
 
@@ -570,8 +573,8 @@ export default function PaymentModal({
         if (isNaN(received) || received < totalAmount) {
           debugPosPaymentTrace('submit_blocked_cash_amount', { received, totalAmount });
           Alert.alert(
-            'Hinweis',
-            'Der erhaltene Betrag muss mindestens dem Gesamtbetrag entsprechen.'
+            t('checkout:posFlow.payment.alerts.hintTitle'),
+            t('checkout:posFlow.payment.errors.insufficientAmount')
           );
           return;
         }
@@ -583,13 +586,13 @@ export default function PaymentModal({
           cashRegisterId: cashRegisterId ?? null,
           registerListFailureKind,
         });
-        Alert.alert('Zahlung nicht möglich', registerGateAlertMessage(registerGateCtx));
+        Alert.alert(t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'), registerGateAlertMessage(registerGateCtx));
         return;
       }
 
       if (!validateAmount(totalAmount)) {
         debugPosPaymentTrace('submit_blocked_invalid_amount', { totalAmount });
-        Alert.alert('Hinweis', 'Ungültiger Betrag (muss größer als 0,01 € sein).');
+        Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.invalidAmountDetailed'));
         return;
       }
 
@@ -610,8 +613,8 @@ export default function PaymentModal({
           message: cartErr instanceof Error ? cartErr.message : String(cartErr),
         });
         Alert.alert(
-          'Fehler',
-          'Warenkorb konnte nicht geladen werden. Bitte Seite aktualisieren oder erneut versuchen.'
+          t('checkout:posFlow.payment.alerts.errorTitle'),
+          t('checkout:posFlow.payment.errors.cartLoadFailedRefresh')
         );
         return;
       }
@@ -653,7 +656,11 @@ export default function PaymentModal({
         tableNumber: resolvedTableNumber,
         totalAmount: totalAmount,
         cashRegisterId,
-        notes: notes || `Tisch ${resolvedTableNumber} - ${new Date().toLocaleString('de-DE')}`,
+        notes:
+          notes ||
+          `Tisch ${resolvedTableNumber} - ${new Date().toLocaleString(
+            getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language)
+          )}`,
         idempotencyKey
       };
 
@@ -674,8 +681,8 @@ export default function PaymentModal({
         debugPosPaymentTrace('payment_non_fiscal_pending_ui', { pendingQueueId: response.pendingQueueId });
         setPurchaseState('input');
         Alert.alert(
-          'Hinweis',
-          'Keine Verbindung zur Kasse. Die Zahlung ist nicht fiscal verbucht und steht in der Warteschlange. Bei Verbindung wird automatisch synchronisiert — bis dahin keinen Warenkorb als bezahlt werten.'
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.alerts.fiscalPending')
         );
         return;
       }
@@ -694,9 +701,9 @@ export default function PaymentModal({
         console.error('[PAYMENT] Failed or not fiscally confirmed:', response);
         const errorMsg =
           response.fiscalStatus === 'FAILED'
-            ? (response.message || response.error || 'Zahlung nicht fiscal bestätigt')
-            : response.message || response.error || 'Zahlung fehlgeschlagen';
-        Alert.alert('Zahlung fehlgeschlagen', errorMsg);
+            ? (response.message || response.error || t('checkout:posFlow.payment.errors.fiscalNotConfirmed'))
+            : response.message || response.error || t('checkout:posFlow.payment.errors.failed');
+        Alert.alert(t('checkout:posFlow.payment.errors.failed'), errorMsg);
         setPurchaseState('input');
         return;
       }
@@ -711,8 +718,8 @@ export default function PaymentModal({
 
       if (response.invoicePersisted === false) {
         Alert.alert(
-          'Hinweis',
-          'Zahlung erfolgreich. Die Belegabstimmung erfordert jedoch Ihre Aufmerksamkeit. Bitte prüfen Sie die Belege bzw. wenden Sie sich an den Administrator.'
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.alerts.invoiceReconcileAttention')
         );
       }
 
@@ -727,8 +734,8 @@ export default function PaymentModal({
         // If complete fails, we probably still want to print receipt if payment took money?
         // Let's assume critical failure here means we should notify user.
         Alert.alert(
-          'Hinweis',
-          'Die Zahlung war erfolgreich, der Warenkorb konnte jedoch nicht abgeschlossen werden. Bitte Administrator informieren.'
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.errors.completeCartFailed')
         );
       }
 
@@ -738,10 +745,7 @@ export default function PaymentModal({
         console.log('[CART] Reset complete');
       } catch (resetErr) {
         console.warn('[CART] Reset warning:', resetErr);
-        Alert.alert(
-          'Warnung',
-          'Zahlung abgeschlossen. Der Warenkorb konnte nicht zurückgesetzt werden. Bitte informieren Sie den Administrator.'
-        );
+        Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.completeCartFailed'));
       }
 
       // 9. START PRINTING (QR from GET /api/pos/payment/{id}/qr.png as base64 embed)
@@ -762,13 +766,13 @@ export default function PaymentModal({
       setPurchaseState('input');
       const message = isPaymentError(err)
         ? getPaymentErrorMessage(err.code)
-        : (err instanceof Error ? err.message : 'Unbekannter Fehler bei der Zahlung.');
+        : (err instanceof Error ? err.message : t('checkout:posFlow.payment.errors.genericFailed'));
       const title =
         isPaymentError(err) && err.code === 'BENEFIT_DAILY_ALLOWANCE_CONFLICT'
-          ? 'Hinweis'
+          ? t('checkout:posFlow.payment.alerts.hintTitle')
           : isPaymentError(err) && err.code === 'DEMO_PAYMENT_RESTRICTED'
-            ? 'Hinweis'
-            : 'Fehler';
+            ? t('checkout:posFlow.payment.alerts.hintTitle')
+            : t('checkout:posFlow.payment.alerts.errorTitle');
       Alert.alert(title, message);
     } finally {
       setPaymentBusy(false);
@@ -830,18 +834,18 @@ export default function PaymentModal({
       transparent
       onRequestClose={handleClose}
       accessibilityRole="dialog"
-      accessibilityLabel="Zahlung"
+      accessibilityLabel={t('checkout:posFlow.payment.title')}
     >
       <View style={styles.overlay} accessibilityViewIsModal>
         {/* Use View (not Pressable) so web does not swallow inner button presses. */}
         <View style={styles.modal}>
           <View style={styles.header}>
-            <Text style={styles.title}>Zahlung</Text>
+            <Text style={styles.title}>{t('checkout:posFlow.payment.title')}</Text>
             <Pressable
               onPress={handleClose}
               style={({ pressed, focused }) => [styles.closeButton, pressed && SoftState.pressed, focused && SoftState.focusVisible]}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              accessibilityLabel="Schließen"
+              accessibilityLabel={t('common:close')}
               accessibilityRole="button"
             >
               <Ionicons name="close" size={24} color={SoftColors.textPrimary} />
@@ -872,7 +876,7 @@ export default function PaymentModal({
                 <Text style={styles.registerBannerTitle}>{registerGateBannerTitle(registerGateCtx)}</Text>
                 {!registerListLoading && !posReadinessLoading ? (
                   <Text style={[styles.registerBannerMuted, { marginBottom: SoftSpacing.xs }]}>
-                    {registerGateBannerIntro()}
+                    {t('settings:registerGate.banner.intro')}
                   </Text>
                 ) : null}
                 <Text style={styles.registerBannerText}>{registerGateBannerDetail(registerGateCtx)}</Text>
@@ -957,7 +961,7 @@ export default function PaymentModal({
                       <View style={styles.benefitList}>
                         {eligibilityPreview.blockedBenefits.map((b, idx) => (
                           <Text key={idx} style={styles.benefitBlocked}>
-                            • {formatBlockedReason(b)}
+                            • {formatBlockedReason(t, b)}
                           </Text>
                         ))}
                       </View>
@@ -975,10 +979,10 @@ export default function PaymentModal({
             {/* Step 2: Zahlungsart */}
             <View style={styles.section}>
               <Text style={styles.stepLabel}>2</Text>
-              <Text style={styles.sectionTitle}>Zahlungsart</Text>
+              <Text style={styles.sectionTitle}>{t('payment:paymentMethod')}</Text>
               <View style={styles.paymentMethodsContainer}>
                 {methodsLoading ? (
-                  <Text style={styles.loadingText}>Zahlungsarten werden geladen…</Text>
+                  <Text style={styles.loadingText}>{t('common:loading')}</Text>
                 ) : paymentMethods && paymentMethods.length > 0 ? (
                   paymentMethods.map((method) => {
                     const isSelected = selectedPaymentMethod === method.type;
@@ -1015,9 +1019,9 @@ export default function PaymentModal({
                   })
                 ) : (
                   <View style={styles.errorBlock}>
-                    <Text style={styles.errorText}>Keine Zahlungsart gefunden</Text>
+                    <Text style={styles.errorText}>{t('payment:errors.generalError')}</Text>
                     <Pressable onPress={getPaymentMethods} style={styles.retryLink}>
-                      <Text style={styles.retryLinkText}>Erneut versuchen</Text>
+                      <Text style={styles.retryLinkText}>{t('common:retry')}</Text>
                     </Pressable>
                   </View>
                 )}

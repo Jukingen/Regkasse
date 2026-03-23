@@ -11,7 +11,6 @@ import {
   registerGateBannerDetail as detailFromCtx,
   registerGateBannerTitle as titleFromCtx,
   registerGateFooterHint as footerFromCtx,
-  registerGateBannerIntro,
 } from './posRegisterGateCopy';
 
 export type { RegisterGateReadinessInput, PosRegisterGateContext };
@@ -48,8 +47,6 @@ export function registerGateBannerTitle(
     toCtx(failureKind, listLoading, picklistCount, settingsLoadFailed, readiness, registerListEmptyReason)
   );
 }
-
-export { registerGateBannerIntro };
 
 export function registerGateBannerDetail(
   failureKind: RegisterListFailureKind | null,

@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { getUserSettings, updateCashRegisterConfig } from '../services/api/userSettingsService';
 import {
   fetchPosSelectableRegisters,
@@ -19,7 +20,6 @@ import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext
 import {
   buildPosRegisterGateContext,
   registerGateBannerDetail,
-  registerGateBannerIntro,
   registerGateBannerTitle,
 } from '../utils/posRegisterGateCopy';
 import type { RegisterListFailureKind } from '../utils/registerListError';
@@ -29,6 +29,7 @@ import { classifyRegisterListError } from '../utils/registerListError';
  * Settings screen: persist POS cash-register assignment (GET settings + optional list + PUT cash-register).
  */
 export function CashRegisterAssignmentSection() {
+  const { t } = useTranslation(['settings']);
   const posReadiness = usePosRegisterReadiness();
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [settingsLoadFailed, setSettingsLoadFailed] = useState(false);
@@ -97,24 +98,24 @@ export function CashRegisterAssignmentSection() {
   }, [loadingSettings, settingsLoadFailed, assignedId, listRetryToken]);
 
   const persist = async (id: string) => {
-    const t = id.trim();
-    if (!t) return;
-    setSavingId(t);
+    const trimmedId = id.trim();
+    if (!trimmedId) return;
+    setSavingId(trimmedId);
     try {
-      const updated = await updateCashRegisterConfig({ cashRegisterId: t });
+      const updated = await updateCashRegisterConfig({ cashRegisterId: trimmedId });
       const next = updated.cashRegisterId?.trim();
       if (next && next !== '00000000-0000-0000-0000-000000000000') {
         setAssignedId(next);
       } else {
-        setAssignedId(t);
+        setAssignedId(trimmedId);
       }
       await posReadiness.refreshAsync();
-      Alert.alert('Gespeichert', 'Kasse wurde zugewiesen.');
+      Alert.alert(t('settings:registerAssignment.savedTitle'), t('settings:registerAssignment.savedMessage'));
     } catch (e) {
       console.warn('[CashRegisterAssignmentSection] save failed', e);
       Alert.alert(
-        'Fehler',
-        'Zuweisung wurde vom Server abgelehnt (ungültige Kasse, keine Berechtigung oder Kasse nicht geöffnet).'
+        t('settings:registerAssignment.saveErrorTitle'),
+        t('settings:registerAssignment.saveErrorMessage')
       );
     } finally {
       setSavingId(null);
@@ -152,7 +153,7 @@ export function CashRegisterAssignmentSection() {
   if (loadingSettings) {
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Registrierkasse (POS)</Text>
+        <Text style={styles.sectionTitle}>{t('settings:registerAssignment.title')}</Text>
         <ActivityIndicator style={{ marginVertical: 12 }} />
       </View>
     );
@@ -160,14 +161,13 @@ export function CashRegisterAssignmentSection() {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Registrierkasse (POS)</Text>
+      <Text style={styles.sectionTitle}>{t('settings:registerAssignment.title')}</Text>
       <Text style={styles.muted}>
-        Für fiskal gültige Zahlungen muss eine geöffnete Kasse zugewiesen sein. Die Auswahl wird im Profil
-        gespeichert.
+        {t('settings:registerAssignment.intro')}
       </Text>
       {isValidPosCashRegisterId(assignedId) ? (
         <Text style={styles.assigned}>
-          Aktuell zugewiesen:{' '}
+          {t('settings:registerAssignment.assignedPrefix')}{' '}
           <Text style={styles.assignedMono}>{(assignedId ?? '').slice(0, 8)}…</Text>
         </Text>
       ) : null}
@@ -176,17 +176,17 @@ export function CashRegisterAssignmentSection() {
         <View style={styles.banner}>
           <Text style={styles.bannerTitle}>{registerGateBannerTitle(registerGateCtx)}</Text>
           {!listLoading && !posReadiness.loading ? (
-            <Text style={styles.mutedSmall}>{registerGateBannerIntro()}</Text>
+            <Text style={styles.mutedSmall}>{t('settings:registerGate.banner.intro')}</Text>
           ) : null}
           <Text style={styles.bannerDetail}>{registerGateBannerDetail(registerGateCtx)}</Text>
           {settingsLoadFailed ? (
             <TouchableOpacity onPress={load} style={styles.retryBtn}>
-              <Text style={styles.retryText}>Erneut versuchen</Text>
+              <Text style={styles.retryText}>{t('settings:registerAssignment.retry')}</Text>
             </TouchableOpacity>
           ) : null}
           {posReadiness.error ? (
             <TouchableOpacity onPress={() => posReadiness.refresh()} style={styles.retryBtn}>
-              <Text style={styles.retryText}>Kassenbereitschaft erneut versuchen</Text>
+              <Text style={styles.retryText}>{t('settings:registerAssignment.retryReadiness')}</Text>
             </TouchableOpacity>
           ) : null}
           {listLoading || posReadiness.loading ? (
@@ -208,7 +208,7 @@ export function CashRegisterAssignmentSection() {
           ) : null}
           {!listLoading && (listFailureKind === 'network' || listFailureKind === 'unknown') ? (
             <TouchableOpacity onPress={() => setListRetryToken((n) => n + 1)}>
-              <Text style={styles.retryText}>Kassenliste erneut laden</Text>
+              <Text style={styles.retryText}>{t('settings:registerAssignment.reloadList')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -219,7 +219,7 @@ export function CashRegisterAssignmentSection() {
             setAssignedId(null);
           }}
         >
-          <Text style={styles.changeBtnText}>Andere Kasse wählen</Text>
+          <Text style={styles.changeBtnText}>{t('settings:registerAssignment.change')}</Text>
         </TouchableOpacity>
       )}
     </View>

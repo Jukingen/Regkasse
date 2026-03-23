@@ -1,0 +1,22 @@
+{
+  "overview": "Übersicht",
+  "invoices": "Rechnungen",
+  "products": "Produkte",
+  "modifierGroups": "Add-on-Gruppen",
+  "categories": "Kategorien",
+  "customers": "Kunden",
+  "benefitDefinitions": "Vorteile (Definitionen)",
+  "benefitAssignments": "Vorteile (Zuweisungen)",
+  "receipts": "Belege",
+  "receiptTemplates": "Belegvorlagen",
+  "receiptGenerate": "Belegvorschau",
+  "auditLogs": "Audit-Protokoll",
+  "payments": "Zahlungen",
+  "tagesabschluss": "Tagesabschluss",
+  "users": "Benutzer",
+  "settings": "Einstellungen",
+  "myProfile": "Mein Profil",
+  "logout": "Abmelden",
+  "rksvOperationsOverview": "RKSV Übersicht",
+  "finanzOnlineAbgleich": "FinanzOnline-Abgleich"
+}

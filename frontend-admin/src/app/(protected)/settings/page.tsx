@@ -13,22 +13,25 @@ import {
     mapFormValuesToUpdateRequest,
     type SettingsFormValues,
 } from '@/features/settings/types/settingsForm';
+import type { CompanySettings } from '@/api/generated/model';
 import { customInstance } from '@/lib/axios';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { useI18n } from '@/i18n/I18nProvider';
 
 const ATU_REGEX = /^ATU\d{8}$/;
 
 /** User-facing load error text; avoids dumping unknown error shapes raw into the UI */
-function getSettingsLoadErrorDescription(err: unknown): string {
+function getSettingsLoadErrorDescription(err: unknown, translate: (key: string) => string): string {
     if (err instanceof Error && err.message.trim()) return err.message.trim();
     const normalized = (err as { normalized?: { message?: string } })?.normalized;
     if (normalized?.message?.trim()) return normalized.message.trim();
     const msg = (err as { message?: string })?.message;
     if (typeof msg === 'string' && msg.trim()) return msg.trim();
-    return 'Firmeneinstellungen konnten nicht geladen werden. Verbindung prüfen und erneut versuchen.';
+    return translate('settings.page.loadErrorFallback');
 }
 
 export default function SettingsPage() {
+    const { t } = useI18n();
     const { data: settings, isLoading, isError, error, refetch, isFetching, isSuccess } = useGetApiCompanySettings();
     const updateMutation = usePutApiCompanySettings();
     const [form] = Form.useForm<SettingsFormValues>();
@@ -43,23 +46,23 @@ export default function SettingsPage() {
         try {
             const payload = mapFormValuesToUpdateRequest(values);
             await updateMutation.mutateAsync({ data: payload });
-            message.success('Einstellungen gespeichert.');
+            message.success(t('settings.page.saveChanges'));
         } catch (err) {
-            message.error('Speichern fehlgeschlagen.');
+            message.error(t('settings.page.saveFailed'));
         }
     };
 
-    const headerBreadcrumbs = [ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.settings }];
+    const headerBreadcrumbs = [adminOverviewCrumb(t), { title: t('nav.settings') }];
 
     if (isLoading) {
         return (
             <SpaceWrapper>
-                <AdminPageHeader title="Firmeneinstellungen" breadcrumbs={[...headerBreadcrumbs]} />
+                <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
                 <Card>
                     <div style={{ textAlign: 'center', padding: '48px 24px' }}>
                         <Spin size="large" />
                         <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
-                            Firmeneinstellungen werden geladen…
+                            {t('settings.page.loading')}
                         </Typography.Paragraph>
                     </div>
                 </Card>
@@ -70,15 +73,15 @@ export default function SettingsPage() {
     if (isError) {
         return (
             <SpaceWrapper>
-                <AdminPageHeader title="Firmeneinstellungen" breadcrumbs={[...headerBreadcrumbs]} />
+                <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
                 <Alert
                     type="error"
-                    message="Firmeneinstellungen konnten nicht geladen werden"
-                    description={getSettingsLoadErrorDescription(error)}
+                    message={t('settings.page.loadErrorTitle')}
+                    description={getSettingsLoadErrorDescription(error, t)}
                     showIcon
                     action={
                         <Button size="small" type="primary" onClick={() => refetch()} loading={isFetching}>
-                            Retry
+                            {t('common.buttons.retry')}
                         </Button>
                     }
                 />
@@ -86,17 +89,17 @@ export default function SettingsPage() {
         );
     }
 
-    if (isSuccess && settings == null) {
+    if (isSuccess && (settings as CompanySettings | null) == null) {
         return (
             <SpaceWrapper>
-                <AdminPageHeader title="Firmeneinstellungen" breadcrumbs={[...headerBreadcrumbs]} />
+                <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
                 <Card>
                     <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description="Es wurden keine Firmeneinstellungen zurückgegeben."
+                        description={t('settings.page.empty')}
                     >
                         <Button type="primary" onClick={() => refetch()} loading={isFetching}>
-                            Erneut laden
+                            {t('common.buttons.retry')}
                         </Button>
                     </Empty>
                 </Card>
@@ -107,7 +110,7 @@ export default function SettingsPage() {
     return (
         <SpaceWrapper>
             <AdminPageHeader
-                title="Firmeneinstellungen"
+                title={t('settings.page.title')}
                 breadcrumbs={[...headerBreadcrumbs]}
                 actions={
                     <Button
@@ -116,7 +119,7 @@ export default function SettingsPage() {
                         onClick={() => form.submit()}
                         loading={updateMutation.isPending}
                     >
-                        Änderungen speichern
+                        {t('settings.page.saveChanges')}
                     </Button>
                 }
             />
@@ -131,27 +134,27 @@ export default function SettingsPage() {
                     items={[
                         {
                             key: '1',
-                            label: 'General Information',
+                            label: t('settings.tabs.general'),
                             children: <GeneralInfoTab />,
                         },
                         {
                             key: '2',
-                            label: 'Region & Formatierung',
+                            label: t('settings.tabs.localization'),
                             children: <LocalizationTab />,
                         },
                         {
                             key: '3',
-                            label: 'FinanzOnline',
+                            label: t('settings.tabs.finanzOnline'),
                             children: <FinanzOnlineTab />,
                         },
                         {
                             key: '4',
-                            label: 'TSE',
+                            label: t('settings.tabs.tse'),
                             children: <TSETab />,
                         },
                         {
                             key: '5',
-                            label: 'Mein Passwort',
+                            label: t('settings.tabs.password'),
                             icon: <LockOutlined />,
                             children: <ChangeMyPasswordTab />,
                         },
@@ -167,8 +170,9 @@ function SpaceWrapper({ children }: { children: React.ReactNode }) {
 }
 
 function GeneralInfoTab() {
+    const { t } = useI18n();
     return (
-        <Card title="Unternehmen & Kontakt">
+        <Card title={t('settings.form.general.cardTitle')}>
             <Row gutter={24}>
                 <Col span={12}>
                     <Form.Item
@@ -245,8 +249,9 @@ function GeneralInfoTab() {
 }
 
 function LocalizationTab() {
+    const { t } = useI18n();
     return (
-        <Card title="Region & Formatierung">
+        <Card title={t('settings.form.localization.cardTitle')}>
             <Row gutter={24}>
                 <Col span={8}>
                     <Form.Item
@@ -321,9 +326,10 @@ function LocalizationTab() {
 }
 
 function FinanzOnlineTab() {
+    const { t } = useI18n();
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Card title="Zugangsdaten & Anbindung">
+            <Card title={t('settings.form.finanzOnline.credentialsCardTitle')}>
                 <Row gutter={24}>
                     <Col xs={24} md={12}>
                         <Form.Item name="finanzOnlineEnabled" valuePropName="checked" label="FinanzOnline-Integration aktiv">
@@ -365,7 +371,7 @@ function FinanzOnlineTab() {
                 </Row>
             </Card>
 
-            <Card title="Übermittlung">
+            <Card title={t('settings.form.finanzOnline.deliveryCardTitle')}>
                 <Row gutter={24}>
                     <Col xs={24} md={12}>
                         <Form.Item
@@ -384,7 +390,7 @@ function FinanzOnlineTab() {
                 </Row>
             </Card>
 
-            <Card title="Validierung & Wiederholungen">
+            <Card title={t('settings.form.finanzOnline.validationCardTitle')}>
                 <Row gutter={24}>
                     <Col xs={24} md={12}>
                         <Form.Item
@@ -403,12 +409,12 @@ function FinanzOnlineTab() {
                 </Row>
             </Card>
 
-            <Card title="Laufzeitstatus (nur Anzeige)">
+            <Card title={t('settings.form.finanzOnline.runtimeCardTitle')}>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-                    Laufzeitstatus aus dem Backend. Diese Felder sind schreibgeschützt und werden nicht mit „Änderungen speichern“ geschrieben.
+                    {t('settings.form.finanzOnline.runtimeCardDescription')}
                 </Typography.Paragraph>
                 <Descriptions size="small" bordered column={1}>
-                    <Descriptions.Item label="Letzte FinanzOnline-Synchronisation">
+                    <Descriptions.Item label={t('settings.form.finanzOnline.lastSyncLabel')}>
                         <Form.Item noStyle shouldUpdate>
                             {({ getFieldValue }) => {
                                 const v = getFieldValue('lastFinanzOnlineSync');
@@ -416,7 +422,7 @@ function FinanzOnlineTab() {
                             }}
                         </Form.Item>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Ausstehende Rechnungen">
+                    <Descriptions.Item label={t('settings.form.finanzOnline.pendingInvoicesLabel')}>
                         <Form.Item noStyle shouldUpdate>
                             {({ getFieldValue }) => {
                                 const v = getFieldValue('pendingInvoices');
@@ -431,8 +437,9 @@ function FinanzOnlineTab() {
 }
 
 function TSETab() {
+    const { t } = useI18n();
     return (
-        <Card title="TSE (Technische Sicherheitseinrichtung)">
+        <Card title={t('settings.form.tse.cardTitle')}>
             <Form.Item name="tseAutoConnect" valuePropName="checked" label="Beim Start automatisch verbinden">
                 <Switch />
             </Form.Item>
@@ -456,23 +463,14 @@ function TSETab() {
     );
 }
 
-const changePasswordCopy = {
-    title: 'Mein Passwort ändern',
-    currentPassword: 'Aktuelles Passwort',
-    newPassword: 'Neues Passwort (min. 8 Zeichen, Groß-/Kleinbuchstaben, Zahl, Sonderzeichen)',
-    confirmPassword: 'Neues Passwort bestätigen',
-    submit: 'Passwort ändern',
-    success: 'Passwort wurde geändert.',
-    confirmMismatch: 'Passwörter stimmen nicht überein.',
-};
-
 function ChangeMyPasswordTab() {
+    const { t } = useI18n();
     const [form] = Form.useForm<{ currentPassword: string; newPassword: string; confirmPassword: string }>();
     const [loading, setLoading] = useState(false);
 
     const onFinish = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
         if (values.newPassword !== values.confirmPassword) {
-            form.setFields([{ name: 'confirmPassword', errors: [changePasswordCopy.confirmMismatch] }]);
+            form.setFields([{ name: 'confirmPassword', errors: [t('settings.changePassword.confirmMismatch')] }]);
             return;
         }
         setLoading(true);
@@ -482,46 +480,46 @@ function ChangeMyPasswordTab() {
                 method: 'PUT',
                 data: { currentPassword: values.currentPassword, newPassword: values.newPassword },
             });
-            message.success(changePasswordCopy.success);
+            message.success(t('settings.changePassword.success'));
             form.resetFields();
         } catch (err: unknown) {
             const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            message.error(msg ?? 'Passwort konnte nicht geändert werden.');
+            message.error(msg ?? t('settings.changePassword.errorFallback'));
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <Card title={changePasswordCopy.title}>
+        <Card title={t('settings.changePassword.title')}>
             <Form form={form} layout="vertical" onFinish={onFinish} style={{ maxWidth: 400 }}>
                 <Form.Item
                     name="currentPassword"
-                    label={changePasswordCopy.currentPassword}
-                    rules={[{ required: true, message: 'Aktuelles Passwort erforderlich' }]}
+                    label={t('settings.changePassword.currentPassword')}
+                    rules={[{ required: true, message: t('settings.changePassword.currentPasswordRequired') }]}
                 >
                     <Input.Password placeholder="••••••••" autoComplete="current-password" />
                 </Form.Item>
                 <Form.Item
                     name="newPassword"
-                    label={changePasswordCopy.newPassword}
+                    label={t('settings.changePassword.newPassword')}
                     rules={[
-                        { required: true, message: 'Neues Passwort erforderlich' },
-                        { min: 8, message: 'Mindestens 8 Zeichen' },
+                        { required: true, message: t('settings.changePassword.newPasswordRequired') },
+                        { min: 8, message: t('settings.changePassword.minLength') },
                     ]}
                 >
                     <Input.Password placeholder="••••••••" autoComplete="new-password" />
                 </Form.Item>
                 <Form.Item
                     name="confirmPassword"
-                    label={changePasswordCopy.confirmPassword}
+                    label={t('settings.changePassword.confirmPassword')}
                     dependencies={['newPassword']}
                     rules={[
-                        { required: true, message: 'Bitte bestätigen Sie das neue Passwort' },
+                        { required: true, message: t('settings.changePassword.confirmRequired') },
                         ({ getFieldValue }) => ({
                             validator(_, value) {
                                 if (!value || getFieldValue('newPassword') === value) return Promise.resolve();
-                                return Promise.reject(new Error(changePasswordCopy.confirmMismatch));
+                                return Promise.reject(new Error(t('settings.changePassword.confirmMismatch')));
                             },
                         }),
                     ]}
@@ -530,7 +528,7 @@ function ChangeMyPasswordTab() {
                 </Form.Item>
                 <Form.Item>
                     <Button type="primary" htmlType="submit" loading={loading} icon={<LockOutlined />}>
-                        {changePasswordCopy.submit}
+                        {t('settings.changePassword.submit')}
                     </Button>
                 </Form.Item>
             </Form>

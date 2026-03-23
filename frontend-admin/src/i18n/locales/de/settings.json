@@ -1,0 +1,52 @@
+{
+  "page": {
+    "title": "Firmeneinstellungen",
+    "loading": "Firmeneinstellungen werden geladen…",
+    "loadErrorTitle": "Firmeneinstellungen konnten nicht geladen werden",
+    "loadErrorFallback": "Firmeneinstellungen konnten nicht geladen werden. Verbindung prüfen und erneut versuchen.",
+    "empty": "Es wurden keine Firmeneinstellungen zurückgegeben.",
+    "saveChanges": "Änderungen speichern",
+    "saveFailed": "Speichern fehlgeschlagen."
+  },
+  "tabs": {
+    "general": "Allgemeine Informationen",
+    "localization": "Region & Formatierung",
+    "finanzOnline": "FinanzOnline",
+    "tse": "TSE",
+    "password": "Mein Passwort"
+  },
+  "changePassword": {
+    "title": "Mein Passwort ändern",
+    "currentPassword": "Aktuelles Passwort",
+    "currentPasswordRequired": "Aktuelles Passwort erforderlich",
+    "newPassword": "Neues Passwort (min. 8 Zeichen, Groß-/Kleinbuchstaben, Zahl, Sonderzeichen)",
+    "newPasswordRequired": "Neues Passwort erforderlich",
+    "minLength": "Mindestens 8 Zeichen",
+    "confirmPassword": "Neues Passwort bestätigen",
+    "confirmRequired": "Bitte bestätigen Sie das neue Passwort",
+    "confirmMismatch": "Passwörter stimmen nicht überein.",
+    "submit": "Passwort ändern",
+    "success": "Passwort wurde geändert.",
+    "errorFallback": "Passwort konnte nicht geändert werden."
+  },
+  "form": {
+    "general": {
+      "cardTitle": "Unternehmen & Kontakt"
+    },
+    "localization": {
+      "cardTitle": "Region & Formatierung"
+    },
+    "finanzOnline": {
+      "credentialsCardTitle": "Zugangsdaten & Anbindung",
+      "deliveryCardTitle": "Übermittlung",
+      "validationCardTitle": "Validierung & Wiederholungen",
+      "runtimeCardTitle": "Laufzeitstatus (nur Anzeige)",
+      "runtimeCardDescription": "Laufzeitstatus aus dem Backend. Diese Felder sind schreibgeschützt und werden nicht mit „Änderungen speichern“ geschrieben.",
+      "lastSyncLabel": "Letzte FinanzOnline-Synchronisation",
+      "pendingInvoicesLabel": "Ausstehende Rechnungen"
+    },
+    "tse": {
+      "cardTitle": "TSE (Technische Sicherheitseinrichtung)"
+    }
+  }
+}

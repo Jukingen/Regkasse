@@ -21,6 +21,12 @@
     "item": "Item",
     "quantity": "Qty",
     "unit": "Unit",
+    "tseSignature": "TSE Signature",
+    "kassenId": "Cash Register ID",
+    "taxNumber": "Tax Number",
+    "pdfDialogTitle": "Invoice PDF",
+    "loading": "Loading invoices...",
+    "detailLoading": "Loading details...",
     "actions": {
         "downloadPdf": "Download PDF",
         "downloadCsv": "Download CSV",
@@ -76,6 +82,18 @@
         "cash": "Cash",
         "card": "Card",
         "voucher": "Voucher"
+    },
+    "errors": {
+        "loadInvoices": "An error occurred while loading invoices",
+        "loadDetail": "An error occurred while loading invoice details",
+        "downloadPdf": "An error occurred while downloading PDF"
+    },
+    "statusLabels": {
+        "paid": "Paid",
+        "pending": "Pending",
+        "draft": "Draft",
+        "cancelled": "Cancelled",
+        "unknown": "Unknown"
     },
     "stats": {
         "totalInvoices": "Total Invoices",

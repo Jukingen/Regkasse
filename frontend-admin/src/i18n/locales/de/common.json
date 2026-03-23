@@ -1,0 +1,22 @@
+{
+  "breadcrumb": {
+    "overview": "Übersicht"
+  },
+  "buttons": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "yes": "Ja",
+    "no": "Nein",
+    "retry": "Erneut versuchen",
+    "refresh": "Aktualisieren",
+    "close": "Schließen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten"
+  },
+  "messages": {
+    "unknownError": "Unbekannter Fehler"
+  },
+  "operator": {
+    "refetchHintToolbar": "Daten manuell aktualisieren (Cache kann veraltet sein)."
+  }
+}

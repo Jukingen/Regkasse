@@ -24,5 +24,104 @@
   "outOfStock": "Nicht verfügbar",
   "subtotal": "Zwischensumme",
   "tax": "Steuer",
-  "discount": "Rabatt"
+  "discount": "Rabatt",
+  "posFlow": {
+    "section": {
+      "category": "Kategorie",
+      "summary": "Zusammenfassung"
+    },
+    "summaryStrip": "Tisch {{table}} · {{itemCount}} Artikel · GESAMT {{total}}",
+    "personal": {
+      "label": "Personal:",
+      "change": "Ändern",
+      "remove": "Entfernen",
+      "none": "Keiner",
+      "set": "Setzen",
+      "benefitSingle": "🎁 Vorteil aktiv",
+      "benefitMultiple": "🎁 {{count}} Vorteile aktiv"
+    },
+    "benefit": {
+      "blockedReasons": {
+        "dailyLimit": "Tageslimit erreicht",
+        "noEligibleItems": "Keine passenden Artikel im Warenkorb",
+        "quantityNotReached": "Mindestmenge nicht erreicht",
+        "quantityNotReachedDetail": "Noch {{count}} Artikel für Aktion nötig",
+        "fallback": "Vorteil derzeit nicht anwendbar"
+      }
+    },
+    "toast": {
+      "selectTableFirst": "Bitte zuerst Tisch wählen.",
+      "productAddedToTable": "{{name}} zu Tisch {{table}} hinzugefügt",
+      "productAddError": "{{name}}: {{reason}}",
+      "addOnAdded": "{{name}} hinzugefügt",
+      "addOnAddFailed": "Add-on konnte nicht hinzugefügt werden.",
+      "baseProductAdded": "{{name}} hinzugefügt",
+      "addingFailed": "Fehler beim Hinzufügen",
+      "invalidTableNumber": "Ungültige Tischnummer",
+      "switchingToTable": "Zu Tisch {{table}} wechseln",
+      "tableSwitchFailed": "Tischwechsel fehlgeschlagen",
+      "updateFailed": "Aktualisierung fehlgeschlagen",
+      "itemRemoved": "Artikel entfernt",
+      "itemRemoveFailed": "Artikel konnte nicht entfernt werden.",
+      "cartClearedForTable": "Warenkorb für Tisch {{table}} geleert",
+      "tableClearFailed": "Tisch {{table}} konnte nicht geleert werden",
+      "tableCleared": "Tisch {{table}} geleert",
+      "tableClearGenericFailed": "Tisch konnte nicht geleert werden",
+      "emptyCart": "Warenkorb ist leer. Bitte zuerst Artikel hinzufügen."
+    },
+    "payment": {
+      "title": "Zahlungsarten",
+      "totalLabel": "Gesamt",
+      "enteredTotalLabel": "Eingegeben gesamt",
+      "placeholderAmount": "0.00",
+      "cancelReasonByCashier": "Vom Kassierer storniert",
+      "loadingRegisterSettings": "Kasseneinstellungen werden geladen...",
+      "errors": {
+        "insufficientAmount": "Zahlungsbetrag unzureichend.",
+        "missingTableNumber": "Tischnummer fehlt.",
+        "emptyCart": "Warenkorb ist leer.",
+        "invalidAmount": "Ungültiger Betrag.",
+        "invalidAmountDetailed": "Ungültiger Betrag (muss größer als 0,01 € sein).",
+        "cartLoadFailed": "Warenkorb konnte nicht geladen werden. Bitte erneut versuchen.",
+        "cartLoadFailedRefresh": "Warenkorb konnte nicht geladen werden. Bitte Seite aktualisieren oder erneut versuchen.",
+        "completeCartFailed": "Zahlung OK, Warenkorb konnte nicht abgeschlossen werden. Bitte Administrator informieren.",
+        "printFailed": "Zahlung OK, Druck fehlgeschlagen.",
+        "genericFailed": "Zahlung fehlgeschlagen. Bitte erneut versuchen.",
+        "fiscalNotConfirmed": "Zahlung nicht fiscal bestätigt",
+        "failed": "Zahlung fehlgeschlagen"
+      },
+      "alerts": {
+        "hintTitle": "Hinweis",
+        "errorTitle": "Fehler",
+        "paymentNotPossibleTitle": "Zahlung nicht möglich",
+        "paymentCancelledTitle": "Zahlung abgebrochen",
+        "cancelPaymentTitle": "Zahlung abbrechen",
+        "cancelPaymentConfirm": "Möchten Sie diese Zahlung wirklich abbrechen?",
+        "cancelFailed": "Stornierung fehlgeschlagen. Bitte erneut versuchen.",
+        "cancelRequestFailed": "Stornierung der Zahlung fehlgeschlagen.",
+        "fiscalPending": "Keine Verbindung zur Kasse. Die Zahlung ist nicht fiscal verbucht und steht in der Warteschlange.",
+        "invoiceReconcileAttention": "Zahlung erfolgreich. Die Belegabstimmung erfordert jedoch Ihre Aufmerksamkeit."
+      },
+      "buttons": {
+        "cancel": "Abbrechen",
+        "confirm": "Bestätigen",
+        "cancelNo": "Nein",
+        "cancelYes": "Ja, abbrechen"
+      },
+      "cancelSummary": "Die Zahlung wurde storniert.\n\nGrund: {{reason}}\nVon: {{cancelledBy}}\nZeit: {{cancelledAt}}",
+      "retryActions": {
+        "retrySettings": "Kasseneinstellungen erneut versuchen",
+        "retryReadiness": "Kassenbereitschaft erneut versuchen",
+        "reloadRegisterList": "Kassenliste erneut laden"
+      },
+      "pdfErrors": {
+        "title": "Beleg-PDF",
+        "paymentSucceededPrefix": "Die Zahlung war erfolgreich.",
+        "unauthorized": "{{prefix}} Anmeldung abgelaufen oder ungültig. Bitte erneut anmelden und „Beleg-PDF“ erneut versuchen.",
+        "forbidden": "{{prefix}} Keine Berechtigung für PDF-Export. QR-Code und Druck bleiben nutzbar. Bei Bedarf den Administrator bitten (Berechtigung „Rechnung ansehen“ / InvoiceView).",
+        "notFound": "{{prefix}} PDF wurde nicht gefunden. Bitte später erneut versuchen oder den Administrator informieren.",
+        "httpGeneric": "{{prefix}} PDF konnte nicht geladen werden (HTTP {{status}}). Bitte später erneut versuchen."
+      }
+    }
+  }
 }
