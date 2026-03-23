@@ -7,6 +7,8 @@ import type { Category, CreateCategoryRequest, UpdateCategoryRequest } from '@/a
 import { Button, Table, Space, message, Popconfirm, Empty, Spin, Input, Alert, Typography, Flex } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import type { CategoryWithVat } from '@/features/categories/types';
 import type { CategoryFormSubmitValues } from '@/features/categories/components/CategoryForm';
@@ -34,9 +36,9 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
             <div style={{ padding: 16 }}>
                 <Alert
                     type="error"
-                    message="Failed to load products"
+                    message="Produkte konnten nicht geladen werden"
                     description={error instanceof Error ? error.message : undefined}
-                    action={<Button size="small" onClick={() => refetch()}>Retry</Button>}
+                    action={<Button size="small" onClick={() => refetch()}>Erneut versuchen</Button>}
                 />
             </div>
         );
@@ -44,24 +46,54 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
     if (!products?.length) {
         return (
             <div style={{ padding: 16 }}>
-                <Empty description="No products in this category" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                <Empty description="Keine Produkte in dieser Kategorie" image={Empty.PRESENTED_IMAGE_SIMPLE} />
             </div>
         );
     }
 
     return (
         <div style={{ padding: '8px 16px 16px' }}>
-            <div style={{ marginBottom: 8, fontSize: 12, color: '#666' }}>Products in this category</div>
+            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontSize: 12 }}>
+                Direkt dieser Kategorie zugeordnet:{' '}
+                <Typography.Text strong>{products.length}</Typography.Text>{' '}
+                {products.length === 1 ? 'Produkt' : 'Produkte'}
+            </Typography.Text>
             <Table
                 size="small"
                 dataSource={products}
                 rowKey="id"
                 pagination={false}
                 columns={[
-                    { title: 'Product', dataIndex: 'name', key: 'name' },
-                    { title: 'Barcode', dataIndex: 'barcode', key: 'barcode' },
-                    { title: 'Price', dataIndex: 'price', key: 'price', render: (v: number) => `€${Number(v).toFixed(2)}` },
-                    { title: 'Stock', dataIndex: 'stockQuantity', key: 'stock' },
+                    { title: 'Produkt', dataIndex: 'name', key: 'name', ellipsis: true },
+                    {
+                        title: 'Barcode',
+                        dataIndex: 'barcode',
+                        key: 'barcode',
+                        width: 120,
+                        render: (v: string | null | undefined) =>
+                            v?.trim() ? (
+                                <Typography.Text code copyable style={{ fontSize: 11 }}>
+                                    {v.trim()}
+                                </Typography.Text>
+                            ) : (
+                                '—'
+                            ),
+                    },
+                    {
+                        title: 'Preis',
+                        dataIndex: 'price',
+                        key: 'price',
+                        width: 88,
+                        align: 'right' as const,
+                        render: (v: number) => `€${Number(v).toFixed(2)}`,
+                    },
+                    {
+                        title: 'Bestand',
+                        dataIndex: 'stockQuantity',
+                        key: 'stock',
+                        width: 72,
+                        align: 'right' as const,
+                    },
                 ]}
             />
         </div>
@@ -109,11 +141,11 @@ export default function CategoriesPage() {
                     vatRate: values.vatRate ?? 20,
                 } as CategoryCreatePayload,
             });
-            message.success('Category created');
+            message.success('Kategorie angelegt.');
             setFormVisible(false);
             invalidateList();
         } catch {
-            message.error('Failed to create category');
+            message.error('Kategorie konnte nicht angelegt werden.');
         }
     };
 
@@ -128,22 +160,22 @@ export default function CategoriesPage() {
                     vatRate: values.vatRate ?? 20,
                 } as CategoryUpdatePayload,
             });
-            message.success('Category updated');
+            message.success('Kategorie aktualisiert.');
             setFormVisible(false);
             setEditingCategory(null);
             invalidateList();
         } catch {
-            message.error('Failed to update category');
+            message.error('Kategorie konnte nicht aktualisiert werden.');
         }
     };
 
     const handleDelete = async (id: string) => {
         try {
             await deleteMutation.mutateAsync({ id });
-            message.success('Category deleted');
+            message.success('Kategorie gelöscht.');
             invalidateList();
         } catch {
-            message.error('Failed to delete category');
+            message.error('Kategorie konnte nicht gelöscht werden.');
         }
     };
 
@@ -224,11 +256,8 @@ export default function CategoriesPage() {
     return (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
-                title="Categories"
-                breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
-                    { title: 'Categories' },
-                ]}
+                title={ADMIN_NAV_LABELS.categories}
+                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.categories }]}
                 actions={
                     <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
                         <Input.Search
@@ -253,12 +282,12 @@ export default function CategoriesPage() {
             {isError ? (
                 <Alert
                     type="error"
-                    message="Failed to load categories"
+                    message="Kategorien konnten nicht geladen werden"
                     description={error instanceof Error ? error.message : 'Unknown error'}
                     showIcon
                     action={
                         <Button size="small" onClick={() => refetch()}>
-                            Retry
+                            {OPERATOR_SHARED_COPY.retryAfterError}
                         </Button>
                     }
                 />

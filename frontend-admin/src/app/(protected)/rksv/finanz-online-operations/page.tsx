@@ -22,6 +22,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
   extractApiErrorMessage,
 } from '@/api/admin-rksv/client';
@@ -33,7 +34,7 @@ import {
   postApiFinanzOnlineTestConnection,
 } from '@/api/generated/finanz-online/finanz-online';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
-import { OPERATOR_FO_OPERATIONS_PAGE_COPY } from '@/shared/operatorTruthCopy';
+import { OPERATOR_FO_OPERATIONS_PAGE_COPY, OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 
 function statusColor(isConnected: boolean | undefined): string {
   if (isConnected === true) return 'green';
@@ -88,7 +89,7 @@ export default function FinanzOnlineOperationsPage() {
       <AdminPageHeader
         title={OPERATOR_FO_OPERATIONS_PAGE_COPY.pageTitle}
         breadcrumbs={[
-          { title: 'Dashboard', href: '/dashboard' },
+          ADMIN_OVERVIEW_CRUMB,
           { title: 'RKSV', href: '/rksv' },
           { title: OPERATOR_FO_OPERATIONS_PAGE_COPY.breadcrumbTitle },
         ]}
@@ -97,7 +98,7 @@ export default function FinanzOnlineOperationsPage() {
             icon={<ReloadOutlined />}
             onClick={() => queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnlineOps.base })}
           >
-            Aktualisieren
+            {OPERATOR_SHARED_COPY.toolbarRefresh}
           </Button>
         }
       />

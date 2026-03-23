@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import type { TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useReceiptSearchParams } from '@/features/receipts/hooks/useReceiptSearchParams';
 import { useReceiptListQuery } from '@/features/receipts/hooks/useReceiptListQuery';
 import ReceiptsFilterBar from '@/features/receipts/components/ReceiptsFilterBar';
@@ -18,7 +19,7 @@ function getReceiptListErrorMessage(error: unknown): string {
     if (error instanceof Error) return error.message;
     const norm = (error as { normalized?: { message?: string } })?.normalized;
     if (norm?.message) return norm.message;
-    return 'Failed to load receipts. Please try again.';
+    return 'Belege konnten nicht geladen werden. Bitte erneut versuchen.';
 }
 
 function ReceiptsPageContent() {
@@ -56,34 +57,34 @@ function ReceiptsPageContent() {
     };
 
     const isEmpty = !isLoading && !isError && (!data?.items?.length);
-    const emptyText = isEmpty ? 'No receipts found. Try adjusting filters.' : undefined;
+    const emptyText = isEmpty ? 'Keine Belege für diese Filter. Filter anpassen oder Zeitraum erweitern.' : undefined;
 
     const scopeSummary = useMemo(() => {
         const p = data?.page ?? params.page;
         const ps = data?.pageSize ?? params.pageSize;
         const tc = data?.totalCount;
         const parts = [
-            `Page ${p} · ${ps} per page`,
-            tc != null ? `${tc.toLocaleString()} receipts (API)` : 'total not loaded',
+            `Seite ${p} · ${ps} pro Seite`,
+            tc != null ? `${tc.toLocaleString('de-DE')} Belege (API)` : 'Gesamtanzahl nicht geladen',
         ];
         if (params.receiptNumber?.trim()) {
-            parts.push(`receipt # «${params.receiptNumber.trim()}»`);
+            parts.push(`Belegnr. «${params.receiptNumber.trim()}»`);
         }
         if (params.cashRegisterId?.trim()) {
-            parts.push(`register ${params.cashRegisterId.trim()}`);
+            parts.push(`Kasse ${params.cashRegisterId.trim()}`);
         }
         if (params.cashierId?.trim()) {
-            parts.push(`cashier ${params.cashierId.trim()}`);
+            parts.push(`Kassierer ${params.cashierId.trim()}`);
         }
         if (params.issuedFrom && params.issuedTo) {
             parts.push(
                 `${dayjs(params.issuedFrom).format('DD.MM.YYYY')}–${dayjs(params.issuedTo).format('DD.MM.YYYY')}`,
             );
         } else {
-            parts.push('no date range');
+            parts.push('kein Datumsfilter');
         }
         if (params.sort) {
-            parts.push(`sort ${params.sort}`);
+            parts.push(`Sortierung ${params.sort}`);
         }
         return parts.join(' · ');
     }, [data?.page, data?.pageSize, data?.totalCount, params]);
@@ -91,37 +92,34 @@ function ReceiptsPageContent() {
     return (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
-                title="Receipts"
-                breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
-                    { title: 'Receipts' },
-                ]}
+                title={ADMIN_NAV_LABELS.receipts}
+                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.receipts }]}
                 actions={
-                    <Tooltip title="Reload data from server (list may be cached).">
+                    <Tooltip title="Daten vom Server neu laden (Liste kann gecacht sein).">
                         <Button
                             icon={<ReloadOutlined />}
                             onClick={() => refetch()}
                             loading={isLoading}
                         >
-                            Refresh
+                            Aktualisieren
                         </Button>
                     </Tooltip>
                 }
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    Server-filtered receipt list. Narrow results with the filters below, then review rows in the table.
+                    Serverseitig gefilterte Belegliste. Mit den Filtern eingrenzen, anschließend die Tabelle prüfen.
                 </Typography.Paragraph>
             </AdminPageHeader>
 
             {isError ? (
                 <Alert
                     type="error"
-                    message="Failed to load receipts"
+                    message="Belege konnten nicht geladen werden"
                     description={getReceiptListErrorMessage(error)}
                     showIcon
                     action={
                         <Button size="small" onClick={() => refetch()}>
-                            Try again
+                            Erneut versuchen
                         </Button>
                     }
                 />
@@ -147,7 +145,7 @@ function ReceiptsPageContent() {
                     }}
                 >
                     <Typography.Text strong style={{ fontSize: 12 }}>
-                        Active scope:{' '}
+                        Aktive Ansicht:{' '}
                     </Typography.Text>
                     {scopeSummary}
                 </Typography.Paragraph>
@@ -182,7 +180,7 @@ export default function ReceiptsPage() {
         <Suspense
             fallback={
                 <div style={{ padding: 80, textAlign: 'center' }}>
-                    <Spin size="large" tip="Loading receipts…" />
+                    <Spin size="large" tip="Belege werden geladen…" />
                 </div>
             }
         >

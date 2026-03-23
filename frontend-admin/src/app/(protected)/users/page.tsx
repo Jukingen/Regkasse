@@ -5,7 +5,7 @@
  * Tablo: name, email, role, branch, status, last login, actions.
  * Filtreler: role, status, branch, search. Drawer create/edit, deaktive (reason), reaktive, Activity timeline tab.
  */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
     Table,
     Card,
@@ -21,7 +21,12 @@ import {
     message,
     Alert,
     Empty,
+    Flex,
+    Tooltip,
 } from 'antd';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
     UserOutlined,
     EditOutlined,
@@ -30,7 +35,11 @@ import {
     EyeOutlined,
     SearchOutlined,
     KeyOutlined,
+    ReloadOutlined,
+    ClearOutlined,
 } from '@ant-design/icons';
+import Link from 'next/link';
+import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
@@ -64,8 +73,6 @@ import { RoleManagementDrawer } from '@/features/users/components/RoleManagement
 import { usersCopy, mapBackendPasswordErrorToGerman } from '@/features/users/constants/copy';
 import { createUsersFormRules } from '@/features/users/constants/validation';
 
-const { Title } = Typography;
-
 function fullName(record: UserInfo): string {
     const first = record.firstName ?? '';
     const last = record.lastName ?? '';
@@ -73,15 +80,20 @@ function fullName(record: UserInfo): string {
     return name || record.userName || record.id || '—';
 }
 
-const ROLE_OPTIONS = [
-    { value: 'SuperAdmin', label: 'SuperAdmin' },
-    { value: 'Manager', label: 'Manager' },
-    { value: 'Cashier', label: 'Cashier' },
-    { value: 'Waiter', label: 'Waiter' },
-    { value: 'Kitchen', label: 'Kitchen' },
-    { value: 'ReportViewer', label: 'ReportViewer' },
-    { value: 'Accountant', label: 'Accountant' },
-];
+const CANONICAL_ROLE_VALUES = [
+    'SuperAdmin',
+    'Manager',
+    'Cashier',
+    'Waiter',
+    'Kitchen',
+    'ReportViewer',
+    'Accountant',
+] as const;
+
+const ROLE_OPTIONS = CANONICAL_ROLE_VALUES.map((value) => ({
+    value,
+    label: usersCopy.roleDisplayName(value),
+}));
 
 const STATUS_OPTIONS = [
     { value: 'active', label: usersCopy.statusActive },
@@ -135,12 +147,53 @@ export default function UsersPage() {
         }),
         [roleFilter, statusFilter, searchTerm, page, pageSize]
     );
-    const { data: listData, isLoading, isError, refetch } = useUsersList(listParams, { enabled: policy.canView });
+    const { data: listData, isLoading, isFetching, isError, error: listError, refetch } = useUsersList(listParams, {
+        enabled: policy.canView,
+    });
     const users = listData?.items ?? [];
     const pagination = listData?.pagination;
     useEffect(() => {
         setPage(DEFAULT_PAGE);
     }, [roleFilter, statusFilter, searchTerm]);
+
+    const usersScopeSummary = useMemo(() => {
+        const parts: string[] = [
+            `Seite ${pagination?.page ?? page}`,
+            `${pagination?.pageSize ?? pageSize} pro Seite`,
+            pagination?.totalCount != null
+                ? `${pagination.totalCount.toLocaleString('de-DE')} gesamt (API)`
+                : usersCopy.scopeTotalLoading,
+        ];
+        if (searchTerm.trim()) {
+            parts.push(`${usersCopy.scopeSearchPrefix} «${searchTerm.trim()}»`);
+        }
+        if (roleFilter) {
+            parts.push(`${usersCopy.scopeRolePrefix} = ${roleFilter}`);
+        }
+        if (statusFilter === undefined) {
+            parts.push(usersCopy.scopeStatusAll);
+        } else {
+            parts.push(
+                `${usersCopy.scopeStatusPrefix}: ${statusFilter ? usersCopy.statusActive : usersCopy.statusInactive}`,
+            );
+        }
+        return parts.join(' · ');
+    }, [pagination, page, pageSize, searchTerm, roleFilter, statusFilter]);
+
+    const resetAllFilters = useCallback(() => {
+        setSearchInput('');
+        setSearchTerm('');
+        setRoleFilter(undefined);
+        setStatusFilter(true);
+        setPage(DEFAULT_PAGE);
+        setPageSize(DEFAULT_PAGE_SIZE);
+    }, []);
+
+    /** Deviations from default list query: active-only, no role, no search text. */
+    const hasNonDefaultListFilters = Boolean(
+        searchTerm.trim() || roleFilter || statusFilter !== true,
+    );
+
     const { data: roles, isLoading: rolesLoading } = useRoles({ enabled: policy.canView || !!editUserId });
     const canManageRoles = policy.canCreateRole || policy.canDeleteRole || policy.canEditRolePermissions;
     const { data: rolesWithPermissions, isLoading: rolesWithPermsLoading, isError: rolesWithPermsError, refetch: refetchRolesWithPerms } = useRolesWithPermissions({ enabled: roleManagementDrawerOpen });
@@ -464,21 +517,65 @@ export default function UsersPage() {
 
     if (!policy.canView) {
         return (
-            <Card>
+            <AdminPageShell>
+                <AdminPageHeader
+                    title={usersCopy.title}
+                    breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: usersCopy.title }]}
+                />
                 <Alert
                     type="warning"
+                    showIcon
                     message={usersCopy.accessDenied}
                     description="Nur mit Berechtigung „Benutzer anzeigen“ (z. B. SuperAdmin, Manager) können Sie diese Seite öffnen."
                 />
-            </Card>
+            </AdminPageShell>
         );
     }
 
     return (
-        <Card>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
-                <Title level={3} style={{ margin: 0 }}>{usersCopy.title}</Title>
-                <Space wrap>
+        <AdminPageShell>
+            <AdminPageHeader
+                title={usersCopy.title}
+                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: usersCopy.title }]}
+                actions={
+                    <Space wrap>
+                        <Tooltip title={OPERATOR_SHARED_COPY.refetchHintToolbar}>
+                            <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
+                                {usersCopy.actionRefresh}
+                            </Button>
+                        </Tooltip>
+                        {policy.canCreate && (
+                            <Button type="primary" icon={<UserOutlined />} onClick={() => setCreateOpen(true)}>
+                                {usersCopy.createUser}
+                            </Button>
+                        )}
+                        {policy.canCreateRole && (
+                            <Button icon={<UserOutlined />} onClick={() => setCreateRoleOpen(true)}>
+                                {usersCopy.createRole}
+                            </Button>
+                        )}
+                        {canManageRoles && (
+                            <Button type="default" onClick={() => setRoleManagementDrawerOpen(true)}>
+                                {usersCopy.manageRoles}
+                            </Button>
+                        )}
+                    </Space>
+                }
+            >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                    {usersCopy.pageIntro}
+                </Typography.Paragraph>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                    {usersCopy.forensicsHintLead}{' '}
+                    <Link href="/audit-logs">{usersCopy.forensicsLinkAuditLog}</Link>
+                    {' · '}
+                    <Link href="/rksv/verifications">{usersCopy.forensicsLinkVerifications}</Link>
+                </Typography.Paragraph>
+            </AdminPageHeader>
+
+            <Card size="small" title={usersCopy.filterCardTitle}>
+                <Flex wrap="wrap" gap="small" align="center">
+                    <Typography.Text type="secondary">{usersCopy.filterBandLabel}</Typography.Text>
                     <Input.Search
                         placeholder={usersCopy.searchPlaceholder}
                         allowClear
@@ -509,34 +606,82 @@ export default function UsersPage() {
                         onChange={(v) => setStatusFilter(v === undefined ? undefined : v === 'active')}
                         options={STATUS_OPTIONS}
                     />
-                    {policy.canCreate && (
-                        <Button type="primary" icon={<UserOutlined />} onClick={() => setCreateOpen(true)}>
-                            {usersCopy.createUser}
+                    <Button icon={<ClearOutlined />} onClick={resetAllFilters}>
+                        {usersCopy.clearAllFilters}
+                    </Button>
+                </Flex>
+            </Card>
+
+            {hasNonDefaultListFilters ? (
+                <div style={{ marginTop: 4 }}>
+                    <Space wrap size={[8, 8]} align="center">
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {usersCopy.activeFiltersLabel}
+                        </Typography.Text>
+                        {searchTerm.trim() ? (
+                            <Tag
+                                closable
+                                onClose={() => {
+                                    setSearchInput('');
+                                    setSearchTerm('');
+                                }}
+                            >
+                                {usersCopy.scopeSearchPrefix}: «{searchTerm.trim()}»
+                            </Tag>
+                        ) : null}
+                        {roleFilter ? (
+                            <Tag closable onClose={() => setRoleFilter(undefined)}>
+                                {usersCopy.scopeRolePrefix}: {usersCopy.roleDisplayName(roleFilter)}
+                            </Tag>
+                        ) : null}
+                        <Tag
+                            closable
+                            onClose={() => setStatusFilter(true)}
+                            color={statusFilter === undefined ? 'purple' : statusFilter ? 'green' : 'red'}
+                        >
+                            {usersCopy.scopeStatusPrefix}:{' '}
+                            {statusFilter === undefined
+                                ? usersCopy.statusAll
+                                : statusFilter
+                                  ? usersCopy.statusActive
+                                  : usersCopy.statusInactive}
+                        </Tag>
+                        <Button type="link" size="small" onClick={resetAllFilters}>
+                            {usersCopy.clearAllFilters}
                         </Button>
-                    )}
-                    {policy.canCreateRole && (
-                        <Button icon={<UserOutlined />} onClick={() => setCreateRoleOpen(true)}>
-                            {usersCopy.createRole}
-                        </Button>
-                    )}
-                    {canManageRoles && (
-                        <Button type="default" onClick={() => setRoleManagementDrawerOpen(true)}>
-                            {usersCopy.manageRoles}
-                        </Button>
-                    )}
-                </Space>
-            </div>
+                    </Space>
+                </div>
+            ) : null}
+
+            <AdminPageScopeSummary label={usersCopy.scopeSummaryLabel}>
+                {usersScopeSummary}
+                {isFetching && !isLoading && !isError ? (
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {' '}
+                        ({usersCopy.listRefreshingHint})
+                    </Typography.Text>
+                ) : null}
+            </AdminPageScopeSummary>
 
             {isError && (
                 <Alert
                     type="error"
+                    showIcon
                     message={usersCopy.errorLoad}
-                    action={
-                        <Button size="small" onClick={() => refetch()}>
-                            {usersCopy.retry}
-                        </Button>
+                    description={
+                        normalizeError(listError, usersCopy.errorLoadDetailFallback).message ||
+                        usersCopy.errorLoadDetailFallback
                     }
-                    style={{ marginBottom: 16 }}
+                    action={
+                        <Space direction="vertical" size="small">
+                            <Button size="small" onClick={() => refetch()}>
+                                {usersCopy.retry}
+                            </Button>
+                            <Button size="small" type="link" onClick={resetAllFilters} style={{ padding: 0, height: 'auto' }}>
+                                {usersCopy.clearAllFilters}
+                            </Button>
+                        </Space>
+                    }
                 />
             )}
 
@@ -551,6 +696,12 @@ export default function UsersPage() {
                     total: pagination?.totalCount ?? 0,
                     showSizeChanger: true,
                     pageSizeOptions: [10, 20, 50],
+                    showTotal: (total, range) => {
+                        if (total <= 0) return usersCopy.paginationZeroResults;
+                        const from = range[0] ?? 0;
+                        const to = range[1] ?? 0;
+                        return `${from.toLocaleString('de-DE')}–${to.toLocaleString('de-DE')} von ${total.toLocaleString('de-DE')}`;
+                    },
                     onChange: (newPage, newPageSize) => {
                         setPage(newPage);
                         if (newPageSize != null) setPageSize(newPageSize);
@@ -560,7 +711,20 @@ export default function UsersPage() {
                     emptyText: (
                         <Empty
                             image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            description={usersCopy.emptyList}
+                            description={
+                                <div>
+                                    <Typography.Paragraph style={{ marginBottom: 4 }}>
+                                        {hasNonDefaultListFilters
+                                            ? usersCopy.emptyListWithFilters
+                                            : usersCopy.emptyList}
+                                    </Typography.Paragraph>
+                                    {!hasNonDefaultListFilters ? (
+                                        <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 0 }}>
+                                            {usersCopy.emptyListDefaultHint}
+                                        </Typography.Paragraph>
+                                    ) : null}
+                                </div>
+                            }
                         />
                     ),
                 }}
@@ -706,6 +870,6 @@ export default function UsersPage() {
                 saveLoading={updateRolePermissionsMutation.isPending}
                 deleteLoading={deleteRoleMutation.isPending}
             />
-        </Card>
+        </AdminPageShell>
     );
 }

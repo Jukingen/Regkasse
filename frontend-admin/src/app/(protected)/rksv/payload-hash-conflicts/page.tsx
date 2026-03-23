@@ -28,6 +28,7 @@ import { ReloadOutlined, DownloadOutlined, ToolOutlined, SafetyOutlined } from '
 import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
   postApiAdminOfflinePayloadHashAnalyze,
   postApiAdminOfflinePayloadHashRepair,
@@ -224,7 +225,7 @@ export default function PayloadHashConflictsPage() {
       <AdminPageHeader
         title="Payload-Hash Konflikte"
         breadcrumbs={[
-          { title: 'Dashboard', href: '/dashboard' },
+          ADMIN_OVERVIEW_CRUMB,
           { title: 'RKSV', href: '/rksv' },
           { title: 'Payload-Hash Konflikte' },
         ]}

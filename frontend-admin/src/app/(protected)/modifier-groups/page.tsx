@@ -9,6 +9,7 @@ import React, { useState } from 'react';
 import { Button, Modal, Form, Input, InputNumber, Switch, message, Collapse, Tabs, Select, Popconfirm, Space, Card, Spin, Typography } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getModifierGroups,
@@ -228,10 +229,7 @@ export default function ModifierGroupsPage() {
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
         title="Add-on-Gruppen"
-        breadcrumbs={[
-          { title: 'Dashboard', href: '/dashboard' },
-          { title: 'Add-on-Gruppen' },
-        ]}
+        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.modifierGroups }]}
         actions={
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setGroupModalOpen(true)}>
             Gruppe anlegen

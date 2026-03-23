@@ -12,6 +12,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { hasPermission } from '@/shared/auth/permissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 
 import type { UpdateReceiptTemplateRequest } from '@/api/generated/model';
@@ -47,11 +48,11 @@ export default function EditReceiptTemplatePage() {
     const { mutate: updateTemplate, isPending } = useUpdate({
         mutation: {
             onSuccess: () => {
-                message.success('Template updated');
+                message.success('Vorlage aktualisiert.');
                 invalidateList();
             },
             onError: (error: Error) => {
-                message.error(`Update failed: ${error.message}`);
+                message.error(`Aktualisierung fehlgeschlagen: ${error.message}`);
             },
         },
     });
@@ -63,7 +64,7 @@ export default function EditReceiptTemplatePage() {
     if (!isInitialized || !canManage) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-                <Spin size="large" tip="Checking access..." />
+                <Spin size="large" tip="Zugriff wird geprüft…" />
             </div>
         );
     }
@@ -72,25 +73,26 @@ export default function EditReceiptTemplatePage() {
         return (
             <React.Fragment>
                 <AdminPageHeader
-                    title="Edit Template"
+                    title="Vorlage bearbeiten"
                     breadcrumbs={[
-                        { title: 'Receipt Templates', href: '/receipt-templates' },
-                        { title: 'Edit' },
+                        ADMIN_OVERVIEW_CRUMB,
+                        { title: ADMIN_NAV_LABELS.receiptTemplates, href: '/receipt-templates' },
+                        { title: 'Bearbeiten' },
                     ]}
                     actions={
                         <Button icon={<ArrowLeftOutlined />} onClick={() => router.push('/receipt-templates')}>
-                            Back to list
+                            Zur Liste
                         </Button>
                     }
                 />
                 <Card>
                     <Alert
                         type="warning"
-                        message="Template not found"
-                        description="The template may have been deleted or you do not have access to it."
+                        message="Vorlage nicht gefunden"
+                        description="Die Vorlage wurde gelöscht oder Sie haben keinen Zugriff."
                         showIcon
                         action={
-                            <Button onClick={() => router.push('/receipt-templates')}>Back to list</Button>
+                            <Button onClick={() => router.push('/receipt-templates')}>Zur Liste</Button>
                         }
                     />
                 </Card>
@@ -101,10 +103,11 @@ export default function EditReceiptTemplatePage() {
     return (
         <React.Fragment>
             <AdminPageHeader
-                title={`Edit Template: ${data?.templateName || 'Loading...'}`}
+                title={`Vorlage bearbeiten: ${data?.templateName || '…'}`}
                 breadcrumbs={[
-                    { title: 'Receipt Templates', href: '/receipt-templates' },
-                    { title: 'Edit' }
+                    ADMIN_OVERVIEW_CRUMB,
+                    { title: ADMIN_NAV_LABELS.receiptTemplates, href: '/receipt-templates' },
+                    { title: 'Bearbeiten' },
                 ]}
                 actions={
                     <>
@@ -112,7 +115,7 @@ export default function EditReceiptTemplatePage() {
                             icon={<ArrowLeftOutlined />}
                             onClick={() => router.push('/receipt-templates')}
                         >
-                            Back
+                            Zurück
                         </Button>
                         <Button
                             icon={<EyeOutlined />}

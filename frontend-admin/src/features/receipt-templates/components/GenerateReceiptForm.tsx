@@ -117,7 +117,7 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
     const copyToClipboard = () => {
         if (generatedContent) {
             navigator.clipboard.writeText(generatedContent);
-            message.success('Copied to clipboard');
+            message.success('In die Zwischenablage kopiert.');
         }
     };
 

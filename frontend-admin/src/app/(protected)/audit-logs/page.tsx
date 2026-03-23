@@ -4,24 +4,48 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Table, Card, Typography, Tag, Space, Button, Select, DatePicker, message, Alert, Empty, Flex, Tooltip } from 'antd';
 import { ClearOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
+import Link from 'next/link';
 import { useGetApiAuditLog } from '@/api/generated/audit-log/audit-log';
 import type { AuditLogEntryDto } from '@/api/generated/model';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import dayjs from 'dayjs';
 import { viewAuditLogStatusPresentation } from '@/shared/verificationsAuditView';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 
-const { Title } = Typography;
 const { RangePicker } = DatePicker;
+
+/** de-DE operator copy for this page (aligned with invoice / FO list contract). */
+const AUDIT_PAGE_COPY = {
+    filterCardTitle: 'Filter',
+    activeFiltersLabel: 'Aktive Filter:',
+    clearAllFilters: 'Alle Filter zurücksetzen',
+    forensicsHint:
+        'Für RKSV-/Offline-Stichproben (Correlation, Signatur-Stichworte) nutzen Sie die Audit-Spur — dieses Protokoll ist die allgemeine GET-/api/AuditLog-Liste.',
+    forensicsLinkVerifications: 'RKSV Audit-Spur öffnen',
+    dateRangeIncompleteTitle: 'Zeitraum unvollständig',
+    dateRangeIncompleteDescription:
+        'Es ist nur ein Datum gewählt. Für einen klaren Zeitraum bitte Start- und Enddatum setzen oder den Bereich leeren (API erhält sonst nur ein Datum).',
+    emptyFiltered:
+        'Keine Einträge für diese Abfrage. Zeitraum erweitern, Aktion löschen oder Filter zurücksetzen — die Tabelle zeigt nur die aktuelle API-Seite.',
+    emptyNoRows: 'Keine Daten in dieser API-Antwort.',
+    errorTitle: 'Audit-Protokoll konnte nicht geladen werden',
+    errorFallbackDetail: 'Keine technische Detailmeldung verfügbar.',
+    paginationZero: '0 Treffer',
+    scopeApiPageNote: 'Anzeige = nur diese API-Seite (nicht das gesamte Protokoll).',
+} as const;
 
 function getAuditListErrorMessage(error: unknown): string {
     if (error instanceof Error) return error.message;
-    return 'Failed to load audit logs. Please try again.';
+    return AUDIT_PAGE_COPY.errorFallbackDetail;
 }
 
 const ACTION_OPTIONS = [
     { value: 'Login', label: 'Login' },
-    { value: 'CreateInvoice', label: 'Create Invoice' },
-    { value: 'Payment', label: 'Payment' },
+    { value: 'CreateInvoice', label: 'Rechnung erstellen' },
+    { value: 'Payment', label: 'Zahlung' },
 ];
 
 export default function AuditLogsPage() {
@@ -38,7 +62,7 @@ export default function AuditLogsPage() {
         action: actionFilter,
     };
 
-    const { data, isLoading, isError, error, refetch } = useGetApiAuditLog(queryParams);
+    const { data, isLoading, isFetching, isError, error, refetch } = useGetApiAuditLog(queryParams);
 
     useEffect(() => {
         setPage(1);
@@ -50,22 +74,36 @@ export default function AuditLogsPage() {
         setPage(1);
     }, []);
 
+    const dateRangeIncomplete = Boolean(
+        dateRange && ((dateRange[0] && !dateRange[1]) || (!dateRange[0] && dateRange[1])),
+    );
+
+    const hasActiveFilters = Boolean(actionFilter || (dateRange?.[0] && dateRange[1]));
+
     const scopeSummary = useMemo(() => {
         const parts: string[] = [
-            `Page ${page}`,
-            `${pageSize} per page`,
-            data?.totalCount != null ? `${data.totalCount.toLocaleString()} total (API)` : 'total count not yet loaded',
+            `Seite ${page}`,
+            `${pageSize} Zeilen pro API-Anfrage`,
+            data?.totalCount != null
+                ? `${data.totalCount.toLocaleString('de-DE')} Einträge gesamt laut API`
+                : 'Gesamtanzahl wird geladen …',
         ];
-        if (actionFilter) parts.push(`action = ${actionFilter}`);
+        if (actionFilter) parts.push(`Aktion = ${actionFilter}`);
         if (dateRange?.[0] && dateRange[1]) {
             parts.push(
                 `${dateRange[0].format('DD.MM.YYYY')}–${dateRange[1].format('DD.MM.YYYY')}`,
             );
         } else {
-            parts.push('no date range');
+            parts.push('kein Datumsfilter');
         }
+        parts.push(AUDIT_PAGE_COPY.scopeApiPageNote);
         return parts.join(' · ');
     }, [page, pageSize, data?.totalCount, actionFilter, dateRange]);
+
+    const actionOptionLabel = useCallback((value: string) => {
+        const opt = ACTION_OPTIONS.find((o) => o.value === value);
+        return opt?.label ?? value;
+    }, []);
 
     const handleExport = useCallback(async (format: 'json' | 'csv') => {
         try {
@@ -96,7 +134,7 @@ export default function AuditLogsPage() {
                         a.download = `audit_logs_${dayjs().format('YYYYMMDD_HHmmss')}.${format}`;
                         a.click();
                         URL.revokeObjectURL(url);
-                        message.success('Export started');
+                        message.success('Export gestartet');
                         return;
                     }
 
@@ -104,7 +142,7 @@ export default function AuditLogsPage() {
                     const msg =
                         typeof parsed?.message === 'string'
                             ? parsed.message
-                            : 'Export failed';
+                            : 'Export fehlgeschlagen';
                     message.error(msg);
                     return;
                 } catch {
@@ -118,18 +156,18 @@ export default function AuditLogsPage() {
                     const msg =
                         typeof parsed?.message === 'string'
                             ? parsed.message
-                            : 'Export failed';
+                            : 'Export fehlgeschlagen';
                     message.error(msg);
                     return;
                 } catch {
-                    message.error('Export failed');
+                    message.error('Export fehlgeschlagen');
                     return;
                 }
             }
 
             // Expected success formats.
             if (format === 'csv' && !contentType.includes('text/csv')) {
-                message.error('Export failed');
+                message.error('Export fehlgeschlagen');
                 return;
             }
 
@@ -139,15 +177,15 @@ export default function AuditLogsPage() {
             a.download = `audit_logs_${dayjs().format('YYYYMMDD_HHmmss')}.${format}`;
             a.click();
             URL.revokeObjectURL(url);
-            message.success('Export started');
+            message.success('Export gestartet');
         } catch (e) {
-            message.error('Export failed');
+            message.error('Export fehlgeschlagen');
         }
     }, [dateRange, actionFilter]);
 
     const columns = [
         {
-            title: 'Time',
+            title: 'Zeit',
             dataIndex: 'timestamp',
             key: 'timestamp',
             width: 168,
@@ -158,7 +196,22 @@ export default function AuditLogsPage() {
             ),
         },
         {
-            title: 'User',
+            title: 'Correlation',
+            key: 'correlationId',
+            width: 112,
+            ellipsis: true,
+            render: (_: unknown, record: AuditLogEntryDto) => {
+                const c = record.correlationId?.trim();
+                if (!c) return <Typography.Text type="secondary">—</Typography.Text>;
+                return (
+                    <Typography.Text code copyable={{ text: c }} ellipsis style={{ fontSize: 11, maxWidth: 104 }}>
+                        {c.length > 14 ? `${c.slice(0, 12)}…` : c}
+                    </Typography.Text>
+                );
+            },
+        },
+        {
+            title: 'Benutzer',
             key: 'userName',
             width: 140,
             ellipsis: true,
@@ -169,7 +222,7 @@ export default function AuditLogsPage() {
             ),
         },
         {
-            title: 'Action',
+            title: 'Aktion',
             dataIndex: 'action',
             key: 'action',
             width: 200,
@@ -177,7 +230,7 @@ export default function AuditLogsPage() {
             render: (action: string | null | undefined) => <Tag color="blue">{action ?? '—'}</Tag>,
         },
         {
-            title: 'Entity',
+            title: 'Entität',
             key: 'entity',
             width: 200,
             render: (_: unknown, record: AuditLogEntryDto) => {
@@ -187,21 +240,19 @@ export default function AuditLogsPage() {
                     return <Typography.Text strong>{type}</Typography.Text>;
                 }
                 return (
-                    <Tooltip title={`${type} · ${id}`}>
-                        <Space direction="vertical" size={0} style={{ maxWidth: 220 }}>
-                            <Typography.Text strong ellipsis style={{ display: 'block' }}>
-                                {type}
-                            </Typography.Text>
-                            <Typography.Text
-                                type="secondary"
-                                ellipsis
-                                copyable={{ text: id }}
-                                style={{ display: 'block', fontSize: 12, fontFamily: 'monospace' }}
-                            >
-                                {id}
-                            </Typography.Text>
-                        </Space>
-                    </Tooltip>
+                    <Space direction="vertical" size={0} style={{ maxWidth: 220 }}>
+                        <Typography.Text strong ellipsis style={{ display: 'block' }}>
+                            {type}
+                        </Typography.Text>
+                        <Typography.Text
+                            type="secondary"
+                            ellipsis={{ tooltip: true }}
+                            copyable={{ text: id }}
+                            style={{ display: 'block', fontSize: 12, fontFamily: 'monospace' }}
+                        >
+                            {id}
+                        </Typography.Text>
+                    </Space>
                 );
             },
         },
@@ -239,73 +290,120 @@ export default function AuditLogsPage() {
     const emptyList = !isLoading && !isError && rows.length === 0;
 
     return (
-        <Card>
-            <Flex justify="space-between" align="flex-start" wrap="wrap" gap="middle" style={{ marginBottom: 16 }}>
-                <div>
-                    <Title level={3} style={{ margin: 0 }}>
-                        Audit Logs
-                    </Title>
-                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0, marginTop: 8, maxWidth: 560 }}>
-                        Filter by action and date range; export uses the same filters. Table shows the current API page
-                        only — use pagination to scan further.
-                    </Typography.Paragraph>
-                </div>
-                <Space wrap>
-                    <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isLoading}>
-                        Refresh
-                    </Button>
-                    <Button onClick={() => handleExport('json')} disabled={isLoading}>
-                        Export JSON
-                    </Button>
-                    <Button onClick={() => handleExport('csv')} disabled={isLoading}>
-                        Export CSV
-                    </Button>
-                </Space>
-            </Flex>
-
-            <Flex wrap="wrap" gap="small" align="center" style={{ marginBottom: 12 }}>
-                <Typography.Text type="secondary" style={{ marginRight: 8 }}>
-                    Filters
-                </Typography.Text>
-                <Select
-                    placeholder="Action"
-                    style={{ width: 168 }}
-                    allowClear
-                    value={actionFilter}
-                    onChange={setActionFilter}
-                    options={ACTION_OPTIONS}
-                />
-                <RangePicker
-                    value={dateRange ?? undefined}
-                    onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null] | null)}
-                    format="DD.MM.YYYY"
-                />
-                <Button icon={<ClearOutlined />} onClick={resetFilters}>
-                    Reset filters
-                </Button>
-            </Flex>
-
-            <Typography.Paragraph
-                type="secondary"
-                style={{ marginBottom: 12, fontSize: 12, padding: '8px 12px', background: 'var(--ant-color-fill-quaternary)', borderRadius: 6 }}
+        <AdminPageShell>
+            <AdminPageHeader
+                title={ADMIN_NAV_LABELS.auditLogs}
+                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.auditLogs }]}
+                actions={
+                    <Space wrap>
+                        <Tooltip title={OPERATOR_SHARED_COPY.refetchHintToolbar}>
+                            <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
+                                {OPERATOR_SHARED_COPY.toolbarRefresh}
+                            </Button>
+                        </Tooltip>
+                        <Button onClick={() => handleExport('json')} disabled={isLoading}>
+                            Export JSON
+                        </Button>
+                        <Button onClick={() => handleExport('csv')} disabled={isLoading}>
+                            Export CSV
+                        </Button>
+                    </Space>
+                }
             >
-                <Typography.Text strong style={{ fontSize: 12 }}>
-                    Active scope:{' '}
-                </Typography.Text>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 8, maxWidth: 720 }}>
+                    Nach Aktion und Zeitraum filtern; Export nutzt dieselben Filter.{' '}
+                    <strong>Die Tabelle zeigt nur die aktuelle API-Seite</strong> — weiterblättern ändert die
+                    serverseitige Seite, nicht einen clientseitigen Ausschnitt.
+                </Typography.Paragraph>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12, maxWidth: 720 }}>
+                    {AUDIT_PAGE_COPY.forensicsHint}{' '}
+                    <Link href="/rksv/verifications">{AUDIT_PAGE_COPY.forensicsLinkVerifications}</Link>
+                </Typography.Paragraph>
+            </AdminPageHeader>
+
+            <Card size="small" title={AUDIT_PAGE_COPY.filterCardTitle}>
+                <Flex wrap="wrap" gap="small" align="center">
+                    <Typography.Text type="secondary">Kriterien</Typography.Text>
+                    <Select
+                        placeholder="Aktion"
+                        style={{ width: 168 }}
+                        allowClear
+                        value={actionFilter}
+                        onChange={setActionFilter}
+                        options={ACTION_OPTIONS}
+                    />
+                    <RangePicker
+                        value={dateRange ?? undefined}
+                        onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null] | null)}
+                        format="DD.MM.YYYY"
+                    />
+                    <Button icon={<ClearOutlined />} onClick={resetFilters}>
+                        {AUDIT_PAGE_COPY.clearAllFilters}
+                    </Button>
+                </Flex>
+            </Card>
+
+            {dateRangeIncomplete ? (
+                <Alert
+                    type="warning"
+                    showIcon
+                    style={{ marginTop: 8 }}
+                    message={AUDIT_PAGE_COPY.dateRangeIncompleteTitle}
+                    description={AUDIT_PAGE_COPY.dateRangeIncompleteDescription}
+                />
+            ) : null}
+
+            {hasActiveFilters ? (
+                <div style={{ marginTop: 8 }}>
+                    <Space wrap size={[8, 8]} align="center">
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {AUDIT_PAGE_COPY.activeFiltersLabel}
+                        </Typography.Text>
+                        {actionFilter ? (
+                            <Tag closable onClose={() => setActionFilter(undefined)}>
+                                Aktion: {actionOptionLabel(actionFilter)}
+                            </Tag>
+                        ) : null}
+                        {dateRange?.[0] && dateRange[1] ? (
+                            <Tag
+                                closable
+                                onClose={() => setDateRange(null)}
+                            >
+                                Zeitraum: {dateRange[0].format('DD.MM.YYYY')} – {dateRange[1].format('DD.MM.YYYY')}
+                            </Tag>
+                        ) : null}
+                        <Button type="link" size="small" onClick={resetFilters}>
+                            {AUDIT_PAGE_COPY.clearAllFilters}
+                        </Button>
+                    </Space>
+                </div>
+            ) : null}
+
+            <AdminPageScopeSummary label="Aktive Ansicht:">
                 {scopeSummary}
-            </Typography.Paragraph>
+                {isFetching && !isLoading && !isError ? (
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {' '}
+                        (Aktualisiert …)
+                    </Typography.Text>
+                ) : null}
+            </AdminPageScopeSummary>
 
             {isError ? (
                 <Alert
                     type="error"
-                    message="Failed to load audit logs"
+                    message={AUDIT_PAGE_COPY.errorTitle}
                     description={getAuditListErrorMessage(error)}
                     showIcon
-                    style={{ marginBottom: 16 }}
                     action={
-                        <Button size="small" onClick={() => refetch()}>
-                            Try again
-                        </Button>
+                        <Space direction="vertical" size="small">
+                            <Button size="small" onClick={() => refetch()}>
+                                {OPERATOR_SHARED_COPY.retryAfterError}
+                            </Button>
+                            <Button size="small" type="link" onClick={resetFilters} style={{ padding: 0, height: 'auto' }}>
+                                {AUDIT_PAGE_COPY.clearAllFilters}
+                            </Button>
+                        </Space>
                     }
                 />
             ) : null}
@@ -317,14 +415,17 @@ export default function AuditLogsPage() {
                     loading={isLoading}
                     rowKey={(r) => r.id ?? `${r.timestamp ?? ''}-${r.action ?? ''}`}
                     size="middle"
-                    scroll={{ x: 1100 }}
+                    scroll={{ x: 1240 }}
                     pagination={{
                         current: page,
                         pageSize,
                         total: data?.totalCount ?? 0,
                         showSizeChanger: true,
                         pageSizeOptions: ['10', '25', '50', '100'],
-                        showTotal: (total, range) => `${range[0]}–${range[1]} of ${total} entries`,
+                        showTotal: (total, range) => {
+                            if (total <= 0) return AUDIT_PAGE_COPY.paginationZero;
+                            return `${range[0]}–${range[1]} von ${total.toLocaleString('de-DE')} Einträgen`;
+                        },
                         hideOnSinglePage: false,
                         onChange: (p, s) => {
                             setPage(p);
@@ -334,15 +435,17 @@ export default function AuditLogsPage() {
                     locale={{
                         emptyText: emptyList ? (
                             <Empty
-                                description="No audit entries for this query. Widen the date range or clear filters."
+                                description={
+                                    hasActiveFilters ? AUDIT_PAGE_COPY.emptyFiltered : AUDIT_PAGE_COPY.emptyNoRows
+                                }
                                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                             />
                         ) : (
-                            <Empty description="No data" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                            <Empty description={AUDIT_PAGE_COPY.emptyNoRows} image={Empty.PRESENTED_IMAGE_SIMPLE} />
                         ),
                     }}
                 />
             ) : null}
-        </Card>
+        </AdminPageShell>
     );
 }

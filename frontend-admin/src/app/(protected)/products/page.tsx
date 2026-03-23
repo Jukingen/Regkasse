@@ -5,6 +5,8 @@ import { keepPreviousData } from '@tanstack/react-query';
 import { Button, Table, Space, message, Tag, Input, Popconfirm, Alert, Empty, Modal, InputNumber, Typography, Flex, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, StockOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 import { useProducts, useProductFilters } from '@/features/products/hooks/useProducts';
 import { Product } from '@/api/generated/model';
 import { mapApiProductToUi, mapUiProductToApi, taxTypeToLabel } from '@/features/products/utils/productMapper';
@@ -84,11 +86,11 @@ export default function ProductsPage() {
             if (createdId && values.modifierGroupIds?.length) {
                 await setModifierGroupsMutation.mutateAsync({ productId: createdId, modifierGroupIds: values.modifierGroupIds });
             }
-            message.success('Product created successfully');
+            message.success('Produkt angelegt.');
             setFormVisible(false);
             invalidateList();
         } catch (err) {
-            message.error('Failed to create product');
+            message.error('Produkt konnte nicht angelegt werden.');
             throw err;
         }
     };
@@ -105,12 +107,14 @@ export default function ProductsPage() {
             if (values.modifierGroupIds !== undefined) {
                 await setModifierGroupsMutation.mutateAsync({ productId: editingProduct.id, modifierGroupIds: values.modifierGroupIds });
             }
-            message.success(result?.fromPayload ? 'Saved. List will refresh.' : 'Product updated successfully');
+            message.success(
+                result?.fromPayload ? 'Gespeichert. Liste wird aktualisiert.' : 'Produkt aktualisiert.',
+            );
             setFormVisible(false);
             setEditingProduct(null);
             invalidateList();
         } catch (err) {
-            message.error('Failed to update product');
+            message.error('Produkt konnte nicht aktualisiert werden.');
             throw err;
         }
     };
@@ -118,10 +122,10 @@ export default function ProductsPage() {
     const handleDelete = async (id: string) => {
         try {
             await deleteMutation.mutateAsync({ id });
-            message.success('Product deleted successfully');
+            message.success('Produkt gelöscht.');
             invalidateList();
         } catch {
-            message.error('Failed to delete product');
+            message.error('Produkt konnte nicht gelöscht werden.');
         }
     };
 
@@ -144,11 +148,11 @@ export default function ProductsPage() {
         if (!stockModalProduct?.id) return;
         try {
             await stockMutation.mutateAsync({ id: stockModalProduct.id, data: { quantity: stockQuantity } });
-            message.success('Stock updated');
+            message.success('Lagerbestand aktualisiert.');
             setStockModalProduct(null);
             invalidateList();
         } catch {
-            message.error('Failed to update stock');
+            message.error('Lagerbestand konnte nicht aktualisiert werden.');
         }
     };
 
@@ -162,34 +166,37 @@ export default function ProductsPage() {
                 const desc = record.description?.trim();
                 const bc = record.barcode?.trim();
                 const rksv = record.rksvProductType?.trim();
+                const taxExempt = record.taxExemptionReason?.trim();
                 const tipLines: string[] = [];
                 if (desc) tipLines.push(desc);
-                if (bc) tipLines.push(`Barcode: ${bc}`);
-                if (rksv) tipLines.push(`RKSV type: ${rksv}`);
-                if (record.taxExemptionReason?.trim()) {
-                    tipLines.push(`Tax exemption: ${record.taxExemptionReason.trim()}`);
-                }
-                const tip =
+                if (taxExempt) tipLines.push(`Tax exemption: ${taxExempt}`);
+                const tipExtra =
                     tipLines.length > 0 ? (
                         <div style={{ whiteSpace: 'pre-wrap', maxWidth: 400 }}>{tipLines.join('\n\n')}</div>
                     ) : undefined;
                 const cell = (
-                    <Space direction="vertical" size={0} style={{ width: '100%', maxWidth: 320 }}>
+                    <Space direction="vertical" size={2} style={{ width: '100%', maxWidth: 320 }}>
                         <Typography.Text strong ellipsis style={{ display: 'block' }}>
                             {record.name || '—'}
                         </Typography.Text>
                         {bc ? (
                             <Typography.Text
-                                type="secondary"
+                                code
+                                copyable={{ text: bc }}
                                 ellipsis
-                                style={{ display: 'block', fontSize: 12, fontFamily: 'monospace' }}
+                                style={{ display: 'block', fontSize: 11, maxWidth: '100%' }}
                             >
                                 {bc}
                             </Typography.Text>
                         ) : null}
+                        {rksv ? (
+                            <Typography.Text type="secondary" ellipsis style={{ display: 'block', fontSize: 11 }}>
+                                RKSV: {rksv}
+                            </Typography.Text>
+                        ) : null}
                     </Space>
                 );
-                return tip ? <Tooltip title={tip}>{cell}</Tooltip> : cell;
+                return tipExtra ? <Tooltip title={tipExtra}>{cell}</Tooltip> : cell;
             },
         },
         {
@@ -219,9 +226,13 @@ export default function ProductsPage() {
                     </Tag>
                 );
                 return (
-                    <Tooltip title={`Min. stock level: ${min} ${unit}. Highlighted when quantity is at or below minimum.`}>
+                    <Space direction="vertical" size={0}>
                         {tag}
-                    </Tooltip>
+                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                            Min: {min} {unit}
+                            {isLow && min > 0 ? ' · ≤ Min' : ''}
+                        </Typography.Text>
+                    </Space>
                 );
             },
         },
@@ -255,17 +266,23 @@ export default function ProductsPage() {
                 const rate = Number(record.taxRate ?? 0);
                 const label = taxTypeToLabel(Number(record.taxType ?? 1));
                 const short = `${rate}%`;
+                const labelShort = label.length > 22 ? `${label.slice(0, 20)}…` : label;
                 return (
                     <Tooltip title={label}>
-                        <Typography.Text type="secondary" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                            {short}
-                        </Typography.Text>
+                        <Space direction="vertical" size={0} style={{ textAlign: 'right', width: '100%' }}>
+                            <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                {short}
+                            </Typography.Text>
+                            <Typography.Text type="secondary" style={{ fontSize: 10, display: 'block' }}>
+                                {labelShort}
+                            </Typography.Text>
+                        </Space>
                     </Tooltip>
                 );
             },
         },
         {
-            title: 'Actions',
+            title: 'Aktionen',
             key: 'actions',
             width: 220,
             fixed: 'right',
@@ -273,20 +290,20 @@ export default function ProductsPage() {
             render: (_: unknown, record: Product) => (
                 <Space size="small" wrap>
                     <Button type="primary" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
-                        Edit
+                        Bearbeiten
                     </Button>
                     <Button type="default" size="small" icon={<StockOutlined />} onClick={() => openStockModal(record)}>
-                        Stock
+                        Lager
                     </Button>
                     <Popconfirm
-                        title="Delete product?"
-                        description="This action cannot be undone."
+                        title="Produkt löschen?"
+                        description="Dieser Vorgang kann nicht rückgängig gemacht werden."
                         onConfirm={() => record.id && handleDelete(record.id)}
-                        okText="Yes"
-                        cancelText="No"
+                        okText="Ja"
+                        cancelText="Nein"
                     >
                         <Button type="default" size="small" danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
-                            Delete
+                            Löschen
                         </Button>
                     </Popconfirm>
                 </Space>
@@ -297,15 +314,12 @@ export default function ProductsPage() {
     return (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
-                title="Products"
-                breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
-                    { title: 'Products' },
-                ]}
+                title={ADMIN_NAV_LABELS.products}
+                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.products }]}
                 actions={
                     <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
                         <Input.Search
-                            placeholder="Search products..."
+                            placeholder="Produkte suchen …"
                             allowClear
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onSearch={(v) => setSearchTerm(v)}
@@ -313,25 +327,25 @@ export default function ProductsPage() {
                             value={searchTerm}
                         />
                         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                            New Product
+                            Neues Produkt
                         </Button>
                     </Flex>
                 }
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    Search by product name; at least {MIN_SEARCH_LENGTH} characters trigger a server request.
+                    Suche nach Produktname; mindestens {MIN_SEARCH_LENGTH} Zeichen lösen eine Serverabfrage aus.
                 </Typography.Paragraph>
             </AdminPageHeader>
 
             {isError ? (
                 <Alert
                     type="error"
-                    message="Failed to load products"
+                    message="Produkte konnten nicht geladen werden"
                     description={error instanceof Error ? error.message : 'Unknown error'}
                     showIcon
                     action={
                         <Button size="small" onClick={() => refetch()}>
-                            Retry
+                            Erneut versuchen
                         </Button>
                     }
                 />
@@ -346,7 +360,7 @@ export default function ProductsPage() {
                     pagination={pagination}
                     size="middle"
                     scroll={{ x: 1100 }}
-                    locale={{ emptyText: <Empty description="No products" /> }}
+                    locale={{ emptyText: <Empty description="Keine Produkte für diese Suche oder Seite." /> }}
                 />
             ) : null}
 

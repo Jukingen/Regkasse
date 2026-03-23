@@ -32,6 +32,8 @@ import {
 import { useAdminCategoriesList } from '@/api/admin/categories';
 import { useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 
 const BENEFIT_KIND_LABELS: Record<AppliedBenefitKind, string> = {
   [AppliedBenefitKind.PercentageDiscount]: 'Prozent-Rabatt',
@@ -187,10 +189,7 @@ export default function BenefitDefinitionsPage() {
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
         title="Vorteile (Definitionen)"
-        breadcrumbs={[
-          { title: 'Dashboard', href: '/dashboard' },
-          { title: 'Vorteile (Definitionen)' },
-        ]}
+        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: 'Vorteile (Definitionen)' }]}
         actions={
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             Neue Definition
@@ -206,7 +205,7 @@ export default function BenefitDefinitionsPage() {
           showIcon
           action={
             <Button size="small" onClick={() => listQuery.refetch()}>
-              Erneut versuchen
+              {OPERATOR_SHARED_COPY.retryAfterError}
             </Button>
           }
         />

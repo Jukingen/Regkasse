@@ -25,6 +25,7 @@ import Link from 'next/link';
 import dayjs from 'dayjs';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
   getApiAdminFinanzonlineReconciliationMetrics,
   getApiAdminOfflineIntentCoverage,
@@ -181,7 +182,7 @@ function OpsHealthCard(props: {
 function DrillTile(props: { title: string; line: string; href: string; action: string }) {
   const { token } = theme.useToken();
   return (
-    <Card size="small" style={{ height: '100%' }}>
+    <Card size="small" style={{ height: '100%' }} role="region" aria-label={props.title}>
       <Typography.Text strong>{props.title}</Typography.Text>
       <Typography.Paragraph
         type="secondary"
@@ -290,11 +291,8 @@ export function RksvOperationsDashboard() {
   return (
     <div style={{ paddingBottom: token.marginXL }}>
       <AdminPageHeader
-        title="RKSV Übersicht"
-        breadcrumbs={[
-          { title: 'Dashboard', href: '/dashboard' },
-          { title: 'RKSV Übersicht' },
-        ]}
+        title={ADMIN_NAV_LABELS.rksvOperationsOverview}
+        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.rksvOperationsOverview }]}
         actions={
           <Space>
             <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM, lineHeight: token.lineHeightSM }}>
@@ -386,7 +384,7 @@ export function RksvOperationsDashboard() {
         </Row>
       </Card>
 
-      <Typography.Title level={5} style={{ marginBottom: token.marginSM }}>
+      <Typography.Title level={2} style={{ marginBottom: token.marginSM }}>
         Status
       </Typography.Title>
       <Row gutter={ROW_GUTTER} style={{ marginBottom: token.marginLG }}>
@@ -530,7 +528,7 @@ export function RksvOperationsDashboard() {
         </Col>
       </Row>
 
-      <Typography.Title level={5} style={{ marginBottom: token.marginSM }}>
+      <Typography.Title level={2} style={{ marginBottom: token.marginSM }}>
         Kurznotizen
       </Typography.Title>
       <Alert

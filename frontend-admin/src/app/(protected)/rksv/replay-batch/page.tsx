@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Card, Form, Input, Button, Typography } from 'antd';
 import { useRouter } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 
 /**
  * Replay-Batch-Suche: Correlation-ID eingeben und Batch-Detail anzeigen (Incident-Debugging).
@@ -26,7 +27,7 @@ export default function ReplayBatchSearchPage() {
             <AdminPageHeader
                 title="Replay-Batch (Correlation-ID)"
                 breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
+                    ADMIN_OVERVIEW_CRUMB,
                     { title: 'RKSV', href: '/rksv' },
                     { title: 'Replay-Batch' },
                 ]}

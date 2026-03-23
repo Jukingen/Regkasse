@@ -14,6 +14,7 @@ import {
     type SettingsFormValues,
 } from '@/features/settings/types/settingsForm';
 import { customInstance } from '@/lib/axios';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 
 const ATU_REGEX = /^ATU\d{8}$/;
 
@@ -24,7 +25,7 @@ function getSettingsLoadErrorDescription(err: unknown): string {
     if (normalized?.message?.trim()) return normalized.message.trim();
     const msg = (err as { message?: string })?.message;
     if (typeof msg === 'string' && msg.trim()) return msg.trim();
-    return 'Unable to load company settings. Check your connection and try again.';
+    return 'Firmeneinstellungen konnten nicht geladen werden. Verbindung prüfen und erneut versuchen.';
 }
 
 export default function SettingsPage() {
@@ -42,26 +43,23 @@ export default function SettingsPage() {
         try {
             const payload = mapFormValuesToUpdateRequest(values);
             await updateMutation.mutateAsync({ data: payload });
-            message.success('Settings saved successfully');
+            message.success('Einstellungen gespeichert.');
         } catch (err) {
-            message.error('Failed to save settings');
+            message.error('Speichern fehlgeschlagen.');
         }
     };
 
-    const headerBreadcrumbs = [
-        { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Settings' },
-    ] as const;
+    const headerBreadcrumbs = [ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.settings }];
 
     if (isLoading) {
         return (
             <SpaceWrapper>
-                <AdminPageHeader title="Company Settings" breadcrumbs={[...headerBreadcrumbs]} />
+                <AdminPageHeader title="Firmeneinstellungen" breadcrumbs={[...headerBreadcrumbs]} />
                 <Card>
                     <div style={{ textAlign: 'center', padding: '48px 24px' }}>
                         <Spin size="large" />
                         <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
-                            Loading company settings…
+                            Firmeneinstellungen werden geladen…
                         </Typography.Paragraph>
                     </div>
                 </Card>
@@ -72,10 +70,10 @@ export default function SettingsPage() {
     if (isError) {
         return (
             <SpaceWrapper>
-                <AdminPageHeader title="Company Settings" breadcrumbs={[...headerBreadcrumbs]} />
+                <AdminPageHeader title="Firmeneinstellungen" breadcrumbs={[...headerBreadcrumbs]} />
                 <Alert
                     type="error"
-                    message="Failed to load company settings"
+                    message="Firmeneinstellungen konnten nicht geladen werden"
                     description={getSettingsLoadErrorDescription(error)}
                     showIcon
                     action={
@@ -91,14 +89,14 @@ export default function SettingsPage() {
     if (isSuccess && settings == null) {
         return (
             <SpaceWrapper>
-                <AdminPageHeader title="Company Settings" breadcrumbs={[...headerBreadcrumbs]} />
+                <AdminPageHeader title="Firmeneinstellungen" breadcrumbs={[...headerBreadcrumbs]} />
                 <Card>
                     <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description="No company settings were returned."
+                        description="Es wurden keine Firmeneinstellungen zurückgegeben."
                     >
                         <Button type="primary" onClick={() => refetch()} loading={isFetching}>
-                            Reload
+                            Erneut laden
                         </Button>
                     </Empty>
                 </Card>
@@ -109,7 +107,7 @@ export default function SettingsPage() {
     return (
         <SpaceWrapper>
             <AdminPageHeader
-                title="Company Settings"
+                title="Firmeneinstellungen"
                 breadcrumbs={[...headerBreadcrumbs]}
                 actions={
                     <Button
@@ -118,7 +116,7 @@ export default function SettingsPage() {
                         onClick={() => form.submit()}
                         loading={updateMutation.isPending}
                     >
-                        Save Changes
+                        Änderungen speichern
                     </Button>
                 }
             />
@@ -138,7 +136,7 @@ export default function SettingsPage() {
                         },
                         {
                             key: '2',
-                            label: 'Localization',
+                            label: 'Region & Formatierung',
                             children: <LocalizationTab />,
                         },
                         {
@@ -170,53 +168,53 @@ function SpaceWrapper({ children }: { children: React.ReactNode }) {
 
 function GeneralInfoTab() {
     return (
-        <Card title="Company Information">
+        <Card title="Unternehmen & Kontakt">
             <Row gutter={24}>
                 <Col span={12}>
                     <Form.Item
-                        label="Company Name"
+                        label="Firmenname"
                         name="companyName"
-                        rules={[{ required: true, message: 'Company name is required' }]}
+                        rules={[{ required: true, message: 'Firmenname ist erforderlich' }]}
                     >
                         <Input />
                     </Form.Item>
                     <Form.Item
-                        label="Company Address"
+                        label="Firmenadresse"
                         name="companyAddress"
-                        rules={[{ required: true, message: 'Company address is required' }]}
+                        rules={[{ required: true, message: 'Firmenadresse ist erforderlich' }]}
                     >
                         <Input.TextArea rows={3} />
                     </Form.Item>
                     <Form.Item
-                        label="Company Tax Number"
+                        label="Steuernummer (ATU)"
                         name="companyTaxNumber"
                         rules={[
-                            { required: true, message: 'Tax number is required' },
-                            { pattern: ATU_REGEX, message: 'ATU format: ATU + 8 digits' },
+                            { required: true, message: 'Steuernummer ist erforderlich' },
+                            { pattern: ATU_REGEX, message: 'Format: ATU + 8 Ziffern' },
                         ]}
                     >
                         <Input placeholder="ATU12345678" />
                     </Form.Item>
                     <Form.Item
-                        label="VAT Number"
+                        label="USt-IdNr. (ATU)"
                         name="companyVatNumber"
-                        rules={[{ pattern: ATU_REGEX, message: 'ATU format: ATU + 8 digits' }]}
+                        rules={[{ pattern: ATU_REGEX, message: 'Format: ATU + 8 Ziffern' }]}
                     >
                         <Input placeholder="ATU12345678" />
                     </Form.Item>
                 </Col>
                 <Col span={12}>
-                    <Form.Item label="Contact Person" name="contactPerson">
+                    <Form.Item label="Ansprechpartner" name="contactPerson">
                         <Input />
                     </Form.Item>
                     <Form.Item
-                        label="Contact Email"
+                        label="Kontakt-E-Mail"
                         name="contactEmail"
-                        rules={[{ type: 'email', message: 'Invalid email format' }]}
+                        rules={[{ type: 'email', message: 'Ungültige E-Mail-Adresse' }]}
                     >
                         <Input />
                     </Form.Item>
-                    <Form.Item label="Contact Phone" name="contactPhone">
+                    <Form.Item label="Kontakt-Telefon" name="contactPhone">
                         <Input />
                     </Form.Item>
                     <Form.Item label="Website" name="companyWebsite">
@@ -229,15 +227,15 @@ function GeneralInfoTab() {
 
             <Row gutter={24}>
                 <Col span={12}>
-                    <Form.Item label="Bank Name" name="bankName">
+                    <Form.Item label="Bankname" name="bankName">
                         <Input />
                     </Form.Item>
-                    <Form.Item label="Bank Account (IBAN)" name="bankAccountNumber">
+                    <Form.Item label="IBAN" name="bankAccountNumber">
                         <Input />
                     </Form.Item>
                 </Col>
                 <Col span={12}>
-                    <Form.Item label="BIC / Swift" name="bankSwiftCode">
+                    <Form.Item label="BIC" name="bankSwiftCode">
                         <Input />
                     </Form.Item>
                 </Col>
@@ -248,31 +246,31 @@ function GeneralInfoTab() {
 
 function LocalizationTab() {
     return (
-        <Card title="Localization & Formatting">
+        <Card title="Region & Formatierung">
             <Row gutter={24}>
                 <Col span={8}>
                     <Form.Item
-                        label="Language"
+                        label="Standardsprache"
                         name="defaultLanguage"
-                        rules={[{ required: true, message: 'Language is required' }]}
+                        rules={[{ required: true, message: 'Standardsprache ist erforderlich' }]}
                     >
                         <Input placeholder="de-DE" />
                     </Form.Item>
                 </Col>
                 <Col span={8}>
                     <Form.Item
-                        label="Currency"
+                        label="Währung"
                         name="defaultCurrency"
-                        rules={[{ required: true, message: 'Currency is required' }]}
+                        rules={[{ required: true, message: 'Währung ist erforderlich' }]}
                     >
                         <Input placeholder="EUR" />
                     </Form.Item>
                 </Col>
                 <Col span={8}>
                     <Form.Item
-                        label="Time Zone"
+                        label="Zeitzone"
                         name="defaultTimeZone"
-                        rules={[{ required: true, message: 'Time zone is required' }]}
+                        rules={[{ required: true, message: 'Zeitzone ist erforderlich' }]}
                     >
                         <Input placeholder="Europe/Vienna" />
                     </Form.Item>
@@ -281,18 +279,18 @@ function LocalizationTab() {
             <Row gutter={24}>
                 <Col span={12}>
                     <Form.Item
-                        label="Date Format"
+                        label="Datumsformat"
                         name="defaultDateFormat"
-                        rules={[{ required: true }]}
+                        rules={[{ required: true, message: 'Datumsformat ist erforderlich' }]}
                     >
                         <Input placeholder="dd.MM.yyyy" />
                     </Form.Item>
                 </Col>
                 <Col span={12}>
                     <Form.Item
-                        label="Time Format"
+                        label="Zeitformat"
                         name="defaultTimeFormat"
-                        rules={[{ required: true }]}
+                        rules={[{ required: true, message: 'Zeitformat ist erforderlich' }]}
                     >
                         <Input placeholder="HH:mm:ss" />
                     </Form.Item>
@@ -301,18 +299,18 @@ function LocalizationTab() {
             <Row gutter={24}>
                 <Col span={12}>
                     <Form.Item
-                        label="Receipt Numbering"
+                        label="Belegnummerierung"
                         name="receiptNumbering"
-                        rules={[{ required: true }]}
+                        rules={[{ required: true, message: 'Belegnummerierung ist erforderlich' }]}
                     >
                         <Input />
                     </Form.Item>
                 </Col>
                 <Col span={12}>
                     <Form.Item
-                        label="Invoice Numbering"
+                        label="Rechnungsnummerierung"
                         name="invoiceNumbering"
-                        rules={[{ required: true }]}
+                        rules={[{ required: true, message: 'Rechnungsnummerierung ist erforderlich' }]}
                     >
                         <Input />
                     </Form.Item>
@@ -325,20 +323,20 @@ function LocalizationTab() {
 function FinanzOnlineTab() {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <Card title="Credentials & Connectivity">
+            <Card title="Zugangsdaten & Anbindung">
                 <Row gutter={24}>
                     <Col xs={24} md={12}>
-                        <Form.Item name="finanzOnlineEnabled" valuePropName="checked" label="Enable FinanzOnline Integration">
+                        <Form.Item name="finanzOnlineEnabled" valuePropName="checked" label="FinanzOnline-Integration aktiv">
                             <Switch />
                         </Form.Item>
                     </Col>
                     <Col xs={24} md={12}>
                         <Form.Item
-                            label="API URL"
+                            label="API-URL"
                             name="finanzOnlineApiUrl"
                             rules={[
-                                { max: 500, message: 'Max 500 characters' },
-                                { type: 'url', message: 'Provide a valid URL' },
+                                { max: 500, message: 'Maximal 500 Zeichen' },
+                                { type: 'url', message: 'Bitte eine gültige URL angeben' },
                             ]}
                         >
                             <Input placeholder="https://finanzonline.example.at/api" />
@@ -346,10 +344,10 @@ function FinanzOnlineTab() {
                     </Col>
                     <Col xs={24} md={12}>
                         <Form.Item
-                            label="Participant ID (Teilnehmer-ID)"
+                            label="Teilnehmer-ID"
                             name="finanzOnlineParticipantId"
-                            rules={[{ max: 100, message: 'Max 100 characters' }]}
-                            extra="Teilnehmer-ID or combined Teilnehmer-ID/Benutzer-ID if required by provider"
+                            rules={[{ max: 100, message: 'Maximal 100 Zeichen' }]}
+                            extra="Teilnehmer-ID oder kombinierte Teilnehmer-/Benutzer-ID je nach Anbieter."
                         >
                             <Input placeholder="Teilnehmer-ID" />
                         </Form.Item>
@@ -358,7 +356,7 @@ function FinanzOnlineTab() {
                         <Form.Item
                             label="PIN"
                             name="finanzOnlinePin"
-                            rules={[{ max: 100, message: 'Max 100 characters' }]}
+                            rules={[{ max: 100, message: 'Maximal 100 Zeichen' }]}
                             extra="Aus Sicherheitsgründen wird ein bestehender PIN nie angezeigt. Feld leer lassen, um den aktuellen PIN beizubehalten."
                         >
                             <Input.Password placeholder="PIN" />
@@ -367,50 +365,50 @@ function FinanzOnlineTab() {
                 </Row>
             </Card>
 
-            <Card title="Submission Behavior">
+            <Card title="Übermittlung">
                 <Row gutter={24}>
                     <Col xs={24} md={12}>
                         <Form.Item
-                            label="Session Timeout (min)"
+                            label="Sitzungs-Timeout (Min.)"
                             name="finanzOnlineSubmitInterval"
-                            rules={[{ type: 'number', min: 1, max: 1440, message: 'Between 1 and 1440' }]}
+                            rules={[{ type: 'number', min: 1, max: 1440, message: 'Wert zwischen 1 und 1440' }]}
                         >
                             <InputNumber style={{ width: '100%' }} min={1} max={1440} />
                         </Form.Item>
                     </Col>
                     <Col xs={24} md={12}>
-                        <Form.Item name="finanzOnlineAutoSubmit" valuePropName="checked" label="Automatic Submission">
+                        <Form.Item name="finanzOnlineAutoSubmit" valuePropName="checked" label="Automatische Übermittlung">
                             <Switch />
                         </Form.Item>
                     </Col>
                 </Row>
             </Card>
 
-            <Card title="Validation & Retry Policy">
+            <Card title="Validierung & Wiederholungen">
                 <Row gutter={24}>
                     <Col xs={24} md={12}>
                         <Form.Item
-                            label="Retry Attempts"
+                            label="Wiederholungsversuche"
                             name="finanzOnlineRetryAttempts"
-                            rules={[{ type: 'number', min: 0, max: 20, message: 'Between 0 and 20' }]}
+                            rules={[{ type: 'number', min: 0, max: 20, message: 'Wert zwischen 0 und 20' }]}
                         >
                             <InputNumber style={{ width: '100%' }} min={0} max={20} />
                         </Form.Item>
                     </Col>
                     <Col xs={24} md={12}>
-                        <Form.Item name="finanzOnlineEnableValidation" valuePropName="checked" label="Enable Payload Validation">
+                        <Form.Item name="finanzOnlineEnableValidation" valuePropName="checked" label="Payload-Validierung aktiv">
                             <Switch />
                         </Form.Item>
                     </Col>
                 </Row>
             </Card>
 
-            <Card title="Operational State / Health">
+            <Card title="Laufzeitstatus (nur Anzeige)">
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-                    Laufzeitstatus aus dem Backend. Diese Felder sind read-only und werden nicht über Save Changes geschrieben.
+                    Laufzeitstatus aus dem Backend. Diese Felder sind schreibgeschützt und werden nicht mit „Änderungen speichern“ geschrieben.
                 </Typography.Paragraph>
                 <Descriptions size="small" bordered column={1}>
-                    <Descriptions.Item label="Last FinanzOnline Sync">
+                    <Descriptions.Item label="Letzte FinanzOnline-Synchronisation">
                         <Form.Item noStyle shouldUpdate>
                             {({ getFieldValue }) => {
                                 const v = getFieldValue('lastFinanzOnlineSync');
@@ -418,7 +416,7 @@ function FinanzOnlineTab() {
                             }}
                         </Form.Item>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Pending Invoices">
+                    <Descriptions.Item label="Ausstehende Rechnungen">
                         <Form.Item noStyle shouldUpdate>
                             {({ getFieldValue }) => {
                                 const v = getFieldValue('pendingInvoices');
@@ -434,23 +432,23 @@ function FinanzOnlineTab() {
 
 function TSETab() {
     return (
-        <Card title="TSE (Technical Security Element)">
-            <Form.Item name="tseAutoConnect" valuePropName="checked" label="Auto Connect on Startup">
+        <Card title="TSE (Technische Sicherheitseinrichtung)">
+            <Form.Item name="tseAutoConnect" valuePropName="checked" label="Beim Start automatisch verbinden">
                 <Switch />
             </Form.Item>
 
             <Form.Item
-                label="Default TSE Device ID"
+                label="Standard-TSE-Geräte-ID"
                 name="defaultTseDeviceId"
-                rules={[{ max: 100, message: 'Max 100 characters' }]}
+                rules={[{ max: 100, message: 'Maximal 100 Zeichen' }]}
             >
                 <Input />
             </Form.Item>
 
             <Form.Item
-                label="Connection Timeout (ms)"
+                label="Verbindungs-Timeout (ms)"
                 name="tseConnectionTimeout"
-                rules={[{ type: 'number', min: 5, max: 120000, message: 'Between 5 and 120000' }]}
+                rules={[{ type: 'number', min: 5, max: 120000, message: 'Wert zwischen 5 und 120000' }]}
             >
                 <InputNumber style={{ width: '100%' }} min={5} max={120000} />
             </Form.Item>

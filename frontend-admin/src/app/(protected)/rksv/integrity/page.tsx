@@ -22,9 +22,10 @@ import {
 import { ReloadOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
-import { OPERATOR_LINK_LABELS } from '@/shared/operatorTruthCopy';
+import { OPERATOR_LINK_LABELS, OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { getApiAdminIntegrity } from '@/api/generated/admin/admin';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { IntegrityReportDto } from '@/api/generated/model';
@@ -78,8 +79,8 @@ export default function IntegrityReportPage() {
       <AdminPageHeader
         title="Datenintegrität (Support)"
         breadcrumbs={[
-          { title: 'Dashboard', href: '/dashboard' },
-          { title: 'RKSV', href: '/rksv' },
+          ADMIN_OVERVIEW_CRUMB,
+          { title: ADMIN_NAV_GROUP_LABELS.rksv, href: '/rksv' },
           { title: 'Integrität' },
         ]}
       />
@@ -111,7 +112,7 @@ export default function IntegrityReportPage() {
             <Switch checked={includeDetails} onChange={setIncludeDetails} />
           </Space>
           <Button icon={<ReloadOutlined />} loading={isLoading || isFetching} onClick={() => refetch()}>
-            Aktualisieren
+            {OPERATOR_SHARED_COPY.toolbarRefresh}
           </Button>
         </Space>
         {report?.generatedAtUtc && (

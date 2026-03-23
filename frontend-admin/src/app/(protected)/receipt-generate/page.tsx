@@ -4,6 +4,7 @@ import React from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Alert, Card, message } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 
 import GenerateReceiptForm from '@/features/receipt-templates/components/GenerateReceiptForm';
 import { useReceiptTemplates } from '@/features/receipt-templates/hooks/useReceiptTemplates';
@@ -32,7 +33,7 @@ export default function GenerateReceiptPage() {
         <React.Fragment>
             <AdminPageHeader
                 title="Belegvorschau erzeugen"
-                breadcrumbs={[{ title: 'Dashboard', href: '/dashboard' }, { title: 'Belegvorschau erzeugen' }]}
+                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: 'Belegvorschau erzeugen' }]}
             />
 
             <Alert

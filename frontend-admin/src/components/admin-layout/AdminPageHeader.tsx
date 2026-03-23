@@ -17,26 +17,25 @@ export function AdminPageHeader({ title, breadcrumbs, actions, children }: Admin
     return (
         <div style={{ marginBottom: 24 }}>
             {breadcrumbs && (
-                <Breadcrumb
-                    items={breadcrumbs.map((b) => ({
-                        title: b.href ? <Link href={b.href}>{b.title}</Link> : b.title,
-                    }))}
-                    style={{ marginBottom: 16 }}
-                />
+                <nav aria-label="Brotkrümelnavigation" style={{ marginBottom: 16 }}>
+                    <Breadcrumb
+                        items={breadcrumbs.map((b) => ({
+                            title: b.href ? <Link href={b.href}>{b.title}</Link> : b.title,
+                        }))}
+                    />
+                </nav>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Title level={3} style={{ margin: 0 }}>
-                    {title}
-                </Title>
-                {actions && <Space>{actions}</Space>}
-            </div>
-
-            {(children) && (
-                <div style={{ marginTop: 16 }}>
-                    {children}
+            <header>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Title level={1} style={{ margin: 0 }}>
+                        {title}
+                    </Title>
+                    {actions && <Space>{actions}</Space>}
                 </div>
-            )}
+            </header>
+
+            {children ? <div style={{ marginTop: 16 }}>{children}</div> : null}
         </div>
     );
 }

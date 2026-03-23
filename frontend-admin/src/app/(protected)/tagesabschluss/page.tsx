@@ -45,6 +45,10 @@ import type {
 } from '@/api/generated/model';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 
 const { Title, Paragraph, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -210,18 +214,42 @@ export default function TagesabschlussPage() {
 
   const closingBusy = dailyMu.isPending || monthlyMu.isPending || yearlyMu.isPending;
 
+  const tagesabschlussScopeSummary = useMemo(() => {
+    const regPart = registerIdValid
+      ? `Kasse ${effectiveRegisterId}`
+      : 'Kasse: keine gültige UUID';
+    const period = `Historie ${range[0].format('DD.MM.YYYY')}–${range[1].format('DD.MM.YYYY')}`;
+    const hist = `${historyRows.length} Abschlüsse im Zeitraum`;
+    return `${regPart} · ${period} · ${hist}`;
+  }, [registerIdValid, effectiveRegisterId, range, historyRows.length]);
+
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <div>
-        <Title level={3} style={{ marginBottom: 4 }}>
-          <CalendarOutlined /> Tagesabschluss
-        </Title>
+    <AdminPageShell>
+      <AdminPageHeader
+        title={ADMIN_NAV_LABELS.tagesabschluss}
+        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.tagesabschluss }]}
+        actions={
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => {
+              void historyQuery.refetch();
+              void statsQuery.refetch();
+              if (registerIdValid) void canCloseQuery.refetch();
+            }}
+          >
+            {OPERATOR_SHARED_COPY.toolbarRefresh}
+          </Button>
+        }
+      >
         <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          <CalendarOutlined style={{ marginRight: 8 }} />
           Abschlüsse für die gewählte Kasse auslösen, Schlussprüfung anzeigen, Historie und Kennzahlen einsehen.
           Historie und Statistik beziehen sich auf den angemeldeten Benutzer (API-Filter).{' '}
           Backend: <Text code>/api/Tagesabschluss/*</Text> (Berechtigung: <Text code>tse.sign</Text>).
         </Paragraph>
-      </div>
+      </AdminPageHeader>
+
+      <AdminPageScopeSummary label="Aktive Ansicht:">{tagesabschlussScopeSummary}</AdminPageScopeSummary>
 
       <Card title="Kasse & Prüfung">
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
@@ -378,6 +406,6 @@ export default function TagesabschlussPage() {
           </Col>
         </Row>
       </Card>
-    </Space>
+    </AdminPageShell>
   );
 }

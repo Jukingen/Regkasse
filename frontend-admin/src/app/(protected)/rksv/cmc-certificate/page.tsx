@@ -3,6 +3,7 @@
 import React from 'react';
 import { Card, Descriptions, Spin, Alert } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useGetApiTseStatus } from '@/api/generated/tse/tse';
 import { useGetApiTseDevices } from '@/api/generated/tse/tse';
 
@@ -25,7 +26,7 @@ export default function RksvCmcCertificatePage() {
             <AdminPageHeader
                 title="CMC / Certificate"
                 breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
+                    ADMIN_OVERVIEW_CRUMB,
                     { title: 'RKSV', href: '/rksv' },
                     { title: 'CMC / Certificate' },
                 ]}

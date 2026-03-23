@@ -28,6 +28,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { getApiAdminIncidentsCorrelationId } from '@/api/generated/admin/admin';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { AuditLogEntryDto, ReplayBatchPaymentItemDto, FinanzOnlineReconciliationItemDto } from '@/api/generated/model';
@@ -389,7 +390,7 @@ export default function IncidentInvestigationPage() {
             <AdminPageHeader
                 title="Incident (Correlation-ID)"
                 breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
+                    ADMIN_OVERVIEW_CRUMB,
                     { title: 'RKSV', href: '/rksv' },
                     { title: 'Incident' },
                 ]}

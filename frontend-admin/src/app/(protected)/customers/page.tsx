@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, message, Space, Input } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 import CustomerList from '@/features/customers/components/CustomerList';
 import CustomerForm from '@/features/customers/components/CustomerForm';
@@ -72,11 +73,11 @@ export default function CustomersPage() {
     const handleCreate = async (values: Customer) => {
         try {
             await createMutation.mutateAsync({ data: values });
-            message.success('Customer created successfully');
+            message.success('Kunde angelegt.');
             setIsFormVisible(false);
             invalidateList();
         } catch (err) {
-            message.error('Failed to create customer');
+            message.error('Kunde konnte nicht angelegt werden.');
         }
     };
 
@@ -84,22 +85,22 @@ export default function CustomersPage() {
         if (!editingCustomer?.id) return;
         try {
             await updateMutation.mutateAsync({ id: editingCustomer.id, data: values });
-            message.success('Customer updated successfully');
+            message.success('Kunde aktualisiert.');
             setIsFormVisible(false);
             setEditingCustomer(null);
             invalidateList();
         } catch (err) {
-            message.error('Failed to update customer');
+            message.error('Kunde konnte nicht aktualisiert werden.');
         }
     };
 
     const handleDelete = async (id: string) => {
         try {
             await deleteMutation.mutateAsync({ id });
-            message.success('Customer deleted successfully');
+            message.success('Kunde gelöscht.');
             invalidateList();
         } catch (err) {
-            message.error('Failed to delete customer');
+            message.error('Kunde konnte nicht gelöscht werden.');
         }
     };
 
@@ -116,11 +117,11 @@ export default function CustomersPage() {
     return (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
-                title="Customers"
-                breadcrumbs={[{ title: 'Dashboard', href: '/dashboard' }, { title: 'Customers' }]}
+                title={ADMIN_NAV_LABELS.customers}
+                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.customers }]}
                 actions={
                     <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
-                        New Customer
+                        Neuer Kunde
                     </Button>
                 }
             >

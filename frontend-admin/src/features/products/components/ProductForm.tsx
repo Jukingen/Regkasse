@@ -124,7 +124,7 @@ export default function ProductForm({
             // Category: dropdown value is categoryId (GUID); backend also expects [Required] Category (name)
             const categoryId = values.categoryId as string | undefined;
             if (!categoryId?.trim()) {
-                message.error('Please select a category');
+                message.error('Bitte eine Kategorie wählen.');
                 return;
             }
             const categoryName =

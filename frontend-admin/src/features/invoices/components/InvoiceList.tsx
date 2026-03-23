@@ -45,6 +45,7 @@ import {
 import { RKSv_ADMIN_CONTRACT_GAPS, viewInvoiceListRegister } from '@/shared/rksvAdminTruth';
 import { AdminTruthBadge } from '@/shared/adminTruthBadges';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
     OperatorBusinessSection,
     OperatorSummaryStrip,
@@ -853,10 +854,7 @@ export const InvoiceList: React.FC = () => {
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
                 <AdminPageHeader
                     title={OPERATOR_INVOICE_COPY.pageTitle}
-                    breadcrumbs={[
-                        { title: 'Dashboard', href: '/dashboard' },
-                        { title: OPERATOR_INVOICE_COPY.pageTitle },
-                    ]}
+                    breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: OPERATOR_INVOICE_COPY.pageTitle }]}
                     actions={
                         <Space wrap>
                             <Button
@@ -972,7 +970,7 @@ export const InvoiceList: React.FC = () => {
                                     onClick={() => refetch()}
                                     loading={isFetching}
                                 >
-                                    {OPERATOR_INVOICE_COPY.actionRefresh}
+                                    {OPERATOR_SHARED_COPY.toolbarRefresh}
                                 </Button>
                             </Tooltip>
                         </Col>

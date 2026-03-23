@@ -82,6 +82,10 @@ export const OPERATOR_SHARED_COPY = {
     /** Cross-screen navigation block heading (links to incident / replay / FO queue) */
     investigateFurtherLabel: 'Weiter untersuchen',
     retryLoadShort: 'Erneut laden',
+    /** Toolbar reload (lists, dashboards) — same label everywhere for muscle memory. */
+    toolbarRefresh: 'Aktualisieren',
+    /** After a failed load / error alert primary action. */
+    retryAfterError: 'Erneut versuchen',
 } as const;
 
 // --- Investigation URL context (display-only vs API filter) ---
@@ -105,7 +109,18 @@ export const OPERATOR_INVESTIGATION_CONTEXT_COPY = {
 export const OPERATOR_FO_QUEUE_COPY = {
     pagePrimaryOperationalTruthLead:
         'Primäre operative Oberfläche für FinanzOnline je Zahlung: serverseitig gefilterte Abgleichstabelle und Zeilenaktionen (siehe Vertrags- und Metrik-Hinweise auf dieser Seite).',
+    /** One-line lead under page title — same operational meaning as pagePrimaryOperationalTruthLead; full text stays in collapsible panel. */
+    pageLeadCompact:
+        'Serverseitig gefilterte FinanzOnline-Abgleichszeilen (Limit 200) mit Zeilenaktion »Erneut senden« — ausführlicher Kontext unten einklappbar.',
     relatedSupportingLabel: 'Verwandt (unterstützend / Diagnose)',
+    /** Collapse panel: full lead + related-route links (FO queue page top band). */
+    foQueueListenKontextCollapseTitle: 'Ausführlicher Listen-Kontext & verwandte Oberflächen',
+    /** Collapse under metric cards: retry semantics + metric scope. */
+    foQueueMetricsHintsCollapseTitle: 'Hinweise zu Metriken & Zeilenaktion',
+    /** When both invalid URL params apply — single info band instead of two Alerts. */
+    urlParamRejectedCombinedTitle: 'URL-Parameter: nicht angewendet',
+    /** Collapse inside investigation URL card — full banner body for honesty. */
+    investigationUrlContextCollapseTitle: 'Voller Hinweis (Anzeige vs. API-Filter)',
     queryRejectedRegisterTitle: 'Register-Parameter ungültig',
     queryRejectedRegisterDescription: (raw: string) =>
         `«${raw}» ist keine gültige Register-UUID — wird nicht als Kassenfilter gesetzt (verhindert irreführende Deep-Links).`,
@@ -115,8 +130,12 @@ export const OPERATOR_FO_QUEUE_COPY = {
     emptyListTitle: 'Keine Abgleichszeilen',
     emptyListDescription: 'Keine Zahlungen für die gewählten Filter. Status oder Zeitraum anpassen.',
     businessSectionTitle: 'Suchkontext & Abgleichszeilen',
+    /** Always-visible one-liner under section title; full paragraph in collapsible panel on the page. */
+    businessSectionDescriptionCompact:
+        'Filter steuern die serverseitige Liste; Kasse nur als gültige UUID aus Stammdaten (Deep-Link/API-Konsistenz).',
     businessSectionDescription:
         'Filter steuern die serverseitige Liste. Kasse nur als gültige UUID aus Stammdaten wählen, damit Deep-Links und API-Filter übereinstimmen.',
+    businessSectionDescriptionCollapseTitle: 'Filter & Kassen-UUID (vollständig)',
     summaryReconciliationParagraph:
         'Zeilen mit Status Pending, Failed oder NeedsReconciliation können mit Erneut senden erneut an FinanzOnline angestoßen werden — das spiegelt nur die UI-/Statuslogik, keine zusätzliche Backend-Garantie. Referenz- und Fehlertexte je Zeile prüfen. Abgleichszeilen enthalten keine Correlation-ID; Zuordnung zu Incident/Replay über andere Ansichten oder den URL-Kontext (investigationBatchCorrelationId).',
     metricsFailureKindScope:
@@ -130,6 +149,9 @@ export const OPERATOR_FO_QUEUE_COPY = {
         'createdAt = Zeitpunkt der Zahlungs-/Abgleichszeile; finanzOnlineRetryCount = Anzahl Versuche; finanzOnlineLastAttemptAtUtc = Zeitpunkt des letzten Sendeversuchs (unabhängig vom Ergebnis — es gibt kein separates letztes Erfolgs-/Fehlerdatum im Listen-DTO).',
     foErrorShortTooltip:
         'finanzOnlineError = einzige technische Servermeldung in diesem Listen-DTO (kein separates Roh-HTTP-/Payload-Feld). Kurzfassung in der Tabelle; vollständiger Text unter »Zeile erweitern«.',
+    /** Shown above the reconciliation table when rows exist — keyboard/scanability; no extra hover step for “where is the rest”. */
+    tableExpandDiscoverabilityHint:
+        'Zeile erweitern (Pfeil links): vollständiger Fehlertext und alle Listenfelder des DTO — Vertrags-/Forensik-Kontext ohne zusätzliche Oberfläche.',
     contractTruthPanelTitle: 'Listen-Vertrag: was die API je Zeile liefert',
     contractTruthInDtoTitle: 'Im DTO vorhanden (Rohfelder)',
     contractTruthNotInDtoTitle: 'Nicht im Listen-DTO (OpenAPI) — keine UI-Erfindung',

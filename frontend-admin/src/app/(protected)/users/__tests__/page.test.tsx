@@ -195,7 +195,7 @@ describe('Users page', () => {
       await waitFor(() => {
         expect(mockGetUsersList).toHaveBeenCalled();
       });
-      expect(screen.getByText('Benutzerverwaltung')).toBeInTheDocument();
+      expect(screen.getAllByText('Benutzerverwaltung').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByPlaceholderText(/Name, E-Mail, Mitarbeiternummer/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Benutzer anlegen/ })).toBeInTheDocument();
     });
@@ -217,7 +217,7 @@ describe('Users page', () => {
       await waitFor(() => {
         expect(mockGetUsersList).toHaveBeenCalled();
       });
-      expect(screen.getByText('Keine Benutzer gefunden.')).toBeInTheDocument();
+      expect(screen.getByText('Keine Benutzer in dieser Ansicht.')).toBeInTheDocument();
     });
 
     it('shows error alert and retry when list load fails', async () => {

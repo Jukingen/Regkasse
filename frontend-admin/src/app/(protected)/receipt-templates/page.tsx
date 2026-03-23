@@ -14,6 +14,7 @@ import { hasPermission } from '@/shared/auth/permissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 
 export default function ReceiptTemplatesPage() {
@@ -58,7 +59,7 @@ export default function ReceiptTemplatesPage() {
     const { mutate: deleteTemplate } = useDelete({
         mutation: {
             onSuccess: () => {
-                message.success('Template deleted');
+                message.success('Vorlage gelöscht.');
                 invalidateList();
             },
             onError: (err: Error) => {
@@ -71,8 +72,8 @@ export default function ReceiptTemplatesPage() {
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
 
             <AdminPageHeader
-                title="Receipt Templates"
-                breadcrumbs={[{ title: 'Dashboard', href: '/dashboard' }, { title: 'Receipt Templates' }]}
+                title={ADMIN_NAV_LABELS.receiptTemplates}
+                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.receiptTemplates }]}
                 actions={
                     canManage ? (
                         <Link href="/receipt-templates/new">

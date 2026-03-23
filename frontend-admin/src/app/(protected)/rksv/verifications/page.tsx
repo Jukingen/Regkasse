@@ -5,6 +5,7 @@ import { Card, Table, Tag, Typography, Switch, Space, Alert, Tooltip, Collapse }
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useGetApiAuditLog, useGetApiAuditLogCorrelationCorrelationId } from '@/api/generated/audit-log/audit-log';
 import type { AuditLogEntryDto } from '@/api/generated/model';
 import dayjs from 'dayjs';
@@ -292,7 +293,7 @@ export default function RksvVerificationsPage() {
             <AdminPageHeader
                 title={OPERATOR_VERIFICATIONS_COPY.pageTitle}
                 breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
+                    ADMIN_OVERVIEW_CRUMB,
                     { title: 'RKSV', href: '/rksv' },
                     { title: OPERATOR_VERIFICATIONS_COPY.breadcrumbTitle },
                 ]}

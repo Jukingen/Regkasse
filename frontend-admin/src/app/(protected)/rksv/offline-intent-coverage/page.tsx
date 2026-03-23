@@ -20,6 +20,7 @@ import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
     getApiAdminOfflineIntentCoverage,
     getApiAdminOfflineIntentCoverageTopRisk,
@@ -153,7 +154,7 @@ export default function OfflineIntentCoveragePage() {
             <AdminPageHeader
                 title="Offline Intent Coverage"
                 breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
+                    ADMIN_OVERVIEW_CRUMB,
                     { title: 'RKSV', href: '/rksv' },
                     { title: 'Offline Intent Coverage' },
                 ]}

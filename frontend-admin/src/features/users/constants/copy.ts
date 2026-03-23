@@ -17,6 +17,29 @@ const ROLE_DISPLAY_NAMES: Record<string, string> = {
 
 export const usersCopy = {
   title: 'Benutzerverwaltung',
+  /** List page intro under the title (operator context). */
+  pageIntro:
+    'Benutzer suchen, nach Rolle und Status filtern und Konten verwalten. Sensible Aktionen werden im Audit protokolliert.',
+  filterBandLabel: 'Filter',
+  /** Card title — separates primary actions (header) from list filters. */
+  filterCardTitle: 'Liste filtern',
+  /** Chip row label (aligned with invoice list pattern). */
+  activeFiltersLabel: 'Aktive Filter:',
+  clearAllFilters: 'Alle Filter zurücksetzen',
+  /** Prefix for the scope summary strip (active query context). */
+  scopeSummaryLabel: 'Aktive Ansicht:',
+  /** Appended to scope line while a background refetch runs (React Query isFetching). */
+  listRefreshingHint: 'Aktualisiert …',
+  /** Shown under intro — forensics / audit discoverability (German UI). */
+  forensicsHintLead:
+    'Benutzerbezogene Sicherheitsereignisse finden Sie auch im Audit-Protokoll; für RKSV-/Offline-Stichproben die Audit-Spur.',
+  forensicsLinkAuditLog: 'Audit-Protokoll',
+  forensicsLinkVerifications: 'RKSV Audit-Spur',
+  scopeTotalLoading: 'Gesamtanzahl wird geladen…',
+  scopeStatusAll: 'Status: alle',
+  scopeSearchPrefix: 'Suche',
+  scopeRolePrefix: 'Rolle',
+  scopeStatusPrefix: 'Status',
   name: 'Name',
   email: 'E-Mail',
   role: 'Rolle',
@@ -45,7 +68,8 @@ export const usersCopy = {
   reasonRequired: 'Grund (für Audit erforderlich)',
   reasonPlaceholder: 'z. B. Ausscheiden, Urlaub, …',
   reasonRequiredMessage: 'Bitte einen Grund angeben.',
-  confirmDeactivate: 'wird deaktiviert. Fiş/fatura referansları korunur; Konto kann später reaktiviert werden.',
+  confirmDeactivate:
+    'wird deaktiviert. Beleg- und Rechnungsbezüge bleiben erhalten; das Konto kann später reaktiviert werden.',
   confirmReactivate: 'wieder aktivieren?',
   okDeactivate: 'Deaktivieren',
   okReactivate: 'Reaktivieren',
@@ -82,13 +106,19 @@ export const usersCopy = {
   filterReset: 'Zurücksetzen',
   dateFrom: 'Von',
   dateTo: 'Bis',
-  emptyList: 'Keine Benutzer gefunden.',
+  emptyList: 'Keine Benutzer in dieser Ansicht.',
+  emptyListWithFilters:
+    'Keine Benutzer für die aktuellen Filter. Filter zurücksetzen oder Suche/Rolle/Status anpassen.',
+  emptyListDefaultHint: 'Hinweis: Standardmäßig werden nur aktive Konten gelistet (Status = aktiv).',
   emptyActivity: 'Keine Aktivität.',
   errorLoad: 'Benutzerliste konnte nicht geladen werden.',
+  errorLoadDetailFallback: 'Keine technische Detailmeldung verfügbar.',
   errorLoadUser: 'Benutzerdaten konnten nicht geladen werden.',
   errorLoadActivity: 'Aktivitätsverlauf konnte nicht geladen werden.',
   errorLoadActivityHint: 'Übrige Benutzerdetails sind weiterhin nutzbar.',
   retry: 'Erneut versuchen',
+  actionRefresh: 'Aktualisieren',
+  paginationZeroResults: '0 Treffer',
   successCreate: 'Benutzer angelegt.',
   successUpdate: 'Benutzer aktualisiert.',
   successDeactivate: 'Benutzer deaktiviert.',
@@ -164,8 +194,8 @@ export const usersCopy = {
   noRoleSelectedDescription: 'Wählen Sie links eine Rolle, um Berechtigungen und Anmeldung anzuzeigen.',
   noPermissionsInGroup: 'Keine Berechtigungen in dieser Gruppe',
   /** Role drawer left column section headings. */
-  systemRolesSection: 'System Roles',
-  customRolesSection: 'Custom Roles',
+  systemRolesSection: 'Systemrollen',
+  customRolesSection: 'Benutzerdefinierte Rollen',
   /** Short helper text under each section heading. */
   systemRolesSectionHint:
     'Zuweisbar, hier nicht änderbar (fest im Backend).',

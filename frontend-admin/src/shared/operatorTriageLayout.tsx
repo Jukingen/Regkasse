@@ -47,7 +47,7 @@ export function OperatorBusinessSection({
 }) {
     return (
         <div style={{ marginBottom: 20 }}>
-            <Typography.Title level={5} style={{ marginBottom: description ? 6 : 12 }}>
+            <Typography.Title level={2} style={{ marginBottom: description ? 6 : 12 }}>
                 {title}
             </Typography.Title>
             {description ? (
@@ -63,7 +63,7 @@ export function OperatorBusinessSection({
 export function OperatorTechnicalSection({ children }: { children: React.ReactNode }) {
     return (
         <div style={{ marginTop: 4 }}>
-            <Typography.Title level={5} style={{ marginBottom: 8 }}>
+            <Typography.Title level={2} style={{ marginBottom: 8 }}>
                 {OPERATOR_TRIAGE_COPY.technicalTitle}
             </Typography.Title>
             <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 12 }}>

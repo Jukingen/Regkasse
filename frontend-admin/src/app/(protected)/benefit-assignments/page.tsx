@@ -33,6 +33,8 @@ import { useAdminBenefitDefinitionsList } from '@/api/admin/benefit-definitions'
 import { useGetApiCustomer } from '@/api/generated/customer/customer';
 import { useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 
 export default function BenefitAssignmentsPage() {
   const queryClient = useQueryClient();
@@ -182,10 +184,7 @@ export default function BenefitAssignmentsPage() {
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
         title="Vorteile (Zuweisungen)"
-        breadcrumbs={[
-          { title: 'Dashboard', href: '/dashboard' },
-          { title: 'Vorteile (Zuweisungen)' },
-        ]}
+        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: 'Vorteile (Zuweisungen)' }]}
         actions={
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             Neue Zuweisung
@@ -201,7 +200,7 @@ export default function BenefitAssignmentsPage() {
           showIcon
           action={
             <Button size="small" onClick={() => listQuery.refetch()}>
-              Erneut versuchen
+              {OPERATOR_SHARED_COPY.retryAfterError}
             </Button>
           }
         />

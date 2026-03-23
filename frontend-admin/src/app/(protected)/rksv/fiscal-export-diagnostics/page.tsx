@@ -19,6 +19,7 @@ import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
     downloadFiscalExportJson,
     extractApiErrorMessage,
@@ -176,7 +177,7 @@ export default function FiscalExportDiagnosticsPage() {
             <AdminPageHeader
                 title="Fiscal-Export"
                 breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
+                    ADMIN_OVERVIEW_CRUMB,
                     { title: 'RKSV', href: '/rksv' },
                     { title: 'Fiscal-Export Diagnose' },
                 ]}

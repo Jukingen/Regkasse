@@ -7,10 +7,10 @@ export default function NotFound() {
             <Result
                 status="404"
                 title="404"
-                subTitle="Sorry, the page you visited does not exist."
+                subTitle="Die angeforderte Seite existiert nicht."
                 extra={
                     <Link href="/dashboard">
-                        <Button type="primary">Back to Dashboard</Button>
+                        <Button type="primary">Zur Übersicht</Button>
                     </Link>
                 }
             />

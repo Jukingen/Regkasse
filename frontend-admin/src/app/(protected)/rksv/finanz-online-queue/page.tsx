@@ -23,6 +23,7 @@ import {
     Typography,
     Tooltip,
     Descriptions,
+    Collapse,
 } from 'antd';
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -30,6 +31,7 @@ import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_NAV_GROUP_LABELS, ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
     parseAuthoritativePaymentGuid,
     parseAuthoritativeRegisterGuid,
@@ -223,13 +225,19 @@ export default function FinanzOnlineReconciliationPage() {
         {
             title: 'Zahlung',
             key: 'paymentId',
-            width: 120,
+            width: 236,
             render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => {
                 const paymentId = r.paymentId ?? '';
+                if (!paymentId) return <Typography.Text type="secondary">—</Typography.Text>;
                 return (
-                    <Link href={`/payments?paymentId=${paymentId}`} target="_blank" rel="noopener noreferrer">
-                        <Typography.Text code>{paymentId ? `${paymentId.slice(0, 8)}…` : '—'}</Typography.Text>
-                    </Link>
+                    <Space direction="vertical" size={2} style={{ maxWidth: 228 }}>
+                        <Link href={`/payments?paymentId=${paymentId}`} target="_blank" rel="noopener noreferrer">
+                            In Zahlungen öffnen
+                        </Link>
+                        <Typography.Text code copyable={{ text: paymentId }} style={{ fontSize: 11, wordBreak: 'break-all' }}>
+                            {paymentId}
+                        </Typography.Text>
+                    </Space>
                 );
             },
         },
@@ -298,16 +306,17 @@ export default function FinanzOnlineReconciliationPage() {
                 </Tooltip>
             ),
             key: 'finanzOnlineError',
-            width: 140,
-            ellipsis: true,
+            width: 220,
             render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => {
                 const summary = finanzOnlineRowTechnicalResponseSummary(r);
                 return summary ? (
-                    <Tooltip title={summary}>
-                        <Typography.Text type="danger" ellipsis style={{ maxWidth: 132 }}>
-                            {summary}
-                        </Typography.Text>
-                    </Tooltip>
+                    <Typography.Paragraph
+                        type="danger"
+                        style={{ marginBottom: 0, maxWidth: 212, fontSize: 12, lineHeight: 1.35 }}
+                        ellipsis={{ rows: 2, tooltip: summary }}
+                    >
+                        {summary}
+                    </Typography.Paragraph>
                 ) : (
                     '—'
                 );
@@ -396,14 +405,17 @@ export default function FinanzOnlineReconciliationPage() {
     const isLoading = listLoading || metricsLoading;
     const items = listData?.items ?? [];
 
+    const hasUrlParamRejections = Boolean(rejectedRegisterQueryParam || rejectedFocusPaymentParam);
+    const hasInvestigationUrlContext = Boolean(investigationBatchCorrelationId || focusPaymentId);
+
     return (
         <>
             <AdminPageHeader
-                title="FinanzOnline Abgleich"
+                title={ADMIN_NAV_LABELS.finanzOnlineAbgleich}
                 breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
-                    { title: 'RKSV', href: '/rksv' },
-                    { title: 'FinanzOnline Abgleich' },
+                    ADMIN_OVERVIEW_CRUMB,
+                    { title: ADMIN_NAV_GROUP_LABELS.rksv, href: '/rksv' },
+                    { title: ADMIN_NAV_LABELS.finanzOnlineAbgleich },
                 ]}
                 actions={
                     <Tooltip title={OPERATOR_SHARED_COPY.refetchHintToolbar}>
@@ -414,121 +426,176 @@ export default function FinanzOnlineReconciliationPage() {
                                 queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.metrics });
                             }}
                         >
-                            Aktualisieren
+                            {OPERATOR_SHARED_COPY.toolbarRefresh}
                         </Button>
                     </Tooltip>
                 }
+            >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 6, fontSize: 12, maxWidth: 900 }}>
+                    {OPERATOR_FO_QUEUE_COPY.pageLeadCompact}
+                </Typography.Paragraph>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12, maxWidth: 900 }}>
+                    {OPERATOR_FO_QUEUE_COPY.relatedSupportingLabel}:{' '}
+                    <Link href="/rksv/finanz-online-operations">
+                        {OPERATOR_FO_OPERATIONS_PAGE_COPY.breadcrumbTitle}
+                    </Link>
+                    {' · '}
+                    <Link href="/rksv/integrity">Datenintegrität (Support)</Link>
+                    {' · '}
+                    <Link href="/rksv/incident">Incident (Correlation)</Link>
+                    {' · '}
+                    <Link href="/payments">{ADMIN_NAV_LABELS.payments}</Link>
+                </Typography.Paragraph>
+            </AdminPageHeader>
+
+            <Collapse
+                bordered={false}
+                ghost
+                size="small"
+                style={{ marginBottom: 12 }}
+                items={[
+                    {
+                        key: 'listen-kontext',
+                        label: OPERATOR_FO_QUEUE_COPY.foQueueListenKontextCollapseTitle,
+                        children: (
+                            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                    {OPERATOR_FO_QUEUE_COPY.pagePrimaryOperationalTruthLead}
+                                </Typography.Paragraph>
+                            </Space>
+                        ),
+                    },
+                ]}
             />
 
-            <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
-                {OPERATOR_FO_QUEUE_COPY.pagePrimaryOperationalTruthLead}
-            </Typography.Paragraph>
-
-            <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-                {OPERATOR_FO_QUEUE_COPY.relatedSupportingLabel}:{' '}
-                <Link href="/rksv/finanz-online-operations">
-                    {OPERATOR_FO_OPERATIONS_PAGE_COPY.breadcrumbTitle}
-                </Link>
-                {' · '}
-                <Link href="/rksv/integrity">Datenintegrität (Support)</Link>
-                {' · '}
-                <Link href="/rksv/incident">Incident (Correlation)</Link>
-                {' · '}
-                <Link href="/payments">Payments</Link>
-            </Typography.Paragraph>
-
-            {rejectedRegisterQueryParam ? (
-                <Alert
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 16 }}
-                    message={OPERATOR_FO_QUEUE_COPY.queryRejectedRegisterTitle}
-                    description={OPERATOR_FO_QUEUE_COPY.queryRejectedRegisterDescription(rejectedRegisterQueryParam)}
-                />
-            ) : null}
-
-            {rejectedFocusPaymentParam ? (
-                <Alert
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 16 }}
-                    message={OPERATOR_FO_QUEUE_COPY.queryRejectedFocusPaymentTitle}
-                    description={OPERATOR_FO_QUEUE_COPY.queryRejectedFocusPaymentDescription(
-                        rejectedFocusPaymentParam,
-                    )}
-                />
-            ) : null}
-
-            {investigationBatchCorrelationId ? (
-                <Alert
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 16 }}
-                    message={OPERATOR_INVESTIGATION_CONTEXT_COPY.bannerTitle}
-                    description={
-                        <Space direction="vertical" size={8}>
-                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                {OPERATOR_INVESTIGATION_CONTEXT_COPY.bannerBody}
-                            </Typography.Text>
-                            {focusPaymentId ? (
-                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                    {OPERATOR_INVESTIGATION_CONTEXT_COPY.focusPaymentLine}{' '}
-                                    <Typography.Text code>{focusPaymentId}</Typography.Text>
-                                </Typography.Text>
-                            ) : null}
-                            <Typography.Text code copyable>
-                                {investigationBatchCorrelationId}
-                            </Typography.Text>
-                            <Space wrap>
-                                <Link href={buildIncidentInvestigationHref(investigationBatchCorrelationId)}>
-                                    {OPERATOR_LINK_LABELS.incidentAggregate}
-                                </Link>
-                                <Typography.Text type="secondary">·</Typography.Text>
-                                <Link href={buildReplayBatchDetailHref(investigationBatchCorrelationId)}>
-                                    {OPERATOR_LINK_LABELS.replayBatchDetail}
-                                </Link>
-                                <Typography.Text type="secondary">·</Typography.Text>
-                                <Link
-                                    href={buildFinanzOnlineQueueInvestigationHref({
-                                        registerRowId: toLinkSafeRegisterRowId(cashRegisterId),
-                                        focusPaymentId,
-                                        investigationBatchCorrelationId,
-                                        fromUtc: dateRange[0]?.toISOString(),
-                                        toUtc: dateRange[1]?.endOf('day').toISOString(),
-                                        statusCsv: statusFilter.length ? statusFilter.join(',') : undefined,
-                                    })}
-                                >
-                                    {OPERATOR_INVESTIGATION_CONTEXT_COPY.syncUrlWithFiltersLink}
-                                </Link>
-                            </Space>
-                        </Space>
-                    }
-                />
-            ) : focusPaymentId ? (
-                <Alert
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 16 }}
-                    message={OPERATOR_INVESTIGATION_CONTEXT_COPY.focusPaymentOnlyTitle}
-                    description={
-                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                            {OPERATOR_INVESTIGATION_CONTEXT_COPY.focusPaymentOnlyBody}
-                        </Typography.Text>
-                    }
-                />
-            ) : null}
-
-            {listError && (
+            {listError ? (
                 <Alert
                     type="error"
                     message={OPERATOR_SHARED_COPY.loadFailedList}
                     description={
                         listError instanceof Error ? listError.message : OPERATOR_SHARED_COPY.unknownErrorDetail
                     }
-                    style={{ marginBottom: 16 }}
+                    style={{ marginBottom: 12 }}
                     showIcon
+                    action={
+                        <Button
+                            size="small"
+                            onClick={() => {
+                                queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.base });
+                                queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.metrics });
+                            }}
+                        >
+                            {OPERATOR_SHARED_COPY.retryAfterError}
+                        </Button>
+                    }
                 />
-            )}
+            ) : null}
+
+            {hasUrlParamRejections ? (
+                <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    message={OPERATOR_FO_QUEUE_COPY.urlParamRejectedCombinedTitle}
+                    description={
+                        <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                            {rejectedRegisterQueryParam ? (
+                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                    <strong>{OPERATOR_FO_QUEUE_COPY.queryRejectedRegisterTitle}:</strong>{' '}
+                                    {OPERATOR_FO_QUEUE_COPY.queryRejectedRegisterDescription(
+                                        rejectedRegisterQueryParam,
+                                    )}
+                                </Typography.Text>
+                            ) : null}
+                            {rejectedFocusPaymentParam ? (
+                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                    <strong>{OPERATOR_FO_QUEUE_COPY.queryRejectedFocusPaymentTitle}:</strong>{' '}
+                                    {OPERATOR_FO_QUEUE_COPY.queryRejectedFocusPaymentDescription(
+                                        rejectedFocusPaymentParam,
+                                    )}
+                                </Typography.Text>
+                            ) : null}
+                        </Space>
+                    }
+                />
+            ) : null}
+
+            {hasInvestigationUrlContext ? (
+                <Card
+                    size="small"
+                    style={{ marginBottom: 12 }}
+                    title={
+                        investigationBatchCorrelationId
+                            ? OPERATOR_INVESTIGATION_CONTEXT_COPY.bannerTitle
+                            : OPERATOR_INVESTIGATION_CONTEXT_COPY.focusPaymentOnlyTitle
+                    }
+                >
+                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                        {investigationBatchCorrelationId ? (
+                            <>
+                                <Typography.Text code copyable>
+                                    {investigationBatchCorrelationId}
+                                </Typography.Text>
+                                <Space wrap>
+                                    <Link href={buildIncidentInvestigationHref(investigationBatchCorrelationId)}>
+                                        {OPERATOR_LINK_LABELS.incidentAggregate}
+                                    </Link>
+                                    <Typography.Text type="secondary">·</Typography.Text>
+                                    <Link href={buildReplayBatchDetailHref(investigationBatchCorrelationId)}>
+                                        {OPERATOR_LINK_LABELS.replayBatchDetail}
+                                    </Link>
+                                    <Typography.Text type="secondary">·</Typography.Text>
+                                    <Link
+                                        href={buildFinanzOnlineQueueInvestigationHref({
+                                            registerRowId: toLinkSafeRegisterRowId(cashRegisterId),
+                                            focusPaymentId,
+                                            investigationBatchCorrelationId,
+                                            fromUtc: dateRange[0]?.toISOString(),
+                                            toUtc: dateRange[1]?.endOf('day').toISOString(),
+                                            statusCsv: statusFilter.length ? statusFilter.join(',') : undefined,
+                                        })}
+                                    >
+                                        {OPERATOR_INVESTIGATION_CONTEXT_COPY.syncUrlWithFiltersLink}
+                                    </Link>
+                                </Space>
+                                {focusPaymentId ? (
+                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                        {OPERATOR_INVESTIGATION_CONTEXT_COPY.focusPaymentLine}{' '}
+                                        <Typography.Text code>{focusPaymentId}</Typography.Text>
+                                    </Typography.Text>
+                                ) : null}
+                                <Collapse
+                                    bordered={false}
+                                    ghost
+                                    size="small"
+                                    items={[
+                                        {
+                                            key: 'inv-full',
+                                            label: OPERATOR_FO_QUEUE_COPY.investigationUrlContextCollapseTitle,
+                                            children: (
+                                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                    {OPERATOR_INVESTIGATION_CONTEXT_COPY.bannerBody}
+                                                </Typography.Text>
+                                            ),
+                                        },
+                                    ]}
+                                />
+                            </>
+                        ) : (
+                            <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                    {OPERATOR_INVESTIGATION_CONTEXT_COPY.focusPaymentOnlyBody}
+                                </Typography.Text>
+                                {focusPaymentId ? (
+                                    <Typography.Text code copyable>
+                                        {focusPaymentId}
+                                    </Typography.Text>
+                                ) : null}
+                            </Space>
+                        )}
+                    </Space>
+                </Card>
+            ) : null}
 
             <OperatorSummaryStrip>
                 <Row gutter={[16, 16]}>
@@ -569,18 +636,51 @@ export default function FinanzOnlineReconciliationPage() {
                         </Card>
                     </Col>
                 </Row>
-                <Typography.Paragraph type="secondary" style={{ marginTop: 14, marginBottom: 0, fontSize: 12 }}>
-                    {OPERATOR_FO_QUEUE_COPY.summaryReconciliationParagraph}
-                </Typography.Paragraph>
-                <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
-                    {OPERATOR_FO_QUEUE_COPY.metricsFailureKindScope}
-                </Typography.Paragraph>
+                <Collapse
+                    bordered={false}
+                    ghost
+                    size="small"
+                    style={{ marginTop: 10 }}
+                    items={[
+                        {
+                            key: 'metric-hints',
+                            label: OPERATOR_FO_QUEUE_COPY.foQueueMetricsHintsCollapseTitle,
+                            children: (
+                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                        {OPERATOR_FO_QUEUE_COPY.summaryReconciliationParagraph}
+                                    </Typography.Paragraph>
+                                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                        {OPERATOR_FO_QUEUE_COPY.metricsFailureKindScope}
+                                    </Typography.Paragraph>
+                                </Space>
+                            ),
+                        },
+                    ]}
+                />
             </OperatorSummaryStrip>
 
             <OperatorBusinessSection
                 title={OPERATOR_FO_QUEUE_COPY.businessSectionTitle}
-                description={OPERATOR_FO_QUEUE_COPY.businessSectionDescription}
+                description={OPERATOR_FO_QUEUE_COPY.businessSectionDescriptionCompact}
             >
+                <Collapse
+                    bordered={false}
+                    ghost
+                    size="small"
+                    style={{ marginBottom: 12 }}
+                    items={[
+                        {
+                            key: 'business-full',
+                            label: OPERATOR_FO_QUEUE_COPY.businessSectionDescriptionCollapseTitle,
+                            children: (
+                                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                    {OPERATOR_FO_QUEUE_COPY.businessSectionDescription}
+                                </Typography.Paragraph>
+                            ),
+                        },
+                    ]}
+                />
             <Card title="Filter" size="small" style={{ marginBottom: 16 }}>
                 <Space wrap size="middle">
                     <Space>
@@ -634,6 +734,10 @@ export default function FinanzOnlineReconciliationPage() {
                         showIcon
                     />
                 ) : (
+                    <>
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 12, fontSize: 12 }}>
+                            {OPERATOR_FO_QUEUE_COPY.tableExpandDiscoverabilityHint}
+                        </Typography.Paragraph>
                     <Table<FinanzOnlineReconciliationItemDto>
                         columns={columns}
                         dataSource={items}
@@ -651,7 +755,7 @@ export default function FinanzOnlineReconciliationPage() {
                             showTotal: (total) => `Gesamt: ${total}`,
                         }}
                         size="small"
-                        scroll={{ x: 1480 }}
+                        scroll={{ x: 1620 }}
                         expandable={{
                             expandedRowRender: (record) => (
                                 <div style={{ padding: '4px 8px 12px', background: '#fafafa' }}>
@@ -720,6 +824,7 @@ export default function FinanzOnlineReconciliationPage() {
                             ),
                         }}
                     />
+                    </>
                 )}
             </Card>
             </OperatorBusinessSection>

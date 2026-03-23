@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, Row, Col, Statistic, Tag, Spin, Alert, Typography } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useGetApiTseStatus } from '@/api/generated/tse/tse';
 import { useGetApiFinanzOnlineStatus } from '@/api/generated/finanz-online/finanz-online';
 import Link from 'next/link';
@@ -31,7 +32,7 @@ export default function RksvStatusPage() {
             <AdminPageHeader
                 title="RKSV General Status"
                 breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
+                    ADMIN_OVERVIEW_CRUMB,
                     { title: 'RKSV', href: '/rksv' },
                     { title: 'General Status' },
                 ]}

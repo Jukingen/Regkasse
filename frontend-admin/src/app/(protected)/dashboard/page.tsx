@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, Col, Row, Statistic, DatePicker, Select, Table, Spin, Tabs } from 'antd';
-import { ArrowUpOutlined, ArrowDownOutlined, DollarOutlined, ShoppingOutlined, UserOutlined } from '@ant-design/icons';
+import { Card, Col, Row, Statistic, DatePicker, Table, Spin, Typography } from 'antd';
+import { DollarOutlined, ShoppingOutlined, UserOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
     useGetApiReportsSales,
     useGetApiReportsProducts,
@@ -13,7 +14,6 @@ import {
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
-const { Option } = Select;
 
 export default function DashboardPage() {
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
@@ -50,19 +50,11 @@ export default function DashboardPage() {
 
     const loading = loadingSales;
 
-    if (loading) {
-        return (
-            <div style={{ textAlign: 'center', padding: 50 }}>
-                <Spin size="large" />
-            </div>
-        );
-    }
-
     return (
         <div style={{ paddingBottom: 24 }}>
             <AdminPageHeader
-                title="Dashboard"
-                breadcrumbs={[{ title: 'Home' }, { title: 'Dashboard' }]}
+                title="Übersicht"
+                breadcrumbs={[ADMIN_OVERVIEW_CRUMB]}
                 actions={
                     <RangePicker
                         value={dateRange}
@@ -73,14 +65,31 @@ export default function DashboardPage() {
                         }}
                     />
                 }
-            />
+            >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                    Geschäftszahlen für den gewählten Zeitraum (Umsatz, Verteilung, Top-Artikel). Operative RKSV-Einstiege:
+                    Seitenleiste unter «RKSV».
+                </Typography.Paragraph>
+            </AdminPageHeader>
 
+            {loading ? (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    aria-busy="true"
+                    aria-label="Berichte werden geladen"
+                    style={{ textAlign: 'center', padding: 50 }}
+                >
+                    <Spin size="large" tip="Berichte werden geladen…" />
+                </div>
+            ) : (
+                <>
             {/* Key Metrics Row */}
             <Row gutter={16} style={{ marginBottom: 24 }}>
                 <Col span={6}>
                     <Card bordered={false}>
                         <Statistic
-                            title="Total Revenue"
+                            title="Gesamtumsatz"
                             value={salesReport?.totalSales}
                             precision={2}
                             valueStyle={{ color: '#3f8600' }}
@@ -92,7 +101,7 @@ export default function DashboardPage() {
                 <Col span={6}>
                     <Card bordered={false}>
                         <Statistic
-                            title="Total Sales Count"
+                            title="Anzahl Verkäufe"
                             value={salesReport?.totalInvoices}
                             prefix={<ShoppingOutlined />}
                         />
@@ -101,7 +110,7 @@ export default function DashboardPage() {
                 <Col span={6}>
                     <Card bordered={false}>
                         <Statistic
-                            title="Average Sale"
+                            title="Ø Verkauf"
                             value={salesReport?.averageOrderValue}
                             precision={2}
                             suffix="€"
@@ -111,7 +120,7 @@ export default function DashboardPage() {
                 <Col span={6}>
                     <Card bordered={false}>
                         <Statistic
-                            title="Active Customers"
+                            title="Aktive Kunden"
                             value={customersReport?.totalCustomers}
                             prefix={<UserOutlined />}
                         />
@@ -122,15 +131,15 @@ export default function DashboardPage() {
             <Row gutter={16}>
                 {/* Top Selling Products */}
                 <Col span={12}>
-                    <Card title="Top Selling Products" bordered={false} style={{ height: '100%' }}>
+                    <Card title="Meistverkaufte Produkte" bordered={false} style={{ height: '100%' }}>
                         <Table
                             dataSource={(productsReport?.topSellingProducts ?? []).slice(0, 5)}
                             pagination={false}
                             rowKey="productId"
                             columns={[
-                                { title: 'Product', dataIndex: 'productName' },
-                                { title: 'Quantity', dataIndex: 'quantitySold' },
-                                { title: 'Revenue', dataIndex: 'revenue', render: (val) => `€${Number(val ?? 0).toFixed(2)}` },
+                                { title: 'Produkt', dataIndex: 'productName' },
+                                { title: 'Menge', dataIndex: 'quantitySold' },
+                                { title: 'Umsatz', dataIndex: 'revenue', render: (val) => `€${Number(val ?? 0).toFixed(2)}` },
                             ]}
                         />
                     </Card>
@@ -138,15 +147,15 @@ export default function DashboardPage() {
 
                 {/* Sales by Payment Method */}
                 <Col span={12}>
-                    <Card title="Payment Methods" bordered={false} style={{ height: '100%' }}>
+                    <Card title="Zahlungsarten" bordered={false} style={{ height: '100%' }}>
                         <Table
                             dataSource={paymentsReport?.paymentsByMethod || []}
                             pagination={false}
                             rowKey="method"
                             columns={[
-                                { title: 'Method', dataIndex: 'method' },
-                                { title: 'Count', dataIndex: 'count' },
-                                { title: 'Total', dataIndex: 'total', render: (val) => `€${Number(val ?? 0).toFixed(2)}` },
+                                { title: 'Zahlungsart', dataIndex: 'method' },
+                                { title: 'Anzahl', dataIndex: 'count' },
+                                { title: 'Summe', dataIndex: 'total', render: (val) => `€${Number(val ?? 0).toFixed(2)}` },
                             ]}
                         />
                     </Card>
@@ -158,21 +167,22 @@ export default function DashboardPage() {
             <Row gutter={16}>
                 {/* Top Customers */}
                 <Col span={12}>
-                    <Card title="Top Customers" bordered={false} style={{ height: '100%' }}>
+                    <Card title="Top-Kunden" bordered={false} style={{ height: '100%' }}>
                         <Table
                             dataSource={(customersReport?.topCustomers ?? []).slice(0, 5)}
                             pagination={false}
                             rowKey="customerId"
                             columns={[
-                                { title: 'Customer', dataIndex: 'customerName' },
-                                { title: 'Orders', dataIndex: 'orderCount' },
-                                { title: 'Spent', dataIndex: 'totalSpent', render: (val) => `€${Number(val ?? 0).toFixed(2)}` },
+                                { title: 'Kunde', dataIndex: 'customerName' },
+                                { title: 'Bestellungen', dataIndex: 'orderCount' },
+                                { title: 'Ausgaben', dataIndex: 'totalSpent', render: (val) => `€${Number(val ?? 0).toFixed(2)}` },
                             ]}
                         />
                     </Card>
                 </Col>
             </Row>
-
+                </>
+            )}
         </div>
     );
 }

@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { getApiAdminReplayBatchCorrelationId } from '@/api/generated/admin/admin';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { ReplayBatchPaymentItemDto } from '@/api/generated/model';
@@ -87,7 +88,7 @@ export default function ReplayBatchDetailPage() {
             <AdminPageHeader
                 title={`Replay-Batch: ${correlationId ?? ''}`}
                 breadcrumbs={[
-                    { title: 'Dashboard', href: '/dashboard' },
+                    ADMIN_OVERVIEW_CRUMB,
                     { title: 'RKSV', href: '/rksv' },
                     { title: 'Replay-Batch', href: '/rksv/replay-batch' },
                     { title: correlationId ?? 'Detail' },

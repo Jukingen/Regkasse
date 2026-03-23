@@ -6,14 +6,27 @@ import {
     MenuFoldOutlined,
     MenuUnfoldOutlined,
     DashboardOutlined,
-    FileTextOutlined,
+    FileDoneOutlined,
+    ShoppingOutlined,
+    FolderOutlined,
+    GroupOutlined,
     UserOutlined,
-    SettingOutlined,
-    LogoutOutlined,
+    GiftOutlined,
+    TagOutlined,
+    FileSearchOutlined,
+    SnippetsOutlined,
+    EyeOutlined,
     SafetyCertificateOutlined,
     CreditCardOutlined,
     SafetyOutlined,
     CalendarOutlined,
+    TeamOutlined,
+    SettingOutlined,
+    LogoutOutlined,
+    ShopOutlined,
+    AppstoreOutlined,
+    UsergroupAddOutlined,
+    ToolOutlined,
 } from '@ant-design/icons';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -25,9 +38,20 @@ import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import { canViewUsers, canShowRksvMenu } from '@/features/auth/constants/roles';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import { buildRksvMenuGroups, getRksvOpenSubgroupKeys } from '@/shared/rksvMenuModel';
+import { ADMIN_NAV_GROUP_LABELS, ADMIN_NAV_LABELS } from '@/shared/adminShellLabels';
+import {
+    ADMIN_SIDEBAR_GROUP_KEYS,
+    collectSelectableRouteKeysFromMenuItems,
+    filterSidebarMenuItems,
+    getNonRksvSidebarOpenGroupKeys,
+    resolveAdminMenuSelectedKeys,
+    type SidebarPermissionContext,
+} from '@/shared/adminSidebarNavigation';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
+
+const EMPTY_PERMISSIONS: string[] = [];
 
 export default function DashboardLayout({
     children,
@@ -40,7 +64,7 @@ export default function DashboardLayout({
     const screens = useBreakpoint();
     const pathname = usePathname();
     const { user, logout } = useAuth();
-    const permissions = user?.permissions ?? [];
+    const permissions = user?.permissions ?? EMPTY_PERMISSIONS;
     const usePermissionFirst = permissions.length > 0;
     const {
         token: { colorBgContainer, borderRadiusLG },
@@ -75,30 +99,78 @@ export default function DashboardLayout({
 
     const allMenuItems = useMemo(
         () => [
-            { key: '/dashboard', icon: <DashboardOutlined />, label: <Link href="/dashboard">Dashboard</Link> },
-            { key: '/invoices', icon: <FileTextOutlined />, label: <Link href="/invoices">Invoices</Link> },
-            { key: '/products', icon: <FileTextOutlined />, label: <Link href="/products">Products</Link> },
-            { key: '/modifier-groups', icon: <FileTextOutlined />, label: <Link href="/modifier-groups">Add-on-Gruppen</Link> },
-            { key: '/categories', icon: <FileTextOutlined />, label: <Link href="/categories">Categories</Link> },
-            { key: '/customers', icon: <UserOutlined />, label: <Link href="/customers">Customers</Link> },
-            { key: '/benefit-definitions', icon: <FileTextOutlined />, label: <Link href="/benefit-definitions">Vorteile (Definitionen)</Link> },
-            { key: '/benefit-assignments', icon: <FileTextOutlined />, label: <Link href="/benefit-assignments">Vorteile (Zuweisungen)</Link> },
-            { key: '/receipts', icon: <FileTextOutlined />, label: <Link href="/receipts">Receipts</Link> },
-            { key: '/receipt-templates', icon: <FileTextOutlined />, label: <Link href="/receipt-templates">Receipt Templates</Link> },
-            { key: '/receipt-generate', icon: <FileTextOutlined />, label: <Link href="/receipt-generate">Belegvorschau</Link> },
-            { key: '/audit-logs', icon: <SafetyCertificateOutlined />, label: <Link href="/audit-logs">Audit Logs</Link> },
-            { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">Payments</Link> },
+            { key: '/dashboard', icon: <DashboardOutlined />, label: <Link href="/dashboard">{ADMIN_NAV_LABELS.overview}</Link> },
+            { key: '/invoices', icon: <FileDoneOutlined />, label: <Link href="/invoices">{ADMIN_NAV_LABELS.invoices}</Link> },
             {
-                key: '/tagesabschluss',
-                icon: <CalendarOutlined />,
-                label: <Link href="/tagesabschluss">Tagesabschluss</Link>,
+                key: ADMIN_SIDEBAR_GROUP_KEYS.sortiment,
+                icon: <AppstoreOutlined />,
+                label: ADMIN_NAV_GROUP_LABELS.sortiment,
+                children: [
+                    { key: '/products', icon: <ShoppingOutlined />, label: <Link href="/products">{ADMIN_NAV_LABELS.products}</Link> },
+                    { key: '/categories', icon: <FolderOutlined />, label: <Link href="/categories">{ADMIN_NAV_LABELS.categories}</Link> },
+                    {
+                        key: '/modifier-groups',
+                        icon: <GroupOutlined />,
+                        label: <Link href="/modifier-groups">{ADMIN_NAV_LABELS.modifierGroups}</Link>,
+                    },
+                ],
             },
-            { key: '/users', icon: <UserOutlined />, label: <Link href="/users">Users</Link> },
-            { key: '/settings', icon: <SettingOutlined />, label: <Link href="/settings">Settings</Link> },
+            {
+                key: ADMIN_SIDEBAR_GROUP_KEYS.kundenVorteile,
+                icon: <UsergroupAddOutlined />,
+                label: ADMIN_NAV_GROUP_LABELS.kundenVorteile,
+                children: [
+                    { key: '/customers', icon: <UserOutlined />, label: <Link href="/customers">{ADMIN_NAV_LABELS.customers}</Link> },
+                    {
+                        key: '/benefit-definitions',
+                        icon: <GiftOutlined />,
+                        label: <Link href="/benefit-definitions">{ADMIN_NAV_LABELS.benefitDefinitions}</Link>,
+                    },
+                    {
+                        key: '/benefit-assignments',
+                        icon: <TagOutlined />,
+                        label: <Link href="/benefit-assignments">{ADMIN_NAV_LABELS.benefitAssignments}</Link>,
+                    },
+                ],
+            },
+            {
+                key: ADMIN_SIDEBAR_GROUP_KEYS.kasseBelege,
+                icon: <ShopOutlined />,
+                label: ADMIN_NAV_GROUP_LABELS.kasseBelege,
+                children: [
+                    { key: '/receipts', icon: <FileSearchOutlined />, label: <Link href="/receipts">{ADMIN_NAV_LABELS.receipts}</Link> },
+                    { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">{ADMIN_NAV_LABELS.payments}</Link> },
+                    {
+                        key: '/tagesabschluss',
+                        icon: <CalendarOutlined />,
+                        label: <Link href="/tagesabschluss">{ADMIN_NAV_LABELS.tagesabschluss}</Link>,
+                    },
+                    {
+                        key: '/receipt-templates',
+                        icon: <SnippetsOutlined />,
+                        label: <Link href="/receipt-templates">{ADMIN_NAV_LABELS.receiptTemplates}</Link>,
+                    },
+                    {
+                        key: '/receipt-generate',
+                        icon: <EyeOutlined />,
+                        label: <Link href="/receipt-generate">{ADMIN_NAV_LABELS.receiptGenerate}</Link>,
+                    },
+                ],
+            },
+            { key: '/audit-logs', icon: <SafetyCertificateOutlined />, label: <Link href="/audit-logs">{ADMIN_NAV_LABELS.auditLogs}</Link> },
+            {
+                key: ADMIN_SIDEBAR_GROUP_KEYS.verwaltung,
+                icon: <ToolOutlined />,
+                label: ADMIN_NAV_GROUP_LABELS.verwaltung,
+                children: [
+                    { key: '/users', icon: <TeamOutlined />, label: <Link href="/users">{ADMIN_NAV_LABELS.users}</Link> },
+                    { key: '/settings', icon: <SettingOutlined />, label: <Link href="/settings">{ADMIN_NAV_LABELS.settings}</Link> },
+                ],
+            },
             {
                 key: '/rksv',
                 icon: <SafetyOutlined />,
-                label: 'RKSV',
+                label: ADMIN_NAV_GROUP_LABELS.rksv,
                 children: rksvMenuSubtree,
             },
         ],
@@ -110,16 +182,32 @@ export default function DashboardLayout({
         return canShowRksvMenu(user?.role ?? '');
     }, [usePermissionFirst, permissions, user?.role]);
 
-    const menuItems = useMemo(() => {
-        if (usePermissionFirst) {
-            return allMenuItems.filter((item) => isMenuItemAllowed(item.key, permissions));
-        }
-        return allMenuItems.filter((item) => {
-            if (item.key === '/users') return canViewUsers(user?.role ?? '');
-            if (item.key === '/rksv') return canShowRksvMenu(user?.role ?? '');
-            return true;
-        });
-    }, [allMenuItems, usePermissionFirst, permissions, user?.role]);
+    const sidebarPermissionCtx = useMemo<SidebarPermissionContext>(
+        () => ({
+            usePermissionFirst,
+            permissions,
+            userRole: user?.role ?? '',
+            isMenuItemAllowed,
+            canViewUsers,
+            canShowRksvMenu,
+        }),
+        [usePermissionFirst, permissions, user?.role],
+    );
+
+    const menuItems = useMemo(
+        () => filterSidebarMenuItems(allMenuItems, sidebarPermissionCtx) ?? [],
+        [allMenuItems, sidebarPermissionCtx],
+    );
+
+    const selectableRouteKeys = useMemo(
+        () => collectSelectableRouteKeysFromMenuItems(menuItems),
+        [menuItems],
+    );
+
+    const menuSelectedKeys = useMemo(
+        () => resolveAdminMenuSelectedKeys(pathname, selectableRouteKeys),
+        [pathname, selectableRouteKeys],
+    );
 
     const [openKeys, setOpenKeys] = useState<string[]>([]);
     const rksvNavBootstrapped = useRef(false);
@@ -154,11 +242,20 @@ export default function DashboardLayout({
         }
     }, [pathname, canSeeRksv, applyRksvOpenForPath]);
 
+    useLayoutEffect(() => {
+        const extra = getNonRksvSidebarOpenGroupKeys(pathname);
+        if (extra.length === 0) return;
+        setOpenKeys((prev) => {
+            const next = new Set([...prev, ...extra]);
+            return [...next];
+        });
+    }, [pathname]);
+
     const userMenu: MenuProps = {
         items: [
             {
                 key: 'profile',
-                label: 'My Profile',
+                label: ADMIN_NAV_LABELS.myProfile,
                 icon: <UserOutlined />,
             },
             {
@@ -166,16 +263,12 @@ export default function DashboardLayout({
             },
             {
                 key: 'logout',
-                label: 'Logout',
+                label: ADMIN_NAV_LABELS.logout,
                 icon: <LogoutOutlined />,
                 onClick: () => logout(),
             },
         ],
     };
-
-    // Route is `/rksv`; menu child key is `/rksv/operations` so Ant Design can highlight the landing item.
-    const menuSelectedKeys =
-        pathname === '/rksv' ? ['/rksv/operations'] : pathname ? [pathname] : [];
 
     const SidebarContent = (
         <>
@@ -221,8 +314,18 @@ export default function DashboardLayout({
                     <Header style={{ padding: 0, background: colorBgContainer, display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 24, zIndex: 1 }}>
                         <Button
                             type="text"
+                            aria-label={
+                                isMobile
+                                    ? drawerVisible
+                                        ? 'Navigationsmenü schließen'
+                                        : 'Navigationsmenü öffnen'
+                                    : collapsed
+                                      ? 'Seitenleiste ausklappen'
+                                      : 'Seitenleiste einklappen'
+                            }
+                            aria-expanded={isMobile ? drawerVisible : undefined}
                             icon={isMobile ? (drawerVisible ? <MenuFoldOutlined /> : <MenuUnfoldOutlined />) : (collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />)}
-                            onClick={() => isMobile ? setDrawerVisible(true) : setCollapsed(!collapsed)}
+                            onClick={() => (isMobile ? setDrawerVisible((open) => !open) : setCollapsed(!collapsed))}
                             style={{
                                 fontSize: '16px',
                                 width: 64,
@@ -246,7 +349,9 @@ export default function DashboardLayout({
                             overflow: 'initial'
                         }}
                     >
-                        {children}
+                        <main id="main-content" tabIndex={-1}>
+                            {children}
+                        </main>
                     </Content>
                 </Layout>
             </Layout>

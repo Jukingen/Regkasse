@@ -21,9 +21,13 @@ import {
   Modal,
   message,
   Collapse,
+  Empty,
 } from 'antd';
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
+import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { CreditCardOutlined, InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
-import { OPERATOR_LINK_LABELS } from '@/shared/operatorTruthCopy';
+import { OPERATOR_LINK_LABELS, OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 import {
   postApiAdminPaymentsIdCancel,
   postApiAdminPaymentsIdRefund,
@@ -43,7 +47,6 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getReceiptByPaymentForensics } from '@/features/receipts/api/forensics-client';
 
-const { Title } = Typography;
 const { RangePicker } = DatePicker;
 
 const DEFAULT_DATE_RANGE = { startDate: dayjs().subtract(30, 'day').format('YYYY-MM-DD'), endDate: dayjs().format('YYYY-MM-DD') };
@@ -69,6 +72,13 @@ function fmtDetail(value: unknown): string {
 function shortId(value?: string | null): string {
   if (!value) return '—';
   return value.length > 12 ? `${value.slice(0, 8)}…` : value;
+}
+
+function getPaymentsListErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  const norm = (error as { normalized?: { message?: string } })?.normalized;
+  if (norm?.message) return norm.message;
+  return 'Zahlungen konnten nicht geladen werden. Bitte erneut versuchen.';
 }
 
 export default function PaymentsPage() {
@@ -105,7 +115,7 @@ export default function PaymentsPage() {
     [dateRange]
   );
 
-  const { data, isLoading, refetch } = useGetApiAdminPayments(listParams);
+  const { data, isLoading, isError, error, refetch } = useGetApiAdminPayments(listParams);
   const { data: statsRaw, isLoading: statsLoading } = useGetApiAdminPaymentsStatistics({
     startDate: listParams.startDate,
     endDate: listParams.endDate,
@@ -134,9 +144,20 @@ export default function PaymentsPage() {
     });
   }, [payments, methodFilter, statusFilter]);
 
+  const paymentsScopeSummary = useMemo(() => {
+    const parts = [
+      `${dateRange[0].format('DD.MM.YYYY')}–${dateRange[1].format('DD.MM.YYYY')}`,
+      `${payments.length} vom Server (max. 500 je Abfrage)`,
+      `${filteredPayments.length} sichtbar nach Tabellenfilter`,
+    ];
+    if (methodFilter) parts.push(`Methode = ${methodFilter}`);
+    if (statusFilter) parts.push(`Status = ${statusFilter}`);
+    return parts.join(' · ');
+  }, [dateRange, payments.length, filteredPayments.length, methodFilter, statusFilter]);
+
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedPaymentId) throw new Error('Kein Payment ausgewählt');
+      if (!selectedPaymentId) throw new Error('Keine Zahlung ausgewählt');
       return postApiAdminPaymentsIdCancel(selectedPaymentId, { reason: cancelReason.trim() });
     },
     onSuccess: async () => {
@@ -149,8 +170,8 @@ export default function PaymentsPage() {
 
   const refundMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedPaymentId) throw new Error('Kein Payment ausgewählt');
-      if (!refundAmount || refundAmount <= 0) throw new Error('Refund-Betrag muss größer als 0 sein');
+      if (!selectedPaymentId) throw new Error('Keine Zahlung ausgewählt');
+      if (!refundAmount || refundAmount <= 0) throw new Error('Rückerstattungsbetrag muss größer als 0 sein');
       return postApiAdminPaymentsIdRefund(selectedPaymentId, { amount: refundAmount, reason: refundReason.trim() });
     },
     onSuccess: async () => {
@@ -159,7 +180,7 @@ export default function PaymentsPage() {
       setRefundReason('');
       await refetch();
     },
-    onError: (err: Error) => message.error(err?.message ?? 'Refund fehlgeschlagen'),
+    onError: (err: Error) => message.error(err?.message ?? 'Rückerstattung fehlgeschlagen'),
   });
 
   const openReceipt = async () => {
@@ -169,7 +190,7 @@ export default function PaymentsPage() {
       return;
     }
     if (!selectedPaymentId) {
-      message.warning('Kein Payment ausgewählt');
+      message.warning('Keine Zahlung ausgewählt');
       return;
     }
     try {
@@ -189,26 +210,26 @@ export default function PaymentsPage() {
 
   const columns = [
     {
-      title: 'Transaction ID',
+      title: 'Transaktions-ID',
       dataIndex: 'transactionId',
       key: 'transactionId',
       render: (text: string) => <code style={{ fontSize: '12px' }}>{text || '—'}</code>,
     },
     {
-      title: 'Date',
+      title: 'Datum',
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: string) => (date ? dayjs(date).format('DD.MM.YYYY HH:mm') : '—'),
     },
     {
-      title: 'Amount',
+      title: 'Betrag',
       dataIndex: 'totalAmount',
       key: 'amount',
       align: 'right' as const,
       render: (val: number, record: AdminPaymentListItemDto) => `${(val ?? 0).toFixed(2)} ${record.currency || 'EUR'}`,
     },
     {
-      title: 'Method',
+      title: 'Zahlungsart',
       dataIndex: 'method',
       key: 'method',
       render: (method: string) => <Tag color="blue">{method || '—'}</Tag>,
@@ -231,33 +252,89 @@ export default function PaymentsPage() {
     {
       title: 'Verknüpfte Entitäten',
       key: 'linkedEntities',
-      render: (_: unknown, row: AdminPaymentListItemDto) => (
-        <Space size={4} wrap>
-          {row.receiptId ? (
-            <Link href={`/receipts/${row.receiptId}`} target="_blank" rel="noopener noreferrer">
-              <Tag color="blue">Beleg</Tag>
-            </Link>
-          ) : null}
-          {row.invoiceNumber ? (
-            <Link href={`/invoices?query=${encodeURIComponent(row.invoiceNumber)}`} target="_blank" rel="noopener noreferrer">
-              <Tag color="purple">Rechnung</Tag>
-            </Link>
-          ) : null}
-          {row.offlineReplayBatchCorrelationId ? (
-            <Link
-              href={`/rksv/incident?correlationId=${encodeURIComponent(row.offlineReplayBatchCorrelationId)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Tag color="orange">Incident</Tag>
-            </Link>
-          ) : null}
-          {!row.receiptId && !row.invoiceNumber && !row.offlineReplayBatchCorrelationId ? <Typography.Text type="secondary">—</Typography.Text> : null}
-        </Space>
-      ),
+      width: 300,
+      render: (_: unknown, row: AdminPaymentListItemDto) => {
+        const pid = row.id?.trim();
+        const foErr = row.finanzOnlineError?.trim();
+        const hasLinks =
+          Boolean(row.receiptId) || Boolean(row.invoiceNumber) || Boolean(row.offlineReplayBatchCorrelationId);
+        const hasFo = Boolean(row.finanzOnlineStatus?.trim());
+        const hasAny = Boolean(pid) || hasLinks || hasFo;
+        if (!hasAny) {
+          return <Typography.Text type="secondary">—</Typography.Text>;
+        }
+        const foColors: Record<string, string> = {
+          Submitted: 'green',
+          Pending: 'blue',
+          Failed: 'red',
+          NeedsReconciliation: 'orange',
+        };
+        const foColor = row.finanzOnlineStatus
+          ? foColors[row.finanzOnlineStatus] || 'default'
+          : 'default';
+        return (
+          <Space direction="vertical" size={6} style={{ maxWidth: 292 }}>
+            {pid ? (
+              <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                Zahlungs-ID:{' '}
+                <Typography.Text code copyable={{ text: pid }} style={{ fontSize: 11 }}>
+                  {pid.length > 22 ? `${pid.slice(0, 20)}…` : pid}
+                </Typography.Text>
+              </Typography.Text>
+            ) : null}
+            {hasLinks ? (
+              <Space size={4} wrap>
+                {row.receiptId ? (
+                  <Link href={`/receipts/${row.receiptId}`} target="_blank" rel="noopener noreferrer">
+                    <Tag color="blue">
+                      Beleg
+                      {row.receiptNumber?.trim() ? (
+                        <>
+                          :{' '}
+                          <Typography.Text code style={{ fontSize: 11 }}>
+                            {row.receiptNumber.trim()}
+                          </Typography.Text>
+                        </>
+                      ) : null}
+                    </Tag>
+                  </Link>
+                ) : null}
+                {row.invoiceNumber ? (
+                  <Link
+                    href={`/invoices?query=${encodeURIComponent(row.invoiceNumber)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Tag color="purple">Rechnung</Tag>
+                  </Link>
+                ) : null}
+                {row.offlineReplayBatchCorrelationId ? (
+                  <Link
+                    href={`/rksv/incident?correlationId=${encodeURIComponent(row.offlineReplayBatchCorrelationId)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Tag color="orange">Incident</Tag>
+                  </Link>
+                ) : null}
+              </Space>
+            ) : null}
+            {hasFo ? (
+              <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                <Tag color={foColor}>FO {row.finanzOnlineStatus}</Tag>
+                {foErr ? (
+                  <Typography.Text type="danger" ellipsis={{ tooltip: foErr }} style={{ fontSize: 11, maxWidth: 280 }}>
+                    {foErr}
+                  </Typography.Text>
+                ) : null}
+              </Space>
+            ) : null}
+          </Space>
+        );
+      },
     },
     {
-      title: 'Actions',
+      title: 'Aktionen',
       key: 'actions',
       render: (_: unknown, row: AdminPaymentListItemDto) => (
         <Button size="small" icon={<InfoCircleOutlined />} onClick={() => setSelectedPaymentId(row.id ?? null)}>
@@ -268,20 +345,26 @@ export default function PaymentsPage() {
   ];
 
   return (
-    <Card>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={3} style={{ margin: 0 }}>
-          Payments
-        </Title>
-        <Space>
-          <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-            Aktualisieren
-          </Button>
-          <Button icon={<CreditCardOutlined />}>Terminal Status</Button>
-        </Space>
-      </div>
+    <AdminPageShell>
+      <AdminPageHeader
+        title={ADMIN_NAV_LABELS.payments}
+        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.payments }]}
+        actions={
+          <Space wrap>
+            <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isLoading}>
+              {OPERATOR_SHARED_COPY.toolbarRefresh}
+            </Button>
+            <Button icon={<CreditCardOutlined />}>Terminal-Status</Button>
+          </Space>
+        }
+      >
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 640 }}>
+          Zahlungen im gewählten Zeitraum. Zeile wählen für Details, Storno und Rückerstattung sowie Verknüpfungen zu
+          Beleg und FinanzOnline.
+        </Typography.Paragraph>
+      </AdminPageHeader>
 
-      <Card size="small" style={{ marginBottom: 16 }}>
+      <Card size="small">
         <Space wrap>
           <RangePicker
             value={dateRange}
@@ -311,6 +394,23 @@ export default function PaymentsPage() {
         </Space>
       </Card>
 
+      <AdminPageScopeSummary label="Aktive Ansicht:">{paymentsScopeSummary}</AdminPageScopeSummary>
+
+      {isError ? (
+        <Alert
+          type="error"
+          showIcon
+          message="Zahlungen konnten nicht geladen werden"
+          description={getPaymentsListErrorMessage(error)}
+          action={
+            <Button size="small" onClick={() => refetch()}>
+              {OPERATOR_SHARED_COPY.retryAfterError}
+            </Button>
+          }
+        />
+      ) : null}
+
+      {!isError ? (
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={6}>
           <Card size="small">
@@ -349,11 +449,28 @@ export default function PaymentsPage() {
           </Card>
         </Col>
       </Row>
+      ) : null}
 
-      <Table columns={columns} dataSource={filteredPayments} loading={isLoading} rowKey="id" />
+      {!isError ? (
+      <Table
+        columns={columns}
+        dataSource={filteredPayments}
+        loading={isLoading}
+        rowKey="id"
+        scroll={{ x: 1280 }}
+        locale={{
+          emptyText: (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="Keine Zahlungen für diesen Zeitraum oder die gewählten Filter."
+            />
+          ),
+        }}
+      />
+      ) : null}
 
       <Drawer
-        title="Payment Details"
+        title="Zahlungsdetails"
         open={!!selectedPaymentId}
         onClose={() => setSelectedPaymentId(null)}
         width={640}
@@ -549,7 +666,7 @@ export default function PaymentsPage() {
                   type="info"
                   showIcon
                   message="Storno nicht erlaubt"
-                  description="Für Storno ist die Berechtigung payment.cancel erforderlich."
+                  description="Für Storno fehlt die erforderliche Berechtigung."
                 />
               )}
               {canCancel && (
@@ -586,11 +703,11 @@ export default function PaymentsPage() {
                   type="info"
                   showIcon
                   message="Refund nicht erlaubt"
-                  description="Für Refund ist die Berechtigung refund.create erforderlich."
+                  description="Für Rückerstattungen fehlt die erforderliche Berechtigung."
                 />
               )}
               {canRefund && (
-                <Card size="small" title="Refund">
+                <Card size="small" title="Rückerstattung">
                   <Space direction="vertical" style={{ width: '100%' }}>
                     <InputNumber
                       min={0.01}
@@ -601,7 +718,7 @@ export default function PaymentsPage() {
                       style={{ width: '100%' }}
                     />
                     <Input
-                      placeholder="Refund-Grund"
+                      placeholder="Grund für Rückerstattung"
                       value={refundReason}
                       onChange={(e) => setRefundReason(e.target.value)}
                     />
@@ -610,15 +727,15 @@ export default function PaymentsPage() {
                       disabled={!refundReason.trim() || !refundAmount || refundAmount <= 0}
                       onClick={() =>
                         Modal.confirm({
-                          title: 'Refund ausführen?',
+                          title: 'Rückerstattung ausführen?',
                           content: 'Diese Aktion erstellt eine Rückerstattung für die gewählte Zahlung. Fortfahren?',
-                          okText: 'Refund ausführen',
+                          okText: 'Rückerstattung ausführen',
                           cancelText: 'Abbrechen',
                           onOk: () => refundMutation.mutate(),
                         })
                       }
                     >
-                      Refund ausführen
+                      Rückerstattung ausführen
                     </Button>
                   </Space>
                 </Card>
@@ -629,6 +746,6 @@ export default function PaymentsPage() {
           <Alert type="warning" showIcon message="Keine Detaildaten verfügbar" />
         )}
       </Drawer>
-    </Card>
+    </AdminPageShell>
   );
 }
