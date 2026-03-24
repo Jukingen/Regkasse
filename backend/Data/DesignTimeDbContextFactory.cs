@@ -36,7 +36,7 @@ namespace KasseAPI_Final.Data
                     "or add ConnectionStrings:DefaultConnection to appsettings.json (optional in CI).");
             }
 
-            optionsBuilder.UseNpgsql(connectionString);
+            optionsBuilder.UseAppNpgsql(connectionString);
             optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
 
             return new AppDbContext(optionsBuilder.Options);

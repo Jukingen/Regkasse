@@ -411,12 +411,7 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse($"Start date ({parsedStart:yyyy-MM-dd}) cannot be after end date ({parsedEnd:yyyy-MM-dd})", 400);
                 }
 
-                // Ensure UTC if needed (assuming DB is UTC)
-                // If Kind is Unspecified/Local, Convert to UTC or keep as is depending on system convention.
-                // KasseAPI typically uses UTC for CreatedAt.
-                if (parsedStart.Kind == DateTimeKind.Unspecified) parsedStart = DateTime.SpecifyKind(parsedStart, DateTimeKind.Utc);
-                if (parsedEnd.Kind == DateTimeKind.Unspecified) parsedEnd = DateTime.SpecifyKind(parsedEnd, DateTimeKind.Utc);
-
+                // Date-only and ISO inputs: PaymentService maps calendar Y/M/D to Austria inclusive day range (UTC half-open).
                 var statistics = await _paymentService.GetPaymentStatisticsAsync(parsedStart, parsedEnd);
                 
                 return SuccessResponse(statistics, $"Retrieved payment statistics from {parsedStart:yyyy-MM-dd HH:mm} to {parsedEnd:yyyy-MM-dd HH:mm}");

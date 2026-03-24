@@ -4,6 +4,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Time;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -176,8 +177,12 @@ namespace KasseAPI_Final.Controllers
             {
                 var canClose = await _tagesabschlussService.CanPerformClosingAsync(cashRegisterId);
                 var lastClosingDate = await _tagesabschlussService.GetLastClosingDateAsync(cashRegisterId);
-                var today = DateTime.Today;
-                var paymentsWithoutInvoiceCount = await _tagesabschlussService.GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, today, today.AddDays(1));
+                var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+                var (dayStartUtc, dayEndExclusiveUtc) =
+                    PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
+                var paymentsWithoutInvoiceCount =
+                    await _tagesabschlussService.GetPaymentsWithoutInvoiceCountAsync(
+                        cashRegisterId, dayStartUtc, dayEndExclusiveUtc);
 
                 string message = canClose
                     ? "Daily closing can be performed"

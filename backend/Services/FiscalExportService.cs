@@ -7,6 +7,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Export;
+using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Services;
 
@@ -340,12 +341,7 @@ public class FiscalExportService : IFiscalExportService
         return !string.IsNullOrWhiteSpace(dateSegment);
     }
 
-    private static DateTime NormalizeUtc(DateTime dt)
-    {
-        return dt.Kind == DateTimeKind.Unspecified
-            ? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
-            : dt.ToUniversalTime();
-    }
+    private static DateTime NormalizeUtc(DateTime dt) => PostgreSqlUtcDateTime.ToUtcForNpgsql(dt);
 
     private static FiscalReceiptExportDto MapReceipt(Receipt r)
     {

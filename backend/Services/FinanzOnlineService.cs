@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services
@@ -335,10 +336,16 @@ namespace KasseAPI_Final.Services
                 var query = _context.FinanzOnlineErrors.AsQueryable();
 
                 if (fromDate.HasValue)
-                    query = query.Where(e => e.OccurredAt >= fromDate.Value);
+                {
+                    var f = PostgreSqlUtcDateTime.ToUtcForNpgsql(fromDate.Value);
+                    query = query.Where(e => e.OccurredAt >= f);
+                }
 
                 if (toDate.HasValue)
-                    query = query.Where(e => e.OccurredAt <= toDate.Value);
+                {
+                    var t = PostgreSqlUtcDateTime.ToUtcForNpgsql(toDate.Value);
+                    query = query.Where(e => e.OccurredAt <= t);
+                }
 
                 var errors = await query
                     .OrderByDescending(e => e.OccurredAt)

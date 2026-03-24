@@ -9,7 +9,7 @@ namespace KasseAPI_Final
         public static async Task AddDemoDataAsync()
         {
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-            optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=dfgdfg#");
+            optionsBuilder.UseAppNpgsql("Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=dfgdfg#");
             
             using var context = new AppDbContext(optionsBuilder.Options);
             

@@ -10,6 +10,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -83,9 +84,15 @@ public class FinanzOnlineReconciliationController : ControllerBase
             if (cashRegisterId.HasValue && cashRegisterId.Value != Guid.Empty)
                 query = query.Where(p => p.CashRegisterId == cashRegisterId.Value);
             if (fromUtc.HasValue)
-                query = query.Where(p => p.CreatedAt >= fromUtc.Value);
+            {
+                var f = PostgreSqlUtcDateTime.ToUtcForNpgsql(fromUtc.Value);
+                query = query.Where(p => p.CreatedAt >= f);
+            }
             if (toUtc.HasValue)
-                query = query.Where(p => p.CreatedAt <= toUtc.Value);
+            {
+                var t = PostgreSqlUtcDateTime.ToUtcForNpgsql(toUtc.Value);
+                query = query.Where(p => p.CreatedAt <= t);
+            }
 
             var items = await query
                 .OrderByDescending(p => p.FinanzOnlineLastAttemptAtUtc ?? p.CreatedAt)

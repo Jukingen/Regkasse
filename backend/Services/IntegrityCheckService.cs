@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Services;
 
@@ -23,12 +24,20 @@ public class IntegrityCheckService : IIntegrityCheckService
     {
         _logger.LogInformation("Integrity report requested: From={From}, To={To}, IncludeDetails={IncludeDetails}", fromDate, toDate, includeDetails);
 
-        var from = fromDate?.Date ?? DateTime.MinValue;
-        var to = toDate?.Date ?? DateTime.UtcNow.Date.AddDays(1);
+        var fromUtc = fromDate.HasValue
+            ? PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(
+                PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(fromDate.Value)).FromInclusiveUtc
+            : new DateTime(1, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        var sequence = await GetSequenceIssuesAsync(from, to, includeDetails);
+        var toExclusiveUtc = toDate.HasValue
+            ? PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(
+                PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(toDate.Value)).ToExclusiveUtc
+            : PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(
+                PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified()).ToExclusiveUtc;
+
+        var sequence = await GetSequenceIssuesAsync(fromUtc, toExclusiveUtc, includeDetails);
         var orphanRefunds = await GetOrphanRefundsAsync(includeDetails);
-        var paymentWithoutInvoice = await GetPaymentWithoutInvoiceCountAsync(from, to, includeDetails);
+        var paymentWithoutInvoice = await GetPaymentWithoutInvoiceCountAsync(fromUtc, toExclusiveUtc, includeDetails);
 
         return new IntegrityReportDto
         {

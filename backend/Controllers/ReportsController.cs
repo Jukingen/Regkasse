@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -22,23 +23,49 @@ namespace KasseAPI_Final.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Default: rolling UTC window. When either date is set: inclusive Austria calendar range as UTC half-open query bounds.
+        /// </summary>
+        private static (DateTime FromUtc, DateTime EndBoundUtc, bool EndExclusive, DateTime ReportStartDate, DateTime ReportEndDate) ResolveReportsQueryRange(
+            DateTime? startDate,
+            DateTime? endDate)
+        {
+            var nowUtc = DateTime.UtcNow;
+            if (!startDate.HasValue && !endDate.HasValue)
+            {
+                var fromUtc = nowUtc.AddDays(-30);
+                return (fromUtc, nowUtc, false, fromUtc, nowUtc);
+            }
+
+            var s = startDate ?? endDate!.Value;
+            var e = endDate ?? startDate!.Value;
+            var reportStart = new DateTime(s.Year, s.Month, s.Day, 0, 0, 0, DateTimeKind.Unspecified);
+            var reportEnd = new DateTime(e.Year, e.Month, e.Day, 0, 0, 0, DateTimeKind.Unspecified);
+            var (fromUtcCal, toExclusiveUtc) = PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(s, e);
+            return (fromUtcCal, toExclusiveUtc, true, reportStart, reportEnd);
+        }
+
         // GET: api/reports/sales
         [HttpGet("sales")]
         public async Task<ActionResult<SalesReport>> GetSalesReport([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
             try
             {
-                var start = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(-30);
-                var end = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : DateTime.UtcNow;
+                var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
+                    ResolveReportsQueryRange(startDate, endDate);
 
-                var invoices = await _context.Invoices
-                    .Where(i => i.InvoiceDate >= start && i.InvoiceDate <= end && i.IsActive)
-                    .ToListAsync();
+                var invoices = endExclusive
+                    ? await _context.Invoices
+                        .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate < endBoundUtc && i.IsActive)
+                        .ToListAsync()
+                    : await _context.Invoices
+                        .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate <= endBoundUtc && i.IsActive)
+                        .ToListAsync();
 
                 var salesReport = new SalesReport
                 {
-                    StartDate = start,
-                    EndDate = end,
+                    StartDate = repStart,
+                    EndDate = repEnd,
                     TotalInvoices = invoices.Count,
                     TotalSales = invoices.Sum(i => i.TotalAmount),
                     TotalTax = invoices.Sum(i => i.TaxAmount),
@@ -76,18 +103,23 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var start = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(-30);
-                var end = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : DateTime.UtcNow;
+                var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
+                    ResolveReportsQueryRange(startDate, endDate);
 
-                var orderItems = await _context.OrderItems
-                    .Include(oi => oi.Order)
-                    .Where(oi => oi.Order.OrderDate >= start && oi.Order.OrderDate <= end && oi.Order.IsActive)
-                    .ToListAsync();
+                var orderItems = endExclusive
+                    ? await _context.OrderItems
+                        .Include(oi => oi.Order)
+                        .Where(oi => oi.Order.OrderDate >= fromUtc && oi.Order.OrderDate < endBoundUtc && oi.Order.IsActive)
+                        .ToListAsync()
+                    : await _context.OrderItems
+                        .Include(oi => oi.Order)
+                        .Where(oi => oi.Order.OrderDate >= fromUtc && oi.Order.OrderDate <= endBoundUtc && oi.Order.IsActive)
+                        .ToListAsync();
 
                 var productReport = new ProductReport
                 {
-                    StartDate = start,
-                    EndDate = end,
+                    StartDate = repStart,
+                    EndDate = repEnd,
                     TotalProductsSold = orderItems.Sum(oi => oi.Quantity),
                     TotalRevenue = orderItems.Sum(oi => oi.TotalAmount),
                     TopSellingProducts = orderItems.GroupBy(oi => new { oi.ProductId, oi.ProductName })
@@ -127,17 +159,21 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var start = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(-30);
-                var end = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : DateTime.UtcNow;
+                var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
+                    ResolveReportsQueryRange(startDate, endDate);
 
-                var invoices = await _context.Invoices
-                    .Where(i => i.InvoiceDate >= start && i.InvoiceDate <= end && i.IsActive)
-                    .ToListAsync();
+                var invoices = endExclusive
+                    ? await _context.Invoices
+                        .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate < endBoundUtc && i.IsActive)
+                        .ToListAsync()
+                    : await _context.Invoices
+                        .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate <= endBoundUtc && i.IsActive)
+                        .ToListAsync();
 
                 var customerReport = new CustomerReport
                 {
-                    StartDate = start,
-                    EndDate = end,
+                    StartDate = repStart,
+                    EndDate = repEnd,
                     TotalCustomers = invoices.Select(i => i.CustomerName).Where(n => !string.IsNullOrEmpty(n)).Distinct().Count(),
                     TotalOrders = invoices.Count,
                     AverageOrderValue = invoices.Any() ? invoices.Average(i => i.TotalAmount) : 0,
@@ -216,17 +252,21 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var start = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(-30);
-                var end = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : DateTime.UtcNow;
+                var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
+                    ResolveReportsQueryRange(startDate, endDate);
 
-                var payments = await _context.PaymentDetails
-                    .Where(p => p.CreatedAt >= start && p.CreatedAt <= end)
-                    .ToListAsync();
+                var payments = endExclusive
+                    ? await _context.PaymentDetails
+                        .Where(p => p.CreatedAt >= fromUtc && p.CreatedAt < endBoundUtc)
+                        .ToListAsync()
+                    : await _context.PaymentDetails
+                        .Where(p => p.CreatedAt >= fromUtc && p.CreatedAt <= endBoundUtc)
+                        .ToListAsync();
 
                 var paymentReport = new PaymentReport
                 {
-                    StartDate = start,
-                    EndDate = end,
+                    StartDate = repStart,
+                    EndDate = repEnd,
                     TotalPayments = payments.Count,
                     TotalAmount = payments.Sum(p => p.TotalAmount),
                     PaymentsByMethod = payments.GroupBy(p => p.PaymentMethod)
@@ -265,18 +305,22 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var start = startDate.HasValue ? DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(-30);
-                var end = endDate.HasValue ? DateTime.SpecifyKind(endDate.Value, DateTimeKind.Utc) : DateTime.UtcNow;
+                var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
+                    ResolveReportsQueryRange(startDate, endDate);
 
-                var invoices = await _context.Invoices
-                    .Where(i => i.InvoiceDate >= start && i.InvoiceDate <= end && i.IsActive)
-                    .ToListAsync();
+                var invoices = endExclusive
+                    ? await _context.Invoices
+                        .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate < endBoundUtc && i.IsActive)
+                        .ToListAsync()
+                    : await _context.Invoices
+                        .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate <= endBoundUtc && i.IsActive)
+                        .ToListAsync();
 
                 if (format.ToLower() == "csv")
                 {
                     var csv = GenerateSalesCsv(invoices);
                     var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
-                    return File(bytes, "text/csv", $"sales_report_{start:yyyyMMdd}_{end:yyyyMMdd}.csv");
+                    return File(bytes, "text/csv", $"sales_report_{repStart:yyyyMMdd}_{repEnd:yyyyMMdd}.csv");
                 }
 
                 return Ok(invoices);

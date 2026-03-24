@@ -8,6 +8,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
@@ -69,9 +70,17 @@ namespace KasseAPI_Final.Controllers
                 var queryable = _context.Invoices.AsNoTracking().Where(i => i.IsActive);
 
                 if (from.HasValue)
-                    queryable = queryable.Where(i => i.InvoiceDate >= from.Value.ToUniversalTime());
+                {
+                    var fromDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(from.Value);
+                    var (fromUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(fromDay);
+                    queryable = queryable.Where(i => i.InvoiceDate >= fromUtc);
+                }
                 if (to.HasValue)
-                    queryable = queryable.Where(i => i.InvoiceDate < to.Value.ToUniversalTime().AddDays(1));
+                {
+                    var toDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(to.Value);
+                    var (_, toExclusiveUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(toDay);
+                    queryable = queryable.Where(i => i.InvoiceDate < toExclusiveUtc);
+                }
                 if (status.HasValue)
                     queryable = queryable.Where(i => i.Status == status.Value);
                 if (cashRegisterId.HasValue)
@@ -158,20 +167,18 @@ namespace KasseAPI_Final.Controllers
 
                 var queryable = _context.PaymentDetails.AsNoTracking().Where(p => p.IsActive);
 
-                // Date filtering on CreatedAt (payment timestamp)
+                // Date filtering on CreatedAt (payment timestamp); Austria calendar-day bounds in UTC for Npgsql.
                 if (from.HasValue)
                 {
-                    var fromUtc = from.Value.Kind == DateTimeKind.Utc
-                        ? from.Value.Date
-                        : from.Value.ToUniversalTime().Date;
+                    var fromDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(from.Value);
+                    var (fromUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(fromDay);
                     queryable = queryable.Where(p => p.CreatedAt >= fromUtc);
                 }
                 if (to.HasValue)
                 {
-                    var toUtc = to.Value.Kind == DateTimeKind.Utc
-                        ? to.Value.Date.AddDays(1)
-                        : to.Value.ToUniversalTime().Date.AddDays(1);
-                    queryable = queryable.Where(p => p.CreatedAt < toUtc);
+                    var toDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(to.Value);
+                    var (_, toExclusiveUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(toDay);
+                    queryable = queryable.Where(p => p.CreatedAt < toExclusiveUtc);
                 }
 
                 if (!string.IsNullOrWhiteSpace(cashRegisterId))
@@ -254,8 +261,18 @@ namespace KasseAPI_Final.Controllers
             {
                 var queryable = _context.Invoices.AsNoTracking().Where(i => i.IsActive);
 
-                if (from.HasValue) queryable = queryable.Where(i => i.InvoiceDate >= from.Value.ToUniversalTime());
-                if (to.HasValue) queryable = queryable.Where(i => i.InvoiceDate < to.Value.ToUniversalTime().AddDays(1));
+                if (from.HasValue)
+                {
+                    var fromDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(from.Value);
+                    var (fromUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(fromDay);
+                    queryable = queryable.Where(i => i.InvoiceDate >= fromUtc);
+                }
+                if (to.HasValue)
+                {
+                    var toDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(to.Value);
+                    var (_, toExclusiveUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(toDay);
+                    queryable = queryable.Where(i => i.InvoiceDate < toExclusiveUtc);
+                }
                 if (status.HasValue) queryable = queryable.Where(i => i.Status == status.Value);
                 if (cashRegisterId.HasValue) queryable = queryable.Where(i => i.CashRegisterId == cashRegisterId.Value);
 
@@ -330,11 +347,19 @@ namespace KasseAPI_Final.Controllers
                 // 1. Soft delete filter
                 queryable = queryable.Where(i => i.IsActive);
 
-                // 2. Date range filter
+                // 2. Date range filter (Austria calendar-day bounds, UTC for Npgsql)
                 if (from.HasValue)
-                    queryable = queryable.Where(i => i.InvoiceDate >= from.Value.ToUniversalTime());
+                {
+                    var fromDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(from.Value);
+                    var (fromUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(fromDay);
+                    queryable = queryable.Where(i => i.InvoiceDate >= fromUtc);
+                }
                 if (to.HasValue)
-                    queryable = queryable.Where(i => i.InvoiceDate <= to.Value.ToUniversalTime().AddDays(1)); // Include end date
+                {
+                    var toDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(to.Value);
+                    var (_, toExclusiveUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(toDay);
+                    queryable = queryable.Where(i => i.InvoiceDate < toExclusiveUtc);
+                }
 
                 // 3. Status filter
                 if (status.HasValue)

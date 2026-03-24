@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -350,9 +351,17 @@ namespace KasseAPI_Final.Services
             if (!string.IsNullOrWhiteSpace(cashierId))
                 queryable = queryable.Where(r => r.CashierId != null && EF.Functions.ILike(r.CashierId, $"%{cashierId.Trim()}%"));
             if (issuedFrom.HasValue)
-                queryable = queryable.Where(r => r.IssuedAt >= issuedFrom.Value.ToUniversalTime());
+            {
+                var fromDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(issuedFrom.Value);
+                var (fromUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(fromDay);
+                queryable = queryable.Where(r => r.IssuedAt >= fromUtc);
+            }
             if (issuedTo.HasValue)
-                queryable = queryable.Where(r => r.IssuedAt < issuedTo.Value.ToUniversalTime().AddDays(1));
+            {
+                var toDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(issuedTo.Value);
+                var (_, toExclusiveUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(toDay);
+                queryable = queryable.Where(r => r.IssuedAt < toExclusiveUtc);
+            }
 
             var totalCount = await queryable.CountAsync();
 

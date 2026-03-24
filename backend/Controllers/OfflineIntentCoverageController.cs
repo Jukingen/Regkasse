@@ -12,6 +12,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -57,8 +58,8 @@ public class OfflineIntentCoverageController : ControllerBase
         [FromQuery] Guid? cashRegisterId = null,
         CancellationToken cancellationToken = default)
     {
-        var to = toUtc ?? DateTime.UtcNow;
-        var from = fromUtc ?? to.AddDays(-1);
+        var to = PostgreSqlUtcDateTime.ToUtcForNpgsql(toUtc ?? DateTime.UtcNow);
+        var from = PostgreSqlUtcDateTime.ToUtcForNpgsql(fromUtc ?? to.AddDays(-1));
 
         if (from > to)
         {
@@ -179,8 +180,8 @@ public class OfflineIntentCoverageController : ControllerBase
         [FromQuery] Guid? cashRegisterId = null,
         CancellationToken cancellationToken = default)
     {
-        var to = toUtc ?? DateTime.UtcNow;
-        var from = fromUtc ?? to.AddDays(-1);
+        var to = PostgreSqlUtcDateTime.ToUtcForNpgsql(toUtc ?? DateTime.UtcNow);
+        var from = PostgreSqlUtcDateTime.ToUtcForNpgsql(fromUtc ?? to.AddDays(-1));
         if (from > to)
             return BadRequest(new { message = "fromUtc must be <= toUtc.", code = "INVALID_RANGE" });
         limit = Math.Clamp(limit, 1, 100);

@@ -42,7 +42,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
     private AppDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(_fixture.ConnectionString)
+            .UseAppNpgsql(_fixture.ConnectionString)
             .Options;
         return new AppDbContext(options);
     }

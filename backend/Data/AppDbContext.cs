@@ -1,7 +1,9 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Data
 {
@@ -1109,11 +1111,114 @@ namespace KasseAPI_Final.Data
         }
 
         /// <summary>
+        /// <c>timestamptz</c> columns: Npgsql rejects non-UTC <see cref="DateTime"/> on parameters and on many write paths.
+        /// Before save, coerce every mapped <see cref="DateTime"/> / <see cref="DateTime?"/> on those columns to UTC.
+        /// <list type="bullet">
+        /// <item><description><strong>Instant semantics</strong> (default): <see cref="PostgreSqlUtcDateTime.InstantToPersistUtc"/> — Local→UTC; Unspecified→UTC kind (UTC clock ticks; use <see cref="DateTime.UtcNow"/> at source).</description></item>
+        /// <item><description><strong>Vienna calendar anchor</strong> (e.g. daily closing label): <see cref="PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc"/> — Unspecified date is that calendar day at 00:00 in Europe/Vienna.</description></item>
+        /// <item><description>Properties mapped to PostgreSQL <c>date</c> only (not <c>timestamptz</c>) are skipped.</description></item>
+        /// </list>
+        /// Production registers <see cref="NpgsqlTimestamptzUtcParameterInterceptor"/> (see <c>Program.cs</c> <c>AddInterceptors</c> or <see cref="AppDbContextNpgsqlExtensions.UseAppNpgsql"/>) so ADO parameters are UTC even when the change tracker coerces <see cref="DateTime.Kind"/>.
+        /// Test seam: <see cref="ApplyTimestamptzWriteNormalizationForTests"/> — the InMemory provider often resets tracked <see cref="DateTime.Kind"/> to <see cref="DateTimeKind.Unspecified"/>; assert normalized instants via ticks or use PostgreSQL integration tests for kind round-trips.
+        /// </summary>
+        internal void ApplyTimestamptzWriteNormalizationForTests() => NormalizeTimestamptzDateTimesBeforeSave();
+
+        private void NormalizeTimestamptzDateTimesBeforeSave()
+        {
+            foreach (var entry in ChangeTracker.Entries())
+            {
+                if (entry.State != EntityState.Added && entry.State != EntityState.Modified)
+                    continue;
+
+                var entityClrType = entry.Metadata.ClrType;
+
+                foreach (var meta in entry.Metadata.GetProperties())
+                {
+                    if (meta.IsShadowProperty())
+                        continue;
+                    if (!IsTimestamptzDateTimeProperty(meta))
+                        continue;
+
+                    var clr = meta.ClrType;
+                    if (clr == typeof(DateTime))
+                    {
+                        var current = (DateTime)entry.CurrentValues[meta.Name]!;
+                        entry.CurrentValues[meta.Name] = NormalizeTimestamptzDateTime(current, entityClrType, meta.Name);
+                    }
+                    else if (clr == typeof(DateTime?))
+                    {
+                        var nullable = (DateTime?)entry.CurrentValues[meta.Name];
+                        if (!nullable.HasValue)
+                            continue;
+                        entry.CurrentValues[meta.Name] = NormalizeTimestamptzDateTime(nullable.Value, entityClrType, meta.Name);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Explicit <c>timestamptz</c> properties that store an Austria business-calendar day (00:00 Vienna), not a raw UTC instant.</summary>
+        private static readonly (Type EntityType, string PropertyName)[] ViennaCalendarTimestamptzProperties =
+        {
+            (typeof(DailyClosing), nameof(DailyClosing.ClosingDate)),
+        };
+
+        private static bool IsViennaCalendarTimestamptzProperty(Type entityClrType, string propertyName)
+        {
+            foreach (var (t, p) in ViennaCalendarTimestamptzProperties)
+            {
+                if (p != propertyName)
+                    continue;
+                if (t.IsAssignableFrom(entityClrType))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static DateTime NormalizeTimestamptzDateTime(DateTime value, Type entityClrType, string propertyName)
+        {
+            if (IsViennaCalendarTimestamptzProperty(entityClrType, propertyName))
+                return PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(value);
+            return PostgreSqlUtcDateTime.InstantToPersistUtc(value);
+        }
+
+        private static bool IsTimestamptzDateTimeProperty(IProperty property)
+        {
+            var clr = property.ClrType;
+            var underlying = Nullable.GetUnderlyingType(clr) ?? clr;
+            if (underlying != typeof(DateTime))
+                return false;
+
+            string? storeType = null;
+            try
+            {
+                storeType = property.GetColumnType();
+            }
+            catch (InvalidCastException)
+            {
+                // In-memory tests: no relational type mapping; treat DateTime like Npgsql timestamptz (same normalization rules).
+                return true;
+            }
+
+            // Skip only columns that are clearly not timestamptz (calendar date or local timestamp).
+            if (string.Equals(storeType, "date", StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!string.IsNullOrWhiteSpace(storeType)
+                && storeType.Contains("timestamp", StringComparison.OrdinalIgnoreCase)
+                && storeType.Contains("without time zone", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            // PostgreSQL timestamptz, Npgsql defaults, InMemory (unknown/opaque store types), etc.
+            return true;
+        }
+
+        /// <summary>
         /// Invariant 1–2: Audit log is append-only. Any attempt to UPDATE existing AuditLog rows is rejected (anti-tamper).
         /// No audit record may be modified. DELETE is only allowed via the dedicated retention method DeleteAuditLogsOlderThanAsync.
         /// </summary>
         public override int SaveChanges()
         {
+            NormalizeTimestamptzDateTimesBeforeSave();
             EnforceAuditLogAppendOnly();
             return base.SaveChanges();
         }
@@ -1123,6 +1228,7 @@ namespace KasseAPI_Final.Data
         /// </summary>
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
+            NormalizeTimestamptzDateTimesBeforeSave();
             EnforceAuditLogAppendOnly();
             return await base.SaveChangesAsync(cancellationToken);
         }

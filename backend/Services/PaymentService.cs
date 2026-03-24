@@ -8,6 +8,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Data.Repositories;
+using KasseAPI_Final.Time;
 using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -1317,10 +1318,13 @@ namespace KasseAPI_Final.Services
                     pageNumber = 1;
                 }
 
+                var (fromUtc, toExclusiveUtc) =
+                    PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(startDate, endDate);
+
                 var (items, totalCount) = await _paymentRepository.GetPagedAsync(
-                    pageNumber, 
-                    pageSize, 
-                    p => p.CreatedAt >= startDate && p.CreatedAt <= endDate && p.IsActive,
+                    pageNumber,
+                    pageSize,
+                    p => p.CreatedAt >= fromUtc && p.CreatedAt < toExclusiveUtc && p.IsActive,
                     p => p.CreatedAt,
                     false);
 
@@ -2052,9 +2056,12 @@ namespace KasseAPI_Final.Services
                 TseSignedAmount = 0
             };
 
+            var (fromUtc, toExclusiveUtc) =
+                PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(startDate, endDate);
+
             // Query using PaymentMethodRaw - no InvalidCastException since it's varchar
             var payments = await _context.PaymentDetails
-                .Where(p => p.CreatedAt >= startDate && p.CreatedAt <= endDate && p.IsActive)
+                .Where(p => p.CreatedAt >= fromUtc && p.CreatedAt < toExclusiveUtc && p.IsActive)
                 .ToListAsync();
 
             // Diagnostic log to confirm PaymentMethodRaw reads as string

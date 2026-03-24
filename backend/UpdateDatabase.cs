@@ -19,7 +19,7 @@ namespace KasseAPI_Final
                 
                 // DbContext oluştur
                 var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-                optionsBuilder.UseNpgsql(connectionString);
+                optionsBuilder.UseAppNpgsql(connectionString);
                 
                 using var context = new AppDbContext(optionsBuilder.Options);
                 

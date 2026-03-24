@@ -5,6 +5,7 @@ using KasseAPI_Final.Authorization;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Time;
 using KasseAPI_Final.Services;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
@@ -213,12 +214,14 @@ namespace KasseAPI_Final.Controllers
 
                 if (startDate.HasValue)
                 {
-                    query = query.Where(t => t.TransactionDate >= startDate.Value);
+                    var s = PostgreSqlUtcDateTime.ToUtcForNpgsql(startDate.Value);
+                    query = query.Where(t => t.TransactionDate >= s);
                 }
 
                 if (endDate.HasValue)
                 {
-                    query = query.Where(t => t.TransactionDate <= endDate.Value);
+                    var e = PostgreSqlUtcDateTime.ToUtcForNpgsql(endDate.Value);
+                    query = query.Where(t => t.TransactionDate <= e);
                 }
 
                 var transactions = await query

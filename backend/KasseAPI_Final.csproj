@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="KasseAPI_Final.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="KasseAPI_Final.Tests\**" />
     <Content Remove="KasseAPI_Final.Tests\**" />
     <None Remove="KasseAPI_Final.Tests\**" />

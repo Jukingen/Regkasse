@@ -66,7 +66,7 @@ public sealed class PostgreSqlReplayFixture : IAsyncLifetime
     private static async Task MigrateAsync(string connectionString)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(connectionString)
+            .UseAppNpgsql(connectionString)
             .Options;
         await using var ctx = new AppDbContext(options);
         await ctx.Database.MigrateAsync();

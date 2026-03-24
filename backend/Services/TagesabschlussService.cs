@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Services
 {
@@ -46,6 +47,9 @@ namespace KasseAPI_Final.Services
             if (!await _context.CashRegisters.AsNoTracking().AnyAsync(cr => cr.Id == cashRegisterId))
                 return 0;
 
+            fromInclusive = PostgreSqlUtcDateTime.ToUtcForNpgsql(fromInclusive);
+            toExclusive = PostgreSqlUtcDateTime.ToUtcForNpgsql(toExclusive);
+
             return await _context.PaymentDetails
                 .AsNoTracking()
                 .Where(p => p.CreatedAt >= fromInclusive && p.CreatedAt < toExclusive
@@ -66,10 +70,13 @@ namespace KasseAPI_Final.Services
                     throw new InvalidOperationException("TSE device is not connected. Daily closing cannot be performed.");
                 }
 
-                var today = DateTime.Today;
+                var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+                var (dayStartUtc, dayEndExclusiveUtc) =
+                    PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
 
                 // Sprint 4: Block closing when payment-without-invoice exists (reconciliation enforcement)
-                var paymentsWithoutInvoiceCount = await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, today, today.AddDays(1));
+                var paymentsWithoutInvoiceCount =
+                    await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, dayStartUtc, dayEndExclusiveUtc);
                 if (paymentsWithoutInvoiceCount > 0)
                 {
                     return new TagesabschlussResult
@@ -82,8 +89,9 @@ namespace KasseAPI_Final.Services
 
                 // Get today's transactions (Invoice-authoritative; no Payment totals)
                 var transactions = await _context.Invoices
-                    .Where(i => i.CashRegisterId == cashRegisterId && 
-                               i.CreatedAt.Date == today &&
+                    .Where(i => i.CashRegisterId == cashRegisterId &&
+                               i.CreatedAt >= dayStartUtc &&
+                               i.CreatedAt < dayEndExclusiveUtc &&
                                i.Status == InvoiceStatus.Paid)
                     .ToListAsync();
 
@@ -104,7 +112,7 @@ namespace KasseAPI_Final.Services
                 var tseSignature = await _tseService.CreateDailyClosingSignatureAsync(
                     cashRegisterId,
                     register.RegisterNumber,
-                    today,
+                    viennaToday,
                     totalAmount,
                     transactionCount);
 
@@ -114,7 +122,7 @@ namespace KasseAPI_Final.Services
                     Id = Guid.NewGuid(),
                     CashRegisterId = cashRegisterId,
                     UserId = userId,
-                    ClosingDate = today,
+                    ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday),
                     ClosingType = "Daily",
                     TotalAmount = totalAmount,
                     TotalTaxAmount = totalTaxAmount,
@@ -147,7 +155,7 @@ namespace KasseAPI_Final.Services
                 {
                     Success = true,
                     ClosingId = dailyClosing.Id,
-                    ClosingDate = today,
+                    ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday),
                     TotalAmount = totalAmount,
                     TotalTaxAmount = totalTaxAmount,
                     TransactionCount = transactionCount,
@@ -171,11 +179,14 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var currentMonth = DateTime.Today.AddDays(-DateTime.Today.Day + 1);
-                var periodEnd = DateTime.Today.AddDays(1);
+                var viennaTodayM = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+                var currentMonthLocal = new DateTime(viennaTodayM.Year, viennaTodayM.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
+                var (monthStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(currentMonthLocal);
+                var (_, periodEndUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaTodayM);
 
                 // Sprint 4: Block when payment-without-invoice exists in period
-                var paymentsWithoutInvoiceCount = await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, currentMonth, periodEnd);
+                var paymentsWithoutInvoiceCount =
+                    await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, monthStartUtc, periodEndUtc);
                 if (paymentsWithoutInvoiceCount > 0)
                 {
                     return new TagesabschlussResult
@@ -187,8 +198,8 @@ namespace KasseAPI_Final.Services
                 }
 
                 var transactions = await _context.Invoices
-                    .Where(i => i.CashRegisterId == cashRegisterId && 
-                               i.CreatedAt >= currentMonth &&
+                    .Where(i => i.CashRegisterId == cashRegisterId &&
+                               i.CreatedAt >= monthStartUtc &&
                                i.Status == InvoiceStatus.Paid)
                     .ToListAsync();
 
@@ -208,7 +219,7 @@ namespace KasseAPI_Final.Services
                 var tseSignature = await _tseService.CreateMonthlyClosingSignatureAsync(
                     cashRegisterId,
                     registerM.RegisterNumber,
-                    currentMonth,
+                    currentMonthLocal,
                     totalAmount,
                     transactionCount);
 
@@ -217,7 +228,7 @@ namespace KasseAPI_Final.Services
                     Id = Guid.NewGuid(),
                     CashRegisterId = cashRegisterId,
                     UserId = userId,
-                    ClosingDate = currentMonth,
+                    ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(currentMonthLocal),
                     ClosingType = "Monthly",
                     TotalAmount = totalAmount,
                     TotalTaxAmount = totalTaxAmount,
@@ -234,7 +245,7 @@ namespace KasseAPI_Final.Services
                 {
                     Success = true,
                     ClosingId = monthlyClosing.Id,
-                    ClosingDate = currentMonth,
+                    ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(currentMonthLocal),
                     TotalAmount = totalAmount,
                     TotalTaxAmount = totalTaxAmount,
                     TransactionCount = transactionCount,
@@ -255,11 +266,14 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var currentYear = new DateTime(DateTime.Today.Year, 1, 1);
-                var periodEnd = DateTime.Today.AddDays(1);
+                var viennaTodayY = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+                var currentYearLocal = new DateTime(viennaTodayY.Year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+                var (yearStartUtc, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(currentYearLocal);
+                var (_, yearPeriodEndUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaTodayY);
 
                 // Sprint 4: Block when payment-without-invoice exists in period
-                var paymentsWithoutInvoiceCount = await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, currentYear, periodEnd);
+                var paymentsWithoutInvoiceCount =
+                    await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, yearStartUtc, yearPeriodEndUtc);
                 if (paymentsWithoutInvoiceCount > 0)
                 {
                     return new TagesabschlussResult
@@ -271,8 +285,8 @@ namespace KasseAPI_Final.Services
                 }
 
                 var transactions = await _context.Invoices
-                    .Where(i => i.CashRegisterId == cashRegisterId && 
-                               i.CreatedAt >= currentYear &&
+                    .Where(i => i.CashRegisterId == cashRegisterId &&
+                               i.CreatedAt >= yearStartUtc &&
                                i.Status == InvoiceStatus.Paid)
                     .ToListAsync();
 
@@ -292,7 +306,7 @@ namespace KasseAPI_Final.Services
                 var tseSignature = await _tseService.CreateYearlyClosingSignatureAsync(
                     cashRegisterId,
                     registerY.RegisterNumber,
-                    currentYear,
+                    currentYearLocal,
                     totalAmount,
                     transactionCount);
 
@@ -301,7 +315,7 @@ namespace KasseAPI_Final.Services
                     Id = Guid.NewGuid(),
                     CashRegisterId = cashRegisterId,
                     UserId = userId,
-                    ClosingDate = currentYear,
+                    ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(currentYearLocal),
                     ClosingType = "Yearly",
                     TotalAmount = totalAmount,
                     TotalTaxAmount = totalTaxAmount,
@@ -318,7 +332,7 @@ namespace KasseAPI_Final.Services
                 {
                     Success = true,
                     ClosingId = yearlyClosing.Id,
-                    ClosingDate = currentYear,
+                    ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(currentYearLocal),
                     TotalAmount = totalAmount,
                     TotalTaxAmount = totalTaxAmount,
                     TransactionCount = transactionCount,
@@ -344,10 +358,16 @@ namespace KasseAPI_Final.Services
                 query = query.Where(d => d.CashRegisterId == cashRegisterId.Value);
 
             if (fromDate.HasValue)
-                query = query.Where(d => d.ClosingDate >= fromDate.Value);
+            {
+                var fromUtc = PostgreSqlUtcDateTime.ToUtcForNpgsql(fromDate.Value);
+                query = query.Where(d => d.ClosingDate >= fromUtc);
+            }
 
             if (toDate.HasValue)
-                query = query.Where(d => d.ClosingDate <= toDate.Value);
+            {
+                var toUtc = PostgreSqlUtcDateTime.ToUtcForNpgsql(toDate.Value);
+                query = query.Where(d => d.ClosingDate <= toUtc);
+            }
 
             var closings = await query
                 .OrderByDescending(d => d.ClosingDate)
@@ -371,12 +391,20 @@ namespace KasseAPI_Final.Services
         public async Task<bool> CanPerformClosingAsync(Guid cashRegisterId)
         {
             var lastClosing = await GetLastClosingDateAsync(cashRegisterId);
-            var today = DateTime.Today;
-            if (lastClosing.HasValue && lastClosing.Value.Date >= today)
-                return false;
+            var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+            // ClosingDate is stored as UTC (Vienna midnight instant); compare via Vienna calendar, not .Date on UTC.
+            if (lastClosing.HasValue)
+            {
+                var lastViennaDay = PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(lastClosing.Value);
+                if (lastViennaDay >= viennaToday)
+                    return false;
+            }
 
+            var (dayStartUtc, dayEndExclusiveUtc) =
+                PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
             // Sprint 4: Cannot close if payment-without-invoice exists (reconciliation block)
-            var paymentsWithoutInvoiceCount = await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, today, today.AddDays(1));
+            var paymentsWithoutInvoiceCount =
+                await GetPaymentsWithoutInvoiceCountAsync(cashRegisterId, dayStartUtc, dayEndExclusiveUtc);
             return paymentsWithoutInvoiceCount == 0;
         }
 

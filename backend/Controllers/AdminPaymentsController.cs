@@ -9,6 +9,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -52,18 +53,30 @@ public class AdminPaymentsController : ControllerBase
         [FromQuery] int pageSize = 100,
         CancellationToken cancellationToken = default)
     {
-        var from = startDate ?? DateTime.UtcNow.AddDays(-30);
-        var to = endDate ?? DateTime.UtcNow;
-        if (from > to)
-            return BadRequest(new { message = "startDate must be <= endDate", code = "ADMIN_PAYMENTS_INVALID_RANGE" });
-
+        var nowUtc = DateTime.UtcNow;
         pageNumber = Math.Max(1, pageNumber);
         pageSize = Math.Clamp(pageSize, 1, 500);
 
         try
         {
-            IQueryable<PaymentDetails> query = _context.PaymentDetails.AsNoTracking()
-                .Where(p => p.CreatedAt >= from && p.CreatedAt <= to);
+            IQueryable<PaymentDetails> query = _context.PaymentDetails.AsNoTracking();
+
+            if (!startDate.HasValue && !endDate.HasValue)
+            {
+                var fromUtc = nowUtc.AddDays(-30);
+                query = query.Where(p => p.CreatedAt >= fromUtc && p.CreatedAt <= nowUtc);
+            }
+            else
+            {
+                var startCal = startDate ?? endDate!.Value;
+                var endCal = endDate ?? startDate!.Value;
+                if (startCal > endCal)
+                    return BadRequest(new { message = "startDate must be <= endDate", code = "ADMIN_PAYMENTS_INVALID_RANGE" });
+
+                var (fromUtc, toExclusiveUtc) =
+                    PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(startCal, endCal);
+                query = query.Where(p => p.CreatedAt >= fromUtc && p.CreatedAt < toExclusiveUtc);
+            }
 
             if (!string.IsNullOrWhiteSpace(method))
             {

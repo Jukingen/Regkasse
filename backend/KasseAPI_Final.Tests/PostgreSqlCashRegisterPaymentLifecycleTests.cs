@@ -30,7 +30,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         _fixture = fixture;
 
     private AppDbContext CreateContext() =>
-        new(new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(_fixture.ConnectionString).Options);
+        new(new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(_fixture.ConnectionString).Options);
 
     private static async Task AddMinimalUserAsync(AppDbContext ctx, string id)
     {
@@ -96,7 +96,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         var closeTask = Task.Run(async () =>
         {
             await using var closeCtx = new AppDbContext(
-                new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(cs).Options);
+                new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(cs).Options);
             var mgr = CreateUserManagerMock();
             var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
             return await shift.TryCloseCashRegisterAsync(regId, "u1", 0m, CancellationToken.None);
