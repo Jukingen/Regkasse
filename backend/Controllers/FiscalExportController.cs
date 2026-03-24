@@ -58,6 +58,7 @@ public class FiscalExportController : ControllerBase
         [FromQuery] string format = "json",
         CancellationToken cancellationToken = default)
     {
+        // Caller range: inclusive UTC instants on IssuedAt (see FiscalExportService; not Austria calendar half-open).
         try
         {
             var package = await _exportService.BuildExportAsync(

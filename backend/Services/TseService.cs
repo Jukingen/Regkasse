@@ -16,13 +16,20 @@ namespace KasseAPI_Final.Services
         private readonly AppDbContext _context;
         private readonly SignaturePipeline _pipeline;
         private readonly ITseKeyProvider _keyProvider;
+        private readonly ITseProvider _tseProvider;
         private readonly ILogger<TseService> _logger;
 
-        public TseService(AppDbContext context, SignaturePipeline pipeline, ITseKeyProvider keyProvider, ILogger<TseService> logger)
+        public TseService(
+            AppDbContext context,
+            SignaturePipeline pipeline,
+            ITseKeyProvider keyProvider,
+            ITseProvider tseProvider,
+            ILogger<TseService> logger)
         {
             _context = context;
             _pipeline = pipeline;
             _keyProvider = keyProvider;
+            _tseProvider = tseProvider;
             _logger = logger;
         }
 
@@ -242,6 +249,8 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("cashRegisterId must not be empty.", nameof(cashRegisterId));
             if (string.IsNullOrWhiteSpace(registerNumber))
                 throw new ArgumentException("registerNumber is required.", nameof(registerNumber));
+            if (!await _tseProvider.IsReadyAsync())
+                throw new InvalidOperationException("TSE is not ready for closing signing.");
             var kId = registerNumber.Trim();
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -258,7 +267,8 @@ namespace KasseAPI_Final.Services
                     PrevSignatureValue = prevSig,
                     TaxDetails = "{}"
                 };
-                var compactJws = _pipeline.Sign(payload, correlationId);
+                var signResult = await _tseProvider.SignAsync(payload, correlationId);
+                var compactJws = signResult.CompactJws;
                 _context.TseSignatures.Add(new TseSignature
                 {
                     Id = Guid.NewGuid(),
@@ -268,7 +278,7 @@ namespace KasseAPI_Final.Services
                     Amount = totalAmount,
                     CreatedAt = DateTime.UtcNow,
                     SignatureType = "DailyClosing",
-                    CertificateNumber = _keyProvider.GetCertificateSerialNumber()
+                    CertificateNumber = signResult.CertificateSerialNumber
                 });
                 await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws);
                 await _context.SaveChangesAsync();
@@ -288,6 +298,8 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("cashRegisterId must not be empty.", nameof(cashRegisterId));
             if (string.IsNullOrWhiteSpace(registerNumber))
                 throw new ArgumentException("registerNumber is required.", nameof(registerNumber));
+            if (!await _tseProvider.IsReadyAsync())
+                throw new InvalidOperationException("TSE is not ready for closing signing.");
             var kId = registerNumber.Trim();
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -304,7 +316,8 @@ namespace KasseAPI_Final.Services
                     PrevSignatureValue = prevSig,
                     TaxDetails = "{}"
                 };
-                var compactJws = _pipeline.Sign(payload, correlationId);
+                var signResult = await _tseProvider.SignAsync(payload, correlationId);
+                var compactJws = signResult.CompactJws;
                 _context.TseSignatures.Add(new TseSignature
                 {
                     Id = Guid.NewGuid(),
@@ -314,7 +327,7 @@ namespace KasseAPI_Final.Services
                     Amount = totalAmount,
                     CreatedAt = DateTime.UtcNow,
                     SignatureType = "MonthlyClosing",
-                    CertificateNumber = _keyProvider.GetCertificateSerialNumber()
+                    CertificateNumber = signResult.CertificateSerialNumber
                 });
                 await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws);
                 await _context.SaveChangesAsync();
@@ -334,6 +347,8 @@ namespace KasseAPI_Final.Services
                 throw new ArgumentException("cashRegisterId must not be empty.", nameof(cashRegisterId));
             if (string.IsNullOrWhiteSpace(registerNumber))
                 throw new ArgumentException("registerNumber is required.", nameof(registerNumber));
+            if (!await _tseProvider.IsReadyAsync())
+                throw new InvalidOperationException("TSE is not ready for closing signing.");
             var kId = registerNumber.Trim();
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -350,7 +365,8 @@ namespace KasseAPI_Final.Services
                     PrevSignatureValue = prevSig,
                     TaxDetails = "{}"
                 };
-                var compactJws = _pipeline.Sign(payload, correlationId);
+                var signResult = await _tseProvider.SignAsync(payload, correlationId);
+                var compactJws = signResult.CompactJws;
                 _context.TseSignatures.Add(new TseSignature
                 {
                     Id = Guid.NewGuid(),
@@ -360,7 +376,7 @@ namespace KasseAPI_Final.Services
                     Amount = totalAmount,
                     CreatedAt = DateTime.UtcNow,
                     SignatureType = "YearlyClosing",
-                    CertificateNumber = _keyProvider.GetCertificateSerialNumber()
+                    CertificateNumber = signResult.CertificateSerialNumber
                 });
                 await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws);
                 await _context.SaveChangesAsync();

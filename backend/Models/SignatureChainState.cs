@@ -18,8 +18,7 @@ namespace KasseAPI_Final.Models
         [Column("cash_register_id")]
         public Guid CashRegisterId { get; set; }
 
-        [MaxLength(4000)]
-        [Column("last_signature")]
+        [Column("last_signature", TypeName = "text")]
         public string? LastSignature { get; set; }
 
         [Required]

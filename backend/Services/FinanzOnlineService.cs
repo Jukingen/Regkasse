@@ -280,8 +280,9 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Simulate FinanzOnline monthly closing submission
-                var referenceId = $"FIN_MONTHLY_{monthlyClosing.ClosingDate:yyyyMM}_{monthlyClosing.CashRegisterId}";
+                // Simulate FinanzOnline monthly closing submission (Vienna local year-month, aligned with daily/yearly helpers).
+                var referenceId =
+                    $"FIN_MONTHLY_{PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMm(monthlyClosing.ClosingDate)}_{monthlyClosing.CashRegisterId}";
                 
                 return new FinanzOnlineSubmitResponse
                 {

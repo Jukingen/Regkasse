@@ -13,6 +13,7 @@ using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -45,6 +46,12 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             .UseAppNpgsql(_fixture.ConnectionString)
             .Options;
         return new AppDbContext(options);
+    }
+
+    private static TseService CreateTseService(AppDbContext ctx, SignaturePipeline pipeline, ITseKeyProvider keyProvider)
+    {
+        var closingProvider = new RealTseProvider(pipeline, keyProvider, ctx, NullLogger<RealTseProvider>.Instance);
+        return new TseService(ctx, pipeline, keyProvider, closingProvider, Mock.Of<ILogger<TseService>>());
     }
 
     private static async Task<(Guid categoryId, Guid productId, Guid customerId, Guid cashRegisterId)> SeedMinimalDomainAsync(AppDbContext ctx)
@@ -235,12 +242,12 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         var pipeline = new SignaturePipeline(keyProvider, Mock.Of<ILogger<SignaturePipeline>>());
 
         await using var ctx1 = CreateContext();
-        var tseA = new TseService(ctx1, pipeline, keyProvider, Mock.Of<ILogger<TseService>>());
+        var tseA = CreateTseService(ctx1, pipeline, keyProvider);
         var seqA = new ReceiptSequenceService(ctx1, Mock.Of<ILogger<ReceiptSequenceService>>());
         var (_, offline1) = CreateServices(ctx1, audit1, tseA, seqA);
 
         await using var ctx2 = CreateContext();
-        var tseB = new TseService(ctx2, pipeline, keyProvider, Mock.Of<ILogger<TseService>>());
+        var tseB = CreateTseService(ctx2, pipeline, keyProvider);
         var seqB = new ReceiptSequenceService(ctx2, Mock.Of<ILogger<ReceiptSequenceService>>());
         var (_, offline2) = CreateServices(ctx2, audit2, tseB, seqB);
 
@@ -309,12 +316,12 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
 
         await using var ctx1 = CreateContext();
         var (_, offline1) = CreateServices(ctx1, audit1,
-            new TseService(ctx1, pipeline, keyProvider, Mock.Of<ILogger<TseService>>()),
+            CreateTseService(ctx1, pipeline, keyProvider),
             new ReceiptSequenceService(ctx1, Mock.Of<ILogger<ReceiptSequenceService>>()));
 
         await using var ctx2 = CreateContext();
         var (_, offline2) = CreateServices(ctx2, audit2,
-            new TseService(ctx2, pipeline, keyProvider, Mock.Of<ILogger<TseService>>()),
+            CreateTseService(ctx2, pipeline, keyProvider),
             new ReceiptSequenceService(ctx2, Mock.Of<ILogger<ReceiptSequenceService>>()));
 
         var reqA = new ReplayOfflineTransactionsRequest
@@ -370,7 +377,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
 
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, Mock.Of<ILogger<SignaturePipeline>>());
-        var tse = new TseService(ctx, pipeline, keyProvider, Mock.Of<ILogger<TseService>>());
+        var tse = CreateTseService(ctx, pipeline, keyProvider);
         var receiptSeq = new ReceiptSequenceService(ctx, Mock.Of<ILogger<ReceiptSequenceService>>());
         var (paymentService, _) = CreateServices(ctx, audit, tse, receiptSeq);
 
@@ -382,7 +389,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             tasks.Add(Task.Run(async () =>
             {
                 await using var c = CreateContext();
-                var tseI = new TseService(c, pipeline, keyProvider, Mock.Of<ILogger<TseService>>());
+                var tseI = CreateTseService(c, pipeline, keyProvider);
                 var seqI = new ReceiptSequenceService(c, Mock.Of<ILogger<ReceiptSequenceService>>());
                 var (pay, _) = CreateServices(c, audit, tseI, seqI);
                 var req = BuildPaymentRequest(customerId, cashRegisterId, productId, Guid.NewGuid().ToString("N"));
@@ -426,7 +433,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         var tasks = Enumerable.Range(0, parallel).Select(_ => Task.Run(async () =>
         {
             await using var c = CreateContext();
-            var tse = new TseService(c, pipeline, keyProvider, Mock.Of<ILogger<TseService>>());
+            var tse = CreateTseService(c, pipeline, keyProvider);
             var seq = new ReceiptSequenceService(c, Mock.Of<ILogger<ReceiptSequenceService>>());
             var (pay, _) = CreateServices(c, audit, tse, seq);
             var req = BuildPaymentRequest(customerId, cashRegisterId, productId, sharedKey);
@@ -501,7 +508,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
 
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, Mock.Of<ILogger<SignaturePipeline>>());
-        var tse = new TseService(ctx, pipeline, keyProvider, Mock.Of<ILogger<TseService>>());
+        var tse = CreateTseService(ctx, pipeline, keyProvider);
         var seq = new ReceiptSequenceService(ctx, Mock.Of<ILogger<ReceiptSequenceService>>());
         var (_, offline) = CreateServices(ctx, audit, tse, seq);
 

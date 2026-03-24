@@ -6,6 +6,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -27,6 +28,12 @@ public class PaymentReceiptSignatureIntegrationTests
         return new AppDbContext(options);
     }
 
+    private static TseService CreateTseService(AppDbContext context, SignaturePipeline pipeline, SoftwareTseKeyProvider keyProvider)
+    {
+        var closing = new RealTseProvider(pipeline, keyProvider, context, NullLogger<RealTseProvider>.Instance);
+        return new TseService(context, pipeline, keyProvider, closing, Mock.Of<ILogger<TseService>>());
+    }
+
     [Fact(Skip = "TseService uses PostgreSQL-specific signature_chain_state SQL; use PostgreSQL test DB for full integration.")]
     public async Task PaymentCreate_ReceiptFetch_SignatureVerify_Pass()
     {
@@ -34,7 +41,7 @@ public class PaymentReceiptSignatureIntegrationTests
 
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, Mock.Of<ILogger<SignaturePipeline>>());
-        var tseService = new TseService(context, pipeline, keyProvider, Mock.Of<ILogger<TseService>>());
+        var tseService = CreateTseService(context, pipeline, keyProvider);
 
         var kassenId = "KASSE-TEST-01";
         var receiptNumber = $"AT-{kassenId}-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8]}";
@@ -62,7 +69,7 @@ public class PaymentReceiptSignatureIntegrationTests
 
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, Mock.Of<ILogger<SignaturePipeline>>());
-        var tseService = new TseService(context, pipeline, keyProvider, Mock.Of<ILogger<TseService>>());
+        var tseService = CreateTseService(context, pipeline, keyProvider);
 
         var companyProfile = new CompanyProfileOptions
         {
@@ -150,7 +157,7 @@ public class PaymentReceiptSignatureIntegrationTests
         await using var context = CreateInMemoryContext();
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, Mock.Of<ILogger<SignaturePipeline>>());
-        var tseService = new TseService(context, pipeline, keyProvider, Mock.Of<ILogger<TseService>>());
+        var tseService = CreateTseService(context, pipeline, keyProvider);
 
         var sigResult = await tseService.CreateInvoiceSignatureAsync(
             Guid.NewGuid(), "AT-DIAG-20250225-999", 42.00m, "KASSE-DIAG", taxDetailsJson: "{}");

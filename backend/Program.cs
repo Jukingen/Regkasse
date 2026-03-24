@@ -237,6 +237,13 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddSingleton<ITseKeyProvider, SoftwareTseKeyProvider>();
 builder.Services.AddScoped<SignaturePipeline>();
 
+// Closing-flow signing: Fake (dev, no hardware) vs Real (SignaturePipeline + TSE device readiness)
+var tseOpts = builder.Configuration.GetSection(TseOptions.SectionName).Get<TseOptions>() ?? new TseOptions();
+if (tseOpts.IsFakeSigningMode)
+    builder.Services.AddScoped<ITseProvider, FakeTseProvider>();
+else
+    builder.Services.AddScoped<ITseProvider, RealTseProvider>();
+
 // Register services
 builder.Services.AddScoped<ITseService, TseService>();
 builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();

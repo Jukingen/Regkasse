@@ -150,6 +150,36 @@ public sealed class PostgreSqlUtcDateTimeTests
         Assert.Equal("2026", PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyy(utc));
     }
 
+    /// <summary>
+    /// Regression: FinanzOnline monthly reference segment must use Vienna month, not <c>ClosingDate</c> UTC calendar month.
+    /// Persisted UTC can be still January in UTC while Vienna is already February.
+    /// </summary>
+    [Fact]
+    public void FormatViennaUtcInstantAsYyyyMm_Jan31Utc2350_IsFebruaryVienna_FinanzOnlineMonthlySegment()
+    {
+        var closingUtc = new DateTime(2024, 1, 31, 23, 30, 0, DateTimeKind.Utc);
+        Assert.Equal("202402", PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMm(closingUtc));
+    }
+
+    [Fact]
+    public void FormatViennaUtcInstantAsYyyyMmDd_NormalizesLocalKindLikeInstantToPersistUtc()
+    {
+        var local = new DateTime(2026, 3, 24, 12, 0, 0, DateTimeKind.Local);
+        var persisted = PostgreSqlUtcDateTime.InstantToPersistUtc(local);
+        var expected = PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMmDd(persisted);
+        Assert.Equal(expected, PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMmDd(local));
+    }
+
+    [Fact]
+    public void FormatViennaUtcInstantAsYyyyMm_NormalizesUnspecifiedKindLikeInstantToPersistUtc()
+    {
+        var unspecified = new DateTime(2026, 3, 24, 12, 0, 0, DateTimeKind.Unspecified);
+        var persisted = PostgreSqlUtcDateTime.InstantToPersistUtc(unspecified);
+        Assert.Equal(
+            PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMm(persisted),
+            PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMm(unspecified));
+    }
+
     [Fact]
     public void Dst_SpringForward_2026_March29_LocalDayLength_Is23Hours()
     {

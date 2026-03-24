@@ -826,17 +826,99 @@ namespace KasseAPI_Final.Data
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // TSE Device configuration
+            // TSE Device configuration — explicit column names only (no schema change); avoids convention drift and BaseEntity is_active vs IsActive mismatch on this legacy table.
             builder.Entity<TseDevice>(entity =>
             {
+                entity.ToTable("TseDevices");
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.SerialNumber).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.DeviceType).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.CertificateStatus).HasMaxLength(50);
-                entity.Property(e => e.MemoryStatus).HasMaxLength(50);
-                entity.Property(e => e.KassenId).HasMaxLength(50);
-                entity.Property(e => e.FinanzOnlineUsername).HasMaxLength(100);
-                entity.HasIndex(e => e.SerialNumber).IsUnique();
+
+                // BaseEntity columns - explicit mapping for this mixed-schema legacy table
+                entity.Property(e => e.Id)
+                    .HasColumnName("id");
+
+                entity.Property(e => e.CreatedAt)
+                    .HasColumnName("created_at");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnName("updated_at");
+
+                entity.Property(e => e.CreatedBy)
+                    .HasColumnName("created_by")
+                    .HasMaxLength(450);
+
+                entity.Property(e => e.UpdatedBy)
+                    .HasColumnName("updated_by")
+                    .HasMaxLength(450);
+
+                // Legacy PascalCase column in TseDevices table (overrides BaseEntity [Column("is_active")])
+                entity.Property(e => e.IsActive)
+                    .HasColumnName("IsActive");
+
+                // TseDevice-specific columns - explicit names to avoid future naming-convention drift
+                entity.Property(e => e.SerialNumber)
+                    .HasColumnName("SerialNumber")
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.DeviceType)
+                    .HasColumnName("DeviceType")
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.VendorId)
+                    .HasColumnName("VendorId");
+
+                entity.Property(e => e.ProductId)
+                    .HasColumnName("ProductId");
+
+                entity.Property(e => e.IsConnected)
+                    .HasColumnName("IsConnected");
+
+                entity.Property(e => e.LastConnectionTime)
+                    .HasColumnName("LastConnectionTime");
+
+                entity.Property(e => e.LastSignatureTime)
+                    .HasColumnName("LastSignatureTime");
+
+                entity.Property(e => e.CertificateStatus)
+                    .HasColumnName("CertificateStatus")
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.MemoryStatus)
+                    .HasColumnName("MemoryStatus")
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.CanCreateInvoices)
+                    .HasColumnName("CanCreateInvoices");
+
+                entity.Property(e => e.ErrorMessage)
+                    .HasColumnName("ErrorMessage")
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.TimeoutSeconds)
+                    .HasColumnName("TimeoutSeconds");
+
+                entity.Property(e => e.KassenId)
+                    .HasColumnName("KassenId");
+
+                entity.Property(e => e.FinanzOnlineUsername)
+                    .HasColumnName("FinanzOnlineUsername")
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.FinanzOnlineEnabled)
+                    .HasColumnName("FinanzOnlineEnabled");
+
+                entity.Property(e => e.LastFinanzOnlineSync)
+                    .HasColumnName("LastFinanzOnlineSync");
+
+                entity.Property(e => e.PendingInvoices)
+                    .HasColumnName("PendingInvoices");
+
+                entity.Property(e => e.PendingReports)
+                    .HasColumnName("PendingReports");
+
+                entity.HasIndex(e => e.SerialNumber)
+                    .IsUnique();
             });
 
             // DailyClosing configuration
@@ -848,7 +930,10 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ClosingType).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalTaxAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.TseSignature).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.TseSignature).IsRequired().HasColumnType("text");
+                entity.Property(e => e.JwsHeader).HasColumnType("text");
+                entity.Property(e => e.JwsPayload).HasColumnType("text");
+                entity.Property(e => e.JwsSignature).HasColumnType("text");
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.FinanzOnlineStatus).HasMaxLength(20);
                 entity.Property(e => e.FinanzOnlineError).HasMaxLength(500);
@@ -862,13 +947,16 @@ namespace KasseAPI_Final.Data
             builder.Entity<TseSignature>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.Signature).IsRequired().HasMaxLength(500);
-                entity.Property(e => e.CashRegisterId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Signature).IsRequired().HasColumnType("text");
+                entity.Property(e => e.CashRegisterId).IsRequired();
                 entity.Property(e => e.InvoiceNumber).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.SignatureType).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.TseDeviceId).HasMaxLength(100);
+                entity.Property(e => e.TseDeviceId);
                 entity.Property(e => e.CertificateNumber).HasMaxLength(100);
+                entity.Property(e => e.JwsHeader).HasColumnType("text");
+                entity.Property(e => e.JwsPayload).HasColumnType("text");
+                entity.Property(e => e.JwsSignature).HasColumnType("text");
                 entity.HasIndex(e => e.Signature).IsUnique();
                 entity.HasIndex(e => new { e.CashRegisterId, e.CreatedAt });
                 entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
@@ -1092,7 +1180,7 @@ namespace KasseAPI_Final.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.CashRegisterId).IsUnique();
                 entity.Property(e => e.CashRegisterId).IsRequired().HasColumnName("cash_register_id");
-                entity.Property(e => e.LastSignature).HasMaxLength(4000);
+                entity.Property(e => e.LastSignature).HasColumnType("text");
                 entity.Property(e => e.LastCounter).IsRequired();
                 entity.Property(e => e.UpdatedAt).IsRequired();
             });

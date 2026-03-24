@@ -407,6 +407,7 @@ namespace KasseAPI_Final.Services
                     // Resolve effective percentage discount: assigned benefit (Priority then highest %) first, else Customer.DiscountPercentage fallback. Single discount only.
                     decimal effectivePct = 0;
                     var now = DateTime.UtcNow;
+                    // Benefit validity: domain instant window [ValidFrom, ValidTo] (null ValidTo = open-ended); not rolling-report or calendar half-open.
                     var assignedPercentage = await _context.BenefitAssignments
                     .Where(ba => ba.CustomerId == customer.Id && ba.IsActive
                         && ba.ValidFrom <= now && (ba.ValidTo == null || ba.ValidTo >= now))

@@ -2,11 +2,19 @@ namespace KasseAPI_Final.Models
 {
     /// <summary>
     /// TSE (Technische Sicherheitseinrichtung) konfigürasyonu.
-    /// Tek kaynak: TseMode = Off | Demo | Device
+    /// TseMode: Off | Demo | Device (payment / QR policy).
+    /// Mode: Fake | Real (closing-signing backend via <see cref="KasseAPI_Final.Tse.ITseProvider"/>).
     /// </summary>
     public class TseOptions
     {
         public const string SectionName = "Tse";
+
+        /// <summary>
+        /// Closing signatures: Fake = simulated JWS without hardware; Real = RKSV pipeline + device readiness.
+        /// </summary>
+        public string Mode { get; set; } = "Real";
+
+        public bool IsFakeSigningMode => string.Equals(Mode, "Fake", System.StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// TSE modu: tek kaynak.

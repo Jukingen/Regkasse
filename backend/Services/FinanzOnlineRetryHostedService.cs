@@ -102,6 +102,7 @@ public sealed class FinanzOnlineRetryHostedService : BackgroundService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        // Inclusive instant upper bound: retry when next scheduled attempt time <= now (UTC scheduling, not calendar range).
         var candidates = rawCandidates
             .Where(p => p.FinanzOnlineLastAttemptAtUtc == null ||
                 p.FinanzOnlineLastAttemptAtUtc.Value.AddSeconds(BackoffSeconds(p.FinanzOnlineRetryCount)) <= now)
