@@ -94,4 +94,96 @@ public sealed class PostgreSqlUtcDateTimeTests
         var expected = PostgreSqlUtcDateTime.ToUtcForNpgsql(unspecifiedMidnight);
         Assert.Equal(expected, anchor);
     }
+
+    [Fact]
+    public void CalendarHalfOpenInstantBounds_BothDates_MatchesAustriaInclusiveCalendarRangeUtc()
+    {
+        var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(
+            new DateTime(2026, 4, 1),
+            new DateTime(2026, 4, 5));
+        var (a, b) = PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(
+            new DateTime(2026, 4, 1),
+            new DateTime(2026, 4, 5));
+        Assert.Equal(a, lo);
+        Assert.Equal(b, hi);
+    }
+
+    [Fact]
+    public void CalendarHalfOpenInstantBounds_StartOnly_LowerBoundOnly()
+    {
+        var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(
+            new DateTime(2026, 5, 10), null);
+        Assert.NotNull(lo);
+        Assert.Null(hi);
+    }
+
+    [Fact]
+    public void CalendarHalfOpenInstantBounds_EndOnly_SingleCalendarDayHalfOpen()
+    {
+        var end = new DateTime(2026, 5, 10);
+        var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(null, end);
+        var (a, b) = PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(end, end);
+        Assert.Equal(a, lo);
+        Assert.Equal(b, hi);
+    }
+
+    [Fact]
+    public void CalendarHalfOpenInstantBounds_Neither_Nulls()
+    {
+        var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(null, null);
+        Assert.Null(lo);
+        Assert.Null(hi);
+    }
+
+    [Fact]
+    public void FormatViennaUtcInstantAsYyyyMmDd_UsesViennaLocalDate_NotUtcCalendarDay()
+    {
+        var utc = new DateTime(2026, 1, 15, 23, 0, 0, DateTimeKind.Utc);
+        Assert.Equal("20260116", PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMmDd(utc));
+    }
+
+    [Fact]
+    public void FormatViennaUtcInstantAsYyyyMm_And_Yyyy_UseViennaLocal()
+    {
+        var utc = new DateTime(2025, 12, 31, 23, 30, 0, DateTimeKind.Utc);
+        Assert.Equal("202601", PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMm(utc));
+        Assert.Equal("2026", PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyy(utc));
+    }
+
+    [Fact]
+    public void Dst_SpringForward_2026_March29_LocalDayLength_Is23Hours()
+    {
+        var day = PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(2026, 3, 29);
+        var (fromUtc, toExclusiveUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(day);
+        var span = toExclusiveUtc - fromUtc;
+        Assert.InRange(span.TotalHours, 22.9, 23.1);
+    }
+
+    [Fact]
+    public void Dst_FallBack_2026_October25_LocalDayLength_Is25Hours()
+    {
+        var day = PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(2026, 10, 25);
+        var (fromUtc, toExclusiveUtc) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(day);
+        var span = toExclusiveUtc - fromUtc;
+        Assert.InRange(span.TotalHours, 24.9, 25.1);
+    }
+
+    [Fact]
+    public void Dst_SpringDay_AustriaInclusiveCalendarRangeUtc_IsSingleHalfOpenDay()
+    {
+        var d = new DateTime(2026, 3, 29, 0, 0, 0, DateTimeKind.Unspecified);
+        var (lo, hi) = PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(d, d);
+        Assert.True(hi > lo);
+        Assert.InRange((hi - lo).TotalHours, 22.9, 23.1);
+    }
+
+    [Fact]
+    public void Dst_ViennaCalendarAnchorToPersistUtc_March29_UnspecifiedMidnight_MatchesWall()
+    {
+        var unspecifiedMidnight = new DateTime(2026, 3, 29, 0, 0, 0, DateTimeKind.Unspecified);
+        var anchor = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(unspecifiedMidnight);
+        Assert.Equal(DateTimeKind.Utc, anchor.Kind);
+        Assert.Equal(PostgreSqlUtcDateTime.ToUtcForNpgsql(unspecifiedMidnight), anchor);
+    }
 }
+

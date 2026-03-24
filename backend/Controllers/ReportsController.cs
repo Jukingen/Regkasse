@@ -31,6 +31,7 @@ namespace KasseAPI_Final.Controllers
             DateTime? endDate)
         {
             var nowUtc = DateTime.UtcNow;
+            // Rolling window: continuous UTC instants — upper bound is inclusive "now" (not calendar half-open).
             if (!startDate.HasValue && !endDate.HasValue)
             {
                 var fromUtc = nowUtc.AddDays(-30);
@@ -54,6 +55,7 @@ namespace KasseAPI_Final.Controllers
                 var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
                     ResolveReportsQueryRange(startDate, endDate);
 
+                // endExclusive: Austria calendar half-open [fromUtc, endBoundUtc). Else: rolling UTC window with inclusive instant upper bound (endBoundUtc = now).
                 var invoices = endExclusive
                     ? await _context.Invoices
                         .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate < endBoundUtc && i.IsActive)

@@ -212,17 +212,13 @@ namespace KasseAPI_Final.Controllers
                 var query = _context.CashRegisterTransactions
                     .Where(t => t.CashRegisterId == id);
 
-                if (startDate.HasValue)
-                {
-                    var s = PostgreSqlUtcDateTime.ToUtcForNpgsql(startDate.Value);
-                    query = query.Where(t => t.TransactionDate >= s);
-                }
-
-                if (endDate.HasValue)
-                {
-                    var e = PostgreSqlUtcDateTime.ToUtcForNpgsql(endDate.Value);
-                    query = query.Where(t => t.TransactionDate <= e);
-                }
+                // Austria calendar-day half-open filter on instants: [lower, upper) in UTC (see PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds).
+                var (lowerInclusiveUtc, upperExclusiveUtc) =
+                    PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
+                if (lowerInclusiveUtc.HasValue)
+                    query = query.Where(t => t.TransactionDate >= lowerInclusiveUtc.Value);
+                if (upperExclusiveUtc.HasValue)
+                    query = query.Where(t => t.TransactionDate < upperExclusiveUtc.Value);
 
                 var transactions = await query
                     .Include(t => t.User)

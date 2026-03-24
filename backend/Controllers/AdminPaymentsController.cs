@@ -63,6 +63,7 @@ public class AdminPaymentsController : ControllerBase
 
             if (!startDate.HasValue && !endDate.HasValue)
             {
+                // Default list: rolling UTC window; inclusive instant upper bound at request time (not calendar-day semantics).
                 var fromUtc = nowUtc.AddDays(-30);
                 query = query.Where(p => p.CreatedAt >= fromUtc && p.CreatedAt <= nowUtc);
             }

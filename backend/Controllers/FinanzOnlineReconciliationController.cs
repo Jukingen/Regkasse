@@ -83,16 +83,12 @@ public class FinanzOnlineReconciliationController : ControllerBase
 
             if (cashRegisterId.HasValue && cashRegisterId.Value != Guid.Empty)
                 query = query.Where(p => p.CashRegisterId == cashRegisterId.Value);
-            if (fromUtc.HasValue)
-            {
-                var f = PostgreSqlUtcDateTime.ToUtcForNpgsql(fromUtc.Value);
-                query = query.Where(p => p.CreatedAt >= f);
-            }
-            if (toUtc.HasValue)
-            {
-                var t = PostgreSqlUtcDateTime.ToUtcForNpgsql(toUtc.Value);
-                query = query.Where(p => p.CreatedAt <= t);
-            }
+            // Optional Austria calendar-day half-open filter on payment CreatedAt (query params are typically date-only).
+            var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(fromUtc, toUtc);
+            if (lo.HasValue)
+                query = query.Where(p => p.CreatedAt >= lo.Value);
+            if (hi.HasValue)
+                query = query.Where(p => p.CreatedAt < hi.Value);
 
             var items = await query
                 .OrderByDescending(p => p.FinanzOnlineLastAttemptAtUtc ?? p.CreatedAt)

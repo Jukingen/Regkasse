@@ -52,6 +52,7 @@ public class AdminOperationsSummaryController : ControllerBase
         windowHours = Math.Clamp(windowHours, 1, 168);
         var toUtc = DateTime.UtcNow;
         var fromUtc = toUtc.AddHours(-windowHours);
+        // All audit queries below: inclusive instant bounds on Timestamp (rolling UTC window, not calendar half-open).
 
         try
         {

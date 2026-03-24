@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 
 namespace KasseAPI_Final.Time;
 
@@ -85,6 +86,73 @@ public static class PostgreSqlUtcDateTime
         var (fromUtc, _) = AustriaLocalCalendarDayToUtcRange(startDay);
         var (_, toExclusiveUtc) = AustriaLocalCalendarDayToUtcRange(endDay);
         return (fromUtc, toExclusiveUtc);
+    }
+
+    /// <summary>
+    /// Austria calendar-day half-open bounds <c>[LowerInclusiveUtc, UpperExclusiveUtc)</c> for filtering instants (e.g. <c>TransactionDate</c>, audit <c>Timestamp</c>).
+    /// Uses the same calendar-date components as <see cref="AustriaInclusiveCalendarRangeUtc"/>; <paramref name="startDate"/> / <paramref name="endDate"/> are typically query date-only values.
+    /// </summary>
+    /// <returns>
+    /// <c>(null, null)</c> when both inputs are null;
+    /// lower-only when only <paramref name="startDate"/> is set (no upper bound);
+    /// both bounds when both set or when only <paramref name="endDate"/> is set (single calendar day).
+    /// </returns>
+    public static (DateTime? LowerInclusiveUtc, DateTime? UpperExclusiveUtc) CalendarHalfOpenInstantBounds(
+        DateTime? startDate,
+        DateTime? endDate)
+    {
+        if (!startDate.HasValue && !endDate.HasValue)
+            return (null, null);
+
+        if (startDate.HasValue && endDate.HasValue)
+        {
+            var (a, b) = AustriaInclusiveCalendarRangeUtc(startDate.Value, endDate.Value);
+            return (a, b);
+        }
+
+        if (startDate.HasValue)
+        {
+            var day = ViennaCalendarDateMidnightUnspecified(
+                startDate.Value.Year, startDate.Value.Month, startDate.Value.Day);
+            var (fromUtc, _) = AustriaLocalCalendarDayToUtcRange(day);
+            return (fromUtc, null);
+        }
+
+        var (f, t) = AustriaInclusiveCalendarRangeUtc(endDate!.Value, endDate.Value);
+        return (f, t);
+    }
+
+    /// <summary>
+    /// Formats a persisted UTC instant using the <strong>Vienna local calendar</strong> date (not the UTC calendar day).
+    /// Use for labels derived from <see cref="KasseAPI_Final.Models.DailyClosing.ClosingDate"/> (Vienna midnight stored as <c>timestamptz</c>).
+    /// </summary>
+    public static string FormatViennaUtcInstantAsYyyyMmDd(DateTime utcInstant)
+    {
+        var utc = utcInstant.Kind == DateTimeKind.Utc
+            ? utcInstant
+            : DateTime.SpecifyKind(utcInstant, DateTimeKind.Utc);
+        var local = TimeZoneInfo.ConvertTimeFromUtc(utc, AustriaTimeZone);
+        return local.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Vienna local year-month for monthly closing reference ids.</summary>
+    public static string FormatViennaUtcInstantAsYyyyMm(DateTime utcInstant)
+    {
+        var utc = utcInstant.Kind == DateTimeKind.Utc
+            ? utcInstant
+            : DateTime.SpecifyKind(utcInstant, DateTimeKind.Utc);
+        var local = TimeZoneInfo.ConvertTimeFromUtc(utc, AustriaTimeZone);
+        return local.ToString("yyyyMM", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Vienna local year for yearly closing reference ids.</summary>
+    public static string FormatViennaUtcInstantAsYyyy(DateTime utcInstant)
+    {
+        var utc = utcInstant.Kind == DateTimeKind.Utc
+            ? utcInstant
+            : DateTime.SpecifyKind(utcInstant, DateTimeKind.Utc);
+        var local = TimeZoneInfo.ConvertTimeFromUtc(utc, AustriaTimeZone);
+        return local.Year.ToString("D4", CultureInfo.InvariantCulture);
     }
 
     /// <summary>

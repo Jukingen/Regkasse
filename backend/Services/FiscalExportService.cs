@@ -64,6 +64,7 @@ public class FiscalExportService : IFiscalExportService
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.CashRegisterId == cashRegisterId, cancellationToken);
 
+        // Caller-supplied UTC instants: inclusive window [from, to] on receipt issuance time (not Austria calendar half-open).
         var totalReceiptsMatchingPeriod = await _context.Receipts
             .AsNoTracking()
             .CountAsync(
@@ -127,6 +128,7 @@ public class FiscalExportService : IFiscalExportService
         exportScopeWarnings.Add(
             "Offline transaction counts use OfflineCreatedAtUtc within the same UTC window as Period (not identical to receipt issuance scope).");
 
+        // DailyClosing.CreatedAt: same inclusive UTC instant window as receipts (export period).
         var closings = await _context.DailyClosings
             .AsNoTracking()
             .Where(c =>

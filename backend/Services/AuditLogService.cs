@@ -507,18 +507,12 @@ namespace KasseAPI_Final.Services
             {
                 var query = _context.AuditLogs.AsQueryable();
 
-                // Apply filters
-                if (startDate.HasValue)
-                {
-                    var s = PostgreSqlUtcDateTime.ToUtcForNpgsql(startDate.Value);
-                    query = query.Where(a => a.Timestamp >= s);
-                }
-
-                if (endDate.HasValue)
-                {
-                    var e = PostgreSqlUtcDateTime.ToUtcForNpgsql(endDate.Value);
-                    query = query.Where(a => a.Timestamp <= e);
-                }
+                // Austria calendar-day half-open bounds on audit instants (see PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds).
+                var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
+                if (lo.HasValue)
+                    query = query.Where(a => a.Timestamp >= lo.Value);
+                if (hi.HasValue)
+                    query = query.Where(a => a.Timestamp < hi.Value);
 
                 if (!string.IsNullOrEmpty(userId))
                     query = query.Where(a => a.UserId == userId);
@@ -567,17 +561,11 @@ namespace KasseAPI_Final.Services
                 var query = _context.AuditLogs
                     .Where(a => a.EntityType == AuditLogEntityTypes.PAYMENT && a.EntityId == paymentId);
 
-                if (startDate.HasValue)
-                {
-                    var s = PostgreSqlUtcDateTime.ToUtcForNpgsql(startDate.Value);
-                    query = query.Where(a => a.Timestamp >= s);
-                }
-
-                if (endDate.HasValue)
-                {
-                    var e = PostgreSqlUtcDateTime.ToUtcForNpgsql(endDate.Value);
-                    query = query.Where(a => a.Timestamp <= e);
-                }
+                var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
+                if (lo.HasValue)
+                    query = query.Where(a => a.Timestamp >= lo.Value);
+                if (hi.HasValue)
+                    query = query.Where(a => a.Timestamp < hi.Value);
 
                 query = query.OrderByDescending(a => a.Timestamp);
 
@@ -607,17 +595,11 @@ namespace KasseAPI_Final.Services
                 var query = _context.AuditLogs
                     .Where(a => a.EntityType == AuditLogEntityTypes.USER && a.EntityName == userId);
 
-                if (startDate.HasValue)
-                {
-                    var s = PostgreSqlUtcDateTime.ToUtcForNpgsql(startDate.Value);
-                    query = query.Where(a => a.Timestamp >= s);
-                }
-
-                if (endDate.HasValue)
-                {
-                    var e = PostgreSqlUtcDateTime.ToUtcForNpgsql(endDate.Value);
-                    query = query.Where(a => a.Timestamp <= e);
-                }
+                var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
+                if (lo.HasValue)
+                    query = query.Where(a => a.Timestamp >= lo.Value);
+                if (hi.HasValue)
+                    query = query.Where(a => a.Timestamp < hi.Value);
 
                 query = query.OrderByDescending(a => a.Timestamp);
 
@@ -645,16 +627,11 @@ namespace KasseAPI_Final.Services
             {
                 var query = _context.AuditLogs
                     .Where(a => a.EntityType == AuditLogEntityTypes.USER && a.EntityName == userId);
-                if (startDate.HasValue)
-                {
-                    var s = PostgreSqlUtcDateTime.ToUtcForNpgsql(startDate.Value);
-                    query = query.Where(a => a.Timestamp >= s);
-                }
-                if (endDate.HasValue)
-                {
-                    var e = PostgreSqlUtcDateTime.ToUtcForNpgsql(endDate.Value);
-                    query = query.Where(a => a.Timestamp <= e);
-                }
+                var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
+                if (lo.HasValue)
+                    query = query.Where(a => a.Timestamp >= lo.Value);
+                if (hi.HasValue)
+                    query = query.Where(a => a.Timestamp < hi.Value);
                 return await query.CountAsync();
             }
             catch (Exception ex)
@@ -692,18 +669,11 @@ namespace KasseAPI_Final.Services
             {
                 var query = _context.AuditLogs.AsQueryable();
 
-                // Apply filters
-                if (startDate.HasValue)
-                {
-                    var s = PostgreSqlUtcDateTime.ToUtcForNpgsql(startDate.Value);
-                    query = query.Where(a => a.Timestamp >= s);
-                }
-
-                if (endDate.HasValue)
-                {
-                    var e = PostgreSqlUtcDateTime.ToUtcForNpgsql(endDate.Value);
-                    query = query.Where(a => a.Timestamp <= e);
-                }
+                var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
+                if (lo.HasValue)
+                    query = query.Where(a => a.Timestamp >= lo.Value);
+                if (hi.HasValue)
+                    query = query.Where(a => a.Timestamp < hi.Value);
 
                 if (!string.IsNullOrEmpty(userId))
                     query = query.Where(a => a.UserId == userId);
@@ -791,6 +761,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
+                // Retention cutoff: interpret cutoffDate in Austria wall-clock then UTC (not calendar half-open listing).
                 var cutoffUtc = PostgreSqlUtcDateTime.ToUtcForNpgsql(cutoffDate);
                 var retentionYears = _retentionOptions.RetentionYears > 0 ? _retentionOptions.RetentionYears : 7;
                 var minCutoff = DateTime.UtcNow.Date.AddYears(-retentionYears);
@@ -853,17 +824,11 @@ namespace KasseAPI_Final.Services
             {
                 var query = _context.AuditLogs.AsQueryable();
 
-                if (startDate.HasValue)
-                {
-                    var s = PostgreSqlUtcDateTime.ToUtcForNpgsql(startDate.Value);
-                    query = query.Where(a => a.Timestamp >= s);
-                }
-
-                if (endDate.HasValue)
-                {
-                    var e = PostgreSqlUtcDateTime.ToUtcForNpgsql(endDate.Value);
-                    query = query.Where(a => a.Timestamp <= e);
-                }
+                var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
+                if (lo.HasValue)
+                    query = query.Where(a => a.Timestamp >= lo.Value);
+                if (hi.HasValue)
+                    query = query.Where(a => a.Timestamp < hi.Value);
 
                 var statistics = new Dictionary<string, int>();
 

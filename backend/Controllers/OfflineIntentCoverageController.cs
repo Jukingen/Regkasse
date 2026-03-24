@@ -68,6 +68,7 @@ public class OfflineIntentCoverageController : ControllerBase
 
         try
         {
+            // from/to: inclusive instant bounds on UTC observability window (not Austria calendar half-open).
             var query = _context.OfflineIntentCoverageSamples
                 .AsNoTracking()
                 .Where(s => s.CreatedAtUtc >= from && s.CreatedAtUtc <= to);
@@ -188,6 +189,7 @@ public class OfflineIntentCoverageController : ControllerBase
 
         try
         {
+            // from/to: inclusive instant bounds on UTC observability window (not Austria calendar half-open).
             var query = _context.OfflineIntentCoverageSamples
                 .AsNoTracking()
                 .Where(s => s.CreatedAtUtc >= from && s.CreatedAtUtc <= to);

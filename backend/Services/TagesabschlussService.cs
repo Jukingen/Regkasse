@@ -357,6 +357,8 @@ namespace KasseAPI_Final.Services
             if (cashRegisterId.HasValue && cashRegisterId.Value != Guid.Empty)
                 query = query.Where(d => d.CashRegisterId == cashRegisterId.Value);
 
+            // ClosingDate rows are discrete Vienna-midnight anchors (one instant per business day), not arbitrary instants.
+            // Inclusive calendar filter: lower bound = start of from-day; upper bound = start of to-day (equals that day's stored anchor).
             if (fromDate.HasValue)
             {
                 var fromUtc = PostgreSqlUtcDateTime.ToUtcForNpgsql(fromDate.Value);

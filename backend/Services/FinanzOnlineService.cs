@@ -244,8 +244,9 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Simulate FinanzOnline daily closing submission
-                var referenceId = $"FIN_DAILY_{dailyClosing.ClosingDate:yyyyMMdd}_{dailyClosing.CashRegisterId}";
+                // Simulate FinanzOnline daily closing submission (Vienna business date label, not UTC calendar day of stored instant).
+                var referenceId =
+                    $"FIN_DAILY_{PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMmDd(dailyClosing.ClosingDate)}_{dailyClosing.CashRegisterId}";
                 
                 // Update company settings
                 var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
@@ -306,8 +307,9 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Simulate FinanzOnline yearly closing submission
-                var referenceId = $"FIN_YEARLY_{yearlyClosing.ClosingDate:yyyy}_{yearlyClosing.CashRegisterId}";
+                // Simulate FinanzOnline yearly closing submission (Vienna local year).
+                var referenceId =
+                    $"FIN_YEARLY_{PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyy(yearlyClosing.ClosingDate)}_{yearlyClosing.CashRegisterId}";
                 
                 return new FinanzOnlineSubmitResponse
                 {
@@ -335,17 +337,12 @@ namespace KasseAPI_Final.Services
             {
                 var query = _context.FinanzOnlineErrors.AsQueryable();
 
-                if (fromDate.HasValue)
-                {
-                    var f = PostgreSqlUtcDateTime.ToUtcForNpgsql(fromDate.Value);
-                    query = query.Where(e => e.OccurredAt >= f);
-                }
-
-                if (toDate.HasValue)
-                {
-                    var t = PostgreSqlUtcDateTime.ToUtcForNpgsql(toDate.Value);
-                    query = query.Where(e => e.OccurredAt <= t);
-                }
+                // Calendar-day half-open bounds for error timestamps (same semantics as other admin date filters).
+                var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(fromDate, toDate);
+                if (lo.HasValue)
+                    query = query.Where(e => e.OccurredAt >= lo.Value);
+                if (hi.HasValue)
+                    query = query.Where(e => e.OccurredAt < hi.Value);
 
                 var errors = await query
                     .OrderByDescending(e => e.OccurredAt)
