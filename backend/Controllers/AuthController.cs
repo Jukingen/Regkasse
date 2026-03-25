@@ -12,6 +12,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -24,19 +25,22 @@ namespace KasseAPI_Final.Controllers
         private readonly ILogger<AuthController> _logger;
         private readonly ITokenClaimsService _tokenClaimsService;
         private readonly AuthOptions _authOptions;
+        private readonly IRefreshTokenService _refreshTokenService;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
             ILogger<AuthController> logger,
             ITokenClaimsService tokenClaimsService,
-            IOptions<AuthOptions> authOptions)
+            IOptions<AuthOptions> authOptions,
+            IRefreshTokenService refreshTokenService)
         {
             _userManager = userManager;
             _configuration = configuration;
             _logger = logger;
             _tokenClaimsService = tokenClaimsService;
             _authOptions = authOptions.Value;
+            _refreshTokenService = refreshTokenService;
         }
 
         [HttpPost("login")]
@@ -112,14 +116,22 @@ namespace KasseAPI_Final.Controllers
                         user.Id, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
                 }
 
-                var claims = await _tokenClaimsService.BuildClaimsAsync(user, roles, appContext: resolvedClientApp);
-                var token = GenerateJwtToken(claims);
+                var issuedTokens = await _refreshTokenService.IssueLoginTokensAsync(
+                    user.Id,
+                    resolvedClientApp ?? "legacy",
+                    async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp) =>
+                    {
+                        var claims = await _tokenClaimsService.BuildClaimsAsync(user, roles, appContext: resolvedClientApp);
+                        return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
+                    });
                 var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles).ToList();
 
                 var response = new
                 {
-                    token = token,
-                    expiresIn = 3600,
+                    token = issuedTokens.AccessToken,
+                    expiresIn = Math.Max(60, _authOptions.AccessTokenLifetimeMinutes * 60),
+                    refreshToken = issuedTokens.RefreshToken,
+                    refreshTokenExpiresAtUtc = issuedTokens.RefreshTokenExpiresAtUtc,
                     user = new
                     {
                         id = user.Id,
@@ -144,6 +156,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
@@ -154,6 +167,11 @@ namespace KasseAPI_Final.Controllers
                     return Unauthorized(new { message = "User not authenticated" });
 
                 _logger.LogInformation("Logout requested for user: {UserId}", userId);
+                var sidRaw = User.FindFirst("sid")?.Value;
+                if (Guid.TryParse(sidRaw, out var sessionId))
+                {
+                    await _refreshTokenService.LogoutSessionAsync(sessionId, "logout");
+                }
 
                 // 🧹 KULLANICI SEPETLERİNİ TEMİZLE
                 try
@@ -265,10 +283,31 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Refresh token is required" });
                 }
 
-                // TODO: Refresh token validation logic will be implemented here
-                // For now, return a simple response
-                _logger.LogWarning("Refresh token endpoint not fully implemented yet");
-                return BadRequest(new { message = "Refresh token functionality not implemented yet" });
+                var result = await _refreshTokenService.RotateAsync(
+                    model.RefreshToken,
+                    async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp) =>
+                    {
+                        var user = await _userManager.FindByIdAsync(tokenUserId);
+                        if (user == null)
+                            throw new InvalidOperationException("Refresh token user not found");
+                        var roles = await _userManager.GetRolesAsync(user);
+                        var claims = await _tokenClaimsService.BuildClaimsAsync(user, roles, appContext: clientApp);
+                        return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
+                    });
+
+                if (!result.Success || result.Tokens == null)
+                {
+                    var code = result.ReuseDetected ? "refresh_token_reuse_detected" : result.ErrorCode;
+                    return Unauthorized(new { message = "Refresh failed", code });
+                }
+
+                return Ok(new
+                {
+                    token = result.Tokens.AccessToken,
+                    expiresIn = Math.Max(60, _authOptions.AccessTokenLifetimeMinutes * 60),
+                    refreshToken = result.Tokens.RefreshToken,
+                    refreshTokenExpiresAtUtc = result.Tokens.RefreshTokenExpiresAtUtc
+                });
             }
             catch (Exception ex)
             {
@@ -311,20 +350,45 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        private string GenerateJwtToken(IReadOnlyList<Claim> claims)
+        [Authorize]
+        [HttpPost("logout-all")]
+        public async Task<IActionResult> LogoutAll()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+                return Unauthorized(new { message = "User not authenticated" });
+
+            await _refreshTokenService.LogoutAllAsync(userId, "logout_all");
+            return Ok(new { message = "All sessions invalidated" });
+        }
+
+        [Authorize]
+        [HttpPost("revoke")]
+        public async Task<IActionResult> Revoke([FromBody] RefreshTokenModel model)
+        {
+            if (string.IsNullOrWhiteSpace(model.RefreshToken))
+                return BadRequest(new { message = "Refresh token is required" });
+
+            var revoked = await _refreshTokenService.RevokeRefreshTokenAsync(model.RefreshToken, "manual_revoke");
+            if (!revoked)
+                return NotFound(new { message = "Refresh token not found" });
+            return Ok(new { message = "Refresh token revoked" });
+        }
+
+        private string GenerateJwtToken(IReadOnlyList<Claim> baseClaims, string jti, Guid sessionId, DateTime expiresAtUtc)
         {
             var secretKey = _configuration["JwtSettings:SecretKey"]!;
             var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var expirationHours = double.TryParse(_configuration["JwtSettings:ExpirationHours"], out var h) ? h : 24;
-            var expires = DateTime.UtcNow.AddHours(expirationHours);
+            var claims = baseClaims.ToList();
+            claims.Add(new Claim(JwtRegisteredClaimNames.Jti, jti));
+            claims.Add(new Claim("sid", sessionId.ToString()));
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["JwtSettings:Issuer"],
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
-                expires: expires,
+                expires: expiresAtUtc,
                 signingCredentials: creds
             );
 

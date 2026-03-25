@@ -1,8 +1,8 @@
 /**
- * Orval transformer: legacy product ve categories path'lerini spec'ten çıkarır.
- * FE-Admin bu endpoint'leri kullanmıyor (src/api/admin/* kullanılıyor).
+ * Orval transformer: canonical boundary disi legacy path'leri spec'ten çıkarır.
+ * FE-Admin payment için /api/admin/payments/* ve /api/pos/payment/* kullanır.
  */
-const LEGACY = ['/api/Product', '/api/Categories']; // path prefix'leri – silinirse orval bu endpoint'leri üretmez
+const LEGACY = ['/api/Product', '/api/Categories', '/api/Payment']; // path prefix'leri – silinirse orval bu endpoint'leri üretmez
 
 module.exports = function (spec) {
     const paths = spec.paths || {};

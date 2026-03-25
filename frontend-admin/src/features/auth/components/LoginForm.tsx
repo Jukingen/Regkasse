@@ -21,11 +21,15 @@ export const LoginForm: FC = () => {
             onSuccess: async (data) => {
                 const loginResponse = data as any;
                 const token = loginResponse?.token;
+                const refreshToken = loginResponse?.refreshToken;
 
                 if (token) {
                     authStorage.setToken(token);
+                    if (refreshToken) {
+                        authStorage.setRefreshToken(refreshToken);
+                    }
                     if (process.env.NODE_ENV === 'development') {
-                        console.log('✅ [LoginForm] JWT Token saved to local storage');
+                        console.log('✅ [LoginForm] JWT token pair saved to session storage');
                     }
                 }
 

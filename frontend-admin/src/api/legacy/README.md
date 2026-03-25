@@ -17,3 +17,12 @@ Default policy is **generated-client first**. Keep legacy wrappers only when com
 - For every remaining wrapper, include: **why manual**, **owner**, and **removal condition**.
 - Do not auto-migrate fiscal or debug endpoints (e.g. receipt, TSE, signature-debug). Document them and require manual review.
 - Query keys and hooks in this folder remain the containment point only for still-active legacy consumers.
+
+## Deprecation timeline
+
+- Legacy payment alias route family `/api/Payment/*` is deprecated at backend level.
+- Sunset target: **2026-09-30 23:59:59 GMT**.
+- Before sunset:
+  - keep legacy consumers tracked in this folder only,
+  - migrate active admin paths to `/api/admin/payments/*` (or `/api/pos/payment/*` when explicitly POS-bound),
+  - avoid new dependencies on `/api/Payment/*`.

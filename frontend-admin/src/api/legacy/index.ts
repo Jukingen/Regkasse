@@ -1,6 +1,7 @@
 /**
- * Legacy API boundary. All admin usage of /api/Payment and /api/Cart should go through this folder.
- * See README.md for scope and rules.
+ * Legacy API boundary.
+ * /api/Payment alias is deprecated and scheduled for removal; prefer canonical /api/admin/payments/* and /api/pos/payment/*.
+ * See README.md for migration scope and rules.
  */
 
 export {

@@ -10,4 +10,10 @@ public class AuthOptions
     /// without it receive 400.
     /// </summary>
     public bool AllowLegacyLoginWithoutClientApp { get; set; } = false;
+
+    public int AccessTokenLifetimeMinutes { get; set; } = 15;
+
+    public int RefreshTokenLifetimeDays { get; set; } = 14;
+
+    public int ReuseDetectionRevokeLookbackDays { get; set; } = 30;
 }

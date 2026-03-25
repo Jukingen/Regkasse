@@ -176,7 +176,8 @@ namespace KasseAPI_Final.Services
                             QrPayload = qr,
                             IsDemoFiscal = demo,
                             TseProvider = provider,
-                            InvoicePersisted = invoiceExists
+                            InvoicePersisted = invoiceExists,
+                            IdempotentReplay = true
                         };
                     }
                 }
@@ -290,7 +291,8 @@ namespace KasseAPI_Final.Services
                                 QrPayload = qrInTx,
                                 IsDemoFiscal = demoInTx,
                                 TseProvider = providerInTx,
-                                InvoicePersisted = invoiceExistsInTx
+                                InvoicePersisted = invoiceExistsInTx,
+                                IdempotentReplay = true
                             };
                         }
                     }
@@ -751,7 +753,8 @@ namespace KasseAPI_Final.Services
                                 QrPayload = qr,
                                 IsDemoFiscal = demo,
                                 TseProvider = provider,
-                                InvoicePersisted = invoiceExists
+                                InvoicePersisted = invoiceExists,
+                                IdempotentReplay = true
                             };
                         }
                     }

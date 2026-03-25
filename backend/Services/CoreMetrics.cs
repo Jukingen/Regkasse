@@ -23,6 +23,8 @@ public interface ICoreMetrics
     void SetPayloadHashCompletionPercent(double percent);
     void RecordFinanzOnlineSubmit(int count = 1);
     void RecordFinanzOnlineFailed(FinanzOnlineFailureKind kind, int count = 1);
+    /// <summary>Legacy payment route hit counter (for deprecation migration tracking).</summary>
+    void RecordLegacyPaymentRouteHit(string routeTemplate, string httpMethod, int count = 1);
 }
 
 /// <summary>
@@ -41,6 +43,7 @@ public sealed class CoreMetrics : ICoreMetrics
     private readonly Gauge _payloadHashCompletionPercent;
     private readonly Counter _finanzonlineSubmitTotal;
     private readonly Counter _finanzonlineSubmitFailedTotal;
+    private readonly Counter _legacyPaymentRouteHitsTotal;
 
     public CoreMetrics()
     {
@@ -90,6 +93,11 @@ public sealed class CoreMetrics : ICoreMetrics
             "finanzonline_submit_failed_total",
             "Total number of FinanzOnline submission failures.",
             new CounterConfiguration { LabelNames = ["failure_kind"] });
+
+        _legacyPaymentRouteHitsTotal = Metrics.CreateCounter(
+            "legacy_payment_route_hits_total",
+            "Total number of requests hitting deprecated /api/Payment legacy routes.",
+            new CounterConfiguration { LabelNames = ["route_template", "http_method"] });
     }
 
     public void RecordReplayTotal(int count = 1)
@@ -162,5 +170,13 @@ public sealed class CoreMetrics : ICoreMetrics
             _ => "unknown"
         };
         _finanzonlineSubmitFailedTotal.WithLabels(label).Inc(count);
+    }
+
+    public void RecordLegacyPaymentRouteHit(string routeTemplate, string httpMethod, int count = 1)
+    {
+        if (count <= 0) return;
+        var route = string.IsNullOrWhiteSpace(routeTemplate) ? "unknown" : routeTemplate;
+        var method = string.IsNullOrWhiteSpace(httpMethod) ? "unknown" : httpMethod.ToUpperInvariant();
+        _legacyPaymentRouteHitsTotal.WithLabels(route, method).Inc(count);
     }
 }

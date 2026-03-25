@@ -48,6 +48,8 @@ namespace KasseAPI_Final.Data
         public DbSet<PaymentLogEntry> PaymentLogs { get; set; }
         public DbSet<PaymentSession> PaymentSessions { get; set; }
         public DbSet<PaymentMetrics> PaymentMetrics { get; set; }
+        public DbSet<AuthSession> AuthSessions { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
         
         // Masa siparişleri için yeni tablolar
         public DbSet<TableOrder> TableOrders { get; set; }
@@ -95,6 +97,43 @@ namespace KasseAPI_Final.Data
                 
                 entity.HasIndex(e => e.EmployeeNumber).IsUnique();
                 entity.HasIndex(e => e.TaxNumber).IsUnique();
+            });
+
+            builder.Entity<AuthSession>(entity =>
+            {
+                entity.ToTable("auth_sessions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.ClientApp).HasColumnName("client_app").IsRequired().HasMaxLength(20);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
+                entity.Property(e => e.RevokedAtUtc).HasColumnName("revoked_at_utc");
+                entity.Property(e => e.RevokedReason).HasColumnName("revoked_reason").HasMaxLength(200);
+                entity.HasIndex(e => new { e.UserId, e.RevokedAtUtc });
+                entity.HasIndex(e => e.CreatedAtUtc);
+            });
+
+            builder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("refresh_tokens");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.SessionId).HasColumnName("session_id").IsRequired();
+                entity.Property(e => e.TokenHash).HasColumnName("token_hash").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.AccessJti).HasColumnName("access_jti").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
+                entity.Property(e => e.ExpiresAtUtc).HasColumnName("expires_at_utc").IsRequired();
+                entity.Property(e => e.ConsumedAtUtc).HasColumnName("consumed_at_utc");
+                entity.Property(e => e.RevokedAtUtc).HasColumnName("revoked_at_utc");
+                entity.Property(e => e.ReplacedByTokenId).HasColumnName("replaced_by_token_id");
+                entity.Property(e => e.RevokeReason).HasColumnName("revoke_reason").HasMaxLength(200);
+
+                entity.HasIndex(e => e.TokenHash).IsUnique();
+                entity.HasIndex(e => new { e.SessionId, e.RevokedAtUtc, e.ExpiresAtUtc });
+                entity.HasIndex(e => new { e.UserId, e.CreatedAtUtc });
+                entity.HasOne(e => e.Session)
+                    .WithMany(s => s.RefreshTokens)
+                    .HasForeignKey(e => e.SessionId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Product configuration - RKSV uyumlu güncellenmiş yapı

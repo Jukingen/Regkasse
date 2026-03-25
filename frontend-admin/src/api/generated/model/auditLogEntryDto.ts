@@ -15,6 +15,10 @@ export interface AuditLogEntryDto {
   /** @nullable */
   actorDisplayName?: string | null;
   /** @nullable */
+  actorRole?: string | null;
+  /** @nullable */
+  actorUserId?: string | null;
+  /** @nullable */
   amount?: number | null;
   /** @nullable */
   changes?: string | null;

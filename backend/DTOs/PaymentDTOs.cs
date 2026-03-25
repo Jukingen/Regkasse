@@ -132,6 +132,9 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>When true (default), invoice was persisted for this payment. When false, payment succeeded but invoice sync failed — operator attention required.</summary>
         public bool InvoicePersisted { get; set; } = true;
+
+        /// <summary>True when the same idempotency key returned an existing committed payment (no new fiscal write).</summary>
+        public bool IdempotentReplay { get; set; }
     }
     
     /// <summary>

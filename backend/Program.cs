@@ -112,9 +112,23 @@ builder.Services.AddAuthentication(options =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             var correlationId = context.HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+            var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var sidRaw = context.Principal?.FindFirst("sid")?.Value;
+            if (!string.IsNullOrWhiteSpace(userId) && Guid.TryParse(sidRaw, out var sessionId))
+            {
+                var refreshTokenService = context.HttpContext.RequestServices.GetRequiredService<IRefreshTokenService>();
+                var isActive = refreshTokenService.IsSessionActiveAsync(userId, sessionId, context.HttpContext.RequestAborted)
+                    .GetAwaiter()
+                    .GetResult();
+                if (!isActive)
+                {
+                    context.Fail("Session invalidated");
+                    return Task.CompletedTask;
+                }
+            }
             logger.LogInformation(
                 "JWT token validated successfully: userId={UserId}, correlationId={CorrelationId}",
-                context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+                userId,
                 correlationId);
             return Task.CompletedTask;
         },
@@ -152,8 +166,8 @@ builder.Services.AddAuthentication(options =>
 // Admin/SuperAdmin permission set in RolePermissionMatrix.
 builder.Services.AddAppAuthorization();
 
-// Session invalidation on critical account changes (stub until RefreshToken table exists)
-builder.Services.AddScoped<IUserSessionInvalidation, StubUserSessionInvalidation>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<IUserSessionInvalidation>(sp => (RefreshTokenService)sp.GetRequiredService<IRefreshTokenService>());
 builder.Services.AddScoped<IRolePermissionResolver, RolePermissionResolver>();
 builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();
@@ -260,6 +274,7 @@ builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterRead
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
+builder.Services.AddScoped<PaymentLegacyRouteDeprecationFilter>();
 
 // Register repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));

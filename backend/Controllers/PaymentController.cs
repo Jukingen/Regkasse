@@ -24,6 +24,7 @@ namespace KasseAPI_Final.Controllers
     [Route("api/[controller]")]
     [Route("api/pos/payment")]
     [ApiController]
+    [ServiceFilter(typeof(PaymentLegacyRouteDeprecationFilter))]
     [HasPermission(AppPermissions.PaymentTake)]
     public class PaymentController : BaseController
     {
@@ -32,7 +33,11 @@ namespace KasseAPI_Final.Controllers
 
         private readonly IQrImageService _qrImageService;
 
-        public PaymentController(IPaymentService paymentService, IQrImageService qrImageService, SignaturePipeline signaturePipeline, ILogger<PaymentController> logger) 
+        public PaymentController(
+            IPaymentService paymentService,
+            IQrImageService qrImageService,
+            SignaturePipeline signaturePipeline,
+            ILogger<PaymentController> logger) 
             : base(logger)
         {
             _paymentService = paymentService;
@@ -72,27 +77,40 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Yeni ödeme oluştur
+        /// Yeni ödeme oluştur.
+        /// Standard response envelope (success + errors + idempotency): send header <c>X-Regkasse-Payment-Contract: v2</c>.
+        /// Without the header, legacy JSON shape is returned for backward compatibility.
         /// </summary>
         [HttpPost]
         [HasPermission(AppPermissions.PaymentTake)]
+        [ProducesResponseType(typeof(PaymentApiEnvelope<PaymentCreateSuccessData>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(PaymentApiErrorBody), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(PaymentApiErrorBody), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(PaymentApiErrorBody), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(PaymentApiErrorBody), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> CreatePayment([FromBody] CreatePaymentRequest request)
         {
             try
             {
-                // Debug: Request'i logla
-                _logger.LogInformation("CreatePayment called with request: {@Request}", request);
-                
-                // ModelState'i kontrol et
+                var v2 = PaymentApiContractMapper.WantsV2Contract(Request);
+                var correlationId = PaymentApiContractMapper.GetCorrelationId(HttpContext);
+
+                _logger.LogInformation("CreatePayment called with request: {@Request}, contractV2={V2}", request, v2);
+
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values
                         .SelectMany(v => v.Errors)
                         .Select(e => e.ErrorMessage)
                         .ToList();
-                    
                     _logger.LogWarning("ModelState validation failed: {Errors}", string.Join("; ", errors));
-                    
+                    if (v2)
+                    {
+                        return PaymentApiContractMapper.ValidationError(
+                            "Model validation failed",
+                            PaymentApiContractMapper.ModelStateToFieldErrors(ModelState),
+                            correlationId);
+                    }
                     return BadRequest(new
                     {
                         message = "Model validation failed",
@@ -100,7 +118,7 @@ namespace KasseAPI_Final.Controllers
                         modelState = ModelState
                     });
                 }
-                
+
                 var validationResult = ValidateModel();
                 if (validationResult != null)
                 {
@@ -111,15 +129,26 @@ namespace KasseAPI_Final.Controllers
                 var userId = GetCurrentUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
+                    if (v2)
+                        return PaymentApiContractMapper.UnauthorizedError("User not authenticated", correlationId);
                     return ErrorResponse("User not authenticated", 401);
                 }
 
                 var result = await _paymentService.CreatePaymentAsync(request, userId);
-                
+
                 if (result.Success)
                 {
-                    // Payment'tan TseSignature (JWS) çıkar - sadece admin/debug endpoint'te verilir
                     var paymentSafe = SanitizePaymentForResponse(result.Payment);
+                    if (v2)
+                    {
+                        var envelope = PaymentApiContractMapper.CreatePaymentSuccessEnvelope(
+                            result,
+                            paymentSafe!,
+                            correlationId,
+                            request.IdempotencyKey);
+                        return CreatedAtAction(nameof(GetPayment), new { id = result.Payment!.Id }, envelope);
+                    }
+
                     var responseData = new
                     {
                         success = true,
@@ -127,6 +156,7 @@ namespace KasseAPI_Final.Controllers
                         message = result.Message,
                         payment = paymentSafe,
                         invoicePersisted = result.InvoicePersisted,
+                        idempotentReplay = result.IdempotentReplay,
                         tse = new
                         {
                             provider = result.TseProvider,
@@ -135,8 +165,15 @@ namespace KasseAPI_Final.Controllers
                             receiptNumber = result.Payment?.ReceiptNumber
                         }
                     };
-                    return CreatedAtAction(nameof(GetPayment), new { id = result.Payment!.Id }, 
+                    return CreatedAtAction(nameof(GetPayment), new { id = result.Payment!.Id },
                         responseData);
+                }
+
+                if (v2)
+                {
+                    var err = PaymentApiContractMapper.CreatePaymentErrorBody(result, correlationId);
+                    var status = PaymentApiContractMapper.MapToStatusCode(result);
+                    return new ObjectResult(err) { StatusCode = status };
                 }
 
                 if (!string.IsNullOrEmpty(result.DiagnosticCode) && result.DiagnosticCode == CashRegisterResolutionCodes.Forbidden)

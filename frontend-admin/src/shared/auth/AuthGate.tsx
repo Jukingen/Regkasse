@@ -25,8 +25,6 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
         if (!isInitialized || authStatus === AuthStatus.Loading) return;
 
         const currentPath = pathname;
-        const hasToken = typeof window !== 'undefined' && !!localStorage.getItem('rk_admin_access_token');
-
         // Protected Mode: authenticated -> children, unauthenticated -> /login
         if (mode === 'protected') {
             if (authStatus === AuthStatus.Unauthenticated) {

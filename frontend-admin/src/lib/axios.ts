@@ -69,8 +69,27 @@ const createAxiosInstance = () => {
                 message.error(userMessage);
             }
 
-            if (status === 401 && originalRequest && !originalRequest._retry) {
+            if (status === 401 && originalRequest && !originalRequest._retry && !String(url).includes('/api/Auth/refresh')) {
                 originalRequest._retry = true;
+                const refreshToken = authStorage.getRefreshToken();
+                if (refreshToken) {
+                    try {
+                        const refreshResponse = await instance.post('/api/Auth/refresh', { refreshToken });
+                        const nextAccessToken = (refreshResponse.data as any)?.token as string | undefined;
+                        const nextRefreshToken = (refreshResponse.data as any)?.refreshToken as string | undefined;
+                        if (nextAccessToken) {
+                            authStorage.setToken(nextAccessToken);
+                            if (nextRefreshToken) {
+                                authStorage.setRefreshToken(nextRefreshToken);
+                            }
+                            originalRequest.headers = originalRequest.headers ?? {};
+                            originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
+                            return instance(originalRequest);
+                        }
+                    } catch {
+                        authStorage.removeToken();
+                    }
+                }
             }
 
             const normalized = { status: status ?? 0, url, message: serverMessage ?? fallbackMessage, data: data ?? null };

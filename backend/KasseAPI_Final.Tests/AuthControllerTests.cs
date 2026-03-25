@@ -94,7 +94,14 @@ public class AuthControllerTests
         var logger = new Mock<ILogger<AuthController>>().Object;
         var tokenClaims = CreateTokenClaimsMock();
         var authOptions = Options.Create(new AuthOptions { AllowLegacyLoginWithoutClientApp = allowLegacy });
-        return new AuthController(userManager, config, logger, tokenClaims.Object, authOptions);
+        var refreshTokenService = new Mock<IRefreshTokenService>();
+        refreshTokenService.Setup(x => x.IssueLoginTokensAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<string, string, Guid, DateTime, string, Task<string>>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IssuedTokenPair("access", DateTime.UtcNow.AddMinutes(15), "refresh", DateTime.UtcNow.AddDays(14), Guid.NewGuid(), Guid.NewGuid().ToString("N")));
+        return new AuthController(userManager, config, logger, tokenClaims.Object, authOptions, refreshTokenService.Object);
     }
 
     private static ApplicationUser ActiveUser(string role = "Cashier") => new()

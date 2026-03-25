@@ -9,8 +9,6 @@ import type { DocumentType } from './documentType';
 import type { InvoiceStatus } from './invoiceStatus';
 
 export interface InvoiceListItemDto {
-  /** Authoritative cash_registers row id (UUID) for admin links; not the display KassenId. */
-  cashRegisterId?: string;
   /** @nullable */
   companyName?: string | null;
   /** @nullable */

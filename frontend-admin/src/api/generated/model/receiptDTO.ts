@@ -14,9 +14,8 @@ import type { ReceiptTaxLineDTO } from './receiptTaxLineDTO';
 import type { ReceiptTotalsDTO } from './receiptTotalsDTO';
 
 export interface ReceiptDTO {
-  cashierId?: string;
   /** @nullable */
-  cashierDisplayName?: string | null;
+  cashierName?: string | null;
   cashRegisterId?: string;
   clockDriftWarning?: boolean;
   company?: ReceiptCompanyDTO;
