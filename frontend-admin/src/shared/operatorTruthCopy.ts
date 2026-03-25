@@ -107,6 +107,27 @@ export const OPERATOR_INVESTIGATION_CONTEXT_COPY = {
 // --- FinanzOnline reconciliation queue ---
 
 export const OPERATOR_FO_QUEUE_COPY = {
+    /** Always-visible top banner — primary operational truth + URL guidance (Phase 1 redesign). */
+    pageTopDisclaimerMessage: 'FinanzOnline-Abgleich — operative Zeilenebene',
+    pageTopDisclaimerLead:
+        'Diese Tabelle ist die primäre Oberfläche für den FinanzOnline-Status je Zahlung (serverseitig gefilterte Listen-API, Limit 200). Zeilenaktionen und Felder beziehen sich auf die jeweilige Zahlung — keine Schnittstellen-Diagnose allein.',
+    pageTopDisclaimerUrlContext:
+        'URL-Parameter wie investigationBatchCorrelationId oder focusPaymentId dienen nur der Orientierung beim Wechsel zwischen Incident, Replay und dieser Ansicht — sie filtern die Liste nicht zusätzlich nach Correlation pro Zeile (Abgleichszeilen enthalten keine Correlation-ID im DTO).',
+    /** Short label on aggregated metric cards */
+    metricsAggregatedBadge: 'Aggregat · Metrik-API',
+    metricsAggregatedFootnote:
+        'Laufzeit-Zähler — keine vollständige Abgleichsliste und keine 1:1-Zuordnung zu einzelnen Tabellenzeilen.',
+    expandSectionErrorTitle: 'Fehlermeldung (vollständig)',
+    expandSectionIdentifiersTitle: 'Identifikatoren',
+    expandSectionTimestampsTitle: 'Zeitstempel',
+    expandTimestampsUtcHint: 'Anzeige in lokaler Zeit; Speicherung/Quelle der API siehe DTO (UTC).',
+    expandSectionInvestigationTitle: 'Untersuchung & Verknüpfungen',
+    expandInvestigationNoUrlCorrelation:
+        'Keine Batch-Correlation in der aktuellen URL — Verknüpfungen zu Incident/Replay unten nur verfügbar, wenn die URL einen investigationBatchCorrelationId enthält (oder manuell in der Incident-Ansicht öffnen).',
+    expandInvestigationWithUrlCorrelationHint:
+        'Die folgenden Links nutzen die Batch-Correlation aus der aktuellen URL (Orientierung — gilt für alle sichtbaren Zeilen gleich, nicht als Zeilenfeld gespeichert).',
+    retryActionButtonTooltip:
+        'Erneut senden erscheint nur bei bestimmten API-Statuswerten und vorhandener paymentId — reine UI-/Client-Regel, kein separates Backend-Feld „retryable“ und keine Erfolgsgarantie.',
     pagePrimaryOperationalTruthLead:
         'Primäre operative Oberfläche für FinanzOnline je Zahlung: serverseitig gefilterte Abgleichstabelle und Zeilenaktionen (siehe Vertrags- und Metrik-Hinweise auf dieser Seite).',
     /** One-line lead under page title — same operational meaning as pagePrimaryOperationalTruthLead; full text stays in collapsible panel. */
@@ -186,9 +207,42 @@ export const OPERATOR_FO_SUMMARY_SCREEN_COPY = {
 
 /** RKSV General Status: connection/summary APIs only */
 export const OPERATOR_RKSV_GENERAL_STATUS_COPY = {
-    pageScopeAlertMessage: 'Nur Schnittstellen-Übersicht',
+    pageTitle: 'RKSV · Schnittstellen-Übersicht (Diagnose)',
+    breadcrumbLabel: 'Schnittstellen-Übersicht',
+    pageScopeAlertMessage: 'Nur Diagnose — keine Zahlungszeilen-Wahrheit',
+    pageScopeAlertBody:
+        'Diese Seite zeigt nur die aktuelle Erreichbarkeit der TSE- und FinanzOnline-Status-APIs. Verbindungsstatus ersetzt keinen zahlungsbezogenen FinanzOnline-Abgleich und ist kein Beleg- oder Rechtsnachweis.',
+    pageScopeAlertRowTruthLead: 'Operative Zeilenebene (FinanzOnline je Zahlung):',
+    /** Legacy one-liner — kept for any external reference; prefer pageScopeAlertBody + pageScopeAlertRowTruthLead in UI */
     pageScopeAlertDescriptionBeforeLink:
         'TSE- und FinanzOnline-Karten zeigen Felder der jeweiligen Status-APIs — nicht die zahlungsbezogene Abgleichsliste. Für operative Zeilenebene:',
+    pageScopeAlertFootnote:
+        '„Erreichbar“ bedeutet hier: Status-API meldet Erreichbarkeit — nicht automatisch, dass alle Zahlungen ausgeglichen sind.',
+    /** TSE card */
+    tseCardTitle: 'TSE (Technische Sicherheitseinheit)',
+    tseStatisticTitle: 'Schnittstelle',
+    tseReachableTag: 'Erreichbar',
+    tseUnreachableTag: 'Nicht erreichbar',
+    tseSerialLabel: 'Seriennummer',
+    tseKassenIdLabel: 'Kassen-ID',
+    tseCertificateLabel: 'Zertifikatsstatus (laut API)',
+    tseCanCreateInvoicesLabel: 'Belege signierbar (laut Status-API)',
+    tseCanCreateYes: 'Ja',
+    tseCanCreateNo: 'Nein',
+    tseCardFootnote: 'Diagnose — kein vollständiger Geräte- oder Zertifikatsnachweis (Details: CMC/Zertifikat).',
+    /** FinanzOnline summary card on this page */
+    foCardTitle: 'FinanzOnline (Status-API)',
+    foStatisticTitle: 'Statusabruf',
+    foReachableTag: 'Erreichbar',
+    foUnreachableTag: 'Nicht erreichbar',
+    foPendingInvoicesLabel: 'Ausstehende Rechnungen (laut API)',
+    foLastSyncLabel: 'Letzte Synchronisation (laut API)',
+    foCardFootnote: 'Keine Abgleichsliste — nur Schnittstellen-Kennzahlen.',
+    /** Primary / secondary CTAs (same destinations as FO_SUMMARY_SCREEN_COPY links) */
+    ctaPrimaryHint: 'Zahlungs-/Zeilenebene',
+    ctaSecondaryHint: 'Integration testen & Konfiguration',
+    tseStatusLoadError: 'TSE-Status nicht abrufbar',
+    foStatusLoadError: 'FinanzOnline-Status nicht abrufbar',
 } as const;
 
 /** FinanzOnline Operations route: integration/diagnostics (not primary reconciliation list) */
@@ -272,14 +326,34 @@ const VERIFICATIONS_TOTAL_COUNT_OMITTED_NOTE =
     'Die API hat keine Gesamtzahl (totalCount) zu dieser Abfrage geliefert — die Seitensteuerung unten wechselt nur Rohseiten der Anfrage; ohne Gesamtzahl ist der Umfang des Bestands hier nicht belegbar.';
 
 export const OPERATOR_VERIFICATIONS_COPY = {
-    /** Page header — not a dedicated “verification results” pipeline */
-    pageTitle: 'RKSV Audit-Spur (Signatur / Offline)',
+    /** Page header — audit + heuristic; not a dedicated verification-results pipeline */
+    pageTitle: 'Audit-Spur (heuristisch) — RKSV',
     /** Shown under title — investigation framing */
     pageSubtitle:
-        'Untersuchung über Audit-Logs (AuditLogEntryDto) — keine kanonische Verification-Result-Liste und keine Signatur-Debug-Antwort auf dieser Seite.',
-    breadcrumbTitle: 'Audit-Spur',
+        'Stichwortbasierte Auswahl aus AuditLogEntryDto (GET /api/AuditLog) — keine dedizierte Verifikations-API, keine vollständige RKSV-Abdeckung und kein Ersatz für den FinanzOnline-Abgleich je Zahlung.',
+    breadcrumbTitle: 'Audit-Spur (heuristisch)',
     /** Sidebar + RKSV hub link text; page titles keep full context */
     navMenuLabel: 'Audit-Spur',
+    /** Top-of-card scope banner */
+    pageScopeBannerMessage: 'Nur Audit-Log — Auswahl per Heuristik',
+    pageScopeBannerDescription:
+        'Diese Seite zeigt keine kanonische „Verifikations“-Historie. Zeilen werden clientseitig nach Stichwörtern in action/entityType gefiltert (siehe Spalte Treffergrund). Für den operativen FinanzOnline-Status je Zahlung den Abgleich öffnen — nicht diese Liste.',
+    treffergrundColumnTitle: 'Treffergrund',
+    treffergrundTagShort: 'Heuristik',
+    treffergrundColumnTooltip:
+        'Kurzform, welche Stichwortregel zur Stichprobe passte (gleiche Logik wie die Filterung). Kein Backend-Feld — reine Ableitung aus action/entityType.',
+    filterSwitchClientTooltip:
+        'Wirkt nur auf die bereits geladene Liste (Client) — keine zusätzliche Server-Anfrage und kein anderer Audit-Umfang.',
+    expandPanelIntro: 'Zeilendetail — Audit-API',
+    expandWhyTitle: 'Warum erscheint diese Zeile?',
+    expandWhyBody:
+        'Die Zeile gehört zur Stichwort-Stichprobe (siehe Treffergrund). Das ist keine Bewertung der fachlichen Korrektheit und kein Signatur-Nachweis.',
+    expandTechnicalTitle: 'Technische Felder (DTO)',
+    expandAuthoritativeLinksTitle: 'Operative Wahrheit & Verknüpfungen',
+    expandFinanzOnlineAbgleichLead:
+        'Zahlungs-/Zeilenebene FinanzOnline — maßgeblich im Abgleich, nicht in dieser Audit-Spur:',
+    expandFinanzOnlineWithCorrelationHint:
+        'Mit Correlation aus der Zeile als Orientierung in der Abgleich-URL (kein Zeilenfilter in der Abgleich-API).',
     filteredBannerTitle: 'Audit-Logs (Correlation-Filter aktiv)',
     diagnosticLine:
         'Diagnose-Ansicht: kein Ersatz für Incident-Aggregat oder Abgleichstabelle — nur Audit-Ereignisse aus der Audit-API.',

@@ -8,12 +8,30 @@ import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import { buildVerificationsAuditHref } from '@/shared/investigationNavigation';
 import {
     auditLogMatchesVerificationsKeywordSample,
+    describeVerificationsKeywordMatchDe,
     viewAuditLogEntityDeepLinks,
     viewAuditLogStatusPresentation,
 } from '@/shared/verificationsAuditView';
 
 const validPaymentId = '22222222-2222-4222-8222-222222222222';
 const validReceiptId = '33333333-3333-4333-8333-333333333333';
+
+describe('describeVerificationsKeywordMatchDe', () => {
+    it('lists which keyword rules matched (German)', () => {
+        expect(
+            describeVerificationsKeywordMatchDe({
+                action: 'TSE_SIGNATURE_OK',
+                entityType: 'Payment',
+            } as AuditLogEntryDto),
+        ).toContain('signature');
+        expect(
+            describeVerificationsKeywordMatchDe({
+                action: 'OFFLINE_REPLAY',
+                entityType: 'OfflineTransaction',
+            } as AuditLogEntryDto),
+        ).toMatch(/offline|offlinetransaction/i);
+    });
+});
 
 describe('auditLogMatchesVerificationsKeywordSample', () => {
     it('includes signature-related actions', () => {
@@ -109,7 +127,7 @@ describe('OPERATOR_VERIFICATIONS_COPY (no misleading pipeline title)', () => {
         expect(s).toContain('audit');
         expect(s).toContain('auditlogentrydto');
         expect(s).toContain('keine');
-        expect(s).toContain('verification');
+        expect(s).toMatch(/verifikation|verification/);
     });
 
     it('deep-link labels name entity scope without inventing API fields', () => {

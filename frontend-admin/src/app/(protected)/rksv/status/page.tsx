@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Card, Row, Col, Statistic, Tag, Spin, Alert, Typography } from 'antd';
+import { Card, Row, Col, Tag, Spin, Alert, Typography, Button, Space, Divider } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useGetApiTseStatus } from '@/api/generated/tse/tse';
 import { useGetApiFinanzOnlineStatus } from '@/api/generated/finanz-online/finanz-online';
 import Link from 'next/link';
@@ -30,82 +30,178 @@ export default function RksvStatusPage() {
     return (
         <>
             <AdminPageHeader
-                title="RKSV General Status"
+                title={OPERATOR_RKSV_GENERAL_STATUS_COPY.pageTitle}
                 breadcrumbs={[
                     ADMIN_OVERVIEW_CRUMB,
-                    { title: 'RKSV', href: '/rksv' },
-                    { title: 'General Status' },
+                    { title: ADMIN_NAV_GROUP_LABELS.rksv, href: '/rksv' },
+                    { title: OPERATOR_RKSV_GENERAL_STATUS_COPY.breadcrumbLabel },
                 ]}
             />
 
             <Alert
-                type="info"
+                type="warning"
                 showIcon
                 style={{ marginBottom: 16 }}
                 message={OPERATOR_RKSV_GENERAL_STATUS_COPY.pageScopeAlertMessage}
                 description={
-                    <Typography.Paragraph style={{ marginBottom: 0 }}>
-                        {OPERATOR_RKSV_GENERAL_STATUS_COPY.pageScopeAlertDescriptionBeforeLink}{' '}
-                        <Link href="/rksv/finanz-online-queue">{OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}</Link>.
-                    </Typography.Paragraph>
+                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                        <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
+                            {OPERATOR_RKSV_GENERAL_STATUS_COPY.pageScopeAlertBody}
+                        </Typography.Paragraph>
+                        <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
+                            <strong>{OPERATOR_RKSV_GENERAL_STATUS_COPY.pageScopeAlertRowTruthLead}</strong>{' '}
+                            <Link href="/rksv/finanz-online-queue">
+                                {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
+                            </Link>
+                            .
+                        </Typography.Paragraph>
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                            {OPERATOR_RKSV_GENERAL_STATUS_COPY.pageScopeAlertFootnote}
+                        </Typography.Paragraph>
+                    </Space>
                 }
             />
 
+            <Space wrap style={{ marginBottom: 20 }}>
+                <Button type="primary" href="/rksv/finanz-online-queue" size="large">
+                    {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
+                </Button>
+                <Typography.Text type="secondary" style={{ fontSize: 12, alignSelf: 'center' }}>
+                    {OPERATOR_RKSV_GENERAL_STATUS_COPY.ctaPrimaryHint}
+                </Typography.Text>
+                <Button href="/rksv/finanz-online-operations" size="large">
+                    {OPERATOR_FO_SUMMARY_SCREEN_COPY.operationsSupportingLinkLabel}
+                </Button>
+                <Typography.Text type="secondary" style={{ fontSize: 12, alignSelf: 'center' }}>
+                    {OPERATOR_RKSV_GENERAL_STATUS_COPY.ctaSecondaryHint}
+                </Typography.Text>
+            </Space>
+
             {tseError && (
-                <Alert type="error" message="TSE status unavailable" description={String(tseError)} style={{ marginBottom: 16 }} />
+                <Alert
+                    type="error"
+                    message={OPERATOR_RKSV_GENERAL_STATUS_COPY.tseStatusLoadError}
+                    description={tseError instanceof Error ? tseError.message : String(tseError)}
+                    style={{ marginBottom: 16 }}
+                />
             )}
             {foError && (
-                <Alert type="warning" message="FinanzOnline status unavailable" style={{ marginBottom: 16 }} />
+                <Alert
+                    type="warning"
+                    message={OPERATOR_RKSV_GENERAL_STATUS_COPY.foStatusLoadError}
+                    description={foError instanceof Error ? foError.message : String(foError)}
+                    style={{ marginBottom: 16 }}
+                />
             )}
 
+            <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+                Schnittstellen & Gerätestatus (Diagnose)
+            </Typography.Text>
             <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
-                    <Card title="TSE (Technical Security Element)" size="small">
-                        <Statistic
-                            title="Connection"
-                            value={tseStatus?.isConnected ? 'Connected' : 'Disconnected'}
-                            valueRender={() => (
-                                <Tag color={tseStatus?.isConnected ? 'green' : 'red'} icon={tseStatus?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />}>
-                                    {tseStatus?.isConnected ? 'Connected' : 'Disconnected'}
-                                </Tag>
-                            )}
-                        />
-                        {tseStatus?.serialNumber && <p style={{ marginTop: 8 }}>Serial: {tseStatus.serialNumber}</p>}
-                        {tseStatus?.kassenId && <p>Kassen-ID: {tseStatus.kassenId}</p>}
-                        {tseStatus?.certificateStatus && <p>Certificate: {tseStatus.certificateStatus}</p>}
-                        {tseStatus?.canCreateInvoices !== undefined && (
-                            <p>Can create invoices: {tseStatus.canCreateInvoices ? 'Yes' : 'No'}</p>
+                    <Card title={OPERATOR_RKSV_GENERAL_STATUS_COPY.tseCardTitle} size="small">
+                        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+                            {OPERATOR_RKSV_GENERAL_STATUS_COPY.tseStatisticTitle}
+                        </Typography.Text>
+                        <Tag
+                            color={tseStatus?.isConnected ? 'success' : 'error'}
+                            icon={
+                                tseStatus?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />
+                            }
+                        >
+                            {tseStatus?.isConnected
+                                ? OPERATOR_RKSV_GENERAL_STATUS_COPY.tseReachableTag
+                                : OPERATOR_RKSV_GENERAL_STATUS_COPY.tseUnreachableTag}
+                        </Tag>
+                        {tseStatus?.serialNumber && (
+                            <p style={{ marginTop: 8 }}>
+                                {OPERATOR_RKSV_GENERAL_STATUS_COPY.tseSerialLabel}: {tseStatus.serialNumber}
+                            </p>
                         )}
+                        {tseStatus?.kassenId && (
+                            <p>
+                                {OPERATOR_RKSV_GENERAL_STATUS_COPY.tseKassenIdLabel}: {tseStatus.kassenId}
+                            </p>
+                        )}
+                        {tseStatus?.certificateStatus && (
+                            <p>
+                                {OPERATOR_RKSV_GENERAL_STATUS_COPY.tseCertificateLabel}: {tseStatus.certificateStatus}
+                            </p>
+                        )}
+                        {tseStatus?.canCreateInvoices !== undefined && (
+                            <p>
+                                {OPERATOR_RKSV_GENERAL_STATUS_COPY.tseCanCreateInvoicesLabel}:{' '}
+                                {tseStatus.canCreateInvoices
+                                    ? OPERATOR_RKSV_GENERAL_STATUS_COPY.tseCanCreateYes
+                                    : OPERATOR_RKSV_GENERAL_STATUS_COPY.tseCanCreateNo}
+                            </p>
+                        )}
+                        <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
+                            {OPERATOR_RKSV_GENERAL_STATUS_COPY.tseCardFootnote}{' '}
+                            <Link href="/rksv/cmc-certificate">CMC / Zertifikat</Link>
+                        </Typography.Paragraph>
                     </Card>
                 </Col>
 
                 <Col xs={24} md={12}>
-                    <Card title="FinanzOnline" size="small">
-                        <Statistic
-                            title="Status"
-                            value={foStatus?.isConnected ? 'Connected' : 'Not connected'}
-                            valueRender={() => (
-                                <Tag color={foStatus?.isConnected ? 'green' : 'orange'} icon={foStatus?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />}>
-                                    {foStatus?.isConnected ? 'Connected' : 'Not connected'}
-                                </Tag>
-                            )}
-                        />
-                        {foStatus?.pendingInvoices !== undefined && <p style={{ marginTop: 8 }}>Pending invoices: {foStatus.pendingInvoices}</p>}
-                        {foStatus?.lastSync && <p>Last sync: {foStatus.lastSync}</p>}
+                    <Card title={OPERATOR_RKSV_GENERAL_STATUS_COPY.foCardTitle} size="small">
+                        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+                            {OPERATOR_RKSV_GENERAL_STATUS_COPY.foStatisticTitle}
+                        </Typography.Text>
+                        <Tag
+                            color={foStatus?.isConnected ? 'success' : 'orange'}
+                            icon={
+                                foStatus?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />
+                            }
+                        >
+                            {foStatus?.isConnected
+                                ? OPERATOR_RKSV_GENERAL_STATUS_COPY.foReachableTag
+                                : OPERATOR_RKSV_GENERAL_STATUS_COPY.foUnreachableTag}
+                        </Tag>
+                        {foStatus?.pendingInvoices !== undefined && (
+                            <p style={{ marginTop: 8 }}>
+                                {OPERATOR_RKSV_GENERAL_STATUS_COPY.foPendingInvoicesLabel}: {foStatus.pendingInvoices}
+                            </p>
+                        )}
+                        {foStatus?.lastSync && (
+                            <p>
+                                {OPERATOR_RKSV_GENERAL_STATUS_COPY.foLastSyncLabel}: {foStatus.lastSync}
+                            </p>
+                        )}
                         <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 4, fontSize: 12 }}>
                             {OPERATOR_FO_SUMMARY_SCREEN_COPY.connectionMetricsNotPaymentRowTruth}
                         </Typography.Paragraph>
-                        <Typography.Paragraph style={{ marginBottom: 4 }}>
-                            <Link href="/rksv/finanz-online-queue">{OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}</Link>
-                        </Typography.Paragraph>
-                        <Typography.Paragraph style={{ marginBottom: 0 }}>
-                            <Link href="/rksv/finanz-online-operations">
-                                {OPERATOR_FO_SUMMARY_SCREEN_COPY.operationsSupportingLinkLabel}
-                            </Link>
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                            {OPERATOR_RKSV_GENERAL_STATUS_COPY.foCardFootnote}
                         </Typography.Paragraph>
                     </Card>
                 </Col>
             </Row>
+
+            <Divider style={{ margin: '16px 0' }} />
+
+            <Card
+                size="small"
+                title="Zahlungs-/Zeilenebene (operativ)"
+                style={{ marginBottom: 0 }}
+            >
+                <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                    <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
+                        Für den verbindlichen FinanzOnline-Status je Zahlung (Retry, Fehlertext, Referenz) ist der{' '}
+                        <strong>{OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}</strong> maßgeblich.
+                        „Erreichbar/Connected“ in dieser Diagnose bedeutet nur, dass die Status-API antwortet — nicht,
+                        dass alle Zahlungen übermittelt oder reconciled sind.
+                    </Typography.Paragraph>
+                    <Space wrap>
+                        <Button type="primary" href="/rksv/finanz-online-queue">
+                            {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
+                        </Button>
+                        <Button href="/rksv/finanz-online-operations">
+                            {OPERATOR_FO_SUMMARY_SCREEN_COPY.operationsSupportingLinkLabel}
+                        </Button>
+                    </Space>
+                </Space>
+            </Card>
         </>
     );
 }

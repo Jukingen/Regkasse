@@ -1,12 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Card, Table, Tag, Typography, Space, Alert, Row, Col, Statistic, Descriptions } from 'antd';
+import { Card, Table, Tag, Typography, Space, Alert, Row, Col, Statistic, Descriptions, Button, Tooltip, Divider } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { getApiAdminReplayBatchCorrelationId } from '@/api/generated/admin/admin';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { ReplayBatchPaymentItemDto } from '@/api/generated/model';
@@ -22,6 +22,7 @@ import {
     OPERATOR_LINK_LABELS,
     OPERATOR_REPLAY_COPY,
     OPERATOR_SHARED_COPY,
+    OPERATOR_FO_SUMMARY_SCREEN_COPY,
 } from '@/shared/operatorTruthCopy';
 
 /**
@@ -41,9 +42,15 @@ export default function ReplayBatchDetailPage() {
     const auditTraceHref = trace?.verificationsDeepLink ?? null;
     const incidentHref = trace?.incidentDeepLink ?? null;
 
+    const needsPerPaymentChecking = Boolean((data?.failedOrDuplicateCount ?? 0) > 0);
+
     const columns = [
         {
-            title: 'Offline-Transaktion',
+            title: (
+                <Tooltip title="OfflineTransactionId aus ReplayBatchPaymentItemDto (für Replay-/Dedup-Analyse).">
+                    <span>Offline-Transaktion</span>
+                </Tooltip>
+            ),
             dataIndex: 'offlineTransactionId',
             key: 'offlineTransactionId',
             render: (id: string | null) => id ? <Typography.Text code copyable>{id}</Typography.Text> : '—',
@@ -70,13 +77,43 @@ export default function ReplayBatchDetailPage() {
                 ),
         },
         {
+            title: 'Aktionen',
+            key: 'actions',
+            width: 180,
+            render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
+                const pid = r.paymentId ? String(r.paymentId) : '';
+                return (
+                    <Space wrap size={[8, 4]}>
+                        {pid ? (
+                            <Link
+                                href={buildFinanzOnlineQueueInvestigationHref({
+                                    focusPaymentId: pid,
+                                    investigationBatchCorrelationId: correlationId || undefined,
+                                })}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
+                            </Link>
+                        ) : (
+                            <Typography.Text type="secondary">—</Typography.Text>
+                        )}
+                    </Space>
+                );
+            },
+        },
+        {
             title: 'Betrag',
             dataIndex: 'totalAmount',
             key: 'totalAmount',
             render: (v: number) => (v != null ? `€ ${Number(v).toFixed(2)}` : '—'),
         },
         {
-            title: 'Erstellt (UTC)',
+            title: (
+                <Tooltip title="createdAtUtc aus dem ReplayBatchPaymentItemDto (UTC).">
+                    <span>Replay-Zeit (UTC)</span>
+                </Tooltip>
+            ),
             dataIndex: 'createdAtUtc',
             key: 'createdAtUtc',
             render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm:ss') : '—'),
@@ -86,14 +123,28 @@ export default function ReplayBatchDetailPage() {
     return (
         <>
             <AdminPageHeader
-                title={`Replay-Batch: ${correlationId ?? ''}`}
+                title="Replay-Batch — Detail"
                 breadcrumbs={[
                     ADMIN_OVERVIEW_CRUMB,
-                    { title: 'RKSV', href: '/rksv' },
+                    { title: ADMIN_NAV_GROUP_LABELS.rksv, href: '/rksv' },
                     { title: 'Replay-Batch', href: '/rksv/replay-batch' },
                     { title: correlationId ?? 'Detail' },
                 ]}
-            />
+                actions={
+                    correlationId ? (
+                        <Typography.Text code copyable={{ text: correlationId }}>
+                            {correlationId}
+                        </Typography.Text>
+                    ) : undefined
+                }
+            >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 980 }}>
+                    Technischer Replay-Kontext für eine Batch-Correlation (Observability + Zahlungs-/Belegverknüpfungen).
+                    Diese Seite ist <strong>nicht</strong> die finale FinanzOnline-Wahrheit je Zahlung — dafür den{' '}
+                    <Link href="/rksv/finanz-online-queue">{OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}</Link>{' '}
+                    verwenden.
+                </Typography.Paragraph>
+            </AdminPageHeader>
 
             {error && (
                 <Alert
@@ -110,34 +161,79 @@ export default function ReplayBatchDetailPage() {
                 <>
                     <Card size="small" style={{ marginBottom: 16 }}>
                         <Space direction="vertical" size="small">
-                            <Typography.Text strong>Zusammenfassung</Typography.Text>
-                            <Space wrap>
-                                <Tag color="blue">Items gesamt: {data.totalItems}</Tag>
-                                <Tag color="green">Success: {data.successCount}</Tag>
-                                <Tag color="orange">Failed/Duplicate: {data.failedOrDuplicateCount}</Tag>
+                            <Typography.Text strong>Batch-Überblick</Typography.Text>
+                            <Row gutter={[12, 12]}>
+                                <Col xs={24} sm={8}>
+                                    <Card size="small">
+                                        <Statistic title="Items gesamt" value={data.totalItems ?? 0} />
+                                    </Card>
+                                </Col>
+                                <Col xs={24} sm={8}>
+                                    <Card size="small">
+                                        <Statistic title="Erfolgreich (Replay)" value={data.successCount ?? 0} />
+                                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                            Hinweis: Erfolg hier bezieht sich auf Replay-/Batch-Verarbeitung, nicht auf FinanzOnline.
+                                        </Typography.Text>
+                                    </Card>
+                                </Col>
+                                <Col xs={24} sm={8}>
+                                    <Card size="small">
+                                        <Statistic
+                                            title="Fehler / Duplikat"
+                                            value={data.failedOrDuplicateCount ?? 0}
+                                            valueStyle={{
+                                                color: (data.failedOrDuplicateCount ?? 0) > 0 ? '#cf1322' : undefined,
+                                            }}
+                                        />
+                                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                            {needsPerPaymentChecking
+                                                ? 'Weiter prüfen: betroffene Zahlungen im FinanzOnline-Abgleich öffnen.'
+                                                : 'Kein Replay-Fehler/Duplikat gemeldet; FO-Status trotzdem im Abgleich prüfen.'}
+                                        </Typography.Text>
+                                    </Card>
+                                </Col>
+                            </Row>
+
+                            <Descriptions bordered size="small" column={1} style={{ marginTop: 8 }}>
+                                <Descriptions.Item label="Batch-Correlation (API)">
+                                    <Typography.Text code copyable>
+                                        {String(data.correlationId ?? '—')}
+                                    </Typography.Text>
+                                </Descriptions.Item>
+                                <Descriptions.Item label="Audit-Correlation (API)">
+                                    <Typography.Text code copyable>
+                                        {data.auditCorrelationId ?? '—'}
+                                    </Typography.Text>
+                                </Descriptions.Item>
+                            </Descriptions>
+
+                            <Space wrap style={{ marginTop: 8 }}>
+                                <Button type="primary" href={buildIncidentInvestigationHref(String(data.correlationId))}>
+                                    {OPERATOR_LINK_LABELS.incidentAggregate}
+                                </Button>
+                                <Button
+                                    href={buildFinanzOnlineQueueInvestigationHref({
+                                        investigationBatchCorrelationId: String(data.correlationId),
+                                    })}
+                                    target="_blank"
+                                >
+                                    {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
+                                </Button>
+                                {auditTraceHref ? (
+                                    <Button href={auditTraceHref}>
+                                        {OPERATOR_LINK_LABELS.verificationsAudit}
+                                    </Button>
+                                ) : data.correlationId ? (
+                                    <Button href={buildVerificationsAuditHref(String(data.correlationId))}>
+                                        {OPERATOR_LINK_LABELS.verificationsAudit}
+                                    </Button>
+                                ) : null}
+                                {incidentHref ? (
+                                    <Button href={incidentHref}>
+                                        Incident (Deep-Link)
+                                    </Button>
+                                ) : null}
                             </Space>
-                            <Typography.Text type="secondary">
-                                Correlation-ID: <Typography.Text code>{data.correlationId}</Typography.Text>
-                            </Typography.Text>
-                            <Typography.Text type="secondary">
-                                Audit-Correlation-ID: <Typography.Text code>{data.auditCorrelationId ?? '—'}</Typography.Text>
-                            </Typography.Text>
-                            {auditTraceHref && (
-                                <Space wrap>
-                                    <Typography.Text strong>Log-Trace:</Typography.Text>
-                                    <Link href={auditTraceHref}>
-                                        Audit-Logs für diese Batch anzeigen
-                                    </Link>
-                                    {incidentHref && (
-                                        <>
-                                            <Typography.Text type="secondary">|</Typography.Text>
-                                            <Link href={incidentHref}>
-                                                Incident-Ansicht öffnen
-                                            </Link>
-                                        </>
-                                    )}
-                                </Space>
-                            )}
                         </Space>
                     </Card>
 
@@ -197,7 +293,7 @@ export default function ReplayBatchDetailPage() {
                         </Space>
                     </Card>
 
-                    <Card size="small" title="Observability" style={{ marginBottom: 16 }}>
+                    <Card size="small" title="Observability (Diagnose)" style={{ marginBottom: 16 }}>
                         <Row gutter={[12, 12]}>
                             <Col xs={24} sm={8}>
                                 <Card size="small">
@@ -217,7 +313,7 @@ export default function ReplayBatchDetailPage() {
                                         value={data.offlineSyncedAuditCount ?? 0}
                                     />
                                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                        Immutable Success-Audit Events
+                                        {OPERATOR_REPLAY_COPY.observabilityOfflineSyncedFootnote}
                                     </Typography.Text>
                                 </Card>
                             </Col>
@@ -249,6 +345,27 @@ export default function ReplayBatchDetailPage() {
                                     <Typography.Text code>ReplayBatchPaymentItemDto</Typography.Text>{' '}
                                     {OPERATOR_REPLAY_COPY.paymentsDtoGapBody}
                                 </span>
+                            }
+                        />
+                        <Alert
+                            type="warning"
+                            showIcon
+                            style={{ marginBottom: 12 }}
+                            message="FinanzOnline-Hinweis"
+                            description={
+                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                    Diese Tabelle enthält keine FO-Statusfelder. FO je Zahlung bitte über den{' '}
+                                    <Link
+                                        href={buildFinanzOnlineQueueInvestigationHref({
+                                            investigationBatchCorrelationId: String(data.correlationId),
+                                        })}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
+                                    </Link>{' '}
+                                    prüfen.
+                                </Typography.Text>
                             }
                         />
                         <Table<ReplayBatchPaymentItemDto>
@@ -292,6 +409,22 @@ export default function ReplayBatchDetailPage() {
                                                     </Typography.Text>
                                                 ) : (
                                                     '—'
+                                                )}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="FinanzOnline-Abgleich (Kontext)">
+                                                {r.paymentId ? (
+                                                    <Link
+                                                        href={buildFinanzOnlineQueueInvestigationHref({
+                                                            focusPaymentId: String(r.paymentId),
+                                                            investigationBatchCorrelationId: String(data.correlationId ?? ''),
+                                                        })}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
+                                                    </Link>
+                                                ) : (
+                                                    <Typography.Text type="secondary">—</Typography.Text>
                                                 )}
                                             </Descriptions.Item>
                                         </Descriptions>

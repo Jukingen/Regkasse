@@ -24,6 +24,7 @@ import {
     Tooltip,
     Descriptions,
     Collapse,
+    Divider,
 } from 'antd';
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -74,10 +75,10 @@ import {
 } from '@/shared/operatorTruthCopy';
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
-    { value: 'Pending', label: 'Pending' },
-    { value: 'Failed', label: 'Failed' },
-    { value: 'NeedsReconciliation', label: 'NeedsReconciliation' },
-    { value: 'Submitted', label: 'Submitted' },
+    { value: 'Pending', label: 'Ausstehend (Pending)' },
+    { value: 'Failed', label: 'Fehlgeschlagen (Failed)' },
+    { value: 'NeedsReconciliation', label: 'Abgleich erforderlich (NeedsReconciliation)' },
+    { value: 'Submitted', label: 'Eingereicht (Submitted)' },
 ];
 
 function statusBadgeColor(status: string | null): string {
@@ -207,7 +208,11 @@ export default function FinanzOnlineReconciliationPage() {
 
     const columns = [
         {
-            title: 'Belegnummer',
+            title: (
+                <Tooltip title="Belegnummer aus der Abgleichs-API (Listen-DTO).">
+                    <span>Belegnummer</span>
+                </Tooltip>
+            ),
             dataIndex: 'receiptNumber',
             key: 'receiptNumber',
             width: 160,
@@ -223,7 +228,11 @@ export default function FinanzOnlineReconciliationPage() {
             ),
         },
         {
-            title: 'Zahlung',
+            title: (
+                <Tooltip title="Zahlungs-ID (paymentId) — Primärschlüssel für Retry und Verknüpfungen.">
+                    <span>Zahlung</span>
+                </Tooltip>
+            ),
             key: 'paymentId',
             width: 236,
             render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => {
@@ -282,13 +291,13 @@ export default function FinanzOnlineReconciliationPage() {
             render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => (
                 <Space direction="vertical" size={0}>
                     <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                        Anlage:{' '}
+                        Zeile erstellt:{' '}
                         {r.createdAt && dayjs(r.createdAt).isValid()
                             ? dayjs(r.createdAt).format('DD.MM. HH:mm')
                             : '—'}
                     </Typography.Text>
                     <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                        Retries: {r.finanzOnlineRetryCount ?? 0}
+                        Versuche: {r.finanzOnlineRetryCount ?? 0}
                     </Typography.Text>
                     <Typography.Text style={{ fontSize: 11 }}>
                         Letzter Versuch:{' '}
@@ -323,7 +332,11 @@ export default function FinanzOnlineReconciliationPage() {
             },
         },
         {
-            title: 'Referenz (FO)',
+            title: (
+                <Tooltip title="finanzOnlineReferenceId — FinanzOnline-Referenz aus dem Listen-DTO.">
+                    <span>Referenz (FO)</span>
+                </Tooltip>
+            ),
             dataIndex: 'finanzOnlineReferenceId',
             key: 'finanzOnlineReferenceId',
             width: 120,
@@ -331,7 +344,11 @@ export default function FinanzOnlineReconciliationPage() {
             render: (v: string | null) => (v ? <Typography.Text code copyable>{v}</Typography.Text> : '—'),
         },
         {
-            title: 'Betrag',
+            title: (
+                <Tooltip title="totalAmount — Betrag der Zahlung im Listen-DTO.">
+                    <span>Betrag</span>
+                </Tooltip>
+            ),
             dataIndex: 'totalAmount',
             key: 'totalAmount',
             width: 90,
@@ -388,15 +405,17 @@ export default function FinanzOnlineReconciliationPage() {
                 const paymentId = r.paymentId ?? '';
                 const loading = retryingId === paymentId;
                 return canRetry && paymentId ? (
-                    <Button
-                        type="link"
-                        size="small"
-                        icon={<SyncOutlined />}
-                        loading={loading}
-                        onClick={() => handleRetry(paymentId)}
-                    >
-                        Erneut senden
-                    </Button>
+                    <Tooltip title={OPERATOR_FO_QUEUE_COPY.retryActionButtonTooltip}>
+                        <Button
+                            type="link"
+                            size="small"
+                            icon={<SyncOutlined />}
+                            loading={loading}
+                            onClick={() => handleRetry(paymentId)}
+                        >
+                            Erneut senden
+                        </Button>
+                    </Tooltip>
                 ) : null;
             },
         },
@@ -447,6 +466,23 @@ export default function FinanzOnlineReconciliationPage() {
                     <Link href="/payments">{ADMIN_NAV_LABELS.payments}</Link>
                 </Typography.Paragraph>
             </AdminPageHeader>
+
+            <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message={OPERATOR_FO_QUEUE_COPY.pageTopDisclaimerMessage}
+                description={
+                    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                        <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
+                            {OPERATOR_FO_QUEUE_COPY.pageTopDisclaimerLead}
+                        </Typography.Paragraph>
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                            {OPERATOR_FO_QUEUE_COPY.pageTopDisclaimerUrlContext}
+                        </Typography.Paragraph>
+                    </Space>
+                }
+            />
 
             <Collapse
                 bordered={false}
@@ -598,6 +634,14 @@ export default function FinanzOnlineReconciliationPage() {
             ) : null}
 
             <OperatorSummaryStrip>
+                <Space direction="vertical" size={10} style={{ width: '100%', marginBottom: 8 }}>
+                    <Space wrap align="center">
+                        <Tag color="geekblue">{OPERATOR_FO_QUEUE_COPY.metricsAggregatedBadge}</Tag>
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            {OPERATOR_FO_QUEUE_COPY.metricsAggregatedFootnote}
+                        </Typography.Text>
+                    </Space>
+                </Space>
                 <Row gutter={[16, 16]}>
                     <Col xs={24} sm={12} md={6}>
                         <Card size="small">
@@ -620,7 +664,7 @@ export default function FinanzOnlineReconciliationPage() {
                     <Col xs={24} sm={12} md={6}>
                         <Card size="small">
                             <Statistic
-                                title="Transient"
+                                title="Transient (Metrik)"
                                 value={metricsData?.submitFailedTransient ?? 0}
                                 loading={metricsLoading}
                             />
@@ -629,7 +673,7 @@ export default function FinanzOnlineReconciliationPage() {
                     <Col xs={24} sm={12} md={6}>
                         <Card size="small">
                             <Statistic
-                                title="Permanent"
+                                title="Permanent (Metrik)"
                                 value={metricsData?.submitFailedPermanent ?? 0}
                                 loading={metricsLoading}
                             />
@@ -757,71 +801,199 @@ export default function FinanzOnlineReconciliationPage() {
                         size="small"
                         scroll={{ x: 1620 }}
                         expandable={{
-                            expandedRowRender: (record) => (
-                                <div style={{ padding: '4px 8px 12px', background: '#fafafa' }}>
-                                    <Typography.Text strong style={{ fontSize: 12 }}>
-                                        Zeile – technische Details (API)
-                                    </Typography.Text>
-                                    <Descriptions bordered size="small" column={1} style={{ marginTop: 8 }}>
-                                        <Descriptions.Item label="Fehlermeldung (vollständig)">
-                                            {record.finanzOnlineError?.trim() ? (
-                                                <Typography.Text type="danger" copyable>
-                                                    {record.finanzOnlineError}
-                                                </Typography.Text>
+                            expandedRowRender: (record) => {
+                                const reg = viewFinanzReconciliationRegister(record);
+                                const pid = record.paymentId?.trim() ?? '';
+                                const syncHref = buildFinanzOnlineQueueInvestigationHref({
+                                    registerRowId: toLinkSafeRegisterRowId(cashRegisterId),
+                                    focusPaymentId,
+                                    investigationBatchCorrelationId,
+                                    fromUtc: dateRange[0]?.toISOString(),
+                                    toUtc: dateRange[1]?.endOf('day').toISOString(),
+                                    statusCsv: statusFilter.length ? statusFilter.join(',') : undefined,
+                                });
+                                return (
+                                    <div style={{ padding: '8px 12px 16px', background: '#fafafa' }}>
+                                        <Typography.Text strong style={{ fontSize: 12, display: 'block' }}>
+                                            Zeile — technische Details (Listen-API)
+                                        </Typography.Text>
+
+                                        <Divider orientation="left" plain style={{ margin: '12px 0 8px' }}>
+                                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                {OPERATOR_FO_QUEUE_COPY.expandSectionErrorTitle}
+                                            </Typography.Text>
+                                        </Divider>
+                                        <Descriptions bordered size="small" column={1}>
+                                            <Descriptions.Item label="finanzOnlineError">
+                                                {record.finanzOnlineError?.trim() ? (
+                                                    <Typography.Text type="danger" copyable>
+                                                        {record.finanzOnlineError}
+                                                    </Typography.Text>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </Descriptions.Item>
+                                        </Descriptions>
+
+                                        <Divider orientation="left" plain style={{ margin: '16px 0 8px' }}>
+                                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                {OPERATOR_FO_QUEUE_COPY.expandSectionIdentifiersTitle}
+                                            </Typography.Text>
+                                        </Divider>
+                                        <Descriptions bordered size="small" column={1}>
+                                            <Descriptions.Item label="paymentId">
+                                                {pid ? (
+                                                    <Typography.Text code copyable>
+                                                        {pid}
+                                                    </Typography.Text>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="receiptNumber">
+                                                {record.receiptNumber?.trim() ? (
+                                                    <Typography.Text code copyable>
+                                                        {record.receiptNumber}
+                                                    </Typography.Text>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="cashRegisterId">
+                                                {reg.apiCashRegisterId ? (
+                                                    <Typography.Text code copyable>
+                                                        {reg.apiCashRegisterId}
+                                                    </Typography.Text>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="finanzOnlineReferenceId">
+                                                {record.finanzOnlineReferenceId?.trim() ? (
+                                                    <Typography.Text code copyable>
+                                                        {record.finanzOnlineReferenceId}
+                                                    </Typography.Text>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </Descriptions.Item>
+                                        </Descriptions>
+
+                                        <Divider orientation="left" plain style={{ margin: '16px 0 8px' }}>
+                                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                {OPERATOR_FO_QUEUE_COPY.expandSectionTimestampsTitle}
+                                            </Typography.Text>
+                                        </Divider>
+                                        <Typography.Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 11 }}>
+                                            {OPERATOR_FO_QUEUE_COPY.expandTimestampsUtcHint}
+                                        </Typography.Paragraph>
+                                        <Descriptions bordered size="small" column={1}>
+                                            <Descriptions.Item label="createdAt">
+                                                {record.createdAt && dayjs(record.createdAt).isValid()
+                                                    ? dayjs(record.createdAt).format('DD.MM.YYYY HH:mm:ss')
+                                                    : '—'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="finanzOnlineLastAttemptAtUtc">
+                                                {record.finanzOnlineLastAttemptAtUtc &&
+                                                dayjs(record.finanzOnlineLastAttemptAtUtc).isValid()
+                                                    ? dayjs(record.finanzOnlineLastAttemptAtUtc).format(
+                                                          'DD.MM.YYYY HH:mm:ss',
+                                                      )
+                                                    : '—'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label="finanzOnlineRetryCount">
+                                                {record.finanzOnlineRetryCount ?? 0}
+                                            </Descriptions.Item>
+                                        </Descriptions>
+
+                                        <Divider orientation="left" plain style={{ margin: '16px 0 8px' }}>
+                                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                {OPERATOR_FO_QUEUE_COPY.expandSectionInvestigationTitle}
+                                            </Typography.Text>
+                                        </Divider>
+                                        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                                            {pid ? (
+                                                <Link
+                                                    href={`/payments?paymentId=${encodeURIComponent(pid)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    Zahlung in Zahlungen öffnen
+                                                </Link>
+                                            ) : null}
+                                            {record.receiptNumber?.trim() ? (
+                                                <Link
+                                                    href={`/receipts?receiptNumber=${encodeURIComponent(record.receiptNumber)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    Belege suchen (Belegnummer)
+                                                </Link>
+                                            ) : null}
+                                            {investigationBatchCorrelationId ? (
+                                                <>
+                                                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                                        {OPERATOR_FO_QUEUE_COPY.expandInvestigationWithUrlCorrelationHint}
+                                                    </Typography.Paragraph>
+                                                    <Space wrap>
+                                                        <Link
+                                                            href={buildIncidentInvestigationHref(
+                                                                investigationBatchCorrelationId,
+                                                            )}
+                                                        >
+                                                            {OPERATOR_LINK_LABELS.incidentAggregate}
+                                                        </Link>
+                                                        <Typography.Text type="secondary">·</Typography.Text>
+                                                        <Link
+                                                            href={buildReplayBatchDetailHref(
+                                                                investigationBatchCorrelationId,
+                                                            )}
+                                                        >
+                                                            {OPERATOR_LINK_LABELS.replayBatchDetail}
+                                                        </Link>
+                                                        <Typography.Text type="secondary">·</Typography.Text>
+                                                        <Link href={syncHref}>
+                                                            {OPERATOR_INVESTIGATION_CONTEXT_COPY.syncUrlWithFiltersLink}
+                                                        </Link>
+                                                    </Space>
+                                                </>
                                             ) : (
-                                                '—'
+                                                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                                                    {OPERATOR_FO_QUEUE_COPY.expandInvestigationNoUrlCorrelation}
+                                                </Typography.Paragraph>
                                             )}
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Zeile angelegt (createdAt)">
-                                            {record.createdAt && dayjs(record.createdAt).isValid()
-                                                ? dayjs(record.createdAt).format('DD.MM.YYYY HH:mm:ss')
-                                                : '—'}
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Letzter Versuch (finanzOnlineLastAttemptAtUtc)">
-                                            {record.finanzOnlineLastAttemptAtUtc &&
-                                            dayjs(record.finanzOnlineLastAttemptAtUtc).isValid()
-                                                ? dayjs(record.finanzOnlineLastAttemptAtUtc).format('DD.MM.YYYY HH:mm:ss')
-                                                : '—'}
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label="Referenz (FO)">
-                                            {record.finanzOnlineReferenceId?.trim() ? (
-                                                <Typography.Text code copyable>
-                                                    {record.finanzOnlineReferenceId}
-                                                </Typography.Text>
-                                            ) : (
-                                                '—'
-                                            )}
-                                        </Descriptions.Item>
-                                    </Descriptions>
-                                    <Typography.Text strong style={{ fontSize: 12, display: 'block', marginTop: 16 }}>
-                                        {OPERATOR_FO_QUEUE_COPY.contractTruthPanelTitle}
-                                    </Typography.Text>
-                                    <Descriptions bordered size="small" column={1} style={{ marginTop: 8 }}>
-                                        <Descriptions.Item label={OPERATOR_FO_QUEUE_COPY.contractTruthInDtoTitle}>
-                                            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
-                                                {OPERATOR_FO_QUEUE_COPY.contractTruthInDtoBullets.map((line) => (
-                                                    <li key={line}>
-                                                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                                            {line}
-                                                        </Typography.Text>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </Descriptions.Item>
-                                        <Descriptions.Item label={OPERATOR_FO_QUEUE_COPY.contractTruthNotInDtoTitle}>
-                                            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
-                                                {OPERATOR_FO_QUEUE_COPY.contractTruthNotInDtoBullets.map((line) => (
-                                                    <li key={line}>
-                                                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                                            {line}
-                                                        </Typography.Text>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </Descriptions.Item>
-                                    </Descriptions>
-                                </div>
-                            ),
+                                        </Space>
+
+                                        <Typography.Text strong style={{ fontSize: 12, display: 'block', marginTop: 16 }}>
+                                            {OPERATOR_FO_QUEUE_COPY.contractTruthPanelTitle}
+                                        </Typography.Text>
+                                        <Descriptions bordered size="small" column={1} style={{ marginTop: 8 }}>
+                                            <Descriptions.Item label={OPERATOR_FO_QUEUE_COPY.contractTruthInDtoTitle}>
+                                                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
+                                                    {OPERATOR_FO_QUEUE_COPY.contractTruthInDtoBullets.map((line) => (
+                                                        <li key={line}>
+                                                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                                {line}
+                                                            </Typography.Text>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </Descriptions.Item>
+                                            <Descriptions.Item label={OPERATOR_FO_QUEUE_COPY.contractTruthNotInDtoTitle}>
+                                                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12 }}>
+                                                    {OPERATOR_FO_QUEUE_COPY.contractTruthNotInDtoBullets.map((line) => (
+                                                        <li key={line}>
+                                                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                                {line}
+                                                            </Typography.Text>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </Descriptions.Item>
+                                        </Descriptions>
+                                    </div>
+                                );
+                            },
                         }}
                     />
                     </>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, Table, Tag, Typography, Switch, Space, Alert, Tooltip, Collapse } from 'antd';
+import { Card, Table, Tag, Typography, Switch, Space, Alert, Tooltip, Collapse, Descriptions, Divider } from 'antd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -17,6 +17,7 @@ import {
     buildVerificationsAuditHref,
 } from '@/shared/investigationNavigation';
 import {
+    OPERATOR_FO_SUMMARY_SCREEN_COPY,
     OPERATOR_LINK_LABELS,
     OPERATOR_SHARED_COPY,
     OPERATOR_VERIFICATIONS_COPY,
@@ -24,6 +25,7 @@ import {
 import { RKSv_ADMIN_CONTRACT_GAPS } from '@/shared/rksvAdminTruth';
 import {
     auditLogMatchesVerificationsKeywordSample,
+    describeVerificationsKeywordMatchDe,
     viewAuditLogEntityDeepLinks,
     viewAuditLogStatusPresentation,
 } from '@/shared/verificationsAuditView';
@@ -201,6 +203,29 @@ export default function RksvVerificationsPage() {
             ),
         },
         {
+            title: (
+                <Tooltip title={OPERATOR_VERIFICATIONS_COPY.treffergrundColumnTooltip}>
+                    <span>{OPERATOR_VERIFICATIONS_COPY.treffergrundColumnTitle}</span>
+                </Tooltip>
+            ),
+            key: 'treffergrund',
+            width: 220,
+            ellipsis: true,
+            render: (_: unknown, r: AuditLogEntryDto) => {
+                const text = describeVerificationsKeywordMatchDe(r);
+                return (
+                    <Tooltip title={text}>
+                        <Typography.Text style={{ fontSize: 12 }}>
+                            <Tag color="orange" style={{ marginRight: 6 }}>
+                                {OPERATOR_VERIFICATIONS_COPY.treffergrundTagShort}
+                            </Tag>
+                            {text}
+                        </Typography.Text>
+                    </Tooltip>
+                );
+            },
+        },
+        {
             title: 'Zeit',
             dataIndex: 'timestamp',
             key: 'timestamp',
@@ -288,6 +313,189 @@ export default function RksvVerificationsPage() {
         },
     ];
 
+    const clipText = (text: string | null | undefined, max: number) => {
+        const t = text?.trim();
+        if (!t) return null;
+        return t.length > max ? `${t.slice(0, max)}…` : t;
+    };
+
+    const renderExpandedAuditRow = (r: AuditLogEntryDto) => {
+        const ctx = r.correlationId?.trim();
+        const abgleichHref = ctx
+            ? buildFinanzOnlineQueueInvestigationHref({ investigationBatchCorrelationId: ctx })
+            : '/rksv/finanz-online-queue';
+        const { paymentListHref, receiptDetailHref } = viewAuditLogEntityDeepLinks(r);
+        const req = clipText(r.requestData, 4000);
+        const res = clipText(r.responseData, 4000);
+
+        return (
+            <div style={{ padding: '8px 12px 16px', background: '#fafafa' }}>
+                <Typography.Text strong style={{ fontSize: 12 }}>
+                    {OPERATOR_VERIFICATIONS_COPY.expandPanelIntro}
+                </Typography.Text>
+
+                <Divider orientation="left" plain style={{ margin: '12px 0 8px' }}>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {OPERATOR_VERIFICATIONS_COPY.expandWhyTitle}
+                    </Typography.Text>
+                </Divider>
+                <Typography.Paragraph style={{ marginBottom: 8, fontSize: 12 }}>
+                    <strong>Treffergrund:</strong> {describeVerificationsKeywordMatchDe(r)}
+                </Typography.Paragraph>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+                    {OPERATOR_VERIFICATIONS_COPY.expandWhyBody}
+                </Typography.Paragraph>
+
+                <Divider orientation="left" plain style={{ margin: '16px 0 8px' }}>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {OPERATOR_VERIFICATIONS_COPY.expandTechnicalTitle}
+                    </Typography.Text>
+                </Divider>
+                <Descriptions bordered size="small" column={1}>
+                    <Descriptions.Item label="action">{r.action ?? '—'}</Descriptions.Item>
+                    <Descriptions.Item label="entityType">{r.entityType ?? '—'}</Descriptions.Item>
+                    <Descriptions.Item label="entityId">
+                        {r.entityId?.trim() ? (
+                            <Typography.Text code copyable>
+                                {r.entityId}
+                            </Typography.Text>
+                        ) : (
+                            '—'
+                        )}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="correlationId">
+                        {ctx ? (
+                            <Typography.Text code copyable>
+                                {ctx}
+                            </Typography.Text>
+                        ) : (
+                            '—'
+                        )}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="endpoint">{r.endpoint ?? '—'}</Descriptions.Item>
+                    <Descriptions.Item label="httpMethod">{r.httpMethod ?? '—'}</Descriptions.Item>
+                    <Descriptions.Item label="httpStatusCode">
+                        {r.httpStatusCode != null ? String(r.httpStatusCode) : '—'}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="errorDetails">
+                        {r.errorDetails?.trim() ? (
+                            <Typography.Text type="danger" copyable>
+                                {r.errorDetails}
+                            </Typography.Text>
+                        ) : (
+                            '—'
+                        )}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="description">
+                        {r.description?.trim() ? r.description : '—'}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="timestamp">
+                        {r.timestamp ? dayjs(r.timestamp).format('DD.MM.YYYY HH:mm:ss') : '—'}
+                    </Descriptions.Item>
+                </Descriptions>
+
+                {(req || res) && (
+                    <Collapse
+                        size="small"
+                        style={{ marginTop: 12 }}
+                        items={[
+                            ...(req
+                                ? [
+                                      {
+                                          key: 'req',
+                                          label: 'requestData (gekürzt)',
+                                          children: (
+                                              <Typography.Paragraph
+                                                  copyable={
+                                                      r.requestData
+                                                          ? { text: r.requestData }
+                                                          : false
+                                                  }
+                                                  style={{
+                                                      marginBottom: 0,
+                                                      fontSize: 11,
+                                                      fontFamily: 'monospace',
+                                                      whiteSpace: 'pre-wrap',
+                                                      wordBreak: 'break-word',
+                                                      maxHeight: 220,
+                                                      overflow: 'auto',
+                                                  }}
+                                              >
+                                                  {req}
+                                              </Typography.Paragraph>
+                                          ),
+                                      },
+                                  ]
+                                : []),
+                            ...(res
+                                ? [
+                                      {
+                                          key: 'res',
+                                          label: 'responseData (gekürzt)',
+                                          children: (
+                                              <Typography.Paragraph
+                                                  copyable={
+                                                      r.responseData
+                                                          ? { text: r.responseData }
+                                                          : false
+                                                  }
+                                                  style={{
+                                                      marginBottom: 0,
+                                                      fontSize: 11,
+                                                      fontFamily: 'monospace',
+                                                      whiteSpace: 'pre-wrap',
+                                                      wordBreak: 'break-word',
+                                                      maxHeight: 220,
+                                                      overflow: 'auto',
+                                                  }}
+                                              >
+                                                  {res}
+                                              </Typography.Paragraph>
+                                          ),
+                                      },
+                                  ]
+                                : []),
+                        ]}
+                    />
+                )}
+
+                <Divider orientation="left" plain style={{ margin: '16px 0 8px' }}>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {OPERATOR_VERIFICATIONS_COPY.expandAuthoritativeLinksTitle}
+                    </Typography.Text>
+                </Divider>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 12 }}>
+                    {OPERATOR_VERIFICATIONS_COPY.expandFinanzOnlineAbgleichLead}
+                </Typography.Paragraph>
+                <Space direction="vertical" size={6}>
+                    <Link href={abgleichHref} target="_blank" rel="noopener noreferrer">
+                        {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
+                    </Link>
+                    {ctx ? (
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 11 }}>
+                            {OPERATOR_VERIFICATIONS_COPY.expandFinanzOnlineWithCorrelationHint}
+                        </Typography.Paragraph>
+                    ) : null}
+                    <Space wrap size={[8, 8]}>
+                        {paymentListHref ? (
+                            <Link href={paymentListHref} target="_blank" rel="noopener noreferrer">
+                                {OPERATOR_VERIFICATIONS_COPY.deepLinkPaymentLabel}
+                            </Link>
+                        ) : null}
+                        {receiptDetailHref ? (
+                            <Link href={receiptDetailHref} target="_blank" rel="noopener noreferrer">
+                                {OPERATOR_VERIFICATIONS_COPY.deepLinkReceiptLabel}
+                            </Link>
+                        ) : null}
+                        {ctx ? (
+                            <Link href={buildVerificationsAuditHref(ctx)}>{OPERATOR_VERIFICATIONS_COPY.filterByThisCorrelationLabel}</Link>
+                        ) : null}
+                    </Space>
+                </Space>
+            </div>
+        );
+    };
+
     return (
         <>
             <AdminPageHeader
@@ -304,6 +512,14 @@ export default function RksvVerificationsPage() {
             </AdminPageHeader>
 
             <Card>
+                <Alert
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                    message={OPERATOR_VERIFICATIONS_COPY.pageScopeBannerMessage}
+                    description={OPERATOR_VERIFICATIONS_COPY.pageScopeBannerDescription}
+                />
+
                 {correlationId && (
                     <Alert
                         type="info"
@@ -431,15 +647,21 @@ export default function RksvVerificationsPage() {
                 <Space direction="horizontal" wrap style={{ marginBottom: 12 }}>
                     <Space direction="horizontal">
                         <Typography.Text>Offline-Ursprung</Typography.Text>
-                        <Switch checked={offlineOriginOnly} onChange={setOfflineOriginOnly} />
+                        <Tooltip title={OPERATOR_VERIFICATIONS_COPY.filterSwitchClientTooltip}>
+                            <Switch checked={offlineOriginOnly} onChange={setOfflineOriginOnly} />
+                        </Tooltip>
                     </Space>
                     <Space direction="horizontal">
                         <Typography.Text>Fehlerhafte Replays</Typography.Text>
-                        <Switch checked={failedReplayOnly} onChange={setFailedReplayOnly} />
+                        <Tooltip title={OPERATOR_VERIFICATIONS_COPY.filterSwitchClientTooltip}>
+                            <Switch checked={failedReplayOnly} onChange={setFailedReplayOnly} />
+                        </Tooltip>
                     </Space>
                     <Space direction="horizontal">
                         <Typography.Text>Verdächtige Offline-Zeit</Typography.Text>
-                        <Switch checked={suspiciousTimingOnly} onChange={setSuspiciousTimingOnly} />
+                        <Tooltip title={OPERATOR_VERIFICATIONS_COPY.filterSwitchClientTooltip}>
+                            <Switch checked={suspiciousTimingOnly} onChange={setSuspiciousTimingOnly} />
+                        </Tooltip>
                     </Space>
                 </Space>
                 {!isLoadingList && apiRows > 0 && displayedRows === 0 ? (
@@ -482,7 +704,8 @@ export default function RksvVerificationsPage() {
                     pagination={tablePagination}
                     size="small"
                     sticky
-                    scroll={{ x: 1200, y: 'calc(100vh - 420px)' }}
+                    scroll={{ x: 1480, y: 'calc(100vh - 420px)' }}
+                    expandable={{ expandedRowRender: renderExpandedAuditRow }}
                     locale={{
                         emptyText:
                             apiRows === 0

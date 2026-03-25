@@ -22,6 +22,32 @@ export function auditLogMatchesVerificationsKeywordSample(e: AuditLogEntryDto): 
     );
 }
 
+/**
+ * German operator explanation for why a row passed the same keyword rules as {@link auditLogMatchesVerificationsKeywordSample}.
+ * Heuristic only — mirrors client-side substring checks on action / entityType.
+ */
+export function describeVerificationsKeywordMatchDe(e: AuditLogEntryDto): string {
+    const parts: string[] = [];
+    const action = (e.action ?? '').toLowerCase();
+    const entity = (e.entityType ?? '').toLowerCase();
+    if (action.includes('signature')) {
+        parts.push('Stichwort „signature“ in Aktion');
+    }
+    if (action.includes('offline')) {
+        parts.push('Stichwort „offline“ in Aktion');
+    }
+    if (entity.includes('receipt')) {
+        parts.push('Stichwort „receipt“ im Entitätstyp');
+    }
+    if (entity.includes('payment')) {
+        parts.push('Stichwort „payment“ im Entitätstyp');
+    }
+    if (entity.includes('offlinetransaction')) {
+        parts.push('Stichwort „offlinetransaction“ im Entitätstyp');
+    }
+    return parts.length > 0 ? parts.join(' · ') : '—';
+}
+
 /** Backend `AuditLogStatus` enum ordinal order — see `KasseAPI_Final.Models.AuditLog.AuditLogStatus`. */
 const AUDIT_LOG_STATUS_ORDINAL_LABELS = [
     'Success',

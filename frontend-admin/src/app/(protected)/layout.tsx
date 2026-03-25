@@ -249,7 +249,7 @@ export default function DashboardLayout({
         if (extra.length === 0) return;
         setOpenKeys((prev) => {
             const next = new Set([...prev, ...extra]);
-            return [...next];
+            return Array.from(next);
         });
     }, [pathname]);
 

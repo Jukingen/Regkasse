@@ -25,7 +25,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { OPERATOR_LINK_LABELS, OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { getApiAdminIntegrity } from '@/api/generated/admin/admin';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { IntegrityReportDto } from '@/api/generated/model';

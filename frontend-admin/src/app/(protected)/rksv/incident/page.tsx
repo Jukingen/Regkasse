@@ -21,6 +21,7 @@ import {
     Timeline,
     Tooltip,
     Descriptions,
+    Divider,
 } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
@@ -28,7 +29,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { getApiAdminIncidentsCorrelationId } from '@/api/generated/admin/admin';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { AuditLogEntryDto, ReplayBatchPaymentItemDto, FinanzOnlineReconciliationItemDto } from '@/api/generated/model';
@@ -49,7 +50,9 @@ import {
     OPERATOR_INVESTIGATION_CONTEXT_COPY,
     OPERATOR_LINK_LABELS,
     OPERATOR_SHARED_COPY,
+    OPERATOR_FO_SUMMARY_SCREEN_COPY,
 } from '@/shared/operatorTruthCopy';
+import { viewAuditLogStatusPresentation } from '@/shared/verificationsAuditView';
 
 const RKSV_HANDOFF_PREFIX = 'RKSV_HANDOFF_V1:';
 
@@ -185,7 +188,7 @@ export default function IncidentInvestigationPage() {
         return map;
     }, [incident?.finanzOnlineReconciliation]);
 
-    const auditLogs: AuditLogEntryDto[] = incident?.auditLogs ?? [];
+    const auditLogs: AuditLogEntryDto[] = useMemo(() => incident?.auditLogs ?? [], [incident?.auditLogs]);
     const timelineItems = useMemo(() => {
         return auditLogs
             .sort((a, b) => new Date(a.timestamp ?? 0).getTime() - new Date(b.timestamp ?? 0).getTime())
@@ -261,6 +264,9 @@ export default function IncidentInvestigationPage() {
                                 </Typography.Text>
                             </Tooltip>
                         ) : null}
+                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                            <AdminTruthBadge kind="derived_from_foreign_row" /> via paymentId-Join
+                        </Typography.Text>
                     </Space>
                 );
             },
@@ -302,7 +308,7 @@ export default function IncidentInvestigationPage() {
                                 : '—'}
                         </Typography.Text>
                         <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                            FO Anlage:{' '}
+                            FO Zeile erstellt:{' '}
                             {fo?.createdAt && dayjs(fo.createdAt).isValid()
                                 ? dayjs(fo.createdAt).format('DD.MM. HH:mm')
                                 : '—'}
@@ -314,7 +320,7 @@ export default function IncidentInvestigationPage() {
                                 : '—'}
                         </Typography.Text>
                         <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                            Retries: {fo?.finanzOnlineRetryCount ?? 0}
+                            Versuche: {fo?.finanzOnlineRetryCount ?? 0}
                         </Typography.Text>
                     </Space>
                 );
@@ -388,13 +394,26 @@ export default function IncidentInvestigationPage() {
     return (
         <>
             <AdminPageHeader
-                title="Incident (Correlation-ID)"
+                title="Incident (Correlation) — Untersuchung"
                 breadcrumbs={[
                     ADMIN_OVERVIEW_CRUMB,
-                    { title: 'RKSV', href: '/rksv' },
+                    { title: ADMIN_NAV_GROUP_LABELS.rksv, href: '/rksv' },
                     { title: 'Incident' },
                 ]}
-            />
+                actions={
+                    normalizedId ? (
+                        <Typography.Text code copyable={{ text: normalizedId }}>
+                            {normalizedId}
+                        </Typography.Text>
+                    ) : undefined
+                }
+            >
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 980 }}>
+                    Correlation-zentrierte Aggregation (Replay-Batch + Audit + FinanzOnline-Abgleich-Join). Diese Seite ist
+                    Kontext und Evidenz — die primäre zeilen-/zahlungsbezogene FO-Wahrheit bleibt der{' '}
+                    <Link href="/rksv/finanz-online-queue">{OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}</Link>.
+                </Typography.Paragraph>
+            </AdminPageHeader>
 
             <Card size="small" style={{ marginBottom: 16 }}>
                 <Space.Compact style={{ width: '100%', maxWidth: 520 }}>
@@ -409,6 +428,9 @@ export default function IncidentInvestigationPage() {
                         Suchen
                     </Button>
                 </Space.Compact>
+                <Typography.Paragraph type="secondary" style={{ marginTop: 10, marginBottom: 0, fontSize: 12 }}>
+                    Tipp: akzeptiert Correlation als UUID, URL, oder RKSV-Handoff-JSON (Prefix {RKSV_HANDOFF_PREFIX}…).
+                </Typography.Paragraph>
             </Card>
 
             {incidentError && (
@@ -445,7 +467,7 @@ export default function IncidentInvestigationPage() {
                         <Space direction="vertical" size={10} style={{ width: '100%' }}>
                             <div>
                                 <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                    Gesuchte Correlation-ID
+                                    Correlation (Sucheingabe / normalisiert)
                                 </Typography.Text>
                                 <Typography.Text code copyable>
                                     {normalizedId || correlationId || '—'}
@@ -453,7 +475,7 @@ export default function IncidentInvestigationPage() {
                             </div>
                             <Space wrap>
                                 <Tag color="blue">Batch-Items: {batch.totalItems}</Tag>
-                                <Tag color="green">Fiskalisiert: {batch.successCount}</Tag>
+                                <Tag color="green">Erfolgreich: {batch.successCount}</Tag>
                                 <Tag color="orange">Fehler/Duplikat: {batch.failedOrDuplicateCount}</Tag>
                                 {batch.offlineSyncedAuditCount != null && (
                                     <Tag>Audit OFFLINE_SYNCED: {batch.offlineSyncedAuditCount}</Tag>
@@ -467,11 +489,11 @@ export default function IncidentInvestigationPage() {
                             </Space>
                             <Space direction="vertical" size={4}>
                                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                                    Batch-Correlation
+                                    Batch-Correlation (API)
                                 </Typography.Text>
                                 <Typography.Text code copyable>{String(batch.correlationId)}</Typography.Text>
                                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                                    Audit-Correlation
+                                    Audit-Correlation (API)
                                 </Typography.Text>
                                 <Typography.Text code copyable>{batch.auditCorrelationId ?? '—'}</Typography.Text>
                             </Space>
@@ -483,6 +505,18 @@ export default function IncidentInvestigationPage() {
                                     )}
                                 </Typography.Paragraph>
                             ) : null}
+                            <Alert
+                                type="info"
+                                showIcon
+                                message="Hinweis zur FinanzOnline-Wahrheit"
+                                description={
+                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                        FO-Felder in der Zahlungstabelle werden aus der Abgleich-Liste{' '}
+                                        <strong>über paymentId gejoint</strong> (abgeleitet). Für vollständige FO-Zeilen,
+                                        Fehlertexte und Retry-Semantik den Abgleich öffnen.
+                                    </Typography.Text>
+                                }
+                            />
                             {batch.correlationId ? (
                                 <Space wrap size={8}>
                                     <Typography.Text type="secondary">
@@ -537,6 +571,7 @@ export default function IncidentInvestigationPage() {
                             <Typography.Paragraph type="secondary" style={{ marginBottom: 12, fontSize: 12 }}>
                                 {OPERATOR_INCIDENT_COPY.paymentsCardIntro}
                             </Typography.Paragraph>
+                            <Divider style={{ margin: '0 0 12px' }} />
                             <Table<ReplayBatchPaymentItemDto>
                                 columns={paymentColumns}
                                 dataSource={batch.payments ?? []}
@@ -585,6 +620,18 @@ export default function IncidentInvestigationPage() {
                                                             {String(batch.correlationId ?? '—')}
                                                         </Typography.Text>
                                                     </Descriptions.Item>
+                                                    <Descriptions.Item label="Abgleich (FO) öffnen">
+                                                        <Link
+                                                            href={buildFinanzOnlineQueueInvestigationHref({
+                                                                focusPaymentId: String(r.paymentId ?? ''),
+                                                                investigationBatchCorrelationId: String(batch.correlationId ?? ''),
+                                                            })}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                        >
+                                                            {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
+                                                        </Link>
+                                                    </Descriptions.Item>
                                                     <Descriptions.Item label="Hinweis">
                                                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                                             {OPERATOR_INCIDENT_COPY.expandDtoNote}
@@ -623,6 +670,11 @@ export default function IncidentInvestigationPage() {
                                                 <Typography.Text type="secondary">
                                                     {timelineLabel(item.action, item.description, item.meta)}
                                                 </Typography.Text>
+                                                <div style={{ marginTop: 4 }}>
+                                                    <Tag color={viewAuditLogStatusPresentation(item.full.status).antColor}>
+                                                        {viewAuditLogStatusPresentation(item.full.status).label}
+                                                    </Tag>
+                                                </div>
                                                 {(item.meta?.replayPath || item.meta?.payloadRepaired !== undefined) && (
                                                     <div style={{ marginTop: 4 }}>
                                                         {item.meta.replayPath && (
@@ -672,7 +724,10 @@ export default function IncidentInvestigationPage() {
                                         {
                                             title: 'Status',
                                             width: 88,
-                                            render: (_: unknown, r: AuditLogEntryDto) => String(r.status),
+                                            render: (_: unknown, r: AuditLogEntryDto) => {
+                                                const p = viewAuditLogStatusPresentation(r.status);
+                                                return <Tag color={p.antColor}>{p.label}</Tag>;
+                                            },
                                         },
                                         {
                                             title: 'Entity',
