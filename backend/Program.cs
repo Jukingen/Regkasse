@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
@@ -24,6 +25,20 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Security;
 
 var builder = WebApplication.CreateBuilder(args);
+var isDevelopment = builder.Environment.IsDevelopment();
+
+static string RequireConfigValue(IConfiguration configuration, string key, bool isDevelopmentEnvironment, int minLength = 1)
+{
+    var value = configuration[key];
+    if (string.IsNullOrWhiteSpace(value) || value.Trim().Length < minLength)
+    {
+        if (!isDevelopmentEnvironment)
+        {
+            throw new InvalidOperationException($"Missing or invalid required configuration: {key}");
+        }
+    }
+    return value?.Trim() ?? string.Empty;
+}
 
 // Configuration Binding
 builder.Services.Configure<CompanyProfileOptions>(builder.Configuration.GetSection(CompanyProfileOptions.SectionName));
@@ -33,14 +48,17 @@ builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptio
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<AuditRetentionOptions>(builder.Configuration.GetSection(AuditRetentionOptions.SectionName));
 
-// Development ortamında tüm IP'lerden erişime izin ver - Force host binding
-builder.WebHost.ConfigureKestrel(serverOptions =>
+// Local development için explicit host binding; production host binding platform tarafından yönetilmelidir.
+if (isDevelopment)
 {
-    serverOptions.ListenAnyIP(5183); // 0.0.0.0:5183
-    serverOptions.ListenLocalhost(5183); // 127.0.0.1:5183 (backward compatibility)
-});
+    builder.WebHost.ConfigureKestrel(serverOptions =>
+    {
+        serverOptions.ListenAnyIP(5183); // 0.0.0.0:5183
+        serverOptions.ListenLocalhost(5183); // 127.0.0.1:5183 (backward compatibility)
+    });
 
-Console.WriteLine("🌐 Force binding to ALL IPs (0.0.0.0:5183) and localhost (127.0.0.1:5183)");
+    Console.WriteLine("🌐 Development host binding: 0.0.0.0:5183 and localhost:5183");
+}
 
 // Entity Framework ve PostgreSQL bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -74,12 +92,9 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 
 // JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["SecretKey"];
-if (string.IsNullOrEmpty(secretKey))
-{
-    throw new InvalidOperationException("JWT SecretKey is not configured in appsettings.json");
-}
+var secretKey = RequireConfigValue(builder.Configuration, "JwtSettings:SecretKey", isDevelopment, minLength: 32);
+var jwtIssuer = RequireConfigValue(builder.Configuration, "JwtSettings:Issuer", isDevelopment);
+var jwtAudience = RequireConfigValue(builder.Configuration, "JwtSettings:Audience", isDevelopment);
 var key = Encoding.ASCII.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(options =>
@@ -89,16 +104,16 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false;
-    options.SaveToken = true;
+    options.RequireHttpsMetadata = !isDevelopment;
+    options.SaveToken = false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
         ValidateIssuer = true,
-        ValidIssuer = jwtSettings["Issuer"],
+        ValidIssuer = jwtIssuer,
         ValidateAudience = true,
-        ValidAudience = jwtSettings["Audience"],
+        ValidAudience = jwtAudience,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
         RequireExpirationTime = true,
@@ -137,7 +152,10 @@ builder.Services.AddAuthentication(options =>
         OnAuthenticationFailed = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogError("JWT authentication failed: {Exception}", context.Exception);
+            logger.LogWarning(
+                "JWT authentication failed: {ExceptionType}, message={Message}",
+                context.Exception.GetType().Name,
+                context.Exception.Message);
             return Task.CompletedTask;
         },
         OnChallenge = context =>
@@ -180,20 +198,42 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins(
-                  "http://localhost:8081",     // Frontend Expo dev server
-                  "http://localhost:3000",     // Frontend web dev server
-                  "http://localhost:19006",    // Expo web
-                  "http://192.168.1.2:8081",  // iOS Expo client
-                  "http://192.168.1.2:3000",  // iOS Web client
-                  "http://192.168.1.2:19006", // iOS Expo web
-                  "http://localhost:5173",     // Vite dev server
-                  "http://127.0.0.1:8081",    // Localhost alternative
-                  "http://127.0.0.1:3000"     // Localhost alternative
-              )
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        // Production: only explicitly configured origins.
+        var configuredOrigins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>()?
+            .Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .ToArray() ?? Array.Empty<string>();
+
+        if (isDevelopment)
+        {
+            policy.WithOrigins(
+                      "http://localhost:8081",     // Frontend Expo dev server
+                      "http://localhost:3000",     // Frontend web dev server
+                      "http://localhost:19006",    // Expo web
+                      "http://192.168.1.2:8081",  // iOS Expo client
+                      "http://192.168.1.2:3000",  // iOS Web client
+                      "http://192.168.1.2:19006", // iOS Expo web
+                      "http://localhost:5173",     // Vite dev server
+                      "http://127.0.0.1:8081",    // Localhost alternative
+                      "http://127.0.0.1:3000"     // Localhost alternative
+                  )
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+            return;
+        }
+
+        if (configuredOrigins.Length > 0)
+        {
+            policy.WithOrigins(configuredOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+            return;
+        }
+
+        throw new InvalidOperationException("Cors:AllowedOrigins must be configured in non-development environments.");
     });
 });
 
@@ -352,9 +392,12 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Port ayarını zorla yap
-app.Urls.Clear();
-app.Urls.Add("http://localhost:5183");
+// Port ayarını sadece development ortamında zorla.
+if (app.Environment.IsDevelopment())
+{
+    app.Urls.Clear();
+    app.Urls.Add("http://localhost:5183");
+}
 
 // Middleware pipeline
 if (app.Environment.IsDevelopment())
@@ -367,7 +410,24 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// app.UseHttpsRedirection(); // HTTPS redirect'i devre dışı bırak
+if (!app.Environment.IsDevelopment())
+{
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    });
+
+    app.UseHsts();
+    app.UseHttpsRedirection();
+
+    app.Use(async (context, next) =>
+    {
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        context.Response.Headers["X-Frame-Options"] = "DENY";
+        context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        await next();
+    });
+}
 app.UseCors("AllowAll");
 
 // CorrelationId: propagate from request (X-Correlation-Id) or generate; required for audit traceability

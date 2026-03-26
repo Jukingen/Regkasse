@@ -48,7 +48,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                _logger.LogInformation("Login attempt for user: {Email}, clientApp: {ClientApp}", model.Email, model.ClientApp ?? "(none)");
+                _logger.LogInformation("Login attempt for user: {EmailMasked}, clientApp: {ClientApp}", MaskEmail(model.Email), model.ClientApp ?? "(none)");
 
                 if (string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Password))
                 {
@@ -67,7 +67,7 @@ namespace KasseAPI_Final.Controllers
                         return BadRequest(new { message = "clientApp field is required (\"pos\" or \"admin\")." });
                     }
 
-                    _logger.LogWarning("Login without clientApp from {Email}. AllowLegacyLoginWithoutClientApp is ON — legacy mode.", model.Email);
+                    _logger.LogWarning("Login without clientApp from {EmailMasked}. AllowLegacyLoginWithoutClientApp is ON — legacy mode.", MaskEmail(model.Email));
                     resolvedClientApp = null;
                 }
                 else if (!ClientAppPolicy.IsKnownApp(resolvedClientApp))
@@ -100,8 +100,8 @@ namespace KasseAPI_Final.Controllers
                 if (resolvedClientApp != null && !ClientAppPolicy.IsRoleAllowedForApp(resolvedClientApp, roles.Append(primaryRole)))
                 {
                     _logger.LogWarning(
-                        "Login denied: user {Email} (role {Role}) is not allowed for clientApp {ClientApp}",
-                        model.Email, canonicalRole, resolvedClientApp);
+                        "Login denied: user {EmailMasked} (role {Role}) is not allowed for clientApp {ClientApp}",
+                        MaskEmail(model.Email), canonicalRole, resolvedClientApp);
 
                     return StatusCode(403, new { message = "Bu kullanıcı bu uygulama için yetkili değil." });
                 }
@@ -146,12 +146,12 @@ namespace KasseAPI_Final.Controllers
                     appContext = resolvedClientApp
                 };
 
-                _logger.LogInformation("Login successful for user: {Email}, clientApp: {ClientApp}", model.Email, resolvedClientApp ?? "legacy");
+                _logger.LogInformation("Login successful for user: {EmailMasked}, clientApp: {ClientApp}", MaskEmail(model.Email), resolvedClientApp ?? "legacy");
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Login error for user: {Email}", model.Email);
+                _logger.LogError(ex, "Login error for user: {EmailMasked}", MaskEmail(model.Email));
                 return StatusCode(500, new { message = "Giriş işlemi sırasında hata oluştu" });
             }
         }
@@ -196,12 +196,7 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogError(ex, "Logout error for user: {UserId}. Exception: {ExceptionType}, Message: {ExceptionMessage}", 
                     userId, ex.GetType().Name, ex.Message);
                 
-                // Daha detaylı hata mesajı
-                var errorMessage = ex.InnerException != null 
-                    ? $"Logout error: {ex.Message} - Inner: {ex.InnerException.Message}"
-                    : $"Logout error: {ex.Message}";
-                
-                return StatusCode(500, new { message = errorMessage });
+                return StatusCode(500, new { message = "Logout failed due to a server error." });
             }
         }
 
@@ -393,6 +388,20 @@ namespace KasseAPI_Final.Controllers
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private static string MaskEmail(string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return "unknown";
+
+            var atIndex = email.IndexOf('@');
+            if (atIndex <= 1)
+                return "***";
+
+            var prefix = email[..Math.Min(2, atIndex)];
+            var domain = atIndex < email.Length - 1 ? email[atIndex..] : string.Empty;
+            return $"{prefix}***{domain}";
         }
     }
 

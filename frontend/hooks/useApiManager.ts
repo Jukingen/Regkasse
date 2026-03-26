@@ -6,8 +6,8 @@ import NetInfo from '@react-native-community/netinfo';
 import { API_BASE_URL } from '../services/api/config';
 import { paymentService } from '../services/api/paymentService';
 import { notifyOfflineSyncComplete } from '../services/payment/offlineQueueSyncNotifier';
-import { storage } from '../utils/storage';
 import { useAuth } from '../contexts/AuthContext';
+import { sessionManager } from '../services/session/sessionManager';
 
 // API çağrı durumu
 interface ApiCallStatus {
@@ -72,7 +72,7 @@ export const useApiManager = () => {
     }
 
     try {
-      const token = await storage.getItem('token');
+      const token = await sessionManager.getAccessToken();
       if (!token) {
         console.log('⚠️ Token bulunamadı');
         return true;

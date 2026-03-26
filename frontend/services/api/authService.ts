@@ -1,7 +1,7 @@
-import { storage } from '../../utils/storage';
-
 import { apiClient } from './config';
 import { normalizeLoginError } from '../../features/auth/authErrors';
+import { sessionManager } from '../session/sessionManager';
+const isDev = __DEV__;
 
 export interface LoginRequest {
   email: string;
@@ -47,14 +47,11 @@ export const login = async (credentials: LoginRequest): Promise<LoginResponse> =
     // await storage.setItem('token', response.token);
     // await storage.setItem('user', JSON.stringify(response.user));
 
-    // Eğer refreshToken varsa onu da kaydet
-    if (response.refreshToken) {
-      await storage.setItem('refreshToken', response.refreshToken);
-    }
-
     return response;
   } catch (error: unknown) {
-    console.error('Login error:', error);
+    if (isDev) {
+      console.error('Login error:', error);
+    }
     // Propagate original error (response/data/message preserved via normalizeLoginError); no generic overwrite.
     throw normalizeLoginError(error);
   }
@@ -64,28 +61,32 @@ export const logout = async (): Promise<void> => {
   try {
     await apiClient.post('/auth/logout');
   } catch (error) {
-    console.warn('Backend logout call failed (non-critical):', error);
+    if (isDev) {
+      console.warn('Backend logout call failed (non-critical):', error);
+    }
   } finally {
-    await storage.removeItem('token');
-    await storage.removeItem('user');
-    await storage.removeItem('refreshToken');
+    await sessionManager.clearSession();
   }
 };
 
 // Mevcut kullanıcıyı getir
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const userStr = await storage.getItem('user');
-    if (!userStr) {
-      console.log('No user data found in storage');
+    const user = await sessionManager.getStoredUser();
+    if (!user) {
+      if (isDev) {
+        console.log('No user data found in storage');
+      }
       return null;
     }
-
-    const user = JSON.parse(userStr);
-    console.log('Retrieved user from storage:', user);
+    if (isDev) {
+      console.log('Retrieved user from storage:', user);
+    }
     return user;
   } catch (error) {
-    console.error('Get current user error:', error);
+    if (isDev) {
+      console.error('Get current user error:', error);
+    }
     return null;
   }
 };
@@ -94,7 +95,9 @@ export const getCurrentUser = async (): Promise<User | null> => {
 export const validateToken = async (): Promise<User | null> => {
   // 🚀 F5 REFRESH FIX: Debouncing için static flag
   if ((validateToken as any).isValidating) {
-    console.log('🚫 validateToken zaten çalışıyor, atlanıyor...');
+    if (isDev) {
+      console.log('🚫 validateToken zaten çalışıyor, atlanıyor...');
+    }
     return null;
   }
 
@@ -104,7 +107,9 @@ export const validateToken = async (): Promise<User | null> => {
   const DEBOUNCE_MS = 1000; // 1 saniye debounce
 
   if (currentTime - lastCallTime < DEBOUNCE_MS) {
-    console.log(`🚫 validateToken debouncing: ${currentTime - lastCallTime}ms < ${DEBOUNCE_MS}ms`);
+    if (isDev) {
+      console.log(`🚫 validateToken debouncing: ${currentTime - lastCallTime}ms < ${DEBOUNCE_MS}ms`);
+    }
     return null;
   }
 
@@ -113,41 +118,57 @@ export const validateToken = async (): Promise<User | null> => {
   (validateToken as any).lastCallTime = currentTime;
 
   try {
-    console.log('🔐 Backend token validation başlatılıyor...');
+    if (isDev) {
+      console.log('🔐 Backend token validation başlatılıyor...');
+    }
 
     // Token'ı AsyncStorage'dan al
-    const token = await storage.getItem('token');
+    const token = await sessionManager.getAccessToken();
     if (!token) {
-      console.log('❌ Token bulunamadı, validation atlanıyor');
+      if (isDev) {
+        console.log('❌ Token bulunamadı, validation atlanıyor');
+      }
       return null;
     }
 
-    console.log('🔑 Token bulundu, backend\'e gönderiliyor...');
+    if (isDev) {
+      console.log('🔑 Token bulundu, backend\'e gönderiliyor...');
+    }
 
     // Backend'den kullanıcı bilgisini al
     const response = await apiClient.get<User>('/auth/me');
 
     if (response && response.id) {
-      console.log('✅ Backend token validation başarılı:', response.email);
+      if (isDev) {
+        console.log('✅ Backend token validation başarılı:', response.email);
+      }
 
       // AsyncStorage'daki user bilgisini güncelle
-      await storage.setItem('user', JSON.stringify(response));
+      await sessionManager.persistSession({ token, user: response });
 
       return response;
     } else {
-      console.log('❌ Backend token validation başarısız: invalid response');
+      if (isDev) {
+        console.log('❌ Backend token validation başarısız: invalid response');
+      }
       return null;
     }
   } catch (error: any) {
-    console.error('❌ Backend token validation hatası:', error);
+    if (isDev) {
+      console.error('❌ Backend token validation hatası:', error);
+    }
 
     // Token geçersizse storage'ı temizle
     if (error.status === 401) {
-      console.log('🚨 Token geçersiz (401), storage temizleniyor...');
-      await storage.multiRemove(['token', 'refreshToken', 'user']);
+      if (isDev) {
+        console.log('🚨 Token geçersiz (401), storage temizleniyor...');
+      }
+      await sessionManager.clearSession();
     } else if (error.status === 500) {
-      console.log('🚨 Backend hatası (500), storage temizleniyor...');
-      await storage.multiRemove(['token', 'refreshToken', 'user']);
+      if (isDev) {
+        console.log('🚨 Backend hatası (500), storage temizleniyor...');
+      }
+      await sessionManager.clearSession();
     }
 
     return null;
@@ -160,25 +181,13 @@ export const validateToken = async (): Promise<User | null> => {
 // Token'ı yenile
 export const refreshToken = async (): Promise<string | null> => {
   try {
-    const refreshTokenStr = await storage.getItem('refreshToken');
-    if (!refreshTokenStr) {
-      console.log('No refresh token available');
-      return null;
-    }
-
-    const response = await apiClient.post<{ token: string }>('/auth/refresh', {
-      refreshToken: refreshTokenStr
-    });
-
-    if (response && response.token) {
-      await storage.setItem('token', response.token);
-      return response.token;
-    } else {
-      console.error('Invalid refresh response:', response);
-      return null;
-    }
+    return sessionManager.refreshAccessToken((refreshToken) =>
+      apiClient.post<{ token: string }>('/auth/refresh', { refreshToken })
+    );
   } catch (error) {
-    console.error('Refresh token error:', error);
+    if (isDev) {
+      console.error('Refresh token error:', error);
+    }
     await logout();
     return null;
   }
@@ -186,6 +195,9 @@ export const refreshToken = async (): Promise<string | null> => {
 
 // Demo kullanıcı ile otomatik login
 export const loginWithDemoUser = async (): Promise<LoginResponse> => {
+  if (!isDev) {
+    throw new Error('Demo login is disabled outside development.');
+  }
   return await login({
     email: 'cashier@demo.com',
     password: 'Cashier123!',

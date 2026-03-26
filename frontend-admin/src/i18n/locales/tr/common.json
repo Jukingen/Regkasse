@@ -16,6 +16,51 @@
   "messages": {
     "unknownError": "Bilinmeyen hata"
   },
+  "auth": {
+    "subtitle": "POS sisteminizi yonetmek icin giris yapin",
+    "username": "Kullanici adi",
+    "password": "Sifre",
+    "login": "Giris yap",
+    "loginSuccess": "Giris basarili",
+    "loginFailedWithStatus": "Giris basarisiz ({{status}}): {{details}}",
+    "validation": {
+      "usernameRequired": "Lutfen kullanici adini girin!",
+      "passwordRequired": "Lutfen sifreyi girin!"
+    }
+  },
+  "categories": {
+    "productsLoadError": "Urunler yuklenemedi",
+    "emptyCategoryProducts": "Bu kategoride urun yok",
+    "directlyAssignedProducts": "Bu kategoriye dogrudan atanan:",
+    "productSingular": "urun",
+    "productPlural": "urunler",
+    "searchPlaceholder": "Kategorilerde ara...",
+    "newCategory": "Yeni Kategori",
+    "searchHint": "Arama, yazdikca kategorileri filtreler (istek calismadan once kisa gecikme vardir). Bu kategorideki urunleri gormek icin satiri genisletin.",
+    "loadErrorTitle": "Kategoriler yuklenemedi",
+    "emptyCategories": "Kategori yok",
+    "deleteConfirmTitle": "Kategori silinsin mi?",
+    "deleteConfirmDescription": "Bu kategoriye bagli urunler etkilenebilir.",
+    "table": {
+      "name": "Ad",
+      "product": "Urun",
+      "barcode": "Barkod",
+      "price": "Fiyat",
+      "stock": "Stok",
+      "vatRate": "KDV Orani (%)",
+      "active": "Aktif",
+      "sortOrder": "Siralama",
+      "actions": "Islemler"
+    },
+    "messages": {
+      "created": "Kategori olusturuldu.",
+      "createError": "Kategori olusturulamadi.",
+      "updated": "Kategori guncellendi.",
+      "updateError": "Kategori guncellenemedi.",
+      "deleted": "Kategori silindi.",
+      "deleteError": "Kategori silinemedi."
+    }
+  },
   "operator": {
     "refetchHintToolbar": "Verileri manuel yenileyin (onbellek eski olabilir)."
   }

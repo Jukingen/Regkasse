@@ -9,12 +9,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { LoginModel } from '@/api/generated/model';
 import { authStorage } from '@/features/auth/services/authStorage';
 import { AUTH_KEYS } from '../hooks/useAuth';
+import { useI18n } from '@/i18n';
 
 const { Title, Text } = Typography;
 
 export const LoginForm: FC = () => {
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { t } = useI18n();
 
     const { mutate: login, isPending } = usePostApiAuthLogin({
         mutation: {
@@ -33,7 +35,7 @@ export const LoginForm: FC = () => {
                     }
                 }
 
-                message.success('Login successful');
+                message.success(t('common.auth.loginSuccess'));
 
                 // Invalidate 'me' query to fetch user profile and update auth state
                 await queryClient.invalidateQueries({ queryKey: AUTH_KEYS.user });
@@ -48,7 +50,7 @@ export const LoginForm: FC = () => {
                 const status = error?.response?.status;
 
                 // Try to extract validation errors common in .NET Core (title, errors object)
-                let apiMessage = responseData?.message || responseData?.title || error?.message || 'Unknown error';
+                let apiMessage = responseData?.message || responseData?.title || error?.message || t('common.messages.unknownError');
 
                 // If there are validation errors, append them
                 if (responseData?.errors) {
@@ -58,8 +60,14 @@ export const LoginForm: FC = () => {
                     }
                 }
 
-                console.error('❌ [Login Failed] Full Error Object:', error);
-                message.error(`Login failed (${status}): ${apiMessage}`);
+                if (process.env.NODE_ENV === 'development') {
+                    console.error('❌ [Login Failed]', {
+                        status,
+                        message: error?.message,
+                        responseMessage: responseData?.message ?? responseData?.title
+                    });
+                }
+                message.error(t('common.auth.loginFailedWithStatus', { status: status ?? '-', details: apiMessage }));
             },
         }
     });
@@ -82,7 +90,7 @@ export const LoginForm: FC = () => {
             <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                 <div style={{ textAlign: 'center', marginBottom: 24 }}>
                     <Title level={3}>Regkasse Admin</Title>
-                    <Text type="secondary">Sign in to manage your POS system</Text>
+                    <Text type="secondary">{t('common.auth.subtitle')}</Text>
                 </div>
 
                 <Form
@@ -94,21 +102,21 @@ export const LoginForm: FC = () => {
                 >
                     <Form.Item
                         name="username"
-                        rules={[{ required: true, message: 'Please input your Username!' }]}
+                        rules={[{ required: true, message: t('common.auth.validation.usernameRequired') }]}
                     >
-                        <Input prefix={<UserOutlined />} placeholder="Username" />
+                        <Input prefix={<UserOutlined />} placeholder={t('common.auth.username')} />
                     </Form.Item>
 
                     <Form.Item
                         name="password"
-                        rules={[{ required: true, message: 'Please input your Password!' }]}
+                        rules={[{ required: true, message: t('common.auth.validation.passwordRequired') }]}
                     >
-                        <Input.Password prefix={<LockOutlined />} placeholder="Password" />
+                        <Input.Password prefix={<LockOutlined />} placeholder={t('common.auth.password')} />
                     </Form.Item>
 
                     <Form.Item>
                         <Button type="primary" htmlType="submit" block loading={isPending}>
-                            Log in
+                            {t('common.auth.login')}
                         </Button>
                     </Form.Item>
                 </Form>

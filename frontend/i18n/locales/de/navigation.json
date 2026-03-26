@@ -18,5 +18,16 @@
   "schedule": "Schichtplan",
   "menu": "Menü",
   "accessibleScreens": "Zugängliche Bildschirme",
-  "demoUserInfo": "Demo-Benutzer: Nur Testfunktionen verfügbar"
+  "demoUserInfo": "Demo-Benutzer: Nur Testfunktionen verfügbar",
+  "cashRegister": "Kassa",
+  "settings": "Einstellungen",
+  "offlineQueue": {
+    "title": "Offline-Warteschlange",
+    "syncSummaryPartial": "{{processed}} Zahlung(en) synchronisiert. {{failed}} fehlgeschlagen.",
+    "syncSummarySuccess": "{{processed}} Zahlung(en) erfolgreich synchronisiert."
+  },
+  "cartAccessibility": {
+    "default": "Warenkorb, zum Bezahlen",
+    "withCount": "Warenkorb, {{count}} Artikel, zum Bezahlen"
+  }
 }

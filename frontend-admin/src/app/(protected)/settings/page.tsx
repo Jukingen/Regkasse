@@ -17,6 +17,7 @@ import type { CompanySettings } from '@/api/generated/model';
 import { customInstance } from '@/lib/axios';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
+import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
 
 const ATU_REGEX = /^ATU\d{8}$/;
 
@@ -251,7 +252,11 @@ function GeneralInfoTab() {
 function LocalizationTab() {
     const { t } = useI18n();
     return (
-        <Card title={t('settings.form.localization.cardTitle')}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Card title={t('settings.language.cardTitle')}>
+                <LanguageSelector />
+            </Card>
+            <Card title={t('settings.form.localization.cardTitle')}>
             <Row gutter={24}>
                 <Col span={8}>
                     <Form.Item
@@ -321,7 +326,8 @@ function LocalizationTab() {
                     </Form.Item>
                 </Col>
             </Row>
-        </Card>
+            </Card>
+        </div>
     );
 }
 

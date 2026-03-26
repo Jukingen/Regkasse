@@ -2,7 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import * as Localization from 'expo-localization';
 import { getSavedLanguage, saveLanguage } from './languageStorage';
-import { DEFAULT_TEXT_LOCALE, normalizeTextLocale } from './localeUtils';
+import { DEFAULT_TEXT_LOCALE, SUPPORTED_TEXT_LOCALES, normalizeTextLocale } from './localeUtils';
 import 'intl-pluralrules';
 
 // Import translation resources
@@ -135,7 +135,7 @@ export const resources = {
   },
 } as const;
 
-const SUPPORTED_LANGUAGES = ['en', 'de', 'tr'] as const;
+export const FRONTEND_SUPPORTED_LANGUAGES = SUPPORTED_TEXT_LOCALES;
 const FALLBACK_LNG = DEFAULT_TEXT_LOCALE;
 
 function normalizeLanguage(input: string | null | undefined): string {
@@ -150,6 +150,10 @@ export const changeLanguage = async (language: string) => {
 };
 
 const initI18n = async (): Promise<void> => {
+  if (i18n.isInitialized) {
+    return;
+  }
+
   let languageToUse: string;
   try {
     const saved = await getSavedLanguage();
@@ -163,7 +167,7 @@ const initI18n = async (): Promise<void> => {
     resources,
     lng: languageToUse,
     fallbackLng: FALLBACK_LNG,
-    supportedLngs: [...SUPPORTED_LANGUAGES],
+    supportedLngs: [...FRONTEND_SUPPORTED_LANGUAGES],
     defaultNS,
     interpolation: { escapeValue: false },
     react: { useSuspense: false },

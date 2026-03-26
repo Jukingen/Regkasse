@@ -1,17 +1,27 @@
 import { Platform } from 'react-native';
 
+const isDev = __DEV__;
+
 // Platform-aware API URL configuration
 const getApiBaseUrl = () => {
   // 1. Priority: Check EXPO_PUBLIC_API_BASE_URL (Preferred)
   if (process.env.EXPO_PUBLIC_API_BASE_URL) {
-    console.log('🌐 Using API URL from EXPO_PUBLIC_API_BASE_URL:', process.env.EXPO_PUBLIC_API_BASE_URL);
+    if (isDev) {
+      console.log('🌐 Using API URL from EXPO_PUBLIC_API_BASE_URL:', process.env.EXPO_PUBLIC_API_BASE_URL);
+    }
     return process.env.EXPO_PUBLIC_API_BASE_URL;
   }
 
   // 2. Check legacy env var
   if (process.env.EXPO_PUBLIC_API_URL) {
-    console.log('🌐 Using API URL from EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL);
+    if (isDev) {
+      console.log('🌐 Using API URL from EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL);
+    }
     return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  if (!isDev) {
+    throw new Error('EXPO_PUBLIC_API_BASE_URL must be configured for production builds.');
   }
 
   // 3. Platform-specific Fallback
@@ -34,7 +44,9 @@ const getApiBaseUrl = () => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
-console.log('🔧 Final API_BASE_URL:', API_BASE_URL);
+if (isDev) {
+  console.log('🔧 Final API_BASE_URL:', API_BASE_URL);
+}
 
 // Diğer ortam değişkenleri
 // export const ANOTHER_CONFIG = process.env.EXPO_PUBLIC_ANOTHER_CONFIG || 'default'; 

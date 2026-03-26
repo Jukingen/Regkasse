@@ -1,6 +1,6 @@
 import { apiClient, API_BASE_URL } from './config';
 import { unwrapApiResponseLayer } from './normalizePosPaymentMethods';
-import { storage } from '../../utils/storage';
+import { sessionManager } from '../session/sessionManager';
 
 /** Line item shape used by the POS invoices screen (mapped from Invoice.invoiceItems / PaymentItems JSON). */
 export interface PosInvoiceLine {
@@ -141,7 +141,7 @@ export class InvoicePdfHttpError extends Error {
  * PDF for api/Invoice/{id}/pdf (supports POS payment id projection).
  */
 export async function downloadInvoicePdf(id: string): Promise<Blob> {
-    const token = await storage.getItem('token');
+    const token = await sessionManager.getAccessToken();
     const response = await fetch(`${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/pdf`, {
         method: 'GET',
         headers: token ? { Authorization: `Bearer ${token}` } : {},

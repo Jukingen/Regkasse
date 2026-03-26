@@ -15,6 +15,10 @@
     "tse": "TSE",
     "password": "Sifrem"
   },
+  "language": {
+    "cardTitle": "Dil",
+    "label": "Goruntuleme dili"
+  },
   "changePassword": {
     "title": "Sifremi degistir",
     "currentPassword": "Mevcut sifre",

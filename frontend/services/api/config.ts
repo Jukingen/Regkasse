@@ -1,13 +1,16 @@
-import { storage } from '../../utils/storage';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { sessionManager } from '../session/sessionManager';
 
 import { API_BASE_URL as CONFIGURED_API_BASE_URL } from '../../config';
+const isDev = __DEV__;
 
 // Platform-aware API URL from main config
 export const API_BASE_URL = CONFIGURED_API_BASE_URL;
 
-console.log('🔧 API Services - Using API Base URL:', API_BASE_URL);
+if (isDev) {
+    console.log('🔧 API Services - Using API Base URL:', API_BASE_URL);
+}
 
 // Token yönetimi için yardımcı fonksiyonlar
 const TokenManager = {
@@ -21,12 +24,14 @@ const TokenManager = {
             const currentTime = Date.now() / 1000;
             const isExpired = decoded.exp ? decoded.exp < currentTime : true;
 
-            console.log('Token expiration check:', {
-                exp: decoded.exp,
-                currentTime: currentTime,
-                isExpired: isExpired,
-                timeLeft: decoded.exp ? Math.round((decoded.exp - currentTime) / 60) + ' minutes' : 'unknown'
-            });
+            if (isDev) {
+                console.log('Token expiration check:', {
+                    exp: decoded.exp,
+                    currentTime: currentTime,
+                    isExpired: isExpired,
+                    timeLeft: decoded.exp ? Math.round((decoded.exp - currentTime) / 60) + ' minutes' : 'unknown'
+                });
+            }
 
             return isExpired;
         } catch (error) {
@@ -50,11 +55,11 @@ const TokenManager = {
     // Güvenli token saklama
     storeToken: async (token: string) => {
         try {
-            // Token'ı 'Bearer ' prefix olmadan sakla (sadece JWT token)
-            const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
-            await storage.setItem('token', cleanToken);
-            await storage.setItem('tokenExpiry', Date.now().toString());
-            console.log('Token stored successfully (JWT only):', cleanToken.substring(0, 20) + '...');
+            const cleanToken = sessionManager.normalizeToken(token);
+            await sessionManager.persistSession({ token: cleanToken });
+            if (isDev) {
+                console.log('Token stored successfully.');
+            }
 
             // Global event: token updated (login/refresh)
             try {
@@ -69,16 +74,20 @@ const TokenManager = {
                 console.warn('Token update event dispatch failed:', eventError);
             }
         } catch (error) {
-            console.error('Token storage failed:', error);
+            if (isDev) {
+                console.error('Token storage failed:', error);
+            }
         }
     },
 
     // Token'ları temizle
     clearTokens: async () => {
         try {
-            await storage.multiRemove(['token', 'refreshToken', 'tokenExpiry']);
+            await sessionManager.clearSession();
         } catch (error) {
-            console.error('Token cleanup failed:', error);
+            if (isDev) {
+                console.error('Token cleanup failed:', error);
+            }
         }
     }
 };
@@ -93,17 +102,21 @@ const axiosInstance = axios.create({
     withCredentials: false, // CORS hatası için false yapıldı
 });
 
+const REFRESH_HEADER = 'x-auth-refresh-retry';
+
 // Request interceptor - Token kontrolü ve ekleme
 axiosInstance.interceptors.request.use(
     async (config) => {
         // 🚀 DEBOUNCING KALDIRILDI - Ürün yükleme için basitleştirildi
 
         // Token kontrolü
-        const token = await storage.getItem('token');
+        const token = await sessionManager.getAccessToken();
         if (token) {
             // Token'ın geçerlilik süresini kontrol et
             if (TokenManager.isTokenExpired(token)) {
-                console.log('Token expired, clearing...');
+                if (isDev) {
+                    console.log('Token expired, clearing...');
+                }
                 await TokenManager.clearTokens();
                 // router.replace('/login'); // router kaldırıldığı için bu satır kaldırıldı
                 return Promise.reject(new Error('Token expired'));
@@ -111,16 +124,22 @@ axiosInstance.interceptors.request.use(
 
             // Token'ı header'a ekle (JWT token'a Bearer prefix ekle)
             config.headers.Authorization = `Bearer ${token}`;
-            console.log('✅ Token added to request:', config.url, 'Token length:', token.length);
-        } else {
+            if (isDev) {
+                console.log('✅ Token added to request:', config.url);
+            }
+        } else if (isDev) {
             console.log('⚠️ No token found, proceeding without auth');
         }
 
-        console.log(`🚀 [${new Date().toISOString()}] Request: ${config.method?.toUpperCase()} ${config.url}`);
+        if (isDev) {
+            console.log(`🚀 [${new Date().toISOString()}] Request: ${config.method?.toUpperCase()} ${config.url}`);
+        }
         return config;
     },
     (error) => {
-        console.error('❌ Request interceptor error:', error);
+        if (isDev) {
+            console.error('❌ Request interceptor error:', error);
+        }
         return Promise.reject(error);
     }
 );
@@ -133,37 +152,71 @@ axiosInstance.interceptors.response.use(
         return response.data;
     },
     async (error) => {
-        console.error('❌ API error:', {
-            status: error.response?.status,
-            url: error.config?.url,
-            message: error.message
-        });
+        if (isDev) {
+            console.error('❌ API error:', {
+                status: error.response?.status,
+                url: error.config?.url,
+                message: error.message
+            });
+        }
 
         // 401 Unauthorized - Token geçersiz
         if (error.response?.status === 401) {
-            console.log('⚠️ Unauthorized error (401)');
+            if (isDev) {
+                console.log('⚠️ Unauthorized error (401)');
+            }
 
             // FIX: Check if token is actually expired locally
-            const token = await storage.getItem('token');
+            const token = await sessionManager.getAccessToken();
             let isExpired = true;
 
             if (token) {
                 isExpired = TokenManager.isTokenExpired(token);
-                console.log('[API] 401 received. Local Token Expired:', isExpired);
+                if (isDev) {
+                    console.log('[API] 401 received. Local Token Expired:', isExpired);
+                }
 
                 // Log auth header presence
-                console.log('[API] Request had Auth Header:', !!error.config?.headers?.Authorization);
+                if (isDev) {
+                    console.log('[API] Request had Auth Header:', !!error.config?.headers?.Authorization);
+                }
             }
 
-            if (isExpired) {
-                console.log('⚠️ Token expired, dispatching expiration event...');
+            const originalConfig = error.config || {};
+            const wasRetried = !!originalConfig.headers?.[REFRESH_HEADER];
+
+            if (!wasRetried) {
+                const refreshedToken = await sessionManager.refreshAccessToken((refreshToken) =>
+                    axiosInstance.post<{ token: string }>(
+                        '/auth/refresh',
+                        { refreshToken },
+                        { headers: { [REFRESH_HEADER]: '1' } }
+                    )
+                );
+
+                if (refreshedToken) {
+                    originalConfig.headers = {
+                        ...(originalConfig.headers || {}),
+                        Authorization: `Bearer ${refreshedToken}`,
+                        [REFRESH_HEADER]: '1',
+                    };
+                    return axiosInstance(originalConfig);
+                }
+            }
+
+            if (isExpired || wasRetried) {
+                if (isDev) {
+                    console.log('⚠️ Session invalid/refresh failed, dispatching expiration event...');
+                }
                 if (typeof window !== 'undefined' && window.dispatchEvent) {
                     const event = new CustomEvent('AUTH_SESSION_EXPIRED');
                     window.dispatchEvent(event);
                 }
             } else {
-                console.warn('⚠️ Server returned 401 but token is locally valid.');
-                console.warn('⚠️ This might be server time skew or invalid signature.');
+                if (isDev) {
+                    console.warn('⚠️ Server returned 401 but token is locally valid.');
+                    console.warn('⚠️ This might be server time skew or invalid signature.');
+                }
                 // Do NOT dispatch logout event immediately if user asked to "Login'e gitme"
                 // Just let the error propagate so UI can show message
             }
@@ -174,7 +227,9 @@ axiosInstance.interceptors.response.use(
 
         // 403 Forbidden - Yetkisiz erişim
         if (error.response?.status === 403) {
-            console.log('⛔ Forbidden error (403) - insufficient permissions');
+            if (isDev) {
+                console.log('⛔ Forbidden error (403) - insufficient permissions');
+            }
         }
 
         // Hata detaylarını döndür
@@ -189,45 +244,61 @@ axiosInstance.interceptors.response.use(
 // API client
 export const apiClient = {
     get: async <T>(url: string, config?: any): Promise<T> => {
-        console.log('GET request:', { url, config });
+        if (isDev) {
+            console.log('GET request:', { url, config });
+        }
         try {
             const response = await axiosInstance.get<T>(url, config);
             return response as T;
         } catch (error) {
-            console.error('GET request failed:', error);
+            if (isDev) {
+                console.error('GET request failed:', error);
+            }
             throw error;
         }
     },
 
     post: async <T>(url: string, data?: any, config?: any): Promise<T> => {
-        console.log(`🌐 API POST CALL: ${url}`, { data });
+        if (isDev) {
+            console.log(`🌐 API POST CALL: ${url}`);
+        }
         try {
             const response = await axiosInstance.post<T>(url, data, config);
             return response as T;
         } catch (error) {
-            console.error('POST request failed:', error);
+            if (isDev) {
+                console.error('POST request failed:', error);
+            }
             throw error;
         }
     },
 
     put: async <T>(url: string, data?: any, config?: any): Promise<T> => {
-        console.log(`🌐 API PUT CALL: ${url}`, { data });
+        if (isDev) {
+            console.log(`🌐 API PUT CALL: ${url}`);
+        }
         try {
             const response = await axiosInstance.put<T>(url, data, config);
             return response as T;
         } catch (error) {
-            console.error('PUT request failed:', error);
+            if (isDev) {
+                console.error('PUT request failed:', error);
+            }
             throw error;
         }
     },
 
     delete: async <T>(url: string, config?: any): Promise<T> => {
-        console.log('DELETE request:', { url, config });
+        if (isDev) {
+            console.log('DELETE request:', { url, config });
+        }
         try {
             const response = await axiosInstance.delete<T>(url, config);
             return response as T;
         } catch (error) {
-            console.error('DELETE request failed:', error);
+            if (isDev) {
+                console.error('DELETE request failed:', error);
+            }
             throw error;
         }
     }

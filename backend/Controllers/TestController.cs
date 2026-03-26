@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Controllers.Base;
@@ -27,6 +28,7 @@ namespace KasseAPI_Final.Controllers
 		private readonly IPaymentService _paymentService;
 		private readonly UserManager<ApplicationUser> _userManager;
 		private readonly AppDbContext _db;
+		private readonly IWebHostEnvironment _environment;
 
 		public TestController(
 			IGenericRepository<Customer> customerRepository,
@@ -34,6 +36,7 @@ namespace KasseAPI_Final.Controllers
 			IPaymentService paymentService,
 			UserManager<ApplicationUser> userManager,
 			AppDbContext db,
+			IWebHostEnvironment environment,
 			ILogger<TestController> logger) : base(logger)
 		{
 			_customerRepository = customerRepository;
@@ -41,6 +44,7 @@ namespace KasseAPI_Final.Controllers
 			_paymentService = paymentService;
 			_userManager = userManager;
 			_db = db;
+			_environment = environment;
 		}
 
 		/// <summary>
@@ -51,6 +55,12 @@ namespace KasseAPI_Final.Controllers
 		{
 			try
 			{
+				// Güvenlik: test endpoint'i production ortamında kapalıdır.
+				if (!_environment.IsDevelopment())
+				{
+					return NotFound();
+				}
+
 				// Türkçe Açıklama: Otomatik admin kullanıcısı bul
 				var admin = await _userManager.FindByEmailAsync("admin@admin.com");
 				

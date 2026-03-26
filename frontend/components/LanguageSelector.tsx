@@ -4,6 +4,7 @@ import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 // AsyncStorage import removed as it is handled in changeLanguage
 import { changeLanguage } from '../i18n';
+import { normalizeTextLocale } from '../i18n/localeUtils';
 
 const LANGUAGES = [
   { code: 'de', key: 'settings:languageSelector.de' },
@@ -15,7 +16,10 @@ const LanguageSelector = () => {
   const { i18n, t } = useTranslation(['settings']);
 
   // CRITICAL FIX: currentLang'i useMemo ile optimize et
-  const currentLang = useMemo(() => i18n.language, [i18n.language]);
+  const currentLang = useMemo(
+    () => normalizeTextLocale(i18n.resolvedLanguage ?? i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
+  );
 
   // CRITICAL FIX: handleSelect fonksiyonunu useCallback ile optimize et
   const handleSelect = useCallback(async (code: string) => {

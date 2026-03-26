@@ -20,7 +20,7 @@ interface DailyReport {
 
 const ReportsScreen = () => {
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t } = useTranslation('reports');
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -61,13 +61,13 @@ const ReportsScreen = () => {
   // Gün sonu raporu başlat
   const handleCreateReport = () => {
     if (isDemo) {
-      Alert.alert(t('reports.demoMode', 'Demo Mod'), t('reports.demoUsersCannotCreate', 'Demo kullanıcılar gerçek rapor başlatamaz.'));
+      Alert.alert(t('demoMode'), t('demoUsersCannotCreate'));
       return;
     }
     setCreating(true);
     // TODO: API çağrısı ile gün sonu raporu başlat
     setTimeout(() => {
-      Alert.alert(t('reports.success', 'Başarılı'), t('reports.reportCreated', 'Gün sonu raporu oluşturuldu.'));
+      Alert.alert(t('success'), t('reportCreated'));
       setCreating(false);
     }, 1200);
   };
@@ -81,18 +81,18 @@ const ReportsScreen = () => {
       {item.downloadLinks && (
         <View style={styles.downloadRow}>
           {item.downloadLinks.csv && (
-            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('reports.csvDownload', 'CSV indirilecek'))}>
-              <Text style={styles.downloadText}>{t('reports.csv', 'CSV')}</Text>
+            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('csvDownload'))}>
+              <Text style={styles.downloadText}>{t('csv')}</Text>
             </TouchableOpacity>
           )}
           {item.downloadLinks.pdf && (
-            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('reports.pdfDownload', 'PDF indirilecek'))}>
-              <Text style={styles.downloadText}>{t('reports.pdf', 'PDF')}</Text>
+            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('pdfDownload'))}>
+              <Text style={styles.downloadText}>{t('pdf')}</Text>
             </TouchableOpacity>
           )}
           {item.downloadLinks.json && (
-            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('reports.jsonDownload', 'JSON indirilecek'))}>
-              <Text style={styles.downloadText}>{t('reports.json', 'JSON')}</Text>
+            <TouchableOpacity style={styles.downloadBtn} onPress={() => Alert.alert(t('jsonDownload'))}>
+              <Text style={styles.downloadText}>{t('json')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -105,13 +105,13 @@ const ReportsScreen = () => {
   const isCashierLike = role === 'Cashier' || role === 'Waiter';
   const isAdminLike = role === 'SuperAdmin' || role === 'Manager';
   let infoMsg = '';
-  if (isDemo) infoMsg = t('reports.demoInfo', 'Demo kullanıcılar sadece örnek raporları görebilir.');
-  else if (isCashierLike) infoMsg = t('reports.cashierInfo', 'Sadece kendi gün sonu raporlarınızı görebilirsiniz.');
-  else if (isAdminLike) infoMsg = t('reports.adminInfo', 'Tüm kullanıcıların raporlarını görebilir ve indirebilirsiniz.');
+  if (isDemo) infoMsg = t('demoInfo');
+  else if (isCashierLike) infoMsg = t('cashierInfo');
+  else if (isAdminLike) infoMsg = t('adminInfo');
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('reports.title', 'Gün Sonu Raporları')}</Text>
+      <Text style={styles.title}>{t('dailyClosingTitle')}</Text>
       <Text style={styles.infoMsg}>{infoMsg}</Text>
       {!isDemo && (
         <TouchableOpacity
@@ -119,7 +119,7 @@ const ReportsScreen = () => {
           onPress={handleCreateReport}
           disabled={creating}
         >
-          <Text style={styles.createBtnText}>{creating ? t('reports.creating', 'Oluşturuluyor...') : t('reports.createBtn', 'Gün Sonu (Tagesende) Al')}</Text>
+          <Text style={styles.createBtnText}>{creating ? t('creating') : t('createBtn')}</Text>
         </TouchableOpacity>
       )}
       <FlatList

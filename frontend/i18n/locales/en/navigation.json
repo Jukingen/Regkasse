@@ -20,5 +20,14 @@
   "accessibleScreens": "Accessible Screens",
   "demoUserInfo": "Demo User: Only test functions available",
   "cashRegister": "Cash Register",
-  "settings": "Settings"
+  "settings": "Settings",
+  "offlineQueue": {
+    "title": "Offline Queue",
+    "syncSummaryPartial": "{{processed}} payment(s) synchronized. {{failed}} failed.",
+    "syncSummarySuccess": "{{processed}} payment(s) synchronized successfully."
+  },
+  "cartAccessibility": {
+    "default": "Cart, proceed to payment",
+    "withCount": "Cart, {{count}} items, proceed to payment"
+  }
 }

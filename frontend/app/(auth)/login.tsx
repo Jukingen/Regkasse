@@ -17,6 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import { storage } from '../../utils/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAuthError, getAuthErrorMessage } from '../../features/auth/authErrors';
+import { useTranslation } from 'react-i18next';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,6 +27,7 @@ interface FormErrors {
 }
 
 export default function LoginScreen() {
+  const { t } = useTranslation('auth');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
@@ -55,11 +57,11 @@ export default function LoginScreen() {
     const newErrors: FormErrors = {};
 
     if (!username.trim()) {
-      newErrors.username = 'Username is required';
+      newErrors.username = t('validation.usernameRequired');
     }
 
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('validation.passwordRequired');
     }
 
     setErrors(newErrors);
@@ -98,7 +100,7 @@ export default function LoginScreen() {
           setPassword('');
         }
       } else {
-        const msg = error instanceof Error ? error.message : 'Login failed';
+        const msg = error instanceof Error ? error.message : t('loginError');
         setLoginError(msg);
         setErrors({ username: msg });
       }
@@ -137,7 +139,7 @@ export default function LoginScreen() {
             style={styles.formSection}
           >
             <View style={styles.formContainer}>
-              <Text style={styles.loginTitle}>LOGIN</Text>
+              <Text style={styles.loginTitle}>{t('loginTitle')}</Text>
 
               {loginError && (
                 <View style={styles.errorBanner}>
@@ -149,7 +151,7 @@ export default function LoginScreen() {
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="USERNAME"
+                  placeholder={t('usernamePlaceholder')}
                   placeholderTextColor="#999"
                   value={username}
                   onChangeText={(text) => { setUsername(text); setLoginError(null); setErrors((prev) => ({ ...prev, username: undefined })); }}
@@ -169,7 +171,7 @@ export default function LoginScreen() {
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="PASSWORD"
+                  placeholder={t('passwordPlaceholder')}
                   placeholderTextColor="#999"
                   value={password}
                   onChangeText={(text) => { setPassword(text); setLoginError(null); setErrors((prev) => ({ ...prev, username: undefined })); }}
@@ -195,12 +197,12 @@ export default function LoginScreen() {
                 {isLoading ? (
                   <ActivityIndicator color="#333" />
                 ) : (
-                  <Text style={styles.loginButtonText}>Log In</Text>
+                  <Text style={styles.loginButtonText}>{t('loginButton')}</Text>
                 )}
               </TouchableOpacity>
 
               {/* Footer Text */}
-              <Text style={styles.footerText}>Sign in to continue.</Text>
+              <Text style={styles.footerText}>{t('signinHint')}</Text>
             </View>
           </KeyboardAvoidingView>
         </View>

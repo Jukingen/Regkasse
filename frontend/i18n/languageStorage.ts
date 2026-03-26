@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { normalizeTextLocale } from './localeUtils';
 
 const LANGUAGE_KEY = 'user-language';
 
@@ -21,11 +22,12 @@ function hasLocalStorage(): boolean {
  * Web'de localStorage, native/test/SSR'da AsyncStorage kullanır.
  */
 export async function saveLanguage(language: string): Promise<void> {
+  const safeLanguage = normalizeTextLocale(language);
   try {
     if (hasLocalStorage()) {
-      (globalThis as unknown as { localStorage: Storage }).localStorage.setItem(LANGUAGE_KEY, language);
+      (globalThis as unknown as { localStorage: Storage }).localStorage.setItem(LANGUAGE_KEY, safeLanguage);
     } else {
-      await AsyncStorage.setItem(LANGUAGE_KEY, language);
+      await AsyncStorage.setItem(LANGUAGE_KEY, safeLanguage);
     }
   } catch (error) {
     console.error('Failed to save language:', error);

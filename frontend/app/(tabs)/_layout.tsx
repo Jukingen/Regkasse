@@ -45,13 +45,13 @@ export default function TabLayout() {
         const unsub = subscribeOfflineSyncComplete((processed, failed) => {
             if (processed > 0) {
                 const msg = failed > 0
-                    ? `${processed} Zahlung(en) synchronisiert. ${failed} fehlgeschlagen.`
-                    : `${processed} Zahlung(en) erfolgreich synchronisiert.`;
-                Alert.alert('Offline-Warteschlange', msg);
+                    ? t('navigation:offlineQueue.syncSummaryPartial', { processed, failed })
+                    : t('navigation:offlineQueue.syncSummarySuccess', { processed });
+                Alert.alert(t('navigation:offlineQueue.title'), msg);
             }
         });
         return unsub;
-    }, []);
+    }, [t]);
 
     // OPTIMIZATION: Auth status kontrolünü daha az sıklıkta yap (ref avoids stale closure from [] deps).
     useEffect(() => {
@@ -116,7 +116,7 @@ export default function TabLayout() {
                 <Tabs.Screen
                     name="cart"
                     options={{
-                        title: 'Sepet',
+                        title: t('navigation:cart'),
                         tabBarButton: (props) => {
                             const { style, onPress } = props;
                             return (
@@ -124,7 +124,9 @@ export default function TabLayout() {
                                     onPress={() => setIsPaymentModalVisible(true)}
                                     style={[style, styles.cartTabButton]}
                                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                    accessibilityLabel={cartCount > 0 ? `Warenkorb, ${cartCount} Artikel, zum Bezahlen` : 'Warenkorb, zum Bezahlen'}
+                                    accessibilityLabel={cartCount > 0
+                                        ? t('navigation:cartAccessibility.withCount', { count: cartCount })
+                                        : t('navigation:cartAccessibility.default')}
                                     accessibilityRole="button"
                                 >
                                     <View style={styles.cartIconContainer}>
@@ -135,7 +137,7 @@ export default function TabLayout() {
                                             </View>
                                         )}
                                     </View>
-                                    <Text style={styles.cartLabel}>Sepet</Text>
+                                    <Text style={styles.cartLabel}>{t('navigation:cart')}</Text>
                                 </Pressable>
                             );
                         }

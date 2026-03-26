@@ -4,8 +4,12 @@ import { authStorage } from '@/features/auth/services/authStorage';
 import { getForbiddenMessage, mapRequiredPolicyToReasonCode } from '@/shared/errors/forbiddenMessages';
 
 const isDev = process.env.NODE_ENV === 'development';
-// STRICT: Require NEXT_PUBLIC_API_BASE_URL to be set, or fallback to localhost:5183 (matching backend default)
-const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5183';
+const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+const baseURL = configuredBaseUrl || (isDev ? 'http://localhost:5183' : '');
+
+if (!baseURL) {
+    throw new Error('NEXT_PUBLIC_API_BASE_URL must be configured for non-development environments.');
+}
 
 // Extended window interface for global singleton in Dev
 declare global {

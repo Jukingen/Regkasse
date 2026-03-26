@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import { changeLanguage as persistAndChangeLanguage } from '../i18n';
+import { normalizeTextLocale } from '../i18n/localeUtils';
 
 interface LanguageSwitcherProps {
   onLanguageChange?: (language: string) => void;
@@ -28,6 +30,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   onLanguageChange 
 }) => {
   const { i18n } = useTranslation();
+  const activeLanguage = normalizeTextLocale(i18n.resolvedLanguage ?? i18n.language);
 
   const languages = [
     {
@@ -55,7 +58,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
    */
   const changeLanguage = async (languageCode: string) => {
     try {
-      await i18n.changeLanguage(languageCode);
+      await persistAndChangeLanguage(languageCode);
       
       const selectedLanguage = languages.find(lang => lang.code === languageCode);
       
@@ -82,11 +85,11 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
    * Mevcut dili test et
    */
   const testCurrentLanguage = () => {
-    const currentLang = languages.find(lang => lang.code === i18n.language);
+    const currentLang = languages.find(lang => lang.code === activeLanguage);
     
     Alert.alert(
       'Mevcut Dil / Current Language',
-      `Aktif dil: ${currentLang?.name || 'Unknown'} (${i18n.language})\n\nBu dilde görev önerileri alacaksınız.\n\nYou will receive task suggestions in this language.`,
+      `Aktif dil: ${currentLang?.name || 'Unknown'} (${activeLanguage})\n\nBu dilde görev önerileri alacaksınız.\n\nYou will receive task suggestions in this language.`,
       [{ text: 'OK' }]
     );
   };
@@ -96,7 +99,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       <View style={styles.header}>
         <Text style={styles.title}>Görev Dili Seçin / Select Task Language</Text>
         <Text style={styles.subtitle}>
-          Mevcut: {languages.find(lang => lang.code === i18n.language)?.name || 'Unknown'}
+          Mevcut: {languages.find(lang => lang.code === activeLanguage)?.name || 'Unknown'}
         </Text>
       </View>
 
@@ -106,7 +109,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
             key={language.code}
             style={[
               styles.languageButton,
-              i18n.language === language.code && styles.activeLanguage
+              activeLanguage === language.code && styles.activeLanguage
             ]}
             onPress={() => changeLanguage(language.code)}
           >
@@ -114,18 +117,18 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
             <View style={styles.languageInfo}>
               <Text style={[
                 styles.languageName,
-                i18n.language === language.code && styles.activeLanguageText
+                activeLanguage === language.code && styles.activeLanguageText
               ]}>
                 {language.name}
               </Text>
               <Text style={[
                 styles.languageDescription,
-                i18n.language === language.code && styles.activeLanguageDescription
+                activeLanguage === language.code && styles.activeLanguageDescription
               ]}>
                 {language.description}
               </Text>
             </View>
-            {i18n.language === language.code && (
+            {activeLanguage === language.code && (
               <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
             )}
           </TouchableOpacity>

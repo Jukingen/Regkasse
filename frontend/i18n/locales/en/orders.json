@@ -1,6 +1,11 @@
 {
   "title": "Orders",
   "new": "New Order",
+  "pending": "Pending",
+  "preparing": "Preparing",
+  "ready": "Ready",
+  "served": "Served",
+  "cancelled": "Cancelled",
   "status": {
     "pending": "Pending",
     "preparing": "Preparing",

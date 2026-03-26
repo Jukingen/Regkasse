@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { API_BASE_URL } from '../config';
 import {
   isRecord,
   normalizeToPosPaymentMethods,
   type NormalizedPosPaymentMethod,
 } from '../services/api/normalizePosPaymentMethods';
 import { POS_PAYMENT_METHODS_PATH } from '../services/api/posPaymentPaths';
+import { apiClient } from '../services/api/config';
+import { sessionManager } from '../services/session/sessionManager';
 
 // English Description: Hook for fetching and managing payment methods from backend. Also checks TSE status.
 // OPTIMIZATION: Sürekli API çağrısı yerine sadece gerekli durumlarda fetch yapar
@@ -58,7 +58,8 @@ export function usePaymentMethods(user: any) {
   // Fetch payment methods from backend
   const fetchPaymentMethods = useCallback(async () => {
     // Token kontrolü
-    if (!user || !user.token) {
+    const token = await sessionManager.getAccessToken();
+    if (!user || !token) {
       console.error('❌ No user or token available');
       setError('User not authenticated. Please login first.');
       setPaymentMethods([]);
@@ -75,25 +76,8 @@ export function usePaymentMethods(user: any) {
       setLoading(true);
       setError(null);
       console.log('🔄 Fetching payment methods from backend...');
-      console.log('🔐 Using token:', user.token ? 'Available' : 'Missing');
-
-      const response = await fetch(`${API_BASE_URL}${POS_PAYMENT_METHODS_PATH}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${user.token}`, // Token zaten Bearer prefix olmadan, burada ekliyoruz
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please login again.');
-        }
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const json: unknown = await response.json();
+      console.log('🔐 Using token:', token ? 'Available' : 'Missing');
+      const json: unknown = await apiClient.get<unknown>(POS_PAYMENT_METHODS_PATH);
       const methods = normalizeToPosPaymentMethods(json);
       const env = isRecord(json) ? json : null;
 

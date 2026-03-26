@@ -12,6 +12,7 @@ interface DemoUser {
 }
 
 export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => void }) {
+  const isDev = __DEV__;
   const [demoUsers, setDemoUsers] = useState<{ Cashiers: DemoUser[], Admins: DemoUser[] }>({ Cashiers: [], Admins: [] });
   const [loading, setLoading] = useState(false);
 
@@ -20,6 +21,10 @@ export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => voi
   }, []);
 
   const fetchDemoUsers = async () => {
+    if (!isDev) {
+      return;
+    }
+
     try {
       const response = await fetch('http://localhost:5000/api/demo/login-info');
       const data = await response.json();
@@ -41,6 +46,11 @@ export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => voi
   };
 
   const handleDemoLogin = async (user: DemoUser) => {
+    if (!isDev) {
+      Alert.alert('Hata', 'Demo giriş yalnızca geliştirme ortamında kullanılabilir.');
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -106,6 +116,10 @@ export default function DemoLogin({ onLogin }: { onLogin: (userData: any) => voi
       </View>
     </TouchableOpacity>
   );
+
+  if (!isDev) {
+    return null;
+  }
 
   return (
     <ScrollView style={styles.container}>

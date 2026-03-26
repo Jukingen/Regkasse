@@ -1,8 +1,8 @@
 import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient, TokenManager } from './config';
 import { usePermission } from '../../hooks/usePermission';
 import { UserRole } from '../../types/auth';
+import { sessionManager } from '../session/sessionManager';
 
 /**
  * Güvenli API servisi - JWT token kontrolü ve role-based erişim kontrolü
@@ -261,7 +261,7 @@ export class SecureApiService {
    * Türkçe açıklama: AsyncStorage'dan token alma
    */
   private async getStoredToken(): Promise<string> {
-    return await AsyncStorage.getItem('token') || '';
+    return (await sessionManager.getAccessToken()) || '';
   }
 }
 

@@ -1,5 +1,5 @@
 import 'intl-pluralrules';
-import '../i18n';
+import { i18nReady } from '../i18n';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -17,13 +17,35 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 console.log('🚀 ROOT LAYOUT: Module loaded successfully');
 
 export default function RootLayout() {
+  const [isI18nReady, setIsI18nReady] = React.useState(false);
+
   // Memory kullanımını izle
   useMemoryMonitor();
+
+  React.useEffect(() => {
+    let mounted = true;
+    void i18nReady.finally(() => {
+      if (mounted) setIsI18nReady(true);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   React.useEffect(() => {
     console.log('🌳 ROOT LAYOUT: Mounted');
     return () => console.log('🌳 ROOT LAYOUT: Unmounted');
   }, []);
+
+  if (!isI18nReady) {
+    return (
+      <SafeAreaProvider>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text>...</Text>
+        </View>
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <ErrorBoundary>

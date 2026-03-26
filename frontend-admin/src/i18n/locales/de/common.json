@@ -16,6 +16,51 @@
   "messages": {
     "unknownError": "Unbekannter Fehler"
   },
+  "auth": {
+    "subtitle": "Melden Sie sich an, um Ihr Kassensystem zu verwalten",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "login": "Anmelden",
+    "loginSuccess": "Anmeldung erfolgreich",
+    "loginFailedWithStatus": "Anmeldung fehlgeschlagen ({{status}}): {{details}}",
+    "validation": {
+      "usernameRequired": "Bitte Benutzernamen eingeben!",
+      "passwordRequired": "Bitte Passwort eingeben!"
+    }
+  },
+  "categories": {
+    "productsLoadError": "Produkte konnten nicht geladen werden",
+    "emptyCategoryProducts": "Keine Produkte in dieser Kategorie",
+    "directlyAssignedProducts": "Direkt dieser Kategorie zugeordnet:",
+    "productSingular": "Produkt",
+    "productPlural": "Produkte",
+    "searchPlaceholder": "Kategorien suchen...",
+    "newCategory": "Neue Kategorie",
+    "searchHint": "Die Suche filtert Kategorien waehrend der Eingabe (kurze Verzoegerung vor der Anfrage). Erweitern Sie eine Zeile, um Produkte dieser Kategorie zu sehen.",
+    "loadErrorTitle": "Kategorien konnten nicht geladen werden",
+    "emptyCategories": "Keine Kategorien",
+    "deleteConfirmTitle": "Kategorie loeschen?",
+    "deleteConfirmDescription": "Produkte, die mit dieser Kategorie verknuepft sind, koennen betroffen sein.",
+    "table": {
+      "name": "Name",
+      "product": "Produkt",
+      "barcode": "Barcode",
+      "price": "Preis",
+      "stock": "Bestand",
+      "vatRate": "MwSt. (%)",
+      "active": "Aktiv",
+      "sortOrder": "Sortierung",
+      "actions": "Aktionen"
+    },
+    "messages": {
+      "created": "Kategorie angelegt.",
+      "createError": "Kategorie konnte nicht angelegt werden.",
+      "updated": "Kategorie aktualisiert.",
+      "updateError": "Kategorie konnte nicht aktualisiert werden.",
+      "deleted": "Kategorie geloescht.",
+      "deleteError": "Kategorie konnte nicht geloescht werden."
+    }
+  },
   "operator": {
     "refetchHintToolbar": "Daten manuell aktualisieren (Cache kann veraltet sein)."
   }

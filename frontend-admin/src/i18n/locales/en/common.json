@@ -16,6 +16,51 @@
   "messages": {
     "unknownError": "Unknown error"
   },
+  "auth": {
+    "subtitle": "Sign in to manage your POS system",
+    "username": "Username",
+    "password": "Password",
+    "login": "Log in",
+    "loginSuccess": "Login successful",
+    "loginFailedWithStatus": "Login failed ({{status}}): {{details}}",
+    "validation": {
+      "usernameRequired": "Please input your username!",
+      "passwordRequired": "Please input your password!"
+    }
+  },
+  "categories": {
+    "productsLoadError": "Could not load products",
+    "emptyCategoryProducts": "No products in this category",
+    "directlyAssignedProducts": "Directly assigned to this category:",
+    "productSingular": "product",
+    "productPlural": "products",
+    "searchPlaceholder": "Search categories...",
+    "newCategory": "New Category",
+    "searchHint": "Search filters categories as you type (short delay before the request runs). Expand a row to see products in that category.",
+    "loadErrorTitle": "Could not load categories",
+    "emptyCategories": "No categories",
+    "deleteConfirmTitle": "Delete category?",
+    "deleteConfirmDescription": "Products linked to this category may be affected.",
+    "table": {
+      "name": "Name",
+      "product": "Product",
+      "barcode": "Barcode",
+      "price": "Price",
+      "stock": "Stock",
+      "vatRate": "VAT Rate (%)",
+      "active": "Active",
+      "sortOrder": "Sort Order",
+      "actions": "Actions"
+    },
+    "messages": {
+      "created": "Category created.",
+      "createError": "Category could not be created.",
+      "updated": "Category updated.",
+      "updateError": "Category could not be updated.",
+      "deleted": "Category deleted.",
+      "deleteError": "Category could not be deleted."
+    }
+  },
   "operator": {
     "refetchHintToolbar": "Refresh data manually (cache may be stale)."
   }

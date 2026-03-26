@@ -11,6 +11,7 @@ import {
   type AdminNamespace,
   type TextLocale,
 } from './config';
+import { getStoredLanguage, setStoredLanguage } from './languageStorage';
 
 type TranslateOptions = Record<string, string | number>;
 const missingRuntimeKeys = new Set<string>();
@@ -24,10 +25,21 @@ type I18nContextValue = {
   t: (key: string, options?: TranslateOptions) => string;
 };
 
-const I18N_STORAGE_KEY = 'regkasse.admin.textLocale';
 const FORMAT_STORAGE_KEY = 'regkasse.admin.formatLocale';
 
 const I18nContext = createContext<I18nContextValue | null>(null);
+
+function parseTranslationKey(input: string): { namespace: string; path: string } {
+  // Keep backward compatibility with existing "namespace.path" keys and
+  // additionally accept "namespace:path" for cross-app usage discipline.
+  if (input.includes(':')) {
+    const [namespace, path] = input.split(':', 2);
+    return { namespace, path };
+  }
+
+  const [namespace, ...rest] = input.split('.');
+  return { namespace, path: rest.join('.') };
+}
 
 function resolveFromPath(source: unknown, key: string): string | undefined {
   const value = key.split('.').reduce<unknown>((acc, segment) => {
@@ -53,19 +65,21 @@ function trackMissingRuntimeKey(locale: string, key: string) {
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const initialTextLocale = (() => {
-    if (typeof window === 'undefined') return DEFAULT_TEXT_LOCALE;
-    const saved = window.localStorage.getItem(I18N_STORAGE_KEY);
-    return normalizeTextLocale(saved ?? window.navigator.language);
-  })();
-  const initialFormatLocale = (() => {
-    if (typeof window === 'undefined') return DEFAULT_FORMAT_LOCALE;
-    const saved = window.localStorage.getItem(FORMAT_STORAGE_KEY);
-    return saved ? normalizeFormatLocale(saved) : getFormattingLocaleForTextLocale(initialTextLocale);
-  })();
+  const [textLocale, setTextLocaleState] = useState<TextLocale>(DEFAULT_TEXT_LOCALE);
+  const [formatLocale, setFormatLocaleState] = useState<string>(DEFAULT_FORMAT_LOCALE);
+  const [isLocaleReady, setIsLocaleReady] = useState(false);
 
-  const [textLocale, setTextLocaleState] = useState<TextLocale>(initialTextLocale);
-  const [formatLocale, setFormatLocaleState] = useState<string>(initialFormatLocale);
+  useEffect(() => {
+    const storedTextLocale = getStoredLanguage();
+    const savedFormatLocale = typeof window !== 'undefined' ? window.localStorage.getItem(FORMAT_STORAGE_KEY) : null;
+    const nextFormatLocale = savedFormatLocale
+      ? normalizeFormatLocale(savedFormatLocale)
+      : getFormattingLocaleForTextLocale(storedTextLocale);
+
+    setTextLocaleState(storedTextLocale);
+    setFormatLocaleState(nextFormatLocale);
+    setIsLocaleReady(true);
+  }, []);
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -77,7 +91,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     const normalized = normalizeTextLocale(next);
     setTextLocaleState(normalized);
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(I18N_STORAGE_KEY, normalized);
+      setStoredLanguage(normalized);
       document.documentElement.lang = normalized;
     }
   }, []);
@@ -94,8 +108,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     const activeCatalog = getCatalog(textLocale);
     const fallbackCatalog = getCatalog(DEFAULT_TEXT_LOCALE);
     const t = (key: string, options?: TranslateOptions): string => {
-      const [namespace, ...rest] = key.split('.');
-      const path = rest.join('.');
+      const { namespace, path } = parseTranslationKey(key);
       const ns = namespace as AdminNamespace;
       const active = resolveFromPath((activeCatalog as Record<string, unknown>)[ns], path);
       const fallback = resolveFromPath((fallbackCatalog as Record<string, unknown>)[ns], path);
@@ -108,6 +121,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     };
     return { textLocale, formatLocale, setTextLocale, setFormatLocale, t };
   }, [textLocale, formatLocale, setTextLocale, setFormatLocale]);
+
+  if (!isLocaleReady) {
+    return null;
+  }
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

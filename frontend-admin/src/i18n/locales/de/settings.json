@@ -15,6 +15,10 @@
     "tse": "TSE",
     "password": "Mein Passwort"
   },
+  "language": {
+    "cardTitle": "Sprache",
+    "label": "Anzeigesprache"
+  },
   "changePassword": {
     "title": "Mein Passwort ändern",
     "currentPassword": "Aktuelles Passwort",

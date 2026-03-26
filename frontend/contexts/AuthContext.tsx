@@ -5,13 +5,16 @@ import { jwtDecode } from 'jwt-decode';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 import i18n from '../i18n';
+import { changeLanguage as persistAndChangeLanguage } from '../i18n';
 import { DEFAULT_TEXT_LOCALE, normalizeTextLocale } from '../i18n/localeUtils';
 import * as authService from '../services/api/authService';
+import { sessionManager } from '../services/session/sessionManager';
 import { handleAPIError } from '../services/errorService';
 import { isAuthError, AuthAppError } from '../features/auth/authErrors';
 import { getUserSettingsAfterLogin } from '../services/api/userSettingsService';
 import { authTrace } from '../utils/authTrace';
 // CRITICAL FIX: useTranslation hook'unu kaldırdık - infinite loop'a neden oluyordu
+const isDev = __DEV__;
 
 // Cart cache temizleme için event listener
 const CART_CLEAR_EVENT = 'logout-clear-cache';
@@ -38,7 +41,7 @@ const checkBackendAuth = async (): Promise<{ isAuthenticated: boolean; user: any
 
     try {
         // Token'ı AsyncStorage'dan al
-        const token = await storage.getItem('token');
+        const token = await sessionManager.getAccessToken();
         if (!token) {
             return { isAuthenticated: false, user: null };
         }
@@ -196,7 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsAuthenticated(false);
             setJustLoggedIn(false);
             // AsyncStorage temizliği
-            storage.multiRemove(['token', 'refreshToken', 'user', 'tokenExpiry']);
+            sessionManager.clearSession();
         }, INACTIVITY_TIMEOUT);
 
         // console.log('[AUTH] inactivity timer started'); // Reduced log noise
@@ -210,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsAuthenticated(false);
             setJustLoggedIn(false);
 
-            await storage.multiRemove(['token', 'refreshToken', 'user', 'tokenExpiry']);
+            await sessionManager.clearSession();
 
             // Cart cache temizle
             await clearCartCache();
@@ -309,7 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
             // 🔑 Token kontrolü yap
-            const token = await storage.getItem('token');
+            const token = await sessionManager.getAccessToken();
             if (!token) {
                 await handleLogoutAndRedirect();
                 return;
@@ -414,8 +417,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 console.log('🔍 AUTH INIT: Checking storage for existing auth...');
 
-                const token = await storage.getItem('token');
-                const userStr = await storage.getItem('user');
+                const snapshot = await sessionManager.getSnapshot();
+                const token = snapshot.accessToken;
+                const userStr = snapshot.user ? JSON.stringify(snapshot.user) : null;
 
                 if (token && userStr) {
                     const storedUser = JSON.parse(userStr);
@@ -427,7 +431,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                         if (isTokenExpired) {
                             console.log('⏰ AUTH INIT: Token expired, clearing storage and redirecting to login');
-                            await storage.multiRemove(['token', 'refreshToken', 'user']);
+                            await sessionManager.clearSession();
                             if (typeof sessionStorage !== 'undefined') {
                                 sessionStorage.removeItem('hasInitialAuthCheck');
                             }
@@ -560,7 +564,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('Making login API request...'); // Debug log
 
             const response = await authService.login({ email: username, password, clientApp: 'pos' });
-            console.log('Login API response:', response); // Debug log
+            if (isDev) {
+                console.log('Login API response received'); // Debug log
+            }
 
             // API client response interceptor'ı response.data döndürüyor
             const { token, user: loggedInUser, refreshToken } = response;
@@ -583,15 +589,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
 
             // 🚀 F5 REFRESH FIX: Platform-aware storage kullan
-            await storage.setItem('token', cleanToken);
-            console.log('Token stored (JWT only):', cleanToken.substring(0, 20) + '...');
-
-            await storage.setItem('user', JSON.stringify(loggedInUser));
-
-            // Eğer refreshToken varsa onu da kaydet
-            if (refreshToken) {
-                await storage.setItem('refreshToken', refreshToken);
-                console.log('Refresh token stored:', !!refreshToken);
+            await sessionManager.persistSession({
+                token: cleanToken,
+                refreshToken: refreshToken ?? null,
+                user: loggedInUser,
+            });
+            if (isDev) {
+                console.log('Session tokens stored');
             }
 
             // 🔐 AUTH STATE PERSISTENCE - F5 refresh'te korunması için
@@ -633,7 +637,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // --- CART TEMİZLİĞİ SONU ---
 
             console.log('Setting user state...'); // Debug log
-            console.log('User data to set:', loggedInUser); // Debug log
+            if (isDev) {
+                console.log('User data prepared for state update'); // Debug log
+            }
 
             // State'leri birlikte set et - önce user, sonra authentication
             const userWithToken = {
@@ -647,7 +653,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setTimeout(() => {
                 setIsAuthenticated(true);
                 console.log('Authentication state set to true'); // Debug log
-                console.log('Full state after login:', { user: userWithToken, isAuthenticated: true }); // Debug log
+                if (isDev) {
+                    console.log('Auth state updated after login'); // Debug log
+                }
             }, 100);
 
             // Kullanıcı ayarlarını backend'den çek
@@ -655,7 +663,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.log('Fetching user settings after login...');
 
                 // Token'ın doğru şekilde kaydedildiğini kontrol et
-                const savedToken = await storage.getItem('token');
+                const savedToken = await sessionManager.getAccessToken();
                 console.log('Saved token before user settings request:', !!savedToken, 'length:', savedToken?.length);
 
                 const userSettings = await getUserSettingsAfterLogin();
@@ -666,13 +674,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const next = normalizeTextLocale(userSettings.language);
                     const currentLang = i18n.language;
                     if (normalizeTextLocale(currentLang) !== next) {
-                        await i18n.changeLanguage(next);
+                        await persistAndChangeLanguage(next);
                         console.log('Language changed to:', next);
                     }
                 } else {
                     const currentLang = i18n.language;
                     if (currentLang !== DEFAULT_TEXT_LOCALE) {
-                        await i18n.changeLanguage(DEFAULT_TEXT_LOCALE);
+                        await persistAndChangeLanguage(DEFAULT_TEXT_LOCALE);
                         console.log('Default language set:', DEFAULT_TEXT_LOCALE);
                     }
                 }
@@ -680,7 +688,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.warn('Kullanıcı ayarları backendden alınamadı, varsayılan dil kullanılıyor:', err);
                 const currentLang = i18n.language;
                 if (currentLang !== DEFAULT_TEXT_LOCALE) {
-                    await i18n.changeLanguage(DEFAULT_TEXT_LOCALE);
+                    await persistAndChangeLanguage(DEFAULT_TEXT_LOCALE);
                 }
             }
 
@@ -724,12 +732,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsAuthenticated(false);
             setJustLoggedIn(false);
 
-            await storage.multiRemove([
-                'token',
-                'refreshToken',
-                'user',
-                'tokenExpiry',
-            ]);
+            await sessionManager.clearSession();
 
             // 🧹 CART CACHE TEMİZLİĞİ - Event ile
             if (typeof window !== 'undefined' && window.dispatchEvent) {

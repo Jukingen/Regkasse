@@ -5,6 +5,7 @@
 const ACCESS_TOKEN_KEY = 'rk_admin_access_token';
 const REFRESH_TOKEN_KEY = 'rk_admin_refresh_token';
 let accessTokenMemory: string | null = null;
+const normalizeToken = (token: string): string => token.startsWith('Bearer ') ? token.slice(7) : token;
 
 export const authStorage = {
     /**
@@ -26,9 +27,13 @@ export const authStorage = {
      * Stores the JWT token.
      */
     setToken: (token: string): void => {
-        accessTokenMemory = token;
+        const cleanToken = normalizeToken(token).trim();
+        if (!cleanToken) {
+            return;
+        }
+        accessTokenMemory = cleanToken;
         if (typeof window !== 'undefined') {
-            sessionStorage.setItem(ACCESS_TOKEN_KEY, token);
+            sessionStorage.setItem(ACCESS_TOKEN_KEY, cleanToken);
         }
     },
 
@@ -40,8 +45,12 @@ export const authStorage = {
     },
 
     setRefreshToken: (refreshToken: string): void => {
+        const cleanRefreshToken = refreshToken.trim();
+        if (!cleanRefreshToken) {
+            return;
+        }
         if (typeof window !== 'undefined') {
-            sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+            sessionStorage.setItem(REFRESH_TOKEN_KEY, cleanRefreshToken);
         }
     },
 
@@ -53,6 +62,9 @@ export const authStorage = {
         if (typeof window !== 'undefined') {
             sessionStorage.removeItem(ACCESS_TOKEN_KEY);
             sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+            // Legacy cleanup: make sure old localStorage keys do not survive.
+            window.localStorage?.removeItem(ACCESS_TOKEN_KEY);
+            window.localStorage?.removeItem(REFRESH_TOKEN_KEY);
         }
     },
 

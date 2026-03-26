@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer';
-import { storage } from '../../utils/storage';
 import { apiClient, API_BASE_URL } from './config';
+import { sessionManager } from '../session/sessionManager';
 import {
   POS_PAYMENT_API_PREFIX,
   POS_PAYMENT_METHODS_PATH,
@@ -348,7 +348,7 @@ class PaymentService {
    */
   async getQrPngAsBase64(paymentId: string): Promise<string | null> {
     try {
-      const token = await storage.getItem('token');
+      const token = await sessionManager.getAccessToken();
       const url = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
       const res = await fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},

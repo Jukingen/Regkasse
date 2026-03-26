@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { paymentService, PaymentRequest, PaymentResponse, PaymentMethod } from '../services/api/paymentService';
-import { storage } from '../utils/storage';
 import { getPaymentErrorDisplayMessage, normalizePaymentError } from '../features/payment/paymentErrors';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
+import { sessionManager } from '../services/session/sessionManager';
 
 // Türkçe Açıklama: Ödeme işlemleri için hook - Backend API ile entegre çalışır
 export const usePayment = () => {
@@ -48,7 +48,7 @@ export const usePayment = () => {
       setError(null);
 
       // Align with apiClient: session is JWT in storage, not AuthContext user (can be briefly null during refresh).
-      const token = await storage.getItem('token');
+      const token = await sessionManager.getAccessToken();
       if (!token) {
         debugPosPaymentTrace('submit_blocked_missing_token', {});
         throw new Error('Nicht angemeldet. Bitte erneut anmelden.');

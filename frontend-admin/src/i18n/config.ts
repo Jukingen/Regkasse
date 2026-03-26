@@ -35,6 +35,9 @@ const catalogs = {
 } as const;
 
 export type AdminNamespace = keyof (typeof catalogs)['de'];
+export const ADMIN_REGISTERED_NAMESPACES = Object.freeze(
+  Object.keys(catalogs.de) as AdminNamespace[],
+);
 
 export function isSupportedTextLocale(value: string): value is TextLocale {
   return (SUPPORTED_TEXT_LOCALES as readonly string[]).includes(value);

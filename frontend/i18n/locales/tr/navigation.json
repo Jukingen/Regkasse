@@ -20,5 +20,14 @@
   "accessibleScreens": "Erişilebilir Ekranlar",
   "demoUserInfo": "Demo Kullanıcı: Sadece test işlevleri mevcut",
   "cashRegister": "Kasa",
-  "settings": "Ayarlar"
+  "settings": "Ayarlar",
+  "offlineQueue": {
+    "title": "Cevrimdisi kuyruk",
+    "syncSummaryPartial": "{{processed}} odeme senkronize edildi. {{failed}} basarisiz.",
+    "syncSummarySuccess": "{{processed}} odeme basariyla senkronize edildi."
+  },
+  "cartAccessibility": {
+    "default": "Sepet, odemeye devam et",
+    "withCount": "Sepet, {{count}} urun, odemeye devam et"
+  }
 }

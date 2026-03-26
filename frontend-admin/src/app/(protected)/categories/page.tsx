@@ -7,13 +7,13 @@ import type { Category, CreateCategoryRequest, UpdateCategoryRequest } from '@/a
 import { Button, Table, Space, message, Popconfirm, Empty, Spin, Input, Alert, Typography, Flex } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
-import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import type { CategoryWithVat } from '@/features/categories/types';
 import type { CategoryFormSubmitValues } from '@/features/categories/components/CategoryForm';
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import type { ColumnType } from 'antd/es/table';
+import { useI18n } from '@/i18n';
 
 type CategoryCreatePayload = CreateCategoryRequest & { vatRate?: number };
 type CategoryUpdatePayload = UpdateCategoryRequest & { vatRate?: number };
@@ -21,6 +21,7 @@ type CategoryUpdatePayload = UpdateCategoryRequest & { vatRate?: number };
 const SEARCH_DEBOUNCE_MS = 400;
 
 function CategoryProducts({ categoryId }: { categoryId: string }) {
+    const { t } = useI18n();
     const { useProductsByCategory } = useCategories();
     const { data: products, isLoading, isError, error, refetch } = useProductsByCategory(categoryId);
 
@@ -36,9 +37,9 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
             <div style={{ padding: 16 }}>
                 <Alert
                     type="error"
-                    message="Produkte konnten nicht geladen werden"
+                    message={t('common.categories.productsLoadError')}
                     description={error instanceof Error ? error.message : undefined}
-                    action={<Button size="small" onClick={() => refetch()}>Erneut versuchen</Button>}
+                    action={<Button size="small" onClick={() => refetch()}>{t('common.buttons.retry')}</Button>}
                 />
             </div>
         );
@@ -46,7 +47,7 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
     if (!products?.length) {
         return (
             <div style={{ padding: 16 }}>
-                <Empty description="Keine Produkte in dieser Kategorie" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                <Empty description={t('common.categories.emptyCategoryProducts')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
             </div>
         );
     }
@@ -54,9 +55,9 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
     return (
         <div style={{ padding: '8px 16px 16px' }}>
             <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontSize: 12 }}>
-                Direkt dieser Kategorie zugeordnet:{' '}
+                {t('common.categories.directlyAssignedProducts')}{' '}
                 <Typography.Text strong>{products.length}</Typography.Text>{' '}
-                {products.length === 1 ? 'Produkt' : 'Produkte'}
+                {products.length === 1 ? t('common.categories.productSingular') : t('common.categories.productPlural')}
             </Typography.Text>
             <Table
                 size="small"
@@ -64,9 +65,9 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
                 rowKey="id"
                 pagination={false}
                 columns={[
-                    { title: 'Produkt', dataIndex: 'name', key: 'name', ellipsis: true },
+                    { title: t('common.categories.table.product'), dataIndex: 'name', key: 'name', ellipsis: true },
                     {
-                        title: 'Barcode',
+                        title: t('common.categories.table.barcode'),
                         dataIndex: 'barcode',
                         key: 'barcode',
                         width: 120,
@@ -80,7 +81,7 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
                             ),
                     },
                     {
-                        title: 'Preis',
+                        title: t('common.categories.table.price'),
                         dataIndex: 'price',
                         key: 'price',
                         width: 88,
@@ -88,7 +89,7 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
                         render: (v: number) => `€${Number(v).toFixed(2)}`,
                     },
                     {
-                        title: 'Bestand',
+                        title: t('common.categories.table.stock'),
                         dataIndex: 'stockQuantity',
                         key: 'stock',
                         width: 72,
@@ -101,6 +102,7 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
 }
 
 export default function CategoriesPage() {
+    const { t } = useI18n();
     const [searchTerm, setSearchTerm] = useState('');
     const [searchDebounced, setSearchDebounced] = useState('');
 
@@ -141,11 +143,11 @@ export default function CategoriesPage() {
                     vatRate: values.vatRate ?? 20,
                 } as CategoryCreatePayload,
             });
-            message.success('Kategorie angelegt.');
+            message.success(t('common.categories.messages.created'));
             setFormVisible(false);
             invalidateList();
         } catch {
-            message.error('Kategorie konnte nicht angelegt werden.');
+            message.error(t('common.categories.messages.createError'));
         }
     };
 
@@ -160,34 +162,34 @@ export default function CategoriesPage() {
                     vatRate: values.vatRate ?? 20,
                 } as CategoryUpdatePayload,
             });
-            message.success('Kategorie aktualisiert.');
+            message.success(t('common.categories.messages.updated'));
             setFormVisible(false);
             setEditingCategory(null);
             invalidateList();
         } catch {
-            message.error('Kategorie konnte nicht aktualisiert werden.');
+            message.error(t('common.categories.messages.updateError'));
         }
     };
 
     const handleDelete = async (id: string) => {
         try {
             await deleteMutation.mutateAsync({ id });
-            message.success('Kategorie gelöscht.');
+            message.success(t('common.categories.messages.deleted'));
             invalidateList();
         } catch {
-            message.error('Kategorie konnte nicht gelöscht werden.');
+            message.error(t('common.categories.messages.deleteError'));
         }
     };
 
     const columns: ColumnType<CategoryWithVat>[] = [
         {
-            title: 'Name',
+            title: t('common.categories.table.name'),
             dataIndex: 'name',
             key: 'name',
             render: (name: string) => <span style={{ fontWeight: 600 }}>{name}</span>,
         },
         {
-            title: 'VAT Rate (%)',
+            title: t('common.categories.table.vatRate'),
             dataIndex: 'vatRate',
             key: 'vatRate',
             align: 'right',
@@ -195,21 +197,21 @@ export default function CategoriesPage() {
             render: (vat: number | undefined) => (vat != null ? `${vat}%` : '–'),
         },
         {
-            title: 'Active',
+            title: t('common.categories.table.active'),
             dataIndex: 'isActive',
             key: 'isActive',
             align: 'center',
-            render: (active: boolean | undefined) => (active ? 'Yes' : 'No'),
+            render: (active: boolean | undefined) => (active ? t('common.buttons.yes') : t('common.buttons.no')),
         },
         {
-            title: 'Sort Order',
+            title: t('common.categories.table.sortOrder'),
             dataIndex: 'sortOrder',
             key: 'sortOrder',
             align: 'right',
             sorter: (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
         },
         {
-            title: 'Actions',
+            title: t('common.categories.table.actions'),
             key: 'actions',
             width: 200,
             align: 'right',
@@ -224,14 +226,14 @@ export default function CategoriesPage() {
                             setFormVisible(true);
                         }}
                     >
-                        Edit
+                        {t('common.buttons.edit')}
                     </Button>
                     <Popconfirm
-                        title="Delete category?"
-                        description="Products linked to this category may be affected."
+                        title={t('common.categories.deleteConfirmTitle')}
+                        description={t('common.categories.deleteConfirmDescription')}
                         onConfirm={() => record.id && handleDelete(record.id)}
-                        okText="Yes"
-                        cancelText="No"
+                        okText={t('common.buttons.yes')}
+                        cancelText={t('common.buttons.no')}
                     >
                         <Button
                             type="default"
@@ -240,7 +242,7 @@ export default function CategoriesPage() {
                             icon={<DeleteOutlined />}
                             loading={deleteMutation.isPending && deleteMutation.variables?.id === record.id}
                         >
-                            Delete
+                            {t('common.buttons.delete')}
                         </Button>
                     </Popconfirm>
                 </Space>
@@ -256,12 +258,12 @@ export default function CategoriesPage() {
     return (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
-                title={ADMIN_NAV_LABELS.categories}
-                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.categories }]}
+                title={t('nav.categories')}
+                breadcrumbs={[adminOverviewCrumb(t), { title: t('nav.categories') }]}
                 actions={
                     <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
                         <Input.Search
-                            placeholder="Search categories..."
+                            placeholder={t('common.categories.searchPlaceholder')}
                             allowClear
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -269,25 +271,25 @@ export default function CategoriesPage() {
                             style={{ width: 280, maxWidth: '100%' }}
                         />
                         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                            New Category
+                            {t('common.categories.newCategory')}
                         </Button>
                     </Flex>
                 }
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    Search filters categories as you type (short delay before the request runs). Expand a row to see products in that category.
+                    {t('common.categories.searchHint')}
                 </Typography.Paragraph>
             </AdminPageHeader>
 
             {isError ? (
                 <Alert
                     type="error"
-                    message="Kategorien konnten nicht geladen werden"
-                    description={error instanceof Error ? error.message : 'Unknown error'}
+                    message={t('common.categories.loadErrorTitle')}
+                    description={error instanceof Error ? error.message : t('common.messages.unknownError')}
                     showIcon
                     action={
                         <Button size="small" onClick={() => refetch()}>
-                            {OPERATOR_SHARED_COPY.retryAfterError}
+                            {t('common.buttons.retry')}
                         </Button>
                     }
                 />
@@ -300,7 +302,7 @@ export default function CategoriesPage() {
                     rowKey="id"
                     loading={isLoading}
                     pagination={{ pageSize: 10, showSizeChanger: true }}
-                    locale={{ emptyText: <Empty description="No categories" /> }}
+                    locale={{ emptyText: <Empty description={t('common.categories.emptyCategories')} /> }}
                     expandable={{
                         expandedRowRender: (record) => record.id ? <CategoryProducts categoryId={record.id} /> : null,
                         rowExpandable: () => true,

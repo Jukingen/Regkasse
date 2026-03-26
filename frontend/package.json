@@ -19,7 +19,9 @@
     "i18n:export-csv": "node ../localization/scripts/export-translations.mjs --app frontend",
     "i18n:import-csv": "node ../localization/scripts/import-translations.mjs --app frontend",
     "i18n:validate": "node ../localization/scripts/validate-translations.mjs --app frontend",
-    "i18n:boundary": "node ../localization/scripts/check-translation-boundary.mjs --app frontend"
+    "i18n:boundary": "node ../localization/scripts/check-translation-boundary.mjs --app frontend",
+    "i18n:usage": "node ../localization/scripts/check-localization-usage.mjs --app frontend",
+    "i18n:ci": "node ../localization/scripts/validate-translations.mjs --app frontend --strictMissing true --orphanPolicy error && node ../localization/scripts/check-translation-boundary.mjs --app frontend && node ../localization/scripts/check-localization-usage.mjs --app frontend --strictMissing true"
   },
   "dependencies": {
     "@babel/runtime": "^7.27.1",
