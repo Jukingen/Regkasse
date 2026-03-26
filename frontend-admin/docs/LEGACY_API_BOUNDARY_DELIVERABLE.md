@@ -1,5 +1,7 @@
 # Legacy API Boundary – Deliverable
 
+> **Superseded (2026-03):** `src/api/legacy/` was removed from frontend-admin after admin payments migrated to `@/api/generated/admin/admin`. This document remains as historical context.
+
 ## What was changed
 
 1. **Legacy boundary (Payment)**  

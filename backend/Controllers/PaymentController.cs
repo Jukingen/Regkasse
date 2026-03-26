@@ -24,7 +24,7 @@ namespace KasseAPI_Final.Controllers
     [Route("api/[controller]")]
     [Route("api/pos/payment")]
     [ApiController]
-    [ServiceFilter(typeof(PaymentLegacyRouteDeprecationFilter))]
+    [ServiceFilter(typeof(LegacyRouteDeprecationFilter))]
     [HasPermission(AppPermissions.PaymentTake)]
     public class PaymentController : BaseController
     {

@@ -10,6 +10,7 @@
     "web": "expo start --web --max-workers=2",
     "lint": "eslint .",
     "test": "jest",
+    "test:contract": "jest __tests__/paymentService.taxTypeNormalization.test.ts __tests__/normalizePosPaymentMethods.test.ts __tests__/phaseDPaymentRequest.test.ts __tests__/posRegisterPaymentGate.test.ts __tests__/integration/api/payment-integration.test.ts",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:debug": "jest --verbose --detectOpenHandles",

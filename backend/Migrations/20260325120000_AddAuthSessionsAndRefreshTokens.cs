@@ -1,10 +1,14 @@
 using System;
+using KasseAPI_Final.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace KasseAPI_Final.Migrations
 {
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260325120000_AddAuthSessionsAndRefreshTokens")]
     public partial class AddAuthSessionsAndRefreshTokens : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Prometheus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -45,6 +46,7 @@ Console.WriteLine("🌐 Force binding to ALL IPs (0.0.0.0:5183) and localhost (1
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+    options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     options.AddInterceptors(NpgsqlTimestamptzUtcParameterInterceptor.Instance);
     // Dev: InvalidCastException (Guid vs text) teşhisi için kolon/veri loglama
     if (builder.Environment.IsDevelopment())
@@ -274,7 +276,7 @@ builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterRead
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
-builder.Services.AddScoped<PaymentLegacyRouteDeprecationFilter>();
+builder.Services.AddScoped<LegacyRouteDeprecationFilter>();
 
 // Register repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
@@ -345,7 +347,8 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"An error occurred while seeding the database: {ex.Message}");
+        Console.WriteLine($"Fatal startup bootstrap error: {ex.Message}");
+        throw;
     }
 }
 
@@ -385,6 +388,40 @@ app.MapMetrics();
 // Test endpoint
 app.MapGet("/", () => "Kasse API is running!");
 app.MapGet("/health", () => "OK");
+app.MapGet("/health/auth-schema", async (AppDbContext db) =>
+{
+    static async Task<bool> TableExistsAsync(AppDbContext context, string tableName)
+    {
+        var conn = context.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+            await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "select to_regclass(@t) is not null";
+        var p = cmd.CreateParameter();
+        p.ParameterName = "@t";
+        p.Value = tableName;
+        cmd.Parameters.Add(p);
+        var result = await cmd.ExecuteScalarAsync();
+        return result is bool b && b;
+    }
+
+    var hasAuthSessions = await TableExistsAsync(db, "public.auth_sessions");
+    var hasRefreshTokens = await TableExistsAsync(db, "public.refresh_tokens");
+    if (!hasAuthSessions || !hasRefreshTokens)
+    {
+        return Results.Problem(
+            title: "Auth schema not ready",
+            detail: $"auth_sessions={hasAuthSessions}, refresh_tokens={hasRefreshTokens}",
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
+    return Results.Ok(new
+    {
+        status = "ok",
+        authSessions = hasAuthSessions,
+        refreshTokens = hasRefreshTokens
+    });
+});
 
 Console.WriteLine("=== KASSE API STARTED ===");
 Console.WriteLine("=== LOCALHOST: http://localhost:5183 ===");

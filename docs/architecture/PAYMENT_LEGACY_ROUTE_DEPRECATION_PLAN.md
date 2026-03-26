@@ -33,7 +33,7 @@ This plan keeps behavior backward compatible while making usage measurable and r
 
 ## Deprecation headers
 
-For any request entering `/api/Payment/*`, backend returns:
+For any request entering `/api/Payment/*` (handled by `LegacyRouteDeprecationFilter` together with Cart/Product legacy aliases), backend returns:
 - `Deprecation: true`
 - `Sunset: Wed, 30 Sep 2026 23:59:59 GMT`
 - `Link: </api/pos/payment/...>; rel=\"successor-version\"`
@@ -42,8 +42,9 @@ For any request entering `/api/Payment/*`, backend returns:
 ## Usage logging and metrics
 
 - Structured warning log on each legacy route usage.
-- Prometheus metric:
-  - `legacy_payment_route_hits_total{route_template,http_method}`
+- Prometheus metric (all legacy aliases: Payment, Cart, Product):
+  - `legacy_route_hits_total{legacy_family,route_pattern,http_method}`  
+  - `legacy_family`: `payment` \| `cart` \| `product`; `route_pattern`: request path with GUIDs replaced by `{id}` (cardinality-safe).
 
 Metric enables rollout gating:
 - remove only after sustained low/zero hit volume and frontend migration completion.

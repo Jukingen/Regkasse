@@ -6,13 +6,8 @@ namespace KasseAPI_Final
 {
     public static class AddDemoData
     {
-        public static async Task AddDemoDataAsync()
+    public static async Task AddDemoDataAsync(AppDbContext context)
         {
-            var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-            optionsBuilder.UseAppNpgsql("Host=localhost;Port=5432;Database=kasse_db;Username=postgres;Password=dfgdfg#");
-            
-            using var context = new AppDbContext(optionsBuilder.Options);
-            
             Console.WriteLine("Demo veriler ekleniyor...");
             
             // Kategoriler ekle

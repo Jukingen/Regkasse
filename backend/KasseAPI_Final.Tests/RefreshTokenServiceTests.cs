@@ -10,6 +10,17 @@ namespace KasseAPI_Final.Tests;
 
 public class RefreshTokenServiceTests
 {
+    private sealed class MissingAuthSchemaContext : AppDbContext
+    {
+        public MissingAuthSchemaContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var inner = new Exception("42P01: relation \"auth_sessions\" does not exist");
+            throw new DbUpdateException("Simulated missing auth table", inner);
+        }
+    }
+
     private static AppDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -43,6 +54,36 @@ public class RefreshTokenServiceTests
 
         Assert.True(r1.Success);
         Assert.True(r2.Success);
+    }
+
+    [Fact]
+    public async Task Login_WhenAuthSchemaPresent_CreatesSessionAndRefreshTokenRows()
+    {
+        using var db = CreateContext();
+        var service = CreateService(db);
+
+        var login = await service.IssueLoginTokensAsync("u1", "admin", BuildAccessToken);
+
+        Assert.False(string.IsNullOrWhiteSpace(login.AccessToken));
+        Assert.False(string.IsNullOrWhiteSpace(login.RefreshToken));
+        Assert.Equal(1, await db.AuthSessions.CountAsync());
+        Assert.Equal(1, await db.RefreshTokens.CountAsync());
+    }
+
+    [Fact]
+    public async Task Login_WhenAuthSchemaMissing_ThrowsExplicitDiagnostic()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"refresh_token_schema_missing_{Guid.NewGuid()}")
+            .Options;
+        using var db = new MissingAuthSchemaContext(options);
+        var service = CreateService(db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.IssueLoginTokensAsync("u1", "admin", BuildAccessToken));
+
+        Assert.Contains("Critical auth schema is missing", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("AddAuthSessionsAndRefreshTokens", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

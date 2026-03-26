@@ -13,12 +13,13 @@ namespace KasseAPI_Final.Controllers
 {
     /// <summary>
     /// Sepet işlemleri (POS). Legacy: api/Cart/* deprecated; use api/pos/cart/*.
-    /// TODO: api/Cart route kaldırılamıyor — POS cartService /cart/current vb. ile hâlâ kullanıyor. POS api/pos/cart'a geçince kaldır.
+    /// TODO: Drop `api/Cart` alias when metrics show zero legacy traffic (POS uses `api/pos/cart`).
     /// </summary>
     [HasPermission(AppPermissions.CartManage)]
     [ApiController]
     [Route("api/[controller]")]
     [Route("api/pos/cart")]
+    [ServiceFilter(typeof(LegacyRouteDeprecationFilter))]
     public class CartController : ControllerBase
     {
         private readonly AppDbContext _context;

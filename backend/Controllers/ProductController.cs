@@ -7,6 +7,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data.Repositories;
+using KasseAPI_Final.Services;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -20,6 +21,7 @@ namespace KasseAPI_Final.Controllers
     [Route("api/Product")]
     [Route("api/pos")]
     [ApiController]
+    [ServiceFilter(typeof(LegacyRouteDeprecationFilter))]
     [HasPermission(AppPermissions.ProductView)]
     public class ProductController : EntityController<Product>
     {

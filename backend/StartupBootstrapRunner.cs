@@ -44,12 +44,15 @@ namespace KasseAPI_Final
                     $"Database schema drift detected. Application cannot start with {pendingMigrations.Count()} pending migrations.");
             }
 
+            // Fail-fast: auth session/refresh schema must exist before login pipeline can issue tokens.
+            await VerifyCriticalAuthSchemaAsync(context);
+
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
             await RoleSeedData.SeedRolesAsync(roleManager);
             await UserSeedData.SeedUsersAsync(userManager);
-            await AddDemoData.AddDemoDataAsync();
+            await AddDemoData.AddDemoDataAsync(context);
 
             context = serviceProvider.GetRequiredService<AppDbContext>();
             await SeedData.SeedProductsAsync(context);
@@ -66,6 +69,36 @@ namespace KasseAPI_Final
             }
 
             Console.WriteLine("Database seeding completed successfully");
+        }
+
+        private static async Task VerifyCriticalAuthSchemaAsync(AppDbContext context)
+        {
+            static async Task<bool> TableExistsAsync(AppDbContext db, string tableName)
+            {
+                var conn = db.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open)
+                    await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = "select to_regclass(@t) is not null";
+                var p = cmd.CreateParameter();
+                p.ParameterName = "@t";
+                p.Value = tableName;
+                cmd.Parameters.Add(p);
+                var result = await cmd.ExecuteScalarAsync();
+                return result is bool b && b;
+            }
+
+            var hasAuthSessions = await TableExistsAsync(context, "public.auth_sessions");
+            var hasRefreshTokens = await TableExistsAsync(context, "public.refresh_tokens");
+
+            if (hasAuthSessions && hasRefreshTokens)
+                return;
+
+            var conn = context.Database.GetDbConnection().ConnectionString ?? "(empty)";
+            var safeConn = System.Text.RegularExpressions.Regex.Replace(conn, @"Password=[^;]*", "Password=***");
+            throw new InvalidOperationException(
+                $"Critical auth schema missing. auth_sessions={hasAuthSessions}, refresh_tokens={hasRefreshTokens}. " +
+                $"Connection={safeConn}. Ensure migration 'AddAuthSessionsAndRefreshTokens' is applied to the active database.");
         }
     }
 }

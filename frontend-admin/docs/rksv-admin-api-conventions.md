@@ -27,7 +27,7 @@ Covered domains:
 - Avoid page-local `customInstance` calls for covered RKSV/admin routes.
 - Keep error text extraction consistent via `extractApiErrorMessage`.
 - Keep file download behavior in adapter helpers (`downloadFiscalExportJson`, `downloadOfflinePayloadHashExportCsv`).
-- Use canonical admin payment endpoints (`/api/admin/payments/*`) for admin payment UI; keep `src/api/legacy/payment.ts` only for POS legacy compatibility helpers.
+- Use canonical admin payment endpoints (`/api/admin/payments/*`) for admin payment UI via `@/api/generated/admin/admin`. (The former `src/api/legacy/` admin shim was removed; POS compatibility stays in the mobile app under `frontend/services/api/`.)
 
 ## Query Key Conventions
 

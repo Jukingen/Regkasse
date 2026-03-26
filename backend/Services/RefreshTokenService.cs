@@ -4,11 +4,15 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
 
 namespace KasseAPI_Final.Services;
 
 public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInvalidation
 {
+    private const string MissingAuthSchemaMessage =
+        "Critical auth schema is missing (auth_sessions/refresh_tokens). Apply migration 'AddAuthSessionsAndRefreshTokens' to the active runtime database.";
+
     private readonly AppDbContext _db;
     private readonly AuthOptions _authOptions;
     private readonly ILogger<RefreshTokenService> _logger;
@@ -48,9 +52,16 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
             ExpiresAtUtc = refreshExpiresAt
         };
 
-        _db.AuthSessions.Add(session);
-        _db.RefreshTokens.Add(refreshToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            _db.AuthSessions.Add(session);
+            _db.RefreshTokens.Add(refreshToken);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex) when (IsMissingAuthSchemaException(ex))
+        {
+            throw new InvalidOperationException(MissingAuthSchemaMessage, ex);
+        }
 
         var accessToken = await buildAccessToken(userId, accessJti, session.Id, accessExpiresAt, clientApp);
         return new IssuedTokenPair(accessToken, accessExpiresAt, refreshTokenPlain, refreshExpiresAt, session.Id, accessJti);
@@ -106,8 +117,15 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
             ExpiresAtUtc = refreshExpiresAt
         };
 
-        _db.RefreshTokens.Add(successor);
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            _db.RefreshTokens.Add(successor);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex) when (IsMissingAuthSchemaException(ex))
+        {
+            throw new InvalidOperationException(MissingAuthSchemaMessage, ex);
+        }
 
         await SetReplacedByTokenAsync(token.Id, successor.Id, cancellationToken);
 
@@ -230,5 +248,25 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static bool IsMissingAuthSchemaException(Exception ex)
+    {
+        if (ex is PostgresException pg && pg.SqlState == PostgresErrorCodes.UndefinedTable)
+            return true;
+
+        if (ex is DbUpdateException dbUpdate && dbUpdate.InnerException is not null)
+        {
+            var text = dbUpdate.InnerException.ToString();
+            if (text.Contains("42P01", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("no such table", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("relation \"auth_sessions\" does not exist", StringComparison.OrdinalIgnoreCase) ||
+                text.Contains("relation \"refresh_tokens\" does not exist", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -6,7 +6,7 @@ Bu not, admin ve POS payment sinirlarini canonical API yuzeylerine hizalar.
 
 - `frontend-admin`:
   - Admin payment browse/detail/cancel/refund/statistics canonical `/api/admin/payments/*` generated client uzerinden kullanilir.
-  - `src/api/legacy/payment.ts` sadece POS legacy uyumluluk yardimcilari (date-range/id/cancel/refund) icin tutulur.
+  - `src/api/legacy/` kaldirildi; POS uyumluluk kodu yalnizca `frontend` (mobil) tarafinda.
 - `frontend` (POS/mobile):
   - Canonical payment lane `services/api/paymentService.ts` + `services/api/posPaymentPaths.ts` ile `/api/pos/payment/*`.
   - POS tarafi admin legacy wrapper import etmez.
@@ -25,5 +25,4 @@ Bu not, admin ve POS payment sinirlarini canonical API yuzeylerine hizalar.
 
 ## Not
 
-- Bu sprintte aktif admin caller'lar canonical admin payment endpoints'e alinmistir.
-- `src/api/legacy/payment.ts` dosyasinda kalan fonksiyonlar sadece POS legacy uyumlulugu icindir.
+- Aktif admin caller'lar canonical admin payment endpoints uzerinden; ek admin legacy wrapper yok.

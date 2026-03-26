@@ -41,7 +41,7 @@ No functional changes, no new features, no backend or API contract changes.
 - **Admin catalog vs legacy**
   - **Products**: Uses only `@/api/admin/products` and `@/api/generated/model` (types). No imports from `@/api/legacy/*`.
   - **Categories**: Uses only `@/api/admin/categories`. No legacy imports.
-  - **Payments**: Uses only `@/api/legacy/payment` (by design; legacy payments).
+  - **Payments**: Uses `@/api/generated/admin/admin` (`/api/admin/payments/*`); no `@/api/legacy/*`.
   - **Modifier-groups page**: Uses `getAdminProductsList` from `@/api/admin/products`; migration from `@/lib/api/legacyModifierMigration` and `@/lib/api/modifierGroups`. ModifierGroups lib uses `@/api/admin/products` for product modifier-group assignment. No direct legacy API imports for catalog or migration.
 - **Query keys**: Products and categories use `adminProductsQueryKeys` and `adminCategoriesQueryKeys` from their API modules. Modifier-groups page uses local keys (`modifierGroupsKey`, `adminProductsListKey`, `migrationProgressKey`). Pattern is consistent; no change made.
 - **Generated clients**: Admin modules use `src/api/admin/*`; generated clients are used via those modules or for types from `@/api/generated/model`. No ad-hoc direct imports from generated hooks in random places.

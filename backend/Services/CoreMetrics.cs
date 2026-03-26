@@ -23,8 +23,8 @@ public interface ICoreMetrics
     void SetPayloadHashCompletionPercent(double percent);
     void RecordFinanzOnlineSubmit(int count = 1);
     void RecordFinanzOnlineFailed(FinanzOnlineFailureKind kind, int count = 1);
-    /// <summary>Legacy payment route hit counter (for deprecation migration tracking).</summary>
-    void RecordLegacyPaymentRouteHit(string routeTemplate, string httpMethod, int count = 1);
+    /// <summary>Legacy alias route hits: <paramref name="legacyFamily"/> is payment|cart|product; <paramref name="routePattern"/> is normalized request path (GUIDs as {id}).</summary>
+    void RecordLegacyRouteHit(string legacyFamily, string routePattern, string httpMethod, int count = 1);
 }
 
 /// <summary>
@@ -43,7 +43,7 @@ public sealed class CoreMetrics : ICoreMetrics
     private readonly Gauge _payloadHashCompletionPercent;
     private readonly Counter _finanzonlineSubmitTotal;
     private readonly Counter _finanzonlineSubmitFailedTotal;
-    private readonly Counter _legacyPaymentRouteHitsTotal;
+    private readonly Counter _legacyRouteHitsTotal;
 
     public CoreMetrics()
     {
@@ -94,10 +94,10 @@ public sealed class CoreMetrics : ICoreMetrics
             "Total number of FinanzOnline submission failures.",
             new CounterConfiguration { LabelNames = ["failure_kind"] });
 
-        _legacyPaymentRouteHitsTotal = Metrics.CreateCounter(
-            "legacy_payment_route_hits_total",
-            "Total number of requests hitting deprecated /api/Payment legacy routes.",
-            new CounterConfiguration { LabelNames = ["route_template", "http_method"] });
+        _legacyRouteHitsTotal = Metrics.CreateCounter(
+            "legacy_route_hits_total",
+            "Total number of requests hitting deprecated legacy API aliases (/api/Payment, /api/Cart, /api/Product).",
+            new CounterConfiguration { LabelNames = ["legacy_family", "route_pattern", "http_method"] });
     }
 
     public void RecordReplayTotal(int count = 1)
@@ -172,11 +172,12 @@ public sealed class CoreMetrics : ICoreMetrics
         _finanzonlineSubmitFailedTotal.WithLabels(label).Inc(count);
     }
 
-    public void RecordLegacyPaymentRouteHit(string routeTemplate, string httpMethod, int count = 1)
+    public void RecordLegacyRouteHit(string legacyFamily, string routePattern, string httpMethod, int count = 1)
     {
         if (count <= 0) return;
-        var route = string.IsNullOrWhiteSpace(routeTemplate) ? "unknown" : routeTemplate;
+        var family = string.IsNullOrWhiteSpace(legacyFamily) ? "unknown" : legacyFamily.Trim().ToLowerInvariant();
+        var pattern = string.IsNullOrWhiteSpace(routePattern) ? "unknown" : routePattern;
         var method = string.IsNullOrWhiteSpace(httpMethod) ? "unknown" : httpMethod.ToUpperInvariant();
-        _legacyPaymentRouteHitsTotal.WithLabels(route, method).Inc(count);
+        _legacyRouteHitsTotal.WithLabels(family, pattern, method).Inc(count);
     }
 }

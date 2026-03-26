@@ -52,11 +52,13 @@ export type InvoiceListRegisterView = {
 };
 
 export function viewInvoiceListRegister(row: InvoiceListItemDto): InvoiceListRegisterView {
-    const reg = analyzeRegisterFkField(row.cashRegisterId);
+    const cashRegisterId =
+        (row as InvoiceListItemDto & { cashRegisterId?: string | null }).cashRegisterId;
+    const reg = analyzeRegisterFkField(cashRegisterId);
     return {
         apiCashRegisterId: reg.rawTrimmed,
         kassenDisplay: formatRegisterDisplayLabel(row.kassenId),
-        /** Same as `toLinkSafeRegisterRowId(row.cashRegisterId)` — never derived from `kassenId`. */
+        /** Same as `toLinkSafeRegisterRowId(cashRegisterId)` — never derived from `kassenId`. */
         finanzQueueRegisterRowId: reg.linkSafeUuid,
         registerFkRawNotLinkSafe: reg.isRawPresentButNotLinkSafe,
     };
