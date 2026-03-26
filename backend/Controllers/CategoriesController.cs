@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using System.ComponentModel.DataAnnotations;
 
@@ -201,12 +202,12 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/categories/{id}/products
         [HttpGet("{id}/products")]
-        public async Task<ActionResult<IEnumerable<Product>>> GetCategoryProducts(Guid id)
+        public async Task<ActionResult<IEnumerable<AdminCategoryProductDto>>> GetCategoryProducts(Guid id)
         {
             try
             {
                 var category = await _context.Categories
-                    // .Include(c => c.Products.Where(p => p.IsActive)) // Geçici olarak kapatıldı
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
 
                 if (category == null)
@@ -216,7 +217,25 @@ namespace KasseAPI_Final.Controllers
 
                 // Manuel olarak kategoriye ait ürünleri getir
                 var products = await _context.Products
+                    .AsNoTracking()
                     .Where(p => p.Category == category.Name && p.IsActive)
+                    .Select(p => new AdminCategoryProductDto
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Description = p.Description,
+                        Price = p.Price,
+                        TaxType = p.TaxType,
+                        TaxRate = p.TaxRate,
+                        ImageUrl = p.ImageUrl,
+                        StockQuantity = p.StockQuantity,
+                        MinStockLevel = p.MinStockLevel,
+                        Unit = p.Unit,
+                        Cost = p.Cost,
+                        Barcode = p.Barcode,
+                        CategoryId = category.Id,
+                        CategoryName = category.Name
+                    })
                     .ToListAsync();
 
                 return Ok(products);
