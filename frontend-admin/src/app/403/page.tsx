@@ -3,19 +3,21 @@
 import React from 'react';
 import { Result, Button } from 'antd';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/i18n';
 
 export default function ForbiddenPage() {
     const router = useRouter();
+    const { t } = useI18n();
 
     return (
         <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <Result
                 status="403"
-                title="403"
-                subTitle="Sorry, you are not authorized to access this page."
+                title={t('common.system.status403')}
+                subTitle={t('common.system.forbidden403Subtitle')}
                 extra={
                     <Button type="primary" onClick={() => router.push('/dashboard')}>
-                        Back Home
+                        {t('common.system.backToDashboard')}
                     </Button>
                 }
             />

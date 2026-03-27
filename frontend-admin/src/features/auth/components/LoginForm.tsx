@@ -10,6 +10,8 @@ import type { LoginModel } from '@/api/generated/model';
 import { authStorage } from '@/features/auth/services/authStorage';
 import { AUTH_KEYS } from '../hooks/useAuth';
 import { useI18n } from '@/i18n';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 
 const { Title, Text } = Typography;
 
@@ -31,7 +33,7 @@ export const LoginForm: FC = () => {
                         authStorage.setRefreshToken(refreshToken);
                     }
                     if (process.env.NODE_ENV === 'development') {
-                        console.log('✅ [LoginForm] JWT token pair saved to session storage');
+                        technicalConsole.devLog('[LoginForm] JWT token pair saved to session storage');
                     }
                 }
 
@@ -41,33 +43,18 @@ export const LoginForm: FC = () => {
                 await queryClient.invalidateQueries({ queryKey: AUTH_KEYS.user });
 
                 if (process.env.NODE_ENV === 'development') {
-                    console.log('✅ [LoginForm] Redirecting to /dashboard...');
+                    technicalConsole.devLog('[LoginForm] redirecting to /dashboard');
                 }
                 router.replace('/dashboard');
             },
-            onError: (error: any) => {
-                const responseData = error?.response?.data;
-                const status = error?.response?.status;
-
-                // Try to extract validation errors common in .NET Core (title, errors object)
-                let apiMessage = responseData?.message || responseData?.title || error?.message || t('common.messages.unknownError');
-
-                // If there are validation errors, append them
-                if (responseData?.errors) {
-                    const validationErrors = Object.values(responseData.errors).flat().join(', ');
-                    if (validationErrors) {
-                        apiMessage += `: ${validationErrors}`;
-                    }
-                }
-
-                if (process.env.NODE_ENV === 'development') {
-                    console.error('❌ [Login Failed]', {
-                        status,
-                        message: error?.message,
-                        responseMessage: responseData?.message ?? responseData?.title
-                    });
-                }
-                message.error(t('common.auth.loginFailedWithStatus', { status: status ?? '-', details: apiMessage }));
+            onError: (error: unknown) => {
+                message.error(
+                    getUserFacingApiErrorMessage(t, error, {
+                        logContext: 'LoginForm',
+                        loginContext: true,
+                        fallbackKey: 'common.auth.loginFailedGeneric',
+                    }),
+                );
             },
         }
     });
@@ -80,7 +67,7 @@ export const LoginForm: FC = () => {
         };
 
         if (process.env.NODE_ENV === 'development') {
-            console.log('🔵 [LoginForm] Submitting login request...');
+            technicalConsole.devLog('[LoginForm] submitting login request');
         }
         login({ data: payload });
     };

@@ -11,6 +11,7 @@ import {
 import dayjs from 'dayjs';
 import { useSignatureDebugQuery } from '../hooks/useSignatureDebugQuery';
 import type { SignatureDiagnosticStepDto } from '../types/signature-debug';
+import { useI18n } from '@/i18n';
 
 const { Text } = Typography;
 
@@ -54,16 +55,18 @@ function StatusTag({ status }: { status: string }) {
 }
 
 export default function SignatureStatusPanel({ paymentId, offlineTrace }: SignatureStatusPanelProps) {
+    const { t } = useI18n();
+    const s = (key: string) => t(`receipts.detail.signature.${key}`);
     const { data, isLoading, isError, error } = useSignatureDebugQuery(paymentId);
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
     if (!paymentId) {
         return (
-            <Card title="Signature Status">
+            <Card title={s('cardTitle')}>
                 <Alert
                     type="info"
-                    message="No payment linked"
-                    description="This page has no payment id. Signature verification is not available."
+                    message={s('noPaymentTitle')}
+                    description={s('noPaymentDescription')}
                 />
             </Card>
         );
@@ -75,12 +78,12 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
 
     if (isOffline) {
         return (
-            <Card title="Signature Status">
+            <Card title={s('cardTitle')}>
                 <Alert
                     type="warning"
                     icon={<WifiOutlined />}
-                    message="Offline"
-                    description="You are offline. Signature verification requires a network connection. Connect to the internet to check RKSV checklist status."
+                    message={s('offlineTitle')}
+                    description={s('offlineDescription')}
                     showIcon
                 />
             </Card>
@@ -89,19 +92,19 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
 
     if (isLoading) {
         return (
-            <Card title="Signature Status">
-                <Spin tip="Verifying signature..." />
+            <Card title={s('cardTitle')}>
+                <Spin tip={s('verifyingTip')} />
             </Card>
         );
     }
 
     if (isError) {
         return (
-            <Card title="Signature Status">
+            <Card title={s('cardTitle')}>
                 <Alert
                     type="error"
-                    message="Verification failed"
-                    description={(error as Error)?.message ?? 'Could not load signature diagnostic.'}
+                    message={s('verificationFailed')}
+                    description={(error as Error)?.message ?? s('loadDiagnosticFallback')}
                     showIcon
                 />
             </Card>
@@ -111,34 +114,34 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
     const payload = data?.data ?? { steps: [], compactJws: null };
     const steps = payload.steps;
     const compactJws = payload.compactJws;
-    const hasFail = steps.some((s) => s.status === 'FAIL');
-    const failSteps = steps.filter((s) => s.status === 'FAIL');
+    const hasFail = steps.some((st) => st.status === 'FAIL');
+    const failSteps = steps.filter((st) => st.status === 'FAIL');
 
     return (
-        <Card title="Signature Status">
+        <Card title={s('cardTitle')}>
             {showOfflineTimeline ? (
                 <Alert
                     type="info"
                     showIcon
                     style={{ marginBottom: 16 }}
-                    message="Offline → Replay → fiskaler Beleg"
+                    message={s('timelineTitle')}
                     description={
                         <div style={{ fontSize: 12 }}>
                             {offlineTrace?.offlineCreatedAtUtc ? (
                                 <div>
-                                    <strong>Offline erfasst (UTC):</strong>{' '}
+                                    <strong>{s('offlineCapturedStrong')}</strong>{' '}
                                     {dayjs(offlineTrace.offlineCreatedAtUtc).format('DD.MM.YYYY HH:mm:ss')}
                                 </div>
                             ) : null}
                             {offlineTrace?.fiscalizedAtUtc ? (
                                 <div style={{ marginTop: 4 }}>
-                                    <strong>Nach Replay fiskalisiert (UTC):</strong>{' '}
+                                    <strong>{s('fiscalizedAfterReplayStrong')}</strong>{' '}
                                     {dayjs(offlineTrace.fiscalizedAtUtc).format('DD.MM.YYYY HH:mm:ss')}
                                 </div>
                             ) : null}
                             {offlineTrace?.issuedAt ? (
                                 <div style={{ marginTop: 4 }}>
-                                    <strong>Belegzeit (fiskal):</strong>{' '}
+                                    <strong>{s('issuedAtFiscalStrong')}</strong>{' '}
                                     {dayjs(offlineTrace.issuedAt).format('DD.MM.YYYY HH:mm:ss')}
                                 </div>
                             ) : null}
@@ -181,16 +184,19 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
                     items={[
                         {
                             key: '1',
-                            label: 'Technical details (failed steps)',
+                            label: s('collapseFailedSteps'),
                             children: (
                                 <div style={{ fontFamily: 'monospace', fontSize: 12 }}>
-                                    {failSteps.map((s) => (
-                                        <div key={s.stepId} style={{ marginBottom: 8 }}>
+                                    {failSteps.map((st) => (
+                                        <div key={st.stepId} style={{ marginBottom: 8 }}>
                                             <strong>
-                                                Step {s.stepId}: {s.name}
+                                                {t('receipts.detail.signature.stepLine', {
+                                                    stepId: st.stepId,
+                                                    name: st.name,
+                                                })}
                                             </strong>
                                             <br />
-                                            {s.evidence ?? 'No evidence'}
+                                            {st.evidence ?? s('noEvidence')}
                                         </div>
                                     ))}
                                 </div>
@@ -206,7 +212,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
                     items={[
                         {
                             key: 'jws',
-                            label: 'Compact JWS (debug)',
+                            label: s('compactJws'),
                             children: (
                                 <Text copyable style={{ fontFamily: 'monospace', fontSize: 11, wordBreak: 'break-all' }}>
                                     {compactJws}

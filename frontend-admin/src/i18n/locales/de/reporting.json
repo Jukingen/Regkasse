@@ -1,0 +1,232 @@
+{
+  "policy": {
+    "formalReportLanguageBanner": "Formale Berichtstexte (Server) werden nur auf Deutsch oder Englisch dargestellt — nicht auf Türkisch, auch wenn die Oberfläche Türkisch ist."
+  },
+  "backend": {
+    "germanFieldTooltip": "Feld vom Server (typischerweise Deutsch, *De). Mehrsprachige API später möglich.",
+    "fiscalReportTextTitleDe": "Formaler Berichtstext (Deutsch, Server). In der türkischen Oberfläche nicht auf Türkisch.",
+    "fiscalReportTextTitleEn": "Formaler Berichtstext (Englisch, Server). In der türkischen Oberfläche nicht auf Türkisch.",
+    "fiscalReportExportProfilesHint": "Exportprofil-Bezeichnung und -beschreibung folgen derselben Sprachregel für Berichtstext.",
+    "apiStringsTooltip": "Rohwerte vom Server (Sprache nicht garantiert)."
+  },
+  "legalExportCompleteness": {
+    "loading": "Legal-Export-Prüfung…",
+    "unavailable": "Legal-Export-Prüfung nicht verfügbar.",
+    "successComplete": "Legal Compliance Export: Snapshot vollständig (keine offenen Blocker).",
+    "titleBlocked": "Legal Compliance Export blockiert",
+    "titleAllowedWithWarnings": "Legal Compliance Export mit Warnungen möglich",
+    "titleGeneric": "Legal Compliance Export"
+  },
+  "listShared": {
+    "refresh": "Aktualisieren",
+    "details": "Details",
+    "columns": {
+      "status": "Status",
+      "register": "Kasse",
+      "foSubmission": "FO / Übermittlung",
+      "gross": "Brutto",
+      "scope": "Umfang"
+    },
+    "registerPlaceholder": "Kasse",
+    "registerPlaceholderScoped": "Kasse (bei Register)",
+    "generateError": "Erzeugung fehlgeschlagen.",
+    "selectRegister": "Bitte eine Kasse wählen.",
+    "selectRegisterScope": "Bitte eine Kasse wählen (Register-Umfang).",
+    "scopeOptionRegister": "Register (eine Kasse)",
+    "scopeOptionCompany": "Company (alle Kassen)",
+    "scopeKind": {
+      "Register": "Register",
+      "Company": "Company"
+    },
+    "reportStatus": {
+      "Finalized": "Finalisiert",
+      "Provisional": "Provisorisch"
+    },
+    "emptyDash": "—"
+  },
+  "tagesbericht": {
+    "list": {
+      "pageTitle": "Tagesbericht (formal)",
+      "breadcrumb": "Tagesbericht",
+      "columnDate": "Datum",
+      "intro": "Provisorische Berichte können bis zur Finalisierung neu berechnet werden. Finalisierte Snapshots sind unveränderlich; Korrekturen erzeugen eine neue Berichtszeile.",
+      "generateButton": "Tagesbericht für Enddatum erzeugen/aktualisieren",
+      "messages": {
+        "generateSuccess": "Tagesbericht erzeugt oder aktualisiert."
+      }
+    },
+    "detail": {
+      "loading": "Laden…",
+      "loadError": "Bericht nicht gefunden oder Fehler beim Laden.",
+      "pageTitle": "Tagesbericht {{date}}",
+      "breadcrumbList": "Tagesbericht",
+      "messages": {
+        "finalizeSuccess": "Finalisiert.",
+        "finalizeError": "Finalisierung fehlgeschlagen.",
+        "submitSuccess": "In FinanzOnline-Outbox eingereiht.",
+        "submitError": "Übermittlung fehlgeschlagen.",
+        "correctionSuccess": "Korrekturbericht erzeugt.",
+        "correctionError": "Korrektur fehlgeschlagen (nur nach finalisiertem Vorgänger)."
+      },
+      "actions": {
+        "finalize": "Finalisieren",
+        "finanzOnline": "FinanzOnline (Outbox)",
+        "correction": "Korrektur (neuer Bericht)",
+        "backToList": "Zur Liste"
+      },
+      "profile": {
+        "label": "Anzeigeprofil",
+        "operational": "Betrieb (Vorschau)",
+        "accounting": "Buchhaltung",
+        "legal": "Recht / Compliance-Export",
+        "diagnostic": "Diagnosepaket",
+        "warnNonLegal": "Nicht-legaler Output: nicht als offizielles Dokument verwenden.",
+        "warnDiagnostic": "Diagnosepaket nur für technische Analyse.",
+        "hintProfile": "Profil steuert Export/Ansicht, nicht den FinanzOnline-Übermittlungsstatus."
+      },
+      "cards": {
+        "status": "Status",
+        "sums": "Summen",
+        "taxBreakdown": "Steueraufschlüsselung",
+        "paymentMethods": "Zahlungsarten",
+        "reconciliation": "Abstimmung / Hinweise",
+        "trace": "Trace (Compliance)",
+        "traceBody": "Roh-IDs sind gekürzt gespeichert; Hash dient der Nachvollziehbarkeit.",
+        "history": "Verlauf"
+      },
+      "labels": {
+        "report": "Bericht",
+        "version": "Version",
+        "correctionType": "Korrekturart",
+        "submissionImpact": "Auswirkung auf Übermittlung",
+        "revisionReason": "Änderungsgrund",
+        "rebuildCause": "Neuaufbausgrund",
+        "reportVsSubmission": "Bericht vs. Abgabe",
+        "submission": "Übermittlung",
+        "attempt": "Versuch",
+        "rejection": "Ablehnungsgrund",
+        "remediation": "Behebungshinweise",
+        "reference": "Referenz",
+        "snapshotHash": "Snapshot-Hash",
+        "notAvailable": "k. A.",
+        "gross": "Brutto",
+        "taxTotal": "Steuer (Summe)",
+        "refunds": "Erstattungen",
+        "saleLines": "Verkaufszeilen",
+        "refundLines": "Erstattungszeilen",
+        "stornoLines": "Stornozeilen",
+        "taxBucket": "Steuergruppe",
+        "taxAmount": "Steuer",
+        "method": "Methode",
+        "lines": "Zeilen",
+        "sum": "Summe",
+        "paymentsWithoutInvoice": "Zahlungen ohne Rechnung",
+        "unknownMethodLines": "Unbekannte Zahlart (Zeilen)",
+        "offlineLinked": "Offline verknüpft",
+        "dayClosedRksv": "Tag in RKSV geschlossen",
+        "yes": "Ja",
+        "no": "Nein"
+      },
+      "history": {
+        "loading": "Lade Verlauf…",
+        "empty": "Keine Korrekturkette vorhanden.",
+        "created": "Erstellt:",
+        "finalized": "Finalisiert:",
+        "submissionLine": "Übermittlung:",
+        "outbox": "Outbox:",
+        "missingOutboxRef": "Outbox-Referenz fehlt",
+        "submissionLastErrorIntro": "Letzter technischer Fehlertext (Server; oft Englisch):"
+      }
+    }
+  },
+  "monatsbericht": {
+    "list": {
+      "pageTitle": "Monatsbericht (formal)",
+      "breadcrumb": "Monatsbericht",
+      "columnMonth": "Monat",
+      "columnGross": "Brutto (Tagesberichte)",
+      "intro": "Monatsberichte aggregieren finalisierte Tagesberichte im Kalendermonat; Rohzahlungen dienen der Abstimmung.",
+      "monthPickerLabel": "Berichtsmonat (neu / Aktualisierung)",
+      "generateButton": "Monatsbericht erzeugen/aktualisieren",
+      "messages": {
+        "generateSuccess": "Monatsbericht erzeugt oder aktualisiert."
+      }
+    },
+    "detail": {
+      "loading": "Laden…",
+      "loadError": "Bericht nicht gefunden oder Fehler beim Laden.",
+      "pageTitle": "Monatsbericht {{month}}",
+      "breadcrumbList": "Monatsbericht",
+      "messages": {
+        "submitFinanzOnlineIdempotent": "In FinanzOnline-Outbox eingereiht (idempotent möglich)."
+      },
+      "upstreamAlertTitle": "Abgleich nach untergeordneter Korrektur",
+      "cards": {
+        "linkedFinalizedDaily": "Verknüpfte Tagesberichte (final)",
+        "rawDataPaymentDetails": "Rohdaten (PaymentDetails, Monatsfenster)",
+        "taxBreakdownFromDaily": "Steueraufschlüsselung (aus Tagesberichten)",
+        "paymentMethodsFromDaily": "Zahlungsarten (aus Tagesberichten)",
+        "hints": "Hinweise"
+      },
+      "traceBody": "Monats-Snapshot ist nach Finalisierung unveränderlich; Korrekturen erzeugen neue Berichtszeilen mit Verweis.",
+      "labels": {
+        "scope": "Umfang",
+        "scopeAllRegisters": "alle Kassen",
+        "correctionTag": "Korrektur",
+        "predecessor": "Vorgänger",
+        "supersededBy": "Ersetzt durch",
+        "dailyReportsCount": "Tagesberichte (Anzahl)",
+        "calendarDaysCovered": "Kalendertage / abgedeckt",
+        "grossFromDailyReports": "Brutto (aus Tagesberichten)",
+        "deltaGrossDailyVsRaw": "Δ Brutto (Tagesberichte − Roh)",
+        "reviewCheck": "Prüfung",
+        "reviewDeviation": "Abweichung",
+        "reviewOk": "OK",
+        "noWarnings": "Keine Warnungen.",
+        "openDailyReport": "Öffnen",
+        "tableDate": "Datum",
+        "register": "Kasse"
+      }
+    }
+  },
+  "jahresbericht": {
+    "list": {
+      "pageTitle": "Jahresbericht (formal)",
+      "breadcrumb": "Jahresbericht",
+      "columnYear": "Jahr",
+      "columnGross": "Brutto (Monate)",
+      "intro": "Jahresberichte aggregieren finalisierte Monatsberichte im Kalenderjahr; Rohzahlungen dienen der Abstimmung.",
+      "yearPickerLabel": "Berichtsjahr (neu / Aktualisierung)",
+      "generateButton": "Jahresbericht erzeugen/aktualisieren",
+      "messages": {
+        "generateSuccess": "Jahresbericht erzeugt oder aktualisiert."
+      }
+    },
+    "detail": {
+      "loading": "Laden…",
+      "loadError": "Bericht nicht gefunden oder Fehler beim Laden.",
+      "pageTitle": "Jahresbericht {{year}}",
+      "breadcrumbList": "Jahresbericht",
+      "messages": {
+        "submitFinanzOnlineIdempotent": "In FinanzOnline-Outbox eingereiht (idempotent möglich)."
+      },
+      "cards": {
+        "linkedFinalizedMonthly": "Verknüpfte Monatsberichte (final)",
+        "annualSums": "Jahressummen",
+        "rawDataPaymentDetails": "Rohdaten (PaymentDetails, Jahresfenster)",
+        "taxBreakdownFromMonthly": "Steueraufschlüsselung (aus Monatsberichten)",
+        "paymentMethodsFromMonthly": "Zahlungsarten (aus Monatsberichten)"
+      },
+      "traceBody": "Der Jahres-Snapshot ist nach Finalisierung unveränderlich; Korrekturen erzeugen neue Berichtszeilen mit Verweis.",
+      "labels": {
+        "tableMonth": "Monat",
+        "openMonthlyReport": "Öffnen",
+        "monthlyReportColumn": "Monatsbericht",
+        "monthlyReportsCount": "Monatsberichte (Anzahl)",
+        "monthsCovered": "Monate / abgedeckt",
+        "grossFromMonthlyReports": "Brutto (aus Monatsberichten)",
+        "deltaGrossMonthlyVsRaw": "Δ Brutto (Monate − Roh)"
+      }
+    }
+  }
+}

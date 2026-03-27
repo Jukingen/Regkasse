@@ -7,6 +7,7 @@ import { UserInfo } from '@/api/generated/model';
 import { message } from 'antd';
 import { authStorage } from '@/features/auth/services/authStorage';
 import type { AuthUser } from '@/shared/auth/types';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 // Define the key for the user query
 export const AUTH_KEYS = {
@@ -36,7 +37,7 @@ type MeResponse = UserInfo & {
 
 const fetchUser = async (): Promise<AuthUser> => {
     if (process.env.NODE_ENV === 'development') {
-        console.log('📡 [API] Fetching /api/Auth/me');
+        technicalConsole.devLog('[API] Fetching GET /api/Auth/me');
     }
     const res = await customInstance<MeResponse>({
         url: '/api/Auth/me',
@@ -91,7 +92,7 @@ export const useAuth = () => {
         try {
             await logoutMutation();
         } catch (error) {
-            console.error('Logout failed', error);
+            technicalConsole.error('Logout request failed', error);
         } finally {
             // Clear storage and cache
             authStorage.removeToken();
@@ -124,7 +125,7 @@ export const useAuth = () => {
 
     // Debug logs
     if (process.env.NODE_ENV === 'development' && lastLoggedStatus.current !== authStatus) {
-        console.log(`🔐 [useAuth] status: '${authStatus}'`);
+        technicalConsole.devLog(`[useAuth] authStatus=${authStatus}`);
         lastLoggedStatus.current = authStatus;
     }
 

@@ -5,6 +5,7 @@ import { Form, Input, Select, DatePicker, Button, Space, Col, Row } from 'antd';
 import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
 import type { ReceiptListParams } from '@/features/receipts/types/receipts';
 import dayjs from 'dayjs';
+import { useI18n } from '@/i18n';
 
 const { RangePicker } = DatePicker;
 
@@ -32,6 +33,7 @@ export default function ReceiptsFilterBar({
     onReset,
     loading,
 }: ReceiptsFilterBarProps) {
+    const { t } = useI18n();
     const [form] = Form.useForm<FilterFormValues>();
 
     const handleFinish = (values: FilterFormValues) => {
@@ -70,7 +72,7 @@ export default function ReceiptsFilterBar({
         >
             <Form.Item name="receiptNumber">
                 <Input
-                    placeholder="Receipt number"
+                    placeholder={t('receipts.filters.placeholderReceiptNumber')}
                     prefix={<SearchOutlined />}
                     allowClear
                     style={{ width: 180 }}
@@ -79,7 +81,7 @@ export default function ReceiptsFilterBar({
 
             <Form.Item name="cashRegisterId">
                 <Input
-                    placeholder="Cash register ID"
+                    placeholder={t('receipts.filters.placeholderCashRegister')}
                     allowClear
                     style={{ width: 160 }}
                 />
@@ -87,7 +89,7 @@ export default function ReceiptsFilterBar({
 
             <Form.Item name="cashierId">
                 <Input
-                    placeholder="Cashier ID"
+                    placeholder={t('receipts.filters.placeholderCashier')}
                     allowClear
                     style={{ width: 140 }}
                 />
@@ -96,7 +98,7 @@ export default function ReceiptsFilterBar({
             <Form.Item name="dateRange">
                 <RangePicker
                     format="DD.MM.YYYY"
-                    placeholder={['From', 'To']}
+                    placeholder={[t('receipts.filters.dateFrom'), t('receipts.filters.dateTo')]}
                 />
             </Form.Item>
 
@@ -108,13 +110,13 @@ export default function ReceiptsFilterBar({
                         icon={<SearchOutlined />}
                         loading={loading}
                     >
-                        Search
+                        {t('receipts.filters.search')}
                     </Button>
                     <Button
                         onClick={handleReset}
                         icon={<ClearOutlined />}
                     >
-                        Reset
+                        {t('receipts.filters.reset')}
                     </Button>
                 </Space>
             </Form.Item>

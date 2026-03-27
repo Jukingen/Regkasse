@@ -26,6 +26,7 @@ import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
+import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
 import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -193,6 +194,11 @@ export default function ReportCenterPage() {
   const [outboxAggregateFilter, setOutboxAggregateFilter] = useState<string | undefined>(undefined);
 
   const { data: registers } = useGetApiCashRegister();
+  const registerRows = Array.isArray((registers as { registers?: CashRegister[] } | undefined)?.registers)
+    ? ((registers as { registers?: CashRegister[] }).registers ?? [])
+    : Array.isArray(registers)
+      ? (registers as CashRegister[])
+      : [];
 
   const pickerMode = tab === 'monatsbericht' ? 'month' : tab === 'jahresbericht' ? 'year' : 'date';
 
@@ -336,13 +342,13 @@ export default function ReportCenterPage() {
 
   const registerOptions = useMemo(
     () =>
-      (registers ?? [])
+      registerRows
         .filter((r: CashRegister) => r.id)
         .map((r: CashRegister) => ({
           value: r.id as string,
           label: `${r.registerNumber} — ${r.location}`,
         })),
-    [registers]
+    [registerRows]
   );
 
   const openChain = (kind: FormalReportTypeKey, id: string) => {
@@ -660,6 +666,8 @@ export default function ReportCenterPage() {
           {stripLabel}
         </Typography.Text>
       </AdminPageHeader>
+
+      <FormalReportLanguageNotice />
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Segmented

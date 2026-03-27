@@ -1,0 +1,232 @@
+{
+  "policy": {
+    "formalReportLanguageBanner": "Resmi rapor metinleri (sunucu) yalnizca Almanca veya Ingilizce gosterilir; arayuz Turkce olsa bile bu metinler Turkce degildir."
+  },
+  "backend": {
+    "germanFieldTooltip": "Sunucu alani (genelde Almanca, *De). Cok dilli API sonraya birakilabilir.",
+    "fiscalReportTextTitleDe": "Resmi rapor metni (Almanca, sunucu). Turkce arayuzde rapor icerigi Turkce gosterilmez.",
+    "fiscalReportTextTitleEn": "Resmi rapor metni (Ingilizce, sunucu). Turkce arayuzde rapor icerigi Turkce gosterilmez.",
+    "fiscalReportExportProfilesHint": "Disa aktarma profili adi ve aciklamasi ayni resmi metin dil kuralina uyar.",
+    "apiStringsTooltip": "Sunucudan ham degerler (dil garanti degil)."
+  },
+  "legalExportCompleteness": {
+    "loading": "Yasal disa aktarma kontrolu…",
+    "unavailable": "Yasal disa aktarma kontrolu kullanilamiyor.",
+    "successComplete": "Yasal uyum disa aktarma: snapshot tam (acik engel yok).",
+    "titleBlocked": "Yasal uyum disa aktarma engellendi",
+    "titleAllowedWithWarnings": "Yasal uyum disa aktarma uyarilarla mumkun",
+    "titleGeneric": "Yasal uyum disa aktarma"
+  },
+  "listShared": {
+    "refresh": "Yenile",
+    "details": "Detay",
+    "columns": {
+      "status": "Durum",
+      "register": "Kasa",
+      "foSubmission": "FO / gonderim",
+      "gross": "Brut",
+      "scope": "Kapsam"
+    },
+    "registerPlaceholder": "Kasa",
+    "registerPlaceholderScoped": "Kasa (kapsam kasa iken)",
+    "generateError": "Olusturma basarisiz.",
+    "selectRegister": "Lutfen bir kasa secin.",
+    "selectRegisterScope": "Lutfen bir kasa secin (kasa kapsami).",
+    "scopeOptionRegister": "Kasa (tek kasa)",
+    "scopeOptionCompany": "Sirket (tum kasalar)",
+    "scopeKind": {
+      "Register": "Register",
+      "Company": "Company"
+    },
+    "reportStatus": {
+      "Finalized": "Kesinlestirildi",
+      "Provisional": "Gecici"
+    },
+    "emptyDash": "—"
+  },
+  "tagesbericht": {
+    "list": {
+      "pageTitle": "Gunluk rapor (resmi)",
+      "breadcrumb": "Gunluk rapor",
+      "columnDate": "Tarih",
+      "intro": "Gecici raporlar sonlandirmaya kadar yeniden hesaplanabilir. Kesinlestirilmis snapshot'lar degismez; duzeltmeler yeni rapor satiri olusturur.",
+      "generateButton": "Bitis tarihi icin gunluk rapor olustur/guncelle",
+      "messages": {
+        "generateSuccess": "Gunluk rapor olusturuldu veya guncellendi."
+      }
+    },
+    "detail": {
+      "loading": "Yukleniyor…",
+      "loadError": "Rapor bulunamadi veya yukleme hatasi.",
+      "pageTitle": "Gunluk rapor {{date}}",
+      "breadcrumbList": "Gunluk rapor",
+      "messages": {
+        "finalizeSuccess": "Sonlandirildi.",
+        "finalizeError": "Sonlandirma basarisiz.",
+        "submitSuccess": "FinanzOnline outbox kuyruguna eklendi.",
+        "submitError": "Gonderim basarisiz.",
+        "correctionSuccess": "Duzeltme raporu olusturuldu.",
+        "correctionError": "Duzeltme basarisiz (yalnizca onceki rapor sonlandirildiktan sonra)."
+      },
+      "actions": {
+        "finalize": "Sonlandir",
+        "finanzOnline": "FinanzOnline (outbox)",
+        "correction": "Duzeltme (yeni rapor)",
+        "backToList": "Listeye don"
+      },
+      "profile": {
+        "label": "Gorunum profili",
+        "operational": "Operasyonel (onizleme)",
+        "accounting": "Muhasebe",
+        "legal": "Yasal / uyum exportu",
+        "diagnostic": "Tani paketi",
+        "warnNonLegal": "Yasal olmayan cikti: resmi belge olarak kullanmayin.",
+        "warnDiagnostic": "Tani paketi yalnizca teknik analiz icindir.",
+        "hintProfile": "Profil export/gorunumu kontrol eder, FinanzOnline gonderim durumunu degil."
+      },
+      "cards": {
+        "status": "Durum",
+        "sums": "Toplamlar",
+        "taxBreakdown": "Vergi detayi",
+        "paymentMethods": "Odeme yontemleri",
+        "reconciliation": "Mutabakat / notlar",
+        "trace": "Iz (uyum)",
+        "traceBody": "Ham kimlikler kisaltilmis saklanir; hash izlenebilirlik icindir.",
+        "history": "Gecmis"
+      },
+      "labels": {
+        "report": "Rapor",
+        "version": "Surum",
+        "correctionType": "Duzeltme turu",
+        "submissionImpact": "Gonderim etkisi",
+        "revisionReason": "Revizyon nedeni",
+        "rebuildCause": "Yeniden olusturma nedeni",
+        "reportVsSubmission": "Rapor vs. gonderim",
+        "submission": "Gonderim",
+        "attempt": "Deneme",
+        "rejection": "Ret nedeni",
+        "remediation": "Iyilestirme ipuclari",
+        "reference": "Referans",
+        "snapshotHash": "Snapshot ozeti",
+        "notAvailable": "yok",
+        "gross": "Brut",
+        "taxTotal": "Vergi (toplam)",
+        "refunds": "Iadeler",
+        "saleLines": "Satis satirlari",
+        "refundLines": "Iade satirlari",
+        "stornoLines": "Iptal satirlari",
+        "taxBucket": "Vergi grubu",
+        "taxAmount": "Vergi",
+        "method": "Yontem",
+        "lines": "Satirlar",
+        "sum": "Toplam",
+        "paymentsWithoutInvoice": "Faturasiz odemeler",
+        "unknownMethodLines": "Bilinmeyen odeme yontemi (satir)",
+        "offlineLinked": "Cevrimdisi bagli",
+        "dayClosedRksv": "RKSV'de gun kapandi",
+        "yes": "Evet",
+        "no": "Hayir"
+      },
+      "history": {
+        "loading": "Gecmis yukleniyor…",
+        "empty": "Duzeltme zinciri yok.",
+        "created": "Olusturulma:",
+        "finalized": "Sonlandirilma:",
+        "submissionLine": "Gonderim:",
+        "outbox": "Outbox:",
+        "missingOutboxRef": "Outbox referansi eksik",
+        "submissionLastErrorIntro": "Son teknik hata metni (sunucu; genelde Ingilizce):"
+      }
+    }
+  },
+  "monatsbericht": {
+    "list": {
+      "pageTitle": "Aylik rapor (resmi)",
+      "breadcrumb": "Aylik rapor",
+      "columnMonth": "Ay",
+      "columnGross": "Brut (gunluk raporlardan)",
+      "intro": "Aylik raporlar takvim ayinda kesinlestirilmis gunluk raporlari birlestirir; ham toplamlar mutabakat icindir.",
+      "monthPickerLabel": "Rapor ayi (yeni / guncelleme)",
+      "generateButton": "Aylik rapor olustur/guncelle",
+      "messages": {
+        "generateSuccess": "Aylik rapor olusturuldu veya guncellendi."
+      }
+    },
+    "detail": {
+      "loading": "Yukleniyor…",
+      "loadError": "Rapor bulunamadi veya yukleme hatasi.",
+      "pageTitle": "Aylik rapor {{month}}",
+      "breadcrumbList": "Aylik rapor",
+      "messages": {
+        "submitFinanzOnlineIdempotent": "FinanzOnline outbox kuyruguna eklendi (idempotent)."
+      },
+      "upstreamAlertTitle": "Alt duzeltmeden sonra mutabakat",
+      "cards": {
+        "linkedFinalizedDaily": "Bagli gunluk raporlar (kesin)",
+        "rawDataPaymentDetails": "Ham veri (PaymentDetails, ay penceresi)",
+        "taxBreakdownFromDaily": "Vergi detayi (gunluk raporlardan)",
+        "paymentMethodsFromDaily": "Odeme yontemleri (gunluk raporlardan)",
+        "hints": "Notlar"
+      },
+      "traceBody": "Aylik snapshot sonlandirmadan sonra degismez; duzeltmeler yeni rapor satirlari ve referanslarla yaratilir.",
+      "labels": {
+        "scope": "Kapsam",
+        "scopeAllRegisters": "tum kasalar",
+        "correctionTag": "Duzeltme",
+        "predecessor": "Onceki",
+        "supersededBy": "Yerine gecen",
+        "dailyReportsCount": "Gunluk raporlar (adet)",
+        "calendarDaysCovered": "Takvim gunleri / kapsanan",
+        "grossFromDailyReports": "Brut (gunluk raporlardan)",
+        "deltaGrossDailyVsRaw": "Δ Brut (gunluk − ham)",
+        "reviewCheck": "Kontrol",
+        "reviewDeviation": "Sapma",
+        "reviewOk": "Tamam",
+        "noWarnings": "Uyari yok.",
+        "openDailyReport": "Ac",
+        "tableDate": "Tarih",
+        "register": "Kasa"
+      }
+    }
+  },
+  "jahresbericht": {
+    "list": {
+      "pageTitle": "Yillik rapor (resmi)",
+      "breadcrumb": "Yillik rapor",
+      "columnYear": "Yil",
+      "columnGross": "Brut (aylardan)",
+      "intro": "Yillik raporlar takvim yilinda kesinlestirilmis aylik raporlari birlestirir; ham toplamlar mutabakat icindir.",
+      "yearPickerLabel": "Rapor yili (yeni / guncelleme)",
+      "generateButton": "Yillik rapor olustur/guncelle",
+      "messages": {
+        "generateSuccess": "Yillik rapor olusturuldu veya guncellendi."
+      }
+    },
+    "detail": {
+      "loading": "Yukleniyor…",
+      "loadError": "Rapor bulunamadi veya yukleme hatasi.",
+      "pageTitle": "Yillik rapor {{year}}",
+      "breadcrumbList": "Yillik rapor",
+      "messages": {
+        "submitFinanzOnlineIdempotent": "FinanzOnline outbox kuyruguna eklendi (idempotent)."
+      },
+      "cards": {
+        "linkedFinalizedMonthly": "Bagli aylik raporlar (kesin)",
+        "annualSums": "Yillik toplamlar",
+        "rawDataPaymentDetails": "Ham veri (PaymentDetails, yil penceresi)",
+        "taxBreakdownFromMonthly": "Vergi detayi (aylik raporlardan)",
+        "paymentMethodsFromMonthly": "Odeme yontemleri (aylik raporlardan)"
+      },
+      "traceBody": "Yillik snapshot sonlandirmadan sonra degismez; duzeltmeler yeni rapor satirlari ve referanslarla yaratilir.",
+      "labels": {
+        "tableMonth": "Ay",
+        "openMonthlyReport": "Ac",
+        "monthlyReportColumn": "Aylik rapor",
+        "monthlyReportsCount": "Aylik raporlar (adet)",
+        "monthsCovered": "Aylar / kapsanan",
+        "grossFromMonthlyReports": "Brut (aylik raporlardan)",
+        "deltaGrossMonthlyVsRaw": "Δ Brut (aylik − ham)"
+      }
+    }
+  }
+}

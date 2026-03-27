@@ -2,6 +2,8 @@ import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { message } from 'antd';
 import { authStorage } from '@/features/auth/services/authStorage';
 import { getForbiddenMessage, mapRequiredPolicyToReasonCode } from '@/shared/errors/forbiddenMessages';
+import { getStoredLanguage } from '@/i18n/languageStorage';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 const isDev = process.env.NODE_ENV === 'development';
 const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -33,13 +35,15 @@ const createAxiosInstance = () => {
                 config.headers.Authorization = `Bearer ${token}`;
 
                 if (isDev) {
-                    console.debug(`🔌 [API] Attaching token to: ${config.url}`);
+                    technicalConsole.devDebug(`[API] Attaching bearer token to ${config.url}`);
                 }
             }
         }
         // Dev-only: warn when hitting legacy endpoint prefixes (non-breaking detection).
         if (isDev && config.url && /\/api\/(Payment|Cart)\b/.test(config.url)) {
-            console.warn(`[API] Legacy path in use: ${config.url}. Prefer /api/admin/* or /api/pos/* when available.`);
+            technicalConsole.warn(
+                `[API] Legacy path in use: ${config.url}. Prefer /api/admin/* or /api/pos/* when available.`,
+            );
         }
         return config;
     });
@@ -59,17 +63,20 @@ const createAxiosInstance = () => {
 
             if (isDev) {
                 if (status === 401) {
-                    console.debug('🔐 [API] 401 Unauthorized');
+                    technicalConsole.devDebug('[API] 401 Unauthorized');
                 } else if (status != null) {
-                    console.error(`❌ [API] ${status} ${url}`, serverMessage ?? data ?? fallbackMessage);
+                    technicalConsole.error(`[API] HTTP ${status} ${url}`, serverMessage ?? data ?? fallbackMessage);
                 } else {
-                    console.error('❌ [API] Network/client error', { url: url || undefined, message: fallbackMessage });
+                    technicalConsole.error('[API] Network or client error', {
+                        url: url || undefined,
+                        message: fallbackMessage,
+                    });
                 }
             }
 
             if (status === 403) {
                 const reasonCode = data?.reasonCode ?? mapRequiredPolicyToReasonCode(data?.requiredPolicy);
-                const userMessage = getForbiddenMessage(reasonCode);
+                const userMessage = getForbiddenMessage(reasonCode, getStoredLanguage());
                 message.error(userMessage);
             }
 

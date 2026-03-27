@@ -1,0 +1,82 @@
+{
+  "page": {
+    "intro": "Run closings for the selected register, view the pre-check, and review history and KPIs. History and statistics apply to the signed-in user (API filter). Backend:",
+    "introApiPath": "/api/Tagesabschluss/*",
+    "introPermission": "Permission:"
+  },
+  "toolbar": {
+    "refresh": "Refresh"
+  },
+  "scope": {
+    "label": "Current view:",
+    "registerWithId": "Register {{id}}",
+    "registerInvalid": "Register: no valid UUID",
+    "historyPeriod": "History {{from}}–{{to}}",
+    "historyCount": "{{count}} closings in the period"
+  },
+  "card": {
+    "register": "Register & check",
+    "stats": "Statistics & history (period)"
+  },
+  "register": {
+    "fromList": "Register from list",
+    "selectPlaceholder": "Select register",
+    "noListTitle": "No register list",
+    "noListDescription": "Permission cashregister.view is missing — enter register ID manually as UUID.",
+    "manualLabel": "Register ID (UUID)",
+    "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
+    "uuidWarning": "Please set a valid UUID (from list or manual)."
+  },
+  "check": {
+    "failedTitle": "Check failed",
+    "canCloseLabel": "Closing allowed",
+    "yes": "Yes",
+    "no": "No",
+    "lastClosing": "Last closing",
+    "paymentsWithoutInvoice": "Payments without invoice (today)",
+    "hint": "Note",
+    "backendHint": "Server note (language not guaranteed)"
+  },
+  "actions": {
+    "daily": "Daily closing",
+    "monthly": "Monthly closing",
+    "yearly": "Yearly closing",
+    "modalTitleDaily": "Run daily closing?",
+    "modalTitleMonthly": "Run monthly closing?",
+    "modalTitleYearly": "Run yearly closing?",
+    "modalContent": "RKSV-relevant operation. Only run when the register is ready from a business perspective.",
+    "modalOk": "Run",
+    "modalCancel": "Cancel"
+  },
+  "stats": {
+    "sectionTitle": "KPIs",
+    "refresh": "Refresh",
+    "labelClosings": "Closings (count)",
+    "labelGrossSum": "Gross total",
+    "labelTaxSum": "Tax total",
+    "labelTransactions": "Transactions",
+    "labelAvgDaily": "Avg daily gross (daily only)",
+    "labelLastInRange": "Last closing in range",
+    "empty": "No data for this period."
+  },
+  "history": {
+    "sectionTitle": "History",
+    "empty": "No entries in this period.",
+    "colDate": "Date",
+    "colType": "Type",
+    "colGross": "Gross",
+    "colTax": "Tax",
+    "colTransactions": "Transactions",
+    "colStatus": "Status",
+    "colFinanzOnline": "FinanzOnline"
+  },
+  "messages": {
+    "successDaily": "Daily closing executed.",
+    "successMonthly": "Monthly closing executed.",
+    "successYearly": "Yearly closing executed.",
+    "warningUuid": "Please select or enter a valid register ID (UUID)."
+  },
+  "errors": {
+    "unknown": "Unknown error"
+  }
+}

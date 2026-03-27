@@ -1,5 +1,8 @@
 'use client';
 
+/**
+ * Belegvorlage oluşturma/düzenleme formu; alanlar API şemasıyla uyumludur.
+ */
 import React from 'react';
 import { Form, Input, Checkbox, Button, Space } from 'antd';
 import type {
@@ -7,6 +10,7 @@ import type {
     UpdateReceiptTemplateRequest,
     ReceiptTemplate,
 } from '@/api/generated/model';
+import { useI18n } from '@/i18n';
 
 const { TextArea } = Input;
 
@@ -23,11 +27,14 @@ export default function ReceiptTemplateForm({
     loading,
     mode,
 }: ReceiptTemplateFormProps) {
+    const { t } = useI18n();
     const [form] = Form.useForm();
 
     const handleFinish = (values: CreateReceiptTemplateRequest) => {
         onSubmit(values);
     };
+
+    const req = t('receiptTemplates.form.validationRequired');
 
     return (
         <Form
@@ -37,81 +44,81 @@ export default function ReceiptTemplateForm({
             onFinish={handleFinish}
         >
             <Form.Item
-                label="Template Name"
+                label={t('receiptTemplates.form.templateName')}
                 name="templateName"
                 rules={[
-                    { required: true, message: 'Required' },
-                    { min: 1, max: 100, message: 'Must be 1-100 chars' },
+                    { required: true, message: req },
+                    { min: 1, max: 100, message: t('receiptTemplates.form.validationNameLength') },
                 ]}
             >
-                <Input placeholder="e.g. Standard Receipt Template" maxLength={100} />
+                <Input placeholder={t('receiptTemplates.form.templateNamePlaceholder')} maxLength={100} />
             </Form.Item>
 
             {mode === 'create' && (
                 <Form.Item
-                    label="Language"
+                    label={t('receiptTemplates.form.language')}
                     name="language"
                     rules={[
-                        { required: true, message: 'Required' },
-                        { min: 1, max: 10, message: 'Must be 1-10 chars' },
+                        { required: true, message: req },
+                        { min: 1, max: 10, message: t('receiptTemplates.form.validationLangLength') },
                     ]}
                 >
-                    <Input placeholder="e.g. en, de, tr" maxLength={10} />
+                    <Input placeholder={t('receiptTemplates.form.languagePlaceholder')} maxLength={10} />
                 </Form.Item>
             )}
 
             {mode === 'create' && (
                 <Form.Item
-                    label="Template Type"
+                    label={t('receiptTemplates.form.templateType')}
                     name="templateType"
                     rules={[
-                        { required: true, message: 'Required' },
-                        { min: 1, max: 50, message: 'Must be 1-50 chars' },
+                        { required: true, message: req },
+                        { min: 1, max: 50, message: t('receiptTemplates.form.validationTypeLength') },
                     ]}
                 >
-                    <Input placeholder="e.g. sale, refund, invoice" maxLength={50} />
+                    <Input placeholder={t('receiptTemplates.form.templateTypePlaceholder')} maxLength={50} />
                 </Form.Item>
             )}
 
-            <Form.Item label="Header Template" name="headerTemplate">
-                <TextArea rows={3} maxLength={2000} placeholder="Header content..." />
+            <Form.Item label={t('receiptTemplates.form.headerTemplate')} name="headerTemplate">
+                <TextArea rows={3} maxLength={2000} placeholder={t('receiptTemplates.form.placeholderHeader')} />
             </Form.Item>
 
-            <Form.Item label="Company Template" name="companyTemplate">
-                <TextArea rows={2} maxLength={1000} placeholder="Company info..." />
+            <Form.Item label={t('receiptTemplates.form.companyTemplate')} name="companyTemplate">
+                <TextArea rows={2} maxLength={1000} placeholder={t('receiptTemplates.form.placeholderCompany')} />
             </Form.Item>
 
-            <Form.Item label="Customer Template" name="customerTemplate">
-                <TextArea rows={2} maxLength={1000} placeholder="Customer info..." />
+            <Form.Item label={t('receiptTemplates.form.customerTemplate')} name="customerTemplate">
+                <TextArea rows={2} maxLength={1000} placeholder={t('receiptTemplates.form.placeholderCustomer')} />
             </Form.Item>
 
-            <Form.Item label="Item Template" name="itemTemplate">
-                <TextArea rows={2} maxLength={1000} placeholder="Item line..." />
+            <Form.Item label={t('receiptTemplates.form.itemTemplate')} name="itemTemplate">
+                <TextArea rows={2} maxLength={1000} placeholder={t('receiptTemplates.form.placeholderItem')} />
             </Form.Item>
 
-            <Form.Item label="Tax Template" name="taxTemplate">
-                <TextArea rows={2} maxLength={500} placeholder="Tax line..." />
+            <Form.Item label={t('receiptTemplates.form.taxTemplate')} name="taxTemplate">
+                <TextArea rows={2} maxLength={500} placeholder={t('receiptTemplates.form.placeholderTax')} />
             </Form.Item>
 
-            <Form.Item label="Total Template" name="totalTemplate">
-                <TextArea rows={2} maxLength={500} placeholder="Total line..." />
+            <Form.Item label={t('receiptTemplates.form.totalTemplate')} name="totalTemplate">
+                <TextArea rows={2} maxLength={500} placeholder={t('receiptTemplates.form.placeholderTotal')} />
             </Form.Item>
 
-            <Form.Item label="Payment Template" name="paymentTemplate">
-                <TextArea rows={2} maxLength={500} placeholder="Payment info..." />
+            <Form.Item label={t('receiptTemplates.form.paymentTemplate')} name="paymentTemplate">
+                <TextArea rows={2} maxLength={500} placeholder={t('receiptTemplates.form.placeholderPayment')} />
             </Form.Item>
 
-            <Form.Item label="Footer Template" name="footerTemplate">
-                <TextArea rows={3} maxLength={2000} placeholder="Footer content..." />
+            <Form.Item label={t('receiptTemplates.form.footerTemplate')} name="footerTemplate">
+                <TextArea rows={3} maxLength={2000} placeholder={t('receiptTemplates.form.placeholderFooter')} />
             </Form.Item>
 
             <Form.Item name="isDefault" valuePropName="checked">
-                <Checkbox>Set as default template</Checkbox>
+                <Checkbox>{t('receiptTemplates.form.checkboxDefault')}</Checkbox>
             </Form.Item>
 
             <Space>
                 <Button type="primary" htmlType="submit" loading={loading}>
-                    {mode === 'create' ? 'Create Template' : 'Update Template'}
+                    {mode === 'create' ? t('receiptTemplates.form.submitCreate') : t('receiptTemplates.form.submitUpdate')}
                 </Button>
             </Space>
         </Form>

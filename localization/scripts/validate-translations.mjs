@@ -414,6 +414,11 @@ console.log(`Text report: ${textReportPath}`);
 if (sortedFailures.length > 0) {
   console.error('\nValidation failed:');
   sortedFailures.forEach((f) => console.error(`- ${f}`));
+  console.error('\nHow to fix:');
+  console.error('- Orphan JSON: add namespace to localization/namespace-manifest.json or remove stray files');
+  console.error('- Missing de value / duplicate keys: edit locale JSON under app localesDir');
+  console.error('- strictMissing en/tr gaps: fill en/ and tr/ files to match de keys');
+  console.error('- Report: localization/out/reports/validate-report.<app>.json');
   process.exit(1);
 }
 

@@ -7,6 +7,12 @@ import deProducts from './locales/de/products.json';
 import deFinanzOnlineOutbox from './locales/de/finanzOnlineOutbox.json';
 import deFinanzOnlineReconciliation from './locales/de/finanzOnlineReconciliation.json';
 import deRksvHub from './locales/de/rksvHub.json';
+import deReceipts from './locales/de/receipts.json';
+import deReceiptTemplates from './locales/de/receiptTemplates.json';
+import dePayments from './locales/de/payments.json';
+import deTagesabschluss from './locales/de/tagesabschluss.json';
+import deReporting from './locales/de/reporting.json';
+import deErrors from './locales/de/errors.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
@@ -16,6 +22,12 @@ import enProducts from './locales/en/products.json';
 import enFinanzOnlineOutbox from './locales/en/finanzOnlineOutbox.json';
 import enFinanzOnlineReconciliation from './locales/en/finanzOnlineReconciliation.json';
 import enRksvHub from './locales/en/rksvHub.json';
+import enReceipts from './locales/en/receipts.json';
+import enReceiptTemplates from './locales/en/receiptTemplates.json';
+import enPayments from './locales/en/payments.json';
+import enTagesabschluss from './locales/en/tagesabschluss.json';
+import enReporting from './locales/en/reporting.json';
+import enErrors from './locales/en/errors.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
 import trNav from './locales/tr/nav.json';
@@ -25,6 +37,12 @@ import trProducts from './locales/tr/products.json';
 import trFinanzOnlineOutbox from './locales/tr/finanzOnlineOutbox.json';
 import trFinanzOnlineReconciliation from './locales/tr/finanzOnlineReconciliation.json';
 import trRksvHub from './locales/tr/rksvHub.json';
+import trReceipts from './locales/tr/receipts.json';
+import trReceiptTemplates from './locales/tr/receiptTemplates.json';
+import trPayments from './locales/tr/payments.json';
+import trTagesabschluss from './locales/tr/tagesabschluss.json';
+import trReporting from './locales/tr/reporting.json';
+import trErrors from './locales/tr/errors.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -48,6 +66,12 @@ const catalogs = {
     finanzOnlineOutbox: deFinanzOnlineOutbox,
     finanzOnlineReconciliation: deFinanzOnlineReconciliation,
     rksvHub: deRksvHub,
+    receipts: deReceipts,
+    receiptTemplates: deReceiptTemplates,
+    payments: dePayments,
+    tagesabschluss: deTagesabschluss,
+    reporting: deReporting,
+    errors: deErrors,
   },
   en: {
     adminShell: enAdminShell,
@@ -59,6 +83,12 @@ const catalogs = {
     finanzOnlineOutbox: enFinanzOnlineOutbox,
     finanzOnlineReconciliation: enFinanzOnlineReconciliation,
     rksvHub: enRksvHub,
+    receipts: enReceipts,
+    receiptTemplates: enReceiptTemplates,
+    payments: enPayments,
+    tagesabschluss: enTagesabschluss,
+    reporting: enReporting,
+    errors: enErrors,
   },
   tr: {
     adminShell: trAdminShell,
@@ -70,6 +100,12 @@ const catalogs = {
     finanzOnlineOutbox: trFinanzOnlineOutbox,
     finanzOnlineReconciliation: trFinanzOnlineReconciliation,
     rksvHub: trRksvHub,
+    receipts: trReceipts,
+    receiptTemplates: trReceiptTemplates,
+    payments: trPayments,
+    tagesabschluss: trTagesabschluss,
+    reporting: trReporting,
+    errors: trErrors,
   },
 } as const;
 

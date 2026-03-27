@@ -7,6 +7,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { ReceiptTemplate } from '@/api/generated/model';
 import Link from 'next/link';
 import dayjs from 'dayjs';
+import { useI18n } from '@/i18n';
 
 interface ReceiptTemplateListProps {
     data: ReceiptTemplate[];
@@ -23,45 +24,48 @@ export default function ReceiptTemplateList({
     onDelete,
     onPreview,
 }: ReceiptTemplateListProps) {
+    const { t } = useI18n();
+
     const columns: ColumnsType<ReceiptTemplate> = [
         {
-            title: 'Name',
+            title: t('receiptTemplates.list.colName'),
             dataIndex: 'templateName',
             key: 'templateName',
             render: (text: string) => <span style={{ fontWeight: 600 }}>{text}</span>,
         },
         {
-            title: 'Language',
+            title: t('receiptTemplates.list.colLanguage'),
             dataIndex: 'language',
             key: 'language',
             render: (text: string) => <Tag>{text.toUpperCase()}</Tag>,
         },
         {
-            title: 'Type',
+            title: t('receiptTemplates.list.colType'),
             dataIndex: 'templateType',
             key: 'templateType',
             render: (text: string) => <Tag color="blue">{text}</Tag>,
         },
         {
-            title: 'Default',
+            title: t('receiptTemplates.list.colDefault'),
             dataIndex: 'isDefault',
             key: 'isDefault',
-            render: (val: boolean) => (val ? <Tag color="green">Yes</Tag> : '—'),
+            render: (val: boolean) => (val ? <Tag color="green">{t('receiptTemplates.list.tagYes')}</Tag> : '—'),
         },
         {
-            title: 'Active',
+            title: t('receiptTemplates.list.colActive'),
             dataIndex: 'isActive',
             key: 'isActive',
-            render: (val: boolean) => (val ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>),
+            render: (val: boolean) =>
+                val ? <Tag color="green">{t('receiptTemplates.list.tagActive')}</Tag> : <Tag>{t('receiptTemplates.list.tagInactive')}</Tag>,
         },
         {
-            title: 'Created',
+            title: t('receiptTemplates.list.colCreated'),
             dataIndex: 'createdAt',
             key: 'createdAt',
             render: (date: string) => dayjs(date).format('DD.MM.YYYY HH:mm'),
         },
         {
-            title: 'Actions',
+            title: t('receiptTemplates.list.colActions'),
             key: 'actions',
             width: 180,
             render: (_: unknown, record: ReceiptTemplate) => (
@@ -69,7 +73,7 @@ export default function ReceiptTemplateList({
                     {canManage && (
                         <Link href={`/receipt-templates/${record.id}`}>
                             <Button size="small" icon={<EditOutlined />}>
-                                Edit
+                                {t('receiptTemplates.list.edit')}
                             </Button>
                         </Link>
                     )}
@@ -78,19 +82,19 @@ export default function ReceiptTemplateList({
                         icon={<EyeOutlined />}
                         onClick={() => onPreview(record.id!)}
                     >
-                        Preview
+                        {t('receiptTemplates.list.preview')}
                     </Button>
                     <Link href={`/receipt-generate?templateId=${record.id ?? ''}`}>
                         <Button size="small" icon={<FileTextOutlined />}>
-                            Generate
+                            {t('receiptTemplates.list.generate')}
                         </Button>
                     </Link>
                     {canManage && (
                         <Popconfirm
-                            title="Delete this template?"
+                            title={t('receiptTemplates.list.deleteConfirm')}
                             onConfirm={() => onDelete(record.id!)}
-                            okText="Yes"
-                            cancelText="No"
+                            okText={t('common.buttons.yes')}
+                            cancelText={t('common.buttons.no')}
                         >
                             <Button size="small" danger icon={<DeleteOutlined />} />
                         </Popconfirm>

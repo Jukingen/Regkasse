@@ -1,14 +1,26 @@
 'use client';
 
-import React from 'react';
+/**
+ * RKSV Audit-Spur (Verifikationen): heuristische Stichprobe aus AuditLogEntryDto.
+ *
+ * Mimari not (lokalizasyon / operatör metni):
+ * - Uzun prosedürel metinler (banner, çökme panelleri, sayfalama showTotal, boş tablo)
+ *   şimdilik `operatorTruthCopy.OPERATOR_VERIFICATIONS_COPY` içinde kalır (tek kaynak, domain tonu).
+ * - Güvenli UI literal’leri (sütun başlıkları, client filtre etiketleri, expand DTO alan etiketleri,
+ *   sözleşme sınırı etiketi) `rksvHub.verifications` altında i18n’de.
+ * - `describeVerificationsKeywordMatchDe`, tablo `action`/`entityType` ve `RKSv_ADMIN_CONTRACT_GAPS`
+ *   metinleri ham API / İngilizce sözleşme dili — locale dışı bilinçli; follow-up: ayrı adapter veya çok dilli backend.
+ */
+
+import React, { useCallback, useMemo } from 'react';
 import { Card, Table, Tag, Typography, Switch, Space, Alert, Tooltip, Collapse, Descriptions, Divider } from 'antd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { FORMAT_EMPTY_DISPLAY, formatDateTime, useI18n } from '@/i18n';
 import { useGetApiAuditLog, useGetApiAuditLogCorrelationCorrelationId } from '@/api/generated/audit-log/audit-log';
 import type { AuditLogEntryDto } from '@/api/generated/model';
-import dayjs from 'dayjs';
 import { AdminTruthBadge, adminTruthTooltip } from '@/shared/adminTruthBadges';
 import {
     buildFinanzOnlineQueueInvestigationHref,
@@ -30,7 +42,24 @@ import {
     viewAuditLogStatusPresentation,
 } from '@/shared/verificationsAuditView';
 
+function formatAuditTimestamp(iso: string | null | undefined, formatLocale: string): string {
+    if (!iso) return FORMAT_EMPTY_DISPLAY;
+    return formatDateTime(iso, formatLocale, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    });
+}
+
 export default function RksvVerificationsPage() {
+    const { t, formatLocale } = useI18n();
+    const tv = useCallback((path: string) => t(`rksvHub.verifications.${path}`), [t]);
+    const backendApiTooltip = t('reporting.backend.apiStringsTooltip');
+
     const searchParams = useSearchParams();
     const correlationId = searchParams?.get('correlationId') ?? undefined;
     const useCorrelation = !!correlationId;
@@ -166,157 +195,167 @@ export default function RksvVerificationsPage() {
               },
           };
 
-    const columns = [
-        {
-            title: (
-                <Tooltip title={OPERATOR_VERIFICATIONS_COPY.correlationColumnTooltip}>
-                    <span>Correlation</span>
-                </Tooltip>
-            ),
-            key: 'correlationId',
-            width: 200,
-            render: (_: unknown, r: AuditLogEntryDto) => {
-                const c = r.correlationId?.trim();
-                if (!c) return <Typography.Text type="secondary">—</Typography.Text>;
-                return (
-                    <Space direction="vertical" size={2}>
-                        <Typography.Text code copyable ellipsis style={{ maxWidth: 180 }}>
-                            {c}
-                        </Typography.Text>
-                        <Link href={buildVerificationsAuditHref(c)}>{OPERATOR_VERIFICATIONS_COPY.filterByThisCorrelationLabel}</Link>
-                    </Space>
-                );
-            },
-        },
-        {
-            title: (
-                <Tooltip title={OPERATOR_VERIFICATIONS_COPY.rowSourceBadgeTooltip}>
-                    <span>Quelle</span>
-                </Tooltip>
-            ),
-            key: 'source',
-            width: 110,
-            render: () => (
-                <Tooltip title={OPERATOR_VERIFICATIONS_COPY.rowSourceBadgeTooltip}>
-                    <Tag>{OPERATOR_VERIFICATIONS_COPY.rowSourceBadgeShort}</Tag>
-                </Tooltip>
-            ),
-        },
-        {
-            title: (
-                <Tooltip title={OPERATOR_VERIFICATIONS_COPY.treffergrundColumnTooltip}>
-                    <span>{OPERATOR_VERIFICATIONS_COPY.treffergrundColumnTitle}</span>
-                </Tooltip>
-            ),
-            key: 'treffergrund',
-            width: 220,
-            ellipsis: true,
-            render: (_: unknown, r: AuditLogEntryDto) => {
-                const text = describeVerificationsKeywordMatchDe(r);
-                return (
-                    <Tooltip title={text}>
-                        <Typography.Text style={{ fontSize: 12 }}>
-                            <Tag color="orange" style={{ marginRight: 6 }}>
-                                {OPERATOR_VERIFICATIONS_COPY.treffergrundTagShort}
-                            </Tag>
-                            {text}
-                        </Typography.Text>
+    const columns = useMemo(
+        () => [
+            {
+                title: (
+                    <Tooltip title={OPERATOR_VERIFICATIONS_COPY.correlationColumnTooltip}>
+                        <span>{tv('columns.correlation')}</span>
                     </Tooltip>
-                );
-            },
-        },
-        {
-            title: 'Zeit',
-            dataIndex: 'timestamp',
-            key: 'timestamp',
-            width: 168,
-            render: (ts: string) => (ts ? dayjs(ts).format('DD.MM.YYYY HH:mm:ss') : '—'),
-        },
-        {
-            title: 'Benutzer',
-            key: 'userName',
-            width: 120,
-            render: (_: unknown, r: AuditLogEntryDto) => r.actorDisplayName ?? r.userId ?? '—',
-        },
-        {
-            title: 'Aktion',
-            dataIndex: 'action',
-            key: 'action',
-            width: 200,
-            render: (a: string | null | undefined) => <Tag color="blue">{a ?? '—'}</Tag>,
-        },
-        {
-            title: 'Entität',
-            dataIndex: 'entityType',
-            key: 'entityType',
-            width: 110,
-        },
-        {
-            title: 'Entity-ID',
-            dataIndex: 'entityId',
-            key: 'entityId',
-            width: 120,
-            ellipsis: true,
-            render: (id: string | null | undefined) =>
-                id?.trim() ? (
-                    <Typography.Text code copyable ellipsis>
-                        {id}
-                    </Typography.Text>
-                ) : (
-                    '—'
                 ),
-        },
-        {
-            title: (
-                <Tooltip title={OPERATOR_VERIFICATIONS_COPY.linksColumnTooltip}>
-                    <span>Deep-Links</span>
-                </Tooltip>
-            ),
-            key: 'links',
-            width: 160,
-            render: (_: unknown, r: AuditLogEntryDto) => {
-                const { paymentListHref, receiptDetailHref } = viewAuditLogEntityDeepLinks(r);
-                if (!paymentListHref && !receiptDetailHref) {
-                    return <Typography.Text type="secondary">—</Typography.Text>;
-                }
-                return (
-                    <Space direction="vertical" size={4}>
-                        {paymentListHref ? (
-                            <Link href={paymentListHref} target="_blank" rel="noopener noreferrer">
-                                {OPERATOR_VERIFICATIONS_COPY.deepLinkPaymentLabel}
-                            </Link>
-                        ) : null}
-                        {receiptDetailHref ? (
-                            <Link href={receiptDetailHref} target="_blank" rel="noopener noreferrer">
-                                {OPERATOR_VERIFICATIONS_COPY.deepLinkReceiptLabel}
-                            </Link>
-                        ) : null}
-                    </Space>
-                );
+                key: 'correlationId',
+                width: 200,
+                render: (_: unknown, r: AuditLogEntryDto) => {
+                    const c = r.correlationId?.trim();
+                    if (!c) return <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>;
+                    return (
+                        <Space direction="vertical" size={2}>
+                            <Typography.Text code copyable ellipsis style={{ maxWidth: 180 }}>
+                                {c}
+                            </Typography.Text>
+                            <Link href={buildVerificationsAuditHref(c)}>{OPERATOR_VERIFICATIONS_COPY.filterByThisCorrelationLabel}</Link>
+                        </Space>
+                    );
+                },
             },
-        },
-        {
-            title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
-            width: 130,
-            render: (_: unknown, r: AuditLogEntryDto) => {
-                const p = viewAuditLogStatusPresentation(r.status);
-                return <Tag color={p.antColor}>{p.label}</Tag>;
+            {
+                title: (
+                    <Tooltip title={OPERATOR_VERIFICATIONS_COPY.rowSourceBadgeTooltip}>
+                        <span>{tv('columns.source')}</span>
+                    </Tooltip>
+                ),
+                key: 'source',
+                width: 110,
+                render: () => (
+                    <Tooltip title={OPERATOR_VERIFICATIONS_COPY.rowSourceBadgeTooltip}>
+                        <Tag>{OPERATOR_VERIFICATIONS_COPY.rowSourceBadgeShort}</Tag>
+                    </Tooltip>
+                ),
             },
-        },
-        {
-            title: 'Details',
-            dataIndex: 'description',
-            key: 'description',
-            ellipsis: true,
-        },
-    ];
+            {
+                title: (
+                    <Tooltip title={OPERATOR_VERIFICATIONS_COPY.treffergrundColumnTooltip}>
+                        <span>{OPERATOR_VERIFICATIONS_COPY.treffergrundColumnTitle}</span>
+                    </Tooltip>
+                ),
+                key: 'treffergrund',
+                width: 220,
+                ellipsis: true,
+                render: (_: unknown, r: AuditLogEntryDto) => {
+                    const text = describeVerificationsKeywordMatchDe(r);
+                    return (
+                        <Tooltip title={text}>
+                            <Typography.Text style={{ fontSize: 12 }}>
+                                <Tag color="orange" style={{ marginRight: 6 }}>
+                                    {OPERATOR_VERIFICATIONS_COPY.treffergrundTagShort}
+                                </Tag>
+                                {text}
+                            </Typography.Text>
+                        </Tooltip>
+                    );
+                },
+            },
+            {
+                title: tv('columns.time'),
+                dataIndex: 'timestamp',
+                key: 'timestamp',
+                width: 168,
+                render: (ts: string) => (ts ? formatAuditTimestamp(ts, formatLocale) : FORMAT_EMPTY_DISPLAY),
+            },
+            {
+                title: tv('columns.user'),
+                key: 'userName',
+                width: 120,
+                render: (_: unknown, r: AuditLogEntryDto) => r.actorDisplayName ?? r.userId ?? FORMAT_EMPTY_DISPLAY,
+            },
+            {
+                title: tv('columns.action'),
+                dataIndex: 'action',
+                key: 'action',
+                width: 200,
+                render: (a: string | null | undefined) => (
+                    <Tag color="blue" title={backendApiTooltip}>
+                        {a ?? FORMAT_EMPTY_DISPLAY}
+                    </Tag>
+                ),
+            },
+            {
+                title: tv('columns.entity'),
+                dataIndex: 'entityType',
+                key: 'entityType',
+                width: 110,
+                render: (v: string | null | undefined) => (
+                    <span title={backendApiTooltip}>{v ?? FORMAT_EMPTY_DISPLAY}</span>
+                ),
+            },
+            {
+                title: tv('columns.entityId'),
+                dataIndex: 'entityId',
+                key: 'entityId',
+                width: 120,
+                ellipsis: true,
+                render: (id: string | null | undefined) =>
+                    id?.trim() ? (
+                        <Typography.Text code copyable ellipsis>
+                            {id}
+                        </Typography.Text>
+                    ) : (
+                        FORMAT_EMPTY_DISPLAY
+                    ),
+            },
+            {
+                title: (
+                    <Tooltip title={OPERATOR_VERIFICATIONS_COPY.linksColumnTooltip}>
+                        <span>{tv('columns.links')}</span>
+                    </Tooltip>
+                ),
+                key: 'links',
+                width: 160,
+                render: (_: unknown, r: AuditLogEntryDto) => {
+                    const { paymentListHref, receiptDetailHref } = viewAuditLogEntityDeepLinks(r);
+                    if (!paymentListHref && !receiptDetailHref) {
+                        return <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>;
+                    }
+                    return (
+                        <Space direction="vertical" size={4}>
+                            {paymentListHref ? (
+                                <Link href={paymentListHref} target="_blank" rel="noopener noreferrer">
+                                    {OPERATOR_VERIFICATIONS_COPY.deepLinkPaymentLabel}
+                                </Link>
+                            ) : null}
+                            {receiptDetailHref ? (
+                                <Link href={receiptDetailHref} target="_blank" rel="noopener noreferrer">
+                                    {OPERATOR_VERIFICATIONS_COPY.deepLinkReceiptLabel}
+                                </Link>
+                            ) : null}
+                        </Space>
+                    );
+                },
+            },
+            {
+                title: tv('columns.status'),
+                dataIndex: 'status',
+                key: 'status',
+                width: 130,
+                render: (_: unknown, r: AuditLogEntryDto) => {
+                    const p = viewAuditLogStatusPresentation(r.status);
+                    return <Tag color={p.antColor}>{p.label}</Tag>;
+                },
+            },
+            {
+                title: tv('columns.details'),
+                dataIndex: 'description',
+                key: 'description',
+                ellipsis: true,
+            },
+        ],
+        [tv, formatLocale, backendApiTooltip],
+    );
 
     const clipText = (text: string | null | undefined, max: number) => {
-        const t = text?.trim();
-        if (!t) return null;
-        return t.length > max ? `${t.slice(0, max)}…` : t;
+        const s = text?.trim();
+        if (!s) return null;
+        return s.length > max ? `${s.slice(0, max)}…` : s;
     };
 
     const renderExpandedAuditRow = (r: AuditLogEntryDto) => {
@@ -340,7 +379,7 @@ export default function RksvVerificationsPage() {
                     </Typography.Text>
                 </Divider>
                 <Typography.Paragraph style={{ marginBottom: 8, fontSize: 12 }}>
-                    <strong>Treffergrund:</strong> {describeVerificationsKeywordMatchDe(r)}
+                    <strong>{tv('expand.treffergrundHeading')}</strong> {describeVerificationsKeywordMatchDe(r)}
                 </Typography.Paragraph>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
                     {OPERATOR_VERIFICATIONS_COPY.expandWhyBody}
@@ -352,45 +391,45 @@ export default function RksvVerificationsPage() {
                     </Typography.Text>
                 </Divider>
                 <Descriptions bordered size="small" column={1}>
-                    <Descriptions.Item label="action">{r.action ?? '—'}</Descriptions.Item>
-                    <Descriptions.Item label="entityType">{r.entityType ?? '—'}</Descriptions.Item>
-                    <Descriptions.Item label="entityId">
+                    <Descriptions.Item label={tv('expand.fieldAction')}>{r.action ?? FORMAT_EMPTY_DISPLAY}</Descriptions.Item>
+                    <Descriptions.Item label={tv('expand.fieldEntityType')}>{r.entityType ?? FORMAT_EMPTY_DISPLAY}</Descriptions.Item>
+                    <Descriptions.Item label={tv('expand.fieldEntityId')}>
                         {r.entityId?.trim() ? (
                             <Typography.Text code copyable>
                                 {r.entityId}
                             </Typography.Text>
                         ) : (
-                            '—'
+                            FORMAT_EMPTY_DISPLAY
                         )}
                     </Descriptions.Item>
-                    <Descriptions.Item label="correlationId">
+                    <Descriptions.Item label={tv('expand.fieldCorrelationId')}>
                         {ctx ? (
                             <Typography.Text code copyable>
                                 {ctx}
                             </Typography.Text>
                         ) : (
-                            '—'
+                            FORMAT_EMPTY_DISPLAY
                         )}
                     </Descriptions.Item>
-                    <Descriptions.Item label="endpoint">{r.endpoint ?? '—'}</Descriptions.Item>
-                    <Descriptions.Item label="httpMethod">{r.httpMethod ?? '—'}</Descriptions.Item>
-                    <Descriptions.Item label="httpStatusCode">
-                        {r.httpStatusCode != null ? String(r.httpStatusCode) : '—'}
+                    <Descriptions.Item label={tv('expand.fieldEndpoint')}>{r.endpoint ?? FORMAT_EMPTY_DISPLAY}</Descriptions.Item>
+                    <Descriptions.Item label={tv('expand.fieldHttpMethod')}>{r.httpMethod ?? FORMAT_EMPTY_DISPLAY}</Descriptions.Item>
+                    <Descriptions.Item label={tv('expand.fieldHttpStatusCode')}>
+                        {r.httpStatusCode != null ? String(r.httpStatusCode) : FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
-                    <Descriptions.Item label="errorDetails">
+                    <Descriptions.Item label={tv('expand.fieldErrorDetails')}>
                         {r.errorDetails?.trim() ? (
                             <Typography.Text type="danger" copyable>
                                 {r.errorDetails}
                             </Typography.Text>
                         ) : (
-                            '—'
+                            FORMAT_EMPTY_DISPLAY
                         )}
                     </Descriptions.Item>
-                    <Descriptions.Item label="description">
-                        {r.description?.trim() ? r.description : '—'}
+                    <Descriptions.Item label={tv('expand.fieldDescription')}>
+                        {r.description?.trim() ? r.description : FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
-                    <Descriptions.Item label="timestamp">
-                        {r.timestamp ? dayjs(r.timestamp).format('DD.MM.YYYY HH:mm:ss') : '—'}
+                    <Descriptions.Item label={tv('expand.fieldTimestamp')}>
+                        {r.timestamp ? formatAuditTimestamp(r.timestamp, formatLocale) : FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
                 </Descriptions>
 
@@ -403,7 +442,7 @@ export default function RksvVerificationsPage() {
                                 ? [
                                       {
                                           key: 'req',
-                                          label: 'requestData (gekürzt)',
+                                          label: tv('expand.requestDataTruncated'),
                                           children: (
                                               <Typography.Paragraph
                                                   copyable={
@@ -431,7 +470,7 @@ export default function RksvVerificationsPage() {
                                 ? [
                                       {
                                           key: 'res',
-                                          label: 'responseData (gekürzt)',
+                                          label: tv('expand.responseDataTruncated'),
                                           children: (
                                               <Typography.Paragraph
                                                   copyable={
@@ -501,8 +540,8 @@ export default function RksvVerificationsPage() {
             <AdminPageHeader
                 title={OPERATOR_VERIFICATIONS_COPY.pageTitle}
                 breadcrumbs={[
-                    ADMIN_OVERVIEW_CRUMB,
-                    { title: 'RKSV', href: '/rksv' },
+                    adminOverviewCrumb(t),
+                    { title: t('adminShell.group.rksv'), href: '/rksv' },
                     { title: OPERATOR_VERIFICATIONS_COPY.breadcrumbTitle },
                 ]}
             >
@@ -634,7 +673,7 @@ export default function RksvVerificationsPage() {
                                         {OPERATOR_VERIFICATIONS_COPY.keywordSampleFootnote}
                                     </Typography.Paragraph>
                                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                        <strong>Vertragsgrenze:</strong>{' '}
+                                        <strong>{tv('contractBoundaryLabel')}</strong>{' '}
                                         {RKSv_ADMIN_CONTRACT_GAPS.verificationsAuditVsSignatureDebug}{' '}
                                         {RKSv_ADMIN_CONTRACT_GAPS.receiptSignatureDebugResponse}
                                     </Typography.Text>
@@ -646,19 +685,19 @@ export default function RksvVerificationsPage() {
 
                 <Space direction="horizontal" wrap style={{ marginBottom: 12 }}>
                     <Space direction="horizontal">
-                        <Typography.Text>Offline-Ursprung</Typography.Text>
+                        <Typography.Text>{tv('filters.offlineOrigin')}</Typography.Text>
                         <Tooltip title={OPERATOR_VERIFICATIONS_COPY.filterSwitchClientTooltip}>
                             <Switch checked={offlineOriginOnly} onChange={setOfflineOriginOnly} />
                         </Tooltip>
                     </Space>
                     <Space direction="horizontal">
-                        <Typography.Text>Fehlerhafte Replays</Typography.Text>
+                        <Typography.Text>{tv('filters.failedReplay')}</Typography.Text>
                         <Tooltip title={OPERATOR_VERIFICATIONS_COPY.filterSwitchClientTooltip}>
                             <Switch checked={failedReplayOnly} onChange={setFailedReplayOnly} />
                         </Tooltip>
                     </Space>
                     <Space direction="horizontal">
-                        <Typography.Text>Verdächtige Offline-Zeit</Typography.Text>
+                        <Typography.Text>{tv('filters.suspiciousTiming')}</Typography.Text>
                         <Tooltip title={OPERATOR_VERIFICATIONS_COPY.filterSwitchClientTooltip}>
                             <Switch checked={suspiciousTimingOnly} onChange={setSuspiciousTimingOnly} />
                         </Tooltip>

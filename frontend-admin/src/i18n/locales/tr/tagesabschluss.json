@@ -1,0 +1,82 @@
+{
+  "page": {
+    "intro": "Secilen kasa icin gun sonu calistirin, kontrolu gorun, gecmis ve KPI'lari inceleyin. Gecmis ve istatistik oturumdaki kullaniciya gore (API filtresi). Backend:",
+    "introApiPath": "/api/Tagesabschluss/*",
+    "introPermission": "Yetki:"
+  },
+  "toolbar": {
+    "refresh": "Yenile"
+  },
+  "scope": {
+    "label": "Aktif gorunum:",
+    "registerWithId": "Kasa {{id}}",
+    "registerInvalid": "Kasa: gecerli UUID yok",
+    "historyPeriod": "Gecmis {{from}}–{{to}}",
+    "historyCount": "Donemde {{count}} gun sonu"
+  },
+  "card": {
+    "register": "Kasa ve kontrol",
+    "stats": "Istatistik ve gecmis (donem)"
+  },
+  "register": {
+    "fromList": "Listeden kasa",
+    "selectPlaceholder": "Kasa sec",
+    "noListTitle": "Kasa listesi yok",
+    "noListDescription": "cashregister.view yetkisi yok — kasa kimligini UUID olarak elle girin.",
+    "manualLabel": "Kasa kimligi (UUID)",
+    "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
+    "uuidWarning": "Gecerli UUID girin (liste veya elle)."
+  },
+  "check": {
+    "failedTitle": "Kontrol basarisiz",
+    "canCloseLabel": "Gun sonu yapilabilir",
+    "yes": "Evet",
+    "no": "Hayir",
+    "lastClosing": "Son gun sonu",
+    "paymentsWithoutInvoice": "Faturasiz odemeler (bugun)",
+    "hint": "Not",
+    "backendHint": "Sunucu notu (dil garanti degil)"
+  },
+  "actions": {
+    "daily": "Gunluk gun sonu",
+    "monthly": "Aylik kapanis",
+    "yearly": "Yillik kapanis",
+    "modalTitleDaily": "Gunluk gun sonu calistirilsin mi?",
+    "modalTitleMonthly": "Aylik kapanis calistirilsin mi?",
+    "modalTitleYearly": "Yillik kapanis calistirilsin mi?",
+    "modalContent": "RKSV ile ilgili islem. Kasa is olarak hazir degilse calistirmayin.",
+    "modalOk": "Calistir",
+    "modalCancel": "Vazgec"
+  },
+  "stats": {
+    "sectionTitle": "Gostergeler",
+    "refresh": "Yenile",
+    "labelClosings": "Gun sonu (adet)",
+    "labelGrossSum": "Brut toplam",
+    "labelTaxSum": "Vergi toplami",
+    "labelTransactions": "Islemler",
+    "labelAvgDaily": "Ort. gunluk brut (yalnizca gunluk)",
+    "labelLastInRange": "Aralikta son gun sonu",
+    "empty": "Bu donem icin veri yok."
+  },
+  "history": {
+    "sectionTitle": "Gecmis",
+    "empty": "Bu donemde kayit yok.",
+    "colDate": "Tarih",
+    "colType": "Tur",
+    "colGross": "Brut",
+    "colTax": "Vergi",
+    "colTransactions": "Islemler",
+    "colStatus": "Durum",
+    "colFinanzOnline": "FinanzOnline"
+  },
+  "messages": {
+    "successDaily": "Gunluk gun sonu uygulandi.",
+    "successMonthly": "Aylik kapanis uygulandi.",
+    "successYearly": "Yillik kapanis uygulandi.",
+    "warningUuid": "Gecerli kasa kimligi secin veya girin (UUID)."
+  },
+  "errors": {
+    "unknown": "Bilinmeyen hata"
+  }
+}

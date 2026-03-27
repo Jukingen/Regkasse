@@ -3,6 +3,7 @@
 import React from 'react';
 import { Modal, Spin, Alert, Typography } from 'antd';
 import { useReceiptTemplates } from '../hooks/useReceiptTemplates';
+import { useI18n } from '@/i18n';
 
 const { Paragraph } = Typography;
 
@@ -19,6 +20,7 @@ interface ReceiptPreviewModalProps {
 }
 
 export default function ReceiptPreviewModal({ templateId, onClose }: ReceiptPreviewModalProps) {
+    const { t } = useI18n();
     const { usePreview } = useReceiptTemplates();
     const { data, isLoading, isError, error } = usePreview(templateId!, {
         query: { enabled: !!templateId },
@@ -26,22 +28,22 @@ export default function ReceiptPreviewModal({ templateId, onClose }: ReceiptPrev
 
     const notFound = isError && isNotFoundError(error);
     const errorMessage = notFound
-        ? 'The template may have been deleted or you do not have access to it.'
+        ? t('receiptTemplates.preview.notFoundDescription')
         : (error as Error)?.message;
 
     return (
         <Modal
-            title={data?.templateName ? `Preview: ${data.templateName}` : 'Preview'}
+            title={data?.templateName ? t('receiptTemplates.preview.titleWithName', { name: data.templateName }) : t('receiptTemplates.preview.title')}
             open={!!templateId}
             onCancel={onClose}
             footer={null}
             width={700}
         >
-            {isLoading && <Spin tip="Loading preview..." />}
+            {isLoading && <Spin tip={t('receiptTemplates.preview.loading')} />}
             {isError && (
                 <Alert
                     type="error"
-                    message={notFound ? 'Template not found' : 'Preview failed'}
+                    message={notFound ? t('receiptTemplates.preview.errorNotFound') : t('receiptTemplates.preview.errorGeneric')}
                     description={errorMessage}
                     showIcon
                 />
@@ -49,14 +51,14 @@ export default function ReceiptPreviewModal({ templateId, onClose }: ReceiptPrev
             {data && (
                 <div>
                     <p>
-                        <strong>Language:</strong> {data.language}
+                        <strong>{t('receiptTemplates.preview.labelLanguage')}:</strong> {data.language}
                     </p>
                     <p>
-                        <strong>Type:</strong> {data.templateType}
+                        <strong>{t('receiptTemplates.preview.labelType')}:</strong> {data.templateType}
                     </p>
                     <Paragraph>
                         <pre style={{ background: '#f5f5f5', padding: 16, whiteSpace: 'pre-wrap' }}>
-                            {data.previewContent || 'No preview available'}
+                            {data.previewContent || t('receiptTemplates.preview.noPreview')}
                         </pre>
                     </Paragraph>
                 </div>

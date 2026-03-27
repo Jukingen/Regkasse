@@ -13,8 +13,10 @@ import { PERMISSIONS } from '@/shared/auth/permissions';
 import ReceiptTemplateForm from '@/features/receipt-templates/components/ReceiptTemplateForm';
 import { useReceiptTemplates } from '@/features/receipt-templates/hooks/useReceiptTemplates';
 import type { CreateReceiptTemplateRequest, UpdateReceiptTemplateRequest } from '@/api/generated/model';
+import { useI18n } from '@/i18n';
 
 export default function NewReceiptTemplatePage() {
+    const { t } = useI18n();
     const router = useRouter();
     const { user, isInitialized } = useAuth();
     const canManage = hasPermission(user, PERMISSIONS.RECEIPT_TEMPLATE_MANAGE);
@@ -29,12 +31,12 @@ export default function NewReceiptTemplatePage() {
     const { mutate: createTemplate, isPending } = useCreate({
         mutation: {
             onSuccess: () => {
-                message.success('Vorlage angelegt.');
+                message.success(t('receiptTemplates.page.createSuccess'));
                 invalidateList();
                 router.push('/receipt-templates');
             },
             onError: (error: Error) => {
-                message.error(`Anlegen fehlgeschlagen: ${error.message}`);
+                message.error(t('receiptTemplates.page.createError', { message: error.message }));
             },
         },
     });
@@ -47,7 +49,7 @@ export default function NewReceiptTemplatePage() {
     if (!isInitialized || !canManage) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-                <Spin size="large" tip="Zugriff wird geprüft…" />
+                <Spin size="large" tip={t('receiptTemplates.page.accessCheck')} />
             </div>
         );
     }
@@ -55,18 +57,18 @@ export default function NewReceiptTemplatePage() {
     return (
         <React.Fragment>
             <AdminPageHeader
-                title="Neue Belegvorlage"
+                title={t('receiptTemplates.page.newTitle')}
                 breadcrumbs={[
                     ADMIN_OVERVIEW_CRUMB,
                     { title: ADMIN_NAV_LABELS.receiptTemplates, href: '/receipt-templates' },
-                    { title: 'Neu' },
+                    { title: t('receiptTemplates.page.breadcrumbNew') },
                 ]}
                 actions={
                     <Button
                         icon={<ArrowLeftOutlined />}
                         onClick={() => router.push('/receipt-templates')}
                     >
-                        Zurück
+                        {t('receiptTemplates.page.back')}
                     </Button>
                 }
             />

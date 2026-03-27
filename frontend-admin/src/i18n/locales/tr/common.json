@@ -16,6 +16,37 @@
   "messages": {
     "unknownError": "Bilinmeyen hata"
   },
+  "errors": {
+    "http400": "Gecersiz istek.",
+    "http401": "Kimlik dogrulama gerekli.",
+    "http403": "Erisim reddedildi.",
+    "http404": "Bulunamadi.",
+    "http409": "Cakisma.",
+    "http422": "Dogrulama basarisiz.",
+    "http429": "Cok fazla istek. Sonra tekrar deneyin.",
+    "http500": "Sunucu hatasi. Sonra tekrar deneyin.",
+    "http503": "Hizmet gecici olarak kullanilamiyor.",
+    "network": "Ag hatasi. Baglantiyi kontrol edin."
+  },
+  "backend": {
+    "serverHintIntro": "Sunucu mesaji (dil garanti degil):",
+    "rawMessagesNotice": "Asagidaki satirlar sunucudan oldugu gibi gelir (yerellestirilmez)."
+  },
+  "aria": {
+    "breadcrumbNav": "Gezinti (breadcrumb)",
+    "pageScopeContext": "Gecerli gorunum ve filtre baglami"
+  },
+  "system": {
+    "status403": "403",
+    "forbidden403Subtitle": "Bu sayfaya erisim yetkiniz yok.",
+    "status404": "404",
+    "notFound404Subtitle": "Istenen sayfa bulunamadi.",
+    "backToDashboard": "Genel bakisa don"
+  },
+  "dataList": {
+    "errorLoadTitle": "Veri yuklenirken hata olustu",
+    "emptyDefault": "Veri bulunamadi"
+  },
   "auth": {
     "subtitle": "POS sisteminizi yonetmek icin giris yapin",
     "username": "Kullanici adi",
@@ -23,6 +54,8 @@
     "login": "Giris yap",
     "loginSuccess": "Giris basarili",
     "loginFailedWithStatus": "Giris basarisiz ({{status}}): {{details}}",
+    "loginInvalidCredentials": "Kullanici adi veya sifre hatali.",
+    "loginFailedGeneric": "Giris basarisiz. Lutfen tekrar deneyin.",
     "validation": {
       "usernameRequired": "Lutfen kullanici adini girin!",
       "passwordRequired": "Lutfen sifreyi girin!"

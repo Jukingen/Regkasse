@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { Form, Input, InputNumber, Modal, Switch } from 'antd';
 import type { Category } from '@/api/generated/model';
 import type { CreateCategoryFormValues, UpdateCategoryFormValues } from '../types';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 export type CategoryFormSubmitValues = CreateCategoryFormValues | UpdateCategoryFormValues;
 
@@ -57,7 +58,7 @@ export default function CategoryForm({
             });
             form.resetFields();
         } catch (error) {
-            console.error('Validation failed:', error);
+            technicalConsole.error('[CategoryForm] form validation or submit failed', error);
         }
     };
 

@@ -13,7 +13,7 @@ CSV is an interchange/edit format only.
   - `localization/scripts/import-translations.mjs`
   - `localization/scripts/validate-translations.mjs`
 - Contract source:
-  - `localization/namespace-manifest.json`
+  - `localization/namespace-manifest.json` — her `app.namespaces[]` girdisi, ilgili uygulamada **`de/<stem>.json`** dosya kök adıyla eşleşmelidir (ör. `frontend-admin`: `admin-shell` → `de/admin-shell.json`). **frontend-admin** için `t('…')` içindeki ilk segment çoğu zaman **camelCase** catalog adıdır (`adminShell`); dosya adı ise `admin-shell.json` olduğundan manifest’te kebab kök görünür — ayrıntı: `frontend-admin/src/i18n/README.md`.
 - CSV matrix format (one row per key):
   - `app,namespace,key,description,de,en,tr,status,notes`
 

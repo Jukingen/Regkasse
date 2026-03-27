@@ -7,9 +7,11 @@ import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 import type { ReceiptListItemDto } from '@/features/receipts/types/receipts';
 import { formatEUR } from '@/shared/utils/currency';
+import { formatNumber } from '@/i18n/formatting';
 import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
 import dayjs from 'dayjs';
 import Link from 'next/link';
+import { useI18n } from '@/i18n';
 
 interface ReceiptsTableProps {
     data: ReceiptListItemDto[];
@@ -36,13 +38,14 @@ interface ReceiptsTableProps {
 }
 
 function buildColumns(
+    t: (key: string, options?: Record<string, string | number>) => string,
     reprintEnabled: boolean | undefined,
     reprintActionLabel: string | undefined,
     onStartReprint: ((row: ReceiptListItemDto) => void) | undefined,
 ): ColumnsType<ReceiptListItemDto> {
     const base: ColumnsType<ReceiptListItemDto> = [
         {
-            title: 'Receipt',
+            title: t('receipts.table.colReceipt'),
             dataIndex: 'issuedAt',
             key: 'receipt',
             sorter: true,
@@ -62,7 +65,7 @@ function buildColumns(
             ),
         },
         {
-            title: 'Kasse (FK)',
+            title: t('receipts.table.colRegisterFk'),
             dataIndex: 'cashRegisterId',
             key: 'cashRegisterFk',
             width: 160,
@@ -77,7 +80,7 @@ function buildColumns(
                 ),
         },
         {
-            title: 'Kassen-ID (Anzeige)',
+            title: t('receipts.table.colRegisterDisplay'),
             dataIndex: 'registerDisplayNumber',
             key: 'registerDisplayNumber',
             width: 120,
@@ -91,7 +94,7 @@ function buildColumns(
             },
         },
         {
-            title: 'Kassierer (Id)',
+            title: t('receipts.table.colCashier'),
             dataIndex: 'cashierId',
             key: 'cashierId',
             width: 120,
@@ -103,7 +106,7 @@ function buildColumns(
             ),
         },
         {
-            title: 'Grand Total',
+            title: t('receipts.table.colGrandTotal'),
             dataIndex: 'grandTotal',
             key: 'grandTotal',
             align: 'right',
@@ -138,7 +141,7 @@ function buildColumns(
     }
 
     base.push({
-        title: 'Next',
+        title: t('receipts.table.colNext'),
         key: 'actions',
         width: 108,
         fixed: 'right',
@@ -146,7 +149,7 @@ function buildColumns(
         render: (_: unknown, record: ReceiptListItemDto) => (
             <Link href={`/receipts/${record.receiptId}`}>
                 <Button type="primary" size="small" icon={<EyeOutlined />}>
-                    Open
+                    {t('receipts.table.open')}
                 </Button>
             </Link>
         ),
@@ -172,9 +175,11 @@ export default function ReceiptsTable({
     reprintActionLabel,
     onStartReprint,
 }: ReceiptsTableProps) {
+    const { t, formatLocale } = useI18n();
+
     const columns = React.useMemo(
-        () => buildColumns(reprintEnabled, reprintActionLabel, onStartReprint),
-        [reprintEnabled, reprintActionLabel, onStartReprint],
+        () => buildColumns(t, reprintEnabled, reprintActionLabel, onStartReprint),
+        [t, reprintEnabled, reprintActionLabel, onStartReprint],
     );
 
     // Apply current sort indicator to the matching column
@@ -200,7 +205,12 @@ export default function ReceiptsTable({
                 total: pagination.total,
                 showSizeChanger: true,
                 pageSizeOptions: ['10', '25', '50', '100'],
-                showTotal: (total, range) => `${range[0]}–${range[1]} of ${total} receipts`,
+                showTotal: (total, range) =>
+                    t('receipts.table.paginationTotal', {
+                        from: formatNumber(range[0] ?? 0, formatLocale, { maximumFractionDigits: 0 }),
+                        to: formatNumber(range[1] ?? 0, formatLocale, { maximumFractionDigits: 0 }),
+                        total: formatNumber(total, formatLocale, { maximumFractionDigits: 0 }),
+                    }),
                 hideOnSinglePage: false,
             }}
             scroll={{ x: scrollX }}

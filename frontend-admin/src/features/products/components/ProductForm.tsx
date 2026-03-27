@@ -7,6 +7,7 @@ import { useCategories } from '@/features/categories/hooks/useCategories';
 import { getModifierGroups, getProductModifierGroups, type ModifierGroupDto } from '@/lib/api/modifierGroups';
 import { TAX_TYPE_ENUM } from '@/features/products/utils/productMapper';
 import ExtraZutatenSection from './ExtraZutatenSection';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 /** Dropdown options: backend enum id (1,2,3) and display label. */
 const TAX_TYPE_OPTIONS = [
@@ -148,7 +149,7 @@ export default function ProductForm({
             await onSubmit(processedValues);
             form.resetFields();
         } catch (error: any) {
-            console.error('Operation failed:', error);
+            technicalConsole.error('[ProductForm] submit or validation failed', error);
 
             // Handle Backend Validation Errors
             if (error?.response?.data?.errors) {

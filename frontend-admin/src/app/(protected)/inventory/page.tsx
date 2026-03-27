@@ -32,6 +32,7 @@ import { InboxOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
+import { formatCurrency } from '@/i18n/formatting';
 import {
   getGetApiInventoryHistoryQueryKey,
   getGetApiInventoryQueryKey,
@@ -225,10 +226,7 @@ export default function InventoryOperationsPage() {
     },
   });
 
-  const money = useMemo(
-    () => new Intl.NumberFormat(formatLocale || 'de-AT', { style: 'currency', currency: 'EUR' }),
-    [formatLocale],
-  );
+  const formatMoney = useCallback((v: number) => formatCurrency(v, formatLocale), [formatLocale]);
 
   const openRestock = (r: EnrichedInventoryRow) => {
     if (!canManage) {
@@ -319,7 +317,7 @@ export default function InventoryOperationsPage() {
     {
       title: t('adminShell.inventory.colCost'),
       dataIndex: 'unitCost',
-      render: (v: number) => money.format(Number(v ?? 0)),
+      render: (v: number) => formatMoney(Number(v ?? 0)),
     },
     {
       title: t('adminShell.inventory.colActions'),

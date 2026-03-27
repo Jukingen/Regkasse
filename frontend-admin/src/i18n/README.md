@@ -1,23 +1,68 @@
 # Admin i18n (frontend-admin)
 
-Runtime catalogs live under `src/i18n/locales/{de,en,tr}/`. Default text locale is **`de`** (`config.ts`).
+## Source of truth (sıra)
 
-## Text locale vs formatting locale
+1. **Runtime çeviri:** `src/i18n/config.ts` — `catalogs[locale]` altındaki **catalog anahtarları** (`AdminNamespace`) ve import edilen JSON dosyaları.
+2. **`t('…')` çözümlemesi:** `I18nProvider` — ilk segment = catalog adı (aşağıdaki “Runtime namespace” sütunu).
+3. **Araç / parity / CSV:** `localization/namespace-manifest.json` — `frontend-admin.namespaces` listesi **locale dosya adlarıyla** uyumlu olmalı (`de/<stem>.json`).
 
-- **Translation locale** (catalog keys): `de` | `en` | `tr` — `textLocale` in `I18nProvider`.
-- **Formatting locale** (`Intl`, dates, numbers): `de-AT` | `en-US` | `tr-TR` — `formatLocale`, default derived from text locale via `TEXT_TO_FORMAT_LOCALE` in `config.ts`.
-- Use `formatLocale` from `useI18n()` for `toLocaleString` / `Intl.*`; use `formatting.ts` helpers where convenient.
+JSON kataloglar: `src/i18n/locales/{de,en,tr}/`. Varsayılan metin dili: **`de`** (`DEFAULT_TEXT_LOCALE`).
 
-## `t(key)` shape
+---
 
-The first dot segment is the **namespace** (matches the JSON file base name, camelCase in catalog):
+## Text locale vs format locale
 
-- `nav.overview` → namespace `nav`, path `overview`
-- `settings.page.title` → namespace `settings`, path `page.title`
+- **Metin dili:** `de` | `en` | `tr` — `textLocale` (`I18nProvider`).
+- **Format dili (Intl):** `de-AT` | `en-US` | `tr-TR` — `formatLocale`; `TEXT_TO_FORMAT_LOCALE` ile metin dilinden türetilir.
 
-Namespaces registered in `config.ts`: `adminShell`, `common`, `nav`, `users`, `settings`, `products`.
+### Formatting (`src/i18n/formatting.ts`)
 
-## Rules
+Tek yüzey: `formatCurrency`, `formatNumber`, `formatPercent`, `formatDate`, `formatDateTime` — hepsi `(…, formatLocale, …)` ile `useI18n().formatLocale` alır. Çok kullanımda `createIntlFormatters(formatLocale)` ile bağlı helper’lar üretilebilir.
 
-- UI copy only; do not pass API/domain catalog data (product names, categories, etc.) through `t()`.
-- Prefer stable semantic keys; avoid renaming keys without a migration note.
+**Örnek:**
+
+```tsx
+const { formatLocale } = useI18n();
+const fmt = useMemo(() => createIntlFormatters(formatLocale), [formatLocale]);
+return <span>{fmt.formatCurrency(row.amount)}</span>;
+```
+
+**Yüzde:** `formatPercent` Intl kurallarına uyar — değer **0–1 aralığında** oran (ör. `0,2` → %20).
+
+**EUR:** `formatCurrency` varsayılan `currency: 'EUR'`, 2 ondalık.
+
+**Kullanımdan kaçının:** `new Intl.NumberFormat('de-AT', …)` doğrudan; `toFixed(2) + '€'`; sabit `'de-DE'` / `'de-AT'` locale string’leri (formatLocale dışında).
+
+---
+
+## `t(key)` biçimi
+
+- `namespace.path.to.leaf` — ilk nokta öncesi segment = **runtime namespace** (`config.ts` ile birebir).
+- Alternatif: `namespace:path.to.leaf` (aynı anlama).
+
+Örnek: `adminShell.hospitalityHub.title` → namespace `adminShell`, path `hospitalityHub.title`.
+
+---
+
+## Runtime namespace ↔ dosya adı (kebab / camel)
+
+| Runtime (`t` ilk segmenti, `AdminNamespace`) | Locale dosyası (`de/…`) | Not |
+|-----------------------------------------------|-------------------------|-----|
+| `adminShell` | `admin-shell.json` | Tek istisna: dosya **kebab-case**, catalog anahtarı **camelCase**. |
+| `common` | `common.json` | |
+| `nav` | `nav.json` | |
+| `users` | `users.json` | |
+| `settings` | `settings.json` | |
+| `products` | `products.json` | |
+| `finanzOnlineOutbox` | `finanzOnlineOutbox.json` | |
+| `finanzOnlineReconciliation` | `finanzOnlineReconciliation.json` | |
+| `rksvHub` | `rksvHub.json` | |
+
+**`localization/namespace-manifest.json`** içindeki `frontend-admin.namespaces` değerleri **dosya kök adı**dır (`admin-shell`, `finanzOnlineOutbox`, …); runtime string ile karakter bazında her zaman aynı değildir — `admin-shell` ↔ `adminShell` eşlemesi validate ve import/export script’lerinde kebab/camel ile hizalanır.
+
+---
+
+## Kurallar
+
+- Yalnızca UI metni; ürün/kategori gibi API alanlarını `t()` üzerinden geçirme.
+- Anahtarları stabil tut; toplu rename için migration notu gerekir.

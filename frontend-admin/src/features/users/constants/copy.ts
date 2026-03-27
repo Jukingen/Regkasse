@@ -252,7 +252,10 @@ export const GROUP_KEY_LABELS: Record<string, string> = {
   other: 'Sonstige',
 };
 
-/** Maps backend/Identity English password error message to German for modal display. */
+/**
+ * Maps backend/Identity English password error strings to localized copy (currently wired to `usersCopy` DE strings).
+ * Follow-up: move targets to `users.passwordErrors.*` i18n keys and pass `t` / active locale instead of DE-only copy.
+ */
 export function mapBackendPasswordErrorToGerman(backendMessage: string, copy: typeof usersCopy): string {
   const lower = backendMessage.toLowerCase();
   if (lower.includes('at least') && lower.includes('character')) return copy.resetPasswordErrorMinLength;

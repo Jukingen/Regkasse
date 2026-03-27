@@ -3,6 +3,7 @@
 import { useEffect, ReactNode, FC } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { Spin } from 'antd';
 
 interface GuardProps {
@@ -19,7 +20,7 @@ export const AuthGuard: FC<GuardProps> = ({ children }) => {
 
     useEffect(() => {
         if (!isLoadingAuth && !isAuthenticated) {
-            console.log('🔒 [AuthGuard] User not authenticated, redirecting to /login');
+            technicalConsole.devLog('[AuthGuard] not authenticated, redirecting to /login');
             router.replace('/login');
         }
     }, [isAuthenticated, isLoadingAuth, router]);
@@ -49,7 +50,7 @@ export const GuestGuard: FC<GuardProps> = ({ children }) => {
 
     useEffect(() => {
         if (!isLoadingAuth && isAuthenticated) {
-            console.log('🔒 [GuestGuard] User authenticated, redirecting to /dashboard');
+            technicalConsole.devLog('[GuestGuard] already authenticated, redirecting to /dashboard');
             router.replace('/dashboard');
         }
     }, [isAuthenticated, isLoadingAuth, router]);

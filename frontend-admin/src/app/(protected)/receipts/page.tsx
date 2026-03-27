@@ -13,16 +13,28 @@ import { useReceiptListQuery } from '@/features/receipts/hooks/useReceiptListQue
 import ReceiptsFilterBar from '@/features/receipts/components/ReceiptsFilterBar';
 import ReceiptsTable from '@/features/receipts/components/ReceiptsTable';
 import type { ReceiptListItemDto, ReceiptListParams } from '@/features/receipts/types/receipts';
+import { useI18n } from '@/i18n';
+import { formatNumber } from '@/i18n/formatting';
 
 /** Extract user-facing error message from API/network error */
-function getReceiptListErrorMessage(error: unknown): string {
+function getReceiptListErrorMessage(error: unknown, fallback: string): string {
     if (error instanceof Error) return error.message;
     const norm = (error as { normalized?: { message?: string } })?.normalized;
     if (norm?.message) return norm.message;
-    return 'Belege konnten nicht geladen werden. Bitte erneut versuchen.';
+    return fallback;
+}
+
+function ReceiptsLoadingFallback() {
+    const { t } = useI18n();
+    return (
+        <div style={{ padding: 80, textAlign: 'center' }}>
+            <Spin size="large" tip={t('receipts.list.suspenseLoading')} />
+        </div>
+    );
 }
 
 function ReceiptsPageContent() {
+    const { t, formatLocale } = useI18n();
     const { params, setParams, resetFilters } = useReceiptSearchParams();
     const { data, isLoading, isPlaceholderData, isError, error, refetch } = useReceiptListQuery(params);
 
@@ -57,37 +69,41 @@ function ReceiptsPageContent() {
     };
 
     const isEmpty = !isLoading && !isError && (!data?.items?.length);
-    const emptyText = isEmpty ? 'Keine Belege für diese Filter. Filter anpassen oder Zeitraum erweitern.' : undefined;
+    const emptyText = isEmpty ? t('receipts.list.emptyFiltered') : undefined;
 
     const scopeSummary = useMemo(() => {
         const p = data?.page ?? params.page;
         const ps = data?.pageSize ?? params.pageSize;
         const tc = data?.totalCount;
         const parts = [
-            `Seite ${p} · ${ps} pro Seite`,
-            tc != null ? `${tc.toLocaleString('de-DE')} Belege (API)` : 'Gesamtanzahl nicht geladen',
+            t('receipts.list.scopePageLine', { page: p, pageSize: ps }),
+            tc != null
+                ? t('receipts.list.scopeTotalApi', { count: formatNumber(tc, formatLocale, { maximumFractionDigits: 0 }) })
+                : t('receipts.list.scopeTotalNotLoaded'),
         ];
         if (params.receiptNumber?.trim()) {
-            parts.push(`Belegnr. «${params.receiptNumber.trim()}»`);
+            parts.push(t('receipts.list.scopeReceiptNr', { number: params.receiptNumber.trim() }));
         }
         if (params.cashRegisterId?.trim()) {
-            parts.push(`Kasse ${params.cashRegisterId.trim()}`);
+            parts.push(t('receipts.list.scopeRegister', { id: params.cashRegisterId.trim() }));
         }
         if (params.cashierId?.trim()) {
-            parts.push(`Kassierer ${params.cashierId.trim()}`);
+            parts.push(t('receipts.list.scopeCashier', { id: params.cashierId.trim() }));
         }
         if (params.issuedFrom && params.issuedTo) {
             parts.push(
-                `${dayjs(params.issuedFrom).format('DD.MM.YYYY')}–${dayjs(params.issuedTo).format('DD.MM.YYYY')}`,
+                t('receipts.list.scopeDateRange', {
+                    range: `${dayjs(params.issuedFrom).format('DD.MM.YYYY')}–${dayjs(params.issuedTo).format('DD.MM.YYYY')}`,
+                }),
             );
         } else {
-            parts.push('kein Datumsfilter');
+            parts.push(t('receipts.list.scopeNoDateFilter'));
         }
         if (params.sort) {
-            parts.push(`Sortierung ${params.sort}`);
+            parts.push(t('receipts.list.scopeSort', { sort: params.sort }));
         }
         return parts.join(' · ');
-    }, [data?.page, data?.pageSize, data?.totalCount, params]);
+    }, [data?.page, data?.pageSize, data?.totalCount, params, formatLocale, t]);
 
     return (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -95,31 +111,31 @@ function ReceiptsPageContent() {
                 title={ADMIN_NAV_LABELS.receipts}
                 breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.receipts }]}
                 actions={
-                    <Tooltip title="Daten vom Server neu laden (Liste kann gecacht sein).">
+                    <Tooltip title={t('receipts.list.refreshTooltip')}>
                         <Button
                             icon={<ReloadOutlined />}
                             onClick={() => refetch()}
                             loading={isLoading}
                         >
-                            Aktualisieren
+                            {t('receipts.list.refresh')}
                         </Button>
                     </Tooltip>
                 }
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    Serverseitig gefilterte Belegliste. Mit den Filtern eingrenzen, anschließend die Tabelle prüfen.
+                    {t('receipts.list.intro')}
                 </Typography.Paragraph>
             </AdminPageHeader>
 
             {isError ? (
                 <Alert
                     type="error"
-                    message="Belege konnten nicht geladen werden"
-                    description={getReceiptListErrorMessage(error)}
+                    message={t('receipts.list.errorLoadTitle')}
+                    description={getReceiptListErrorMessage(error, t('receipts.list.loadErrorFallback'))}
                     showIcon
                     action={
                         <Button size="small" onClick={() => refetch()}>
-                            Erneut versuchen
+                            {t('common.buttons.retry')}
                         </Button>
                     }
                 />
@@ -145,7 +161,7 @@ function ReceiptsPageContent() {
                     }}
                 >
                     <Typography.Text strong style={{ fontSize: 12 }}>
-                        Aktive Ansicht:{' '}
+                        {t('receipts.list.scopeLabel')}{' '}
                     </Typography.Text>
                     {scopeSummary}
                 </Typography.Paragraph>
@@ -177,13 +193,7 @@ function ReceiptsPageContent() {
  */
 export default function ReceiptsPage() {
     return (
-        <Suspense
-            fallback={
-                <div style={{ padding: 80, textAlign: 'center' }}>
-                    <Spin size="large" tip="Belege werden geladen…" />
-                </div>
-            }
-        >
+        <Suspense fallback={<ReceiptsLoadingFallback />}>
             <ReceiptsPageContent />
         </Suspense>
     );

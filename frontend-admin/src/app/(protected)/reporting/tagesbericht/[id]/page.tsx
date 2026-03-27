@@ -3,7 +3,7 @@
 /**
  * Tagesbericht-Detail: Snapshot, Profile (Betrieb/Buchhaltung/Compliance), Finalisieren, FinanzOnline, Korrektur.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Button,
   Card,
@@ -21,11 +21,15 @@ import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n/I18nProvider';
+import { formatCurrency, formatDateTime, formatNumber, useI18n } from '@/i18n';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
+import { joinFiscalReportRemediationHints } from '@/shared/backendLocale';
+import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 type TagesberichtDto = {
   id: string;
@@ -59,16 +63,27 @@ type TagesberichtDto = {
   submission: {
     lifecycle: string;
     operatorHintDe?: string;
+    operatorHintEn?: string | null;
     outboxStatus?: string;
     externalReferenceId?: string;
   };
   submissionEnvelope?: {
     submissionVersusReportNoteDe?: string;
+    submissionVersusReportNoteEn?: string | null;
     attempts?: { attemptCount: number; status?: string; nextAttemptAtUtc?: string; failureCategory?: string }[];
     rejectionReasons?: string[];
     remediationHintsDe?: string[];
   };
-  exportProfiles: { profileKey: string; labelDe: string; descriptionDe: string; includeTraceIds: boolean; nonLegalOutput?: boolean; isDiagnosticOnly?: boolean }[];
+  exportProfiles: {
+    profileKey: string;
+    labelDe: string;
+    descriptionDe: string;
+    labelEn?: string | null;
+    descriptionEn?: string | null;
+    includeTraceIds: boolean;
+    nonLegalOutput?: boolean;
+    isDiagnosticOnly?: boolean;
+  }[];
   correction: { isCorrection: boolean; supersedesReportId?: string };
 };
 
@@ -108,7 +123,9 @@ type ReportHistoryTimelineDto = {
 };
 
 export default function TagesberichtDetailPage() {
-  const { t } = useI18n();
+  const { t, formatLocale } = useI18n();
+  const { fiscalTooltip, resolveFiscal, textLocale } = useFiscalReportText();
+  const td = useCallback((path: string) => t(`reporting.tagesbericht.detail.${path}`), [t]);
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
@@ -116,6 +133,8 @@ export default function TagesberichtDetailPage() {
   const { hasPermission } = usePermissions();
   const canExport = hasPermission(PERMISSIONS.REPORT_EXPORT);
   const canSubmitFo = hasPermission(PERMISSIONS.FINANZONLINE_SUBMIT);
+
+  const backendApiTooltip = t('reporting.backend.apiStringsTooltip');
 
   const [profile, setProfile] = useState<'operationalPreview' | 'accountingReport' | 'legalComplianceExport' | 'diagnosticPackage'>('operationalPreview');
 
@@ -142,10 +161,10 @@ export default function TagesberichtDetailPage() {
       await AXIOS_INSTANCE.post('/api/reports/tagesbericht/finalize', { reportId: id, note: null });
     },
     onSuccess: () => {
-      message.success('Finalisiert.');
+      message.success(td('messages.finalizeSuccess'));
       qc.invalidateQueries({ queryKey: ['tagesbericht', id] });
     },
-    onError: () => message.error('Finalisierung fehlgeschlagen.'),
+    onError: () => message.error(td('messages.finalizeError')),
   });
 
   const submitMut = useMutation({
@@ -153,95 +172,127 @@ export default function TagesberichtDetailPage() {
       await AXIOS_INSTANCE.post(`/api/reports/tagesbericht/${id}/submit-finanzonline`);
     },
     onSuccess: () => {
-      message.success('In FinanzOnline-Outbox eingereiht.');
+      message.success(td('messages.submitSuccess'));
       qc.invalidateQueries({ queryKey: ['tagesbericht', id] });
     },
-    onError: () => message.error('Übermittlung fehlgeschlagen.'),
+    onError: () => message.error(td('messages.submitError')),
   });
 
   const correctionMut = useMutation({
     mutationFn: async () => {
       const { data } = await AXIOS_INSTANCE.post<TagesberichtDto>('/api/reports/tagesbericht/correction', {
         supersedesReportId: id,
+        // API sözleşmesi: backend şu an Almanca sabit bekliyor olabilir — davranış korunur.
         reason: 'Korrektur',
       });
       return data;
     },
     onSuccess: (data) => {
-      message.success('Korrekturbericht erzeugt.');
+      message.success(td('messages.correctionSuccess'));
       qc.invalidateQueries({ queryKey: ['tagesbericht'] });
       if (data?.id) router.push(`/reporting/tagesbericht/${data.id}`);
     },
-    onError: () => message.error('Korrektur fehlgeschlagen (nur nach finalisiertem Vorgänger).'),
+    onError: () => message.error(td('messages.correctionError')),
   });
+
+  const pmCols: ColumnsType<TagesberichtDto['summary']['paymentMethodBreakdown'][0]> = useMemo(
+    () => [
+      { title: td('labels.method'), dataIndex: 'methodKey' },
+      { title: td('labels.lines'), dataIndex: 'rowCount' },
+      {
+        title: td('labels.sum'),
+        dataIndex: 'totalAmount',
+        render: (v: number) => formatCurrency(v ?? 0, formatLocale),
+      },
+    ],
+    [td, formatLocale],
+  );
+
+  const taxColumns: ColumnsType<TagesberichtDto['summary']['taxBreakdown'][0]> = useMemo(
+    () => [
+      { title: td('labels.taxBucket'), dataIndex: 'taxBucketKey' },
+      {
+        title: td('labels.taxAmount'),
+        dataIndex: 'taxAmount',
+        render: (v: number) =>
+          formatNumber(v ?? 0, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 4 }),
+      },
+    ],
+    [td, formatLocale],
+  );
+
+  if (detailQ.isLoading) {
+    return <Typography.Paragraph>{td('loading')}</Typography.Paragraph>;
+  }
+  if (detailQ.isError || !detailQ.data) {
+    return <Typography.Paragraph type="danger">{td('loadError')}</Typography.Paragraph>;
+  }
 
   const d = detailQ.data;
   const showTrace = profile === 'legalComplianceExport' || profile === 'diagnosticPackage';
   const showHashes = profile !== 'operationalPreview';
+  const businessDate = (d.viennaBusinessDate ?? d.summary?.viennaBusinessDate ?? '').slice(0, 10);
 
-  const pmCols: ColumnsType<TagesberichtDto['summary']['paymentMethodBreakdown'][0]> = useMemo(
-    () => [
-      { title: 'Methode', dataIndex: 'methodKey' },
-      { title: 'Zeilen', dataIndex: 'rowCount' },
-      { title: 'Summe', dataIndex: 'totalAmount', render: (v: number) => v?.toFixed(2) },
-    ],
-    [],
+  const reportVsSubmissionNote = resolveFiscal(
+    d.submissionEnvelope?.submissionVersusReportNoteDe,
+    d.submissionEnvelope?.submissionVersusReportNoteEn,
   );
-
-  if (detailQ.isLoading) {
-    return <Typography.Paragraph>Laden…</Typography.Paragraph>;
-  }
-  if (detailQ.isError || !d) {
-    return <Typography.Paragraph type="danger">Bericht nicht gefunden oder Fehler beim Laden.</Typography.Paragraph>;
-  }
+  const operatorHintResolved = resolveFiscal(d.submission.operatorHintDe, d.submission.operatorHintEn);
+  const remediationResolved = joinFiscalReportRemediationHints(
+    d.submissionEnvelope?.remediationHintsDe,
+    textLocale,
+    ' | ',
+  );
 
   return (
     <div style={{ paddingBottom: 24 }}>
       <AdminPageHeader
-        title={`Tagesbericht ${(d.viennaBusinessDate ?? d.summary?.viennaBusinessDate ?? '').slice(0, 10)}`}
+        title={t('reporting.tagesbericht.detail.pageTitle', { date: businessDate })}
         breadcrumbs={[
           adminOverviewCrumb(t),
-          { title: 'Tagesbericht', href: '/reporting/tagesbericht' },
+          { title: td('breadcrumbList'), href: '/reporting/tagesbericht' },
           { title: id },
         ]}
         actions={
           <Space wrap>
             {canExport && d.reportStatus === 'Provisional' ? (
               <Button type="primary" loading={finalizeMut.isPending} onClick={() => finalizeMut.mutate()}>
-                Finalisieren
+                {td('actions.finalize')}
               </Button>
             ) : null}
             {canSubmitFo && d.reportStatus === 'Finalized' ? (
               <Button loading={submitMut.isPending} onClick={() => submitMut.mutate()}>
-                FinanzOnline (Outbox)
+                {td('actions.finanzOnline')}
               </Button>
             ) : null}
             {canExport && d.reportStatus === 'Finalized' && !d.supersededByReportId ? (
               <Button onClick={() => correctionMut.mutate()} loading={correctionMut.isPending}>
-                Korrektur (neuer Bericht)
+                {td('actions.correction')}
               </Button>
             ) : null}
-            <Button onClick={() => router.push('/reporting/tagesbericht')}>Zur Liste</Button>
+            <Button onClick={() => router.push('/reporting/tagesbericht')}>{td('actions.backToList')}</Button>
           </Space>
         }
       />
 
+      <FormalReportLanguageNotice />
+
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space direction="vertical">
-          <Typography.Text type="secondary">Anzeigeprofil</Typography.Text>
+          <Typography.Text type="secondary">{td('profile.label')}</Typography.Text>
           <Radio.Group value={profile} onChange={(e) => setProfile(e.target.value)}>
-            <Radio.Button value="operationalPreview">Operational</Radio.Button>
-            <Radio.Button value="accountingReport">Accounting</Radio.Button>
-            <Radio.Button value="legalComplianceExport">Legal</Radio.Button>
-            <Radio.Button value="diagnosticPackage">Diagnostic</Radio.Button>
+            <Radio.Button value="operationalPreview">{td('profile.operational')}</Radio.Button>
+            <Radio.Button value="accountingReport">{td('profile.accounting')}</Radio.Button>
+            <Radio.Button value="legalComplianceExport">{td('profile.legal')}</Radio.Button>
+            <Radio.Button value="diagnosticPackage">{td('profile.diagnostic')}</Radio.Button>
           </Radio.Group>
           {profile !== 'legalComplianceExport' ? (
-            <Typography.Text type="warning">Nicht-legaler Output: nicht als offizielles Dokument verwenden.</Typography.Text>
+            <Typography.Text type="warning">{td('profile.warnNonLegal')}</Typography.Text>
           ) : null}
           {profile === 'diagnosticPackage' ? (
-            <Typography.Text type="danger">Diagnostic Package ist nur für technische Analyse gedacht.</Typography.Text>
+            <Typography.Text type="danger">{td('profile.warnDiagnostic')}</Typography.Text>
           ) : null}
-          <Typography.Text type="secondary">Profil steuert Export/Ansicht, nicht den FinanzOnline-Submission-Status.</Typography.Text>
+          <Typography.Text type="secondary">{td('profile.hintProfile')}</Typography.Text>
           <LegalExportCompletenessBanner
             reportKind="tagesbericht"
             reportId={id}
@@ -250,96 +301,138 @@ export default function TagesberichtDetailPage() {
         </Space>
       </Card>
 
-      <Card title="Status" style={{ marginBottom: 16 }}>
+      <Card title={td('cards.status')} style={{ marginBottom: 16 }}>
         <Descriptions column={1} size="small" bordered>
-          <Descriptions.Item label="Bericht">
-            <Tag color={d.reportStatus === 'Finalized' ? 'blue' : 'gold'}>{d.reportStatus}</Tag>
+          <Descriptions.Item label={td('labels.report')}>
+            {/* TODO(adapter): reportStatus — sunucu enum’u; locale map backend’de yok */}
+            <Tag color={d.reportStatus === 'Finalized' ? 'blue' : 'gold'} title={backendApiTooltip}>
+              {d.reportStatus}
+            </Tag>
           </Descriptions.Item>
-          {d.reportVersion ? <Descriptions.Item label="Version">v{d.reportVersion}</Descriptions.Item> : null}
-          {d.correctionType ? <Descriptions.Item label="Correction Type">{d.correctionType}</Descriptions.Item> : null}
-          {d.submissionImpact ? <Descriptions.Item label="Submission Impact">{d.submissionImpact}</Descriptions.Item> : null}
-          {d.reportRevisionReason ? <Descriptions.Item label="Revision Reason">{d.reportRevisionReason}</Descriptions.Item> : null}
-          {d.rebuildCause ? <Descriptions.Item label="Rebuild Cause">{d.rebuildCause}</Descriptions.Item> : null}
-          {d.submissionEnvelope?.submissionVersusReportNoteDe ? (
-            <Descriptions.Item label="Bericht vs. Abgabe">
-              <Typography.Text type="secondary">{d.submissionEnvelope.submissionVersusReportNoteDe}</Typography.Text>
+          {d.reportVersion ? (
+            <Descriptions.Item label={td('labels.version')}>v{d.reportVersion}</Descriptions.Item>
+          ) : null}
+          {d.correctionType ? (
+            <Descriptions.Item label={td('labels.correctionType')}>
+              <Typography.Text title={backendApiTooltip}>{d.correctionType}</Typography.Text>
             </Descriptions.Item>
           ) : null}
-          <Descriptions.Item label="Übermittlung">
-            <Tag>{d.submission.lifecycle}</Tag> {d.submission.operatorHintDe}
+          {d.submissionImpact ? (
+            <Descriptions.Item label={td('labels.submissionImpact')}>
+              <Typography.Text title={backendApiTooltip}>{d.submissionImpact}</Typography.Text>
+            </Descriptions.Item>
+          ) : null}
+          {d.reportRevisionReason ? (
+            <Descriptions.Item label={td('labels.revisionReason')}>
+              <Typography.Text title={backendApiTooltip}>{d.reportRevisionReason}</Typography.Text>
+            </Descriptions.Item>
+          ) : null}
+          {d.rebuildCause ? (
+            <Descriptions.Item label={td('labels.rebuildCause')}>
+              <Typography.Text title={backendApiTooltip}>{d.rebuildCause}</Typography.Text>
+            </Descriptions.Item>
+          ) : null}
+          {reportVsSubmissionNote ? (
+            <Descriptions.Item label={td('labels.reportVsSubmission')}>
+              <Typography.Text type="secondary" title={fiscalTooltip(reportVsSubmissionNote.contentLang)}>
+                {reportVsSubmissionNote.text}
+              </Typography.Text>
+            </Descriptions.Item>
+          ) : null}
+          <Descriptions.Item label={td('labels.submission')}>
+            <Tag title={backendApiTooltip}>{d.submission.lifecycle}</Tag>{' '}
+            {operatorHintResolved ? (
+              <Typography.Text type="secondary" title={fiscalTooltip(operatorHintResolved.contentLang)}>
+                {operatorHintResolved.text}
+              </Typography.Text>
+            ) : null}
           </Descriptions.Item>
           {d.submissionEnvelope?.attempts?.length ? (
-            <Descriptions.Item label="Attempt">
-              #{d.submissionEnvelope.attempts[0].attemptCount} ({d.submissionEnvelope.attempts[0].status ?? 'n/a'})
+            <Descriptions.Item label={td('labels.attempt')}>
+              #{d.submissionEnvelope.attempts[0].attemptCount} (
+              {d.submissionEnvelope.attempts[0].status ?? td('labels.notAvailable')})
             </Descriptions.Item>
           ) : null}
           {d.submissionEnvelope?.rejectionReasons?.length ? (
-            <Descriptions.Item label="Ablehnungsgrund">
-              {d.submissionEnvelope.rejectionReasons.join(', ')}
+            <Descriptions.Item label={td('labels.rejection')}>
+              {/* TODO(adapter): rejectionReasons — ham API dizisi */}
+              <Typography.Text title={backendApiTooltip}>
+                {d.submissionEnvelope.rejectionReasons.join(', ')}
+              </Typography.Text>
             </Descriptions.Item>
           ) : null}
-          {d.submissionEnvelope?.remediationHintsDe?.length ? (
-            <Descriptions.Item label="Remediation">
-              {d.submissionEnvelope.remediationHintsDe.join(' | ')}
+          {remediationResolved ? (
+            <Descriptions.Item label={td('labels.remediation')}>
+              <Typography.Text title={fiscalTooltip(remediationResolved.contentLang)}>
+                {remediationResolved.text}
+              </Typography.Text>
             </Descriptions.Item>
           ) : null}
           {d.submission.externalReferenceId ? (
-            <Descriptions.Item label="Referenz">{d.submission.externalReferenceId}</Descriptions.Item>
+            <Descriptions.Item label={td('labels.reference')}>{d.submission.externalReferenceId}</Descriptions.Item>
           ) : null}
           {showHashes ? (
-            <Descriptions.Item label="Snapshot-Hash">{d.snapshotHash}</Descriptions.Item>
+            <Descriptions.Item label={td('labels.snapshotHash')}>{d.snapshotHash}</Descriptions.Item>
           ) : null}
         </Descriptions>
       </Card>
 
-      <Card title="Summen" style={{ marginBottom: 16 }}>
+      <Card title={td('cards.sums')} style={{ marginBottom: 16 }}>
         <Descriptions column={2} size="small" bordered>
-          <Descriptions.Item label="Brutto">{d.summary.grossSalesAmount.toFixed(2)}</Descriptions.Item>
-          <Descriptions.Item label="Steuer (Summe)">{d.summary.taxTotalAmount.toFixed(2)}</Descriptions.Item>
-          <Descriptions.Item label="Erstattungen">{d.summary.refundAmountTotal.toFixed(2)}</Descriptions.Item>
-          <Descriptions.Item label="Verkaufszeilen">{d.summary.salePaymentRowCount}</Descriptions.Item>
-          <Descriptions.Item label="Refund-Zeilen">{d.summary.refundRowCount}</Descriptions.Item>
-          <Descriptions.Item label="Storno-Zeilen">{d.summary.stornoRowCount}</Descriptions.Item>
+          <Descriptions.Item label={td('labels.gross')}>
+            {formatCurrency(d.summary.grossSalesAmount, formatLocale)}
+          </Descriptions.Item>
+          <Descriptions.Item label={td('labels.taxTotal')}>
+            {formatCurrency(d.summary.taxTotalAmount, formatLocale)}
+          </Descriptions.Item>
+          <Descriptions.Item label={td('labels.refunds')}>
+            {formatCurrency(d.summary.refundAmountTotal, formatLocale)}
+          </Descriptions.Item>
+          <Descriptions.Item label={td('labels.saleLines')}>{d.summary.salePaymentRowCount}</Descriptions.Item>
+          <Descriptions.Item label={td('labels.refundLines')}>{d.summary.refundRowCount}</Descriptions.Item>
+          <Descriptions.Item label={td('labels.stornoLines')}>{d.summary.stornoRowCount}</Descriptions.Item>
         </Descriptions>
       </Card>
 
       {(profile === 'accountingReport' || profile === 'legalComplianceExport' || profile === 'diagnosticPackage') && (
-        <Card title="Steueraufschlüsselung" style={{ marginBottom: 16 }}>
+        <Card title={td('cards.taxBreakdown')} style={{ marginBottom: 16 }}>
           <Table
             rowKey="taxBucketKey"
             size="small"
             pagination={false}
             dataSource={d.summary.taxBreakdown}
-            columns={[
-              { title: 'Bucket', dataIndex: 'taxBucketKey' },
-              { title: 'Steuer', dataIndex: 'taxAmount', render: (v: number) => v?.toFixed(4) },
-            ]}
+            columns={taxColumns}
           />
         </Card>
       )}
 
-      <Card title="Zahlungsarten" style={{ marginBottom: 16 }}>
+      <Card title={td('cards.paymentMethods')} style={{ marginBottom: 16 }}>
         <Table rowKey="methodKey" size="small" pagination={false} dataSource={d.summary.paymentMethodBreakdown} columns={pmCols} />
       </Card>
 
-      <Card title="Abstimmung / Hinweise" style={{ marginBottom: 16 }}>
+      <Card title={td('cards.reconciliation')} style={{ marginBottom: 16 }}>
         <Descriptions column={1} size="small" bordered>
-          <Descriptions.Item label="Zahlungen ohne Rechnung">
+          <Descriptions.Item label={td('labels.paymentsWithoutInvoice')}>
             {d.summary.reconciliation.paymentsWithoutInvoiceCount}
           </Descriptions.Item>
-          <Descriptions.Item label="Unbekannte Zahlart (Zeilen)">
+          <Descriptions.Item label={td('labels.unknownMethodLines')}>
             {d.summary.reconciliation.unknownPaymentMethodRowCount}
           </Descriptions.Item>
-          <Descriptions.Item label="Offline verknüpft">{d.summary.reconciliation.offlineLinkedPaymentCount}</Descriptions.Item>
-          <Descriptions.Item label="Tag in RKSV geschlossen">
-            {d.summary.reconciliation.dayClosedInRksv ? 'Ja' : 'Nein'}
+          <Descriptions.Item label={td('labels.offlineLinked')}>
+            {d.summary.reconciliation.offlineLinkedPaymentCount}
+          </Descriptions.Item>
+          <Descriptions.Item label={td('labels.dayClosedRksv')}>
+            {d.summary.reconciliation.dayClosedInRksv ? td('labels.yes') : td('labels.no')}
           </Descriptions.Item>
         </Descriptions>
         {d.summary.warnings?.length ? (
           <ul>
             {d.summary.warnings.map((w) => (
               <li key={w}>
-                <Typography.Text type="warning">{w}</Typography.Text>
+                {/* TODO(adapter): warnings[] — sunucu metni */}
+                <Typography.Text type="warning" title={backendApiTooltip}>
+                  {w}
+                </Typography.Text>
               </li>
             ))}
           </ul>
@@ -347,47 +440,57 @@ export default function TagesberichtDetailPage() {
       </Card>
 
       {showTrace ? (
-        <Card title="Trace (Compliance)">
-          <Typography.Paragraph type="secondary">
-            Roh-IDs sind gekürzt gespeichert; Hash dient der Nachvollziehbarkeit.
-          </Typography.Paragraph>
+        <Card title={td('cards.trace')}>
+          <Typography.Paragraph type="secondary">{td('cards.traceBody')}</Typography.Paragraph>
         </Card>
       ) : null}
 
-      <Card title="History Timeline" style={{ marginTop: 16 }}>
+      <Card title={td('cards.history')} style={{ marginTop: 16 }}>
         {historyQ.isLoading ? (
-          <Typography.Text type="secondary">Lade Verlauf…</Typography.Text>
+          <Typography.Text type="secondary">{td('history.loading')}</Typography.Text>
         ) : historyQ.data?.items?.length ? (
           <Timeline
             items={historyQ.data.items.map((item) => ({
               color: item.isCurrentActiveVersion ? 'green' : item.reportStatus === 'Superseded' ? 'orange' : 'blue',
               children: (
                 <Space direction="vertical" size={2}>
-                  <Typography.Text strong>
+                  <Typography.Text strong title={backendApiTooltip}>
                     v{item.reportVersion} · {item.reportId.slice(0, 8)} · {item.reportStatus}
                   </Typography.Text>
                   <Space size={[4, 4]} wrap>
                     {item.labelKeys.map((k) => (
-                      <Tag key={`${item.reportId}-${k}`}>{k}</Tag>
+                      // TODO(adapter): labelKeys — ham anahtarlar
+                      <Tag key={`${item.reportId}-${k}`} title={backendApiTooltip}>
+                        {k}
+                      </Tag>
                     ))}
                   </Space>
                   <Typography.Text type="secondary">
-                    Created: {new Date(item.createdAtUtc).toLocaleString()} {item.finalizedAtUtc ? `· Finalized: ${new Date(item.finalizedAtUtc).toLocaleString()}` : ''}
+                    {td('history.created')} {formatDateTime(item.createdAtUtc, formatLocale)}{' '}
+                    {item.finalizedAtUtc
+                      ? `· ${td('history.finalized')} ${formatDateTime(item.finalizedAtUtc, formatLocale)}`
+                      : ''}
                   </Typography.Text>
-                  <Typography.Text type="secondary">
-                    Submission: {item.submission.lifecycle}
-                    {item.submission.outboxMessageId ? ` · Outbox: ${item.submission.outboxMessageId.slice(0, 8)}` : ''}
-                    {item.submission.hasMissingOutboxReference ? ' · Missing outbox reference' : ''}
+                  <Typography.Text type="secondary" title={backendApiTooltip}>
+                    {td('history.submissionLine')} {item.submission.lifecycle}
+                    {item.submission.outboxMessageId
+                      ? ` · ${td('history.outbox')} ${item.submission.outboxMessageId.slice(0, 8)}`
+                      : ''}
+                    {item.submission.hasMissingOutboxReference ? ` · ${td('history.missingOutboxRef')}` : ''}
                   </Typography.Text>
                   {item.submission.lastErrorMessage ? (
-                    <Typography.Text type="warning">{item.submission.lastErrorMessage}</Typography.Text>
+                    <BackendRawTextBlock
+                      introKey="reporting.tagesbericht.detail.history.submissionLastErrorIntro"
+                      body={item.submission.lastErrorMessage}
+                      textType="warning"
+                    />
                   ) : null}
                 </Space>
               ),
             }))}
           />
         ) : (
-          <Typography.Text type="secondary">Keine Korrekturkette vorhanden.</Typography.Text>
+          <Typography.Text type="secondary">{td('history.empty')}</Typography.Text>
         )}
       </Card>
     </div>

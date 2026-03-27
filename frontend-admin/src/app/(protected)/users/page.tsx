@@ -47,6 +47,7 @@ import { useRoles } from '@/features/users/hooks/useRoles';
 import { useRolesWithPermissions } from '@/features/users/hooks/useRolesWithPermissions';
 import { usePermissionsCatalog } from '@/features/users/hooks/usePermissionsCatalog';
 import { useI18n } from '@/i18n/I18nProvider';
+import { formatDateTime, formatNumber } from '@/i18n/formatting';
 import {
     listQueryKey,
     rolesQueryKey,
@@ -90,16 +91,6 @@ const CANONICAL_ROLE_VALUES = [
     'Accountant',
 ] as const;
 
-const ROLE_OPTIONS = CANONICAL_ROLE_VALUES.map((value) => ({
-    value,
-    label: usersCopy.roleDisplayName(value),
-}));
-
-const STATUS_OPTIONS = [
-    { value: 'active', label: usersCopy.statusActive },
-    { value: 'inactive', label: usersCopy.statusInactive },
-];
-
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -113,8 +104,18 @@ const modalFormRulesContext = {
   roleNameRequiredMessage: usersCopy.roleNameRequired,
 };
 
+function isCanonicalRoleName(roleName: string): roleName is (typeof CANONICAL_ROLE_VALUES)[number] {
+    return (CANONICAL_ROLE_VALUES as readonly string[]).includes(roleName);
+}
+
 export default function UsersPage() {
     const { t, formatLocale } = useI18n();
+
+    const roleDisplayLabel = useCallback(
+        (roleName: string) =>
+            isCanonicalRoleName(roleName) ? t(`users.roles.displayNames.${roleName}`) : roleName,
+        [t],
+    );
     const [roleFilter, setRoleFilter] = useState<string | undefined>();
     const [statusFilter, setStatusFilter] = useState<boolean | undefined>(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -159,27 +160,42 @@ export default function UsersPage() {
 
     const usersScopeSummary = useMemo(() => {
         const parts: string[] = [
-            `Seite ${pagination?.page ?? page}`,
-            `${pagination?.pageSize ?? pageSize} pro Seite`,
+            t('users.list.scopeLinePage', { page: String(pagination?.page ?? page) }),
+            t('users.list.scopeLinePerPage', { pageSize: String(pagination?.pageSize ?? pageSize) }),
             pagination?.totalCount != null
-                ? `${pagination.totalCount.toLocaleString(formatLocale)} gesamt (API)`
-                : usersCopy.scopeTotalLoading,
+                ? t('users.list.scopeTotalApi', {
+                      count: formatNumber(pagination.totalCount, formatLocale, { maximumFractionDigits: 0 }),
+                  })
+                : t('users.list.scopeTotalLoading'),
         ];
         if (searchTerm.trim()) {
-            parts.push(`${usersCopy.scopeSearchPrefix} «${searchTerm.trim()}»`);
+            parts.push(
+                t('users.list.scopeSummarySearchPart', {
+                    prefix: t('users.list.scopeSearchPrefix'),
+                    term: searchTerm.trim(),
+                }),
+            );
         }
         if (roleFilter) {
-            parts.push(`${usersCopy.scopeRolePrefix} = ${roleFilter}`);
+            parts.push(
+                t('users.list.scopeSummaryRolePart', {
+                    prefix: t('users.list.scopeRolePrefix'),
+                    role: roleDisplayLabel(roleFilter),
+                }),
+            );
         }
         if (statusFilter === undefined) {
-            parts.push(usersCopy.scopeStatusAll);
+            parts.push(t('users.list.scopeStatusAll'));
         } else {
             parts.push(
-                `${usersCopy.scopeStatusPrefix}: ${statusFilter ? usersCopy.statusActive : usersCopy.statusInactive}`,
+                t('users.list.scopeStatusLine', {
+                    prefix: t('users.list.scopeStatusPrefix'),
+                    status: statusFilter ? t('users.list.statusActive') : t('users.list.statusInactive'),
+                }),
             );
         }
         return parts.join(' · ');
-    }, [pagination, page, pageSize, searchTerm, roleFilter, statusFilter, formatLocale]);
+    }, [pagination, page, pageSize, searchTerm, roleFilter, statusFilter, formatLocale, t, roleDisplayLabel]);
 
     const resetAllFilters = useCallback(() => {
         setSearchInput('');
@@ -209,8 +225,21 @@ export default function UsersPage() {
 
     // Role list for form + filter: always from full catalog (useRoles). Never from selected user or assigned subset.
     const roleOptions = useMemo(
-        () => (roles?.map((r) => ({ value: r, label: r })) ?? ROLE_OPTIONS),
-        [roles]
+        () =>
+            roles?.map((r) => ({ value: r, label: roleDisplayLabel(r) })) ??
+            CANONICAL_ROLE_VALUES.map((value) => ({
+                value,
+                label: t(`users.roles.displayNames.${value}`),
+            })),
+        [roles, t, roleDisplayLabel],
+    );
+
+    const statusFilterOptions = useMemo(
+        () => [
+            { value: 'active', label: t('users.list.statusActive') },
+            { value: 'inactive', label: t('users.list.statusInactive') },
+        ],
+        [t],
     );
 
     const [deactivateForm] = Form.useForm();
@@ -428,93 +457,113 @@ export default function UsersPage() {
         await deleteRoleMutation.mutateAsync(roleName);
     };
 
-    const columns = [
-        {
-            title: usersCopy.name,
-            key: 'user',
-            render: (_: unknown, record: UserInfo) => (
-                <Space>
-                    <Avatar icon={<UserOutlined />} />
-                    <div>
-                        <div style={{ fontWeight: 'bold' }}>{fullName(record)}</div>
-                        <div style={{ fontSize: '12px', color: '#999' }}>{record.email ?? record.userName ?? '—'}</div>
-                    </div>
-                </Space>
-            ),
-        },
-        { title: usersCopy.email, dataIndex: 'email', key: 'email', ellipsis: true, render: (v: string | null) => v ?? '—' },
-        { title: usersCopy.role, dataIndex: 'role', key: 'role', render: (role: string) => <Tag color="gold">{role ?? '—'}</Tag> },
-        { title: usersCopy.branch, key: 'branch', render: () => usersCopy.branchNotAvailable },
-        {
-            title: usersCopy.status,
-            dataIndex: 'isActive',
-            key: 'status',
-            render: (active: boolean) => (
-                <Tag color={active ? 'green' : 'red'}>{active ? usersCopy.statusActive : usersCopy.statusInactive}</Tag>
-            ),
-        },
-        {
-            title: usersCopy.lastLogin,
-            dataIndex: 'lastLoginAt',
-            key: 'lastLoginAt',
-            render: (v: string | null) => (v ? new Date(v).toLocaleString(formatLocale) : '—'),
-        },
-        {
-            title: usersCopy.actions,
-            key: 'actions',
-            render: (_: unknown, record: UserInfo) => (
-                <Space wrap>
-                    {policy.canEdit && (
-                        <Button
-                            size="small"
-                            icon={<EyeOutlined />}
-                            onClick={() => setDetailUser(record)}
-                        >
-                            {usersCopy.view}
-                        </Button>
-                    )}
-                    {policy.canEdit && (
-                        <Button
-                            size="small"
-                            icon={<EditOutlined />}
-                            onClick={() => setEditUserId(record.id ?? null)}
-                        >
-                            {usersCopy.edit}
-                        </Button>
-                    )}
-                    {policy.canDeactivate && record.isActive && (
-                        <Button
-                            size="small"
-                            danger
-                            icon={<StopOutlined />}
-                            onClick={() => setDeactivateUserRecord(record)}
-                        >
-                            {usersCopy.deactivate}
-                        </Button>
-                    )}
-                    {policy.canReactivate && !record.isActive && (
-                        <Button
-                            size="small"
-                            type="primary"
-                            icon={<CheckCircleOutlined />}
-                            onClick={() => setReactivateUserRecord(record)}
-                        >
-                            {usersCopy.reactivate}
-                        </Button>
-                    )}
-                    {policy.canResetPassword(record.role) && record.id !== currentUser?.id && (
-                        <Button
-                            size="small"
-                            icon={<KeyOutlined />}
-                            onClick={() => setResetPasswordUser(record)}
-                        >
-                            {usersCopy.resetPassword}
-                        </Button>
-                    )}
-                </Space>
-            ),
-        },
-    ];
+    const columns = useMemo(
+        () => [
+            {
+                title: t('users.list.columnName'),
+                key: 'user',
+                render: (_: unknown, record: UserInfo) => (
+                    <Space>
+                        <Avatar icon={<UserOutlined />} />
+                        <div>
+                            <div style={{ fontWeight: 'bold' }}>{fullName(record)}</div>
+                            <div style={{ fontSize: '12px', color: '#999' }}>{record.email ?? record.userName ?? '—'}</div>
+                        </div>
+                    </Space>
+                ),
+            },
+            {
+                title: t('users.list.columnEmail'),
+                dataIndex: 'email',
+                key: 'email',
+                ellipsis: true,
+                render: (v: string | null) => v ?? '—',
+            },
+            {
+                title: t('users.list.columnRole'),
+                dataIndex: 'role',
+                key: 'role',
+                render: (role: string) => <Tag color="gold">{role ?? '—'}</Tag>,
+            },
+            {
+                title: t('users.list.columnBranch'),
+                key: 'branch',
+                render: () => t('users.list.branchNotAvailable'),
+            },
+            {
+                title: t('users.list.columnStatus'),
+                dataIndex: 'isActive',
+                key: 'status',
+                render: (active: boolean) => (
+                    <Tag color={active ? 'green' : 'red'}>
+                        {active ? t('users.list.statusActive') : t('users.list.statusInactive')}
+                    </Tag>
+                ),
+            },
+            {
+                title: t('users.list.columnLastLogin'),
+                dataIndex: 'lastLoginAt',
+                key: 'lastLoginAt',
+                render: (v: string | null) => (v ? formatDateTime(v, formatLocale) : '—'),
+            },
+            {
+                title: t('users.list.columnActions'),
+                key: 'actions',
+                render: (_: unknown, record: UserInfo) => (
+                    <Space wrap>
+                        {policy.canEdit && (
+                            <Button
+                                size="small"
+                                icon={<EyeOutlined />}
+                                onClick={() => setDetailUser(record)}
+                            >
+                                {t('users.list.view')}
+                            </Button>
+                        )}
+                        {policy.canEdit && (
+                            <Button
+                                size="small"
+                                icon={<EditOutlined />}
+                                onClick={() => setEditUserId(record.id ?? null)}
+                            >
+                                {t('users.list.edit')}
+                            </Button>
+                        )}
+                        {policy.canDeactivate && record.isActive && (
+                            <Button
+                                size="small"
+                                danger
+                                icon={<StopOutlined />}
+                                onClick={() => setDeactivateUserRecord(record)}
+                            >
+                                {t('users.list.deactivate')}
+                            </Button>
+                        )}
+                        {policy.canReactivate && !record.isActive && (
+                            <Button
+                                size="small"
+                                type="primary"
+                                icon={<CheckCircleOutlined />}
+                                onClick={() => setReactivateUserRecord(record)}
+                            >
+                                {t('users.list.reactivate')}
+                            </Button>
+                        )}
+                        {policy.canResetPassword(record.role) && record.id !== currentUser?.id && (
+                            <Button
+                                size="small"
+                                icon={<KeyOutlined />}
+                                onClick={() => setResetPasswordUser(record)}
+                            >
+                                {t('users.list.resetPassword')}
+                            </Button>
+                        )}
+                    </Space>
+                ),
+            },
+        ],
+        [t, formatLocale, policy, currentUser?.id],
+    );
 
     if (!policy.canView) {
         return (
@@ -542,7 +591,7 @@ export default function UsersPage() {
                     <Space wrap>
                         <Tooltip title={t('common.operator.refetchHintToolbar')}>
                             <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
-                                {usersCopy.actionRefresh}
+                                {t('users.list.actionRefresh')}
                             </Button>
                         </Tooltip>
                         {policy.canCreate && (
@@ -564,21 +613,21 @@ export default function UsersPage() {
                 }
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
-                    {usersCopy.pageIntro}
+                    {t('users.list.pageIntro')}
                 </Typography.Paragraph>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
-                    {usersCopy.forensicsHintLead}{' '}
-                    <Link href="/audit-logs">{usersCopy.forensicsLinkAuditLog}</Link>
+                    {t('users.list.forensicsHintLead')}{' '}
+                    <Link href="/audit-logs">{t('users.list.forensicsLinkAuditLog')}</Link>
                     {' · '}
-                    <Link href="/rksv/verifications">{usersCopy.forensicsLinkVerifications}</Link>
+                    <Link href="/rksv/verifications">{t('users.list.forensicsLinkVerifications')}</Link>
                 </Typography.Paragraph>
             </AdminPageHeader>
 
-            <Card size="small" title={usersCopy.filterCardTitle}>
+            <Card size="small" title={t('users.list.filterCardTitle')}>
                 <Flex wrap="wrap" gap="small" align="center">
-                    <Typography.Text type="secondary">{usersCopy.filterBandLabel}</Typography.Text>
+                    <Typography.Text type="secondary">{t('users.list.filterBandLabel')}</Typography.Text>
                     <Input.Search
-                        placeholder={usersCopy.searchPlaceholder}
+                        placeholder={t('users.list.searchPlaceholder')}
                         allowClear
                         value={searchInput}
                         onChange={(e) => {
@@ -592,7 +641,7 @@ export default function UsersPage() {
                         enterButton={<SearchOutlined />}
                     />
                     <Select
-                        placeholder={usersCopy.filterRole}
+                        placeholder={t('users.list.filterRolePlaceholder')}
                         allowClear
                         style={{ width: 140 }}
                         value={roleFilter}
@@ -600,15 +649,15 @@ export default function UsersPage() {
                         options={roleOptions}
                     />
                     <Select
-                        placeholder={usersCopy.filterStatus}
+                        placeholder={t('users.list.filterStatusPlaceholder')}
                         allowClear
                         style={{ width: 120 }}
                         value={statusFilter === undefined ? undefined : statusFilter ? 'active' : 'inactive'}
                         onChange={(v) => setStatusFilter(v === undefined ? undefined : v === 'active')}
-                        options={STATUS_OPTIONS}
+                        options={statusFilterOptions}
                     />
                     <Button icon={<ClearOutlined />} onClick={resetAllFilters}>
-                        {usersCopy.clearAllFilters}
+                        {t('users.list.clearAllFilters')}
                     </Button>
                 </Flex>
             </Card>
@@ -617,7 +666,7 @@ export default function UsersPage() {
                 <div style={{ marginTop: 4 }}>
                     <Space wrap size={[8, 8]} align="center">
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                            {usersCopy.activeFiltersLabel}
+                            {t('users.list.activeFiltersLabel')}
                         </Typography.Text>
                         {searchTerm.trim() ? (
                             <Tag
@@ -627,12 +676,18 @@ export default function UsersPage() {
                                     setSearchTerm('');
                                 }}
                             >
-                                {usersCopy.scopeSearchPrefix}: «{searchTerm.trim()}»
+                                {t('users.list.scopeSearchChip', {
+                                    prefix: t('users.list.scopeSearchPrefix'),
+                                    term: searchTerm.trim(),
+                                })}
                             </Tag>
                         ) : null}
                         {roleFilter ? (
                             <Tag closable onClose={() => setRoleFilter(undefined)}>
-                                {usersCopy.scopeRolePrefix}: {usersCopy.roleDisplayName(roleFilter)}
+                                {t('users.list.scopeRoleChip', {
+                                    prefix: t('users.list.scopeRolePrefix'),
+                                    role: roleDisplayLabel(roleFilter),
+                                })}
                             </Tag>
                         ) : null}
                         <Tag
@@ -640,26 +695,29 @@ export default function UsersPage() {
                             onClose={() => setStatusFilter(true)}
                             color={statusFilter === undefined ? 'purple' : statusFilter ? 'green' : 'red'}
                         >
-                            {usersCopy.scopeStatusPrefix}:{' '}
-                            {statusFilter === undefined
-                                ? usersCopy.statusAll
-                                : statusFilter
-                                  ? usersCopy.statusActive
-                                  : usersCopy.statusInactive}
+                            {t('users.list.scopeStatusChip', {
+                                prefix: t('users.list.scopeStatusPrefix'),
+                                status:
+                                    statusFilter === undefined
+                                        ? t('users.list.statusAll')
+                                        : statusFilter
+                                          ? t('users.list.statusActive')
+                                          : t('users.list.statusInactive'),
+                            })}
                         </Tag>
                         <Button type="link" size="small" onClick={resetAllFilters}>
-                            {usersCopy.clearAllFilters}
+                            {t('users.list.clearAllFilters')}
                         </Button>
                     </Space>
                 </div>
             ) : null}
 
-            <AdminPageScopeSummary label={usersCopy.scopeSummaryLabel}>
+            <AdminPageScopeSummary label={t('users.list.scopeSummaryLabel')}>
                 {usersScopeSummary}
                 {isFetching && !isLoading && !isError ? (
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {' '}
-                        ({usersCopy.listRefreshingHint})
+                        ({t('users.list.listRefreshingHint')})
                     </Typography.Text>
                 ) : null}
             </AdminPageScopeSummary>
@@ -668,18 +726,18 @@ export default function UsersPage() {
                 <Alert
                     type="error"
                     showIcon
-                    message={usersCopy.errorLoad}
+                    message={t('users.list.errorLoad')}
                     description={
-                        normalizeError(listError, usersCopy.errorLoadDetailFallback).message ||
-                        usersCopy.errorLoadDetailFallback
+                        normalizeError(listError, t('users.list.errorLoadDetailFallback')).message ||
+                        t('users.list.errorLoadDetailFallback')
                     }
                     action={
                         <Space direction="vertical" size="small">
                             <Button size="small" onClick={() => refetch()}>
-                                {usersCopy.retry}
+                                {t('users.list.retry')}
                             </Button>
                             <Button size="small" type="link" onClick={resetAllFilters} style={{ padding: 0, height: 'auto' }}>
-                                {usersCopy.clearAllFilters}
+                                {t('users.list.clearAllFilters')}
                             </Button>
                         </Space>
                     }
@@ -698,10 +756,14 @@ export default function UsersPage() {
                     showSizeChanger: true,
                     pageSizeOptions: [10, 20, 50],
                     showTotal: (total, range) => {
-                        if (total <= 0) return usersCopy.paginationZeroResults;
+                        if (total <= 0) return t('users.list.paginationZeroResults');
                         const from = range[0] ?? 0;
                         const to = range[1] ?? 0;
-                        return `${from.toLocaleString(formatLocale)}–${to.toLocaleString(formatLocale)} von ${total.toLocaleString(formatLocale)}`;
+                        return t('users.list.paginationRange', {
+                            from: formatNumber(from, formatLocale, { maximumFractionDigits: 0 }),
+                            to: formatNumber(to, formatLocale, { maximumFractionDigits: 0 }),
+                            total: formatNumber(total, formatLocale, { maximumFractionDigits: 0 }),
+                        });
                     },
                     onChange: (newPage, newPageSize) => {
                         setPage(newPage);
@@ -716,12 +778,12 @@ export default function UsersPage() {
                                 <div>
                                     <Typography.Paragraph style={{ marginBottom: 4 }}>
                                         {hasNonDefaultListFilters
-                                            ? usersCopy.emptyListWithFilters
-                                            : usersCopy.emptyList}
+                                            ? t('users.list.emptyListWithFilters')
+                                            : t('users.list.emptyList')}
                                     </Typography.Paragraph>
                                     {!hasNonDefaultListFilters ? (
                                         <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 0 }}>
-                                            {usersCopy.emptyListDefaultHint}
+                                            {t('users.list.emptyListDefaultHint')}
                                         </Typography.Paragraph>
                                     ) : null}
                                 </div>

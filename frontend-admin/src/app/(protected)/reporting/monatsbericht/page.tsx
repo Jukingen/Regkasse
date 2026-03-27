@@ -11,12 +11,15 @@ import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n/I18nProvider';
+import { useI18n } from '@/i18n';
+import { formatNumber } from '@/i18n/formatting';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { CashRegister } from '@/api/generated/model';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 type MonatsberichtListItem = {
   id: string;
@@ -31,12 +34,24 @@ type MonatsberichtListItem = {
   submission: {
     lifecycle: string;
     operatorHintDe?: string;
+    operatorHintEn?: string | null;
     outboxStatus?: string;
   };
 };
 
+function reportStatusTagLabel(s: string, t: (k: string) => string): string {
+  if (s === 'Finalized' || s === 'Provisional') return t(`reporting.listShared.reportStatus.${s}`);
+  return s;
+}
+
+function scopeKindLabel(s: string, t: (k: string) => string): string {
+  if (s === 'Register' || s === 'Company') return t(`reporting.listShared.scopeKind.${s}`);
+  return s;
+}
+
 export default function MonatsberichtListPage() {
-  const { t } = useI18n();
+  const { t, formatLocale } = useI18n();
+  const { fiscalTooltip, resolveFiscal } = useFiscalReportText();
   const qc = useQueryClient();
   const { hasPermission } = usePermissions();
   const canExport = hasPermission(PERMISSIONS.REPORT_EXPORT);
@@ -50,6 +65,12 @@ export default function MonatsberichtListPage() {
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
 
   const registersQ = useGetApiCashRegister();
+  const registersData = registersQ.data as unknown;
+  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
+    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
+    : Array.isArray(registersData)
+      ? (registersData as CashRegister[])
+      : [];
 
   const fromMonth = listRange[0].startOf('month').format('YYYY-MM-DD');
   const toMonth = listRange[1].startOf('month').format('YYYY-MM-DD');
@@ -72,7 +93,7 @@ export default function MonatsberichtListPage() {
   const generateMut = useMutation({
     mutationFn: async () => {
       if (scopeKind === 'Register' && !cashRegisterId) {
-        message.warning('Bitte eine Kasse wählen (Register-Umfang).');
+        message.warning(t('reporting.listShared.selectRegisterScope'));
         throw new Error('no register');
       }
       const { data } = await AXIOS_INSTANCE.post('/api/reports/monatsbericht/generate', {
@@ -84,72 +105,83 @@ export default function MonatsberichtListPage() {
       return data as { id: string };
     },
     onSuccess: (d) => {
-      message.success('Monatsbericht erzeugt oder aktualisiert.');
+      message.success(t('reporting.monatsbericht.list.messages.generateSuccess'));
       qc.invalidateQueries({ queryKey: ['monatsbericht'] });
       if (d?.id) window.location.href = `/reporting/monatsbericht/${d.id}`;
     },
-    onError: () => message.error('Erzeugung fehlgeschlagen.'),
+    onError: () => message.error(t('reporting.listShared.generateError')),
   });
 
   const columns: ColumnsType<MonatsberichtListItem> = useMemo(
     () => [
       {
-        title: 'Monat',
+        title: t('reporting.monatsbericht.list.columnMonth'),
         dataIndex: 'viennaMonthStart',
         render: (v: string) => dayjs(v).format('YYYY-MM'),
       },
       {
-        title: 'Umfang',
+        title: t('reporting.listShared.columns.scope'),
         dataIndex: 'scopeKind',
-        render: (s: string) => <Tag>{s}</Tag>,
+        render: (s: string) => <Tag>{scopeKindLabel(s, t)}</Tag>,
       },
       {
-        title: 'Kasse',
+        title: t('reporting.listShared.columns.register'),
         dataIndex: 'registerNumber',
         render: (v: string | null | undefined, r) =>
-          r.scopeKind === 'Company' ? '—' : v ?? r.cashRegisterId?.slice(0, 8) ?? '—',
+          r.scopeKind === 'Company'
+            ? t('reporting.listShared.emptyDash')
+            : v ?? r.cashRegisterId?.slice(0, 8) ?? t('reporting.listShared.emptyDash'),
       },
       {
-        title: 'Status',
+        title: t('reporting.listShared.columns.status'),
         dataIndex: 'reportStatus',
         render: (s: string) => (
-          <Tag color={s === 'Finalized' ? 'blue' : s === 'Provisional' ? 'gold' : 'default'}>{s}</Tag>
+          <Tag color={s === 'Finalized' ? 'blue' : s === 'Provisional' ? 'gold' : 'default'}>
+            {reportStatusTagLabel(s, t)}
+          </Tag>
         ),
       },
       {
-        title: 'FO / Übermittlung',
+        title: t('reporting.listShared.columns.foSubmission'),
         dataIndex: 'submission',
-        render: (_: unknown, row) => (
-          <Space direction="vertical" size={0}>
-            <Tag>{row.submission.lifecycle}</Tag>
-            {row.submission.operatorHintDe ? (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {row.submission.operatorHintDe}
-              </Typography.Text>
-            ) : null}
-          </Space>
-        ),
+        render: (_: unknown, row) => {
+          const hint = resolveFiscal(row.submission.operatorHintDe, row.submission.operatorHintEn);
+          return (
+            <Space direction="vertical" size={0}>
+              <Tag>{row.submission.lifecycle}</Tag>
+              {hint ? (
+                <Typography.Text type="secondary" style={{ fontSize: 12 }} title={fiscalTooltip(hint.contentLang)}>
+                  {hint.text}
+                </Typography.Text>
+              ) : null}
+            </Space>
+          );
+        },
       },
       {
-        title: 'Brutto (Tagesberichte)',
+        title: t('reporting.monatsbericht.list.columnGross'),
         dataIndex: 'grossSalesAmount',
-        render: (v: number) => v?.toFixed(2),
+        render: (v: number) => formatNumber(v, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       },
       {
         title: '',
         key: 'a',
-        render: (_, r) => <Link href={`/reporting/monatsbericht/${r.id}`}>Details</Link>,
+        render: (_, r) => <Link href={`/reporting/monatsbericht/${r.id}`}>{t('reporting.listShared.details')}</Link>,
       },
     ],
-    [],
+    [t, formatLocale, fiscalTooltip, resolveFiscal],
   );
 
   return (
     <>
       <AdminPageHeader
-        title="Monatsbericht (formal)"
-        breadcrumbs={[adminOverviewCrumb(t), { title: 'Monatsbericht', href: '/reporting/monatsbericht' }]}
+        title={t('reporting.monatsbericht.list.pageTitle')}
+        breadcrumbs={[
+          adminOverviewCrumb(t),
+          { title: t('reporting.monatsbericht.list.breadcrumb'), href: '/reporting/monatsbericht' },
+        ]}
       />
+      <FormalReportLanguageNotice />
       <Card style={{ marginBottom: 16 }}>
         <Space wrap>
           <DatePicker.RangePicker
@@ -165,39 +197,39 @@ export default function MonatsberichtListPage() {
               if (v === 'Company') setCashRegisterId(undefined);
             }}
             options={[
-              { value: 'Register', label: 'Register (eine Kasse)' },
-              { value: 'Company', label: 'Company (alle Kassen)' },
+              { value: 'Register', label: t('reporting.listShared.scopeOptionRegister') },
+              { value: 'Company', label: t('reporting.listShared.scopeOptionCompany') },
             ]}
           />
           <Select
             allowClear={scopeKind === 'Company'}
-            placeholder="Kasse (bei Register)"
+            placeholder={t('reporting.listShared.registerPlaceholderScoped')}
             style={{ minWidth: 220 }}
             disabled={scopeKind === 'Company'}
             value={cashRegisterId}
             onChange={setCashRegisterId}
-            options={((registersQ.data as CashRegister[] | undefined) ?? []).map((r) => ({
+            options={registerRows.map((r) => ({
               value: r.id,
               label: `${r.registerNumber} — ${r.location}`,
             }))}
           />
           <Button onClick={() => listQ.refetch()} loading={listQ.isFetching}>
-            Aktualisieren
+            {t('reporting.listShared.refresh')}
           </Button>
         </Space>
         <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 8 }}>
-          Monatsberichte aggregieren finalisierte Tagesberichte im Kalendermonat; Rohzahlungen dienen der Abstimmung.
+          {t('reporting.monatsbericht.list.intro')}
         </Typography.Paragraph>
         <Space wrap align="start">
           <div>
             <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
-              Berichtsmonat (neu / Aktualisierung)
+              {t('reporting.monatsbericht.list.monthPickerLabel')}
             </Typography.Text>
             <DatePicker picker="month" value={reportMonth} onChange={(v) => v && setReportMonth(v.startOf('month'))} />
           </div>
           {canExport ? (
             <Button type="primary" loading={generateMut.isPending} onClick={() => generateMut.mutate()} style={{ marginTop: 22 }}>
-              Monatsbericht erzeugen/aktualisieren
+              {t('reporting.monatsbericht.list.generateButton')}
             </Button>
           ) : null}
         </Space>

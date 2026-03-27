@@ -49,3 +49,4 @@ Built with Ant Design, TanStack Query, and Orval.
 - **Auth**: Uses `/api/Auth/login` (Cookie-based or Token-based).
 - **Data Fetching**: TanStack Query via Orval generated hooks.
 - **UI**: Ant Design v5 with CSS-in-JS registry for SSR.
+- **i18n**: Custom `I18nProvider` + JSON catalogs; runtime namespace’ler ve dosya adı eşlemesi için `src/i18n/README.md` kaynak kabul edilir.

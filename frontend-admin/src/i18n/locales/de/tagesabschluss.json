@@ -1,0 +1,82 @@
+{
+  "page": {
+    "intro": "Abschlüsse für die gewählte Kasse auslösen, Schlussprüfung anzeigen, Historie und Kennzahlen einsehen. Historie und Statistik beziehen sich auf den angemeldeten Benutzer (API-Filter). Backend:",
+    "introApiPath": "/api/Tagesabschluss/*",
+    "introPermission": "Berechtigung:"
+  },
+  "toolbar": {
+    "refresh": "Aktualisieren"
+  },
+  "scope": {
+    "label": "Aktive Ansicht:",
+    "registerWithId": "Kasse {{id}}",
+    "registerInvalid": "Kasse: keine gültige UUID",
+    "historyPeriod": "Historie {{from}}–{{to}}",
+    "historyCount": "{{count}} Abschlüsse im Zeitraum"
+  },
+  "card": {
+    "register": "Kasse & Prüfung",
+    "stats": "Statistik & Historie (Zeitraum)"
+  },
+  "register": {
+    "fromList": "Kasse aus Liste",
+    "selectPlaceholder": "Kasse wählen",
+    "noListTitle": "Keine Kassenliste",
+    "noListDescription": "Berechtigung cashregister.view fehlt — Kassen-ID manuell als UUID eingeben.",
+    "manualLabel": "Kassen-ID (UUID)",
+    "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
+    "uuidWarning": "Bitte gültige UUID setzen (Liste oder manuell)."
+  },
+  "check": {
+    "failedTitle": "Prüfung fehlgeschlagen",
+    "canCloseLabel": "Schließung möglich",
+    "yes": "Ja",
+    "no": "Nein",
+    "lastClosing": "Letzter Abschluss",
+    "paymentsWithoutInvoice": "Zahlungen ohne Rechnung (heute)",
+    "hint": "Hinweis",
+    "backendHint": "Hinweis vom Server (Sprache nicht garantiert)"
+  },
+  "actions": {
+    "daily": "Tagesabschluss",
+    "monthly": "Monatsabschluss",
+    "yearly": "Jahresabschluss",
+    "modalTitleDaily": "Tagesabschluss ausführen?",
+    "modalTitleMonthly": "Monatsabschluss ausführen?",
+    "modalTitleYearly": "Jahresabschluss ausführen?",
+    "modalContent": "RKSV-relevante Operation. Nur ausführen, wenn die Kasse fachlich bereit ist.",
+    "modalOk": "Ausführen",
+    "modalCancel": "Abbrechen"
+  },
+  "stats": {
+    "sectionTitle": "Kennzahlen",
+    "refresh": "Aktualisieren",
+    "labelClosings": "Abschlüsse (Anzahl)",
+    "labelGrossSum": "Summe Brutto",
+    "labelTaxSum": "Summe Steuer",
+    "labelTransactions": "Transaktionen",
+    "labelAvgDaily": "Ø Tagesbrutto (nur Daily)",
+    "labelLastInRange": "Letzter Abschluss im Zeitraum",
+    "empty": "Keine Daten für diesen Zeitraum."
+  },
+  "history": {
+    "sectionTitle": "Historie",
+    "empty": "Keine Einträge in diesem Zeitraum.",
+    "colDate": "Datum",
+    "colType": "Typ",
+    "colGross": "Brutto",
+    "colTax": "Steuer",
+    "colTransactions": "Vorgänge",
+    "colStatus": "Status",
+    "colFinanzOnline": "FinanzOnline"
+  },
+  "messages": {
+    "successDaily": "Tagesabschluss (täglich) ausgeführt.",
+    "successMonthly": "Monatsabschluss ausgeführt.",
+    "successYearly": "Jahresabschluss ausgeführt.",
+    "warningUuid": "Bitte gültige Kassen-ID wählen oder eingeben (UUID)."
+  },
+  "errors": {
+    "unknown": "Unbekannter Fehler"
+  }
+}

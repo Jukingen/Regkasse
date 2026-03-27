@@ -5,5 +5,69 @@
     "title": "Primary pipeline view: FinanzOnline · Outbox",
     "leadBeforeLink": "For operational monitoring of the SOAP/outbox pipeline (submission, protocol, retries), use",
     "leadAfterLink": ". This screen remains for payment-row status and manual retry per payment (legacy)."
+  },
+  "queuePage": {
+    "statusOption": {
+      "Pending": "Pending",
+      "Failed": "Failed",
+      "NeedsReconciliation": "Reconciliation required (NeedsReconciliation)",
+      "Submitted": "Submitted"
+    },
+    "retry": {
+      "success": "Payment {{paymentId}}: {{message}}",
+      "warning": "Payment {{paymentId}}: {{message}}",
+      "error": "Retry for {{paymentId}}: {{message}}",
+      "errorFallback": "Retry failed"
+    },
+    "columns": {
+      "receiptNumberTooltip": "Receipt number from the reconciliation list DTO.",
+      "receiptNumber": "Receipt number",
+      "searchReceiptsLink": "Search receipts",
+      "paymentTooltip": "Payment ID (paymentId) — primary key for retry and links.",
+      "paymentShort": "Payment",
+      "openInPayments": "Open in payments",
+      "foStatusShort": "FO status",
+      "foActionColumnShort": "FO action (UI)",
+      "foTimelineShort": "FO timeline (API)",
+      "rowCreated": "Row created:",
+      "attempts": "Attempts:",
+      "lastAttempt": "Last attempt:",
+      "errorShort": "Error (short)",
+      "foRefTooltip": "finanzOnlineReferenceId — FinanzOnline reference from the list DTO.",
+      "referenceFoShort": "Reference (FO)",
+      "amountTooltip": "totalAmount — payment amount in the list DTO.",
+      "amountShort": "Amount",
+      "registerFkShort": "Register (FK)",
+      "rawRegisterVisible": "Raw value shown; no UUID for safe register URLs.",
+      "actions": "Actions",
+      "retrySend": "Retry send"
+    },
+    "relatedLinks": {
+      "integritySupport": "Data integrity (support)",
+      "incidentCorrelation": "Incident (correlation)"
+    },
+    "metrics": {
+      "submitTotalRun": "Submit total (run)",
+      "failedTotal": "Failed total",
+      "transientMetric": "Transient (metric)",
+      "permanentMetric": "Permanent (metric)"
+    },
+    "filters": {
+      "cardTitle": "Filters",
+      "statusLabel": "Status:",
+      "statusPlaceholder": "Select status",
+      "registerLabel": "Register:",
+      "registerPlaceholderAll": "All registers",
+      "utcRangeLabel": "Period (UTC):"
+    },
+    "table": {
+      "cardTitle": "Reconciliation ({{count}} entries)",
+      "paginationTotal": "Total: {{total}}"
+    },
+    "expandRow": {
+      "technicalDetailsHeader": "Row — technical details (list API)",
+      "openPaymentInPayments": "Open payment in payments",
+      "searchReceiptsByNumber": "Search receipts (receipt number)"
+    }
   }
 }

@@ -1,5 +1,8 @@
 'use client';
 
+/**
+ * Gun sonu admin sayfasi; metinler tagesabschluss namespace, para/tarih formatLocale ile.
+ */
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
@@ -48,7 +51,10 @@ import { PERMISSIONS } from '@/shared/auth/permissions';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
 import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
-import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
+import { useI18n } from '@/i18n';
+import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, formatNumber } from '@/i18n/formatting';
+import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
+import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 
 const { Title, Paragraph, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -59,22 +65,10 @@ function isUuid(v: string): boolean {
   );
 }
 
-function pickError(e: unknown): string {
-  const err = e as {
-    response?: { data?: { error?: string; details?: string; message?: string } };
-    message?: string;
-  };
-  return (
-    err?.response?.data?.error ??
-    err?.response?.data?.message ??
-    err?.response?.data?.details ??
-    err?.message ??
-    'Unbekannter Fehler'
-  );
-}
-
 export default function TagesabschlussPage() {
   const queryClient = useQueryClient();
+  const { t, formatLocale } = useI18n();
+
   const { hasPermission } = usePermissions();
   const canListRegisters = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
 
@@ -142,46 +136,65 @@ export default function TagesabschlussPage() {
   const dailyMu = usePostApiTagesabschlussDaily({
     mutation: {
       onSuccess: async () => {
-        message.success('Tagesabschluss (täglich) ausgeführt.');
+        message.success(t('tagesabschluss.messages.successDaily'));
         await invalidateTagesabschluss();
       },
-      onError: (e) => message.error(pickError(e)),
+      onError: (e) =>
+        message.error(
+          getUserFacingApiErrorMessage(t, e, {
+            logContext: 'TagesabschlussDaily',
+            fallbackKey: 'tagesabschluss.errors.unknown',
+          }),
+        ),
     },
   });
   const monthlyMu = usePostApiTagesabschlussMonthly({
     mutation: {
       onSuccess: async () => {
-        message.success('Monatsabschluss ausgeführt.');
+        message.success(t('tagesabschluss.messages.successMonthly'));
         await invalidateTagesabschluss();
       },
-      onError: (e) => message.error(pickError(e)),
+      onError: (e) =>
+        message.error(
+          getUserFacingApiErrorMessage(t, e, {
+            logContext: 'TagesabschlussMonthly',
+            fallbackKey: 'tagesabschluss.errors.unknown',
+          }),
+        ),
     },
   });
   const yearlyMu = usePostApiTagesabschlussYearly({
     mutation: {
       onSuccess: async () => {
-        message.success('Jahresabschluss ausgeführt.');
+        message.success(t('tagesabschluss.messages.successYearly'));
         await invalidateTagesabschluss();
       },
-      onError: (e) => message.error(pickError(e)),
+      onError: (e) =>
+        message.error(
+          getUserFacingApiErrorMessage(t, e, {
+            logContext: 'TagesabschlussYearly',
+            fallbackKey: 'tagesabschluss.errors.unknown',
+          }),
+        ),
     },
   });
 
   const runClosing = (kind: 'daily' | 'monthly' | 'yearly') => {
     if (!registerIdValid) {
-      message.warning('Bitte gültige Kassen-ID wählen oder eingeben (UUID).');
+      message.warning(t('tagesabschluss.messages.warningUuid'));
       return;
     }
-    const labels = {
-      daily: 'Tagesabschluss',
-      monthly: 'Monatsabschluss',
-      yearly: 'Jahresabschluss',
-    } as const;
+    const modalTitle =
+      kind === 'daily'
+        ? t('tagesabschluss.actions.modalTitleDaily')
+        : kind === 'monthly'
+          ? t('tagesabschluss.actions.modalTitleMonthly')
+          : t('tagesabschluss.actions.modalTitleYearly');
     Modal.confirm({
-      title: `${labels[kind]} ausführen?`,
-      content: 'RKSV-relevante Operation. Nur ausführen, wenn die Kasse fachlich bereit ist.',
-      okText: 'Ausführen',
-      cancelText: 'Abbrechen',
+      title: modalTitle,
+      content: t('tagesabschluss.actions.modalContent'),
+      okText: t('tagesabschluss.actions.modalOk'),
+      cancelText: t('tagesabschluss.actions.modalCancel'),
       okButtonProps: { danger: kind !== 'daily' },
       onOk: async () => {
         const body = { data: { cashRegisterId: effectiveRegisterId } };
@@ -192,36 +205,53 @@ export default function TagesabschlussPage() {
     });
   };
 
-  const historyColumns = [
-    { title: 'Datum', dataIndex: 'closingDate', key: 'closingDate', width: 200 },
-    { title: 'Typ', dataIndex: 'closingType', key: 'closingType', width: 100 },
-    {
-      title: 'Brutto',
-      dataIndex: 'totalAmount',
-      key: 'totalAmount',
-      render: (v: number) => `${v.toFixed(2)} €`,
-    },
-    {
-      title: 'Steuer',
-      dataIndex: 'totalTaxAmount',
-      key: 'totalTaxAmount',
-      render: (v: number) => `${v.toFixed(2)} €`,
-    },
-    { title: 'Vorgänge', dataIndex: 'transactionCount', key: 'transactionCount', width: 100 },
-    { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
-    { title: 'FinanzOnline', dataIndex: 'finanzOnlineStatus', key: 'fo', width: 140 },
-  ];
+  const historyColumns = useMemo(
+    () => [
+      {
+        title: t('tagesabschluss.history.colDate'),
+        dataIndex: 'closingDate',
+        key: 'closingDate',
+        width: 200,
+        render: (d: string) => (d ? formatDateTime(d, formatLocale) : FORMAT_EMPTY_DISPLAY),
+      },
+      { title: t('tagesabschluss.history.colType'), dataIndex: 'closingType', key: 'closingType', width: 100 },
+      {
+        title: t('tagesabschluss.history.colGross'),
+        dataIndex: 'totalAmount',
+        key: 'totalAmount',
+        render: (v: number) => formatCurrency(v ?? 0, formatLocale),
+      },
+      {
+        title: t('tagesabschluss.history.colTax'),
+        dataIndex: 'totalTaxAmount',
+        key: 'totalTaxAmount',
+        render: (v: number) => formatCurrency(v ?? 0, formatLocale),
+      },
+      {
+        title: t('tagesabschluss.history.colTransactions'),
+        dataIndex: 'transactionCount',
+        key: 'transactionCount',
+        width: 100,
+        render: (v: number) => formatNumber(v ?? 0, formatLocale, { maximumFractionDigits: 0 }),
+      },
+      { title: t('tagesabschluss.history.colStatus'), dataIndex: 'status', key: 'status', width: 120 },
+      { title: t('tagesabschluss.history.colFinanzOnline'), dataIndex: 'finanzOnlineStatus', key: 'fo', width: 140 },
+    ],
+    [t, formatLocale]
+  );
 
   const closingBusy = dailyMu.isPending || monthlyMu.isPending || yearlyMu.isPending;
 
   const tagesabschlussScopeSummary = useMemo(() => {
     const regPart = registerIdValid
-      ? `Kasse ${effectiveRegisterId}`
-      : 'Kasse: keine gültige UUID';
-    const period = `Historie ${range[0].format('DD.MM.YYYY')}–${range[1].format('DD.MM.YYYY')}`;
-    const hist = `${historyRows.length} Abschlüsse im Zeitraum`;
+      ? t('tagesabschluss.scope.registerWithId', { id: effectiveRegisterId })
+      : t('tagesabschluss.scope.registerInvalid');
+    const fromStr = formatDateTime(range[0].startOf('day').toDate(), formatLocale, { dateStyle: 'short' });
+    const toStr = formatDateTime(range[1].startOf('day').toDate(), formatLocale, { dateStyle: 'short' });
+    const period = t('tagesabschluss.scope.historyPeriod', { from: fromStr, to: toStr });
+    const hist = t('tagesabschluss.scope.historyCount', { count: historyRows.length });
     return `${regPart} · ${period} · ${hist}`;
-  }, [registerIdValid, effectiveRegisterId, range, historyRows.length]);
+  }, [registerIdValid, effectiveRegisterId, range, historyRows.length, t, formatLocale]);
 
   return (
     <AdminPageShell>
@@ -237,29 +267,29 @@ export default function TagesabschlussPage() {
               if (registerIdValid) void canCloseQuery.refetch();
             }}
           >
-            {OPERATOR_SHARED_COPY.toolbarRefresh}
+            {t('tagesabschluss.toolbar.refresh')}
           </Button>
         }
       >
         <Paragraph type="secondary" style={{ marginBottom: 0 }}>
           <CalendarOutlined style={{ marginRight: 8 }} />
-          Abschlüsse für die gewählte Kasse auslösen, Schlussprüfung anzeigen, Historie und Kennzahlen einsehen.
-          Historie und Statistik beziehen sich auf den angemeldeten Benutzer (API-Filter).{' '}
-          Backend: <Text code>/api/Tagesabschluss/*</Text> (Berechtigung: <Text code>tse.sign</Text>).
+          {t('tagesabschluss.page.intro')}{' '}
+          <Text code>{t('tagesabschluss.page.introApiPath')}</Text> ({t('tagesabschluss.page.introPermission')}{' '}
+          <Text code>tse.sign</Text>).
         </Paragraph>
       </AdminPageHeader>
 
-      <AdminPageScopeSummary label="Aktive Ansicht:">{tagesabschlussScopeSummary}</AdminPageScopeSummary>
+      <AdminPageScopeSummary label={t('tagesabschluss.scope.label')}>{tagesabschlussScopeSummary}</AdminPageScopeSummary>
 
-      <Card title="Kasse & Prüfung">
+      <Card title={t('tagesabschluss.card.register')}>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           {canListRegisters ? (
             <div>
-              <Text type="secondary">Kasse aus Liste</Text>
+              <Text type="secondary">{t('tagesabschluss.register.fromList')}</Text>
               <Select
                 showSearch
                 allowClear
-                placeholder="Kasse wählen"
+                placeholder={t('tagesabschluss.register.selectPlaceholder')}
                 style={{ width: '100%', marginTop: 6 }}
                 options={registerOptions}
                 loading={registersLoading}
@@ -272,44 +302,58 @@ export default function TagesabschlussPage() {
             <Alert
               type="info"
               showIcon
-              message="Keine Kassenliste"
-              description="Berechtigung cashregister.view fehlt — Kassen-ID manuell als UUID eingeben."
+              message={t('tagesabschluss.register.noListTitle')}
+              description={t('tagesabschluss.register.noListDescription')}
             />
           )}
           <div>
-            <Text type="secondary">Kassen-ID (UUID)</Text>
+            <Text type="secondary">{t('tagesabschluss.register.manualLabel')}</Text>
             <Input
               style={{ marginTop: 6 }}
-              placeholder="00000000-0000-0000-0000-000000000000"
+              placeholder={t('tagesabschluss.register.manualPlaceholder')}
               value={manualRegisterId}
               onChange={(e) => setManualRegisterId(e.target.value)}
             />
           </div>
 
           {!registerIdValid ? (
-            <Text type="warning">Bitte gültige UUID setzen (Liste oder manuell).</Text>
+            <Text type="warning">{t('tagesabschluss.register.uuidWarning')}</Text>
           ) : canCloseQuery.isLoading ? (
             <Spin />
           ) : canCloseQuery.isError ? (
-            <Alert type="error" message="Prüfung fehlgeschlagen" description={pickError(canCloseQuery.error)} />
+            <Alert
+              type="error"
+              message={t('tagesabschluss.check.failedTitle')}
+              description={getUserFacingApiErrorMessage(t, canCloseQuery.error, {
+                logContext: 'TagesabschlussCanClose',
+                fallbackKey: 'tagesabschluss.errors.unknown',
+                skipLog: true,
+              })}
+            />
           ) : (
             <Descriptions bordered size="small" column={1}>
-              <Descriptions.Item label="Schließung möglich">
+              <Descriptions.Item label={t('tagesabschluss.check.canCloseLabel')}>
                 {canClose?.canClose ? (
-                  <Text type="success">Ja</Text>
+                  <Text type="success">{t('tagesabschluss.check.yes')}</Text>
                 ) : (
-                  <Text type="danger">Nein</Text>
+                  <Text type="danger">{t('tagesabschluss.check.no')}</Text>
                 )}
               </Descriptions.Item>
-              <Descriptions.Item label="Letzter Abschluss">
+              <Descriptions.Item label={t('tagesabschluss.check.lastClosing')}>
                 {canClose?.lastClosingDate
-                  ? dayjs(canClose.lastClosingDate).format('DD.MM.YYYY HH:mm')
-                  : '—'}
+                  ? formatDateTime(canClose.lastClosingDate, formatLocale)
+                  : FORMAT_EMPTY_DISPLAY}
               </Descriptions.Item>
-              <Descriptions.Item label="Zahlungen ohne Rechnung (heute)">
-                {canClose?.paymentsWithoutInvoiceCount}
+              <Descriptions.Item label={t('tagesabschluss.check.paymentsWithoutInvoice')}>
+                {formatNumber(canClose?.paymentsWithoutInvoiceCount ?? 0, formatLocale, { maximumFractionDigits: 0 })}
               </Descriptions.Item>
-              <Descriptions.Item label="Hinweis">{canClose?.message ?? '—'}</Descriptions.Item>
+              <Descriptions.Item label={t('tagesabschluss.check.hint')}>
+                {canClose?.message?.trim() ? (
+                  <BackendRawTextBlock introKey="common.backend.serverHintIntro" body={canClose.message} />
+                ) : (
+                  FORMAT_EMPTY_DISPLAY
+                )}
+              </Descriptions.Item>
             </Descriptions>
           )}
 
@@ -320,10 +364,10 @@ export default function TagesabschlussPage() {
               disabled={!registerIdValid}
               onClick={() => runClosing('daily')}
             >
-              Tagesabschluss
+              {t('tagesabschluss.actions.daily')}
             </Button>
             <Button loading={closingBusy} disabled={!registerIdValid} onClick={() => runClosing('monthly')}>
-              Monatsabschluss
+              {t('tagesabschluss.actions.monthly')}
             </Button>
             <Button
               danger
@@ -331,14 +375,14 @@ export default function TagesabschlussPage() {
               disabled={!registerIdValid}
               onClick={() => runClosing('yearly')}
             >
-              Jahresabschluss
+              {t('tagesabschluss.actions.yearly')}
             </Button>
           </Space>
         </Space>
       </Card>
 
       <Card
-        title="Statistik & Historie (Zeitraum)"
+        title={t('tagesabschluss.card.stats')}
         extra={
           <Space>
             <RangePicker value={range} onChange={(v) => v && v[0] && v[1] && setRange([v[0], v[1]])} />
@@ -350,50 +394,68 @@ export default function TagesabschlussPage() {
                 if (registerIdValid) void canCloseQuery.refetch();
               }}
             >
-              Aktualisieren
+              {t('tagesabschluss.stats.refresh')}
             </Button>
           </Space>
         }
       >
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
-            <Title level={5}>Kennzahlen</Title>
+            <Title level={5}>{t('tagesabschluss.stats.sectionTitle')}</Title>
             {statsQuery.isLoading ? (
               <Spin />
             ) : statsQuery.isError ? (
-              <Alert type="error" description={pickError(statsQuery.error)} />
+              <Alert
+              type="error"
+              description={getUserFacingApiErrorMessage(t, statsQuery.error, {
+                logContext: 'TagesabschlussStatistics',
+                fallbackKey: 'tagesabschluss.errors.unknown',
+                skipLog: true,
+              })}
+            />
             ) : /* No aggregate closings in range */ stats == null ||
               (stats.totalClosings === 0 && stats.totalAmount === 0) ? (
-              <Empty description="Keine Daten für diesen Zeitraum." />
+              <Empty description={t('tagesabschluss.stats.empty')} />
             ) : (
               <Descriptions bordered size="small" column={1}>
-                <Descriptions.Item label="Abschlüsse (Anzahl)">{stats.totalClosings}</Descriptions.Item>
-                <Descriptions.Item label="Summe Brutto">
-                  {stats.totalAmount.toFixed(2)} €
+                <Descriptions.Item label={t('tagesabschluss.stats.labelClosings')}>
+                  {formatNumber(stats.totalClosings, formatLocale, { maximumFractionDigits: 0 })}
                 </Descriptions.Item>
-                <Descriptions.Item label="Summe Steuer">
-                  {stats.totalTaxAmount.toFixed(2)} €
+                <Descriptions.Item label={t('tagesabschluss.stats.labelGrossSum')}>
+                  {formatCurrency(stats.totalAmount, formatLocale)}
                 </Descriptions.Item>
-                <Descriptions.Item label="Transaktionen">{stats.totalTransactions}</Descriptions.Item>
-                <Descriptions.Item label="Ø Tagesbrutto (nur Daily)">
-                  {stats.averageDailyAmount.toFixed(2)} €
+                <Descriptions.Item label={t('tagesabschluss.stats.labelTaxSum')}>
+                  {formatCurrency(stats.totalTaxAmount, formatLocale)}
                 </Descriptions.Item>
-                <Descriptions.Item label="Letzter Abschluss im Zeitraum">
+                <Descriptions.Item label={t('tagesabschluss.stats.labelTransactions')}>
+                  {formatNumber(stats.totalTransactions, formatLocale, { maximumFractionDigits: 0 })}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('tagesabschluss.stats.labelAvgDaily')}>
+                  {formatCurrency(stats.averageDailyAmount, formatLocale)}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('tagesabschluss.stats.labelLastInRange')}>
                   {stats.lastClosingDate
-                    ? dayjs(stats.lastClosingDate).format('DD.MM.YYYY HH:mm')
-                    : '—'}
+                    ? formatDateTime(stats.lastClosingDate, formatLocale)
+                    : FORMAT_EMPTY_DISPLAY}
                 </Descriptions.Item>
               </Descriptions>
             )}
           </Col>
           <Col xs={24} lg={24}>
-            <Title level={5}>Historie</Title>
+            <Title level={5}>{t('tagesabschluss.history.sectionTitle')}</Title>
             {historyQuery.isLoading ? (
               <Spin />
             ) : historyQuery.isError ? (
-              <Alert type="error" description={pickError(historyQuery.error)} />
+              <Alert
+              type="error"
+              description={getUserFacingApiErrorMessage(t, historyQuery.error, {
+                logContext: 'TagesabschlussHistory',
+                fallbackKey: 'tagesabschluss.errors.unknown',
+                skipLog: true,
+              })}
+            />
             ) : historyRows.length === 0 ? (
-              <Empty description="Keine Einträge in diesem Zeitraum." />
+              <Empty description={t('tagesabschluss.history.empty')} />
             ) : (
               <Table
                 rowKey={(r) => r.closingId ?? `${r.closingDate}-${r.closingType}`}

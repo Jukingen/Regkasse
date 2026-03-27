@@ -1,15 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Card, Form, Input, Button, Typography } from 'antd';
 import { useRouter } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { useI18n } from '@/i18n';
 
 /**
  * Replay-Batch-Suche: Correlation-ID eingeben und Batch-Detail anzeigen (Incident-Debugging).
+ * Metinler: `rksvHub.replayBatchSearch` (RKSV hub namespace).
  */
 export default function ReplayBatchSearchPage() {
+    const { t } = useI18n();
+    const tr = useCallback((path: string) => t(`rksvHub.replayBatchSearch.${path}`), [t]);
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [form] = Form.useForm();
@@ -25,30 +29,29 @@ export default function ReplayBatchSearchPage() {
     return (
         <>
             <AdminPageHeader
-                title="Replay-Batch (Correlation-ID)"
+                title={tr('pageTitle')}
                 breadcrumbs={[
-                    ADMIN_OVERVIEW_CRUMB,
-                    { title: 'RKSV', href: '/rksv' },
-                    { title: 'Replay-Batch' },
+                    adminOverviewCrumb(t),
+                    { title: t('adminShell.group.rksv'), href: '/rksv' },
+                    { title: tr('breadcrumb') },
                 ]}
             />
             <Card>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-                    Replay-Batch-Correlation-ID eingeben (z. B. aus Logs oder Replay-Response), um Batch-Details,
-                    Success/Fail/Duplicate und Log-Trace-Link anzuzeigen.
+                    {tr('intro')}
                 </Typography.Paragraph>
                 <Form form={form} layout="inline" onFinish={onFinish}>
                     <Form.Item
                         name="correlationId"
-                        label="Correlation-ID (Guid)"
-                        rules={[{ required: true, message: 'Correlation-ID eingeben' }]}
+                        label={tr('formLabel')}
+                        rules={[{ required: true, message: tr('formRuleRequired') }]}
                         style={{ minWidth: 320 }}
                     >
-                        <Input placeholder="z. B. a1b2c3d4-e5f6-7890-abcd-ef1234567890" allowClear />
+                        <Input placeholder={tr('inputPlaceholder')} allowClear />
                     </Form.Item>
                     <Form.Item>
                         <Button type="primary" htmlType="submit" loading={loading}>
-                            Anzeigen
+                            {tr('submit')}
                         </Button>
                     </Form.Item>
                 </Form>

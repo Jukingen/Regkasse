@@ -3,8 +3,10 @@
 import React from 'react';
 import { Select, Input, Space } from 'antd';
 import { useReceiptTemplateFilters } from '../hooks/useReceiptTemplates';
+import { useI18n } from '@/i18n';
 
 export default function ReceiptFilters() {
+    const { t } = useI18n();
     const { filters, setParams, setParam } = useReceiptTemplateFilters();
 
     // Default to 'all' if undefined
@@ -22,14 +24,14 @@ export default function ReceiptFilters() {
                 onChange={handleModeChange}
                 style={{ width: 150 }}
             >
-                <Select.Option value="all">All Templates</Select.Option>
-                <Select.Option value="language">By Language</Select.Option>
-                <Select.Option value="type">By Type</Select.Option>
+                <Select.Option value="all">{t('receiptTemplates.filters.all')}</Select.Option>
+                <Select.Option value="language">{t('receiptTemplates.filters.byLanguage')}</Select.Option>
+                <Select.Option value="type">{t('receiptTemplates.filters.byType')}</Select.Option>
             </Select>
 
             {mode === 'language' && (
                 <Input
-                    placeholder="e.g. en, de, tr"
+                    placeholder={t('receiptTemplates.filters.placeholderLang')}
                     value={value}
                     onChange={(e) => setParam('value', e.target.value)}
                     style={{ width: 200 }}
@@ -38,7 +40,7 @@ export default function ReceiptFilters() {
 
             {mode === 'type' && (
                 <Input
-                    placeholder="e.g. sale, refund"
+                    placeholder={t('receiptTemplates.filters.placeholderType')}
                     value={value}
                     onChange={(e) => setParam('value', e.target.value)}
                     style={{ width: 200 }}

@@ -6,7 +6,7 @@
  * The endpoint returns one aggregate payload (replay batch + audit + FO rows).
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     Card,
     Input,
@@ -27,9 +27,9 @@ import { SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
 import { getApiAdminIncidentsCorrelationId } from '@/api/generated/admin/admin';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { AuditLogEntryDto, ReplayBatchPaymentItemDto, FinanzOnlineReconciliationItemDto } from '@/api/generated/model';
@@ -53,6 +53,7 @@ import {
     OPERATOR_FO_SUMMARY_SCREEN_COPY,
 } from '@/shared/operatorTruthCopy';
 import { viewAuditLogStatusPresentation } from '@/shared/verificationsAuditView';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 const RKSV_HANDOFF_PREFIX = 'RKSV_HANDOFF_V1:';
 
@@ -132,7 +133,7 @@ function parseReplayMeta(requestData?: string | null, responseData?: string | nu
         }
         if (!isPlainJsonObject(parsed)) {
             if (process.env.NODE_ENV === 'development') {
-                console.warn('[incident] parseReplayMeta: expected JSON object for replay meta');
+                technicalConsole.warn('[incident] parseReplayMeta: expected JSON object for replay meta');
             }
             return;
         }
@@ -151,18 +152,53 @@ function parseReplayMeta(requestData?: string | null, responseData?: string | nu
     return out;
 }
 
-function timelineLabel(action: string, description?: string | null, meta?: { replayPath?: string; payloadRepaired?: boolean }): string {
+function formatIncidentShortTime(iso: string | null | undefined, formatLocale: string): string {
+    if (!iso) return FORMAT_EMPTY_DISPLAY;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return FORMAT_EMPTY_DISPLAY;
+    return formatDateTime(iso, formatLocale, {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+}
+
+function formatAuditTimestamp(iso: string | null | undefined, formatLocale: string): string {
+    if (!iso) return FORMAT_EMPTY_DISPLAY;
+    return formatDateTime(iso, formatLocale, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    });
+}
+
+function buildTimelineLabel(
+    t: (key: string, options?: Record<string, string | number>) => string,
+    action: string,
+    description?: string | null,
+    meta?: { replayPath?: string; payloadRepaired?: boolean },
+): string {
     const parts: string[] = [];
     if (action) parts.push(action);
-    if (meta?.replayPath) parts.push(`ReplayPath: ${meta.replayPath}`);
-    if (meta?.payloadRepaired === true) parts.push('PayloadRepaired: ja');
+    if (meta?.replayPath) parts.push(t('rksvHub.incident.timelineReplayPath', { path: meta.replayPath }));
+    if (meta?.payloadRepaired === true) parts.push(t('rksvHub.incident.timelinePayloadRepairedYes'));
     if (description && description.length < 120) parts.push(description);
     else if (description) parts.push(description.slice(0, 117) + '…');
-    return parts.join(' · ') || '—';
+    return parts.join(' · ') || FORMAT_EMPTY_DISPLAY;
 }
 
 export default function IncidentInvestigationPage() {
     const searchParams = useSearchParams();
+    const { t, formatLocale } = useI18n();
+    const ti = useCallback((path: string, options?: Record<string, string | number>) => t(`rksvHub.incident.${path}`, options), [t]);
+    const backendApiTooltip = t('reporting.backend.apiStringsTooltip');
+
     const initialId = searchParams?.get('correlationId') ?? searchParams?.get('handoff') ?? '';
     const [inputId, setInputId] = useState(initialId);
     const [correlationId, setCorrelationId] = useState(resolveCorrelationInput(initialId));
@@ -215,190 +251,245 @@ export default function IncidentInvestigationPage() {
     const notFound = !incidentLoading && correlationId && !batch && !incidentError;
     const hasBatch = !!batch;
 
-    const paymentColumns = [
-        {
-            title: 'Zahlung',
-            key: 'payment',
-            render: (_: unknown, r: ReplayBatchPaymentItemDto) => (
-                <Link href={`/payments?paymentId=${r.paymentId}`} target="_blank" rel="noopener noreferrer">
-                    <Typography.Text code>{String(r.paymentId).slice(0, 8)}…</Typography.Text>
-                </Link>
-            ),
-        },
-        {
-            title: 'Beleg',
-            key: 'receipt',
-            render: (_: unknown, r: ReplayBatchPaymentItemDto) =>
-                r.receiptId ? (
-                    <Link href={`/receipts/${r.receiptId}`} target="_blank" rel="noopener noreferrer">
-                        {r.receiptNumber ?? r.receiptId}
+    const paymentColumns = useMemo(
+        () => [
+            {
+                title: ti('colPayment'),
+                key: 'payment',
+                render: (_: unknown, r: ReplayBatchPaymentItemDto) => (
+                    <Link href={`/payments?paymentId=${r.paymentId}`} target="_blank" rel="noopener noreferrer">
+                        <Typography.Text code>{String(r.paymentId).slice(0, 8)}…</Typography.Text>
                     </Link>
-                ) : (
-                    <Typography.Text type="secondary">—</Typography.Text>
                 ),
-        },
-        {
-            title: (
-                <Tooltip title={OPERATOR_INCIDENT_COPY.foStatusFromJoinTooltip}>
-                    <span>FO-Status</span>
-                </Tooltip>
-            ),
-            key: 'fo',
-            width: 120,
-            render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
-                const fo = foByPayment.get(String(r.paymentId));
-                if (!fo) return <Typography.Text type="secondary">—</Typography.Text>;
-                const color =
-                    fo.finanzOnlineStatus === 'Submitted'
-                        ? 'green'
-                        : fo.finanzOnlineStatus === 'Failed'
-                          ? 'red'
-                          : 'orange';
-                return (
-                    <Space direction="vertical" size={2}>
-                        <Tag color={color}>{fo.finanzOnlineStatus ?? '—'}</Tag>
-                        {fo.finanzOnlineError ? (
-                            <Tooltip title={fo.finanzOnlineError}>
-                                <Typography.Text type="secondary" style={{ fontSize: 11 }} ellipsis>
-                                    {fo.finanzOnlineError}
-                                </Typography.Text>
-                            </Tooltip>
-                        ) : null}
-                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                            <AdminTruthBadge kind="derived_from_foreign_row" /> via paymentId-Join
-                        </Typography.Text>
-                    </Space>
-                );
             },
-        },
-        {
-            title: (
-                <Tooltip title={OPERATOR_INCIDENT_COPY.foActionIncidentTooltip}>
-                    <span>FO-Aktion (UI)</span>
-                </Tooltip>
-            ),
-            key: 'foRetryUi',
-            width: 112,
-            render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
-                const fo = foByPayment.get(String(r.paymentId));
-                const ui = finanzOnlineRetryUiPresentation(getFinanzOnlineRetryUiState(fo?.finanzOnlineStatus));
-                return (
-                    <Tooltip title={ui.tooltip}>
-                        <Tag color={ui.tagColor}>{ui.tagLabel}</Tag>
+            {
+                title: ti('colReceipt'),
+                key: 'receipt',
+                render: (_: unknown, r: ReplayBatchPaymentItemDto) =>
+                    r.receiptId ? (
+                        <Link href={`/receipts/${r.receiptId}`} target="_blank" rel="noopener noreferrer">
+                            {r.receiptNumber ?? r.receiptId}
+                        </Link>
+                    ) : (
+                        <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>
+                    ),
+            },
+            {
+                title: (
+                    <Tooltip title={OPERATOR_INCIDENT_COPY.foStatusFromJoinTooltip}>
+                        <span>{ti('colFoStatus')}</span>
                     </Tooltip>
-                );
-            },
-        },
-        {
-            title: (
-                <Tooltip title={OPERATOR_INCIDENT_COPY.timesColumnIncidentTooltip}>
-                    <span>Zeiten & Versuche</span>
-                </Tooltip>
-            ),
-            key: 'rowTiming',
-            width: 152,
-            render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
-                const fo = foByPayment.get(String(r.paymentId));
-                return (
-                    <Space direction="vertical" size={0}>
-                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                            Replay:{' '}
-                            {r.createdAtUtc && dayjs(r.createdAtUtc).isValid()
-                                ? dayjs(r.createdAtUtc).format('DD.MM. HH:mm')
-                                : '—'}
-                        </Typography.Text>
-                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                            FO Zeile erstellt:{' '}
-                            {fo?.createdAt && dayjs(fo.createdAt).isValid()
-                                ? dayjs(fo.createdAt).format('DD.MM. HH:mm')
-                                : '—'}
-                        </Typography.Text>
-                        <Typography.Text style={{ fontSize: 11 }}>
-                            FO Versuch:{' '}
-                            {fo?.finanzOnlineLastAttemptAtUtc && dayjs(fo.finanzOnlineLastAttemptAtUtc).isValid()
-                                ? dayjs(fo.finanzOnlineLastAttemptAtUtc).format('DD.MM. HH:mm')
-                                : '—'}
-                        </Typography.Text>
-                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                            Versuche: {fo?.finanzOnlineRetryCount ?? 0}
-                        </Typography.Text>
-                    </Space>
-                );
-            },
-        },
-        {
-            title: (
-                <Tooltip title={OPERATOR_INCIDENT_COPY.foRefColumnTooltip}>
-                    <span>FO-Ref</span>
-                </Tooltip>
-            ),
-            key: 'foRef',
-            width: 100,
-            ellipsis: true,
-            render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
-                const fo = foByPayment.get(String(r.paymentId));
-                const ref = fo?.finanzOnlineReferenceId?.trim();
-                return ref ? (
-                    <Typography.Text code copyable ellipsis style={{ maxWidth: 92 }}>
-                        {ref}
-                    </Typography.Text>
-                ) : (
-                    '—'
-                );
-            },
-        },
-        {
-            title: (
-                <Tooltip title={OPERATOR_INCIDENT_COPY.registerFkColumnTooltip}>
-                    <span>Kasse (FK)</span>
-                </Tooltip>
-            ),
-            key: 'register',
-            render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
-                const fo = foByPayment.get(String(r.paymentId));
-                const reg = analyzeRegisterFkField(fo?.cashRegisterId);
-                if (!fo) {
-                    return <Typography.Text type="secondary">—</Typography.Text>;
-                }
-                if (!reg.rawTrimmed) {
+                ),
+                key: 'fo',
+                width: 120,
+                render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
+                    const fo = foByPayment.get(String(r.paymentId));
+                    if (!fo) return <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>;
+                    const color =
+                        fo.finanzOnlineStatus === 'Submitted'
+                            ? 'green'
+                            : fo.finanzOnlineStatus === 'Failed'
+                              ? 'red'
+                              : 'orange';
                     return (
                         <Space direction="vertical" size={2}>
-                            <Typography.Text type="secondary">—</Typography.Text>
-                            <AdminTruthBadge kind="link_incomplete" />
+                            <Tag color={color} title={backendApiTooltip}>
+                                {fo.finanzOnlineStatus ?? FORMAT_EMPTY_DISPLAY}
+                            </Tag>
+                            {fo.finanzOnlineError ? (
+                                <Tooltip title={fo.finanzOnlineError}>
+                                    <Typography.Text type="secondary" style={{ fontSize: 11 }} ellipsis>
+                                        {fo.finanzOnlineError}
+                                    </Typography.Text>
+                                </Tooltip>
+                            ) : null}
+                            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                <AdminTruthBadge kind="derived_from_foreign_row" /> {ti('viaPaymentIdJoin')}
+                            </Typography.Text>
                         </Space>
                     );
-                }
-                return (
-                    <Space direction="vertical" size={4}>
-                        <Typography.Text code copyable={{ text: reg.rawTrimmed }}>
-                            {reg.linkSafeUuid ? `${reg.rawTrimmed.slice(0, 8)}…` : reg.rawTrimmed}
-                        </Typography.Text>
-                        <AdminTruthBadge kind="derived_from_foreign_row" />
-                        {reg.isRawPresentButNotLinkSafe ? (
-                            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                                FO-Feld ohne UUID-Form — nicht für Kassen-Deep-Links verwenden.
-                            </Typography.Text>
-                        ) : null}
-                    </Space>
-                );
+                },
             },
-        },
-        {
-            title: 'Betrag',
-            dataIndex: 'totalAmount',
-            key: 'totalAmount',
-            render: (v: number) => (v != null ? `€ ${Number(v).toFixed(2)}` : '—'),
-        },
-    ];
+            {
+                title: (
+                    <Tooltip title={OPERATOR_INCIDENT_COPY.foActionIncidentTooltip}>
+                        <span>{ti('colFoActionUi')}</span>
+                    </Tooltip>
+                ),
+                key: 'foRetryUi',
+                width: 112,
+                render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
+                    const fo = foByPayment.get(String(r.paymentId));
+                    const ui = finanzOnlineRetryUiPresentation(getFinanzOnlineRetryUiState(fo?.finanzOnlineStatus));
+                    return (
+                        <Tooltip title={ui.tooltip}>
+                            <Tag color={ui.tagColor}>{ui.tagLabel}</Tag>
+                        </Tooltip>
+                    );
+                },
+            },
+            {
+                title: (
+                    <Tooltip title={OPERATOR_INCIDENT_COPY.timesColumnIncidentTooltip}>
+                        <span>{ti('colTimes')}</span>
+                    </Tooltip>
+                ),
+                key: 'rowTiming',
+                width: 152,
+                render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
+                    const fo = foByPayment.get(String(r.paymentId));
+                    return (
+                        <Space direction="vertical" size={0}>
+                            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                {ti('timeReplay')}{' '}
+                                {r.createdAtUtc ? formatIncidentShortTime(r.createdAtUtc, formatLocale) : FORMAT_EMPTY_DISPLAY}
+                            </Typography.Text>
+                            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                {ti('timeFoRowCreated')}{' '}
+                                {fo?.createdAt ? formatIncidentShortTime(fo.createdAt, formatLocale) : FORMAT_EMPTY_DISPLAY}
+                            </Typography.Text>
+                            <Typography.Text style={{ fontSize: 11 }}>
+                                {ti('timeFoAttempt')}{' '}
+                                {fo?.finanzOnlineLastAttemptAtUtc
+                                    ? formatIncidentShortTime(fo.finanzOnlineLastAttemptAtUtc, formatLocale)
+                                    : FORMAT_EMPTY_DISPLAY}
+                            </Typography.Text>
+                            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                {ti('timeRetryCount')} {fo?.finanzOnlineRetryCount ?? 0}
+                            </Typography.Text>
+                        </Space>
+                    );
+                },
+            },
+            {
+                title: (
+                    <Tooltip title={OPERATOR_INCIDENT_COPY.foRefColumnTooltip}>
+                        <span>{ti('colFoRef')}</span>
+                    </Tooltip>
+                ),
+                key: 'foRef',
+                width: 100,
+                ellipsis: true,
+                render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
+                    const fo = foByPayment.get(String(r.paymentId));
+                    const ref = fo?.finanzOnlineReferenceId?.trim();
+                    return ref ? (
+                        <Typography.Text code copyable ellipsis style={{ maxWidth: 92 }}>
+                            {ref}
+                        </Typography.Text>
+                    ) : (
+                        FORMAT_EMPTY_DISPLAY
+                    );
+                },
+            },
+            {
+                title: (
+                    <Tooltip title={OPERATOR_INCIDENT_COPY.registerFkColumnTooltip}>
+                        <span>{ti('colRegisterFk')}</span>
+                    </Tooltip>
+                ),
+                key: 'register',
+                render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
+                    const fo = foByPayment.get(String(r.paymentId));
+                    const reg = analyzeRegisterFkField(fo?.cashRegisterId);
+                    if (!fo) {
+                        return <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>;
+                    }
+                    if (!reg.rawTrimmed) {
+                        return (
+                            <Space direction="vertical" size={2}>
+                                <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>
+                                <AdminTruthBadge kind="link_incomplete" />
+                            </Space>
+                        );
+                    }
+                    return (
+                        <Space direction="vertical" size={4}>
+                            <Typography.Text code copyable={{ text: reg.rawTrimmed }}>
+                                {reg.linkSafeUuid ? `${reg.rawTrimmed.slice(0, 8)}…` : reg.rawTrimmed}
+                            </Typography.Text>
+                            <AdminTruthBadge kind="derived_from_foreign_row" />
+                            {reg.isRawPresentButNotLinkSafe ? (
+                                <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                    {ti('registerFkNotUuidHint')}
+                                </Typography.Text>
+                            ) : null}
+                        </Space>
+                    );
+                },
+            },
+            {
+                title: ti('colAmount'),
+                dataIndex: 'totalAmount',
+                key: 'totalAmount',
+                render: (v: number) => (v != null ? formatCurrency(Number(v), formatLocale) : FORMAT_EMPTY_DISPLAY),
+            },
+        ],
+        [ti, foByPayment, formatLocale, backendApiTooltip],
+    );
+
+    const auditColumns = useMemo(
+        () => [
+            {
+                title: ti('auditColTime'),
+                width: 152,
+                render: (_: unknown, r: AuditLogEntryDto) => formatAuditTimestamp(r.timestamp, formatLocale),
+            },
+            {
+                title: ti('auditColAction'),
+                dataIndex: 'action',
+                width: 200,
+                ellipsis: true,
+            },
+            {
+                title: ti('auditColStatus'),
+                width: 88,
+                render: (_: unknown, r: AuditLogEntryDto) => {
+                    const p = viewAuditLogStatusPresentation(r.status);
+                    return <Tag color={p.antColor}>{p.label}</Tag>;
+                },
+            },
+            {
+                title: ti('auditColEntity'),
+                width: 120,
+                ellipsis: true,
+                render: (_: unknown, r: AuditLogEntryDto) => r.entityType ?? FORMAT_EMPTY_DISPLAY,
+            },
+            {
+                title: ti('auditColReplayRepair'),
+                width: 200,
+                render: (_: unknown, r: AuditLogEntryDto) => {
+                    const m = parseReplayMeta(r.requestData, r.responseData);
+                    return (
+                        <Space size={4} wrap>
+                            {m.replayPath ? <Tag>{ti('replayPathTag', { path: m.replayPath })}</Tag> : null}
+                            {m.payloadRepaired === true ? (
+                                <Tag color="orange">{ti('tagPayloadRepaired')}</Tag>
+                            ) : null}
+                            {!m.replayPath && m.payloadRepaired !== true ? (
+                                <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>
+                            ) : null}
+                        </Space>
+                    );
+                },
+            },
+            {
+                title: ti('auditColDescription'),
+                dataIndex: 'description',
+                ellipsis: true,
+            },
+        ],
+        [ti, formatLocale],
+    );
 
     return (
         <>
             <AdminPageHeader
-                title="Incident (Correlation) — Untersuchung"
+                title={ti('pageTitle')}
                 breadcrumbs={[
-                    ADMIN_OVERVIEW_CRUMB,
-                    { title: ADMIN_NAV_GROUP_LABELS.rksv, href: '/rksv' },
-                    { title: 'Incident' },
+                    adminOverviewCrumb(t),
+                    { title: t('adminShell.group.rksv'), href: '/rksv' },
+                    { title: t('rksvHub.link.incident') },
                 ]}
                 actions={
                     normalizedId ? (
@@ -409,8 +500,7 @@ export default function IncidentInvestigationPage() {
                 }
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 980 }}>
-                    Correlation-zentrierte Aggregation (Replay-Batch + Audit + FinanzOnline-Abgleich-Join). Diese Seite ist
-                    Kontext und Evidenz — die primäre zeilen-/zahlungsbezogene FO-Wahrheit bleibt der{' '}
+                    {ti('introLead')}{' '}
                     <Link href="/rksv/finanz-online-queue">{OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}</Link>.
                 </Typography.Paragraph>
             </AdminPageHeader>
@@ -418,18 +508,18 @@ export default function IncidentInvestigationPage() {
             <Card size="small" style={{ marginBottom: 16 }}>
                 <Space.Compact style={{ width: '100%', maxWidth: 520 }}>
                     <Input
-                        placeholder="Correlation-ID (mit oder ohne Bindestriche)"
+                        placeholder={ti('searchPlaceholder')}
                         value={inputId}
                         onChange={(e) => setInputId(e.target.value)}
                         onPressEnter={onSearch}
                         allowClear
                     />
                     <Button type="primary" icon={<SearchOutlined />} onClick={onSearch}>
-                        Suchen
+                        {ti('searchButton')}
                     </Button>
                 </Space.Compact>
                 <Typography.Paragraph type="secondary" style={{ marginTop: 10, marginBottom: 0, fontSize: 12 }}>
-                    Tipp: akzeptiert Correlation als UUID, URL, oder RKSV-Handoff-JSON (Prefix {RKSV_HANDOFF_PREFIX}…).
+                    {ti('searchTip', { prefix: RKSV_HANDOFF_PREFIX })}
                 </Typography.Paragraph>
             </Card>
 
@@ -467,53 +557,54 @@ export default function IncidentInvestigationPage() {
                         <Space direction="vertical" size={10} style={{ width: '100%' }}>
                             <div>
                                 <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                    Correlation (Sucheingabe / normalisiert)
+                                    {ti('summaryCorrelationLabel')}
                                 </Typography.Text>
                                 <Typography.Text code copyable>
-                                    {normalizedId || correlationId || '—'}
+                                    {normalizedId || correlationId || FORMAT_EMPTY_DISPLAY}
                                 </Typography.Text>
                             </div>
                             <Space wrap>
-                                <Tag color="blue">Batch-Items: {batch.totalItems}</Tag>
-                                <Tag color="green">Erfolgreich: {batch.successCount}</Tag>
-                                <Tag color="orange">Fehler/Duplikat: {batch.failedOrDuplicateCount}</Tag>
+                                <Tag color="blue">{ti('batchItemsTag', { count: batch.totalItems })}</Tag>
+                                <Tag color="green">{ti('successTag', { count: batch.successCount })}</Tag>
+                                <Tag color="orange">{ti('failedDuplicateTag', { count: batch.failedOrDuplicateCount })}</Tag>
                                 {batch.offlineSyncedAuditCount != null && (
-                                    <Tag>Audit OFFLINE_SYNCED: {batch.offlineSyncedAuditCount}</Tag>
+                                    <Tag>{ti('auditOfflineSyncedTag', { count: batch.offlineSyncedAuditCount })}</Tag>
                                 )}
                                 {batch.offlineFinalFailureAuditCount != null && batch.offlineFinalFailureAuditCount > 0 && (
-                                    <Tag color="red">Audit Fail (final): {batch.offlineFinalFailureAuditCount}</Tag>
+                                    <Tag color="red">
+                                        {ti('auditFailFinalTag', { count: batch.offlineFinalFailureAuditCount })}
+                                    </Tag>
                                 )}
                                 {batch.coverageSampleCount != null && (
-                                    <Tag color="default">Coverage-Samples: {batch.coverageSampleCount}</Tag>
+                                    <Tag color="default">{ti('coverageSamplesTag', { count: batch.coverageSampleCount })}</Tag>
                                 )}
                             </Space>
                             <Space direction="vertical" size={4}>
                                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                                    Batch-Correlation (API)
+                                    {ti('batchCorrelationApiLabel')}
                                 </Typography.Text>
                                 <Typography.Text code copyable>{String(batch.correlationId)}</Typography.Text>
                                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                                    Audit-Correlation (API)
+                                    {ti('auditCorrelationApiLabel')}
                                 </Typography.Text>
-                                <Typography.Text code copyable>{batch.auditCorrelationId ?? '—'}</Typography.Text>
+                                <Typography.Text code copyable>{batch.auditCorrelationId ?? FORMAT_EMPTY_DISPLAY}</Typography.Text>
                             </Space>
                             {hints ? (
                                 <Typography.Paragraph style={{ marginBottom: 0 }} type="secondary">
                                     {OPERATOR_INCIDENT_COPY.foAggregateLine(
                                         hints.finanzOnlineSubmittedCount ?? 0,
-                                        hints.finanzOnlineOpenOrProblemCount ?? 0
+                                        hints.finanzOnlineOpenOrProblemCount ?? 0,
                                     )}
                                 </Typography.Paragraph>
                             ) : null}
                             <Alert
                                 type="info"
                                 showIcon
-                                message="Hinweis zur FinanzOnline-Wahrheit"
+                                message={ti('foTruthNoticeTitle')}
                                 description={
                                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                        FO-Felder in der Zahlungstabelle werden aus der Abgleich-Liste{' '}
-                                        <strong>über paymentId gejoint</strong> (abgeleitet). Für vollständige FO-Zeilen,
-                                        Fehlertexte und Retry-Semantik den Abgleich öffnen.
+                                        {ti('foTruthNoticeBefore')}{' '}
+                                        <strong>{ti('foTruthNoticeStrong')}</strong> {ti('foTruthNoticeAfter')}
                                     </Typography.Text>
                                 }
                             />
@@ -552,14 +643,10 @@ export default function IncidentInvestigationPage() {
                                     (hints.finanzOnlineOpenOrProblemCount ?? 0) > 0) && (
                                     <Space direction="vertical" size={8} style={{ width: '100%' }}>
                                         {hints.hasLockTimeoutAudit && (
-                                            <Alert
-                                                type="warning"
-                                                showIcon
-                                                message="Advisory-Lock-Timeout im Batch-Audit erkannt"
-                                            />
+                                            <Alert type="warning" showIcon message={ti('advisoryLockTimeoutTitle')} />
                                         )}
                                         {hints.hasPayloadImmutableMismatchAudit && (
-                                            <Alert type="error" showIcon message="Payload-Immutable-Mismatch im Batch-Audit" />
+                                            <Alert type="error" showIcon message={ti('payloadImmutableMismatchTitle')} />
                                         )}
                                     </Space>
                                 )}
@@ -567,7 +654,7 @@ export default function IncidentInvestigationPage() {
                     </OperatorSummaryStrip>
 
                     <OperatorBusinessSection>
-                        <Card size="small" title="Zahlungen, Belege & FinanzOnline (Geschäftsobjekte)">
+                        <Card size="small" title={ti('paymentsCardTitle')}>
                             <Typography.Paragraph type="secondary" style={{ marginBottom: 12, fontSize: 12 }}>
                                 {OPERATOR_INCIDENT_COPY.paymentsCardIntro}
                             </Typography.Paragraph>
@@ -585,42 +672,42 @@ export default function IncidentInvestigationPage() {
                                         return (
                                             <div style={{ padding: '4px 8px 12px', background: '#fafafa' }}>
                                                 <Typography.Text strong style={{ fontSize: 12 }}>
-                                                    Zeile – Detail & Nachweise
+                                                    {ti('expandRowTitle')}
                                                 </Typography.Text>
                                                 <Descriptions bordered size="small" column={1} style={{ marginTop: 8 }}>
-                                                    <Descriptions.Item label="Offline-Transaktion">
+                                                    <Descriptions.Item label={ti('labelOfflineTx')}>
                                                         {r.offlineTransactionId?.trim() ? (
                                                             <Typography.Text code copyable>
                                                                 {r.offlineTransactionId}
                                                             </Typography.Text>
                                                         ) : (
-                                                            '—'
+                                                            FORMAT_EMPTY_DISPLAY
                                                         )}
                                                     </Descriptions.Item>
-                                                    <Descriptions.Item label="FO Fehler (vollständig)">
+                                                    <Descriptions.Item label={ti('labelFoErrorFull')}>
                                                         {fo?.finanzOnlineError?.trim() ? (
                                                             <Typography.Text type="danger" copyable>
                                                                 {fo.finanzOnlineError}
                                                             </Typography.Text>
                                                         ) : (
-                                                            '—'
+                                                            FORMAT_EMPTY_DISPLAY
                                                         )}
                                                     </Descriptions.Item>
-                                                    <Descriptions.Item label="FO Referenz (vollständig)">
+                                                    <Descriptions.Item label={ti('labelFoRefFull')}>
                                                         {fo?.finanzOnlineReferenceId?.trim() ? (
                                                             <Typography.Text code copyable>
                                                                 {fo.finanzOnlineReferenceId}
                                                             </Typography.Text>
                                                         ) : (
-                                                            '—'
+                                                            FORMAT_EMPTY_DISPLAY
                                                         )}
                                                     </Descriptions.Item>
-                                                    <Descriptions.Item label="Batch-Correlation (Kontext)">
+                                                    <Descriptions.Item label={ti('labelBatchCorrelationContext')}>
                                                         <Typography.Text code copyable>
-                                                            {String(batch.correlationId ?? '—')}
+                                                            {String(batch.correlationId ?? FORMAT_EMPTY_DISPLAY)}
                                                         </Typography.Text>
                                                     </Descriptions.Item>
-                                                    <Descriptions.Item label="Abgleich (FO) öffnen">
+                                                    <Descriptions.Item label={ti('labelOpenAbgleich')}>
                                                         <Link
                                                             href={buildFinanzOnlineQueueInvestigationHref({
                                                                 focusPaymentId: String(r.paymentId ?? ''),
@@ -632,7 +719,7 @@ export default function IncidentInvestigationPage() {
                                                             {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
                                                         </Link>
                                                     </Descriptions.Item>
-                                                    <Descriptions.Item label="Hinweis">
+                                                    <Descriptions.Item label={ti('labelHint')}>
                                                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                                             {OPERATOR_INCIDENT_COPY.expandDtoNote}
                                                         </Typography.Text>
@@ -648,10 +735,9 @@ export default function IncidentInvestigationPage() {
 
                     <OperatorTechnicalSection>
                         {timelineItems.length > 0 && (
-                            <Card size="small" title="Timeline (Audit)" style={{ marginBottom: 16 }}>
+                            <Card size="small" title={ti('timelineCardTitle')} style={{ marginBottom: 16 }}>
                                 <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-                                    Replay gestartet → Dedup/Recompute/Structural → Synced/Failed → FO Submit/Retry (falls
-                                    vorhanden).
+                                    {ti('timelineIntro')}
                                 </Typography.Paragraph>
                                 <Timeline
                                     items={timelineItems.map((item) => ({
@@ -664,11 +750,11 @@ export default function IncidentInvestigationPage() {
                                         children: (
                                             <div>
                                                 <Typography.Text strong>
-                                                    {dayjs(item.timestamp).format('DD.MM.YYYY HH:mm:ss')}
+                                                    {formatAuditTimestamp(item.timestamp, formatLocale)}
                                                 </Typography.Text>
                                                 <br />
                                                 <Typography.Text type="secondary">
-                                                    {timelineLabel(item.action, item.description, item.meta)}
+                                                    {buildTimelineLabel(t, item.action, item.description, item.meta)}
                                                 </Typography.Text>
                                                 <div style={{ marginTop: 4 }}>
                                                     <Tag color={viewAuditLogStatusPresentation(item.full.status).antColor}>
@@ -678,10 +764,10 @@ export default function IncidentInvestigationPage() {
                                                 {(item.meta?.replayPath || item.meta?.payloadRepaired !== undefined) && (
                                                     <div style={{ marginTop: 4 }}>
                                                         {item.meta.replayPath && (
-                                                            <Tag>ReplayPath: {item.meta.replayPath}</Tag>
+                                                            <Tag>{ti('replayPathTag', { path: item.meta.replayPath })}</Tag>
                                                         )}
                                                         {item.meta.payloadRepaired === true && (
-                                                            <Tag color="orange">PayloadRepaired</Tag>
+                                                            <Tag color="orange">{ti('tagPayloadRepaired')}</Tag>
                                                         )}
                                                     </div>
                                                 )}
@@ -693,10 +779,9 @@ export default function IncidentInvestigationPage() {
                         )}
 
                         {auditLogs.length > 0 && (
-                            <Card size="small" title="Audit (Struktur)" style={{ marginBottom: 16 }}>
+                            <Card size="small" title={ti('auditStructureTitle')} style={{ marginBottom: 16 }}>
                                 <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-                                    Sortiert nach Zeit — Replay-Pfad und Payload-Reparatur aus Request/Response extrahiert
-                                    (wo vorhanden).
+                                    {ti('auditStructureIntro')}
                                 </Typography.Paragraph>
                                 <Table
                                     size="small"
@@ -708,57 +793,7 @@ export default function IncidentInvestigationPage() {
                                             new Date(a.timestamp ?? 0).getTime() -
                                             new Date(b.timestamp ?? 0).getTime(),
                                     )}
-                                    columns={[
-                                        {
-                                            title: 'Zeit',
-                                            width: 152,
-                                            render: (_: unknown, r: AuditLogEntryDto) =>
-                                                dayjs(r.timestamp).format('DD.MM.YYYY HH:mm:ss'),
-                                        },
-                                        {
-                                            title: 'Aktion',
-                                            dataIndex: 'action',
-                                            width: 200,
-                                            ellipsis: true,
-                                        },
-                                        {
-                                            title: 'Status',
-                                            width: 88,
-                                            render: (_: unknown, r: AuditLogEntryDto) => {
-                                                const p = viewAuditLogStatusPresentation(r.status);
-                                                return <Tag color={p.antColor}>{p.label}</Tag>;
-                                            },
-                                        },
-                                        {
-                                            title: 'Entity',
-                                            width: 120,
-                                            ellipsis: true,
-                                            render: (_: unknown, r: AuditLogEntryDto) => r.entityType ?? '—',
-                                        },
-                                        {
-                                            title: 'Replay / Repair',
-                                            width: 200,
-                                            render: (_: unknown, r: AuditLogEntryDto) => {
-                                                const m = parseReplayMeta(r.requestData, r.responseData);
-                                                return (
-                                                    <Space size={4} wrap>
-                                                        {m.replayPath ? <Tag>{m.replayPath}</Tag> : null}
-                                                        {m.payloadRepaired === true ? (
-                                                            <Tag color="orange">PayloadRepaired</Tag>
-                                                        ) : null}
-                                                        {!m.replayPath && m.payloadRepaired !== true ? (
-                                                            <Typography.Text type="secondary">—</Typography.Text>
-                                                        ) : null}
-                                                    </Space>
-                                                );
-                                            },
-                                        },
-                                        {
-                                            title: 'Beschreibung',
-                                            dataIndex: 'description',
-                                            ellipsis: true,
-                                        },
-                                    ]}
+                                    columns={auditColumns}
                                 />
                             </Card>
                         )}
@@ -768,7 +803,7 @@ export default function IncidentInvestigationPage() {
                                 items={[
                                     {
                                         key: 'raw',
-                                        label: 'Rohes Audit-Log (JSON, vollständig)',
+                                        label: ti('rawAuditCollapseLabel'),
                                         children: (
                                             <pre
                                                 style={{

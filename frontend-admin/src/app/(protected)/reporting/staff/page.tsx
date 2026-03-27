@@ -3,7 +3,7 @@
 /**
  * Personal-/Kassenleistung: payment_details-basiert; Hinweise zu Kalendertag vs. Schicht in reliability.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     Alert,
     Card,
@@ -27,10 +27,11 @@ dayjs.extend(utc);
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
+import { formatCurrency, formatNumber, formatPercent } from '@/i18n/formatting';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import { useGetApiUserManagement } from '@/api/generated/user-management/user-management';
 import { useGetApiReportsOperationalStaffPerformance } from '@/api/generated/reports/reports';
-import type { StaffPerformanceStaffRowDto } from '@/api/generated/model';
+import type { CashRegister, StaffPerformanceStaffRowDto } from '@/api/generated/model';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import Link from 'next/link';
@@ -94,37 +95,26 @@ export default function StaffPerformanceReportingPage() {
     );
 
     const { data: registers } = useGetApiCashRegister();
+    const registerRows = Array.isArray((registers as { registers?: CashRegister[] } | undefined)?.registers)
+        ? ((registers as { registers?: CashRegister[] }).registers ?? [])
+        : Array.isArray(registers)
+            ? (registers as CashRegister[])
+            : [];
     const { data: usersPage } = useGetApiUserManagement({ pageSize: 500, isActive: true });
 
     const reportQ = useGetApiReportsOperationalStaffPerformance(params, {
         query: { enabled: canView },
     });
 
-    const moneyFmt = useMemo(
-        () =>
-            new Intl.NumberFormat(formatLocale || 'de-AT', {
-                style: 'currency',
-                currency: 'EUR',
-            }),
+    const formatMoney = useCallback((v: number) => formatCurrency(v, formatLocale), [formatLocale]);
+    const formatRatio = useCallback(
+        (v: number) =>
+            formatNumber(Number(v ?? 0), formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
         [formatLocale],
     );
-
-    const ratioFmt = useMemo(
-        () =>
-            new Intl.NumberFormat(formatLocale || 'de-AT', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-            }),
-        [formatLocale],
-    );
-
-    const pctFmt = useMemo(
-        () =>
-            new Intl.NumberFormat(formatLocale || 'de-AT', {
-                style: 'percent',
-                minimumFractionDigits: 1,
-                maximumFractionDigits: 1,
-            }),
+    const formatPct = useCallback(
+        (v: number) =>
+            formatPercent(Number(v ?? 0), formatLocale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
         [formatLocale],
     );
 
@@ -149,7 +139,7 @@ export default function StaffPerformanceReportingPage() {
         {
             title: t('adminShell.staffPerformance.colGross'),
             dataIndex: 'grossSalesAmount',
-            render: (v: number) => moneyFmt.format(Number(v ?? 0)),
+            render: (v: number) => formatMoney(Number(v ?? 0)),
             sorter: (a, b) => Number(a.grossSalesAmount ?? 0) - Number(b.grossSalesAmount ?? 0),
         },
         {
@@ -163,17 +153,17 @@ export default function StaffPerformanceReportingPage() {
         {
             title: t('adminShell.staffPerformance.colRefundPerSale'),
             dataIndex: 'refundRowsPerSale',
-            render: (v: number) => ratioFmt.format(Number(v ?? 0)),
+            render: (v: number) => formatRatio(Number(v ?? 0)),
         },
         {
             title: t('adminShell.staffPerformance.colStornoPerSale'),
             dataIndex: 'stornoRowsPerSale',
-            render: (v: number) => ratioFmt.format(Number(v ?? 0)),
+            render: (v: number) => formatRatio(Number(v ?? 0)),
         },
         {
             title: t('adminShell.staffPerformance.colRefundAmtRatio'),
             dataIndex: 'refundAmountToGrossRatio',
-            render: (v: number) => pctFmt.format(Number(v ?? 0)),
+            render: (v: number) => formatPct(Number(v ?? 0)),
         },
     ];
 
@@ -197,7 +187,7 @@ export default function StaffPerformanceReportingPage() {
         {
             title: t('adminShell.reporting.amount'),
             dataIndex: 'grossAmount',
-            render: (v: number) => moneyFmt.format(Number(v ?? 0)),
+            render: (v: number) => formatMoney(Number(v ?? 0)),
         },
     ];
 
@@ -211,7 +201,7 @@ export default function StaffPerformanceReportingPage() {
         {
             title: t('adminShell.staffPerformance.colGross'),
             dataIndex: 'grossSalesAmount',
-            render: (v: number) => moneyFmt.format(Number(v ?? 0)),
+            render: (v: number) => formatMoney(Number(v ?? 0)),
         },
         { title: t('adminShell.staffPerformance.colRefunds'), dataIndex: 'refundRowCount' },
         { title: t('adminShell.staffPerformance.colStorno'), dataIndex: 'stornoRowCount' },
@@ -266,7 +256,7 @@ export default function StaffPerformanceReportingPage() {
                             placeholder={t('adminShell.reporting.registerAll')}
                             value={cashRegisterId}
                             onChange={(v) => setCashRegisterId(v)}
-                            options={(registers ?? []).map((r) => ({
+                            options={registerRows.map((r) => ({
                                 value: r.id,
                                 label: `${r.registerNumber ?? r.id} · ${r.location ?? ''}`.trim(),
                             }))}
@@ -353,7 +343,7 @@ export default function StaffPerformanceReportingPage() {
                                 title={t('adminShell.staffPerformance.kpiGross')}
                                 value={Number(totals?.grossSalesAmount ?? 0)}
                                 precision={2}
-                                formatter={(v) => moneyFmt.format(Number(v))}
+                                formatter={(v) => formatMoney(Number(v))}
                             />
                         </Card>
                     </Col>
@@ -381,13 +371,20 @@ export default function StaffPerformanceReportingPage() {
                         showIcon
                         message={t('adminShell.staffPerformance.anomaliesTitle')}
                         description={
-                            <ul style={{ marginBottom: 0, paddingLeft: 18 }}>
-                                {reportQ.data?.anomalies?.map((a, i) => (
-                                    <li key={i}>
-                                        <Typography.Text code>{a.cashierId}</Typography.Text> — {a.message}
-                                    </li>
-                                ))}
-                            </ul>
+                            <div>
+                                <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                                    {t('common.backend.rawMessagesNotice')}
+                                </Typography.Paragraph>
+                                <ul style={{ marginBottom: 0, paddingLeft: 18 }}>
+                                    {reportQ.data?.anomalies?.map((a, i) => (
+                                        <li key={i}>
+                                            <Typography.Text code>{a.cashierId}</Typography.Text>
+                                            {' — '}
+                                            <Typography.Text>{a.message}</Typography.Text>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         }
                     />
                 ) : null}
@@ -436,7 +433,7 @@ export default function StaffPerformanceReportingPage() {
                                 {
                                     title: t('adminShell.staffPerformance.colGross'),
                                     dataIndex: 'grossSalesAmount',
-                                    render: (v: number) => moneyFmt.format(Number(v ?? 0)),
+                                    render: (v: number) => formatMoney(Number(v ?? 0)),
                                 },
                                 { title: t('adminShell.staffPerformance.colRefunds'), dataIndex: 'refundRowCount' },
                                 { title: t('adminShell.staffPerformance.colStorno'), dataIndex: 'stornoRowCount' },

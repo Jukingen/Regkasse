@@ -1,0 +1,11 @@
+{
+  "forbidden": {
+    "FORBIDDEN": "Bu işlem için yetkiniz yok.",
+    "USERS_VIEW_REQUIRED": "Kullanıcıları görüntüleme yetkiniz yok.",
+    "USERS_MANAGE_REQUIRED": "Kullanıcıları yönetme yetkiniz yok.",
+    "USERS_EXPORT_REQUIRED": "Kullanıcıları dışa aktarma yetkiniz yok.",
+    "USERS_ASSIGN_ROLE_REQUIRED": "Rol atama yetkiniz yok.",
+    "USERS_TRANSFER_BRANCH_REQUIRED": "Kullanıcıları şubeler arası taşıma yetkiniz yok.",
+    "SCOPE_BRANCH": "Bu işlem yalnızca atanmış şubeniz içinde yapılabilir."
+  }
+}

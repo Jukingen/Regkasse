@@ -34,13 +34,19 @@
       "namespaces": [
         "admin-shell",
         "common",
+        "errors",
         "nav",
         "users",
         "settings",
         "products",
         "finanzOnlineOutbox",
         "finanzOnlineReconciliation",
-        "rksvHub"
+        "rksvHub",
+        "receipts",
+        "receiptTemplates",
+        "payments",
+        "tagesabschluss",
+        "reporting"
       ]
     }
   }

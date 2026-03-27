@@ -38,7 +38,9 @@ describe('validateCatalogAlignment', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     validateCatalogAlignment([], { warnUnknown: true });
     expect(warnSpy).toHaveBeenCalled();
-    expect(warnSpy.mock.calls[0][0]).toContain('validateCatalogAlignment');
+    const firstCall = warnSpy.mock.calls[0];
+    const flattened = firstCall.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+    expect(flattened).toContain('validateCatalogAlignment');
     warnSpy.mockRestore();
   });
 

@@ -111,7 +111,12 @@ jobs:
 
       - name: Validate translations (frontend-admin strict)
         shell: bash
-        run: node localization/scripts/validate-translations.mjs --app frontend-admin --keyMode "${{ steps.policy.outputs.admin_key_mode }}"
+        run: |
+          node localization/scripts/validate-translations.mjs \
+            --app frontend-admin \
+            --keyMode "${{ steps.policy.outputs.admin_key_mode }}" \
+            --strictMissing true \
+            --orphanPolicy error
 
       - name: Validate translations (frontend soft rollout)
         if: steps.policy.outputs.frontend_mode != 'strict'
@@ -163,6 +168,19 @@ jobs:
             node localization/scripts/check-translation-boundary.mjs --app frontend-admin
           fi
 
+      - name: Usage check (frontend-admin)
+        shell: bash
+        run: |
+          node localization/scripts/check-localization-usage.mjs \
+            --app frontend-admin \
+            --strictMissing true \
+            --budgetFile localization/i18n-ci-budgets.json
+
+      - name: Translation keys drift (frontend-admin)
+        shell: bash
+        working-directory: frontend-admin
+        run: npm run i18n:keys:check
+
       - name: Boundary check (frontend soft rollout)
         if: steps.policy.outputs.frontend_mode != 'strict'
         continue-on-error: true
@@ -201,6 +219,8 @@ jobs:
             localization/out/reports/*.json
             localization/out/reports/*.txt
             localization/out/*.csv
+            localization/i18n-ci-budgets.json
+            localization/dynamic-key-expansions.json
             localization/examples/sample-translations.csv
           if-no-files-found: warn
 
@@ -240,6 +260,29 @@ jobs:
           lines.push(`- frontend-admin key mode: \`${adminKeyMode}\``);
           lines.push(`- frontend boundary warn-only: \`${frontendBoundaryWarn}\``);
           lines.push(`- frontend-admin boundary warn-only: \`${adminBoundaryWarn}\``);
+          lines.push('');
+          const usagePath = 'localization/out/reports/usage-report.frontend-admin.json';
+          if (fs.existsSync(usagePath)) {
+            try {
+              const u = JSON.parse(fs.readFileSync(usagePath, 'utf8'));
+              const pa = Array.isArray(u.perApp) ? u.perApp.find((x) => x.app === 'frontend-admin') : null;
+              if (pa) {
+                lines.push('');
+                lines.push('### Admin usage report (i18n:usage)');
+                lines.push(`- used keys (expanded): ${pa.usedKeyCount ?? 'n/a'} (unique ${pa.uniqueUsedKeyCount ?? 'n/a'})`);
+                lines.push(`- missing en/tr (from code vs JSON): en=${pa.missingByLocale?.en?.length ?? 0}, tr=${pa.missingByLocale?.tr?.length ?? 0}`);
+                lines.push(`- hardcoded UI candidates: ${pa.hardcodedCandidates?.length ?? 0}`);
+                lines.push(`- dynamic template unresolved: ${pa.dynamicTemplateUnresolved?.length ?? 0}`);
+                if (pa.budgets) {
+                  const b = pa.budgets;
+                  lines.push(`- budgets: missingPairs max=${b.maxMissingLocalePairs} actual=${b.actualMissingLocalePairs ?? 'n/a'} | hardcoded max=${Number.isFinite(b.maxHardcodedUi) ? b.maxHardcodedUi : '∞'} actual=${b.actualHardcodedUi} | dynamicUnresolved max=${Number.isFinite(b.maxDynamicUnresolved) ? b.maxDynamicUnresolved : '∞'} actual=${b.actualDynamicUnresolved}`);
+                }
+              }
+            } catch (e) {
+              lines.push(`- usage report parse skipped: ${e.message}`);
+            }
+          }
+
           lines.push('');
           lines.push('### CI policy matrix');
           lines.push('| Rule | Phase 1 | Phase 2 | Phase 3 |');

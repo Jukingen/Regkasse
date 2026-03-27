@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Space, Typography } from 'antd';
+import { useI18n } from '@/i18n';
 
 /**
  * Standard vertical page wrapper for protected admin list/operation screens.
@@ -25,9 +26,11 @@ export function AdminPageScopeSummary({
     label: React.ReactNode;
     children: React.ReactNode;
 }) {
+    const { t } = useI18n();
+
     return (
         <section
-            aria-label="Aktive Ansicht und Filterkontext"
+            aria-label={t('common.aria.pageScopeContext')}
             style={{
                 marginBottom: 0,
                 marginTop: 0,

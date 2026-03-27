@@ -90,10 +90,10 @@ Example:
 
 ### Fallback handling
 
-- Fallback language: `de`.
-- Missing key behavior:
-  - Development: warn with key + locale.
-  - Production: render fallback locale value if available; render key only as last resort.
+- Fallback language: `de` (catalog merge in `I18nProvider`).
+- **frontend-admin** missing key behavior (see `frontend-admin/src/i18n/I18nProvider.tsx`):
+  - Resolution order: active locale → German catalog → fixed user-facing placeholder (not the raw key string in production).
+  - **Development:** `console.warn` for missing keys (deduped); **production:** no console warning for the same path.
 - Avoid `t('key', 'inline fallback')` in new code except temporary migration patches.
 
 ---
@@ -178,6 +178,7 @@ Use this checklist before merging:
 ## App-specific implementation notes (allowed differences)
 
 - `frontend`: continue using `useTranslation` + namespace-prefixed keys.
-- `frontend-admin`: continue using `useI18n` and catalog mapping.
+- `frontend-admin`: continue using `useI18n` and catalog mapping from `src/i18n/config.ts`.
+- **Namespace naming (frontend-admin):** In code, `t('firstSegment.rest')` uses **camelCase** catalog keys (`adminShell`, `finanzOnlineOutbox`, …). On disk, almost all locale files use the same stem; the exception is **`admin-shell.json`** ↔ catalog key **`adminShell`**. The localization manifest lists **file stems** (e.g. `admin-shell`); do not rename files to “fix” drift without updating imports in `config.ts`.
 - Do not block feature work waiting for a shared package.
 - Harmonize at convention level first; extract shared package later only if maintenance cost justifies it.

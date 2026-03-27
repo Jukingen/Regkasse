@@ -11,6 +11,12 @@
     "expandSidebar": "Expand sidebar",
     "collapseSidebar": "Collapse sidebar"
   },
+  "header": {
+    "languageSelectAria": "Choose interface language",
+    "languageNameDe": "German",
+    "languageNameEn": "English",
+    "languageNameTr": "Turkish"
+  },
   "group": {
     "kasseBelege": "Cashdesk & receipts",
     "sortiment": "Catalog",

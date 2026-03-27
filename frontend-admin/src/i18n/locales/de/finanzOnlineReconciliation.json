@@ -5,5 +5,69 @@
     "title": "Primäre Pipeline-Sicht: FinanzOnline · Outbox",
     "leadBeforeLink": "Für operative Überwachung der SOAP-/Outbox-Pipeline (Übermittlung, Protokoll, Retries) nutzen Sie",
     "leadAfterLink": ". Diese Seite bleibt für zahlungszeilenbasierten Status und manuelles Retry pro Zahlung (Legacy) verfügbar."
+  },
+  "queuePage": {
+    "statusOption": {
+      "Pending": "Ausstehend (Pending)",
+      "Failed": "Fehlgeschlagen (Failed)",
+      "NeedsReconciliation": "Abgleich erforderlich (NeedsReconciliation)",
+      "Submitted": "Eingereicht (Submitted)"
+    },
+    "retry": {
+      "success": "Zahlung {{paymentId}}: {{message}}",
+      "warning": "Zahlung {{paymentId}}: {{message}}",
+      "error": "Retry für {{paymentId}}: {{message}}",
+      "errorFallback": "Retry fehlgeschlagen"
+    },
+    "columns": {
+      "receiptNumberTooltip": "Belegnummer aus der Abgleichs-API (Listen-DTO).",
+      "receiptNumber": "Belegnummer",
+      "searchReceiptsLink": "Belege suchen",
+      "paymentTooltip": "Zahlungs-ID (paymentId) — Primärschlüssel für Retry und Verknüpfungen.",
+      "paymentShort": "Zahlung",
+      "openInPayments": "In Zahlungen öffnen",
+      "foStatusShort": "FO-Status",
+      "foActionColumnShort": "FO-Aktion (UI)",
+      "foTimelineShort": "FO-Verlauf (API)",
+      "rowCreated": "Zeile erstellt:",
+      "attempts": "Versuche:",
+      "lastAttempt": "Letzter Versuch:",
+      "errorShort": "Fehler (Kurz)",
+      "foRefTooltip": "finanzOnlineReferenceId — FinanzOnline-Referenz aus dem Listen-DTO.",
+      "referenceFoShort": "Referenz (FO)",
+      "amountTooltip": "totalAmount — Betrag der Zahlung im Listen-DTO.",
+      "amountShort": "Betrag",
+      "registerFkShort": "Register (FK)",
+      "rawRegisterVisible": "Rohwert sichtbar; kein UUID für sichere Kassen-URLs.",
+      "actions": "Aktionen",
+      "retrySend": "Erneut senden"
+    },
+    "relatedLinks": {
+      "integritySupport": "Datenintegrität (Support)",
+      "incidentCorrelation": "Incident (Korrelation)"
+    },
+    "metrics": {
+      "submitTotalRun": "Submit gesamt (Lauf)",
+      "failedTotal": "Fehlgeschlagen gesamt",
+      "transientMetric": "Transient (Metrik)",
+      "permanentMetric": "Permanent (Metrik)"
+    },
+    "filters": {
+      "cardTitle": "Filter",
+      "statusLabel": "Status:",
+      "statusPlaceholder": "Status wählen",
+      "registerLabel": "Kasse:",
+      "registerPlaceholderAll": "Alle Kassen",
+      "utcRangeLabel": "Zeitraum (UTC):"
+    },
+    "table": {
+      "cardTitle": "Abgleich ({{count}} Einträge)",
+      "paginationTotal": "Gesamt: {{total}}"
+    },
+    "expandRow": {
+      "technicalDetailsHeader": "Zeile — technische Details (Listen-API)",
+      "openPaymentInPayments": "Zahlung in Zahlungen öffnen",
+      "searchReceiptsByNumber": "Belege suchen (Belegnummer)"
+    }
   }
 }

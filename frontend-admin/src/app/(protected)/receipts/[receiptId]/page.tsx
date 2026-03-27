@@ -9,6 +9,7 @@ import ReceiptDetailCard from '@/features/receipts/components/ReceiptDetailCard'
 import ReceiptItemsTable from '@/features/receipts/components/ReceiptItemsTable';
 import ReceiptTaxSummary from '@/features/receipts/components/ReceiptTaxSummary';
 import SignatureStatusPanel from '@/features/receipts/components/SignatureStatusPanel';
+import { useI18n } from '@/i18n';
 
 const { Title } = Typography;
 
@@ -20,16 +21,17 @@ function isNotFoundError(error: unknown): boolean {
 }
 
 /** User-facing message for receipt detail error. */
-function getReceiptDetailErrorMessage(error: unknown): string {
+function getReceiptDetailErrorMessage(error: unknown, fallback: string): string {
     if (error instanceof Error) return error.message;
     const norm = (error as { normalized?: { message?: string } })?.normalized;
     if (norm?.message) return norm.message;
-    return 'An unexpected error occurred.';
+    return fallback;
 }
 
 export default function ReceiptDetailPage() {
     const { receiptId } = useParams<{ receiptId: string }>();
     const router = useRouter();
+    const { t } = useI18n();
     const { data: receipt, isLoading, isError, error } = useReceiptDetailQuery(receiptId);
 
     const handleBack = () => {
@@ -41,18 +43,18 @@ export default function ReceiptDetailPage() {
     };
 
     if (isLoading) {
-        return <Spin style={{ display: 'block', margin: '80px auto' }} tip="Loading receipt..." />;
+        return <Spin style={{ display: 'block', margin: '80px auto' }} tip={t('receipts.detail.loadingTip')} />;
     }
 
     if (isError && isNotFoundError(error)) {
         return (
             <Alert
                 type="warning"
-                message="Receipt not found"
-                description="The requested receipt does not exist or you do not have access to it."
+                message={t('receipts.detail.notFoundTitle')}
+                description={t('receipts.detail.notFoundDescription')}
                 showIcon
                 action={
-                    <Button onClick={handleBack}>Back to Receipts</Button>
+                    <Button onClick={handleBack}>{t('receipts.detail.backToList')}</Button>
                 }
             />
         );
@@ -62,11 +64,11 @@ export default function ReceiptDetailPage() {
         return (
             <Alert
                 type="error"
-                message="Failed to load receipt"
-                description={getReceiptDetailErrorMessage(error)}
+                message={t('receipts.detail.loadFailedTitle')}
+                description={getReceiptDetailErrorMessage(error, t('receipts.detail.unexpectedError'))}
                 showIcon
                 action={
-                    <Button onClick={handleBack}>Back to Receipts</Button>
+                    <Button onClick={handleBack}>{t('receipts.detail.backToList')}</Button>
                 }
             />
         );
@@ -76,11 +78,11 @@ export default function ReceiptDetailPage() {
         return (
             <Alert
                 type="warning"
-                message="Receipt not found"
-                description="No receipt data returned."
+                message={t('receipts.detail.notFoundTitle')}
+                description={t('receipts.detail.fallbackNoData')}
                 showIcon
                 action={
-                    <Button onClick={handleBack}>Back to Receipts</Button>
+                    <Button onClick={handleBack}>{t('receipts.detail.backToList')}</Button>
                 }
             />
         );
@@ -93,7 +95,7 @@ export default function ReceiptDetailPage() {
                 onClick={handleBack}
                 type="text"
             >
-                Back to Receipts
+                {t('receipts.detail.backToList')}
             </Button>
 
             <ReceiptDetailCard receipt={receipt} />
@@ -114,12 +116,12 @@ export default function ReceiptDetailPage() {
             />
 
             <Card>
-                <Title level={5} style={{ marginBottom: 12 }}>Line Items</Title>
+                <Title level={5} style={{ marginBottom: 12 }}>{t('receipts.detail.lineItemsTitle')}</Title>
                 <ReceiptItemsTable items={receipt.items} />
             </Card>
 
             <Card>
-                <Title level={5} style={{ marginBottom: 12 }}>Tax Breakdown</Title>
+                <Title level={5} style={{ marginBottom: 12 }}>{t('receipts.detail.taxBreakdownTitle')}</Title>
                 <ReceiptTaxSummary
                     taxLines={receipt.taxLines}
                     subTotal={receipt.subTotal}

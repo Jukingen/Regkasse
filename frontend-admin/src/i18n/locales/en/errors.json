@@ -1,0 +1,11 @@
+{
+  "forbidden": {
+    "FORBIDDEN": "You do not have permission for this action.",
+    "USERS_VIEW_REQUIRED": "You do not have permission to view users.",
+    "USERS_MANAGE_REQUIRED": "You do not have permission to manage users.",
+    "USERS_EXPORT_REQUIRED": "You do not have permission to export users.",
+    "USERS_ASSIGN_ROLE_REQUIRED": "You do not have permission to assign roles.",
+    "USERS_TRANSFER_BRANCH_REQUIRED": "You do not have permission to transfer users between locations.",
+    "SCOPE_BRANCH": "This action is only allowed within your assigned location."
+  }
+}

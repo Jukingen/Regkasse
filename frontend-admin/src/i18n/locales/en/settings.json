@@ -19,6 +19,9 @@
     "saveChanges": "Save changes",
     "saveFailed": "Saving failed."
   },
+  "display": {
+    "emptyValue": "—"
+  },
   "tabs": {
     "general": "General information",
     "localization": "Region & formatting",
@@ -28,7 +31,10 @@
   },
   "language": {
     "cardTitle": "Language",
-    "label": "Display language"
+    "label": "Display language",
+    "localeDe": "Deutsch",
+    "localeEn": "English",
+    "localeTr": "Türkçe"
   },
   "changePassword": {
     "title": "Change my password",
@@ -46,10 +52,46 @@
   },
   "form": {
     "general": {
-      "cardTitle": "Company & contact"
+      "cardTitle": "Company & contact",
+      "companyName": "Company name",
+      "companyNameRequired": "Company name is required",
+      "companyAddress": "Company address",
+      "companyAddressRequired": "Company address is required",
+      "companyTaxNumber": "Tax number (ATU)",
+      "companyTaxNumberRequired": "Tax number is required",
+      "companyTaxNumberPattern": "Format: ATU + 8 digits",
+      "placeholderAtu": "ATU12345678",
+      "companyVatNumber": "VAT ID (ATU)",
+      "contactPerson": "Contact person",
+      "contactEmail": "Contact email",
+      "contactEmailInvalid": "Invalid email address",
+      "contactPhone": "Contact phone",
+      "companyWebsite": "Website",
+      "bankName": "Bank name",
+      "bankAccountNumber": "IBAN",
+      "bankSwiftCode": "BIC"
     },
     "localization": {
-      "cardTitle": "Region & formatting"
+      "cardTitle": "Region & formatting",
+      "defaultLanguage": "Default language",
+      "defaultLanguageRequired": "Default language is required",
+      "placeholderDefaultLanguage": "de-DE",
+      "defaultCurrency": "Currency",
+      "defaultCurrencyRequired": "Currency is required",
+      "placeholderCurrency": "EUR",
+      "defaultTimeZone": "Time zone",
+      "defaultTimeZoneRequired": "Time zone is required",
+      "placeholderTimeZone": "Europe/Vienna",
+      "defaultDateFormat": "Date format",
+      "defaultDateFormatRequired": "Date format is required",
+      "placeholderDateFormat": "dd.MM.yyyy",
+      "defaultTimeFormat": "Time format",
+      "defaultTimeFormatRequired": "Time format is required",
+      "placeholderTimeFormat": "HH:mm:ss",
+      "receiptNumbering": "Receipt numbering",
+      "receiptNumberingRequired": "Receipt numbering is required",
+      "invoiceNumbering": "Invoice numbering",
+      "invoiceNumberingRequired": "Invoice numbering is required"
     },
     "finanzOnline": {
       "credentialsCardTitle": "Credentials & connectivity",
@@ -58,10 +100,34 @@
       "runtimeCardTitle": "Runtime status (read-only)",
       "runtimeCardDescription": "Runtime status from backend. These fields are read-only and are not written by “Save changes”.",
       "lastSyncLabel": "Last FinanzOnline synchronization",
-      "pendingInvoicesLabel": "Pending invoices"
+      "pendingInvoicesLabel": "Pending invoices",
+      "integrationEnabled": "FinanzOnline integration enabled",
+      "apiUrl": "API URL",
+      "apiUrlMax": "Maximum 500 characters",
+      "apiUrlInvalid": "Please enter a valid URL",
+      "placeholderApiUrl": "https://finanzonline.example.at/api",
+      "participantId": "Participant ID",
+      "participantIdMax": "Maximum 100 characters",
+      "participantIdExtra": "Participant ID or combined participant/user ID depending on provider.",
+      "placeholderParticipantId": "Participant ID",
+      "pin": "PIN",
+      "pinMax": "Maximum 100 characters",
+      "pinExtra": "For security, an existing PIN is never shown. Leave empty to keep the current PIN.",
+      "placeholderPin": "PIN",
+      "sessionTimeout": "Session timeout (min)",
+      "sessionTimeoutRange": "Value must be between 1 and 1440",
+      "autoSubmit": "Automatic submission",
+      "retryAttempts": "Retry attempts",
+      "retryAttemptsRange": "Value must be between 0 and 20",
+      "payloadValidationEnabled": "Payload validation enabled"
     },
     "tse": {
-      "cardTitle": "TSE (Technical security device)"
+      "cardTitle": "TSE (Technical security device)",
+      "autoConnect": "Connect automatically on startup",
+      "defaultDeviceId": "Default TSE device ID",
+      "defaultDeviceIdMax": "Maximum 100 characters",
+      "connectionTimeout": "Connection timeout (ms)",
+      "connectionTimeoutRange": "Value must be between 5 and 120000"
     }
   },
   "paymentMethods": {

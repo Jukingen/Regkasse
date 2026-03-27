@@ -1,0 +1,126 @@
+{
+  "page": {
+    "intro": "Payments in the selected period. Select a row for details, cancellation and refund, and links to receipt and FinanzOnline."
+  },
+  "toolbar": {
+    "refresh": "Refresh",
+    "retryAfterError": "Try again",
+    "terminalStatus": "Terminal status"
+  },
+  "filters": {
+    "methodPlaceholder": "Method",
+    "statusPlaceholder": "Status"
+  },
+  "scope": {
+    "label": "Current view:",
+    "serverLine": "{{count}} from server (max. 500 per request)",
+    "filteredLine": "{{count}} visible after table filters",
+    "methodLine": "Method = {{value}}",
+    "statusLine": "Status = {{value}}"
+  },
+  "list": {
+    "loadErrorTitle": "Could not load payments",
+    "loadErrorFallback": "Could not load payments. Please try again."
+  },
+  "table": {
+    "colTransactionId": "Transaction ID",
+    "colDate": "Date",
+    "colAmount": "Amount",
+    "colMethod": "Payment method",
+    "colStatus": "Status",
+    "colLinkedEntities": "Linked entities",
+    "colActions": "Actions",
+    "details": "Details",
+    "paymentIdPrefix": "Payment ID:",
+    "tagReceipt": "Receipt",
+    "tagInvoice": "Invoice",
+    "tagIncident": "Incident",
+    "foTagPrefix": "FO"
+  },
+  "stats": {
+    "paymentCount": "Payment count",
+    "totalAmount": "Total amount",
+    "average": "Average",
+    "tseSigned": "TSE signed",
+    "finanzOnlineSent": "FinanzOnline sent",
+    "foSentAmount": "FO amount sent"
+  },
+  "empty": {
+    "description": "No payments for this period or the selected filters."
+  },
+  "drawer": {
+    "title": "Payment details",
+    "loadingDetails": "Loading details…",
+    "noDetailData": "No detail data available"
+  },
+  "detail": {
+    "sectionCore": "Core information",
+    "sectionLinked": "Linked entities",
+    "sectionOrigin": "Operation / origin",
+    "sectionOfflineReplay": "Offline / replay",
+    "offlineReplayIntro": "Correlation between offline queue and server replay (support).",
+    "sectionFinanzOnline": "FinanzOnline",
+    "rawApiCollapse": "Raw API response (technical)",
+    "labelPaymentId": "Payment ID",
+    "labelTransaction": "Transaction",
+    "labelReceiptNumber": "Receipt number",
+    "labelTimestampServer": "Timestamp (server)",
+    "labelAmount": "Amount",
+    "labelPaymentMethodRaw": "Payment method (raw)",
+    "labelCashRegisterFk": "Register (FK, UUID)",
+    "labelCustomerName": "Customer name",
+    "labelIdempotencyKey": "Idempotency key",
+    "labelReceiptId": "Receipt ID",
+    "labelInvoice": "Invoice",
+    "labelReplayCorrelation": "Replay batch correlation ID",
+    "open": "Open",
+    "labelPaymentOrigin": "Payment origin",
+    "originOffline": "Offline queue → server replay",
+    "originOnline": "Direct (online)",
+    "labelReceiptNumberSet": "Receipt number set",
+    "labelReceiptIdShort": "Receipt ID",
+    "labelInvoicePersistedApi": "Invoice persisted (API)",
+    "invoicePersistedLegacyMissing": "— (field missing in older API response)",
+    "labelOfflineTxId": "Offline transaction ID",
+    "labelFoStatus": "Status",
+    "labelFoError": "Error",
+    "labelFoReferenceId": "Reference ID",
+    "labelFoLastAttemptUtc": "Last attempt (UTC)",
+    "labelFoRetries": "Retries",
+    "buttonOpenReceipt": "Open receipt",
+    "backendMessageTooltip": "Unreviewed server message (language not guaranteed)",
+    "cancelPermissionTitle": "Cancellation not allowed",
+    "cancelPermissionDesc": "You do not have permission to cancel payments.",
+    "refundPermissionTitle": "Refund not allowed",
+    "refundPermissionDesc": "You do not have permission to issue refunds.",
+    "cancelCardTitle": "Cancellation",
+    "cancelReasonPlaceholder": "Cancellation reason",
+    "cancelButton": "Submit cancellation",
+    "cancelModalTitle": "Cancel payment?",
+    "cancelModalContent": "This action cancels the payment. Continue?",
+    "cancelOk": "Cancel payment",
+    "cancelCancel": "Abort",
+    "refundCardTitle": "Refund",
+    "refundAmountPlaceholder": "Amount",
+    "refundReasonPlaceholder": "Refund reason",
+    "refundButton": "Submit refund",
+    "refundModalTitle": "Process refund?",
+    "refundModalContent": "This action creates a refund for the selected payment. Continue?",
+    "refundOk": "Process refund",
+    "refundCancel": "Abort"
+  },
+  "messages": {
+    "cancelSuccess": "Payment cancelled",
+    "cancelError": "Cancellation failed",
+    "refundSuccess": "Refund processed",
+    "refundError": "Refund failed",
+    "noPaymentSelected": "No payment selected",
+    "noReceiptForPayment": "No receipt found for this payment",
+    "errorNoPaymentSelected": "No payment selected",
+    "errorRefundAmountPositive": "Refund amount must be greater than 0"
+  },
+  "display": {
+    "yes": "Yes",
+    "no": "No"
+  }
+}

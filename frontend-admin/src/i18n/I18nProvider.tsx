@@ -12,6 +12,8 @@ import {
   type TextLocale,
 } from './config';
 import { getStoredLanguage, setStoredLanguage } from './languageStorage';
+import { USER_FACING_MISSING_TRANSLATION_LABEL } from './translationFallback';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 type TranslateOptions = Record<string, string | number>;
 const missingRuntimeKeys = new Set<string>();
@@ -58,8 +60,10 @@ function interpolate(template: string, options?: TranslateOptions): string {
 
 function trackMissingRuntimeKey(locale: string, key: string) {
   const marker = `${locale}|${key}`;
-  if (isDevRuntime || !missingRuntimeKeys.has(marker)) {
-    console.warn(`[i18n-missing-key][frontend-admin] locale="${locale}" key="${key}"`);
+  if (isDevRuntime && !missingRuntimeKeys.has(marker)) {
+    technicalConsole.warn(
+      `[i18n] Missing translation key (dev diagnostic, English-only). locale="${locale}" key="${key}"`,
+    );
   }
   missingRuntimeKeys.add(marker);
 }
@@ -70,6 +74,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [isLocaleReady, setIsLocaleReady] = useState(false);
 
   useEffect(() => {
+    // Metin dili: localStorage yoksa strict `de` (tarayıcı dili kullanılmaz — languageStorage).
     const storedTextLocale = getStoredLanguage();
     const savedFormatLocale = typeof window !== 'undefined' ? window.localStorage.getItem(FORMAT_STORAGE_KEY) : null;
     const nextFormatLocale = savedFormatLocale
@@ -111,11 +116,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       const { namespace, path } = parseTranslationKey(key);
       const ns = namespace as AdminNamespace;
       const active = resolveFromPath((activeCatalog as Record<string, unknown>)[ns], path);
-      const fallback = resolveFromPath((fallbackCatalog as Record<string, unknown>)[ns], path);
-      const resolved = active || fallback;
+      const fallbackDe = resolveFromPath((fallbackCatalog as Record<string, unknown>)[ns], path);
+      const resolved = active || fallbackDe;
       if (!resolved) {
         trackMissingRuntimeKey(textLocale, key);
-        return key;
+        return USER_FACING_MISSING_TRANSLATION_LABEL;
       }
       return interpolate(resolved, options);
     };

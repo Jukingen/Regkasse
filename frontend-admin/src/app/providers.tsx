@@ -4,12 +4,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import React, { useState, ReactNode } from 'react';
 import { I18nProvider } from '@/i18n';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 export default function QueryProvider({ children }: { children: ReactNode }) {
     // Standard Next.js 14 pattern for QueryClient stability
     const [queryClient] = useState(() => {
         if (process.env.NODE_ENV === 'development') {
-            console.log('⚡ [QueryClient] Initializing new instance');
+            technicalConsole.devLog('[QueryClient] Initializing new instance');
         }
         return new QueryClient({
             defaultOptions: {

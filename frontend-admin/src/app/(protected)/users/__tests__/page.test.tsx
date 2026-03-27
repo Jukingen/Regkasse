@@ -24,6 +24,7 @@ beforeAll(() => {
 import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { message } from 'antd';
+import { I18nProvider } from '@/i18n';
 import UsersPage from '../page';
 import type { UserInfo } from '@/features/users/api/usersGateway';
 import type { UsersListResponse } from '@/features/users/api/usersApi';
@@ -144,7 +145,9 @@ function renderPage() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <UsersPage />
+      <I18nProvider>
+        <UsersPage />
+      </I18nProvider>
     </QueryClientProvider>
   );
 }
@@ -335,7 +338,9 @@ describe('Users page', () => {
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
       render(
         <QueryClientProvider client={queryClient}>
-          <UsersPage />
+          <I18nProvider>
+            <UsersPage />
+          </I18nProvider>
         </QueryClientProvider>
       );
       await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());

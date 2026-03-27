@@ -1,8 +1,9 @@
 'use client';
 
 import React, { ReactNode } from 'react';
-import { Typography, Space, Breadcrumb, Divider } from 'antd';
+import { Typography, Space, Breadcrumb } from 'antd';
 import Link from 'next/link';
+import { useI18n } from '@/i18n';
 
 const { Title } = Typography;
 
@@ -15,10 +16,12 @@ interface AdminPageHeaderProps {
 }
 
 export function AdminPageHeader({ title, breadcrumbs, actions, children }: AdminPageHeaderProps) {
+    const { t } = useI18n();
+
     return (
         <div style={{ marginBottom: 24 }}>
             {breadcrumbs && (
-                <nav aria-label="Brotkrümelnavigation" style={{ marginBottom: 16 }}>
+                <nav aria-label={t('common.aria.breadcrumbNav')} style={{ marginBottom: 16 }}>
                     <Breadcrumb
                         items={breadcrumbs.map((b) => ({
                             title: b.href ? <Link href={b.href}>{b.title}</Link> : b.title,

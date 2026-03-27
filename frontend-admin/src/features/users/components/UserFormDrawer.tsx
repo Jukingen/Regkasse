@@ -193,7 +193,12 @@ export function UserFormDrawer({
             {rolesLoading && roleOptions.length === 0 ? (
               <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>{usersCopy.rolesLoading}</span>
             ) : (
-              <Radio.Group options={roleOptions.map((opt) => ({ value: opt.value, label: usersCopy.roleDisplayName(opt.value) }))} />
+              <Radio.Group
+                options={roleOptions.map((opt) => ({
+                  value: opt.value,
+                  label: opt.label ?? usersCopy.roleDisplayName(opt.value),
+                }))}
+              />
             )}
           </Form.Item>
           <Form.Item name="taxNumber" label={usersCopy.taxNumber} rules={rules.taxNumber}>

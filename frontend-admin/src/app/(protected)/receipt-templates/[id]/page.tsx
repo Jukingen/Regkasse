@@ -16,6 +16,7 @@ import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabel
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 
 import type { UpdateReceiptTemplateRequest } from '@/api/generated/model';
+import { useI18n } from '@/i18n';
 
 function isNotFoundError(err: unknown): boolean {
     const status =
@@ -25,6 +26,7 @@ function isNotFoundError(err: unknown): boolean {
 }
 
 export default function EditReceiptTemplatePage() {
+    const { t } = useI18n();
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
     const [showPreview, setShowPreview] = useState(false);
@@ -48,11 +50,11 @@ export default function EditReceiptTemplatePage() {
     const { mutate: updateTemplate, isPending } = useUpdate({
         mutation: {
             onSuccess: () => {
-                message.success('Vorlage aktualisiert.');
+                message.success(t('receiptTemplates.page.updateSuccess'));
                 invalidateList();
             },
-            onError: (error: Error) => {
-                message.error(`Aktualisierung fehlgeschlagen: ${error.message}`);
+            onError: (err: Error) => {
+                message.error(t('receiptTemplates.page.updateError', { message: err.message }));
             },
         },
     });
@@ -64,7 +66,7 @@ export default function EditReceiptTemplatePage() {
     if (!isInitialized || !canManage) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-                <Spin size="large" tip="Zugriff wird geprüft…" />
+                <Spin size="large" tip={t('receiptTemplates.page.accessCheck')} />
             </div>
         );
     }
@@ -73,26 +75,26 @@ export default function EditReceiptTemplatePage() {
         return (
             <React.Fragment>
                 <AdminPageHeader
-                    title="Vorlage bearbeiten"
+                    title={t('receiptTemplates.page.editTitle')}
                     breadcrumbs={[
                         ADMIN_OVERVIEW_CRUMB,
                         { title: ADMIN_NAV_LABELS.receiptTemplates, href: '/receipt-templates' },
-                        { title: 'Bearbeiten' },
+                        { title: t('receiptTemplates.page.breadcrumbEdit') },
                     ]}
                     actions={
                         <Button icon={<ArrowLeftOutlined />} onClick={() => router.push('/receipt-templates')}>
-                            Zur Liste
+                            {t('receiptTemplates.page.backToList')}
                         </Button>
                     }
                 />
                 <Card>
                     <Alert
                         type="warning"
-                        message="Vorlage nicht gefunden"
-                        description="Die Vorlage wurde gelöscht oder Sie haben keinen Zugriff."
+                        message={t('receiptTemplates.page.templateNotFoundTitle')}
+                        description={t('receiptTemplates.page.templateNotFoundDescription')}
                         showIcon
                         action={
-                            <Button onClick={() => router.push('/receipt-templates')}>Zur Liste</Button>
+                            <Button onClick={() => router.push('/receipt-templates')}>{t('receiptTemplates.page.backToList')}</Button>
                         }
                     />
                 </Card>
@@ -103,11 +105,13 @@ export default function EditReceiptTemplatePage() {
     return (
         <React.Fragment>
             <AdminPageHeader
-                title={`Vorlage bearbeiten: ${data?.templateName || '…'}`}
+                title={t('receiptTemplates.page.editTitleWithName', {
+                    name: data?.templateName || '…',
+                })}
                 breadcrumbs={[
                     ADMIN_OVERVIEW_CRUMB,
                     { title: ADMIN_NAV_LABELS.receiptTemplates, href: '/receipt-templates' },
-                    { title: 'Bearbeiten' },
+                    { title: t('receiptTemplates.page.breadcrumbEdit') },
                 ]}
                 actions={
                     <>
@@ -115,14 +119,14 @@ export default function EditReceiptTemplatePage() {
                             icon={<ArrowLeftOutlined />}
                             onClick={() => router.push('/receipt-templates')}
                         >
-                            Zurück
+                            {t('receiptTemplates.page.back')}
                         </Button>
                         <Button
                             icon={<EyeOutlined />}
                             onClick={() => setShowPreview(true)}
                             disabled={!data}
                         >
-                            Preview
+                            {t('receiptTemplates.page.previewButton')}
                         </Button>
                     </>
                 }
@@ -133,7 +137,7 @@ export default function EditReceiptTemplatePage() {
                 isError={isError}
                 error={error as Error}
                 isEmpty={!id}
-                emptyText="Template ID missing"
+                emptyText={t('receiptTemplates.page.emptyTemplateId')}
             >
                 {data && (
                     <ReceiptTemplateForm

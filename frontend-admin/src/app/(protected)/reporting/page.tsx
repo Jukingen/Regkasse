@@ -30,6 +30,7 @@ dayjs.extend(utc);
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
+import { formatCurrency } from '@/i18n/formatting';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import {
   getApiReportsOperationalExportSummaryCsv,
@@ -135,6 +136,11 @@ export default function ReportingPage() {
   );
 
   const { data: registers } = useGetApiCashRegister();
+  const registerRows = Array.isArray((registers as { registers?: CashRegister[] } | undefined)?.registers)
+    ? ((registers as { registers?: CashRegister[] }).registers ?? [])
+    : Array.isArray(registers)
+      ? (registers as CashRegister[])
+      : [];
   const { data: usersPage } = useGetApiUserManagement({ pageSize: 500, isActive: true });
 
   const summaryQ = useGetApiReportsOperationalSummary(filterParams, {
@@ -179,14 +185,7 @@ export default function ReportingPage() {
     return closingsRows.filter((r) => r.status === closingStatusFilter);
   }, [closingsRows, closingStatusFilter]);
 
-  const moneyFmt = useMemo(
-    () =>
-      new Intl.NumberFormat(formatLocale || 'de-AT', {
-        style: 'currency',
-        currency: 'EUR',
-      }),
-    [formatLocale],
-  );
+  const formatMoney = useCallback((v: number) => formatCurrency(v, formatLocale), [formatLocale]);
 
   const onExportCsv = useCallback(async () => {
     if (!canExport) {
@@ -242,7 +241,7 @@ export default function ReportingPage() {
     {
       title: t('adminShell.reporting.amount'),
       dataIndex: 'totalAmount',
-      render: (v: number) => moneyFmt.format(Number(v ?? 0)),
+      render: (v: number) => formatMoney(Number(v ?? 0)),
     },
   ];
 
@@ -252,7 +251,7 @@ export default function ReportingPage() {
     {
       title: t('adminShell.reporting.amount'),
       dataIndex: 'totalAmount',
-      render: (v: number) => moneyFmt.format(Number(v ?? 0)),
+      render: (v: number) => formatMoney(Number(v ?? 0)),
     },
   ];
 
@@ -266,7 +265,7 @@ export default function ReportingPage() {
     {
       title: t('adminShell.reporting.closingAmount'),
       dataIndex: 'totalAmount',
-      render: (v: number) => moneyFmt.format(Number(v ?? 0)),
+      render: (v: number) => formatMoney(Number(v ?? 0)),
     },
     { title: t('adminShell.reporting.closingTx'), dataIndex: 'transactionCount' },
     {
@@ -278,13 +277,13 @@ export default function ReportingPage() {
 
   const registerOptions = useMemo(
     () =>
-      (registers ?? [])
+      registerRows
         .filter((r: CashRegister) => r.id)
         .map((r: CashRegister) => ({
           value: r.id as string,
           label: `${r.registerNumber} — ${r.location}`,
         })),
-    [registers],
+    [registerRows],
   );
 
   const cashierOptions = useMemo(() => {
@@ -400,7 +399,7 @@ export default function ReportingPage() {
                     <Card size="small">
                       <Typography.Text type="secondary">{t('adminShell.reporting.gross')}</Typography.Text>
                       <div style={{ fontSize: 20, fontWeight: 600 }}>
-                        {moneyFmt.format(Number(activeSummary?.grossTotalAmount ?? 0))}
+                        {formatMoney(Number(activeSummary?.grossTotalAmount ?? 0))}
                       </div>
                     </Card>
                   </Col>
@@ -408,7 +407,7 @@ export default function ReportingPage() {
                     <Card size="small">
                       <Typography.Text type="secondary">{t('adminShell.reporting.tax')}</Typography.Text>
                       <div style={{ fontSize: 20, fontWeight: 600 }}>
-                        {moneyFmt.format(Number(activeSummary?.taxTotalAmount ?? 0))}
+                        {formatMoney(Number(activeSummary?.taxTotalAmount ?? 0))}
                       </div>
                     </Card>
                   </Col>
@@ -416,7 +415,7 @@ export default function ReportingPage() {
                     <Card size="small">
                       <Typography.Text type="secondary">{t('adminShell.reporting.refunds')}</Typography.Text>
                       <div style={{ fontSize: 20, fontWeight: 600 }}>
-                        {moneyFmt.format(Number(activeSummary?.refundAmountTotal ?? 0))}
+                        {formatMoney(Number(activeSummary?.refundAmountTotal ?? 0))}
                       </div>
                     </Card>
                   </Col>
@@ -490,11 +489,11 @@ export default function ReportingPage() {
                       <Row gutter={16}>
                         <Col span={8}>
                           {t('adminShell.reporting.gross')}:{' '}
-                          <strong>{moneyFmt.format(Number(periodicQ.data.summary.grossTotalAmount ?? 0))}</strong>
+                          <strong>{formatMoney(Number(periodicQ.data.summary.grossTotalAmount ?? 0))}</strong>
                         </Col>
                         <Col span={8}>
                           {t('adminShell.reporting.refunds')}:{' '}
-                          <strong>{moneyFmt.format(Number(periodicQ.data.summary.refundAmountTotal ?? 0))}</strong>
+                          <strong>{formatMoney(Number(periodicQ.data.summary.refundAmountTotal ?? 0))}</strong>
                         </Col>
                         <Col span={8}>
                           {t('adminShell.reporting.rows')}: <strong>{periodicQ.data.summary.paymentRowCount}</strong>
@@ -531,7 +530,7 @@ export default function ReportingPage() {
                     <Card size="small">
                       <Typography.Text type="secondary">{t('adminShell.reporting.gross')}</Typography.Text>
                       <div style={{ fontSize: 20, fontWeight: 600 }}>
-                        {moneyFmt.format(Number(interimQ.data?.summary?.grossTotalAmount ?? 0))}
+                        {formatMoney(Number(interimQ.data?.summary?.grossTotalAmount ?? 0))}
                       </div>
                     </Card>
                   </Col>

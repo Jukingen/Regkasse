@@ -56,6 +56,7 @@ import { readRksvPublicEnvironment } from '../rksvHubEnv';
 import type { OpsHealthLevel } from '../types';
 import type { GetApiAdminOfflineIntentCoverageParams, GetApiAdminOperationsSummaryParams } from '@/api/generated/model';
 import { useI18n } from '@/i18n/I18nProvider';
+import { formatDateTime } from '@/i18n/formatting';
 
 const PAYLOAD_QUICK_MAX_ROWS = 5000;
 
@@ -306,8 +307,8 @@ export function RksvOperationsDashboard() {
   }, [queryClient]);
 
   const refreshedLabel = useMemo(
-    () => refreshedAt.toLocaleString(formatLocale),
-    [refreshedAt, formatLocale]
+    () => formatDateTime(refreshedAt, formatLocale),
+    [refreshedAt, formatLocale],
   );
 
   const envBanner =

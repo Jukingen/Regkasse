@@ -16,6 +16,37 @@
   "messages": {
     "unknownError": "Unknown error"
   },
+  "errors": {
+    "http400": "Invalid request.",
+    "http401": "Authentication required.",
+    "http403": "Access denied.",
+    "http404": "Not found.",
+    "http409": "Conflict.",
+    "http422": "Validation failed.",
+    "http429": "Too many requests. Try again later.",
+    "http500": "Server error. Try again later.",
+    "http503": "Service temporarily unavailable.",
+    "network": "Network error. Check your connection."
+  },
+  "backend": {
+    "serverHintIntro": "Message from server (language not guaranteed):",
+    "rawMessagesNotice": "The following lines are passed through unchanged from the server (not localized)."
+  },
+  "aria": {
+    "breadcrumbNav": "Breadcrumb navigation",
+    "pageScopeContext": "Current view and filter context"
+  },
+  "system": {
+    "status403": "403",
+    "forbidden403Subtitle": "You are not authorized to access this page.",
+    "status404": "404",
+    "notFound404Subtitle": "The requested page does not exist.",
+    "backToDashboard": "Back to overview"
+  },
+  "dataList": {
+    "errorLoadTitle": "Error loading data",
+    "emptyDefault": "No data found"
+  },
   "auth": {
     "subtitle": "Sign in to manage your POS system",
     "username": "Username",
@@ -23,6 +54,8 @@
     "login": "Log in",
     "loginSuccess": "Login successful",
     "loginFailedWithStatus": "Login failed ({{status}}): {{details}}",
+    "loginInvalidCredentials": "Invalid username or password.",
+    "loginFailedGeneric": "Login failed. Please try again.",
     "validation": {
       "usernameRequired": "Please input your username!",
       "passwordRequired": "Please input your password!"

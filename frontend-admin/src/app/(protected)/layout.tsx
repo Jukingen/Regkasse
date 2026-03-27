@@ -44,7 +44,7 @@ import { canViewUsers, canShowRksvMenu } from '@/features/auth/constants/roles';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import { buildRksvMenuGroups, getRksvOpenSubgroupKeys } from '@/shared/rksvMenuModel';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n/I18nProvider';
+import { useI18n } from '@/i18n';
 import {
     ADMIN_SIDEBAR_GROUP_KEYS,
     collectSelectableRouteKeysFromMenuItems,
@@ -53,6 +53,7 @@ import {
     resolveAdminMenuSelectedKeys,
     type SidebarPermissionContext,
 } from '@/shared/adminSidebarNavigation';
+import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -399,12 +400,15 @@ export default function DashboardLayout({
                                 height: 64,
                             }}
                         />
-                        <Dropdown menu={userMenu} placement="bottomRight">
-                            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Avatar icon={<UserOutlined />} />
-                                {!isMobile && <span>{user?.firstName ? `${user.firstName} ${user.lastName}` : t('adminShell.branding.fallbackUserName')}</span>}
-                            </div>
-                        </Dropdown>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <HeaderLanguageQuickSwitch />
+                            <Dropdown menu={userMenu} placement="bottomRight">
+                                <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <Avatar icon={<UserOutlined />} />
+                                    {!isMobile && <span>{user?.firstName ? `${user.firstName} ${user.lastName}` : t('adminShell.branding.fallbackUserName')}</span>}
+                                </div>
+                            </Dropdown>
+                        </div>
                     </Header>
                     <Content
                         style={{

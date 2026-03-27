@@ -3,6 +3,7 @@
 import { useEffect, useRef, ReactNode, FC } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { Spin } from 'antd';
 
 interface GuardProps {
@@ -29,7 +30,7 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
         if (mode === 'protected') {
             if (authStatus === AuthStatus.Unauthenticated) {
                 if (alreadyRedirected.current !== '/login' && currentPath !== '/login') {
-                    console.log(`🔒 [AuthGate] Protected mode: '${currentPath}' -> /login`);
+                    technicalConsole.devLog(`[AuthGate] protected mode redirect: ${currentPath} -> /login`);
                     alreadyRedirected.current = '/login';
                     router.replace('/login');
                 }
@@ -39,7 +40,7 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
         else if (mode === 'public') {
             if (authStatus === AuthStatus.Authenticated) {
                 if (alreadyRedirected.current !== '/dashboard' && currentPath !== '/dashboard') {
-                    console.log(`🔒 [AuthGate] Public mode: '${currentPath}' -> /dashboard`);
+                    technicalConsole.devLog(`[AuthGate] public mode redirect: ${currentPath} -> /dashboard`);
                     alreadyRedirected.current = '/dashboard';
                     router.replace('/dashboard');
                 }

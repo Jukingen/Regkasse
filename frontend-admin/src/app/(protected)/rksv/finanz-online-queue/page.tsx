@@ -5,7 +5,7 @@
  * plus remediation (POST retry per payment). Operational truth is read path; mutations are isolated in row actions.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     Card,
     Table,
@@ -32,7 +32,7 @@ import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { useI18n } from '@/i18n/I18nProvider';
+import { formatCurrency, formatDateTime, useI18n } from '@/i18n';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_NAV_LABEL_KEYS, ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
     parseAuthoritativePaymentGuid,
@@ -99,7 +99,7 @@ function statusBadgeColor(status: string | null): string {
 }
 
 export default function FinanzOnlineReconciliationPage() {
-    const { t } = useI18n();
+    const { t, formatLocale } = useI18n();
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
     const initialStatusFilter = useMemo(() => {
@@ -153,6 +153,15 @@ export default function FinanzOnlineReconciliationPage() {
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>(initialDateRange);
     const [retryingId, setRetryingId] = useState<string | null>(null);
 
+    const statusOptions = useMemo(
+        () =>
+            (['Pending', 'Failed', 'NeedsReconciliation', 'Submitted'] as const).map((value) => ({
+                value,
+                label: t(`finanzOnlineReconciliation.queuePage.statusOption.${value}`),
+            })),
+        [t],
+    );
+
     const listParams: GetApiAdminFinanzonlineReconciliationParams = useMemo(() => {
         const p: GetApiAdminFinanzonlineReconciliationParams = {
             status: statusFilter.length ? statusFilter.join(',') : undefined,
@@ -186,33 +195,38 @@ export default function FinanzOnlineReconciliationPage() {
     const retryMutation = useMutation({
         mutationFn: (paymentId: string) => postApiAdminFinanzonlineReconciliationRetryPaymentId(paymentId),
         onSuccess: (result, paymentId) => {
+            const msg = result.message ?? '';
             if (result.success) {
-                message.success(`Zahlung ${paymentId}: ${result.message}`);
+                message.success(t('finanzOnlineReconciliation.queuePage.retry.success', { paymentId, message: msg }));
             } else {
-                message.warning(`Zahlung ${paymentId}: ${result.message}`);
+                message.warning(t('finanzOnlineReconciliation.queuePage.retry.warning', { paymentId, message: msg }));
             }
             setRetryingId(null);
             queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.base });
             queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.metrics });
         },
         onError: (err: Error, paymentId) => {
-            const msg = err?.message || 'Retry fehlgeschlagen';
-            message.error(`Retry für ${paymentId}: ${msg}`);
+            const msg = err?.message || t('finanzOnlineReconciliation.queuePage.retry.errorFallback');
+            message.error(t('finanzOnlineReconciliation.queuePage.retry.error', { paymentId, message: msg }));
             setRetryingId(null);
             queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.base });
         },
     });
 
-    const handleRetry = (paymentId: string) => {
-        setRetryingId(paymentId);
-        retryMutation.mutate(paymentId);
-    };
+    const handleRetry = useCallback(
+        (paymentId: string) => {
+            setRetryingId(paymentId);
+            retryMutation.mutate(paymentId);
+        },
+        [retryMutation],
+    );
 
-    const columns = [
+    const columns = useMemo(
+        () => [
         {
             title: (
-                <Tooltip title="Belegnummer aus der Abgleichs-API (Listen-DTO).">
-                    <span>Belegnummer</span>
+                <Tooltip title={t('finanzOnlineReconciliation.queuePage.columns.receiptNumberTooltip')}>
+                    <span>{t('finanzOnlineReconciliation.queuePage.columns.receiptNumber')}</span>
                 </Tooltip>
             ),
             dataIndex: 'receiptNumber',
@@ -224,15 +238,15 @@ export default function FinanzOnlineReconciliationPage() {
                         {val || '—'}
                     </Typography.Text>
                     <Link href={`/receipts?receiptNumber=${encodeURIComponent(val || '')}`} target="_blank" rel="noopener noreferrer">
-                        Belege suchen
+                        {t('finanzOnlineReconciliation.queuePage.columns.searchReceiptsLink')}
                     </Link>
                 </Space>
             ),
         },
         {
             title: (
-                <Tooltip title="Zahlungs-ID (paymentId) — Primärschlüssel für Retry und Verknüpfungen.">
-                    <span>Zahlung</span>
+                <Tooltip title={t('finanzOnlineReconciliation.queuePage.columns.paymentTooltip')}>
+                    <span>{t('finanzOnlineReconciliation.queuePage.columns.paymentShort')}</span>
                 </Tooltip>
             ),
             key: 'paymentId',
@@ -243,7 +257,7 @@ export default function FinanzOnlineReconciliationPage() {
                 return (
                     <Space direction="vertical" size={2} style={{ maxWidth: 228 }}>
                         <Link href={`/payments?paymentId=${paymentId}`} target="_blank" rel="noopener noreferrer">
-                            In Zahlungen öffnen
+                            {t('finanzOnlineReconciliation.queuePage.columns.openInPayments')}
                         </Link>
                         <Typography.Text code copyable={{ text: paymentId }} style={{ fontSize: 11, wordBreak: 'break-all' }}>
                             {paymentId}
@@ -255,7 +269,7 @@ export default function FinanzOnlineReconciliationPage() {
         {
             title: (
                 <Tooltip title={OPERATOR_FO_QUEUE_COPY.foStatusColumnTooltip}>
-                    <span>FO-Status</span>
+                    <span>{t('finanzOnlineReconciliation.queuePage.columns.foStatusShort')}</span>
                 </Tooltip>
             ),
             dataIndex: 'finanzOnlineStatus',
@@ -268,7 +282,7 @@ export default function FinanzOnlineReconciliationPage() {
         {
             title: (
                 <Tooltip title={OPERATOR_FO_QUEUE_COPY.foActionColumnTooltip}>
-                    <span>FO-Aktion (UI)</span>
+                    <span>{t('finanzOnlineReconciliation.queuePage.columns.foActionColumnShort')}</span>
                 </Tooltip>
             ),
             key: 'foRetryUi',
@@ -285,7 +299,7 @@ export default function FinanzOnlineReconciliationPage() {
         {
             title: (
                 <Tooltip title={OPERATOR_FO_QUEUE_COPY.foTimelineColumnTooltip}>
-                    <span>FO-Verlauf (API)</span>
+                    <span>{t('finanzOnlineReconciliation.queuePage.columns.foTimelineShort')}</span>
                 </Tooltip>
             ),
             key: 'foTimeline',
@@ -293,18 +307,21 @@ export default function FinanzOnlineReconciliationPage() {
             render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => (
                 <Space direction="vertical" size={0}>
                     <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                        Zeile erstellt:{' '}
+                        {t('finanzOnlineReconciliation.queuePage.columns.rowCreated')}{' '}
                         {r.createdAt && dayjs(r.createdAt).isValid()
-                            ? dayjs(r.createdAt).format('DD.MM. HH:mm')
+                            ? formatDateTime(r.createdAt, formatLocale, { dateStyle: 'short', timeStyle: 'short' })
                             : '—'}
                     </Typography.Text>
                     <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                        Versuche: {r.finanzOnlineRetryCount ?? 0}
+                        {t('finanzOnlineReconciliation.queuePage.columns.attempts')} {r.finanzOnlineRetryCount ?? 0}
                     </Typography.Text>
                     <Typography.Text style={{ fontSize: 11 }}>
-                        Letzter Versuch:{' '}
+                        {t('finanzOnlineReconciliation.queuePage.columns.lastAttempt')}{' '}
                         {r.finanzOnlineLastAttemptAtUtc && dayjs(r.finanzOnlineLastAttemptAtUtc).isValid()
-                            ? dayjs(r.finanzOnlineLastAttemptAtUtc).format('DD.MM. HH:mm')
+                            ? formatDateTime(r.finanzOnlineLastAttemptAtUtc, formatLocale, {
+                                  dateStyle: 'short',
+                                  timeStyle: 'short',
+                              })
                             : '—'}
                     </Typography.Text>
                 </Space>
@@ -313,7 +330,7 @@ export default function FinanzOnlineReconciliationPage() {
         {
             title: (
                 <Tooltip title={OPERATOR_FO_QUEUE_COPY.foErrorShortTooltip}>
-                    <span>Fehler (Kurz)</span>
+                    <span>{t('finanzOnlineReconciliation.queuePage.columns.errorShort')}</span>
                 </Tooltip>
             ),
             key: 'finanzOnlineError',
@@ -347,19 +364,20 @@ export default function FinanzOnlineReconciliationPage() {
         },
         {
             title: (
-                <Tooltip title="totalAmount — Betrag der Zahlung im Listen-DTO.">
-                    <span>Betrag</span>
+                <Tooltip title={t('finanzOnlineReconciliation.queuePage.columns.amountTooltip')}>
+                    <span>{t('finanzOnlineReconciliation.queuePage.columns.amountShort')}</span>
                 </Tooltip>
             ),
             dataIndex: 'totalAmount',
             key: 'totalAmount',
             width: 90,
-            render: (v: number) => (v != null ? `€ ${Number(v).toFixed(2)}` : '—'),
+            render: (v: number) =>
+                v != null ? formatCurrency(Number(v), formatLocale) : '—',
         },
         {
             title: (
                 <Tooltip title={adminTruthTooltip('authoritative_api')}>
-                    <span>Register (FK)</span>
+                    <span>{t('finanzOnlineReconciliation.queuePage.columns.registerFkShort')}</span>
                 </Tooltip>
             ),
             key: 'cashRegisterId',
@@ -390,7 +408,7 @@ export default function FinanzOnlineReconciliationPage() {
                         />
                         {v.registerFkRawNotLinkSafe ? (
                             <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                                Rohwert sichtbar; kein UUID für sichere Kassen-URLs.
+                                {t('finanzOnlineReconciliation.queuePage.columns.rawRegisterVisible')}
                             </Typography.Text>
                         ) : null}
                     </Space>
@@ -398,7 +416,7 @@ export default function FinanzOnlineReconciliationPage() {
             },
         },
         {
-            title: 'Aktionen',
+            title: t('finanzOnlineReconciliation.queuePage.columns.actions'),
             key: 'actions',
             width: 100,
             fixed: 'right' as const,
@@ -415,13 +433,15 @@ export default function FinanzOnlineReconciliationPage() {
                             loading={loading}
                             onClick={() => handleRetry(paymentId)}
                         >
-                            Erneut senden
+                            {t('finanzOnlineReconciliation.queuePage.columns.retrySend')}
                         </Button>
                     </Tooltip>
                 ) : null;
             },
         },
-    ];
+        ],
+        [t, formatLocale, retryingId, handleRetry],
+    );
 
     const isLoading = listLoading || metricsLoading;
     const items = listData?.items ?? [];
@@ -466,9 +486,13 @@ export default function FinanzOnlineReconciliationPage() {
                         {OPERATOR_FO_OPERATIONS_PAGE_COPY.breadcrumbTitle}
                     </Link>
                     {' · '}
-                    <Link href="/rksv/integrity">Datenintegrität (Support)</Link>
+                    <Link href="/rksv/integrity">
+                        {t('finanzOnlineReconciliation.queuePage.relatedLinks.integritySupport')}
+                    </Link>
                     {' · '}
-                    <Link href="/rksv/incident">Incident (Correlation)</Link>
+                    <Link href="/rksv/incident">
+                        {t('finanzOnlineReconciliation.queuePage.relatedLinks.incidentCorrelation')}
+                    </Link>
                     {' · '}
                     <Link href="/payments">{ADMIN_NAV_LABELS.payments}</Link>
                 </Typography.Paragraph>
@@ -674,7 +698,7 @@ export default function FinanzOnlineReconciliationPage() {
                     <Col xs={24} sm={12} md={6}>
                         <Card size="small">
                             <Statistic
-                                title="Submit gesamt (Lauf)"
+                                title={t('finanzOnlineReconciliation.queuePage.metrics.submitTotalRun')}
                                 value={metricsData?.submitTotal ?? 0}
                                 loading={metricsLoading}
                             />
@@ -683,7 +707,7 @@ export default function FinanzOnlineReconciliationPage() {
                     <Col xs={24} sm={12} md={6}>
                         <Card size="small">
                             <Statistic
-                                title="Fehlgeschlagen gesamt"
+                                title={t('finanzOnlineReconciliation.queuePage.metrics.failedTotal')}
                                 value={metricsData?.submitFailedTotal ?? 0}
                                 loading={metricsLoading}
                             />
@@ -692,7 +716,7 @@ export default function FinanzOnlineReconciliationPage() {
                     <Col xs={24} sm={12} md={6}>
                         <Card size="small">
                             <Statistic
-                                title="Transient (Metrik)"
+                                title={t('finanzOnlineReconciliation.queuePage.metrics.transientMetric')}
                                 value={metricsData?.submitFailedTransient ?? 0}
                                 loading={metricsLoading}
                             />
@@ -701,7 +725,7 @@ export default function FinanzOnlineReconciliationPage() {
                     <Col xs={24} sm={12} md={6}>
                         <Card size="small">
                             <Statistic
-                                title="Permanent (Metrik)"
+                                title={t('finanzOnlineReconciliation.queuePage.metrics.permanentMetric')}
                                 value={metricsData?.submitFailedPermanent ?? 0}
                                 loading={metricsLoading}
                             />
@@ -753,23 +777,23 @@ export default function FinanzOnlineReconciliationPage() {
                         },
                     ]}
                 />
-            <Card title="Filter" size="small" style={{ marginBottom: 16 }}>
+            <Card title={t('finanzOnlineReconciliation.queuePage.filters.cardTitle')} size="small" style={{ marginBottom: 16 }}>
                 <Space wrap size="middle">
                     <Space>
-                        <Typography.Text strong>Status:</Typography.Text>
+                        <Typography.Text strong>{t('finanzOnlineReconciliation.queuePage.filters.statusLabel')}</Typography.Text>
                         <Select
                             mode="multiple"
-                            placeholder="Status wählen"
+                            placeholder={t('finanzOnlineReconciliation.queuePage.filters.statusPlaceholder')}
                             value={statusFilter}
                             onChange={(v) => setStatusFilter(v ?? [])}
-                            options={STATUS_OPTIONS}
+                            options={statusOptions}
                             style={{ minWidth: 260 }}
                         />
                     </Space>
                     <Space>
-                        <Typography.Text strong>Kasse:</Typography.Text>
+                        <Typography.Text strong>{t('finanzOnlineReconciliation.queuePage.filters.registerLabel')}</Typography.Text>
                         <Select
-                            placeholder="Alle Kassen"
+                            placeholder={t('finanzOnlineReconciliation.queuePage.filters.registerPlaceholderAll')}
                             allowClear
                             value={cashRegisterId || undefined}
                             onChange={(v) => setCashRegisterId(v ?? undefined)}
@@ -783,7 +807,7 @@ export default function FinanzOnlineReconciliationPage() {
                         />
                     </Space>
                     <Space>
-                        <Typography.Text strong>Zeitraum (UTC):</Typography.Text>
+                        <Typography.Text strong>{t('finanzOnlineReconciliation.queuePage.filters.utcRangeLabel')}</Typography.Text>
                         <DatePicker.RangePicker
                             value={[dateRange[0], dateRange[1]]}
                             onChange={(dates) => setDateRange(dates ?? [null, null])}
@@ -824,7 +848,8 @@ export default function FinanzOnlineReconciliationPage() {
                         pagination={{
                             pageSize: 50,
                             showSizeChanger: true,
-                            showTotal: (total) => `Gesamt: ${total}`,
+                            showTotal: (total) =>
+                                t('finanzOnlineReconciliation.queuePage.table.paginationTotal', { total }),
                         }}
                         size="small"
                         scroll={{ x: 1620 }}
@@ -946,7 +971,7 @@ export default function FinanzOnlineReconciliationPage() {
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                 >
-                                                    Zahlung in Zahlungen öffnen
+                                                    {t('finanzOnlineReconciliation.queuePage.expandRow.openPaymentInPayments')}
                                                 </Link>
                                             ) : null}
                                             {record.receiptNumber?.trim() ? (
@@ -955,7 +980,7 @@ export default function FinanzOnlineReconciliationPage() {
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                 >
-                                                    Belege suchen (Belegnummer)
+                                                    {t('finanzOnlineReconciliation.queuePage.expandRow.searchReceiptsByNumber')}
                                                 </Link>
                                             ) : null}
                                             {investigationBatchCorrelationId ? (

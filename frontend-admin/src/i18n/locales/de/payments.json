@@ -1,0 +1,126 @@
+{
+  "page": {
+    "intro": "Zahlungen im gewählten Zeitraum. Zeile wählen für Details, Storno und Rückerstattung sowie Verknüpfungen zu Beleg und FinanzOnline."
+  },
+  "toolbar": {
+    "refresh": "Aktualisieren",
+    "retryAfterError": "Erneut versuchen",
+    "terminalStatus": "Terminal-Status"
+  },
+  "filters": {
+    "methodPlaceholder": "Methode",
+    "statusPlaceholder": "Status"
+  },
+  "scope": {
+    "label": "Aktive Ansicht:",
+    "serverLine": "{{count}} vom Server (max. 500 je Abfrage)",
+    "filteredLine": "{{count}} sichtbar nach Tabellenfilter",
+    "methodLine": "Methode = {{value}}",
+    "statusLine": "Status = {{value}}"
+  },
+  "list": {
+    "loadErrorTitle": "Zahlungen konnten nicht geladen werden",
+    "loadErrorFallback": "Zahlungen konnten nicht geladen werden. Bitte erneut versuchen."
+  },
+  "table": {
+    "colTransactionId": "Transaktions-ID",
+    "colDate": "Datum",
+    "colAmount": "Betrag",
+    "colMethod": "Zahlungsart",
+    "colStatus": "Status",
+    "colLinkedEntities": "Verknüpfte Entitäten",
+    "colActions": "Aktionen",
+    "details": "Details",
+    "paymentIdPrefix": "Zahlungs-ID:",
+    "tagReceipt": "Beleg",
+    "tagInvoice": "Rechnung",
+    "tagIncident": "Incident",
+    "foTagPrefix": "FO"
+  },
+  "stats": {
+    "paymentCount": "Anzahl Zahlungen",
+    "totalAmount": "Gesamtbetrag",
+    "average": "Durchschnitt",
+    "tseSigned": "TSE signiert",
+    "finanzOnlineSent": "FinanzOnline gesendet",
+    "foSentAmount": "FO gesendeter Betrag"
+  },
+  "empty": {
+    "description": "Keine Zahlungen für diesen Zeitraum oder die gewählten Filter."
+  },
+  "drawer": {
+    "title": "Zahlungsdetails",
+    "loadingDetails": "Lade Details…",
+    "noDetailData": "Keine Detaildaten verfügbar"
+  },
+  "detail": {
+    "sectionCore": "Kerninformationen",
+    "sectionLinked": "Verknüpfte Entitäten",
+    "sectionOrigin": "Betrieb / Herkunft",
+    "sectionOfflineReplay": "Offline / Replay",
+    "offlineReplayIntro": "Korrelation zwischen Offline-Warteschlange und Server-Replay (Support).",
+    "sectionFinanzOnline": "FinanzOnline",
+    "rawApiCollapse": "Rohe API-Antwort (Technik)",
+    "labelPaymentId": "Payment ID",
+    "labelTransaction": "Transaktion",
+    "labelReceiptNumber": "Belegnummer",
+    "labelTimestampServer": "Zeitpunkt (Server)",
+    "labelAmount": "Betrag",
+    "labelPaymentMethodRaw": "Zahlungsart (Roh)",
+    "labelCashRegisterFk": "Kasse (FK, UUID)",
+    "labelCustomerName": "Kundenname",
+    "labelIdempotencyKey": "Idempotency Key",
+    "labelReceiptId": "Beleg-ID",
+    "labelInvoice": "Rechnung",
+    "labelReplayCorrelation": "Replay-Batch-Correlation-ID",
+    "open": "Öffnen",
+    "labelPaymentOrigin": "Zahlungsursprung",
+    "originOffline": "Offline-Warteschlange → Server-Replay",
+    "originOnline": "Direkt (Online)",
+    "labelReceiptNumberSet": "Belegnummer gesetzt",
+    "labelReceiptIdShort": "Beleg-ID",
+    "labelInvoicePersistedApi": "Rechnung persistiert (API)",
+    "invoicePersistedLegacyMissing": "— (Feld nicht in älterer API-Antwort)",
+    "labelOfflineTxId": "Offline-Transaktions-ID",
+    "labelFoStatus": "Status",
+    "labelFoError": "Fehler",
+    "labelFoReferenceId": "Referenz-ID",
+    "labelFoLastAttemptUtc": "Letzter Versuch (UTC)",
+    "labelFoRetries": "Retries",
+    "buttonOpenReceipt": "Beleg öffnen",
+    "backendMessageTooltip": "Ungeprüfte Servermeldung (Sprache nicht garantiert)",
+    "cancelPermissionTitle": "Storno nicht erlaubt",
+    "cancelPermissionDesc": "Für Storno fehlt die erforderliche Berechtigung.",
+    "refundPermissionTitle": "Refund nicht erlaubt",
+    "refundPermissionDesc": "Für Rückerstattungen fehlt die erforderliche Berechtigung.",
+    "cancelCardTitle": "Storno",
+    "cancelReasonPlaceholder": "Storno-Grund",
+    "cancelButton": "Storno ausführen",
+    "cancelModalTitle": "Zahlung stornieren?",
+    "cancelModalContent": "Diese Aktion storniert die Zahlung. Fortfahren?",
+    "cancelOk": "Stornieren",
+    "cancelCancel": "Abbrechen",
+    "refundCardTitle": "Rückerstattung",
+    "refundAmountPlaceholder": "Betrag",
+    "refundReasonPlaceholder": "Grund für Rückerstattung",
+    "refundButton": "Rückerstattung ausführen",
+    "refundModalTitle": "Rückerstattung ausführen?",
+    "refundModalContent": "Diese Aktion erstellt eine Rückerstattung für die gewählte Zahlung. Fortfahren?",
+    "refundOk": "Rückerstattung ausführen",
+    "refundCancel": "Abbrechen"
+  },
+  "messages": {
+    "cancelSuccess": "Zahlung storniert",
+    "cancelError": "Storno fehlgeschlagen",
+    "refundSuccess": "Rückerstattung verarbeitet",
+    "refundError": "Rückerstattung fehlgeschlagen",
+    "noPaymentSelected": "Keine Zahlung ausgewählt",
+    "noReceiptForPayment": "Kein Beleg für diese Zahlung gefunden",
+    "errorNoPaymentSelected": "Keine Zahlung ausgewählt",
+    "errorRefundAmountPositive": "Rückerstattungsbetrag muss größer als 0 sein"
+  },
+  "display": {
+    "yes": "Ja",
+    "no": "Nein"
+  }
+}

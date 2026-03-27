@@ -1,0 +1,126 @@
+{
+  "page": {
+    "intro": "Secilen donemdeki odemeler. Satir secerek detay, iptal ve iade ile fis ve FinanzOnline baglantilarina gidin."
+  },
+  "toolbar": {
+    "refresh": "Yenile",
+    "retryAfterError": "Tekrar dene",
+    "terminalStatus": "Terminal durumu"
+  },
+  "filters": {
+    "methodPlaceholder": "Yontem",
+    "statusPlaceholder": "Durum"
+  },
+  "scope": {
+    "label": "Aktif gorunum:",
+    "serverLine": "Sunucudan {{count}} (istek basina en fazla 500)",
+    "filteredLine": "Tablo filtresinden sonra gorunen: {{count}}",
+    "methodLine": "Yontem = {{value}}",
+    "statusLine": "Durum = {{value}}"
+  },
+  "list": {
+    "loadErrorTitle": "Odemeler yuklenemedi",
+    "loadErrorFallback": "Odemeler yuklenemedi. Lutfen tekrar deneyin."
+  },
+  "table": {
+    "colTransactionId": "Islem kimligi",
+    "colDate": "Tarih",
+    "colAmount": "Tutar",
+    "colMethod": "Odeme yontemi",
+    "colStatus": "Durum",
+    "colLinkedEntities": "Bagli varliklar",
+    "colActions": "Islemler",
+    "details": "Detaylar",
+    "paymentIdPrefix": "Odeme kimligi:",
+    "tagReceipt": "Fis",
+    "tagInvoice": "Fatura",
+    "tagIncident": "Olay",
+    "foTagPrefix": "FO"
+  },
+  "stats": {
+    "paymentCount": "Odeme sayisi",
+    "totalAmount": "Toplam tutar",
+    "average": "Ortalama",
+    "tseSigned": "TSE imzali",
+    "finanzOnlineSent": "FinanzOnline gonderildi",
+    "foSentAmount": "FO gonderilen tutar"
+  },
+  "empty": {
+    "description": "Bu donem veya secilen filtreler icin odeme yok."
+  },
+  "drawer": {
+    "title": "Odeme detaylari",
+    "loadingDetails": "Detaylar yukleniyor…",
+    "noDetailData": "Detay verisi yok"
+  },
+  "detail": {
+    "sectionCore": "Temel bilgiler",
+    "sectionLinked": "Bagli varliklar",
+    "sectionOrigin": "Islem / koken",
+    "sectionOfflineReplay": "Cevrimdisi / yeniden oynatma",
+    "offlineReplayIntro": "Cevrimdisi kuyruk ile sunucu yeniden oynatma arasindaki korelasyon (destek).",
+    "sectionFinanzOnline": "FinanzOnline",
+    "rawApiCollapse": "Ham API yaniti (teknik)",
+    "labelPaymentId": "Odeme kimligi",
+    "labelTransaction": "Islem",
+    "labelReceiptNumber": "Fis numarasi",
+    "labelTimestampServer": "Zaman damgasi (sunucu)",
+    "labelAmount": "Tutar",
+    "labelPaymentMethodRaw": "Odeme yontemi (ham)",
+    "labelCashRegisterFk": "Kasa (FK, UUID)",
+    "labelCustomerName": "Musteri adi",
+    "labelIdempotencyKey": "Idempotency anahtari",
+    "labelReceiptId": "Fis kimligi",
+    "labelInvoice": "Fatura",
+    "labelReplayCorrelation": "Yeniden oynatma batch korelasyon kimligi",
+    "open": "Ac",
+    "labelPaymentOrigin": "Odeme kokeni",
+    "originOffline": "Cevrimdisi kuyruk → sunucu yeniden oynatma",
+    "originOnline": "Dogrudan (cevrimici)",
+    "labelReceiptNumberSet": "Fis numarasi atandi",
+    "labelReceiptIdShort": "Fis kimligi",
+    "labelInvoicePersistedApi": "Fatura kalici (API)",
+    "invoicePersistedLegacyMissing": "— (eski API yanitinda alan yok)",
+    "labelOfflineTxId": "Cevrimdisi islem kimligi",
+    "labelFoStatus": "Durum",
+    "labelFoError": "Hata",
+    "labelFoReferenceId": "Referans kimligi",
+    "labelFoLastAttemptUtc": "Son deneme (UTC)",
+    "labelFoRetries": "Yeniden deneme",
+    "buttonOpenReceipt": "Fisi ac",
+    "backendMessageTooltip": "Denetlenmemis sunucu mesaji (dil garanti degil)",
+    "cancelPermissionTitle": "Iptal yetkisi yok",
+    "cancelPermissionDesc": "Odeme iptali icin gerekli yetki yok.",
+    "refundPermissionTitle": "Iade yetkisi yok",
+    "refundPermissionDesc": "Iade icin gerekli yetki yok.",
+    "cancelCardTitle": "Iptal",
+    "cancelReasonPlaceholder": "Iptal nedeni",
+    "cancelButton": "Iptal uygula",
+    "cancelModalTitle": "Odeme iptal edilsin mi?",
+    "cancelModalContent": "Bu islem odemeyi iptal eder. Devam?",
+    "cancelOk": "Iptal et",
+    "cancelCancel": "Vazgec",
+    "refundCardTitle": "Iade",
+    "refundAmountPlaceholder": "Tutar",
+    "refundReasonPlaceholder": "Iade nedeni",
+    "refundButton": "Iade uygula",
+    "refundModalTitle": "Iade yapilsin mi?",
+    "refundModalContent": "Bu islem secilen odeme icin iade olusturur. Devam?",
+    "refundOk": "Iade yap",
+    "refundCancel": "Vazgec"
+  },
+  "messages": {
+    "cancelSuccess": "Odeme iptal edildi",
+    "cancelError": "Iptal basarisiz",
+    "refundSuccess": "Iade islendi",
+    "refundError": "Iade basarisiz",
+    "noPaymentSelected": "Odeme secilmedi",
+    "noReceiptForPayment": "Bu odeme icin fis bulunamadi",
+    "errorNoPaymentSelected": "Odeme secilmedi",
+    "errorRefundAmountPositive": "Iade tutari 0'dan buyuk olmalidir"
+  },
+  "display": {
+    "yes": "Evet",
+    "no": "Hayir"
+  }
+}

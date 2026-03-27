@@ -43,6 +43,7 @@ import {
     buildReplayBatchDetailHref,
 } from '@/shared/investigationNavigation';
 import { RKSv_ADMIN_CONTRACT_GAPS, viewInvoiceListRegister } from '@/shared/rksvAdminTruth';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { AdminTruthBadge } from '@/shared/adminTruthBadges';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -59,6 +60,8 @@ import {
     OPERATOR_REGISTER_LINK_COPY,
     OPERATOR_SHARED_COPY,
 } from '@/shared/operatorTruthCopy';
+import { useI18n } from '@/i18n';
+import { createIntlFormatters } from '@/i18n/formatting';
 
 const { RangePicker } = DatePicker;
 
@@ -124,6 +127,8 @@ function escapeCsvScalar(v: unknown): string {
 export const InvoiceList: React.FC = () => {
     const { token } = theme.useToken();
     const queryClient = useQueryClient();
+    const { formatLocale } = useI18n();
+    const fmt = useMemo(() => createIntlFormatters(formatLocale), [formatLocale]);
 
     // State
     const [pagination, setPagination] = useState<TablePaginationConfig>({
@@ -486,7 +491,7 @@ export const InvoiceList: React.FC = () => {
             window.URL.revokeObjectURL(url);
             message.success(OPERATOR_INVOICE_COPY.toastExportCsvOk);
         } catch (error) {
-            console.error('Export failed', error);
+            technicalConsole.error('[InvoiceList] CSV export failed', error);
             message.error(OPERATOR_INVOICE_COPY.toastExportCsvFailed);
         } finally {
             setExportLoading(false);
@@ -665,8 +670,7 @@ export const InvoiceList: React.FC = () => {
             sorter: true,
             width: 104,
             align: 'right',
-            render: (amount) =>
-                new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR' }).format(amount ?? 0),
+            render: (amount) => fmt.formatCurrency(Number(amount ?? 0)),
         },
         {
             title: OPERATOR_INVOICE_COPY.listColumnStatus,
@@ -1114,10 +1118,10 @@ export const InvoiceList: React.FC = () => {
                         >
                             <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
                                 <strong>{OPERATOR_INVOICE_COPY.listSummaryApiTotal}:</strong>{' '}
-                                {(data.totalCount ?? 0).toLocaleString('de-AT')}
+                                {fmt.formatNumber(data.totalCount ?? 0, { maximumFractionDigits: 0 })}
                                 {' · '}
                                 <strong>{OPERATOR_INVOICE_COPY.listSummaryRowsThisPage}:</strong>{' '}
-                                {displayedItems.length.toLocaleString('de-AT')}
+                                {fmt.formatNumber(displayedItems.length, { maximumFractionDigits: 0 })}
                                 {invalidRegisterOnly ? (
                                     <>
                                         {' — '}
@@ -1152,7 +1156,7 @@ export const InvoiceList: React.FC = () => {
                                 }
                                 const from = range[0] ?? 0;
                                 const to = range[1] ?? 0;
-                                return `${from.toLocaleString('de-AT')}–${to.toLocaleString('de-AT')} von ${total.toLocaleString('de-AT')}`;
+                                return `${fmt.formatNumber(from, { maximumFractionDigits: 0 })}–${fmt.formatNumber(to, { maximumFractionDigits: 0 })} von ${fmt.formatNumber(total, { maximumFractionDigits: 0 })}`;
                             },
                         }}
                         loading={
@@ -1258,7 +1262,7 @@ export const InvoiceList: React.FC = () => {
                                                     Brutto
                                                 </Typography.Text>
                                                 <Typography.Text strong>
-                                                    € {displayScalar((detailInvoice.totalAmount ?? 0).toFixed(2))}
+                                                    {fmt.formatCurrency(detailInvoice.totalAmount ?? 0)}
                                                 </Typography.Text>
                                             </div>
                                         </Space>
@@ -1374,10 +1378,10 @@ export const InvoiceList: React.FC = () => {
                                                 {displayScalar(detailInvoice.companyTaxNumber)}
                                             </Descriptions.Item>
                                             <Descriptions.Item label={OPERATOR_INVOICE_COPY.descLabelTotalAmount}>
-                                                € {displayScalar((detailInvoice.totalAmount ?? 0).toFixed(2))}
+                                                {fmt.formatCurrency(detailInvoice.totalAmount ?? 0)}
                                             </Descriptions.Item>
                                             <Descriptions.Item label={OPERATOR_INVOICE_COPY.descLabelTaxAmount}>
-                                                € {displayScalar((detailInvoice.taxAmount ?? 0).toFixed(2))}
+                                                {fmt.formatCurrency(detailInvoice.taxAmount ?? 0)}
                                             </Descriptions.Item>
                                             <Descriptions.Item label={OPERATOR_INVOICE_COPY.descRegisterFkMachine} span={2}>
                                                 <Space direction="vertical" size={8} style={{ width: '100%' }}>

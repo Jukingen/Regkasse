@@ -4,14 +4,16 @@ import React from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Alert, Card, message } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 
 import GenerateReceiptForm from '@/features/receipt-templates/components/GenerateReceiptForm';
 import { useReceiptTemplates } from '@/features/receipt-templates/hooks/useReceiptTemplates';
 import type { GenerateReceiptRequest } from '@/api/generated/model';
+import { useI18n } from '@/i18n';
 
 /** Receipt-generate page: template-based sample output only. Not fiscal; no TSE, no payment. */
 export default function GenerateReceiptPage() {
+    const { t } = useI18n();
     const searchParams = useSearchParams();
     const templateIdFromUrl = searchParams.get('templateId') ?? undefined;
     const { useGenerate } = useReceiptTemplates();
@@ -19,7 +21,7 @@ export default function GenerateReceiptPage() {
     const { mutateAsync: generateReceipt, isPending } = useGenerate({
         mutation: {
             onError: (error: Error) => {
-                message.error(`Generate failed: ${error.message}`);
+                message.error(t('receiptTemplates.page.generatePageError', { message: error.message }));
             },
         },
     });
@@ -32,15 +34,15 @@ export default function GenerateReceiptPage() {
     return (
         <React.Fragment>
             <AdminPageHeader
-                title="Belegvorschau erzeugen"
-                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: 'Belegvorschau erzeugen' }]}
+                title={t('receiptTemplates.page.generateTitle')}
+                breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: t('receiptTemplates.page.generateBreadcrumb') }]}
             />
 
             <Alert
                 type="warning"
                 showIcon
-                message="Nur Vorschau – kein rechtlicher oder fiskaler Beleg"
-                description="Hier wird ausschließlich Mustertext aus Vorlagen erzeugt. Es entstehen keine Zahlungen, keine TSE-Signatur und keine fiskalrelevanten Belege. Die Ausgabe ist kein gültiger Kassenbeleg und darf nicht als solcher verwendet werden."
+                message={t('receiptTemplates.page.generateWarningTitle')}
+                description={t('receiptTemplates.page.generateWarningDescription')}
                 style={{ marginBottom: 16 }}
             />
 

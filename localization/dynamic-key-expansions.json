@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "apps": {
+    "frontend-admin": [
+      {
+        "id": "adminShell.reporting.reportCenter.labelKey",
+        "description": "ReportWorkspaceBadges + reportWorkspaceLabels (documentStatusVisual / submissionLifecycleVisual)",
+        "staticPrefix": "adminShell.reporting.reportCenter",
+        "suffixes": [
+          "docProvisional",
+          "docFinalized",
+          "docSuperseded",
+          "docUnknown",
+          "subNotSubmitted",
+          "subAccepted",
+          "subRejected",
+          "subNeedsReview",
+          "subInFlight",
+          "subUnknown"
+        ]
+      },
+      {
+        "id": "reporting.listShared.reportStatus",
+        "description": "Tagesbericht/Monatsbericht/Jahresbericht list — ReportStatus",
+        "staticPrefix": "reporting.listShared.reportStatus",
+        "suffixes": ["Finalized", "Provisional"]
+      },
+      {
+        "id": "reporting.listShared.scopeKind",
+        "description": "Reporting list — ScopeKind",
+        "staticPrefix": "reporting.listShared.scopeKind",
+        "suffixes": ["Register", "Company"]
+      },
+      {
+        "id": "users.roles.displayNames",
+        "description": "Users table — CANONICAL_ROLE_VALUES / displayNames",
+        "staticPrefix": "users.roles.displayNames",
+        "suffixes": [
+          "SuperAdmin",
+          "Manager",
+          "Cashier",
+          "Waiter",
+          "Kitchen",
+          "ReportViewer",
+          "Accountant"
+        ]
+      }
+    ]
+  }
+}

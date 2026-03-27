@@ -3,6 +3,11 @@ import { DEFAULT_TEXT_LOCALE, isSupportedTextLocale, normalizeTextLocale, type T
 export const APP_LANGUAGE_STORAGE_KEY = 'app_language';
 const LEGACY_LANGUAGE_STORAGE_KEY = 'regkasse.admin.textLocale';
 
+/**
+ * Kalıcı olarak kayıtlı metin dilini döndürür.
+ * Kayıt yoksa veya geçersizse her zaman `de` (strict default).
+ * Tarayıcı diline asla düşmez — ilk açılış deterministik kalır.
+ */
 export function getStoredLanguage(): TextLocale {
   if (typeof window === 'undefined') return DEFAULT_TEXT_LOCALE;
   try {
@@ -15,10 +20,12 @@ export function getStoredLanguage(): TextLocale {
     // localStorage can fail in restricted browser modes; fall back safely.
   }
 
-  // First-launch fallback: infer from browser locale for better UX parity with frontend.
-  return normalizeTextLocale(window.navigator?.language);
+  return DEFAULT_TEXT_LOCALE;
 }
 
+/**
+ * Kullanıcı seçimini kaydeder; `normalizeTextLocale` ile güvenli hale getirir.
+ */
 export function setStoredLanguage(locale: string): TextLocale {
   const safeLocale = normalizeTextLocale(locale);
   if (typeof window !== 'undefined') {
@@ -29,4 +36,16 @@ export function setStoredLanguage(locale: string): TextLocale {
     }
   }
   return safeLocale;
+}
+
+/**
+ * Tarayıcı dilinden (navigator.language) desteklenen metin diline çevirir.
+ * İlk yükleme veya `getStoredLanguage` ile kullanılmaz; yalnızca isteğe bağlı öneri UI için.
+ * SSR veya navigator yoksa `undefined`.
+ */
+export function getNavigatorTextLocaleSuggestion(): TextLocale | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const raw = window.navigator?.language;
+  if (!raw) return undefined;
+  return normalizeTextLocale(raw);
 }

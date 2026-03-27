@@ -5,12 +5,10 @@ import { Form, Input, InputNumber, Button, Card, message, Select, Typography, Al
 import { CopyOutlined } from '@ant-design/icons';
 import type { GenerateReceiptRequest, ReceiptItem } from '@/api/generated/model';
 import { useReceiptTemplates } from '../hooks/useReceiptTemplates';
+import { useI18n } from '@/i18n';
 
 const { TextArea } = Input;
 const { Paragraph } = Typography;
-
-const ITEMS_JSON_ERROR =
-    'Invalid JSON. Use an array of objects, e.g. [{"name":"Product","quantity":1,"unitPrice":10,"totalPrice":10}]';
 
 interface GenerateReceiptFormProps {
     onGenerate: (request: GenerateReceiptRequest) => Promise<string>;
@@ -20,6 +18,7 @@ interface GenerateReceiptFormProps {
 }
 
 export default function GenerateReceiptForm({ onGenerate, loading, initialTemplateId }: GenerateReceiptFormProps) {
+    const { t } = useI18n();
     const [form] = Form.useForm();
     const [generatedContent, setGeneratedContent] = useState<string | null>(null);
     const appliedInitialRef = useRef(false);
@@ -27,12 +26,15 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
     const { useList } = useReceiptTemplates();
     const { data: templates = [], isLoading: templatesLoading } = useList();
 
+    const itemsJsonError = t('receiptTemplates.generate.itemsJsonError');
+    const selectTemplateForLangType = t('receiptTemplates.generate.selectTemplateForLangType');
+
     // Pre-select template from URL when list is loaded and template exists
     useEffect(() => {
         if (templatesLoading || !initialTemplateId || appliedInitialRef.current || templates.length === 0) {
             return;
         }
-        const template = templates.find((t) => t.id === initialTemplateId);
+        const template = templates.find((tpl) => tpl.id === initialTemplateId);
         if (template) {
             form.setFieldsValue({
                 templateId: template.id,
@@ -48,7 +50,7 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
             form.setFieldsValue({ language: undefined, templateType: undefined });
             return;
         }
-        const template = templates.find((t) => t.id === templateId);
+        const template = templates.find((tpl) => tpl.id === templateId);
         if (template) {
             form.setFieldsValue({
                 language: template.language,
@@ -61,7 +63,7 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
         const language = values.language as string | undefined;
         const templateType = values.templateType as string | undefined;
         if (!language || !templateType) {
-            form.setFields([{ name: 'templateId', errors: ['Select a template to set language and type'] }]);
+            form.setFields([{ name: 'templateId', errors: [selectTemplateForLangType] }]);
             return;
         }
 
@@ -71,12 +73,12 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
             try {
                 const parsed = JSON.parse(rawItems as string);
                 if (!Array.isArray(parsed)) {
-                    form.setFields([{ name: 'items', errors: [ITEMS_JSON_ERROR] }]);
+                    form.setFields([{ name: 'items', errors: [itemsJsonError] }]);
                     return;
                 }
                 items = parsed as ReceiptItem[];
             } catch {
-                form.setFields([{ name: 'items', errors: [ITEMS_JSON_ERROR] }]);
+                form.setFields([{ name: 'items', errors: [itemsJsonError] }]);
                 return;
             }
         }
@@ -117,7 +119,7 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
     const copyToClipboard = () => {
         if (generatedContent) {
             navigator.clipboard.writeText(generatedContent);
-            message.success('In die Zwischenablage kopiert.');
+            message.success(t('receiptTemplates.generate.copySuccess'));
         }
     };
 
@@ -129,18 +131,18 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
                 onFinish={handleFinish}
                 onValuesChange={() => setGeneratedContent(null)}
             >
-                <Card title="Template Selection" style={{ marginBottom: 16 }}>
+                <Card title={t('receiptTemplates.generate.templateSelection')} style={{ marginBottom: 16 }}>
                     <Form.Item
-                        label="Template"
+                        label={t('receiptTemplates.generate.labelTemplate')}
                         name="templateId"
-                        rules={[{ required: true, message: 'Select a template' }]}
+                        rules={[{ required: true, message: t('receiptTemplates.generate.selectTemplateRule') }]}
                     >
                         <Select
-                            placeholder="Select a template"
+                            placeholder={t('receiptTemplates.generate.placeholderTemplate')}
                             loading={templatesLoading}
                             notFoundContent={
                                 !templatesLoading && (!templates || templates.length === 0)
-                                    ? 'No templates available'
+                                    ? t('receiptTemplates.generate.notFoundContent')
                                     : null
                             }
                             allowClear
@@ -148,90 +150,90 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
                             optionFilterProp="label"
                             onChange={handleTemplateChange}
                             options={templates
-                                .filter((t): t is typeof t & { id: string } => !!t.id)
-                                .map((t) => ({
-                                    value: t.id,
-                                    label: `${t.templateName} (${t.language} / ${t.templateType})`,
+                                .filter((tpl): tpl is typeof tpl & { id: string } => !!tpl.id)
+                                .map((tpl) => ({
+                                    value: tpl.id,
+                                    label: `${tpl.templateName} (${tpl.language} / ${tpl.templateType})`,
                                 }))}
                         />
                     </Form.Item>
-                    <Form.Item label="Language" name="language">
-                        <Input readOnly placeholder="Set by template selection" />
+                    <Form.Item label={t('receiptTemplates.form.language')} name="language">
+                        <Input readOnly placeholder={t('receiptTemplates.generate.languageReadOnly')} />
                     </Form.Item>
-                    <Form.Item label="Template Type" name="templateType">
-                        <Input readOnly placeholder="Set by template selection" />
-                    </Form.Item>
-                </Card>
-
-                <Card title="Company Info" style={{ marginBottom: 16 }}>
-                    <Form.Item label="Name" name="companyName">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Address" name="companyAddress">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Phone" name="companyPhone">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Email" name="companyEmail">
-                        <Input />
-                    </Form.Item>
-                    <Form.Item label="Tax Number" name="companyTaxNumber">
-                        <Input />
+                    <Form.Item label={t('receiptTemplates.form.templateType')} name="templateType">
+                        <Input readOnly placeholder={t('receiptTemplates.generate.typeReadOnly')} />
                     </Form.Item>
                 </Card>
 
-                <Card title="Customer Info" style={{ marginBottom: 16 }}>
-                    <Form.Item label="Name" name="customerName">
+                <Card title={t('receiptTemplates.generate.companyCard')} style={{ marginBottom: 16 }}>
+                    <Form.Item label={t('receiptTemplates.generate.labelCompanyName')} name="companyName">
                         <Input />
                     </Form.Item>
-                    <Form.Item label="Address" name="customerAddress">
+                    <Form.Item label={t('receiptTemplates.generate.labelCompanyAddress')} name="companyAddress">
                         <Input />
                     </Form.Item>
-                    <Form.Item label="Phone" name="customerPhone">
+                    <Form.Item label={t('receiptTemplates.generate.labelCompanyPhone')} name="companyPhone">
+                        <Input />
+                    </Form.Item>
+                    <Form.Item label={t('receiptTemplates.generate.labelCompanyEmail')} name="companyEmail">
+                        <Input />
+                    </Form.Item>
+                    <Form.Item label={t('receiptTemplates.generate.labelCompanyTax')} name="companyTaxNumber">
                         <Input />
                     </Form.Item>
                 </Card>
 
-                <Card title="Receipt Details" style={{ marginBottom: 16 }}>
+                <Card title={t('receiptTemplates.generate.customerCard')} style={{ marginBottom: 16 }}>
+                    <Form.Item label={t('receiptTemplates.generate.labelCustomerName')} name="customerName">
+                        <Input />
+                    </Form.Item>
+                    <Form.Item label={t('receiptTemplates.generate.labelCustomerAddress')} name="customerAddress">
+                        <Input />
+                    </Form.Item>
+                    <Form.Item label={t('receiptTemplates.generate.labelCustomerPhone')} name="customerPhone">
+                        <Input />
+                    </Form.Item>
+                </Card>
+
+                <Card title={t('receiptTemplates.generate.receiptDetailsCard')} style={{ marginBottom: 16 }}>
                     <Form.Item
-                        label="Items (JSON array)"
+                        label={t('receiptTemplates.generate.labelItemsJson')}
                         name="items"
-                        tooltip='Format: [{"name":"Product","quantity":1,"unitPrice":10,"totalPrice":10}]'
+                        tooltip={t('receiptTemplates.generate.tooltipItemsJson')}
                     >
-                        <TextArea rows={4} placeholder='[{"name":"...","quantity":1,...}]' />
+                        <TextArea rows={4} placeholder={t('receiptTemplates.generate.placeholderItemsJson')} />
                     </Form.Item>
-                    <Form.Item label="Tax Amount" name="taxAmount">
+                    <Form.Item label={t('receiptTemplates.generate.labelTaxAmount')} name="taxAmount">
                         <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
                     </Form.Item>
-                    <Form.Item label="Total Amount" name="totalAmount">
+                    <Form.Item label={t('receiptTemplates.generate.labelTotalAmount')} name="totalAmount">
                         <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
                     </Form.Item>
-                    <Form.Item label="Payment Method" name="paymentMethod">
-                        <Input placeholder="Cash, Card, etc." />
+                    <Form.Item label={t('receiptTemplates.generate.labelPaymentMethod')} name="paymentMethod">
+                        <Input placeholder={t('receiptTemplates.generate.placeholderPaymentMethod')} />
                     </Form.Item>
                 </Card>
 
                 <Button type="primary" htmlType="submit" loading={loading} size="large">
-                    Vorschau erzeugen
+                    {t('receiptTemplates.generate.submitPreview')}
                 </Button>
             </Form>
 
             {generatedContent && (
                 <Card
-                    title="Nur Vorschau – kein gültiger fiskaler Beleg"
+                    title={t('receiptTemplates.generate.resultCardTitle')}
                     style={{ marginTop: 24 }}
                     extra={
                         <Button icon={<CopyOutlined />} onClick={copyToClipboard}>
-                            Copy
+                            {t('receiptTemplates.generate.copy')}
                         </Button>
                     }
                 >
                     <Alert
                         type="warning"
                         showIcon
-                        message="Kein rechtlicher oder fiskaler Beleg"
-                        description="Dieser Inhalt ist ausschließlich Vorlagen-Mustertext zur Vorschau. Er ist kein gültiger Kassenbeleg, keine Zahlung wurde erfasst, keine TSE-Signatur erstellt. Nicht für fiskale oder rechtliche Zwecke verwenden."
+                        message={t('receiptTemplates.generate.resultWarningTitle')}
+                        description={t('receiptTemplates.generate.resultWarningDescription')}
                         style={{ marginBottom: 16 }}
                     />
                     <Paragraph>

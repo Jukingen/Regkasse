@@ -1,7 +1,11 @@
 /**
- * 403 Forbidden – backend ReasonCode ile eşleşen kullanıcı dostu mesajlar (de-DE).
- * Backend ApiError.Forbidden(detail, reasonCode) veya response.data.reasonCode kullanılabilir.
+ * 403 Forbidden – reasonCode / requiredPolicy → kullanıcı mesajı.
+ * Metinler i18n errors.json (errors.forbidden.REASON_CODE) ile yönetilir; axios interceptor getStoredLanguage kullanır.
+ * API response message alanı 403 toast için kullanılmaz (dil tutarlılığı).
  */
+
+import { getCatalog, DEFAULT_TEXT_LOCALE, type TextLocale } from '@/i18n/config';
+import { getStoredLanguage } from '@/i18n/languageStorage';
 
 export type ForbiddenReasonCode =
   | 'FORBIDDEN'
@@ -13,7 +17,10 @@ export type ForbiddenReasonCode =
   | 'SCOPE_BRANCH'
   | string;
 
-const MESSAGES: Record<string, string> = {
+type ForbiddenMap = Record<string, string>;
+
+/** Katalog yüklenemezse önceki sabit DE metinlerle aynı (davranış korunur). */
+const LEGACY_DE_FALLBACK: ForbiddenMap = {
   FORBIDDEN: 'Sie haben keine Berechtigung für diese Aktion.',
   USERS_VIEW_REQUIRED: 'Sie haben keine Berechtigung, Benutzer anzuzeigen.',
   USERS_MANAGE_REQUIRED: 'Sie haben keine Berechtigung, Benutzer zu verwalten.',
@@ -23,9 +30,45 @@ const MESSAGES: Record<string, string> = {
   SCOPE_BRANCH: 'Diese Aktion ist nur innerhalb Ihres Standorts erlaubt.',
 };
 
-export function getForbiddenMessage(reasonCode?: ForbiddenReasonCode | null): string {
-  if (reasonCode && MESSAGES[reasonCode]) return MESSAGES[reasonCode];
-  return MESSAGES.FORBIDDEN;
+function readForbiddenMap(locale: TextLocale): ForbiddenMap {
+  const raw = getCatalog(locale).errors as { forbidden?: ForbiddenMap } | undefined;
+  const fb = raw?.forbidden;
+  return fb && typeof fb === 'object' ? fb : {};
+}
+
+function normalizeReasonCode(
+  reasonCode: ForbiddenReasonCode | null | undefined,
+  canonical: ForbiddenMap,
+): string {
+  const c = (reasonCode ?? '').trim();
+  const merged: ForbiddenMap = { ...LEGACY_DE_FALLBACK, ...canonical };
+  if (c && merged[c]) return c;
+  return 'FORBIDDEN';
+}
+
+/**
+ * @param reasonCode – backend `response.data.reasonCode` veya eşdeğer
+ * @param locale – belirtilmezse `getStoredLanguage()` (axios / interceptor uyumu)
+ */
+export function getForbiddenMessage(
+  reasonCode?: ForbiddenReasonCode | null,
+  locale?: TextLocale,
+): string {
+  const loc = locale ?? getStoredLanguage();
+  const canonical = readForbiddenMap(DEFAULT_TEXT_LOCALE);
+  const code = normalizeReasonCode(reasonCode, canonical);
+
+  const primary = readForbiddenMap(loc);
+  const fromPrimary = primary[code];
+  if (fromPrimary) return fromPrimary;
+
+  const fromDeCatalog = canonical[code];
+  if (fromDeCatalog) return fromDeCatalog;
+
+  const legacy = LEGACY_DE_FALLBACK[code];
+  if (legacy) return legacy;
+
+  return LEGACY_DE_FALLBACK.FORBIDDEN;
 }
 
 /** Map backend requiredPolicy (e.g. UsersView, UsersManage) to reason code for i18n. */

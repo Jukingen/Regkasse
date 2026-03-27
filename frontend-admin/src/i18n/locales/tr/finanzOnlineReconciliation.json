@@ -5,5 +5,69 @@
     "title": "Birincil boru hattı görünümü: FinanzOnline · Outbox",
     "leadBeforeLink": "SOAP/outbox boru hattının (gönderim, protokol, yeniden denemeler) operasyonel izlenmesi için şunu kullanın:",
     "leadAfterLink": ". Bu ekran, ödeme satırı durumu ve ödeme başına manuel yeniden deneme (eski akış) için kullanılmaya devam eder."
+  },
+  "queuePage": {
+    "statusOption": {
+      "Pending": "Beklemede (Pending)",
+      "Failed": "Başarısız (Failed)",
+      "NeedsReconciliation": "Mutabakat gerekli (NeedsReconciliation)",
+      "Submitted": "Gönderildi (Submitted)"
+    },
+    "retry": {
+      "success": "Ödeme {{paymentId}}: {{message}}",
+      "warning": "Ödeme {{paymentId}}: {{message}}",
+      "error": "{{paymentId}} için yeniden deneme: {{message}}",
+      "errorFallback": "Yeniden deneme başarısız"
+    },
+    "columns": {
+      "receiptNumberTooltip": "Mutabakat liste DTO’sundan fiş numarası.",
+      "receiptNumber": "Fiş numarası",
+      "searchReceiptsLink": "Fiş ara",
+      "paymentTooltip": "Ödeme kimliği (paymentId) — yeniden deneme ve bağlantılar için birincil anahtar.",
+      "paymentShort": "Ödeme",
+      "openInPayments": "Ödemelerde aç",
+      "foStatusShort": "FO durumu",
+      "foActionColumnShort": "FO eylemi (UI)",
+      "foTimelineShort": "FO zaman çizelgesi (API)",
+      "rowCreated": "Satır oluşturuldu:",
+      "attempts": "Denemeler:",
+      "lastAttempt": "Son deneme:",
+      "errorShort": "Hata (kısa)",
+      "foRefTooltip": "finanzOnlineReferenceId — liste DTO’sundan FinanzOnline referansı.",
+      "referenceFoShort": "Referans (FO)",
+      "amountTooltip": "totalAmount — liste DTO’sundaki ödeme tutarı.",
+      "amountShort": "Tutar",
+      "registerFkShort": "Kasa (FK)",
+      "rawRegisterVisible": "Ham değer görünür; güvenli kasa URL’leri için UUID yok.",
+      "actions": "İşlemler",
+      "retrySend": "Yeniden gönder"
+    },
+    "relatedLinks": {
+      "integritySupport": "Veri bütünlüğü (destek)",
+      "incidentCorrelation": "Olay (korelasyon)"
+    },
+    "metrics": {
+      "submitTotalRun": "Gönderim toplamı (çalışma)",
+      "failedTotal": "Başarısız toplam",
+      "transientMetric": "Geçici (metrik)",
+      "permanentMetric": "Kalıcı (metrik)"
+    },
+    "filters": {
+      "cardTitle": "Filtre",
+      "statusLabel": "Durum:",
+      "statusPlaceholder": "Durum seçin",
+      "registerLabel": "Kasa:",
+      "registerPlaceholderAll": "Tüm kasalar",
+      "utcRangeLabel": "Dönem (UTC):"
+    },
+    "table": {
+      "cardTitle": "Mutabakat ({{count}} kayıt)",
+      "paginationTotal": "Toplam: {{total}}"
+    },
+    "expandRow": {
+      "technicalDetailsHeader": "Satır — teknik ayrıntılar (liste API)",
+      "openPaymentInPayments": "Ödemeyi ödemelerde aç",
+      "searchReceiptsByNumber": "Fiş ara (fiş numarası)"
+    }
   }
 }

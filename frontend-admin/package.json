@@ -16,9 +16,13 @@
     "i18n:export-csv": "node ../localization/scripts/export-translations.mjs --app frontend-admin",
     "i18n:import-csv": "node ../localization/scripts/import-translations.mjs --app frontend-admin",
     "i18n:validate": "node ../localization/scripts/validate-translations.mjs --app frontend-admin",
+    "i18n:validate:ci": "node ../localization/scripts/validate-translations.mjs --app frontend-admin --strictMissing true --orphanPolicy error",
     "i18n:boundary": "node ../localization/scripts/check-translation-boundary.mjs --app frontend-admin",
     "i18n:usage": "node ../localization/scripts/check-localization-usage.mjs --app frontend-admin",
-    "i18n:ci": "node ../localization/scripts/validate-translations.mjs --app frontend-admin --strictMissing true --orphanPolicy error && node ../localization/scripts/check-translation-boundary.mjs --app frontend-admin && node ../localization/scripts/check-localization-usage.mjs --app frontend-admin --strictMissing true"
+    "i18n:usage:ci": "node ../localization/scripts/check-localization-usage.mjs --app frontend-admin --strictMissing true --budgetFile ../localization/i18n-ci-budgets.json",
+    "i18n:keys": "node scripts/generate-translation-key-union.mjs",
+    "i18n:keys:check": "node scripts/generate-translation-key-union.mjs && git diff --quiet -- src/i18n/generated/translationKeys.ts",
+    "i18n:ci": "npm run i18n:validate:ci && npm run i18n:boundary && npm run i18n:usage:ci && npm run i18n:keys:check"
   },
   "dependencies": {
     "@ant-design/nextjs-registry": "^1.0.0",

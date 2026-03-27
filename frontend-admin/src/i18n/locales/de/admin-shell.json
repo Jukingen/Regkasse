@@ -11,6 +11,12 @@
     "expandSidebar": "Seitenleiste ausklappen",
     "collapseSidebar": "Seitenleiste einklappen"
   },
+  "header": {
+    "languageSelectAria": "Oberflächensprache wählen",
+    "languageNameDe": "Deutsch",
+    "languageNameEn": "English",
+    "languageNameTr": "Türkçe"
+  },
   "group": {
     "kasseBelege": "Kasse & Belege",
     "sortiment": "Sortiment",

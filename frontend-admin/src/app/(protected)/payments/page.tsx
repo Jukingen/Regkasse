@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+/**
+ * Admin odeme listesi ve detay cekmecesi; metinler payments namespace, sayi/tarih/para formatLocale ile.
+ */
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Table,
   Card,
@@ -27,7 +30,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
 import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { CreditCardOutlined, InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
-import { OPERATOR_LINK_LABELS, OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
+import { OPERATOR_LINK_LABELS } from '@/shared/operatorTruthCopy';
 import {
   postApiAdminPaymentsIdCancel,
   postApiAdminPaymentsIdRefund,
@@ -46,6 +49,13 @@ import Link from 'next/link';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getReceiptByPaymentForensics } from '@/features/receipts/api/forensics-client';
+import { useI18n } from '@/i18n';
+import {
+  FORMAT_EMPTY_DISPLAY,
+  createIntlFormatters,
+  formatCurrency,
+  formatDateTime,
+} from '@/i18n/formatting';
 
 const { RangePicker } = DatePicker;
 
@@ -60,30 +70,42 @@ interface PaymentStatisticsShape {
   finanzOnlineSentAmount?: number;
 }
 
-function fmtDetail(value: unknown): string {
-  if (value === null || value === undefined) return '—';
-  if (typeof value === 'boolean') return value ? 'Ja' : 'Nein';
-  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '—';
-  if (typeof value === 'string') return value.trim() === '' ? '—' : value;
+type IntlFormatters = ReturnType<typeof createIntlFormatters>;
+
+function formatDetailValue(value: unknown, fmt: IntlFormatters, yes: string, no: string): string {
+  if (value === null || value === undefined) return FORMAT_EMPTY_DISPLAY;
+  if (typeof value === 'boolean') return value ? yes : no;
+  if (typeof value === 'number') return Number.isFinite(value) ? fmt.formatNumber(value) : FORMAT_EMPTY_DISPLAY;
+  if (typeof value === 'string') return value.trim() === '' ? FORMAT_EMPTY_DISPLAY : value;
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }
 
 function shortId(value?: string | null): string {
-  if (!value) return '—';
+  if (!value) return FORMAT_EMPTY_DISPLAY;
   return value.length > 12 ? `${value.slice(0, 8)}…` : value;
 }
 
-function getPaymentsListErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
+function getPaymentsListErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) return error.message.trim();
   const norm = (error as { normalized?: { message?: string } })?.normalized;
-  if (norm?.message) return norm.message;
-  return 'Zahlungen konnten nicht geladen werden. Bitte erneut versuchen.';
+  if (norm?.message?.trim()) return norm.message.trim();
+  const msg = (error as { message?: string })?.message;
+  if (typeof msg === 'string' && msg.trim()) return msg.trim();
+  return fallback;
 }
 
 export default function PaymentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, formatLocale } = useI18n();
+  const fmt = useMemo(() => createIntlFormatters(formatLocale), [formatLocale]);
+
+  const detailStr = useCallback(
+    (value: unknown) => formatDetailValue(value, fmt, t('payments.display.yes'), t('payments.display.no')),
+    [fmt, t],
+  );
+
   const { hasPermission } = usePermissions();
   const canCancel = hasPermission(PERMISSIONS.PAYMENT_CANCEL);
   const canRefund = hasPermission(PERMISSIONS.REFUND_CREATE);
@@ -145,42 +167,51 @@ export default function PaymentsPage() {
   }, [payments, methodFilter, statusFilter]);
 
   const paymentsScopeSummary = useMemo(() => {
+    const startStr = fmt.formatDate(dateRange[0].toDate());
+    const endStr = fmt.formatDate(dateRange[1].toDate());
     const parts = [
-      `${dateRange[0].format('DD.MM.YYYY')}–${dateRange[1].format('DD.MM.YYYY')}`,
-      `${payments.length} vom Server (max. 500 je Abfrage)`,
-      `${filteredPayments.length} sichtbar nach Tabellenfilter`,
+      `${startStr}–${endStr}`,
+      t('payments.scope.serverLine', { count: payments.length }),
+      t('payments.scope.filteredLine', { count: filteredPayments.length }),
     ];
-    if (methodFilter) parts.push(`Methode = ${methodFilter}`);
-    if (statusFilter) parts.push(`Status = ${statusFilter}`);
+    if (methodFilter) parts.push(t('payments.scope.methodLine', { value: methodFilter }));
+    if (statusFilter) parts.push(t('payments.scope.statusLine', { value: statusFilter }));
     return parts.join(' · ');
-  }, [dateRange, payments.length, filteredPayments.length, methodFilter, statusFilter]);
+  }, [dateRange, payments.length, filteredPayments.length, methodFilter, statusFilter, fmt, t]);
+
+  const loadErrorFallback = t('payments.list.loadErrorFallback');
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedPaymentId) throw new Error('Keine Zahlung ausgewählt');
+      if (!selectedPaymentId) throw new Error(t('payments.messages.errorNoPaymentSelected'));
       return postApiAdminPaymentsIdCancel(selectedPaymentId, { reason: cancelReason.trim() });
     },
     onSuccess: async () => {
-      message.success('Zahlung storniert');
+      message.success(t('payments.messages.cancelSuccess'));
       setCancelReason('');
       await refetch();
     },
-    onError: (err: Error) => message.error(err?.message ?? 'Storno fehlgeschlagen'),
+    onError: (err: Error) => {
+      // If Error.message is a backend string, show it; otherwise localized fallback.
+      message.error(err?.message ?? t('payments.messages.cancelError'));
+    },
   });
 
   const refundMutation = useMutation({
     mutationFn: async () => {
-      if (!selectedPaymentId) throw new Error('Keine Zahlung ausgewählt');
-      if (!refundAmount || refundAmount <= 0) throw new Error('Rückerstattungsbetrag muss größer als 0 sein');
+      if (!selectedPaymentId) throw new Error(t('payments.messages.errorNoPaymentSelected'));
+      if (!refundAmount || refundAmount <= 0) throw new Error(t('payments.messages.errorRefundAmountPositive'));
       return postApiAdminPaymentsIdRefund(selectedPaymentId, { amount: refundAmount, reason: refundReason.trim() });
     },
     onSuccess: async () => {
-      message.success('Rückerstattung verarbeitet');
+      message.success(t('payments.messages.refundSuccess'));
       setRefundAmount(null);
       setRefundReason('');
       await refetch();
     },
-    onError: (err: Error) => message.error(err?.message ?? 'Rückerstattung fehlgeschlagen'),
+    onError: (err: Error) => {
+      message.error(err?.message ?? t('payments.messages.refundError'));
+    },
   });
 
   const openReceipt = async () => {
@@ -190,159 +221,171 @@ export default function PaymentsPage() {
       return;
     }
     if (!selectedPaymentId) {
-      message.warning('Keine Zahlung ausgewählt');
+      message.warning(t('payments.messages.noPaymentSelected'));
       return;
     }
     try {
       const receipt = await getReceiptByPaymentForensics(selectedPaymentId);
       if (!receipt.receiptId) {
-        message.warning('Kein Beleg für diese Zahlung gefunden');
+        message.warning(t('payments.messages.noReceiptForPayment'));
         return;
       }
       router.push(`/receipts/${receipt.receiptId}`);
     } catch {
-      message.warning('Kein Beleg für diese Zahlung gefunden');
+      message.warning(t('payments.messages.noReceiptForPayment'));
     }
   };
 
   const methodOptions = Array.from(new Set(payments.map((p) => p.method).filter(Boolean))) as string[];
   const statusOptions = Array.from(new Set(payments.map((p) => p.status).filter(Boolean))) as string[];
 
-  const columns = [
-    {
-      title: 'Transaktions-ID',
-      dataIndex: 'transactionId',
-      key: 'transactionId',
-      render: (text: string) => <code style={{ fontSize: '12px' }}>{text || '—'}</code>,
-    },
-    {
-      title: 'Datum',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => (date ? dayjs(date).format('DD.MM.YYYY HH:mm') : '—'),
-    },
-    {
-      title: 'Betrag',
-      dataIndex: 'totalAmount',
-      key: 'amount',
-      align: 'right' as const,
-      render: (val: number, record: AdminPaymentListItemDto) => `${(val ?? 0).toFixed(2)} ${record.currency || 'EUR'}`,
-    },
-    {
-      title: 'Zahlungsart',
-      dataIndex: 'method',
-      key: 'method',
-      render: (method: string) => <Tag color="blue">{method || '—'}</Tag>,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const colors: Record<string, string> = {
-          Success: 'green',
-          Pending: 'orange',
-          Failed: 'red',
-          Cancelled: 'default',
-          Refunded: 'purple',
-        };
-        return <Tag color={colors[status] || 'default'}>{status || '—'}</Tag>;
+  const columns = useMemo(
+    () => [
+      {
+        title: t('payments.table.colTransactionId'),
+        dataIndex: 'transactionId',
+        key: 'transactionId',
+        render: (text: string) => <code style={{ fontSize: '12px' }}>{text || FORMAT_EMPTY_DISPLAY}</code>,
       },
-    },
-    {
-      title: 'Verknüpfte Entitäten',
-      key: 'linkedEntities',
-      width: 300,
-      render: (_: unknown, row: AdminPaymentListItemDto) => {
-        const pid = row.id?.trim();
-        const foErr = row.finanzOnlineError?.trim();
-        const hasLinks =
-          Boolean(row.receiptId) || Boolean(row.invoiceNumber) || Boolean(row.offlineReplayBatchCorrelationId);
-        const hasFo = Boolean(row.finanzOnlineStatus?.trim());
-        const hasAny = Boolean(pid) || hasLinks || hasFo;
-        if (!hasAny) {
-          return <Typography.Text type="secondary">—</Typography.Text>;
-        }
-        const foColors: Record<string, string> = {
-          Submitted: 'green',
-          Pending: 'blue',
-          Failed: 'red',
-          NeedsReconciliation: 'orange',
-        };
-        const foColor = row.finanzOnlineStatus
-          ? foColors[row.finanzOnlineStatus] || 'default'
-          : 'default';
-        return (
-          <Space direction="vertical" size={6} style={{ maxWidth: 292 }}>
-            {pid ? (
-              <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                Zahlungs-ID:{' '}
-                <Typography.Text code copyable={{ text: pid }} style={{ fontSize: 11 }}>
-                  {pid.length > 22 ? `${pid.slice(0, 20)}…` : pid}
-                </Typography.Text>
-              </Typography.Text>
-            ) : null}
-            {hasLinks ? (
-              <Space size={4} wrap>
-                {row.receiptId ? (
-                  <Link href={`/receipts/${row.receiptId}`} target="_blank" rel="noopener noreferrer">
-                    <Tag color="blue">
-                      Beleg
-                      {row.receiptNumber?.trim() ? (
-                        <>
-                          :{' '}
-                          <Typography.Text code style={{ fontSize: 11 }}>
-                            {row.receiptNumber.trim()}
-                          </Typography.Text>
-                        </>
-                      ) : null}
-                    </Tag>
-                  </Link>
-                ) : null}
-                {row.invoiceNumber ? (
-                  <Link
-                    href={`/invoices?query=${encodeURIComponent(row.invoiceNumber)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Tag color="purple">Rechnung</Tag>
-                  </Link>
-                ) : null}
-                {row.offlineReplayBatchCorrelationId ? (
-                  <Link
-                    href={`/rksv/incident?correlationId=${encodeURIComponent(row.offlineReplayBatchCorrelationId)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Tag color="orange">Incident</Tag>
-                  </Link>
-                ) : null}
-              </Space>
-            ) : null}
-            {hasFo ? (
-              <Space direction="vertical" size={2} style={{ width: '100%' }}>
-                <Tag color={foColor}>FO {row.finanzOnlineStatus}</Tag>
-                {foErr ? (
-                  <Typography.Text type="danger" ellipsis={{ tooltip: foErr }} style={{ fontSize: 11, maxWidth: 280 }}>
-                    {foErr}
+      {
+        title: t('payments.table.colDate'),
+        dataIndex: 'createdAt',
+        key: 'createdAt',
+        render: (date: string) => (date ? formatDateTime(date, formatLocale) : FORMAT_EMPTY_DISPLAY),
+      },
+      {
+        title: t('payments.table.colAmount'),
+        dataIndex: 'totalAmount',
+        key: 'amount',
+        align: 'right' as const,
+        render: (val: number, record: AdminPaymentListItemDto) =>
+          formatCurrency(val ?? 0, formatLocale, { currency: record.currency || 'EUR' }),
+      },
+      {
+        title: t('payments.table.colMethod'),
+        dataIndex: 'method',
+        key: 'method',
+        render: (method: string) => <Tag color="blue">{method || FORMAT_EMPTY_DISPLAY}</Tag>,
+      },
+      {
+        title: t('payments.table.colStatus'),
+        dataIndex: 'status',
+        key: 'status',
+        render: (status: string) => {
+          const colors: Record<string, string> = {
+            Success: 'green',
+            Pending: 'orange',
+            Failed: 'red',
+            Cancelled: 'default',
+            Refunded: 'purple',
+          };
+          return <Tag color={colors[status] || 'default'}>{status || FORMAT_EMPTY_DISPLAY}</Tag>;
+        },
+      },
+      {
+        title: t('payments.table.colLinkedEntities'),
+        key: 'linkedEntities',
+        width: 300,
+        render: (_: unknown, row: AdminPaymentListItemDto) => {
+          const pid = row.id?.trim();
+          const foErr = row.finanzOnlineError?.trim();
+          const hasLinks =
+            Boolean(row.receiptId) || Boolean(row.invoiceNumber) || Boolean(row.offlineReplayBatchCorrelationId);
+          const hasFo = Boolean(row.finanzOnlineStatus?.trim());
+          const hasAny = Boolean(pid) || hasLinks || hasFo;
+          if (!hasAny) {
+            return <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>;
+          }
+          const foColors: Record<string, string> = {
+            Submitted: 'green',
+            Pending: 'blue',
+            Failed: 'red',
+            NeedsReconciliation: 'orange',
+          };
+          const foColor = row.finanzOnlineStatus
+            ? foColors[row.finanzOnlineStatus] || 'default'
+            : 'default';
+          return (
+            <Space direction="vertical" size={6} style={{ maxWidth: 292 }}>
+              {pid ? (
+                <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                  {t('payments.table.paymentIdPrefix')}{' '}
+                  <Typography.Text code copyable={{ text: pid }} style={{ fontSize: 11 }}>
+                    {pid.length > 22 ? `${pid.slice(0, 20)}…` : pid}
                   </Typography.Text>
-                ) : null}
-              </Space>
-            ) : null}
-          </Space>
-        );
+                </Typography.Text>
+              ) : null}
+              {hasLinks ? (
+                <Space size={4} wrap>
+                  {row.receiptId ? (
+                    <Link href={`/receipts/${row.receiptId}`} target="_blank" rel="noopener noreferrer">
+                      <Tag color="blue">
+                        {t('payments.table.tagReceipt')}
+                        {row.receiptNumber?.trim() ? (
+                          <>
+                            :{' '}
+                            <Typography.Text code style={{ fontSize: 11 }}>
+                              {row.receiptNumber.trim()}
+                            </Typography.Text>
+                          </>
+                        ) : null}
+                      </Tag>
+                    </Link>
+                  ) : null}
+                  {row.invoiceNumber ? (
+                    <Link
+                      href={`/invoices?query=${encodeURIComponent(row.invoiceNumber)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Tag color="purple">{t('payments.table.tagInvoice')}</Tag>
+                    </Link>
+                  ) : null}
+                  {row.offlineReplayBatchCorrelationId ? (
+                    <Link
+                      href={`/rksv/incident?correlationId=${encodeURIComponent(row.offlineReplayBatchCorrelationId)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Tag color="orange">{t('payments.table.tagIncident')}</Tag>
+                    </Link>
+                  ) : null}
+                </Space>
+              ) : null}
+              {hasFo ? (
+                <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                  <Tag color={foColor}>
+                    {t('payments.table.foTagPrefix')} {row.finanzOnlineStatus}
+                  </Tag>
+                  {foErr ? (
+                    <Typography.Text
+                      type="danger"
+                      ellipsis={{ tooltip: foErr }}
+                      style={{ fontSize: 11, maxWidth: 280 }}
+                      title={t('payments.detail.backendMessageTooltip')}
+                    >
+                      {/* RAW: FinanzOnline provider/backend error string; may be English or German */}
+                      {foErr}
+                    </Typography.Text>
+                  ) : null}
+                </Space>
+              ) : null}
+            </Space>
+          );
+        },
       },
-    },
-    {
-      title: 'Aktionen',
-      key: 'actions',
-      render: (_: unknown, row: AdminPaymentListItemDto) => (
-        <Button size="small" icon={<InfoCircleOutlined />} onClick={() => setSelectedPaymentId(row.id ?? null)}>
-          Details
-        </Button>
-      ),
-    },
-  ];
+      {
+        title: t('payments.table.colActions'),
+        key: 'actions',
+        render: (_: unknown, row: AdminPaymentListItemDto) => (
+          <Button size="small" icon={<InfoCircleOutlined />} onClick={() => setSelectedPaymentId(row.id ?? null)}>
+            {t('payments.table.details')}
+          </Button>
+        ),
+      },
+    ],
+    [t, formatLocale]
+  );
 
   return (
     <AdminPageShell>
@@ -352,15 +395,14 @@ export default function PaymentsPage() {
         actions={
           <Space wrap>
             <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isLoading}>
-              {OPERATOR_SHARED_COPY.toolbarRefresh}
+              {t('payments.toolbar.refresh')}
             </Button>
-            <Button icon={<CreditCardOutlined />}>Terminal-Status</Button>
+            <Button icon={<CreditCardOutlined />}>{t('payments.toolbar.terminalStatus')}</Button>
           </Space>
         }
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 640 }}>
-          Zahlungen im gewählten Zeitraum. Zeile wählen für Details, Storno und Rückerstattung sowie Verknüpfungen zu
-          Beleg und FinanzOnline.
+          {t('payments.page.intro')}
         </Typography.Paragraph>
       </AdminPageHeader>
 
@@ -376,7 +418,7 @@ export default function PaymentsPage() {
             allowClear={false}
           />
           <Select
-            placeholder="Methode"
+            placeholder={t('payments.filters.methodPlaceholder')}
             allowClear
             value={methodFilter}
             onChange={(v) => setMethodFilter(v)}
@@ -384,7 +426,7 @@ export default function PaymentsPage() {
             options={methodOptions.map((m) => ({ value: m, label: m }))}
           />
           <Select
-            placeholder="Status"
+            placeholder={t('payments.filters.statusPlaceholder')}
             allowClear
             value={statusFilter}
             onChange={(v) => setStatusFilter(v)}
@@ -394,17 +436,17 @@ export default function PaymentsPage() {
         </Space>
       </Card>
 
-      <AdminPageScopeSummary label="Aktive Ansicht:">{paymentsScopeSummary}</AdminPageScopeSummary>
+      <AdminPageScopeSummary label={t('payments.scope.label')}>{paymentsScopeSummary}</AdminPageScopeSummary>
 
       {isError ? (
         <Alert
           type="error"
           showIcon
-          message="Zahlungen konnten nicht geladen werden"
-          description={getPaymentsListErrorMessage(error)}
+          message={t('payments.list.loadErrorTitle')}
+          description={getPaymentsListErrorMessage(error, loadErrorFallback)}
           action={
             <Button size="small" onClick={() => refetch()}>
-              {OPERATOR_SHARED_COPY.retryAfterError}
+              {t('payments.toolbar.retryAfterError')}
             </Button>
           }
         />
@@ -414,37 +456,61 @@ export default function PaymentsPage() {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={6}>
           <Card size="small">
-            <Statistic title="Anzahl Zahlungen" value={stats?.totalPayments ?? filteredPayments.length} loading={statsLoading} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card size="small">
-            <Statistic title="Gesamtbetrag" value={stats?.totalAmount ?? 0} precision={2} suffix="EUR" loading={statsLoading} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card size="small">
-            <Statistic title="Durchschnitt" value={stats?.averageAmount ?? 0} precision={2} suffix="EUR" loading={statsLoading} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card size="small">
-            <Statistic title="TSE signiert" value={stats?.tseSignedPayments ?? 0} loading={statsLoading} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card size="small">
-            <Statistic title="FinanzOnline gesendet" value={stats?.finanzOnlineSentPayments ?? 0} loading={statsLoading} />
+            <Statistic
+              title={t('payments.stats.paymentCount')}
+              value={stats?.totalPayments ?? filteredPayments.length}
+              loading={statsLoading}
+              formatter={(v) => fmt.formatNumber(Number(v), { maximumFractionDigits: 0 })}
+            />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Card size="small">
             <Statistic
-              title="FO gesendeter Betrag"
-              value={stats?.finanzOnlineSentAmount ?? 0}
-              precision={2}
-              suffix="EUR"
+              title={t('payments.stats.totalAmount')}
+              value={stats?.totalAmount ?? 0}
               loading={statsLoading}
+              formatter={(v) => formatCurrency(Number(v), formatLocale)}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card size="small">
+            <Statistic
+              title={t('payments.stats.average')}
+              value={stats?.averageAmount ?? 0}
+              loading={statsLoading}
+              formatter={(v) => formatCurrency(Number(v), formatLocale)}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card size="small">
+            <Statistic
+              title={t('payments.stats.tseSigned')}
+              value={stats?.tseSignedPayments ?? 0}
+              loading={statsLoading}
+              formatter={(v) => fmt.formatNumber(Number(v), { maximumFractionDigits: 0 })}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card size="small">
+            <Statistic
+              title={t('payments.stats.finanzOnlineSent')}
+              value={stats?.finanzOnlineSentPayments ?? 0}
+              loading={statsLoading}
+              formatter={(v) => fmt.formatNumber(Number(v), { maximumFractionDigits: 0 })}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card size="small">
+            <Statistic
+              title={t('payments.stats.foSentAmount')}
+              value={stats?.finanzOnlineSentAmount ?? 0}
+              loading={statsLoading}
+              formatter={(v) => formatCurrency(Number(v), formatLocale)}
             />
           </Card>
         </Col>
@@ -462,7 +528,7 @@ export default function PaymentsPage() {
           emptyText: (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Keine Zahlungen für diesen Zeitraum oder die gewählten Filter."
+              description={t('payments.empty.description')}
             />
           ),
         }}
@@ -470,74 +536,82 @@ export default function PaymentsPage() {
       ) : null}
 
       <Drawer
-        title="Zahlungsdetails"
+        title={t('payments.drawer.title')}
         open={!!selectedPaymentId}
         onClose={() => setSelectedPaymentId(null)}
         width={640}
         destroyOnClose
       >
         {detailLoading ? (
-          <Typography.Text type="secondary">Lade Details…</Typography.Text>
+          <Typography.Text type="secondary">{t('payments.drawer.loadingDetails')}</Typography.Text>
         ) : paymentDetailData ? (
           <>
-            <Card size="small" title="Kerninformationen" style={{ marginBottom: 12 }}>
+            <Card size="small" title={t('payments.detail.sectionCore')} style={{ marginBottom: 12 }}>
               <Descriptions size="small" column={1} bordered>
-                <Descriptions.Item label="Payment ID">
+                <Descriptions.Item label={t('payments.detail.labelPaymentId')}>
                   <Typography.Text code copyable>
                     {selectedPaymentId}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Transaktion">
+                <Descriptions.Item label={t('payments.detail.labelTransaction')}>
                   <Typography.Text code copyable>
-                    {fmtDetail(paymentDetailData.transactionId)}
+                    {detailStr(paymentDetailData.transactionId)}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Belegnummer">
+                <Descriptions.Item label={t('payments.detail.labelReceiptNumber')}>
                   <Typography.Text code copyable>
-                    {fmtDetail(paymentDetailData.receiptNumber)}
+                    {detailStr(paymentDetailData.receiptNumber)}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Zeitpunkt (Server)">
-                  {fmtDetail(paymentDetailData.createdAt)}
+                <Descriptions.Item label={t('payments.detail.labelTimestampServer')}>
+                  {paymentDetailData.createdAt
+                    ? formatDateTime(paymentDetailData.createdAt, formatLocale)
+                    : FORMAT_EMPTY_DISPLAY}
                 </Descriptions.Item>
-                <Descriptions.Item label="Betrag">{fmtDetail(paymentDetailData.totalAmount)} EUR</Descriptions.Item>
-                <Descriptions.Item label="Zahlungsart (Roh)">
-                  {fmtDetail(paymentDetailData.paymentMethodRaw ?? paymentDetailData.method)}
+                <Descriptions.Item label={t('payments.detail.labelAmount')}>
+                  {paymentDetailData.totalAmount != null && Number.isFinite(paymentDetailData.totalAmount)
+                    ? formatCurrency(paymentDetailData.totalAmount, formatLocale, {
+                        currency: paymentDetailData.currency || 'EUR',
+                      })
+                    : FORMAT_EMPTY_DISPLAY}
                 </Descriptions.Item>
-                <Descriptions.Item label="Kasse (FK, UUID)">
+                <Descriptions.Item label={t('payments.detail.labelPaymentMethodRaw')}>
+                  {detailStr(paymentDetailData.paymentMethodRaw ?? paymentDetailData.method)}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('payments.detail.labelCashRegisterFk')}>
                   <Typography.Text code copyable>
-                    {fmtDetail(paymentDetailData.cashRegisterId)}
+                    {detailStr(paymentDetailData.cashRegisterId)}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Kundenname">{fmtDetail(paymentDetailData.customerName)}</Descriptions.Item>
-                <Descriptions.Item label="Idempotency Key">
+                <Descriptions.Item label={t('payments.detail.labelCustomerName')}>{detailStr(paymentDetailData.customerName)}</Descriptions.Item>
+                <Descriptions.Item label={t('payments.detail.labelIdempotencyKey')}>
                   <Typography.Text code copyable>
-                    {fmtDetail(paymentDetailData.idempotencyKey)}
+                    {detailStr(paymentDetailData.idempotencyKey)}
                   </Typography.Text>
                 </Descriptions.Item>
               </Descriptions>
             </Card>
 
-            <Card size="small" title="Verknüpfte Entitäten" style={{ marginBottom: 12 }}>
+            <Card size="small" title={t('payments.detail.sectionLinked')} style={{ marginBottom: 12 }}>
               <Descriptions size="small" column={1} bordered>
-                <Descriptions.Item label="Payment ID">
+                <Descriptions.Item label={t('payments.detail.labelPaymentId')}>
                   <Typography.Text code copyable>
-                    {fmtDetail(paymentDetailData.id)}
+                    {detailStr(paymentDetailData.id)}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Beleg-ID">
+                <Descriptions.Item label={t('payments.detail.labelReceiptId')}>
                   {safeOperationalDetail.receiptId ? (
                     <Space wrap>
                       <Typography.Text code copyable>{safeOperationalDetail.receiptId}</Typography.Text>
                       <Link href={`/receipts/${safeOperationalDetail.receiptId}`} target="_blank" rel="noopener noreferrer">
-                        Öffnen
+                        {t('payments.detail.open')}
                       </Link>
                     </Space>
                   ) : (
-                    '—'
+                    FORMAT_EMPTY_DISPLAY
                   )}
                 </Descriptions.Item>
-                <Descriptions.Item label="Rechnung">
+                <Descriptions.Item label={t('payments.detail.labelInvoice')}>
                   {safeOperationalDetail.invoiceNumber || safeOperationalDetail.invoiceId ? (
                     <Space wrap>
                       <Typography.Text code copyable>
@@ -549,15 +623,15 @@ export default function PaymentsPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          Öffnen
+                          {t('payments.detail.open')}
                         </Link>
                       ) : null}
                     </Space>
                   ) : (
-                    '—'
+                    FORMAT_EMPTY_DISPLAY
                   )}
                 </Descriptions.Item>
-                <Descriptions.Item label="Replay-Batch-Correlation-ID">
+                <Descriptions.Item label={t('payments.detail.labelReplayCorrelation')}>
                   {safeOperationalDetail.offlineReplayBatchCorrelationId ? (
                     <Space wrap>
                       <Typography.Text code copyable>{safeOperationalDetail.offlineReplayBatchCorrelationId}</Typography.Text>
@@ -577,66 +651,80 @@ export default function PaymentsPage() {
                       </Link>
                     </Space>
                   ) : (
-                    '—'
+                    FORMAT_EMPTY_DISPLAY
                   )}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
 
-            <Card size="small" title="Betrieb / Herkunft" style={{ marginBottom: 12 }}>
+            <Card size="small" title={t('payments.detail.sectionOrigin')} style={{ marginBottom: 12 }}>
               <Descriptions size="small" column={1} bordered>
-                <Descriptions.Item label="Zahlungsursprung">
+                <Descriptions.Item label={t('payments.detail.labelPaymentOrigin')}>
                   {safeOperationalDetail.isOfflineOrigin
-                    ? 'Offline-Warteschlange → Server-Replay'
-                    : 'Direkt (Online)'}
+                    ? t('payments.detail.originOffline')
+                    : t('payments.detail.originOnline')}
                 </Descriptions.Item>
-                <Descriptions.Item label="Belegnummer gesetzt">
-                  {safeOperationalDetail.receiptNumber ? 'Ja' : 'Nein'}
+                <Descriptions.Item label={t('payments.detail.labelReceiptNumberSet')}>
+                  {safeOperationalDetail.receiptNumber ? t('payments.display.yes') : t('payments.display.no')}
                 </Descriptions.Item>
-                <Descriptions.Item label="Beleg-ID">
+                <Descriptions.Item label={t('payments.detail.labelReceiptIdShort')}>
                   <Typography.Text code copyable>
-                    {fmtDetail(safeOperationalDetail.receiptId)}
+                    {detailStr(safeOperationalDetail.receiptId)}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Rechnung persistiert (API)">
+                <Descriptions.Item label={t('payments.detail.labelInvoicePersistedApi')}>
                   {safeOperationalDetail.invoicePersisted == null
-                    ? '— (Feld nicht in älterer API-Antwort)'
-                    : fmtDetail(safeOperationalDetail.invoicePersisted)}
+                    ? t('payments.detail.invoicePersistedLegacyMissing')
+                    : detailStr(safeOperationalDetail.invoicePersisted)}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
 
-            <Card size="small" title="Offline / Replay" style={{ marginBottom: 12 }}>
+            <Card size="small" title={t('payments.detail.sectionOfflineReplay')} style={{ marginBottom: 12 }}>
               <Typography.Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 12 }}>
-                Korrelation zwischen Offline-Warteschlange und Server-Replay (Support).
+                {t('payments.detail.offlineReplayIntro')}
               </Typography.Paragraph>
               <Descriptions size="small" column={1} bordered>
-                <Descriptions.Item label="Offline-Transaktions-ID">
+                <Descriptions.Item label={t('payments.detail.labelOfflineTxId')}>
                   <Typography.Text code copyable>
-                    {fmtDetail(safeOperationalDetail.offlineTransactionId)}
+                    {detailStr(safeOperationalDetail.offlineTransactionId)}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Replay-Batch-Correlation-ID">
+                <Descriptions.Item label={t('payments.detail.labelReplayCorrelation')}>
                   <Typography.Text code copyable>
-                    {fmtDetail(safeOperationalDetail.offlineReplayBatchCorrelationId)}
+                    {detailStr(safeOperationalDetail.offlineReplayBatchCorrelationId)}
                   </Typography.Text>
                 </Descriptions.Item>
               </Descriptions>
             </Card>
 
-            <Card size="small" title="FinanzOnline" style={{ marginBottom: 12 }}>
+            <Card size="small" title={t('payments.detail.sectionFinanzOnline')} style={{ marginBottom: 12 }}>
               <Descriptions size="small" column={1} bordered>
-                <Descriptions.Item label="Status">{fmtDetail(safeOperationalDetail.finanzOnlineStatus)}</Descriptions.Item>
-                <Descriptions.Item label="Fehler">{fmtDetail(safeOperationalDetail.finanzOnlineError)}</Descriptions.Item>
-                <Descriptions.Item label="Referenz-ID">
+                <Descriptions.Item label={t('payments.detail.labelFoStatus')}>{detailStr(safeOperationalDetail.finanzOnlineStatus)}</Descriptions.Item>
+                <Descriptions.Item label={t('payments.detail.labelFoError')}>
+                  {safeOperationalDetail.finanzOnlineError ? (
+                    <Typography.Text
+                      type="danger"
+                      title={t('payments.detail.backendMessageTooltip')}
+                    >
+                      {/* RAW: API FinanzOnline error text; language not guaranteed */}
+                      {safeOperationalDetail.finanzOnlineError}
+                    </Typography.Text>
+                  ) : (
+                    FORMAT_EMPTY_DISPLAY
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('payments.detail.labelFoReferenceId')}>
                   <Typography.Text code copyable>
-                    {fmtDetail(safeOperationalDetail.finanzOnlineReferenceId)}
+                    {detailStr(safeOperationalDetail.finanzOnlineReferenceId)}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="Letzter Versuch (UTC)">
-                  {fmtDetail(paymentDetailData.finanzOnlineLastAttemptAtUtc)}
+                <Descriptions.Item label={t('payments.detail.labelFoLastAttemptUtc')}>
+                  {paymentDetailData.finanzOnlineLastAttemptAtUtc
+                    ? formatDateTime(paymentDetailData.finanzOnlineLastAttemptAtUtc, formatLocale)
+                    : FORMAT_EMPTY_DISPLAY}
                 </Descriptions.Item>
-                <Descriptions.Item label="Retries">{fmtDetail(paymentDetailData.finanzOnlineRetryCount)}</Descriptions.Item>
+                <Descriptions.Item label={t('payments.detail.labelFoRetries')}>{detailStr(paymentDetailData.finanzOnlineRetryCount)}</Descriptions.Item>
               </Descriptions>
             </Card>
 
@@ -645,7 +733,7 @@ export default function PaymentsPage() {
               items={[
                 {
                   key: 'raw',
-                  label: 'Rohe API-Antwort (Technik)',
+                  label: t('payments.detail.rawApiCollapse'),
                   children: (
                     <Typography.Paragraph copyable style={{ marginBottom: 0, fontSize: 11 }}>
                       {JSON.stringify(paymentDetailData, null, 2)}
@@ -658,22 +746,22 @@ export default function PaymentsPage() {
 
             <Space direction="vertical" style={{ width: '100%' }} size="middle">
               <Button type="primary" onClick={openReceipt} disabled={!canOpenReceipt}>
-                Beleg öffnen
+                {t('payments.detail.buttonOpenReceipt')}
               </Button>
 
               {!canCancel && (
                 <Alert
                   type="info"
                   showIcon
-                  message="Storno nicht erlaubt"
-                  description="Für Storno fehlt die erforderliche Berechtigung."
+                  message={t('payments.detail.cancelPermissionTitle')}
+                  description={t('payments.detail.cancelPermissionDesc')}
                 />
               )}
               {canCancel && (
-                <Card size="small" title="Storno">
+                <Card size="small" title={t('payments.detail.cancelCardTitle')}>
                   <Space direction="vertical" style={{ width: '100%' }}>
                     <Input
-                      placeholder="Storno-Grund"
+                      placeholder={t('payments.detail.cancelReasonPlaceholder')}
                       value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)}
                     />
@@ -683,16 +771,16 @@ export default function PaymentsPage() {
                       disabled={!cancelReason.trim()}
                       onClick={() =>
                         Modal.confirm({
-                          title: 'Zahlung stornieren?',
-                          content: 'Diese Aktion storniert die Zahlung. Fortfahren?',
-                          okText: 'Stornieren',
+                          title: t('payments.detail.cancelModalTitle'),
+                          content: t('payments.detail.cancelModalContent'),
+                          okText: t('payments.detail.cancelOk'),
                           okButtonProps: { danger: true },
-                          cancelText: 'Abbrechen',
+                          cancelText: t('payments.detail.cancelCancel'),
                           onOk: () => cancelMutation.mutate(),
                         })
                       }
                     >
-                      Storno ausführen
+                      {t('payments.detail.cancelButton')}
                     </Button>
                   </Space>
                 </Card>
@@ -702,23 +790,23 @@ export default function PaymentsPage() {
                 <Alert
                   type="info"
                   showIcon
-                  message="Refund nicht erlaubt"
-                  description="Für Rückerstattungen fehlt die erforderliche Berechtigung."
+                  message={t('payments.detail.refundPermissionTitle')}
+                  description={t('payments.detail.refundPermissionDesc')}
                 />
               )}
               {canRefund && (
-                <Card size="small" title="Rückerstattung">
+                <Card size="small" title={t('payments.detail.refundCardTitle')}>
                   <Space direction="vertical" style={{ width: '100%' }}>
                     <InputNumber
                       min={0.01}
                       precision={2}
-                      placeholder="Betrag"
+                      placeholder={t('payments.detail.refundAmountPlaceholder')}
                       value={refundAmount ?? undefined}
                       onChange={(v) => setRefundAmount(typeof v === 'number' ? v : null)}
                       style={{ width: '100%' }}
                     />
                     <Input
-                      placeholder="Grund für Rückerstattung"
+                      placeholder={t('payments.detail.refundReasonPlaceholder')}
                       value={refundReason}
                       onChange={(e) => setRefundReason(e.target.value)}
                     />
@@ -727,15 +815,15 @@ export default function PaymentsPage() {
                       disabled={!refundReason.trim() || !refundAmount || refundAmount <= 0}
                       onClick={() =>
                         Modal.confirm({
-                          title: 'Rückerstattung ausführen?',
-                          content: 'Diese Aktion erstellt eine Rückerstattung für die gewählte Zahlung. Fortfahren?',
-                          okText: 'Rückerstattung ausführen',
-                          cancelText: 'Abbrechen',
+                          title: t('payments.detail.refundModalTitle'),
+                          content: t('payments.detail.refundModalContent'),
+                          okText: t('payments.detail.refundOk'),
+                          cancelText: t('payments.detail.refundCancel'),
                           onOk: () => refundMutation.mutate(),
                         })
                       }
                     >
-                      Rückerstattung ausführen
+                      {t('payments.detail.refundButton')}
                     </Button>
                   </Space>
                 </Card>
@@ -743,7 +831,7 @@ export default function PaymentsPage() {
             </Space>
           </>
         ) : (
-          <Alert type="warning" showIcon message="Keine Detaildaten verfügbar" />
+          <Alert type="warning" showIcon message={t('payments.drawer.noDetailData')} />
         )}
       </Drawer>
     </AdminPageShell>

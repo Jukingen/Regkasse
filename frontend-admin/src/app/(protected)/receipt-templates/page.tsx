@@ -16,8 +16,10 @@ import { PERMISSIONS } from '@/shared/auth/permissions';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { AdminDataList } from '@/components/admin-layout/AdminDataList';
+import { useI18n } from '@/i18n';
 
 export default function ReceiptTemplatesPage() {
+    const { t } = useI18n();
     // 1. URL State
     const { filters } = useReceiptTemplateFilters();
     const mode = filters.mode || 'all';
@@ -59,11 +61,11 @@ export default function ReceiptTemplatesPage() {
     const { mutate: deleteTemplate } = useDelete({
         mutation: {
             onSuccess: () => {
-                message.success('Vorlage gelöscht.');
+                message.success(t('receiptTemplates.page.deleteSuccess'));
                 invalidateList();
             },
             onError: (err: Error) => {
-                message.error(`Delete failed: ${err.message}`);
+                message.error(t('receiptTemplates.page.deleteError', { message: err.message }));
             },
         },
     });
@@ -78,7 +80,7 @@ export default function ReceiptTemplatesPage() {
                     canManage ? (
                         <Link href="/receipt-templates/new">
                             <Button type="primary" icon={<PlusOutlined />}>
-                                New Template
+                                {t('receiptTemplates.page.newTemplate')}
                             </Button>
                         </Link>
                     ) : undefined
@@ -92,7 +94,7 @@ export default function ReceiptTemplatesPage() {
                 isError={!!error}
                 error={error as Error}
                 isEmpty={!data || data.length === 0}
-                emptyText="No receipt templates found. Try changing filters or create a new template."
+                emptyText={t('receiptTemplates.page.emptyList')}
             >
                 <ReceiptTemplateList
                     data={data || []}

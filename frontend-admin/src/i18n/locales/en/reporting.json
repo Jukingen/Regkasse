@@ -1,0 +1,232 @@
+{
+  "policy": {
+    "formalReportLanguageBanner": "Formal report text from the server is shown in German or English only — never Turkish, even when the UI is Turkish."
+  },
+  "backend": {
+    "germanFieldTooltip": "Server field (typically German, *De). Multilingual API may follow later.",
+    "fiscalReportTextTitleDe": "Formal report text (German, from server). Not shown in Turkish when the UI is Turkish.",
+    "fiscalReportTextTitleEn": "Formal report text (English, from server). Not shown in Turkish when the UI is Turkish.",
+    "fiscalReportExportProfilesHint": "Export profile labels and descriptions follow the same fiscal text language policy.",
+    "apiStringsTooltip": "Raw values from the server (language not guaranteed)."
+  },
+  "legalExportCompleteness": {
+    "loading": "Legal export check…",
+    "unavailable": "Legal export check unavailable.",
+    "successComplete": "Legal compliance export: snapshot complete (no open blockers).",
+    "titleBlocked": "Legal compliance export blocked",
+    "titleAllowedWithWarnings": "Legal compliance export possible with warnings",
+    "titleGeneric": "Legal compliance export"
+  },
+  "listShared": {
+    "refresh": "Refresh",
+    "details": "Details",
+    "columns": {
+      "status": "Status",
+      "register": "Register",
+      "foSubmission": "FO / submission",
+      "gross": "Gross",
+      "scope": "Scope"
+    },
+    "registerPlaceholder": "Register",
+    "registerPlaceholderScoped": "Register (when scope is register)",
+    "generateError": "Generation failed.",
+    "selectRegister": "Please select a register.",
+    "selectRegisterScope": "Please select a register (register scope).",
+    "scopeOptionRegister": "Register (single register)",
+    "scopeOptionCompany": "Company (all registers)",
+    "scopeKind": {
+      "Register": "Register",
+      "Company": "Company"
+    },
+    "reportStatus": {
+      "Finalized": "Finalized",
+      "Provisional": "Provisional"
+    },
+    "emptyDash": "—"
+  },
+  "tagesbericht": {
+    "list": {
+      "pageTitle": "Daily report (formal)",
+      "breadcrumb": "Daily report",
+      "columnDate": "Date",
+      "intro": "Provisional reports can be recalculated until finalization. Finalized snapshots are immutable; corrections create a new report row.",
+      "generateButton": "Generate/update daily report for end date",
+      "messages": {
+        "generateSuccess": "Daily report generated or updated."
+      }
+    },
+    "detail": {
+      "loading": "Loading…",
+      "loadError": "Report not found or failed to load.",
+      "pageTitle": "Daily report {{date}}",
+      "breadcrumbList": "Daily report",
+      "messages": {
+        "finalizeSuccess": "Finalized.",
+        "finalizeError": "Finalization failed.",
+        "submitSuccess": "Queued to FinanzOnline outbox.",
+        "submitError": "Submission failed.",
+        "correctionSuccess": "Correction report created.",
+        "correctionError": "Correction failed (only after a finalized predecessor)."
+      },
+      "actions": {
+        "finalize": "Finalize",
+        "finanzOnline": "FinanzOnline (outbox)",
+        "correction": "Correction (new report)",
+        "backToList": "Back to list"
+      },
+      "profile": {
+        "label": "Display profile",
+        "operational": "Operational (preview)",
+        "accounting": "Accounting",
+        "legal": "Legal / compliance export",
+        "diagnostic": "Diagnostic package",
+        "warnNonLegal": "Non-legal output: do not use as an official document.",
+        "warnDiagnostic": "Diagnostic package is for technical analysis only.",
+        "hintProfile": "Profile controls export/view, not FinanzOnline submission status."
+      },
+      "cards": {
+        "status": "Status",
+        "sums": "Totals",
+        "taxBreakdown": "Tax breakdown",
+        "paymentMethods": "Payment methods",
+        "reconciliation": "Reconciliation / notes",
+        "trace": "Trace (compliance)",
+        "traceBody": "Raw IDs are stored truncated; the hash supports traceability.",
+        "history": "History"
+      },
+      "labels": {
+        "report": "Report",
+        "version": "Version",
+        "correctionType": "Correction type",
+        "submissionImpact": "Submission impact",
+        "revisionReason": "Revision reason",
+        "rebuildCause": "Rebuild cause",
+        "reportVsSubmission": "Report vs. submission",
+        "submission": "Submission",
+        "attempt": "Attempt",
+        "rejection": "Rejection reason",
+        "remediation": "Remediation hints",
+        "reference": "Reference",
+        "snapshotHash": "Snapshot hash",
+        "notAvailable": "n/a",
+        "gross": "Gross",
+        "taxTotal": "Tax (total)",
+        "refunds": "Refunds",
+        "saleLines": "Sale lines",
+        "refundLines": "Refund lines",
+        "stornoLines": "Storno lines",
+        "taxBucket": "Tax bucket",
+        "taxAmount": "Tax",
+        "method": "Method",
+        "lines": "Lines",
+        "sum": "Total",
+        "paymentsWithoutInvoice": "Payments without invoice",
+        "unknownMethodLines": "Unknown payment method (lines)",
+        "offlineLinked": "Offline linked",
+        "dayClosedRksv": "Day closed in RKSV",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "history": {
+        "loading": "Loading history…",
+        "empty": "No correction chain present.",
+        "created": "Created:",
+        "finalized": "Finalized:",
+        "submissionLine": "Submission:",
+        "outbox": "Outbox:",
+        "missingOutboxRef": "Missing outbox reference",
+        "submissionLastErrorIntro": "Last technical error text (server; often English):"
+      }
+    }
+  },
+  "monatsbericht": {
+    "list": {
+      "pageTitle": "Monthly report (formal)",
+      "breadcrumb": "Monthly report",
+      "columnMonth": "Month",
+      "columnGross": "Gross (from daily reports)",
+      "intro": "Monthly reports aggregate finalized daily reports in the calendar month; raw totals support reconciliation.",
+      "monthPickerLabel": "Report month (new / update)",
+      "generateButton": "Generate/update monthly report",
+      "messages": {
+        "generateSuccess": "Monthly report generated or updated."
+      }
+    },
+    "detail": {
+      "loading": "Loading…",
+      "loadError": "Report not found or failed to load.",
+      "pageTitle": "Monthly report {{month}}",
+      "breadcrumbList": "Monthly report",
+      "messages": {
+        "submitFinanzOnlineIdempotent": "Queued to FinanzOnline outbox (idempotent)."
+      },
+      "upstreamAlertTitle": "Reconciliation after downstream correction",
+      "cards": {
+        "linkedFinalizedDaily": "Linked daily reports (final)",
+        "rawDataPaymentDetails": "Raw data (PaymentDetails, month window)",
+        "taxBreakdownFromDaily": "Tax breakdown (from daily reports)",
+        "paymentMethodsFromDaily": "Payment methods (from daily reports)",
+        "hints": "Notes"
+      },
+      "traceBody": "The monthly snapshot is immutable after finalization; corrections create new report rows with references.",
+      "labels": {
+        "scope": "Scope",
+        "scopeAllRegisters": "all registers",
+        "correctionTag": "Correction",
+        "predecessor": "Predecessor",
+        "supersededBy": "Superseded by",
+        "dailyReportsCount": "Daily reports (count)",
+        "calendarDaysCovered": "Calendar days / covered",
+        "grossFromDailyReports": "Gross (from daily reports)",
+        "deltaGrossDailyVsRaw": "Δ Gross (daily reports − raw)",
+        "reviewCheck": "Review",
+        "reviewDeviation": "Variance",
+        "reviewOk": "OK",
+        "noWarnings": "No warnings.",
+        "openDailyReport": "Open",
+        "tableDate": "Date",
+        "register": "Register"
+      }
+    }
+  },
+  "jahresbericht": {
+    "list": {
+      "pageTitle": "Annual report (formal)",
+      "breadcrumb": "Annual report",
+      "columnYear": "Year",
+      "columnGross": "Gross (months)",
+      "intro": "Annual reports aggregate finalized monthly reports in the calendar year; raw totals support reconciliation.",
+      "yearPickerLabel": "Report year (new / update)",
+      "generateButton": "Generate/update annual report",
+      "messages": {
+        "generateSuccess": "Annual report generated or updated."
+      }
+    },
+    "detail": {
+      "loading": "Loading…",
+      "loadError": "Report not found or failed to load.",
+      "pageTitle": "Annual report {{year}}",
+      "breadcrumbList": "Annual report",
+      "messages": {
+        "submitFinanzOnlineIdempotent": "Queued to FinanzOnline outbox (idempotent)."
+      },
+      "cards": {
+        "linkedFinalizedMonthly": "Linked monthly reports (final)",
+        "annualSums": "Annual totals",
+        "rawDataPaymentDetails": "Raw data (PaymentDetails, year window)",
+        "taxBreakdownFromMonthly": "Tax breakdown (from monthly reports)",
+        "paymentMethodsFromMonthly": "Payment methods (from monthly reports)"
+      },
+      "traceBody": "The annual snapshot is immutable after finalization; corrections create new report rows with references.",
+      "labels": {
+        "tableMonth": "Month",
+        "openMonthlyReport": "Open",
+        "monthlyReportColumn": "Monthly report",
+        "monthlyReportsCount": "Monthly reports (count)",
+        "monthsCovered": "Months / covered",
+        "grossFromMonthlyReports": "Gross (from monthly reports)",
+        "deltaGrossMonthlyVsRaw": "Δ Gross (monthly − raw)"
+      }
+    }
+  }
+}

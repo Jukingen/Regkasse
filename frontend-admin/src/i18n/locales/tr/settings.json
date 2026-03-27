@@ -19,6 +19,9 @@
     "saveChanges": "Değişiklikleri kaydet",
     "saveFailed": "Kaydetme başarısız oldu."
   },
+  "display": {
+    "emptyValue": "—"
+  },
   "tabs": {
     "general": "Genel bilgiler",
     "localization": "Bolge ve bicimlendirme",
@@ -28,7 +31,10 @@
   },
   "language": {
     "cardTitle": "Dil",
-    "label": "Goruntuleme dili"
+    "label": "Goruntuleme dili",
+    "localeDe": "Deutsch",
+    "localeEn": "English",
+    "localeTr": "Türkçe"
   },
   "changePassword": {
     "title": "Sifremi degistir",
@@ -46,10 +52,46 @@
   },
   "form": {
     "general": {
-      "cardTitle": "Sirket ve iletisim"
+      "cardTitle": "Sirket ve iletisim",
+      "companyName": "Sirket unvani",
+      "companyNameRequired": "Sirket unvani zorunludur",
+      "companyAddress": "Sirket adresi",
+      "companyAddressRequired": "Sirket adresi zorunludur",
+      "companyTaxNumber": "Vergi numarasi (ATU)",
+      "companyTaxNumberRequired": "Vergi numarasi zorunludur",
+      "companyTaxNumberPattern": "Format: ATU + 8 rakam",
+      "placeholderAtu": "ATU12345678",
+      "companyVatNumber": "KDV numarasi (ATU)",
+      "contactPerson": "Yetkili kisi",
+      "contactEmail": "Iletisim e-postasi",
+      "contactEmailInvalid": "Gecersiz e-posta adresi",
+      "contactPhone": "Iletisim telefonu",
+      "companyWebsite": "Web sitesi",
+      "bankName": "Banka adi",
+      "bankAccountNumber": "IBAN",
+      "bankSwiftCode": "BIC"
     },
     "localization": {
-      "cardTitle": "Bolge ve bicimlendirme"
+      "cardTitle": "Bolge ve bicimlendirme",
+      "defaultLanguage": "Varsayilan dil",
+      "defaultLanguageRequired": "Varsayilan dil zorunludur",
+      "placeholderDefaultLanguage": "de-DE",
+      "defaultCurrency": "Para birimi",
+      "defaultCurrencyRequired": "Para birimi zorunludur",
+      "placeholderCurrency": "EUR",
+      "defaultTimeZone": "Saat dilimi",
+      "defaultTimeZoneRequired": "Saat dilimi zorunludur",
+      "placeholderTimeZone": "Europe/Vienna",
+      "defaultDateFormat": "Tarih formati",
+      "defaultDateFormatRequired": "Tarih formati zorunludur",
+      "placeholderDateFormat": "dd.MM.yyyy",
+      "defaultTimeFormat": "Saat formati",
+      "defaultTimeFormatRequired": "Saat formati zorunludur",
+      "placeholderTimeFormat": "HH:mm:ss",
+      "receiptNumbering": "Fis numaralandirma",
+      "receiptNumberingRequired": "Fis numaralandirma zorunludur",
+      "invoiceNumbering": "Fatura numaralandirma",
+      "invoiceNumberingRequired": "Fatura numaralandirma zorunludur"
     },
     "finanzOnline": {
       "credentialsCardTitle": "Kimlik bilgileri ve baglanti",
@@ -58,10 +100,34 @@
       "runtimeCardTitle": "Calisma durumu (salt okunur)",
       "runtimeCardDescription": "Calisma durumu backend'den gelir. Bu alanlar salt okunurdur ve “Degisiklikleri kaydet” ile yazilmaz.",
       "lastSyncLabel": "Son FinanzOnline senkronizasyonu",
-      "pendingInvoicesLabel": "Bekleyen faturalar"
+      "pendingInvoicesLabel": "Bekleyen faturalar",
+      "integrationEnabled": "FinanzOnline entegrasyonu acik",
+      "apiUrl": "API URL",
+      "apiUrlMax": "En fazla 500 karakter",
+      "apiUrlInvalid": "Gecerli bir URL girin",
+      "placeholderApiUrl": "https://finanzonline.example.at/api",
+      "participantId": "Katilimci kimligi",
+      "participantIdMax": "En fazla 100 karakter",
+      "participantIdExtra": "Saglayiciya gore katilimci kimligi veya birlesik katilimci/kullanici kimligi.",
+      "placeholderParticipantId": "Katilimci kimligi",
+      "pin": "PIN",
+      "pinMax": "En fazla 100 karakter",
+      "pinExtra": "Guvenlik icin mevcut PIN hic gosterilmez. Mevcut PIN'i korumak icin bos birakin.",
+      "placeholderPin": "PIN",
+      "sessionTimeout": "Oturum zaman asimi (dk)",
+      "sessionTimeoutRange": "Deger 1 ile 1440 arasinda olmalidir",
+      "autoSubmit": "Otomatik gonderim",
+      "retryAttempts": "Yeniden deneme sayisi",
+      "retryAttemptsRange": "Deger 0 ile 20 arasinda olmalidir",
+      "payloadValidationEnabled": "Yuk dogrulama acik"
     },
     "tse": {
-      "cardTitle": "TSE (Teknik guvenlik cihazi)"
+      "cardTitle": "TSE (Teknik guvenlik cihazi)",
+      "autoConnect": "Baslangicta otomatik baglan",
+      "defaultDeviceId": "Varsayilan TSE cihaz kimligi",
+      "defaultDeviceIdMax": "En fazla 100 karakter",
+      "connectionTimeout": "Baglanti zaman asimi (ms)",
+      "connectionTimeoutRange": "Deger 5 ile 120000 arasinda olmalidir"
     }
   },
   "paymentMethods": {

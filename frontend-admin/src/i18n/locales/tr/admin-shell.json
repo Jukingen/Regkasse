@@ -11,6 +11,12 @@
     "expandSidebar": "Kenar çubuğunu genişlet",
     "collapseSidebar": "Kenar çubuğunu daralt"
   },
+  "header": {
+    "languageSelectAria": "Arayüz dilini seçin",
+    "languageNameDe": "Almanca",
+    "languageNameEn": "İngilizce",
+    "languageNameTr": "Türkçe"
+  },
   "group": {
     "kasseBelege": "Kasa ve fişler",
     "sortiment": "Katalog",
@@ -224,6 +230,19 @@
     "colStornoPerSale": "Storno / satış",
     "colRefundAmtRatio": "İade tutarı / brüt",
     "colLocalDay": "Takvim günü (AT)"
+  },
+  "hospitalityHub": {
+    "title": "Günlük akış (Hospitality)",
+    "subtitle": "Vardiya lideri için hızlı erişim: raporlar, fişler, stok ve ana veriler — hedef sayfalarla aynı izinler.",
+    "linkReporting": "Operasyonel raporlar (X/Z, dönemler)",
+    "linkTagesabschluss": "Gün sonu",
+    "linkOperations": "Operasyon merkezi",
+    "linkReceipts": "Fiş ara",
+    "linkInventory": "Stok / envanter",
+    "linkPricing": "Fiyat kuralları / Happy Hour",
+    "linkPaymentsConfig": "Ödeme türleri",
+    "linkTables": "Masalar (özet)",
+    "linkRksvStatus": "RKSV / TSE durumu"
   },
   "inventory": {
     "pageTitle": "Stok ve envanter",

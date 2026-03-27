@@ -7,6 +7,7 @@ import {
   readManifest,
   resolveAppConfig,
   writeReport,
+  ROOT,
 } from './_shared.mjs';
 
 const args = parseArgs(process.argv);
@@ -15,10 +16,44 @@ const appIds = (args.app ? [args.app] : Object.keys(manifest.apps)).sort((a, b) 
 const strictMissing = args.strictMissing === 'true';
 const strictDe = args.strictDe === 'true';
 const hardcodedAsError = args.hardcodedAsError === 'true';
+const strictDynamic = args.strictDynamic === 'true';
+
+const budgetFileAbs = args.budgetFile
+  ? path.resolve(process.cwd(), args.budgetFile)
+  : path.join(ROOT, 'localization', 'i18n-ci-budgets.json');
+const budgetDoc = (await readJsonFileIfExists(budgetFileAbs)) ?? {};
+
+const dynamicKeyRegistry =
+  (await readJsonFileIfExists(path.join(ROOT, 'localization', 'dynamic-key-expansions.json'))) ?? {
+    apps: {},
+  };
 
 const failures = [];
 const warnings = [];
 const perApp = [];
+
+function resolveUsageBudgets(appId) {
+  const b = budgetDoc?.[appId] ?? {};
+  const maxMissingLocalePairs = Number(
+    args.maxMissingLocalePairs !== undefined ? args.maxMissingLocalePairs : (b.maxMissingLocalePairs ?? 0),
+  );
+  const rawMaxHc = args.maxHardcodedUi !== undefined ? args.maxHardcodedUi : b.maxHardcodedUi;
+  const maxHardcodedUi =
+    rawMaxHc === undefined || rawMaxHc === null || String(rawMaxHc).trim() === ''
+      ? Number.POSITIVE_INFINITY
+      : Number(rawMaxHc);
+  const rawMaxDyn = args.maxDynamicUnresolved !== undefined ? args.maxDynamicUnresolved : b.maxDynamicUnresolved;
+  const maxDynamicUnresolved =
+    rawMaxDyn === undefined || rawMaxDyn === null || String(rawMaxDyn).trim() === ''
+      ? Number.POSITIVE_INFINITY
+      : Number(rawMaxDyn);
+  return {
+    maxMissingLocalePairs,
+    maxHardcodedUi,
+    maxDynamicUnresolved,
+    budgetSource: args.budgetFile ? path.relative(process.cwd(), budgetFileAbs) : 'localization/i18n-ci-budgets.json',
+  };
+}
 
 for (const appId of appIds) {
   const app = resolveAppConfig(manifest, appId);
@@ -31,13 +66,30 @@ for (const appId of appIds) {
     }
   }
   const { files, usedEntries, hardcodedCandidates } = await scanUsage(app.id, knownNamespaces);
+  const { expanded: expandedUsedEntries, expansions: dynamicExpansions, unresolved: dynamicUnresolved } =
+    expandDynamicUsageEntries(app.id, usedEntries, dynamicKeyRegistry);
 
+  const budgets = resolveUsageBudgets(app.id);
   const appFailures = [];
   const appWarnings = [];
   const missingByLocale = { de: [], en: [], tr: [] };
   const invalidNamespaceRefs = [];
+  const pendingMissingEn = [];
+  const pendingMissingTr = [];
 
-  for (const entry of usedEntries) {
+  for (const hit of dynamicUnresolved) {
+    const msg = `${app.id}: dynamic i18n template key not in expansion registry (missing-key check skipped for this call): ${hit.file}:${hit.line} -> ${truncate(hit.rawKey, 160)}`;
+    if (strictDynamic) appFailures.push(msg);
+    else appWarnings.push(msg);
+  }
+
+  if (!strictDynamic && dynamicUnresolved.length > budgets.maxDynamicUnresolved) {
+    appFailures.push(
+      `${app.id}: dynamic template unresolved budget exceeded: ${dynamicUnresolved.length} > ${budgets.maxDynamicUnresolved} (add rules in localization/dynamic-key-expansions.json or raise maxDynamicUnresolved in ${budgets.budgetSource})`,
+    );
+  }
+
+  for (const entry of expandedUsedEntries) {
     const normalized = normalizeUsage(app.id, entry.rawKey, knownNamespaces);
     if (!normalized) continue;
 
@@ -95,13 +147,35 @@ for (const appId of appIds) {
     else appWarnings.push(message);
   }
 
+  const hcCount = hardcodedCandidates.length;
+  if (!hardcodedAsError && Number.isFinite(budgets.maxHardcodedUi) && hcCount > budgets.maxHardcodedUi) {
+    appFailures.push(
+      `${app.id}: hardcoded UI candidate budget exceeded: ${hcCount} > ${budgets.maxHardcodedUi} (move strings to i18n or raise maxHardcodedUi in ${budgets.budgetSource})`,
+    );
+  }
+
   failures.push(...appFailures);
   warnings.push(...appWarnings);
   perApp.push({
     app: app.id,
+    budgets: {
+      ...budgets,
+      actualMissingLocalePairs:
+        strictMissing ? pendingMissingEn.length + pendingMissingTr.length : null,
+      actualHardcodedUi: hcCount,
+      actualDynamicUnresolved: dynamicUnresolved.length,
+    },
     scannedFiles: files.length,
-    usedKeyCount: usedEntries.length,
+    usedKeyCount: expandedUsedEntries.length,
+    rawTScanCount: usedEntries.length,
     uniqueUsedKeyCount: localeMatrix.usedKeys.size,
+    dynamicTemplateExpansions: dynamicExpansions,
+    dynamicTemplateUnresolved: dynamicUnresolved.map((h) => ({
+      file: h.file,
+      line: h.line,
+      rawKey: h.rawKey,
+      normalizedPrefix: h.normalizedPrefix ?? null,
+    })),
     invalidNamespaceRefs,
     missingByLocale: {
       de: dedupe(missingByLocale.de),
@@ -125,13 +199,32 @@ const sortedWarnings = [...new Set(warnings)].sort((a, b) => a.localeCompare(b))
 for (const appSummary of perApp) {
   console.log(`\n=== Localization Usage Check :: ${appSummary.app} ===`);
   console.log(`Files scanned: ${appSummary.scannedFiles}`);
-  console.log(`Used keys: ${appSummary.usedKeyCount} (unique ${appSummary.uniqueUsedKeyCount})`);
+  console.log(
+    `Used keys: ${appSummary.usedKeyCount} (unique ${appSummary.uniqueUsedKeyCount})` +
+      (appSummary.rawTScanCount !== undefined
+        ? `; raw t() extractions: ${appSummary.rawTScanCount}`
+        : ''),
+  );
+  if (appSummary.dynamicTemplateExpansions?.length) {
+    console.log(`Dynamic template keys expanded via registry: ${appSummary.dynamicTemplateExpansions.length} call site(s)`);
+  }
+  if (appSummary.dynamicTemplateUnresolved?.length) {
+    console.log(
+      `Dynamic template keys without registry rule (missing-key not validated for these): ${appSummary.dynamicTemplateUnresolved.length}`,
+    );
+  }
   console.log(
     `Missing used keys -> de:${appSummary.missingByLocale.de.length} en:${appSummary.missingByLocale.en.length} tr:${appSummary.missingByLocale.tr.length}`,
   );
   console.log(`Invalid namespace references: ${appSummary.invalidNamespaceRefs.length}`);
   console.log(`Unused de keys (feasible): ${appSummary.unusedDeKeys.length}`);
   console.log(`Hardcoded UI candidates: ${appSummary.hardcodedCandidates.length}`);
+  if (appSummary.budgets) {
+    const b = appSummary.budgets;
+    console.log(
+      `Budgets: missingPairs max=${b.maxMissingLocalePairs} actual=${b.actualMissingLocalePairs ?? 'n/a'} | hardcoded max=${Number.isFinite(b.maxHardcodedUi) ? b.maxHardcodedUi : '∞'} actual=${b.actualHardcodedUi} | dynamicUnresolved max=${Number.isFinite(b.maxDynamicUnresolved) ? b.maxDynamicUnresolved : '∞'} actual=${b.actualDynamicUnresolved}`,
+    );
+  }
   console.log(`Failures: ${appSummary.failureCount}, Warnings: ${appSummary.warningCount}`);
 }
 
@@ -139,7 +232,9 @@ const reportPath = await writeReport('usage-report', args.app ?? 'all', {
   appIds,
   strictMissing,
   strictDe,
+  strictDynamic,
   hardcodedAsError,
+  budgetFile: budgetFileAbs,
   perApp,
   warnings: sortedWarnings,
   failures: sortedFailures,
@@ -152,14 +247,36 @@ const reportPath = await writeReport('usage-report', args.app ?? 'all', {
 console.log(`\nUsage report: ${reportPath}`);
 
 if (sortedWarnings.length > 0) {
-  console.warn(`Warnings (${sortedWarnings.length}):`);
-  sortedWarnings.slice(0, 50).forEach((item) => console.warn(`- ${item}`));
-  if (sortedWarnings.length > 50) console.warn(`- ... ${sortedWarnings.length - 50} more`);
+  const dynamicRegistryWarns = sortedWarnings.filter((w) =>
+    w.includes('dynamic i18n template key not in expansion registry'),
+  );
+  const otherWarns = sortedWarnings.filter(
+    (w) => !w.includes('dynamic i18n template key not in expansion registry'),
+  );
+  // stdout only — avoids stdout/stderr interleaving with the final "passed" line
+  console.log(`\nWarnings (${sortedWarnings.length}):`);
+  if (dynamicRegistryWarns.length > 0) {
+    console.log(
+      `  (dynamic template / no registry rule — missing-key not validated for these calls: ${dynamicRegistryWarns.length})`,
+    );
+    dynamicRegistryWarns.slice(0, 40).forEach((item) => console.log(`- ${item}`));
+    if (dynamicRegistryWarns.length > 40) console.log(`- ... ${dynamicRegistryWarns.length - 40} more`);
+  }
+  if (otherWarns.length > 0) {
+    console.log(`  (other: ${otherWarns.length})`);
+    otherWarns.slice(0, 50).forEach((item) => console.log(`- ${item}`));
+    if (otherWarns.length > 50) console.log(`- ... ${otherWarns.length - 50} more`);
+  }
 }
 
 if (sortedFailures.length > 0) {
   console.error('\nLocalization usage check failed:');
   sortedFailures.forEach((item) => console.error(`- ${item}`));
+  console.error('\nHow to fix:');
+  console.error('- Missing keys: add strings under frontend-admin/src/i18n/locales/{de,en,tr}/');
+  console.error('- Dynamic t(`...${x}`): extend localization/dynamic-key-expansions.json');
+  console.error('- Hardcoded UI hints: replace JSX literals with t(...) or adjust maxHardcodedUi in i18n-ci-budgets.json');
+  console.error(`- Full report: ${path.relative(process.cwd(), path.join(ROOT, 'localization', 'out', 'reports', `usage-report.${args.app ?? 'all'}.json`))}`);
   process.exit(1);
 }
 
@@ -193,7 +310,7 @@ async function scanUsage(appId, knownNamespaces) {
 
   const files = [];
   for (const relRoot of roots) {
-    const absRoot = path.resolve(relRoot);
+    const absRoot = path.join(ROOT, relRoot);
     await walk(absRoot, (file) => {
       if (!/\.(ts|tsx|js|jsx)$/.test(file)) return;
       if (isIgnoredPath(file)) return;
@@ -325,6 +442,56 @@ function dedupeObjects(items) {
     out.push(item);
   }
   return out;
+}
+
+/**
+ * t(`prefix.${expr}`) çağrıları regex ile tek parça anahtar sanılıyor; `${` içerenleri
+ * localization/dynamic-key-expansions.json ile tam anahtarlara genişletir.
+ * Kayıtta kural yoksa missing kontrolü atlanır (yanlış pozitif üretmez); strictDynamic ile CI kırılır.
+ */
+function normalizeDynamicTemplatePrefix(rawKey) {
+  if (!rawKey.includes('${')) return null;
+  const before = rawKey.split('${')[0];
+  return before.replace(/\.+$/, '').trim();
+}
+
+function expandDynamicUsageEntries(appId, usedEntries, registry) {
+  const expansions = [];
+  const unresolved = [];
+  const out = [];
+  const rules = registry?.apps?.[appId] ?? [];
+
+  for (const entry of usedEntries) {
+    const { rawKey } = entry;
+    if (!rawKey.includes('${')) {
+      out.push(entry);
+      continue;
+    }
+    const prefix = normalizeDynamicTemplatePrefix(rawKey);
+    if (!prefix) {
+      unresolved.push({ ...entry, normalizedPrefix: null });
+      continue;
+    }
+    const rule = rules.find((r) => r.staticPrefix === prefix);
+    if (!rule || !Array.isArray(rule.suffixes)) {
+      unresolved.push({ ...entry, normalizedPrefix: prefix });
+      continue;
+    }
+    for (const suffix of rule.suffixes) {
+      out.push({
+        ...entry,
+        rawKey: `${prefix}.${suffix}`,
+        dynamicExpansionId: rule.id,
+      });
+    }
+    expansions.push({
+      id: rule.id,
+      file: entry.file,
+      line: entry.line,
+      suffixCount: rule.suffixes.length,
+    });
+  }
+  return { expanded: out, expansions, unresolved };
 }
 
 function truncate(value, max = 120) {

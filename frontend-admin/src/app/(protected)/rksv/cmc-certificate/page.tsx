@@ -1,14 +1,22 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Alert, Button, Card, Descriptions, Divider, Spin, Space, Typography } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { FORMAT_EMPTY_DISPLAY, useI18n } from '@/i18n';
 import { useGetApiTseStatus } from '@/api/generated/tse/tse';
 import { useGetApiTseDevices } from '@/api/generated/tse/tse';
 import Link from 'next/link';
 
+/**
+ * TSE/CMC/Zertifikat — Diagnoseoberfläche.
+ * UI: `rksvHub.cmcCertificate`; API-Rohwerte (certificateStatus, memoryStatus, …) unverändert.
+ */
 export default function RksvCmcCertificatePage() {
+    const { t } = useI18n();
+    const tc = useCallback((path: string, options?: Record<string, string | number>) => t(`rksvHub.cmcCertificate.${path}`, options), [t]);
+
     const { data: tseStatus, isLoading: statusLoading, error: statusError } = useGetApiTseStatus();
     const { data: devices, isLoading: devicesLoading } = useGetApiTseDevices();
 
@@ -25,11 +33,11 @@ export default function RksvCmcCertificatePage() {
     return (
         <>
             <AdminPageHeader
-                title="CMC / Zertifikat (TSE)"
+                title={tc('pageTitle')}
                 breadcrumbs={[
-                    ADMIN_OVERVIEW_CRUMB,
-                    { title: ADMIN_NAV_GROUP_LABELS.rksv, href: '/rksv' },
-                    { title: 'CMC / Zertifikat' },
+                    adminOverviewCrumb(t),
+                    { title: t('adminShell.group.rksv'), href: '/rksv' },
+                    { title: tc('breadcrumb') },
                 ]}
             />
 
@@ -37,7 +45,7 @@ export default function RksvCmcCertificatePage() {
                 <Alert
                     type="error"
                     showIcon
-                    message="TSE-Daten nicht verfügbar"
+                    message={tc('errorLoad')}
                     description={statusError instanceof Error ? statusError.message : String(statusError)}
                     style={{ marginBottom: 16 }}
                 />
@@ -47,17 +55,15 @@ export default function RksvCmcCertificatePage() {
                 type="warning"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message="Technischer Überblick (Diagnose) — keine Beleg-/Zahlungswahrheit"
+                message={tc('scopeBannerTitle')}
                 description={
                     <Space direction="vertical" size={8} style={{ width: '100%' }}>
                         <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
-                            Diese Seite zeigt nur den technischen Status rund um TSE/CMC/Zertifikat und erkannte Geräte.
-                            Sie ist <strong>nicht</strong> die FinanzOnline-Wahrheit je Zahlung und <strong>kein</strong>{' '}
-                            Rechtsnachweis für einzelne Belege.
+                            {tc('scopeBannerP1')}
                         </Typography.Paragraph>
                         <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
-                            Für den operativen FinanzOnline-Status je Zahlung (Fehlertext, Retry, Referenz) den{' '}
-                            <Link href="/rksv/finanz-online-queue">FinanzOnline-Abgleich</Link> nutzen.
+                            {tc('scopeBannerP2Before')}{' '}
+                            <Link href="/rksv/finanz-online-queue">{tc('scopeBannerP2Link')}</Link> {tc('scopeBannerP2After')}
                         </Typography.Paragraph>
                     </Space>
                 }
@@ -65,83 +71,76 @@ export default function RksvCmcCertificatePage() {
 
             <Space wrap style={{ marginBottom: 16 }}>
                 <Button type="primary" href="/rksv/status">
-                    RKSV · Schnittstellen-Übersicht
+                    {tc('btnStatusOverview')}
                 </Button>
-                <Button href="/rksv/finanz-online-queue">FinanzOnline-Abgleich</Button>
-                <Button href="/rksv/finanz-online-operations">FinanzOnline Operations</Button>
-                <Button href="/rksv/fiscal-export-diagnostics">Fiscal-Export Diagnose</Button>
-                <Button href="/rksv/integrity">Datenintegrität (Support)</Button>
+                <Button href="/rksv/finanz-online-queue">{tc('btnFinanzQueue')}</Button>
+                <Button href="/rksv/finanz-online-operations">{tc('btnFinanzOps')}</Button>
+                <Button href="/rksv/fiscal-export-diagnostics">{tc('btnFiscalDiag')}</Button>
+                <Button href="/rksv/integrity">{tc('btnIntegrity')}</Button>
             </Space>
 
-            <Card size="small" title="Technischer Snapshot (Status-API)">
+            <Card size="small" title={tc('cardSnapshotTitle')}>
                 <Space direction="vertical" size={12} style={{ width: '100%' }}>
                     <Descriptions
-                        title={<Typography.Text strong>Sertifikat / CMC</Typography.Text>}
+                        title={<Typography.Text strong>{tc('sectionCertCmc')}</Typography.Text>}
                         column={1}
                         bordered
                         size="small"
                     >
-                        <Descriptions.Item label="Zertifikatsstatus (laut API)">
-                            {tseStatus?.certificateStatus ?? '—'}
+                        <Descriptions.Item label={tc('descCertStatus')}>
+                            {tseStatus?.certificateStatus ?? FORMAT_EMPTY_DISPLAY}
                         </Descriptions.Item>
                     </Descriptions>
 
                     <Descriptions
-                        title={<Typography.Text strong>Gerät & Identität</Typography.Text>}
+                        title={<Typography.Text strong>{tc('sectionDevice')}</Typography.Text>}
                         column={1}
                         bordered
                         size="small"
                     >
-                        <Descriptions.Item label="Seriennummer">{tseStatus?.serialNumber ?? '—'}</Descriptions.Item>
-                        <Descriptions.Item label="Kassen-ID (Anzeige)">{tseStatus?.kassenId ?? '—'}</Descriptions.Item>
+                        <Descriptions.Item label={tc('descSerial')}>{tseStatus?.serialNumber ?? FORMAT_EMPTY_DISPLAY}</Descriptions.Item>
+                        <Descriptions.Item label={tc('descKassenId')}>{tseStatus?.kassenId ?? FORMAT_EMPTY_DISPLAY}</Descriptions.Item>
                     </Descriptions>
 
                     <Descriptions
-                        title={<Typography.Text strong>Speicher & Signaturen</Typography.Text>}
+                        title={<Typography.Text strong>{tc('sectionMemory')}</Typography.Text>}
                         column={1}
                         bordered
                         size="small"
                     >
-                        <Descriptions.Item label="Speicherstatus (laut API)">
-                            {tseStatus?.memoryStatus ?? '—'}
+                        <Descriptions.Item label={tc('descMemoryStatus')}>
+                            {tseStatus?.memoryStatus ?? FORMAT_EMPTY_DISPLAY}
                         </Descriptions.Item>
-                        <Descriptions.Item label="Letzte Signaturzeit (laut API)">
-                            {tseStatus?.lastSignatureTime ?? '—'}
+                        <Descriptions.Item label={tc('descLastSig')}>
+                            {tseStatus?.lastSignatureTime ?? FORMAT_EMPTY_DISPLAY}
                         </Descriptions.Item>
                     </Descriptions>
                 </Space>
             </Card>
 
-            <Card size="small" title="Erkannte TSE-Geräte" style={{ marginTop: 16 }}>
+            <Card size="small" title={tc('cardDevicesTitle')} style={{ marginTop: 16 }}>
                 {devices && devices.length > 0 ? (
                     <Descriptions column={1} bordered size="small">
                         {devices.map((d, i) => (
-                            <Descriptions.Item key={d.id ?? i} label={d.serialNumber || `Gerät ${i + 1}`}>
-                                {d.kassenId ?? d.serialNumber ?? d.id ?? '—'}
+                            <Descriptions.Item
+                                key={d.id ?? i}
+                                label={d.serialNumber || tc('deviceFallbackLabel', { index: i + 1 })}
+                            >
+                                {d.kassenId ?? d.serialNumber ?? d.id ?? FORMAT_EMPTY_DISPLAY}
                             </Descriptions.Item>
                         ))}
                     </Descriptions>
                 ) : (
-                    <Typography.Text type="secondary">Keine TSE-Geräte erkannt.</Typography.Text>
+                    <Typography.Text type="secondary">{tc('noDevices')}</Typography.Text>
                 )}
             </Card>
 
             <Divider style={{ margin: '16px 0' }} />
 
-            <Card size="small" title="Geplante Diagnose-Funktionen (derzeit nicht verfügbar)">
+            <Card size="small" title={tc('cardPlannedTitle')}>
                 <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                    <Alert
-                        type="info"
-                        showIcon
-                        message="Zertifikats-Gültigkeitsverlauf"
-                        description="In der aktuellen API werden keine Felder für Valid-from/to oder Timeline geliefert."
-                    />
-                    <Alert
-                        type="info"
-                        showIcon
-                        message="Zertifikatskette (Chain Details)"
-                        description="In der aktuellen API gibt es keine Daten zur Chain/Issuer/Subject-Hierarchie."
-                    />
+                    <Alert type="info" showIcon message={tc('plannedValidityTitle')} description={tc('plannedValidityDesc')} />
+                    <Alert type="info" showIcon message={tc('plannedChainTitle')} description={tc('plannedChainDesc')} />
                 </Space>
             </Card>
         </>

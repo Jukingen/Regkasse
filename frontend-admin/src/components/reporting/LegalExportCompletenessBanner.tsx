@@ -7,6 +7,8 @@
 import { Alert, Spin, Typography } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { AXIOS_INSTANCE } from '@/lib/axios';
+import { useI18n } from '@/i18n/I18nProvider';
+import { resolveLegalExportCompletenessIssueMessage } from '@/shared/backendLocale';
 
 export type LegalExportCompletenessResult = {
   gate: 'allowed' | 'allowed_with_warnings' | 'blocked';
@@ -25,6 +27,7 @@ type Props = {
 };
 
 export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }: Props) {
+  const { textLocale, t } = useI18n();
   const q = useQuery({
     queryKey: ['legal-export-completeness', reportKind, reportId],
     queryFn: async () => {
@@ -41,7 +44,7 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
     return (
       <div style={{ marginTop: 8 }}>
         <Spin size="small" />{' '}
-        <Typography.Text type="secondary">Legal-Export-Prüfung…</Typography.Text>
+        <Typography.Text type="secondary">{t('reporting.legalExportCompleteness.loading')}</Typography.Text>
       </div>
     );
   }
@@ -51,7 +54,7 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
         type="warning"
         showIcon
         style={{ marginTop: 8 }}
-        message="Legal-Export-Prüfung nicht verfügbar."
+        message={t('reporting.legalExportCompleteness.unavailable')}
       />
     );
   }
@@ -64,7 +67,7 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
         type="success"
         showIcon
         style={{ marginTop: 8 }}
-        message="Legal Compliance Export: Snapshot vollständig (keine offenen Blocker)."
+        message={t('reporting.legalExportCompleteness.successComplete')}
       />
     );
   }
@@ -72,10 +75,10 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
   const alertType = gate === 'blocked' ? 'error' : gate === 'allowed_with_warnings' ? 'warning' : 'success';
   const title =
     gate === 'blocked'
-      ? 'Legal Compliance Export blockiert'
+      ? t('reporting.legalExportCompleteness.titleBlocked')
       : gate === 'allowed_with_warnings'
-        ? 'Legal Compliance Export mit Warnungen möglich'
-        : 'Legal Compliance Export';
+        ? t('reporting.legalExportCompleteness.titleAllowedWithWarnings')
+        : t('reporting.legalExportCompleteness.titleGeneric');
 
   return (
     <Alert
@@ -85,10 +88,10 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
       message={title}
       description={
         <ul style={{ margin: 0, paddingLeft: 18 }}>
-          {issues.map((i) => (
-            <li key={`${i.code}-${i.messageDe}`}>
+          {issues.map((i, idx) => (
+            <li key={`${i.code}-${idx}`}>
               <Typography.Text type={i.severity === 'block' ? 'danger' : 'warning'}>
-                [{i.code}] {i.messageDe}
+                [{i.code}] {resolveLegalExportCompletenessIssueMessage(i, textLocale)}
               </Typography.Text>
             </li>
           ))}

@@ -16,6 +16,37 @@
   "messages": {
     "unknownError": "Unbekannter Fehler"
   },
+  "errors": {
+    "http400": "Ungueltige Anfrage.",
+    "http401": "Anmeldung erforderlich.",
+    "http403": "Zugriff verweigert.",
+    "http404": "Nicht gefunden.",
+    "http409": "Konflikt (Datenstand).",
+    "http422": "Validierung fehlgeschlagen.",
+    "http429": "Zu viele Anfragen. Bitte spaeter erneut versuchen.",
+    "http500": "Serverfehler. Bitte spaeter erneut versuchen.",
+    "http503": "Dienst voruebergehend nicht verfuegbar.",
+    "network": "Netzwerkfehler. Bitte Verbindung pruefen."
+  },
+  "backend": {
+    "serverHintIntro": "Hinweis vom Server (Sprache nicht garantiert):",
+    "rawMessagesNotice": "Die folgenden Zeilen stammen unveraendert vom Server (nicht uebersetzt)."
+  },
+  "aria": {
+    "breadcrumbNav": "Brotkrümelnavigation",
+    "pageScopeContext": "Aktive Ansicht und Filterkontext"
+  },
+  "system": {
+    "status403": "403",
+    "forbidden403Subtitle": "Sie sind nicht berechtigt, diese Seite aufzurufen.",
+    "status404": "404",
+    "notFound404Subtitle": "Die angeforderte Seite existiert nicht.",
+    "backToDashboard": "Zur Übersicht"
+  },
+  "dataList": {
+    "errorLoadTitle": "Fehler beim Laden der Daten",
+    "emptyDefault": "Keine Daten gefunden"
+  },
   "auth": {
     "subtitle": "Melden Sie sich an, um Ihr Kassensystem zu verwalten",
     "username": "Benutzername",
@@ -23,6 +54,8 @@
     "login": "Anmelden",
     "loginSuccess": "Anmeldung erfolgreich",
     "loginFailedWithStatus": "Anmeldung fehlgeschlagen ({{status}}): {{details}}",
+    "loginInvalidCredentials": "Benutzername oder Passwort ist ungueltig.",
+    "loginFailedGeneric": "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
     "validation": {
       "usernameRequired": "Bitte Benutzernamen eingeben!",
       "passwordRequired": "Bitte Passwort eingeben!"

@@ -3,7 +3,7 @@
 /**
  * Monatsbericht-Detail: verknüpfte Tagesberichte, Aggregation vs. Rohdaten, Profile, Finalisierung, FinanzOnline, Korrekturkette.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
@@ -21,14 +21,17 @@ import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n/I18nProvider';
+import { formatCurrency, formatDate, formatDateTime, formatNumber, useI18n } from '@/i18n';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
+import { joinFiscalReportRemediationHints, resolveFiscalExportProfileRow } from '@/shared/backendLocale';
+import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 type MonatsberichtDto = {
   id: string;
@@ -44,6 +47,11 @@ type MonatsberichtDto = {
   submissionImpact?: string;
   supersededByReportId?: string | null;
   snapshotHash: string;
+  upstreamPropagation?: {
+    requiresReview: boolean;
+    noteDe?: string | null;
+    noteEn?: string | null;
+  };
   summary: {
     viennaYearMonth: string;
     linkedFinalizedTagesberichte: {
@@ -75,6 +83,7 @@ type MonatsberichtDto = {
       grossDeltaDailyVsRaw: number;
       requiresReview: boolean;
       noteDe?: string | null;
+      noteEn?: string | null;
     };
     paymentMethodBreakdown: { methodKey: string; displayLabel?: string; rowCount: number; totalAmount: number }[];
     taxBreakdown: { taxBucketKey: string; taxAmount: number }[];
@@ -83,16 +92,27 @@ type MonatsberichtDto = {
   submission: {
     lifecycle: string;
     operatorHintDe?: string;
+    operatorHintEn?: string | null;
     outboxStatus?: string;
     externalReferenceId?: string;
   };
   submissionEnvelope?: {
     submissionVersusReportNoteDe?: string;
+    submissionVersusReportNoteEn?: string | null;
     attempts?: { attemptCount: number; status?: string; nextAttemptAtUtc?: string; failureCategory?: string }[];
     rejectionReasons?: string[];
     remediationHintsDe?: string[];
   };
-  exportProfiles: { profileKey: string; labelDe: string; descriptionDe: string; includeTraceIds: boolean; nonLegalOutput?: boolean; isDiagnosticOnly?: boolean }[];
+  exportProfiles: {
+    profileKey: string;
+    labelDe: string;
+    descriptionDe: string;
+    labelEn?: string | null;
+    descriptionEn?: string | null;
+    includeTraceIds: boolean;
+    nonLegalOutput?: boolean;
+    isDiagnosticOnly?: boolean;
+  }[];
   correction: { isCorrection: boolean; supersedesReportId?: string | null; supersededByReportId?: string | null };
 };
 
@@ -119,7 +139,10 @@ type ReportHistoryTimelineDto = {
 };
 
 export default function MonatsberichtDetailPage() {
-  const { t } = useI18n();
+  const { t, formatLocale } = useI18n();
+  const { fiscalTooltip, resolveFiscal, textLocale } = useFiscalReportText();
+  const td = useCallback((path: string) => t(`reporting.monatsbericht.detail.${path}`), [t]);
+  const ts = useCallback((path: string) => t(`reporting.tagesbericht.detail.${path}`), [t]);
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
@@ -127,6 +150,8 @@ export default function MonatsberichtDetailPage() {
   const { hasPermission } = usePermissions();
   const canExport = hasPermission(PERMISSIONS.REPORT_EXPORT);
   const canSubmitFo = hasPermission(PERMISSIONS.FINANZONLINE_SUBMIT);
+
+  const backendApiTooltip = t('reporting.backend.apiStringsTooltip');
 
   const [profile, setProfile] = useState<'operationalPreview' | 'accountingReport' | 'legalComplianceExport' | 'diagnosticPackage'>('operationalPreview');
 
@@ -153,10 +178,10 @@ export default function MonatsberichtDetailPage() {
       await AXIOS_INSTANCE.post('/api/reports/monatsbericht/finalize', { reportId: id, note: null });
     },
     onSuccess: () => {
-      message.success('Finalisiert.');
+      message.success(ts('messages.finalizeSuccess'));
       qc.invalidateQueries({ queryKey: ['monatsbericht', id] });
     },
-    onError: () => message.error('Finalisierung fehlgeschlagen.'),
+    onError: () => message.error(ts('messages.finalizeError')),
   });
 
   const submitMut = useMutation({
@@ -164,138 +189,191 @@ export default function MonatsberichtDetailPage() {
       await AXIOS_INSTANCE.post(`/api/reports/monatsbericht/${id}/submit-finanzonline`);
     },
     onSuccess: () => {
-      message.success('In FinanzOnline-Outbox eingereiht (idempotent möglich).');
+      message.success(td('messages.submitFinanzOnlineIdempotent'));
       qc.invalidateQueries({ queryKey: ['monatsbericht', id] });
     },
-    onError: () => message.error('Übermittlung fehlgeschlagen.'),
+    onError: () => message.error(ts('messages.submitError')),
   });
 
   const correctionMut = useMutation({
     mutationFn: async () => {
       const { data } = await AXIOS_INSTANCE.post<MonatsberichtDto>('/api/reports/monatsbericht/correction', {
         supersedesReportId: id,
+        // API sözleşmesi: backend şu an bu sabit metni bekliyor olabilir
         reason: 'Korrektur / Neuberechnung',
       });
       return data;
     },
     onSuccess: (data) => {
-      message.success('Korrekturbericht erzeugt.');
+      message.success(ts('messages.correctionSuccess'));
       qc.invalidateQueries({ queryKey: ['monatsbericht'] });
       if (data?.id) router.push(`/reporting/monatsbericht/${data.id}`);
     },
-    onError: () => message.error('Korrektur fehlgeschlagen (nur nach finalisiertem Vorgänger).'),
+    onError: () => message.error(ts('messages.correctionError')),
   });
+
+  const linkedCols: ColumnsType<MonatsberichtDto['summary']['linkedFinalizedTagesberichte'][0]> = useMemo(
+    () => [
+      {
+        title: td('labels.tableDate'),
+        dataIndex: 'viennaBusinessDate',
+        render: (v: string) => formatDate(v, formatLocale),
+      },
+      {
+        title: td('labels.register'),
+        dataIndex: 'registerNumber',
+        render: (v, r) => v ?? r.cashRegisterId.slice(0, 8),
+      },
+      {
+        title: ts('labels.gross'),
+        dataIndex: 'grossSalesAmount',
+        render: (v: number) => formatCurrency(v ?? 0, formatLocale),
+      },
+      {
+        title: ts('labels.report'),
+        key: 'link',
+        render: (_, r) => (
+          <Link href={`/reporting/tagesbericht/${r.tagesberichtId}`}>{td('labels.openDailyReport')}</Link>
+        ),
+      },
+    ],
+    [td, ts, formatLocale],
+  );
+
+  const pmCols: ColumnsType<MonatsberichtDto['summary']['paymentMethodBreakdown'][0]> = useMemo(
+    () => [
+      { title: ts('labels.method'), dataIndex: 'methodKey' },
+      { title: ts('labels.lines'), dataIndex: 'rowCount' },
+      {
+        title: ts('labels.sum'),
+        dataIndex: 'totalAmount',
+        render: (v: number) => formatCurrency(v ?? 0, formatLocale),
+      },
+    ],
+    [ts, formatLocale],
+  );
+
+  const taxColumns: ColumnsType<MonatsberichtDto['summary']['taxBreakdown'][0]> = useMemo(
+    () => [
+      { title: ts('labels.taxBucket'), dataIndex: 'taxBucketKey' },
+      {
+        title: ts('labels.taxAmount'),
+        dataIndex: 'taxAmount',
+        render: (v: number) =>
+          formatNumber(v ?? 0, formatLocale, { minimumFractionDigits: 2, maximumFractionDigits: 4 }),
+      },
+    ],
+    [ts, formatLocale],
+  );
+
+  if (detailQ.isLoading) {
+    return <Typography.Paragraph>{td('loading')}</Typography.Paragraph>;
+  }
+  if (detailQ.isError || !detailQ.data) {
+    return <Typography.Paragraph type="danger">{td('loadError')}</Typography.Paragraph>;
+  }
 
   const d = detailQ.data;
   const showHashes = profile !== 'operationalPreview';
   const showTrace = profile === 'legalComplianceExport' || profile === 'diagnosticPackage';
 
-  const linkedCols: ColumnsType<MonatsberichtDto['summary']['linkedFinalizedTagesberichte'][0]> = useMemo(
-    () => [
-      {
-        title: 'Datum',
-        dataIndex: 'viennaBusinessDate',
-        render: (v: string) => dayjs(v).format('YYYY-MM-DD'),
-      },
-      { title: 'Kasse', dataIndex: 'registerNumber', render: (v, r) => v ?? r.cashRegisterId.slice(0, 8) },
-      {
-        title: 'Brutto',
-        dataIndex: 'grossSalesAmount',
-        render: (v: number) => v?.toFixed(2),
-      },
-      {
-        title: 'Tagesbericht',
-        key: 'link',
-        render: (_, r) => <Link href={`/reporting/tagesbericht/${r.tagesberichtId}`}>Öffnen</Link>,
-      },
-    ],
-    [],
-  );
-
-  const pmCols: ColumnsType<MonatsberichtDto['summary']['paymentMethodBreakdown'][0]> = useMemo(
-    () => [
-      { title: 'Methode', dataIndex: 'methodKey' },
-      { title: 'Zeilen', dataIndex: 'rowCount' },
-      { title: 'Summe', dataIndex: 'totalAmount', render: (v: number) => v?.toFixed(2) },
-    ],
-    [],
-  );
-
-  if (detailQ.isLoading) {
-    return <Typography.Paragraph>Laden…</Typography.Paragraph>;
-  }
-  if (detailQ.isError || !d) {
-    return <Typography.Paragraph type="danger">Bericht nicht gefunden oder Fehler beim Laden.</Typography.Paragraph>;
-  }
-
   const agg = d.summary.aggregationFromDaily;
   const raw = d.summary.rawPaymentRollup;
   const adj = d.summary.adjustment;
 
+  const reportVsSubmissionNote = resolveFiscal(
+    d.submissionEnvelope?.submissionVersusReportNoteDe,
+    d.submissionEnvelope?.submissionVersusReportNoteEn,
+  );
+  const operatorHintResolved = resolveFiscal(d.submission.operatorHintDe, d.submission.operatorHintEn);
+  const remediationResolved = joinFiscalReportRemediationHints(
+    d.submissionEnvelope?.remediationHintsDe,
+    textLocale,
+    ' | ',
+  );
+  const upstreamNote = d.upstreamPropagation
+    ? resolveFiscal(d.upstreamPropagation.noteDe, d.upstreamPropagation.noteEn)
+    : undefined;
+  const adjustmentNote = resolveFiscal(adj.noteDe, adj.noteEn);
+
   return (
     <div style={{ paddingBottom: 24 }}>
       <AdminPageHeader
-        title={`Monatsbericht ${d.summary.viennaYearMonth}`}
+        title={t('reporting.monatsbericht.detail.pageTitle', { month: d.summary.viennaYearMonth })}
         breadcrumbs={[
           adminOverviewCrumb(t),
-          { title: 'Monatsbericht', href: '/reporting/monatsbericht' },
+          { title: td('breadcrumbList'), href: '/reporting/monatsbericht' },
           { title: id },
         ]}
         actions={
           <Space wrap>
             {canExport && d.reportStatus === 'Provisional' ? (
               <Button type="primary" loading={finalizeMut.isPending} onClick={() => finalizeMut.mutate()}>
-                Finalisieren
+                {ts('actions.finalize')}
               </Button>
             ) : null}
             {canSubmitFo && d.reportStatus === 'Finalized' ? (
               <Button loading={submitMut.isPending} onClick={() => submitMut.mutate()}>
-                FinanzOnline (Outbox)
+                {ts('actions.finanzOnline')}
               </Button>
             ) : null}
             {canExport && d.reportStatus === 'Finalized' && !d.supersededByReportId ? (
               <Button onClick={() => correctionMut.mutate()} loading={correctionMut.isPending}>
-                Korrektur (neuer Bericht)
+                {ts('actions.correction')}
               </Button>
             ) : null}
-            <Button onClick={() => router.push('/reporting/monatsbericht')}>Zur Liste</Button>
+            <Button onClick={() => router.push('/reporting/monatsbericht')}>{ts('actions.backToList')}</Button>
           </Space>
         }
       />
 
-      {d.upstreamPropagation?.requiresReview && d.upstreamPropagation?.noteDe ? (
+      <FormalReportLanguageNotice />
+
+      {d.upstreamPropagation?.requiresReview && upstreamNote ? (
         <Alert
           type="warning"
           showIcon
-          message="Abgleich nach untergeordneter Korrektur"
-          description={d.upstreamPropagation.noteDe}
+          message={td('upstreamAlertTitle')}
+          description={
+            <Typography.Text title={fiscalTooltip(upstreamNote.contentLang)}>{upstreamNote.text}</Typography.Text>
+          }
           style={{ marginBottom: 16 }}
         />
       ) : null}
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space direction="vertical">
-          <Typography.Text type="secondary">Anzeigeprofil</Typography.Text>
+          <Typography.Text type="secondary">{ts('profile.label')}</Typography.Text>
           <Radio.Group value={profile} onChange={(e) => setProfile(e.target.value)}>
-            <Radio.Button value="operationalPreview">Operational</Radio.Button>
-            <Radio.Button value="accountingReport">Accounting</Radio.Button>
-            <Radio.Button value="legalComplianceExport">Legal</Radio.Button>
-            <Radio.Button value="diagnosticPackage">Diagnostic</Radio.Button>
+            <Radio.Button value="operationalPreview">{ts('profile.operational')}</Radio.Button>
+            <Radio.Button value="accountingReport">{ts('profile.accounting')}</Radio.Button>
+            <Radio.Button value="legalComplianceExport">{ts('profile.legal')}</Radio.Button>
+            <Radio.Button value="diagnosticPackage">{ts('profile.diagnostic')}</Radio.Button>
           </Radio.Group>
           {profile !== 'legalComplianceExport' ? (
-            <Typography.Text type="warning">Nicht-legaler Output: nicht als offizielles Dokument verwenden.</Typography.Text>
+            <Typography.Text type="warning">{ts('profile.warnNonLegal')}</Typography.Text>
           ) : null}
           {profile === 'diagnosticPackage' ? (
-            <Typography.Text type="danger">Diagnostic Package ist nur für technische Analyse gedacht.</Typography.Text>
+            <Typography.Text type="danger">{ts('profile.warnDiagnostic')}</Typography.Text>
           ) : null}
-          <Typography.Text type="secondary">Profil steuert Export/Ansicht, nicht den FinanzOnline-Submission-Status.</Typography.Text>
+          <Typography.Text type="secondary">{ts('profile.hintProfile')}</Typography.Text>
           {d.exportProfiles?.length ? (
-            <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
-              {d.exportProfiles.map((p) => (
-                <span key={p.profileKey} style={{ marginRight: 12 }}>
-                  <strong>{p.labelDe}:</strong> {p.descriptionDe}
-                </span>
-              ))}
+            <Typography.Paragraph
+              type="secondary"
+              style={{ marginBottom: 0, fontSize: 12 }}
+              title={t('reporting.backend.fiscalReportExportProfilesHint')}
+            >
+              {d.exportProfiles.map((p) => {
+                const row = resolveFiscalExportProfileRow(p, textLocale);
+                if (!row) return null;
+                return (
+                  <span key={p.profileKey} style={{ marginRight: 12 }}>
+                    <strong title={fiscalTooltip(row.label.contentLang)}>{row.label.text}</strong>
+                    {': '}
+                    <span title={fiscalTooltip(row.description.contentLang)}>{row.description.text}</span>
+                  </span>
+                );
+              })}
             </Typography.Paragraph>
           ) : null}
           <LegalExportCompletenessBanner
@@ -306,64 +384,106 @@ export default function MonatsberichtDetailPage() {
         </Space>
       </Card>
 
-      <Card title="Status" style={{ marginBottom: 16 }}>
+      <Card title={ts('cards.status')} style={{ marginBottom: 16 }}>
         <Descriptions column={1} size="small" bordered>
-          <Descriptions.Item label="Umfang">
-            <Tag>{d.scopeKind}</Tag>{' '}
-            {d.scopeKind === 'Company' ? 'alle Kassen' : d.registerNumber ?? d.cashRegisterId}
+          <Descriptions.Item label={td('labels.scope')}>
+            <Tag title={backendApiTooltip}>{d.scopeKind}</Tag>{' '}
+            {d.scopeKind === 'Company' ? (
+              td('labels.scopeAllRegisters')
+            ) : (
+              <Typography.Text title={backendApiTooltip}>{d.registerNumber ?? d.cashRegisterId}</Typography.Text>
+            )}
           </Descriptions.Item>
-          <Descriptions.Item label="Bericht">
-            <Tag color={d.reportStatus === 'Finalized' ? 'blue' : 'gold'}>{d.reportStatus}</Tag>
-            {d.correction.isCorrection ? <Tag color="orange">Korrektur</Tag> : null}
+          <Descriptions.Item label={ts('labels.report')}>
+            <Tag color={d.reportStatus === 'Finalized' ? 'blue' : 'gold'} title={backendApiTooltip}>
+              {d.reportStatus}
+            </Tag>
+            {d.correction.isCorrection ? (
+              <Tag color="orange" title={backendApiTooltip}>
+                {td('labels.correctionTag')}
+              </Tag>
+            ) : null}
           </Descriptions.Item>
-          {d.reportVersion ? <Descriptions.Item label="Version">v{d.reportVersion}</Descriptions.Item> : null}
-          {d.correctionType ? <Descriptions.Item label="Correction Type">{d.correctionType}</Descriptions.Item> : null}
-          {d.submissionImpact ? <Descriptions.Item label="Submission Impact">{d.submissionImpact}</Descriptions.Item> : null}
-          {d.reportRevisionReason ? <Descriptions.Item label="Revision Reason">{d.reportRevisionReason}</Descriptions.Item> : null}
-          {d.rebuildCause ? <Descriptions.Item label="Rebuild Cause">{d.rebuildCause}</Descriptions.Item> : null}
+          {d.reportVersion ? (
+            <Descriptions.Item label={ts('labels.version')}>v{d.reportVersion}</Descriptions.Item>
+          ) : null}
+          {d.correctionType ? (
+            <Descriptions.Item label={ts('labels.correctionType')}>
+              <Typography.Text title={backendApiTooltip}>{d.correctionType}</Typography.Text>
+            </Descriptions.Item>
+          ) : null}
+          {d.submissionImpact ? (
+            <Descriptions.Item label={ts('labels.submissionImpact')}>
+              <Typography.Text title={backendApiTooltip}>{d.submissionImpact}</Typography.Text>
+            </Descriptions.Item>
+          ) : null}
+          {d.reportRevisionReason ? (
+            <Descriptions.Item label={ts('labels.revisionReason')}>
+              <Typography.Text title={backendApiTooltip}>{d.reportRevisionReason}</Typography.Text>
+            </Descriptions.Item>
+          ) : null}
+          {d.rebuildCause ? (
+            <Descriptions.Item label={ts('labels.rebuildCause')}>
+              <Typography.Text title={backendApiTooltip}>{d.rebuildCause}</Typography.Text>
+            </Descriptions.Item>
+          ) : null}
           {d.correction.supersedesReportId ? (
-            <Descriptions.Item label="Vorgänger">
+            <Descriptions.Item label={td('labels.predecessor')}>
               <Link href={`/reporting/monatsbericht/${d.correction.supersedesReportId}`}>
                 {d.correction.supersedesReportId}
               </Link>
             </Descriptions.Item>
           ) : null}
           {d.supersededByReportId ? (
-            <Descriptions.Item label="Ersetzt durch">
+            <Descriptions.Item label={td('labels.supersededBy')}>
               <Link href={`/reporting/monatsbericht/${d.supersededByReportId}`}>{d.supersededByReportId}</Link>
             </Descriptions.Item>
           ) : null}
-          {d.submissionEnvelope?.submissionVersusReportNoteDe ? (
-            <Descriptions.Item label="Bericht vs. Abgabe">
-              <Typography.Text type="secondary">{d.submissionEnvelope.submissionVersusReportNoteDe}</Typography.Text>
+          {reportVsSubmissionNote ? (
+            <Descriptions.Item label={ts('labels.reportVsSubmission')}>
+              <Typography.Text type="secondary" title={fiscalTooltip(reportVsSubmissionNote.contentLang)}>
+                {reportVsSubmissionNote.text}
+              </Typography.Text>
             </Descriptions.Item>
           ) : null}
-          <Descriptions.Item label="Übermittlung">
-            <Tag>{d.submission.lifecycle}</Tag> {d.submission.operatorHintDe}
+          <Descriptions.Item label={ts('labels.submission')}>
+            <Tag title={backendApiTooltip}>{d.submission.lifecycle}</Tag>{' '}
+            {operatorHintResolved ? (
+              <Typography.Text type="secondary" title={fiscalTooltip(operatorHintResolved.contentLang)}>
+                {operatorHintResolved.text}
+              </Typography.Text>
+            ) : null}
           </Descriptions.Item>
           {d.submissionEnvelope?.attempts?.length ? (
-            <Descriptions.Item label="Attempt">
-              #{d.submissionEnvelope.attempts[0].attemptCount} ({d.submissionEnvelope.attempts[0].status ?? 'n/a'})
+            <Descriptions.Item label={ts('labels.attempt')}>
+              #{d.submissionEnvelope.attempts[0].attemptCount} (
+              {d.submissionEnvelope.attempts[0].status ?? ts('labels.notAvailable')})
             </Descriptions.Item>
           ) : null}
           {d.submissionEnvelope?.rejectionReasons?.length ? (
-            <Descriptions.Item label="Ablehnungsgrund">
-              {d.submissionEnvelope.rejectionReasons.join(', ')}
+            <Descriptions.Item label={ts('labels.rejection')}>
+              <Typography.Text title={backendApiTooltip}>
+                {d.submissionEnvelope.rejectionReasons.join(', ')}
+              </Typography.Text>
             </Descriptions.Item>
           ) : null}
-          {d.submissionEnvelope?.remediationHintsDe?.length ? (
-            <Descriptions.Item label="Remediation">
-              {d.submissionEnvelope.remediationHintsDe.join(' | ')}
+          {remediationResolved ? (
+            <Descriptions.Item label={ts('labels.remediation')}>
+              <Typography.Text title={fiscalTooltip(remediationResolved.contentLang)}>
+                {remediationResolved.text}
+              </Typography.Text>
             </Descriptions.Item>
           ) : null}
           {d.submission.externalReferenceId ? (
-            <Descriptions.Item label="Referenz">{d.submission.externalReferenceId}</Descriptions.Item>
+            <Descriptions.Item label={ts('labels.reference')}>{d.submission.externalReferenceId}</Descriptions.Item>
           ) : null}
-          {showHashes ? <Descriptions.Item label="Snapshot-Hash">{d.snapshotHash}</Descriptions.Item> : null}
+          {showHashes ? (
+            <Descriptions.Item label={ts('labels.snapshotHash')}>{d.snapshotHash}</Descriptions.Item>
+          ) : null}
         </Descriptions>
       </Card>
 
-      <Card title="Verknüpfte Tagesberichte (final)" style={{ marginBottom: 16 }}>
+      <Card title={td('cards.linkedFinalizedDaily')} style={{ marginBottom: 16 }}>
         <Table
           rowKey="tagesberichtId"
           size="small"
@@ -373,112 +493,145 @@ export default function MonatsberichtDetailPage() {
         />
       </Card>
 
-      <Card title="Summen" style={{ marginBottom: 16 }}>
+      <Card title={ts('cards.sums')} style={{ marginBottom: 16 }}>
         <Descriptions column={2} size="small" bordered>
-          <Descriptions.Item label="Tagesberichte (Anzahl)">{agg.linkedDailyReportCount}</Descriptions.Item>
-          <Descriptions.Item label="Kalendertage / abgedeckt">
+          <Descriptions.Item label={td('labels.dailyReportsCount')}>{agg.linkedDailyReportCount}</Descriptions.Item>
+          <Descriptions.Item label={td('labels.calendarDaysCovered')}>
             {agg.distinctDaysCovered} / {agg.expectedCalendarDaysInMonth}
           </Descriptions.Item>
-          <Descriptions.Item label="Brutto (aus Tagesberichten)">{agg.grossSalesAmount.toFixed(2)}</Descriptions.Item>
-          <Descriptions.Item label="Steuer (Summe)">{agg.taxTotalAmount.toFixed(2)}</Descriptions.Item>
-          <Descriptions.Item label="Erstattungen">{agg.refundAmountTotal.toFixed(2)}</Descriptions.Item>
-          <Descriptions.Item label="Verkaufszeilen">{agg.salePaymentRowCount}</Descriptions.Item>
+          <Descriptions.Item label={td('labels.grossFromDailyReports')}>
+            {formatCurrency(agg.grossSalesAmount, formatLocale)}
+          </Descriptions.Item>
+          <Descriptions.Item label={ts('labels.taxTotal')}>
+            {formatCurrency(agg.taxTotalAmount, formatLocale)}
+          </Descriptions.Item>
+          <Descriptions.Item label={ts('labels.refunds')}>
+            {formatCurrency(agg.refundAmountTotal, formatLocale)}
+          </Descriptions.Item>
+          <Descriptions.Item label={ts('labels.saleLines')}>{agg.salePaymentRowCount}</Descriptions.Item>
         </Descriptions>
       </Card>
 
       {(profile === 'accountingReport' || profile === 'legalComplianceExport' || profile === 'diagnosticPackage') && (
-        <Card title="Rohdaten (PaymentDetails, Monatsfenster)" style={{ marginBottom: 16 }}>
+        <Card title={td('cards.rawDataPaymentDetails')} style={{ marginBottom: 16 }}>
           <Descriptions column={2} size="small" bordered>
-            <Descriptions.Item label="Brutto">{raw.grossSalesAmount.toFixed(2)}</Descriptions.Item>
-            <Descriptions.Item label="Steuer">{raw.taxTotalAmount.toFixed(2)}</Descriptions.Item>
-            <Descriptions.Item label="Erstattungen">{raw.refundAmountTotal.toFixed(2)}</Descriptions.Item>
-            <Descriptions.Item label="Verkaufszeilen">{raw.salePaymentRowCount}</Descriptions.Item>
+            <Descriptions.Item label={ts('labels.gross')}>
+              {formatCurrency(raw.grossSalesAmount, formatLocale)}
+            </Descriptions.Item>
+            <Descriptions.Item label={ts('labels.taxAmount')}>
+              {formatCurrency(raw.taxTotalAmount, formatLocale)}
+            </Descriptions.Item>
+            <Descriptions.Item label={ts('labels.refunds')}>
+              {formatCurrency(raw.refundAmountTotal, formatLocale)}
+            </Descriptions.Item>
+            <Descriptions.Item label={ts('labels.saleLines')}>{raw.salePaymentRowCount}</Descriptions.Item>
           </Descriptions>
           <Descriptions column={1} size="small" bordered style={{ marginTop: 8 }}>
-            <Descriptions.Item label="Δ Brutto (Tagesberichte − Roh)">{adj.grossDeltaDailyVsRaw.toFixed(2)}</Descriptions.Item>
-            <Descriptions.Item label="Prüfung">
-              {adj.requiresReview ? <Tag color="warning">Abweichung</Tag> : <Tag>ok</Tag>}
-              {adj.noteDe ? ` — ${adj.noteDe}` : ''}
+            <Descriptions.Item label={td('labels.deltaGrossDailyVsRaw')}>
+              {formatCurrency(adj.grossDeltaDailyVsRaw, formatLocale)}
+            </Descriptions.Item>
+            <Descriptions.Item label={td('labels.reviewCheck')}>
+              {adj.requiresReview ? (
+                <Tag color="warning" title={backendApiTooltip}>
+                  {td('labels.reviewDeviation')}
+                </Tag>
+              ) : (
+                <Tag title={backendApiTooltip}>{td('labels.reviewOk')}</Tag>
+              )}
+              {adjustmentNote ? (
+                <>
+                  {' — '}
+                  <Typography.Text title={fiscalTooltip(adjustmentNote.contentLang)}>{adjustmentNote.text}</Typography.Text>
+                </>
+              ) : null}
             </Descriptions.Item>
           </Descriptions>
         </Card>
       )}
 
       {(profile === 'accountingReport' || profile === 'legalComplianceExport' || profile === 'diagnosticPackage') && (
-        <Card title="Steueraufschlüsselung (aus Tagesberichten)" style={{ marginBottom: 16 }}>
+        <Card title={td('cards.taxBreakdownFromDaily')} style={{ marginBottom: 16 }}>
           <Table
             rowKey="taxBucketKey"
             size="small"
             pagination={false}
             dataSource={d.summary.taxBreakdown}
-            columns={[
-              { title: 'Bucket', dataIndex: 'taxBucketKey' },
-              { title: 'Steuer', dataIndex: 'taxAmount', render: (v: number) => v?.toFixed(4) },
-            ]}
+            columns={taxColumns}
           />
         </Card>
       )}
 
-      <Card title="Zahlungsarten (aus Tagesberichten)" style={{ marginBottom: 16 }}>
+      <Card title={td('cards.paymentMethodsFromDaily')} style={{ marginBottom: 16 }}>
         <Table rowKey="methodKey" size="small" pagination={false} dataSource={d.summary.paymentMethodBreakdown} columns={pmCols} />
       </Card>
 
-      <Card title="Hinweise" style={{ marginBottom: 16 }}>
+      <Card title={td('cards.hints')} style={{ marginBottom: 16 }}>
         {d.summary.warnings?.length ? (
           <ul>
             {d.summary.warnings.map((w) => (
               <li key={w}>
-                <Typography.Text type="warning">{w}</Typography.Text>
+                <Typography.Text type="warning" title={backendApiTooltip}>
+                  {w}
+                </Typography.Text>
               </li>
             ))}
           </ul>
         ) : (
-          <Typography.Text type="secondary">Keine Warnungen.</Typography.Text>
+          <Typography.Text type="secondary">{td('labels.noWarnings')}</Typography.Text>
         )}
       </Card>
 
       {showTrace ? (
-        <Card title="Trace (Compliance)">
-          <Typography.Paragraph type="secondary">
-            Monats-Snapshot ist unveränderlich nach Finalisierung; Korrekturen erzeugen neue Berichtszeilen mit Verweis.
-          </Typography.Paragraph>
+        <Card title={ts('cards.trace')}>
+          <Typography.Paragraph type="secondary">{td('traceBody')}</Typography.Paragraph>
         </Card>
       ) : null}
 
-      <Card title="History Timeline" style={{ marginTop: 16 }}>
+      <Card title={ts('cards.history')} style={{ marginTop: 16 }}>
         {historyQ.isLoading ? (
-          <Typography.Text type="secondary">Lade Verlauf…</Typography.Text>
+          <Typography.Text type="secondary">{ts('history.loading')}</Typography.Text>
         ) : historyQ.data?.items?.length ? (
           <Timeline
             items={historyQ.data.items.map((item) => ({
               color: item.isCurrentActiveVersion ? 'green' : item.reportStatus === 'Superseded' ? 'orange' : 'blue',
               children: (
                 <Space direction="vertical" size={2}>
-                  <Typography.Text strong>
+                  <Typography.Text strong title={backendApiTooltip}>
                     v{item.reportVersion} · {item.reportId.slice(0, 8)} · {item.reportStatus}
                   </Typography.Text>
                   <Space size={[4, 4]} wrap>
                     {item.labelKeys.map((k) => (
-                      <Tag key={`${item.reportId}-${k}`}>{k}</Tag>
+                      <Tag key={`${item.reportId}-${k}`} title={backendApiTooltip}>
+                        {k}
+                      </Tag>
                     ))}
                   </Space>
                   <Typography.Text type="secondary">
-                    Created: {new Date(item.createdAtUtc).toLocaleString()} {item.finalizedAtUtc ? `· Finalized: ${new Date(item.finalizedAtUtc).toLocaleString()}` : ''}
+                    {ts('history.created')} {formatDateTime(item.createdAtUtc, formatLocale)}{' '}
+                    {item.finalizedAtUtc
+                      ? `· ${ts('history.finalized')} ${formatDateTime(item.finalizedAtUtc, formatLocale)}`
+                      : ''}
                   </Typography.Text>
-                  <Typography.Text type="secondary">
-                    Submission: {item.submission.lifecycle}
-                    {item.submission.outboxMessageId ? ` · Outbox: ${item.submission.outboxMessageId.slice(0, 8)}` : ''}
-                    {item.submission.hasMissingOutboxReference ? ' · Missing outbox reference' : ''}
+                  <Typography.Text type="secondary" title={backendApiTooltip}>
+                    {ts('history.submissionLine')} {item.submission.lifecycle}
+                    {item.submission.outboxMessageId
+                      ? ` · ${ts('history.outbox')} ${item.submission.outboxMessageId.slice(0, 8)}`
+                      : ''}
+                    {item.submission.hasMissingOutboxReference ? ` · ${ts('history.missingOutboxRef')}` : ''}
                   </Typography.Text>
                   {item.submission.lastErrorMessage ? (
-                    <Typography.Text type="warning">{item.submission.lastErrorMessage}</Typography.Text>
+                    <BackendRawTextBlock
+                      introKey="reporting.tagesbericht.detail.history.submissionLastErrorIntro"
+                      body={item.submission.lastErrorMessage}
+                      textType="warning"
+                    />
                   ) : null}
                 </Space>
               ),
             }))}
           />
         ) : (
-          <Typography.Text type="secondary">Keine Korrekturkette vorhanden.</Typography.Text>
+          <Typography.Text type="secondary">{ts('history.empty')}</Typography.Text>
         )}
       </Card>
     </div>

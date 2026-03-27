@@ -15,6 +15,7 @@ import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 import { useI18n } from '@/i18n';
+import { formatNumber } from '@/i18n/formatting';
 
 const { RangePicker } = DatePicker;
 
@@ -50,7 +51,7 @@ const ACTION_OPTIONS = [
 ];
 
 export default function AuditLogsPage() {
-    const { t } = useI18n();
+    const { t, formatLocale } = useI18n();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
@@ -87,7 +88,7 @@ export default function AuditLogsPage() {
             `Seite ${page}`,
             `${pageSize} Zeilen pro API-Anfrage`,
             data?.totalCount != null
-                ? `${data.totalCount.toLocaleString('de-DE')} Einträge gesamt laut API`
+                ? `${formatNumber(data.totalCount, formatLocale, { maximumFractionDigits: 0 })} Einträge gesamt laut API`
                 : 'Gesamtanzahl wird geladen …',
         ];
         if (actionFilter) parts.push(`Aktion = ${actionFilter}`);
@@ -100,7 +101,7 @@ export default function AuditLogsPage() {
         }
         parts.push(AUDIT_PAGE_COPY.scopeApiPageNote);
         return parts.join(' · ');
-    }, [page, pageSize, data?.totalCount, actionFilter, dateRange]);
+    }, [page, pageSize, data?.totalCount, actionFilter, dateRange, formatLocale]);
 
     const actionOptionLabel = useCallback((value: string) => {
         const opt = ACTION_OPTIONS.find((o) => o.value === value);
@@ -426,7 +427,7 @@ export default function AuditLogsPage() {
                         pageSizeOptions: ['10', '25', '50', '100'],
                         showTotal: (total, range) => {
                             if (total <= 0) return AUDIT_PAGE_COPY.paginationZero;
-                            return `${range[0]}–${range[1]} von ${total.toLocaleString('de-DE')} Einträgen`;
+                            return `${range[0]}–${range[1]} von ${formatNumber(total, formatLocale, { maximumFractionDigits: 0 })} Einträgen`;
                         },
                         hideOnSinglePage: false,
                         onChange: (p, s) => {

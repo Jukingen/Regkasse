@@ -5,6 +5,7 @@
 
 import { MENU_PERMISSION } from './menuPermissions';
 import { ROUTE_PERMISSIONS } from './routePermissions';
+import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 function collectKeysFromMap(
   map: Record<string, string | string[] | undefined>
@@ -29,7 +30,7 @@ export interface CatalogAlignmentResult {
  * Compares menu and route permission keys against the catalog.
  * If a key is used in MENU_PERMISSION or ROUTE_PERMISSIONS but not in catalogKeys, logs a console warning.
  * @param catalogKeys – permission keys from GET /api/UserManagement/roles/permissions-catalog (e.g. item.key)
- * @param options.warnUnknown – if true (default), console.warn for each unknown key
+ * @param options.warnUnknown – if true (default), emit a technicalConsole warning for each unknown key
  */
 export function validateCatalogAlignment(
   catalogKeys: string[] | Set<string>,
@@ -47,9 +48,9 @@ export function validateCatalogAlignment(
   });
   const { warnUnknown = true } = options;
   if (warnUnknown && unknownKeys.length > 0) {
-    console.warn(
+    technicalConsole.warn(
       '[validateCatalogAlignment] Menu/route permission keys not found in catalog (check backend contract):',
-      unknownKeys
+      unknownKeys,
     );
   }
   return { unknownKeys, hasWarnings: unknownKeys.length > 0 };

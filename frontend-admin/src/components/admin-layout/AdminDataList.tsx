@@ -2,6 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import { Card, Spin, Alert, Empty } from 'antd';
+import { useI18n } from '@/i18n';
 
 interface AdminDataListProps {
     isLoading: boolean;
@@ -17,9 +18,12 @@ export function AdminDataList({
     isError,
     error,
     isEmpty,
-    emptyText = 'No data found',
-    children
+    emptyText,
+    children,
 }: AdminDataListProps) {
+    const { t } = useI18n();
+    const resolvedEmptyDescription = emptyText ?? t('common.dataList.emptyDefault');
+
     if (isLoading) {
         return (
             <Card>
@@ -35,8 +39,8 @@ export function AdminDataList({
             <Card>
                 <Alert
                     type="error"
-                    message="Error loading data"
-                    description={error?.message ?? 'Unknown error occurred'}
+                    message={t('common.dataList.errorLoadTitle')}
+                    description={error?.message ?? t('common.messages.unknownError')}
                     showIcon
                 />
             </Card>
@@ -46,7 +50,7 @@ export function AdminDataList({
     if (isEmpty) {
         return (
             <Card>
-                <Empty description={emptyText} />
+                <Empty description={resolvedEmptyDescription} />
             </Card>
         );
     }

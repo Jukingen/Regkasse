@@ -214,6 +214,10 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 - [ ] Cloud deployment
 - [ ] Multi-tenant desteği
 
+## 🌐 Localization (i18n) ve CI
+
+Admin paneli (`frontend-admin`) çevirileri için doğrulama ve kullanım taraması GitHub Actions içinde çalışır; yerelde `npm run i18n:ci` ile aynı kapıyı deneyebilirsiniz. Bütçe eşikleri ve komut tablosu: [docs/contributing-i18n.md](docs/contributing-i18n.md).
+
 ## 🤖 AI-Assisted Development
 
 Bu proje geliştirilirken AI asistanlarından faydalanılmaktadır. Tutarlılığı korumak için:
