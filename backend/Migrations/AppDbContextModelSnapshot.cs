@@ -2066,6 +2066,124 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("invoices");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.JahresberichtReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CashRegisterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CorrectionKind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("CorrectionOfReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CorrectionType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTime?>("FinalizedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FinalizedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid?>("LastFinanzOnlineOutboxMessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LastSubmissionError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LastSubmissionStatusCode")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid?>("OriginalReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RebuildCause")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ReportRevisionReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ReportStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("ReportVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ScopeKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("SnapshotGrossSalesAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("SnapshotHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("SnapshotSchemaVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StoreLabel")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SubmissionImpact")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid?>("SupersededByReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SupersedesReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ViennaYearStart")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId");
+
+                    b.HasIndex("OriginalReportId", "ReportVersion");
+
+                    b.HasIndex("ViennaYearStart", "ScopeKind", "ReportStatus");
+
+                    b.ToTable("jahresbericht_reports", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.LegalHold", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2197,6 +2315,124 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("DefaultLanguage");
 
                     b.ToTable("localization_settings");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.MonatsberichtReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CashRegisterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CorrectionKind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("CorrectionOfReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CorrectionType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTime?>("FinalizedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FinalizedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid?>("LastFinanzOnlineOutboxMessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LastSubmissionError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LastSubmissionStatusCode")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid?>("OriginalReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RebuildCause")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ReportRevisionReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ReportStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("ReportVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ScopeKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("SnapshotGrossSalesAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("SnapshotHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("SnapshotSchemaVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StoreLabel")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SubmissionImpact")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid?>("SupersededByReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SupersedesReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ViennaMonthStart")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId");
+
+                    b.HasIndex("OriginalReportId", "ReportVersion");
+
+                    b.HasIndex("ViennaMonthStart", "ScopeKind", "ReportStatus");
+
+                    b.ToTable("monatsbericht_reports", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.OfflineIntentCoverageSample", b =>
@@ -4260,6 +4496,126 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("table_order_item_modifiers", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.TagesberichtReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CorrectionKind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("CorrectionOfReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CorrectionType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTime?>("FinalizedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FinalizedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid?>("LastFinanzOnlineOutboxMessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LastSubmissionError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LastSubmissionStatusCode")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid?>("LinkedDailyClosingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OperatorUserIdScope")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid?>("OriginalReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RebuildCause")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ReportRevisionReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ReportStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<int>("ReportVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SnapshotGrossSalesAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("SnapshotHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("SnapshotSchemaVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StoreLabel")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SubmissionImpact")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<Guid?>("SupersededByReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SupersedesReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ViennaBusinessDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId");
+
+                    b.HasIndex("OriginalReportId", "ReportVersion");
+
+                    b.HasIndex("ViennaBusinessDate", "CashRegisterId", "ReportStatus");
+
+                    b.ToTable("tagesbericht_reports", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TseDevice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4937,6 +5293,24 @@ namespace KasseAPI_Final.Migrations
                         .HasForeignKey("CustomerId");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.JahresberichtReport", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId");
+
+                    b.Navigation("CashRegister");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.MonatsberichtReport", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId");
+
+                    b.Navigation("CashRegister");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.Order", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.ApplicationUser", null)
@@ -5162,6 +5536,17 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.Navigation("TableOrderItem");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.TagesberichtReport", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TseSignature", b =>

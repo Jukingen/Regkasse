@@ -76,6 +76,7 @@ public static class RolePermissionMatrix
                 AppPermissions.InvoiceView, AppPermissions.InvoiceManage, AppPermissions.InvoiceExport,
                 AppPermissions.ReportView, AppPermissions.ReportExport,
                 AppPermissions.FiscalExportCompliance,
+                AppPermissions.FinanzOnlineSubmit,
                 AppPermissions.AuditView, AppPermissions.AuditExport,
                 AppPermissions.SettingsView,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
@@ -136,6 +137,7 @@ public static class RolePermissionMatrix
                 AppPermissions.FiscalExportCompliance,
                 AppPermissions.AuditView,
                 AppPermissions.FinanzOnlineView,
+                AppPermissions.FinanzOnlineSubmit,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
         };
 

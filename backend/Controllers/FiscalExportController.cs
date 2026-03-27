@@ -11,7 +11,7 @@ namespace KasseAPI_Final.Controllers;
 
 /// <summary>
 /// DEP-benzeri fiscal export: fişler, RKSV/TSE imzaları, zincir durumu, kapanışlar.
-/// exportProfile: diagnostic (varsayılan), audit_handoff, compliance — yetki kuralları <see cref="FiscalExportProfileRules"/>.
+/// exportProfile: operational_preview (default), accounting_report, legal_compliance_export, diagnostic_package.
 /// Bütünlük bayrakları tanılama amaçlıdır; yasal RKSV garantisi değildir (payload notLegalProofNotice).
 /// </summary>
 [Authorize]
@@ -44,7 +44,7 @@ public class FiscalExportController : ControllerBase
     /// <summary>
     /// Export fiscal package for one cash register and UTC time range.
     /// </summary>
-    /// <param name="exportProfile">diagnostic (default) | audit_handoff | compliance</param>
+    /// <param name="exportProfile">operational_preview (default) | accounting_report | legal_compliance_export | diagnostic_package</param>
     [HttpGet]
     public async Task<IActionResult> GetExport(
         [FromQuery] Guid cashRegisterId,
@@ -59,7 +59,7 @@ public class FiscalExportController : ControllerBase
         {
             return BadRequest(new
             {
-                message = "Invalid exportProfile. Use: diagnostic, audit_handoff, or compliance.",
+                message = "Invalid exportProfile. Use: operational_preview, accounting_report, legal_compliance_export, or diagnostic_package.",
                 code = "FISCAL_EXPORT_INVALID_PROFILE"
             });
         }
@@ -85,10 +85,11 @@ public class FiscalExportController : ControllerBase
                 var userRole = User.GetActorRole() ?? "Unknown";
                 var auditAction = profile switch
                 {
-                    FiscalExportProfile.Diagnostic => "FiscalExportDiagnostic",
-                    FiscalExportProfile.AuditHandoff => "FiscalExportAuditHandoff",
-                    FiscalExportProfile.LegalCompliance => "FiscalExportCompliancePack",
-                    _ => "FiscalExportDiagnostic"
+                    FiscalExportProfile.OperationalPreview => "FiscalExportOperationalPreview",
+                    FiscalExportProfile.AccountingReport => "FiscalExportAccountingReport",
+                    FiscalExportProfile.LegalComplianceExport => "FiscalExportLegalComplianceExport",
+                    FiscalExportProfile.DiagnosticPackage => "FiscalExportDiagnosticPackage",
+                    _ => "FiscalExportOperationalPreview"
                 };
 
                 await _auditLogService.LogSystemOperationAsync(

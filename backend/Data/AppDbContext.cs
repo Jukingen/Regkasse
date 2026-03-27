@@ -44,6 +44,9 @@ namespace KasseAPI_Final.Data
         public DbSet<GeneratedReceipt> GeneratedReceipts { get; set; }
         public DbSet<TseDevice> TseDevices { get; set; }
         public DbSet<DailyClosing> DailyClosings { get; set; }
+        public DbSet<TagesberichtReport> TagesberichtReports { get; set; }
+        public DbSet<MonatsberichtReport> MonatsberichtReports { get; set; }
+        public DbSet<JahresberichtReport> JahresberichtReports { get; set; }
         public DbSet<TseSignature> TseSignatures { get; set; }
         public DbSet<FinanzOnlineError> FinanzOnlineErrors { get; set; }
         public DbSet<PaymentLogEntry> PaymentLogs { get; set; }
@@ -993,6 +996,84 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => new { e.CashRegisterId, e.ClosingDate, e.ClosingType });
                 entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId);
                 entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
+            });
+
+            builder.Entity<TagesberichtReport>(entity =>
+            {
+                entity.ToTable("tagesbericht_reports");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ViennaBusinessDate).HasColumnType("date");
+                entity.Property(e => e.SnapshotJson).HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.SnapshotHash).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.SnapshotSchemaVersion).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.ReportStatus).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.CorrectionKind).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.ReportRevisionReason).HasMaxLength(200);
+                entity.Property(e => e.RebuildCause).HasMaxLength(80);
+                entity.Property(e => e.CorrectionType).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.SubmissionImpact).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.StoreLabel).HasMaxLength(200);
+                entity.Property(e => e.OperatorUserIdScope).HasMaxLength(450);
+                entity.Property(e => e.CreatedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.FinalizedByUserId).HasMaxLength(450);
+                entity.Property(e => e.LastSubmissionStatusCode).HasMaxLength(40);
+                entity.Property(e => e.LastSubmissionError).HasMaxLength(500);
+                entity.Property(e => e.SnapshotGrossSalesAmount).HasColumnType("decimal(18,2)");
+                entity.HasIndex(e => new { e.ViennaBusinessDate, e.CashRegisterId, e.ReportStatus });
+                entity.HasIndex(e => new { e.OriginalReportId, e.ReportVersion });
+                entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
+            });
+
+            builder.Entity<MonatsberichtReport>(entity =>
+            {
+                entity.ToTable("monatsbericht_reports");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ViennaMonthStart).HasColumnType("date");
+                entity.Property(e => e.SnapshotJson).HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.SnapshotHash).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.SnapshotSchemaVersion).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.ScopeKind).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.ReportStatus).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.CorrectionKind).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.ReportRevisionReason).HasMaxLength(200);
+                entity.Property(e => e.RebuildCause).HasMaxLength(80);
+                entity.Property(e => e.CorrectionType).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.SubmissionImpact).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.StoreLabel).HasMaxLength(200);
+                entity.Property(e => e.CreatedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.FinalizedByUserId).HasMaxLength(450);
+                entity.Property(e => e.LastSubmissionStatusCode).HasMaxLength(40);
+                entity.Property(e => e.LastSubmissionError).HasMaxLength(500);
+                entity.Property(e => e.SnapshotGrossSalesAmount).HasColumnType("decimal(18,2)");
+                entity.HasIndex(e => new { e.ViennaMonthStart, e.ScopeKind, e.ReportStatus });
+                entity.HasIndex(e => new { e.OriginalReportId, e.ReportVersion });
+                entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId).IsRequired(false);
+            });
+
+            builder.Entity<JahresberichtReport>(entity =>
+            {
+                entity.ToTable("jahresbericht_reports");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ViennaYearStart).HasColumnType("date");
+                entity.Property(e => e.SnapshotJson).HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.SnapshotHash).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.SnapshotSchemaVersion).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.ScopeKind).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.ReportStatus).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.CorrectionKind).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.ReportRevisionReason).HasMaxLength(200);
+                entity.Property(e => e.RebuildCause).HasMaxLength(80);
+                entity.Property(e => e.CorrectionType).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.SubmissionImpact).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.StoreLabel).HasMaxLength(200);
+                entity.Property(e => e.CreatedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.FinalizedByUserId).HasMaxLength(450);
+                entity.Property(e => e.LastSubmissionStatusCode).HasMaxLength(40);
+                entity.Property(e => e.LastSubmissionError).HasMaxLength(500);
+                entity.Property(e => e.SnapshotGrossSalesAmount).HasColumnType("decimal(18,2)");
+                entity.HasIndex(e => new { e.ViennaYearStart, e.ScopeKind, e.ReportStatus });
+                entity.HasIndex(e => new { e.OriginalReportId, e.ReportVersion });
+                entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId).IsRequired(false);
             });
 
             // TseSignature configuration

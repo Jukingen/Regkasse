@@ -6,12 +6,24 @@ namespace KasseAPI_Final.Models.Export;
 /// </summary>
 public enum FiscalExportProfile
 {
-    /// <summary>Destek ve tanılama; slice-içi bütünlük bayrakları deneysel.</summary>
-    Diagnostic = 0,
+    /// <summary>Operator odaklı önizleme paketi; resmi beyan değildir.</summary>
+    OperationalPreview = 0,
 
-    /// <summary>Üçüncü taraf denetçi / iç denetim devri için paketleme; audit izi zorunlu.</summary>
-    AuditHandoff = 1,
+    /// <summary>Muhasebe odaklı paket; kayıt ve mutabakat için.</summary>
+    AccountingReport = 1,
 
-    /// <summary>Dış uyum veya hukuki inceleme için yapılandırılmış kanıt paketi; yine de yasal beyan değildir.</summary>
-    LegalCompliance = 2,
+    /// <summary>Dış uyum/hukuki inceleme için yapılandırılmış paket.</summary>
+    LegalComplianceExport = 2,
+
+    /// <summary>Destek ve tanılama; teknik çözümleme paketi.</summary>
+    DiagnosticPackage = 3,
+
+    [Obsolete("Use OperationalPreview")]
+    Diagnostic = OperationalPreview,
+
+    [Obsolete("Use AccountingReport")]
+    AuditHandoff = AccountingReport,
+
+    [Obsolete("Use LegalComplianceExport")]
+    LegalCompliance = LegalComplianceExport,
 }

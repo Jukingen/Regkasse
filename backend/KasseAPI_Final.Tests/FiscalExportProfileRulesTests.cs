@@ -8,10 +8,10 @@ namespace KasseAPI_Final.Tests;
 public class FiscalExportProfileRulesTests
 {
     [Fact]
-    public void TryParseProfile_Empty_IsDiagnostic()
+    public void TryParseProfile_Empty_IsOperationalPreview()
     {
         Assert.True(FiscalExportProfileRules.TryParseProfile(null, out var p));
-        Assert.Equal(FiscalExportProfile.Diagnostic, p);
+        Assert.Equal(FiscalExportProfile.OperationalPreview, p);
     }
 
     [Fact]
@@ -21,7 +21,7 @@ public class FiscalExportProfileRulesTests
     }
 
     [Fact]
-    public void CanExport_ReportViewer_AuditHandoff_Allowed()
+    public void CanExport_ReportViewer_AccountingReport_Allowed()
     {
         var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
@@ -29,7 +29,7 @@ public class FiscalExportProfileRulesTests
             new Claim(PermissionCatalog.PermissionClaimType, AppPermissions.AuditView),
         }, "test"));
 
-        Assert.True(FiscalExportProfileRules.CanExport(user, FiscalExportProfile.AuditHandoff));
+        Assert.True(FiscalExportProfileRules.CanExport(user, FiscalExportProfile.AccountingReport));
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class FiscalExportProfileRulesTests
             new Claim(PermissionCatalog.PermissionClaimType, AppPermissions.AuditView),
         }, "test"));
 
-        Assert.False(FiscalExportProfileRules.CanExport(user, FiscalExportProfile.LegalCompliance));
+        Assert.False(FiscalExportProfileRules.CanExport(user, FiscalExportProfile.LegalComplianceExport));
     }
 
     [Fact]
@@ -54,6 +54,6 @@ public class FiscalExportProfileRulesTests
             new Claim(PermissionCatalog.PermissionClaimType, AppPermissions.FiscalExportCompliance),
         }, "test"));
 
-        Assert.True(FiscalExportProfileRules.CanExport(user, FiscalExportProfile.LegalCompliance));
+        Assert.True(FiscalExportProfileRules.CanExport(user, FiscalExportProfile.LegalComplianceExport));
     }
 }

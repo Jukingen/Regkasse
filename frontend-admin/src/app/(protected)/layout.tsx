@@ -30,6 +30,7 @@ import {
     ToolOutlined,
     ControlOutlined,
     FundOutlined,
+    LineChartOutlined,
     TableOutlined,
 } from '@ant-design/icons';
 import { usePathname } from 'next/navigation';
@@ -157,9 +158,29 @@ export default function DashboardLayout({
                         label: <Link href="/reporting">{t(ADMIN_NAV_LABEL_KEYS.reporting)}</Link>,
                     },
                     {
+                        key: '/reporting/report-center',
+                        icon: <FundOutlined />,
+                        label: <Link href="/reporting/report-center">{t(ADMIN_NAV_LABEL_KEYS.reportCenter)}</Link>,
+                    },
+                    {
                         key: '/reporting/staff',
                         icon: <TeamOutlined />,
                         label: <Link href="/reporting/staff">{t(ADMIN_NAV_LABEL_KEYS.staffPerformance)}</Link>,
+                    },
+                    {
+                        key: '/reporting/tagesbericht',
+                        icon: <FileDoneOutlined />,
+                        label: <Link href="/reporting/tagesbericht">{t(ADMIN_NAV_LABEL_KEYS.tagesbericht)}</Link>,
+                    },
+                    {
+                        key: '/reporting/monatsbericht',
+                        icon: <LineChartOutlined />,
+                        label: <Link href="/reporting/monatsbericht">{t(ADMIN_NAV_LABEL_KEYS.monatsbericht)}</Link>,
+                    },
+                    {
+                        key: '/reporting/jahresbericht',
+                        icon: <LineChartOutlined />,
+                        label: <Link href="/reporting/jahresbericht">{t(ADMIN_NAV_LABEL_KEYS.jahresbericht)}</Link>,
                     },
                     { key: '/receipts', icon: <FileSearchOutlined />, label: <Link href="/receipts">{t(ADMIN_NAV_LABEL_KEYS.receipts)}</Link> },
                     { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">{t(ADMIN_NAV_LABEL_KEYS.payments)}</Link> },

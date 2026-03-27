@@ -14,10 +14,10 @@ public class FiscalExportProfileMetadataTests
             ExportScopeWarnings = new[] { "base" },
         };
 
-        FiscalExportProfileMetadata.Apply(package, FiscalExportProfile.LegalCompliance);
+        FiscalExportProfileMetadata.Apply(package, FiscalExportProfile.LegalComplianceExport);
 
-        Assert.Equal("compliance", package.ExportProfile);
-        Assert.Contains(package.ExportScopeWarnings, w => w.Contains("COMPLIANCE_PACK", StringComparison.Ordinal));
+        Assert.Equal("legal_compliance_export", package.ExportProfile);
+        Assert.Contains(package.ExportScopeWarnings, w => w.Contains("LEGAL_COMPLIANCE_EXPORT", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -28,9 +28,9 @@ public class FiscalExportProfileMetadataTests
             ExportScopeWarnings = new[] { "NOT LEGAL PROOF — base" },
         };
 
-        FiscalExportProfileMetadata.Apply(package, FiscalExportProfile.Diagnostic);
+        FiscalExportProfileMetadata.Apply(package, FiscalExportProfile.DiagnosticPackage);
 
-        Assert.Equal("diagnostic", package.ExportProfile);
-        Assert.DoesNotContain(package.ExportScopeWarnings, w => w.Contains("AUDIT_HANDOFF", StringComparison.Ordinal));
+        Assert.Equal("diagnostic_package", package.ExportProfile);
+        Assert.DoesNotContain(package.ExportScopeWarnings, w => w.Contains("ACCOUNTING_REPORT", StringComparison.Ordinal));
     }
 }

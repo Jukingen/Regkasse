@@ -370,6 +370,10 @@ builder.Services.AddScoped<IFinanzOnlineOutboxService, FinanzOnlineOutboxService
 builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
 builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
 builder.Services.AddScoped<IOperationalReportingService, OperationalReportingService>();
+builder.Services.AddScoped<ITagesberichtService, TagesberichtService>();
+builder.Services.AddScoped<IMonatsberichtService, MonatsberichtService>();
+builder.Services.AddScoped<IJahresberichtService, JahresberichtService>();
+builder.Services.AddScoped<IReportSubmissionCompatibilityService, ReportSubmissionCompatibilityService>();
 builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi eklendi
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
 // builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle

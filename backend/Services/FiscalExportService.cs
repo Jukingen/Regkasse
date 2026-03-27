@@ -45,7 +45,7 @@ public class FiscalExportService : IFiscalExportService
         DateTime fromUtc,
         DateTime toUtc,
         bool includeCsv,
-        FiscalExportProfile exportProfile = FiscalExportProfile.Diagnostic,
+        FiscalExportProfile exportProfile = FiscalExportProfile.OperationalPreview,
         CancellationToken cancellationToken = default)
     {
         var from = NormalizeUtc(fromUtc);

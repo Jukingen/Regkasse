@@ -9,8 +9,8 @@ public sealed class FiscalExportPackageDto
     /// <summary>Mandatory misuse guard: this export is NOT legal proof. Always present; clients must not treat the export as a legal RKSV attestation.</summary>
     public string NotLegalProofNotice { get; set; } = string.Empty;
 
-    /// <summary>İşletim profili: diagnostic | audit_handoff | compliance (API exportProfile parametresi ile seçilir).</summary>
-    public string ExportProfile { get; set; } = "diagnostic";
+    /// <summary>İşletim profili: operational_preview | accounting_report | legal_compliance_export | diagnostic_package.</summary>
+    public string ExportProfile { get; set; } = "operational_preview";
 
     /// <summary>Profil amacı (İngilizce sabit metin); operatör yönlendirmesi için.</summary>
     public string ExportProfileIntentNotice { get; set; } = string.Empty;

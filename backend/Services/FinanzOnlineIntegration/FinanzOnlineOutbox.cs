@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -191,6 +192,7 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var submissionService = scope.ServiceProvider.GetRequiredService<IFinanzOnlineSubmissionService>();
+        var audit = scope.ServiceProvider.GetRequiredService<IAuditLogService>();
         var opts = _options.CurrentValue;
         var now = DateTime.UtcNow;
         var staleBefore = now.AddSeconds(-Math.Max(30, opts.ProcessingTimeoutSeconds));
@@ -230,6 +232,84 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
             if (payload == null)
             {
                 await MarkPermanentFailureAsync(context, active, "MALFORMED_PAYLOAD", "Cannot parse outbox payload.", cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            if (string.Equals(active.MessageType, FinanzOnlineTagesberichtMessageTypes.TagesberichtDailySummary, StringComparison.Ordinal))
+            {
+                active.Status = FinanzOnlineOutboxStatuses.ProtocolSuccess;
+                active.ExternalReferenceId = Truncate($"TBR-{active.AggregateId:N}", 120);
+                active.TransmissionId = Truncate($"TBR-TX-{Guid.NewGuid():N}", 120);
+                active.ProcessingToken = null;
+                active.ProcessingStartedAt = null;
+                active.ProcessedAt = DateTime.UtcNow;
+                active.LastErrorCode = null;
+                active.LastErrorMessage = null;
+                active.FailureCategory = null;
+                active.LastResponseJson = JsonSerializer.Serialize(new
+                {
+                    result = "TagesberichtInformational",
+                    reportId = active.AggregateId,
+                    note = "Non-DEP summary pipeline; see TagesberichtReport snapshot hash."
+                });
+                await TagesberichtOutboxAggregateUpdater.ApplyAfterOutboxPersistAsync(context, active, cancellationToken).ConfigureAwait(false);
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation(
+                    "FinanzOnline outbox Tagesbericht informational success Id={OutboxId} AggregateId={AggregateId}",
+                    active.Id, active.AggregateId);
+                await LogOutboxAttemptAsync(audit, active, "informational_success", cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            if (string.Equals(active.MessageType, FinanzOnlineMonatsberichtMessageTypes.MonatsberichtMonthlySummary, StringComparison.Ordinal))
+            {
+                active.Status = FinanzOnlineOutboxStatuses.ProtocolSuccess;
+                active.ExternalReferenceId = Truncate($"MBR-{active.AggregateId:N}", 120);
+                active.TransmissionId = Truncate($"MBR-TX-{Guid.NewGuid():N}", 120);
+                active.ProcessingToken = null;
+                active.ProcessingStartedAt = null;
+                active.ProcessedAt = DateTime.UtcNow;
+                active.LastErrorCode = null;
+                active.LastErrorMessage = null;
+                active.FailureCategory = null;
+                active.LastResponseJson = JsonSerializer.Serialize(new
+                {
+                    result = "MonatsberichtInformational",
+                    reportId = active.AggregateId,
+                    note = "Non-DEP monthly summary; see MonatsberichtReport snapshot hash."
+                });
+                await MonatsberichtOutboxAggregateUpdater.ApplyAfterOutboxPersistAsync(context, active, cancellationToken).ConfigureAwait(false);
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation(
+                    "FinanzOnline outbox Monatsbericht informational success Id={OutboxId} AggregateId={AggregateId}",
+                    active.Id, active.AggregateId);
+                await LogOutboxAttemptAsync(audit, active, "informational_success", cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            if (string.Equals(active.MessageType, FinanzOnlineJahresberichtMessageTypes.JahresberichtAnnualSummary, StringComparison.Ordinal))
+            {
+                active.Status = FinanzOnlineOutboxStatuses.ProtocolSuccess;
+                active.ExternalReferenceId = Truncate($"YBR-{active.AggregateId:N}", 120);
+                active.TransmissionId = Truncate($"YBR-TX-{Guid.NewGuid():N}", 120);
+                active.ProcessingToken = null;
+                active.ProcessingStartedAt = null;
+                active.ProcessedAt = DateTime.UtcNow;
+                active.LastErrorCode = null;
+                active.LastErrorMessage = null;
+                active.FailureCategory = null;
+                active.LastResponseJson = JsonSerializer.Serialize(new
+                {
+                    result = "JahresberichtInformational",
+                    reportId = active.AggregateId,
+                    note = "Non-DEP annual summary; see JahresberichtReport snapshot hash."
+                });
+                await JahresberichtOutboxAggregateUpdater.ApplyAfterOutboxPersistAsync(context, active, cancellationToken).ConfigureAwait(false);
+                await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation(
+                    "FinanzOnline outbox Jahresbericht informational success Id={OutboxId} AggregateId={AggregateId}",
+                    active.Id, active.AggregateId);
+                await LogOutboxAttemptAsync(audit, active, "informational_success", cancellationToken).ConfigureAwait(false);
                 return;
             }
 
@@ -313,9 +393,13 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
             active.ProcessingToken = null;
             active.ProcessingStartedAt = null;
 
+            await TagesberichtOutboxAggregateUpdater.ApplyAfterOutboxPersistAsync(context, active, cancellationToken).ConfigureAwait(false);
+            await MonatsberichtOutboxAggregateUpdater.ApplyAfterOutboxPersistAsync(context, active, cancellationToken).ConfigureAwait(false);
+            await JahresberichtOutboxAggregateUpdater.ApplyAfterOutboxPersistAsync(context, active, cancellationToken).ConfigureAwait(false);
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("FinanzOnline outbox processed Id={OutboxId} Status={Status} Category={Category} Attempt={Attempt} CorrelationId={CorrelationId}",
                 active.Id, active.Status, active.FailureCategory ?? "", active.AttemptCount, active.CorrelationId);
+            await LogOutboxAttemptAsync(audit, active, "processed", cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException || ex is OperationCanceledException)
         {
@@ -330,7 +414,42 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
             if (active.Status == FinanzOnlineOutboxStatuses.DeadLetter)
                 active.ProcessedAt = DateTime.UtcNow;
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await LogOutboxAttemptAsync(audit, active, "transient_failure", cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    private static async Task LogOutboxAttemptAsync(
+        IAuditLogService audit,
+        FinanzOnlineOutboxMessage message,
+        string eventName,
+        CancellationToken cancellationToken)
+    {
+        await audit.LogSystemOperationAsync(
+            $"FinanzOnlineOutboxAttempt.{eventName}",
+            nameof(FinanzOnlineOutboxMessage),
+            "system",
+            "OutboxWorker",
+            description: "FinanzOnline outbox attempt persisted",
+            requestData: new
+            {
+                outboxId = message.Id,
+                message.AggregateType,
+                message.AggregateId,
+                message.MessageType,
+                message.CorrelationId,
+                message.AttemptCount
+            },
+            responseData: new
+            {
+                message.Status,
+                message.FailureCategory,
+                message.LastErrorCode,
+                message.LastErrorMessage,
+                message.TransmissionId,
+                message.ExternalReferenceId,
+                message.ProtocolCode
+            },
+            status: AuditLogStatus.Success);
     }
 
     private async Task ReconcileOneAsync(CancellationToken cancellationToken)

@@ -23,6 +23,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import { useSearchParams } from 'next/navigation';
 
 dayjs.extend(utc);
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -62,10 +63,14 @@ function formatPaymentMethodKey(key: string | undefined): string {
 
 export default function ReportingPage() {
   const { t, formatLocale } = useI18n();
+  const searchParams = useSearchParams();
   const { hasPermission } = usePermissions();
   const canExport = hasPermission(PERMISSIONS.REPORT_EXPORT);
 
-  const [tab, setTab] = useState<string>('summary');
+  const initialTab = searchParams?.get('tab');
+  const [tab, setTab] = useState<string>(
+    initialTab && ['summary', 'periodic', 'interim', 'closings'].includes(initialTab) ? initialTab : 'summary'
+  );
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().startOf('month'),
     dayjs().endOf('month'),
@@ -282,6 +287,7 @@ export default function ReportingPage() {
         ]}
         actions={
           <Space wrap>
+            <Button href="/reporting/report-center">{t('nav.reportCenter')}</Button>
             {canExport ? (
               <Button type="primary" loading={exporting} onClick={() => void onExportCsv()}>
                 {t('adminShell.reporting.exportCsv')}
