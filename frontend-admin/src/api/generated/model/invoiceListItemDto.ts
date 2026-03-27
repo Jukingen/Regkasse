@@ -9,6 +9,7 @@ import type { DocumentType } from './documentType';
 import type { InvoiceStatus } from './invoiceStatus';
 
 export interface InvoiceListItemDto {
+  cashRegisterId?: string;
   /** @nullable */
   companyName?: string | null;
   /** @nullable */
@@ -20,6 +21,8 @@ export interface InvoiceListItemDto {
   invoiceNumber?: string | null;
   /** @nullable */
   kassenId?: string | null;
+  /** @nullable */
+  listRowOrigin?: string | null;
   /** @nullable */
   originalInvoiceId?: string | null;
   status?: InvoiceStatus;

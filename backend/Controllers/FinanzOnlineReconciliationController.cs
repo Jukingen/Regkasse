@@ -15,7 +15,9 @@ using KasseAPI_Final.Time;
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// Admin: FinanzOnline submission reconciliation — list pending/failed and retry. DB truth is never rolled back.
+/// Admin: <b>legacy</b> payment-row FinanzOnline reconciliation (PaymentDetails columns) — list and retry by payment id.
+/// Operational visibility for the SOAP/outbox pipeline: <c>GET /api/admin/finanzonline-outbox</c> (<see cref="FinanzOnlineOutboxAdminController"/>).
+/// This controller remains supported during phased deprecation; do not build new features on it.
 /// </summary>
 [Authorize]
 [ApiController]
@@ -44,6 +46,7 @@ public class FinanzOnlineReconciliationController : ControllerBase
     /// GET: FinanzOnline submit metrics (finanzonline_submit_total, finanzonline_submit_failed_total by FailureKind). Counters reset on app restart.
     /// </summary>
     [HttpGet("metrics")]
+    [Obsolete("Legacy reconciliation metrics surface. Prefer operational review via outbox admin API and logs; API may be narrowed in a future release.")]
     [HasPermission(AppPermissions.FinanzOnlineView)]
     public ActionResult<FinanzOnlineMetricsResponse> GetMetrics()
     {
@@ -62,6 +65,7 @@ public class FinanzOnlineReconciliationController : ControllerBase
     /// GET: List payments that need reconciliation (Pending, Failed, NeedsReconciliation). Optional filters.
     /// </summary>
     [HttpGet]
+    [Obsolete("Legacy payment-row reconciliation list. Prefer GET /api/admin/finanzonline-outbox for SOAP pipeline state; this list remains for payment-centric triage until removal.")]
     [HasPermission(AppPermissions.FinanzOnlineView)]
     public async Task<ActionResult<FinanzOnlineReconciliationListResponse>> GetReconciliationList(
         [FromQuery] string? status = null,
@@ -125,6 +129,7 @@ public class FinanzOnlineReconciliationController : ControllerBase
     /// POST: Retry FinanzOnline submit for one payment. Idempotent if already Submitted.
     /// </summary>
     [HttpPost("retry/{paymentId:guid}")]
+    [Obsolete("Legacy retry-by-payment. Re-queues via existing invoice/outbox path; keep until payment-row columns are retired or replaced.")]
     [HasPermission(AppPermissions.FinanzOnlineSubmit)]
     public async Task<ActionResult<FinanzOnlineRetryResponse>> RetrySubmit(Guid paymentId, CancellationToken cancellationToken = default)
     {

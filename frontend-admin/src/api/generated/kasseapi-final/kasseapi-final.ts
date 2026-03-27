@@ -130,3 +130,58 @@ export const useGetHealth = <TData = Awaited<ReturnType<typeof getHealth>>, TErr
 
 
 
+export const getHealthAuthSchema = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/health/auth-schema`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetHealthAuthSchemaQueryKey = () => {
+    return [`/health/auth-schema`] as const;
+    }
+
+    
+export const getGetHealthAuthSchemaQueryOptions = <TData = Awaited<ReturnType<typeof getHealthAuthSchema>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealthAuthSchema>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHealthAuthSchemaQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHealthAuthSchema>>> = ({ signal }) => getHealthAuthSchema(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getHealthAuthSchema>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetHealthAuthSchemaQueryResult = NonNullable<Awaited<ReturnType<typeof getHealthAuthSchema>>>
+export type GetHealthAuthSchemaQueryError = unknown
+
+export const useGetHealthAuthSchema = <TData = Awaited<ReturnType<typeof getHealthAuthSchema>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealthAuthSchema>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetHealthAuthSchemaQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+

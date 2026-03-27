@@ -148,19 +148,21 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/finanzonline/submit-invoice
         // Deprecated legacy endpoint (simulated submit flow).
-        // Canonical replacement is payment-based reconciliation:
+        // Primary operational model: outbox + normal payment submit (IFinanzOnlineService.SubmitInvoiceAsync).
+        //   - GET  /api/admin/finanzonline-outbox
+        // Legacy payment-row triage (until removed):
         //   - GET  /api/admin/finanzonline-reconciliation
         //   - POST /api/admin/finanzonline-reconciliation/retry/{paymentId}
         // Kept only for backward compatibility.
-        [Obsolete("Deprecated endpoint. Use payment-based reconciliation via /api/admin/finanzonline-reconciliation and /retry/{paymentId}.")]
+        [Obsolete("Deprecated endpoint. Use outbox pipeline (GET /api/admin/finanzonline-outbox) and normal fiscal submit; legacy payment list: GET /api/admin/finanzonline-reconciliation.")]
         [HttpPost("submit-invoice")]
         [HasPermission(AppPermissions.FinanzOnlineSubmit)]
         public async Task<ActionResult<FinanzOnlineSubmitResponse>> SubmitInvoice([FromBody] FinanzOnlineSubmitRequest request)
         {
             _logger.LogWarning(
                 "Deprecated endpoint called: POST /api/FinanzOnline/submit-invoice. " +
-                "Use canonical payment-based reconciliation endpoints: " +
-                "GET /api/admin/finanzonline-reconciliation and POST /api/admin/finanzonline-reconciliation/retry/{{paymentId}}."
+                "Prefer GET /api/admin/finanzonline-outbox for SOAP/outbox state; legacy payment reconciliation: " +
+                "GET /api/admin/finanzonline-reconciliation and POST .../retry/{{paymentId}}."
             );
 
             var submission = new FinanzOnlineSubmission

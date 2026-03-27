@@ -1,0 +1,9 @@
+{
+  "legacyBadge": "Legacy",
+  "phasedDeprecationNote": "Diese zahlungszeilenbasierte Ansicht wird schrittweise zugunsten der Outbox-/SOAP-Pipeline abgelöst. Retry pro Zahlung bleibt hier verfügbar, bis die Migration abgeschlossen ist.",
+  "outboxPrimaryBanner": {
+    "title": "Primäre Pipeline-Sicht: FinanzOnline · Outbox",
+    "leadBeforeLink": "Für operative Überwachung der SOAP-/Outbox-Pipeline (Übermittlung, Protokoll, Retries) nutzen Sie",
+    "leadAfterLink": ". Diese Seite bleibt für zahlungszeilenbasierten Status und manuelles Retry pro Zahlung (Legacy) verfügbar."
+  }
+}

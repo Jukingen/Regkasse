@@ -140,6 +140,61 @@ export const useGetApiCustomerEmailEmail = <TData = Awaited<ReturnType<typeof ge
 
 
 
+export const getApiCustomerWalkIn = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Customer/walk-in`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiCustomerWalkInQueryKey = () => {
+    return [`/api/Customer/walk-in`] as const;
+    }
+
+    
+export const getGetApiCustomerWalkInQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomerWalkIn>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerWalkIn>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerWalkInQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomerWalkIn>>> = ({ signal }) => getApiCustomerWalkIn(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerWalkIn>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiCustomerWalkInQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomerWalkIn>>>
+export type GetApiCustomerWalkInQueryError = unknown
+
+export const useGetApiCustomerWalkIn = <TData = Awaited<ReturnType<typeof getApiCustomerWalkIn>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomerWalkIn>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiCustomerWalkInQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
 export const getApiCustomerTaxTaxNumber = (
     taxNumber: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal

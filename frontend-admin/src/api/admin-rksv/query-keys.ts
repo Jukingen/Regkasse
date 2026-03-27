@@ -6,6 +6,11 @@ export const rksvAdminQueryKeys = {
     list: (params: unknown) => ['admin', 'rksv', 'finanzonline-reconciliation', 'list', params] as const,
     metrics: ['admin', 'rksv', 'finanzonline-reconciliation', 'metrics'] as const,
   },
+  finanzOnlineOutbox: {
+    base: ['admin', 'rksv', 'finanzonline-outbox'] as const,
+    list: (params: unknown) => ['admin', 'rksv', 'finanzonline-outbox', 'list', params] as const,
+    detail: (id: string) => ['admin', 'rksv', 'finanzonline-outbox', 'detail', id] as const,
+  },
   finanzOnlineOps: {
     base: ['admin', 'rksv', 'finanzonline-ops'] as const,
     status: ['admin', 'rksv', 'finanzonline-ops', 'status'] as const,

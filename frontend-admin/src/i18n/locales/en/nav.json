@@ -18,5 +18,7 @@
   "myProfile": "My profile",
   "logout": "Log out",
   "rksvOperationsOverview": "RKSV overview",
-  "finanzOnlineAbgleich": "FinanzOnline reconciliation"
+  "finanzOnlineAbgleich": "FinanzOnline reconciliation",
+  "finanzOnlineAbgleichLegacy": "FinanzOnline reconciliation (legacy)",
+  "finanzOnlineOutbox": "FinanzOnline · Outbox"
 }

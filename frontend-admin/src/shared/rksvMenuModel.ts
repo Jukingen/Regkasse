@@ -49,10 +49,20 @@ export function buildRksvMenuGroups(verificationNavLabel: string): RksvMenuGroup
             id: 'daily',
             /** Daily operations: hub + payment-level FO reconciliation */
             groupLabel: 'Operativ',
-            hubTaskLine: 'Tagesgeschäft: Kassenübersicht und Zahlungsabgleich mit FinanzOnline (Zeilenebene).',
+            hubTaskLine:
+                'Tagesgeschäft: Kassenübersicht, Outbox-/SOAP-Pipeline (primär) und optional Zahlungszeilen-Legacy.',
             items: [
                 { key: '/rksv/operations', href: '/rksv', label: 'Übersicht' },
-                { key: '/rksv/finanz-online-queue', href: '/rksv/finanz-online-queue', label: 'FinanzOnline-Abgleich' },
+                {
+                    key: '/rksv/finanz-online-outbox',
+                    href: '/rksv/finanz-online-outbox',
+                    label: 'FinanzOnline · Outbox',
+                },
+                {
+                    key: '/rksv/finanz-online-queue',
+                    href: '/rksv/finanz-online-queue',
+                    label: 'Zahlungs-Abgleich (Legacy)',
+                },
             ],
         },
         {

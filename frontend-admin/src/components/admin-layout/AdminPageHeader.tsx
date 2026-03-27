@@ -7,7 +7,8 @@ import Link from 'next/link';
 const { Title } = Typography;
 
 interface AdminPageHeaderProps {
-    title: string;
+    /** Plain string or inline elements (e.g. title + status Tag). */
+    title: React.ReactNode;
     breadcrumbs?: Array<{ title: string; href?: string }>;
     actions?: ReactNode;
     children?: ReactNode;

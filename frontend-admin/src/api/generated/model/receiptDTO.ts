@@ -15,11 +15,15 @@ import type { ReceiptTotalsDTO } from './receiptTotalsDTO';
 
 export interface ReceiptDTO {
   /** @nullable */
-  cashierName?: string | null;
+  cashierDisplayName?: string | null;
+  /** @nullable */
+  cashierId?: string | null;
   cashRegisterId?: string;
   clockDriftWarning?: boolean;
   company?: ReceiptCompanyDTO;
   date?: string;
+  /** @nullable */
+  displayRegisterNumber?: string | null;
   /** @nullable */
   fiscalizedAtUtc?: string | null;
   /** @nullable */

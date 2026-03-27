@@ -19,6 +19,7 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  AdminCategoryProductDto,
   AdminCreateUserRequest,
   AdminDeactivateRequest,
   AdminForcePasswordResetRequest,
@@ -41,9 +42,12 @@ import type {
   CreateCategoryRequest,
   CreateLegalHoldRequest,
   FinanzOnlineMetricsResponse,
+  FinanzOnlineOutboxItemDto,
+  FinanzOnlineOutboxListResponse,
   FinanzOnlineReconciliationListResponse,
   FinanzOnlineRetryResponse,
   GetApiAdminCategoriesSearchParams,
+  GetApiAdminFinanzonlineOutboxParams,
   GetApiAdminFinanzonlineReconciliationParams,
   GetApiAdminFiscalExportParams,
   GetApiAdminIntegrityParams,
@@ -2165,7 +2169,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 ) => {
       
       
-      return customInstance<Product[]>(
+      return customInstance<AdminCategoryProductDto[]>(
       {url: `/api/admin/categories/${id}/products`, method: 'GET', signal
     },
       options);
@@ -2260,6 +2264,117 @@ export const useGetApiAdminCategoriesSearch = <TData = Awaited<ReturnType<typeof
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminCategoriesSearchQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminFinanzonlineOutbox = (
+    params?: GetApiAdminFinanzonlineOutboxParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<FinanzOnlineOutboxListResponse>(
+      {url: `/api/admin/finanzonline-outbox`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminFinanzonlineOutboxQueryKey = (params?: GetApiAdminFinanzonlineOutboxParams,) => {
+    return [`/api/admin/finanzonline-outbox`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminFinanzonlineOutboxQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutbox>>, TError = unknown>(params?: GetApiAdminFinanzonlineOutboxParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutbox>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminFinanzonlineOutboxQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutbox>>> = ({ signal }) => getApiAdminFinanzonlineOutbox(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutbox>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminFinanzonlineOutboxQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutbox>>>
+export type GetApiAdminFinanzonlineOutboxQueryError = unknown
+
+export const useGetApiAdminFinanzonlineOutbox = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutbox>>, TError = unknown>(
+ params?: GetApiAdminFinanzonlineOutboxParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutbox>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminFinanzonlineOutboxQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminFinanzonlineOutboxId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<FinanzOnlineOutboxItemDto>(
+      {url: `/api/admin/finanzonline-outbox/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminFinanzonlineOutboxIdQueryKey = (id: string,) => {
+    return [`/api/admin/finanzonline-outbox/${id}`] as const;
+    }
+
+    
+export const getGetApiAdminFinanzonlineOutboxIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminFinanzonlineOutboxIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxId>>> = ({ signal }) => getApiAdminFinanzonlineOutboxId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminFinanzonlineOutboxIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxId>>>
+export type GetApiAdminFinanzonlineOutboxIdQueryError = unknown
+
+export const useGetApiAdminFinanzonlineOutboxId = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxId>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineOutboxId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminFinanzonlineOutboxIdQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -32,7 +32,8 @@ import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_GROUP_LABELS, ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { useI18n } from '@/i18n/I18nProvider';
+import { ADMIN_NAV_GROUP_LABELS, ADMIN_NAV_LABEL_KEYS, ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
     parseAuthoritativePaymentGuid,
     parseAuthoritativeRegisterGuid,
@@ -98,6 +99,7 @@ function statusBadgeColor(status: string | null): string {
 }
 
 export default function FinanzOnlineReconciliationPage() {
+    const { t } = useI18n();
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
     const initialStatusFilter = useMemo(() => {
@@ -430,11 +432,16 @@ export default function FinanzOnlineReconciliationPage() {
     return (
         <>
             <AdminPageHeader
-                title={ADMIN_NAV_LABELS.finanzOnlineAbgleich}
+                title={
+                    <Space align="center" size="middle" wrap>
+                        <span>{t(ADMIN_NAV_LABEL_KEYS.finanzOnlineAbgleichLegacy)}</span>
+                        <Tag color="orange">{t('finanzOnlineReconciliation.legacyBadge')}</Tag>
+                    </Space>
+                }
                 breadcrumbs={[
                     ADMIN_OVERVIEW_CRUMB,
                     { title: ADMIN_NAV_GROUP_LABELS.rksv, href: '/rksv' },
-                    { title: ADMIN_NAV_LABELS.finanzOnlineAbgleich },
+                    { title: t(ADMIN_NAV_LABEL_KEYS.finanzOnlineAbgleichLegacy) },
                 ]}
                 actions={
                     <Tooltip title={OPERATOR_SHARED_COPY.refetchHintToolbar}>
@@ -466,6 +473,27 @@ export default function FinanzOnlineReconciliationPage() {
                     <Link href="/payments">{ADMIN_NAV_LABELS.payments}</Link>
                 </Typography.Paragraph>
             </AdminPageHeader>
+
+            <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 12 }}
+                message={t('finanzOnlineReconciliation.outboxPrimaryBanner.title')}
+                description={
+                    <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
+                        {t('finanzOnlineReconciliation.outboxPrimaryBanner.leadBeforeLink')}{' '}
+                        <Link href="/rksv/finanz-online-outbox">{t('nav.finanzOnlineOutbox')}</Link>
+                        {t('finanzOnlineReconciliation.outboxPrimaryBanner.leadAfterLink')}
+                    </Typography.Paragraph>
+                }
+            />
+
+            <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 12 }}
+                message={t('finanzOnlineReconciliation.phasedDeprecationNote')}
+            />
 
             <Alert
                 type="info"

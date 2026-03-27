@@ -6,8 +6,7 @@ using Microsoft.Extensions.Configuration;
 namespace KasseAPI_Final.Data
 {
     /// <summary>
-    /// Design-time factory for dotnet ef. Must not require appsettings.json (CI checkouts omit gitignored files).
-    /// Connection string: environment (ConnectionStrings__DefaultConnection) overrides optional JSON files.
+    /// Design-time factory for dotnet ef. Tracked appsettings may be absent (gitignore); user secrets and env vars supply secrets.
     /// </summary>
     public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
     {
@@ -15,14 +14,10 @@ namespace KasseAPI_Final.Data
         {
             var basePath = ResolveConfigurationBasePath();
 
-            // Only register JSON providers when files exist (CI has no gitignored appsettings; avoids any AddJsonFile edge cases).
             var configBuilder = new ConfigurationBuilder().SetBasePath(basePath);
-            var appSettingsPath = Path.Combine(basePath, "appsettings.json");
-            if (File.Exists(appSettingsPath))
-                configBuilder.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false);
-            var devSettingsPath = Path.Combine(basePath, "appsettings.Development.json");
-            if (File.Exists(devSettingsPath))
-                configBuilder.AddJsonFile("appsettings.Development.json", optional: false, reloadOnChange: false);
+            configBuilder.AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
+            configBuilder.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: false);
+            configBuilder.AddUserSecrets(typeof(DesignTimeDbContextFactory).Assembly, optional: true);
             configBuilder.AddEnvironmentVariables();
 
             var config = configBuilder.Build();
@@ -32,8 +27,7 @@ namespace KasseAPI_Final.Data
             if (string.IsNullOrWhiteSpace(connectionString))
             {
                 throw new InvalidOperationException(
-                    "DefaultConnection is not configured. Set environment variable ConnectionStrings__DefaultConnection " +
-                    "or add ConnectionStrings:DefaultConnection to appsettings.json (optional in CI).");
+                    "DefaultConnection is not configured. Set ConnectionStrings__DefaultConnection, dotnet user-secrets, or appsettings.json (local). See backend/CONFIGURATION.md.");
             }
 
             optionsBuilder.UseAppNpgsql(connectionString);
@@ -43,15 +37,15 @@ namespace KasseAPI_Final.Data
         }
 
         /// <summary>
-        /// Prefer a directory that contains appsettings.json (e.g. backend/ when the tool is invoked from repo root).
-        /// Falls back to the current directory so optional JSON can be skipped and env-based config still works.
+        /// Prefer backend/ when cwd is repo root or when example/local appsettings exist there.
         /// </summary>
         private static string ResolveConfigurationBasePath()
         {
             var cwd = Directory.GetCurrentDirectory();
             foreach (var path in new[] { cwd, Path.Combine(cwd, "backend") })
             {
-                if (File.Exists(Path.Combine(path, "appsettings.json")))
+                if (File.Exists(Path.Combine(path, "appsettings.json"))
+                    || File.Exists(Path.Combine(path, "appsettings.example.json")))
                     return path;
             }
 

@@ -34,6 +34,10 @@ import type {
   GetApiPosPaymentMethodPaymentMethodParams,
   GetApiPosPaymentStatisticsParams,
   GetApiPosSearchParams,
+  PaymentApiErrorBody,
+  PaymentCreateSuccessDataPaymentApiEnvelope,
+  PosCashRegisterContextDto,
+  PosSelectableListResult,
   PostApiPosCartClearParams,
   ProblemDetails,
   Product,
@@ -1140,7 +1144,7 @@ export const postApiPosPayment = (
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<void>(
+      return customInstance<PaymentCreateSuccessDataPaymentApiEnvelope>(
       {url: `/api/pos/payment`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: createPaymentRequest
@@ -1150,7 +1154,7 @@ export const postApiPosPayment = (
   
 
 
-export const getPostApiPosPaymentMutationOptions = <TError = unknown,
+export const getPostApiPosPaymentMutationOptions = <TError = PaymentApiErrorBody,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPayment>>, TError,{data: CreatePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPayment>>, TError,{data: CreatePaymentRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
@@ -1171,9 +1175,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiPosPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosPayment>>>
     export type PostApiPosPaymentMutationBody = CreatePaymentRequest
-    export type PostApiPosPaymentMutationError = unknown
+    export type PostApiPosPaymentMutationError = PaymentApiErrorBody
 
-    export const usePostApiPosPayment = <TError = unknown,
+    export const usePostApiPosPayment = <TError = PaymentApiErrorBody,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPayment>>, TError,{data: CreatePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiPosPayment>>,
@@ -1899,7 +1903,111 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPos = (
+    export const postApiPosCashRegisterEnsureReady = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PosCashRegisterContextDto>(
+      {url: `/api/pos/cash-register/ensure-ready`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosCashRegisterEnsureReadyMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>, void> = () => {
+          
+
+          return  postApiPosCashRegisterEnsureReady(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosCashRegisterEnsureReadyMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>>
+    
+    export type PostApiPosCashRegisterEnsureReadyMutationError = ProblemDetails
+
+    export const usePostApiPosCashRegisterEnsureReady = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosCashRegisterEnsureReady>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosCashRegisterEnsureReadyMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPosCashRegisterSelectable = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PosSelectableListResult>(
+      {url: `/api/pos/cash-register/selectable`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosCashRegisterSelectableQueryKey = () => {
+    return [`/api/pos/cash-register/selectable`] as const;
+    }
+
+    
+export const getGetApiPosCashRegisterSelectableQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosCashRegisterSelectableQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>> = ({ signal }) => getApiPosCashRegisterSelectable(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosCashRegisterSelectableQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>>
+export type GetApiPosCashRegisterSelectableQueryError = ProblemDetails
+
+export const useGetApiPosCashRegisterSelectable = <TData = Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosCashRegisterSelectable>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosCashRegisterSelectableQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPos = (
     params?: GetApiPosParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

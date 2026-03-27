@@ -83,6 +83,8 @@ export interface Invoice {
   documentType?: DocumentType;
   dueDate: string;
   id?: string;
+  /** @nullable */
+  invoiceDataProvenance?: string | null;
   invoiceDate: string;
   /** @nullable */
   invoiceItems?: InvoiceInvoiceItems;

@@ -1,0 +1,94 @@
+{
+  "page": {
+    "leadTag": "Outbox / SOAP",
+    "leadLine": "Primary operational view for FinanzOnline submission and protocol reconciliation (TEST and PROD).",
+    "leadNoPaymentRows": "Not payment-row based — for that use",
+    "leadLegacyQueueLink": "Payment reconciliation (legacy)"
+  },
+  "privacyAlert": {
+    "title": "Privacy notice",
+    "description": "Only approved fields are shown (no session IDs, no PINs, no raw payload XML)."
+  },
+  "filters": {
+    "bucket": "Bucket",
+    "statusCsv": "Exact status (CSV, optional)",
+    "statusCsvPlaceholder": "e.g. AwaitingProtocol,RetryableFailure",
+    "mode": "Mode",
+    "modePlaceholderAll": "all",
+    "correlationId": "Correlation ID",
+    "businessKey": "Business key",
+    "createdDateRange": "Created (calendar day, UTC bounds)"
+  },
+  "buckets": {
+    "all": "All",
+    "inFlight": "In progress (Pending/Processing)",
+    "pending": "Pending",
+    "processing": "Processing",
+    "awaitingProtocol": "AwaitingProtocol",
+    "retryableFailure": "RetryableFailure",
+    "permanentFailure": "PermanentFailure",
+    "protocolFailure": "ProtocolFailure",
+    "manualReviewRequired": "ManualReviewRequired",
+    "protocolSuccess": "ProtocolSuccess",
+    "deadLetter": "DeadLetter"
+  },
+  "table": {
+    "columns": {
+      "outboxId": "Outbox ID",
+      "businessKey": "Business key",
+      "correlation": "Correlation",
+      "mode": "Mode",
+      "status": "Status",
+      "hintOrError": "Hint / error",
+      "attempts": "Attempts",
+      "nextAttemptUtc": "Next attempt (UTC)",
+      "paketTransmission": "Packet / transmission",
+      "protocol": "Protocol",
+      "createdUtc": "Created (UTC)",
+      "processedUtc": "Processed (UTC)"
+    }
+  },
+  "empty": {
+    "noRows": "No outbox rows for the current filters."
+  },
+  "error": {
+    "listLoadTitle": "The list could not be loaded."
+  },
+  "pagination": {
+    "showTotal": "Total (filter): {{total}} · Shown: {{shown}}"
+  },
+  "drawer": {
+    "title": "Outbox details",
+    "fields": {
+      "outboxId": "Outbox ID",
+      "businessKey": "Business key",
+      "correlation": "Correlation",
+      "mode": "Mode",
+      "statusTechnical": "Status (technical)",
+      "statusDisplay": "Status (display)",
+      "hint": "Hint",
+      "lastErrorCode": "Last error code",
+      "lastErrorSummary": "Last error summary",
+      "failureCategory": "Failure category",
+      "attempts": "Attempts",
+      "nextAttemptUtc": "Next attempt (UTC)",
+      "paketTransmission": "Packet / transmission",
+      "externalReference": "External reference",
+      "externalStatus": "External status",
+      "protocolCode": "Protocol code",
+      "protocolShort": "Protocol (short)",
+      "protocolPayloadHash": "Protocol payload hash",
+      "createdUtc": "Created (UTC)",
+      "processedUtc": "Processed (UTC)",
+      "terminal": "Terminal",
+      "idempotencySuffix": "Idempotency (suffix)",
+      "scope": "Scope (tenant / branch / register)",
+      "responsePreview": "Response (truncated preview)"
+    }
+  },
+  "format": {
+    "utcSuffix": " UTC",
+    "emptyValue": "—",
+    "hintErrorSeparator": " — "
+  }
+}

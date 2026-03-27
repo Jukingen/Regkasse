@@ -5,20 +5,38 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
+using System.Security.Cryptography;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services
 {
     public class FinanzOnlineService : IFinanzOnlineService
     {
         private readonly AppDbContext _context;
+        private readonly IFinanzOnlineOutboxService _outboxService;
+        private readonly IOptionsMonitor<FinanzOnlineCutoverGuardOptions> _cutoverOptions;
+        private readonly IHostEnvironment _hostEnvironment;
+        private readonly ILogger<FinanzOnlineService> _logger;
 
-        public FinanzOnlineService(AppDbContext context)
+        public FinanzOnlineService(
+            AppDbContext context,
+            IFinanzOnlineOutboxService outboxService,
+            IOptionsMonitor<FinanzOnlineCutoverGuardOptions> cutoverOptions,
+            IHostEnvironment hostEnvironment,
+            ILogger<FinanzOnlineService> logger)
         {
             _context = context;
+            _outboxService = outboxService;
+            _cutoverOptions = cutoverOptions;
+            _hostEnvironment = hostEnvironment;
+            _logger = logger;
         }
 
         public async Task<bool> IsEnabledAsync()
@@ -150,12 +168,13 @@ namespace KasseAPI_Final.Services
         public async Task<FinanzOnlineSubmitResponse> SubmitInvoiceAsync(Invoice invoice)
         {
             var submittedAt = DateTime.UtcNow;
+            var requestPayload = JsonSerializer.Serialize(new { invoice.Id, invoice.InvoiceNumber, invoice.CashRegisterId });
             var submission = new FinanzOnlineSubmission
             {
                 Id = Guid.NewGuid(),
                 InvoiceId = invoice.Id,
                 SubmittedAt = submittedAt,
-                RequestPayloadJson = JsonSerializer.Serialize(new { invoice.Id, invoice.InvoiceNumber, invoice.CashRegisterId }),
+                RequestPayloadJson = requestPayload,
                 ResponseStatusCode = "",
                 ResponseBodyJson = "{}",
                 Success = false,
@@ -164,8 +183,43 @@ namespace KasseAPI_Final.Services
 
             try
             {
-                // Simulate FinanzOnline submission (replace with real API call in production)
-                var referenceId = $"FIN_{submittedAt:yyyyMMddHHmmss}_{invoice.Id:N}";
+                var config = await GetConfigAsync().ConfigureAwait(false);
+                var payloadHash = ComputeSha256Hex(requestPayload);
+                var mode = ResolveMode(config.Environment);
+                var businessKey = string.IsNullOrWhiteSpace(invoice.InvoiceNumber) ? invoice.Id.ToString("N") : invoice.InvoiceNumber;
+                var rkdbBelegpruefung = await TryResolveRkdbBelegpruefungAsync(invoice).ConfigureAwait(false);
+                var request = new FinanzOnlineRegisterSubmissionRequest
+                {
+                    Mode = mode,
+                    Scope = new FinanzOnlineScope
+                    {
+                        RegisterId = invoice.KassenId ?? invoice.CashRegisterId.ToString("N")
+                    },
+                    Correlation = new FinanzOnlineCorrelationContext
+                    {
+                        BusinessKey = businessKey,
+                        PayloadHash = payloadHash,
+                        CorrelationId = invoice.Id.ToString("N")
+                    },
+                    SubmissionKind = FinanzOnlineSubmissionKind.Register,
+                    PayloadJson = requestPayload,
+                    RkdbBelegpruefung = rkdbBelegpruefung
+                };
+
+                await _outboxService.EnqueueSubmissionAsync(
+                    aggregateType: "Invoice",
+                    aggregateId: invoice.Id,
+                    messageType: "RegistrierkassenSubmission",
+                    businessKey: businessKey,
+                    payload: new FinanzOnlineOutboxPayload
+                    {
+                        Mode = mode,
+                        Scope = request.Scope,
+                        Correlation = request.Correlation,
+                        SubmissionKind = request.SubmissionKind,
+                        PayloadJson = request.PayloadJson,
+                        RkdbBelegpruefung = rkdbBelegpruefung
+                    }).ConfigureAwait(false);
 
                 var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
                 if (companySettings != null)
@@ -174,19 +228,25 @@ namespace KasseAPI_Final.Services
                     companySettings.PendingInvoices = Math.Max(0, (companySettings.PendingInvoices ?? 0) - 1);
                 }
 
-                submission.Success = true;
-                submission.ResponseStatusCode = "200";
-                submission.ResponseBodyJson = JsonSerializer.Serialize(new { referenceId, status = "Submitted" });
+                submission.Success = false;
+                submission.ResponseStatusCode = "202";
+                submission.ResponseBodyJson = JsonSerializer.Serialize(new
+                {
+                    status = "Queued",
+                    queuedAt = submittedAt
+                });
+                submission.ErrorMessage = null;
                 _context.FinanzOnlineSubmissions.Add(submission);
                 await _context.SaveChangesAsync();
 
                 return new FinanzOnlineSubmitResponse
                 {
-                    Success = true,
-                    ReferenceId = referenceId,
-                    Status = "Submitted",
+                    Success = false,
+                    ReferenceId = null,
+                    Status = "Pending",
                     SubmittedAt = submittedAt,
-                    FailureKind = FinanzOnlineFailureKind.None
+                    ErrorMessage = "Queued for asynchronous delivery.",
+                    FailureKind = FinanzOnlineFailureKind.Transient
                 };
             }
             catch (Exception ex)
@@ -238,6 +298,37 @@ namespace KasseAPI_Final.Services
         {
             if (string.IsNullOrEmpty(message)) return "";
             return message.Length <= maxLen ? message : message.Substring(0, maxLen - 3) + "...";
+        }
+
+        private FinanzOnlineIntegrationMode ResolveMode(string? mode)
+        {
+            var requestedProd =
+                string.Equals(mode, "Production", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(mode, "Prod", StringComparison.OrdinalIgnoreCase);
+            if (!requestedProd)
+                return FinanzOnlineIntegrationMode.TEST;
+
+            var guard = _cutoverOptions.CurrentValue;
+            var approved = guard.AllowProdMode &&
+                           (!guard.RequireExplicitProdApproval || !string.IsNullOrWhiteSpace(guard.ProdApprovalToken));
+            if (!approved)
+            {
+                _logger.LogWarning(
+                    "FinanzOnline PROD mode request blocked by cutover guard. Environment={EnvironmentName}",
+                    _hostEnvironment.EnvironmentName);
+                throw new InvalidOperationException("PROD mode is blocked by cutover guard configuration.");
+            }
+
+            _logger.LogWarning(
+                "FinanzOnline PROD mode enabled by explicit cutover guard. Environment={EnvironmentName}",
+                _hostEnvironment.EnvironmentName);
+            return FinanzOnlineIntegrationMode.PROD;
+        }
+
+        private static string ComputeSha256Hex(string payload)
+        {
+            var bytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(payload ?? string.Empty));
+            return Convert.ToHexString(bytes).ToLowerInvariant();
         }
 
         public async Task<FinanzOnlineSubmitResponse> SubmitDailyClosingAsync(DailyClosing dailyClosing)
@@ -414,6 +505,34 @@ namespace KasseAPI_Final.Services
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Receipt QrCodePayload nadiren DEP satırı ile aynıdır; yalnızca şema desenine uyan metin RKDB için kullanılır.
+        /// </summary>
+        private async Task<FinanzOnlineRkdbBelegpruefungCommand?> TryResolveRkdbBelegpruefungAsync(Invoice invoice)
+        {
+            if (!invoice.SourcePaymentId.HasValue)
+                return null;
+
+            var receipt = await _context.Set<Receipt>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.PaymentId == invoice.SourcePaymentId.Value)
+                .ConfigureAwait(false);
+            if (receipt == null)
+                return null;
+
+            var candidate = receipt.QrCodePayload?.Trim();
+            if (!FinanzOnlineRkdbBelegpruefungValidator.IsValidDepCandidate(candidate))
+                return null;
+
+            return new FinanzOnlineRkdbBelegpruefungCommand
+            {
+                Beleg = candidate!,
+                PaketNr = 1,
+                SatzNr = 1,
+                TsErstellungUtc = new DateTimeOffset(DateTime.SpecifyKind(receipt.IssuedAt, DateTimeKind.Utc))
+            };
         }
     }
 }

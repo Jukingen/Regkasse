@@ -52,6 +52,9 @@ export const ADMIN_NAV_LABEL_KEYS = {
     logout: 'nav.logout',
     rksvOperationsOverview: 'nav.rksvOperationsOverview',
     finanzOnlineAbgleich: 'nav.finanzOnlineAbgleich',
+    /** Payment-row FinanzOnline list (legacy); prefer Outbox for SOAP pipeline. */
+    finanzOnlineAbgleichLegacy: 'nav.finanzOnlineAbgleichLegacy',
+    finanzOnlineOutbox: 'nav.finanzOnlineOutbox',
 } as const;
 
 /** Backward-compatible default (de) navigation labels. */
@@ -76,4 +79,7 @@ export const ADMIN_NAV_LABELS = {
     logout: 'Abmelden',
     rksvOperationsOverview: 'RKSV Übersicht',
     finanzOnlineAbgleich: 'FinanzOnline-Abgleich',
+    finanzOnlineAbgleichLegacy: 'FinanzOnline-Abgleich (Legacy)',
+    /** Outbox / SOAP pipeline operational list (non-payment-centric). */
+    finanzOnlineOutbox: 'FinanzOnline · Outbox',
 } as const;

@@ -5,14 +5,14 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { CustomerKind } from './customerKind';
 import type { PaymentItemRequest } from './paymentItemRequest';
 import type { PaymentMethodRequest } from './paymentMethodRequest';
 
 export interface CreatePaymentRequest {
-  /** @minLength 1 */
-  cashierId: string;
   cashRegisterId: string;
   customerId: string;
+  customerKind?: CustomerKind;
   /**
    * @maxLength 64
    * @nullable

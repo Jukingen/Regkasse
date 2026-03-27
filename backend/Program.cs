@@ -23,21 +23,22 @@ using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
 
 var builder = WebApplication.CreateBuilder(args);
 var isDevelopment = builder.Environment.IsDevelopment();
 
-static string RequireConfigValue(IConfiguration configuration, string key, bool isDevelopmentEnvironment, int minLength = 1)
+static string RequireMandatoryNonEmpty(IConfiguration configuration, string key, int minLength = 1)
 {
     var value = configuration[key];
     if (string.IsNullOrWhiteSpace(value) || value.Trim().Length < minLength)
     {
-        if (!isDevelopmentEnvironment)
-        {
-            throw new InvalidOperationException($"Missing or invalid required configuration: {key}");
-        }
+        var envKey = key.Replace(":", "__", StringComparison.Ordinal);
+        throw new InvalidOperationException(
+            $"Missing or invalid required configuration: {key}. Set user secrets or environment variable {envKey}. See backend/CONFIGURATION.md.");
     }
-    return value?.Trim() ?? string.Empty;
+
+    return value.Trim();
 }
 
 // Configuration Binding
@@ -47,6 +48,13 @@ builder.Services.Configure<PosCashRegisterFeatureOptions>(
 builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<AuditRetentionOptions>(builder.Configuration.GetSection(AuditRetentionOptions.SectionName));
+builder.Services.Configure<FinanzOnlineConnectivityOptions>(builder.Configuration.GetSection(FinanzOnlineConnectivityOptions.SectionName));
+builder.Services.Configure<FinanzOnlineSessionOptions>(builder.Configuration.GetSection(FinanzOnlineSessionOptions.SectionName));
+builder.Services.Configure<FinanzOnlineRegistrierkassenOptions>(builder.Configuration.GetSection(FinanzOnlineRegistrierkassenOptions.SectionName));
+builder.Services.Configure<FinanzOnlineTransmissionQueryOptions>(builder.Configuration.GetSection(FinanzOnlineTransmissionQueryOptions.SectionName));
+builder.Services.Configure<FinanzOnlineOutboxOptions>(builder.Configuration.GetSection(FinanzOnlineOutboxOptions.SectionName));
+builder.Services.Configure<FinanzOnlineCutoverGuardOptions>(builder.Configuration.GetSection(FinanzOnlineCutoverGuardOptions.SectionName));
+builder.Services.Configure<FinanzOnlineDevTestOptions>(builder.Configuration.GetSection(FinanzOnlineDevTestOptions.SectionName));
 
 // Local development için explicit host binding; production host binding platform tarafından yönetilmelidir.
 if (isDevelopment)
@@ -61,9 +69,16 @@ if (isDevelopment)
 }
 
 // Entity Framework ve PostgreSQL bağlantısı
+var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(defaultConnection))
+{
+    throw new InvalidOperationException(
+        "ConnectionStrings:DefaultConnection is not configured. Set ConnectionStrings__DefaultConnection or user secrets. See backend/CONFIGURATION.md.");
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")!);
+    options.UseNpgsql(defaultConnection);
     options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     options.AddInterceptors(NpgsqlTimestamptzUtcParameterInterceptor.Instance);
     // Dev: InvalidCastException (Guid vs text) teşhisi için kolon/veri loglama
@@ -92,9 +107,9 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 
 // JWT Authentication
-var secretKey = RequireConfigValue(builder.Configuration, "JwtSettings:SecretKey", isDevelopment, minLength: 32);
-var jwtIssuer = RequireConfigValue(builder.Configuration, "JwtSettings:Issuer", isDevelopment);
-var jwtAudience = RequireConfigValue(builder.Configuration, "JwtSettings:Audience", isDevelopment);
+var secretKey = RequireMandatoryNonEmpty(builder.Configuration, "JwtSettings:SecretKey", minLength: 32);
+var jwtIssuer = RequireMandatoryNonEmpty(builder.Configuration, "JwtSettings:Issuer");
+var jwtAudience = RequireMandatoryNonEmpty(builder.Configuration, "JwtSettings:Audience");
 var key = Encoding.ASCII.GetBytes(secretKey);
 
 builder.Services.AddAuthentication(options =>
@@ -302,6 +317,55 @@ else
 
 // Register services
 builder.Services.AddScoped<ITseService, TseService>();
+builder.Services.AddHttpClient<IFinanzOnlineSessionTransport, SoapFinanzOnlineSessionTransport>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue;
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(5, options.RequestTimeoutSeconds));
+});
+builder.Services.AddScoped<IFinanzOnlineConnectivitySource, DbFinanzOnlineConnectivitySource>();
+builder.Services.AddScoped<IFinanzOnlineCredentialProvider, OptionsFinanzOnlineCredentialProvider>();
+builder.Services.AddScoped<CachedFinanzOnlineSessionClient>();
+builder.Services.AddScoped<SimulatedFinanzOnlineSessionClient>();
+builder.Services.AddScoped<IFinanzOnlineSessionClient>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineSessionOptions>>().CurrentValue;
+    return options.UseSimulation
+        ? sp.GetRequiredService<SimulatedFinanzOnlineSessionClient>()
+        : sp.GetRequiredService<CachedFinanzOnlineSessionClient>();
+});
+builder.Services.AddHttpClient<IFinanzOnlineRegistrierkassenTransport, SoapFinanzOnlineRegistrierkassenTransport>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue;
+    client.Timeout = TimeSpan.FromSeconds(Math.Max(5, options.RequestTimeoutSeconds));
+});
+builder.Services.AddScoped<SimulatedFinanzOnlineRegistrierkassenClient>();
+builder.Services.AddScoped<TestModeFinanzOnlineRegistrierkassenClient>();
+builder.Services.AddScoped<IFinanzOnlineRegistrierkassenClient>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue;
+    return options.UseSimulation
+        ? sp.GetRequiredService<SimulatedFinanzOnlineRegistrierkassenClient>()
+        : sp.GetRequiredService<TestModeFinanzOnlineRegistrierkassenClient>();
+});
+builder.Services.AddHttpClient<IFinanzOnlineTransmissionQueryTransport, SoapFinanzOnlineTransmissionQueryTransport>((sp, client) =>
+{
+    var q = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue;
+    var rk = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineRegistrierkassenOptions>>().CurrentValue;
+    var seconds = Math.Max(5, Math.Max(q.RequestTimeoutSeconds, rk.RequestTimeoutSeconds));
+    client.Timeout = TimeSpan.FromSeconds(seconds);
+});
+builder.Services.AddScoped<SimulatedFinanzOnlineTransmissionQueryClient>();
+builder.Services.AddScoped<TestModeFinanzOnlineTransmissionQueryClient>();
+builder.Services.AddScoped<IFinanzOnlineTransmissionQueryClient>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<FinanzOnlineTransmissionQueryOptions>>().CurrentValue;
+    return options.UseSimulation
+        ? sp.GetRequiredService<SimulatedFinanzOnlineTransmissionQueryClient>()
+        : sp.GetRequiredService<TestModeFinanzOnlineTransmissionQueryClient>();
+});
+builder.Services.AddScoped<IFinanzOnlineCommandMapper, DefaultFinanzOnlineCommandMapper>();
+builder.Services.AddScoped<IFinanzOnlineSubmissionService, FinanzOnlineSubmissionService>();
+builder.Services.AddScoped<IFinanzOnlineOutboxService, FinanzOnlineOutboxService>();
 builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
 builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
 builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi eklendi
@@ -335,6 +399,7 @@ builder.Services.Configure<KasseAPI_Final.Configuration.FinanzOnlineRetryJobOpti
 builder.Services.AddSingleton<IFinanzOnlineMetrics, FinanzOnlineMetrics>();
 builder.Services.AddSingleton<IFinanzOnlineAlertSink, NoOpFinanzOnlineAlertSink>();
 builder.Services.AddHostedService<FinanzOnlineRetryHostedService>();
+builder.Services.AddHostedService<FinanzOnlineOutboxHostedService>();
 
 // 🚀 Akıllı Sepet Yaşam Döngüsü Service'i
 builder.Services.AddHostedService<CartLifecycleService>();
@@ -370,7 +435,7 @@ var app = builder.Build();
 var connStr = app.Configuration.GetConnectionString("DefaultConnection");
 if (!string.IsNullOrEmpty(connStr))
 {
-    var masked = System.Text.RegularExpressions.Regex.Replace(connStr, @"Password=[^;]*", "Password=***");
+    var masked = ConnectionStringMasking.Mask(connStr);
     Console.WriteLine($"[DbDiagnostic] Resolved DefaultConnection (masked): {masked}");
 }
 else

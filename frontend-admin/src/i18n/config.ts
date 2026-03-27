@@ -4,18 +4,27 @@ import deNav from './locales/de/nav.json';
 import deUsers from './locales/de/users.json';
 import deSettings from './locales/de/settings.json';
 import deProducts from './locales/de/products.json';
+import deFinanzOnlineOutbox from './locales/de/finanzOnlineOutbox.json';
+import deFinanzOnlineReconciliation from './locales/de/finanzOnlineReconciliation.json';
+import deRksvHub from './locales/de/rksvHub.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
 import enUsers from './locales/en/users.json';
 import enSettings from './locales/en/settings.json';
 import enProducts from './locales/en/products.json';
+import enFinanzOnlineOutbox from './locales/en/finanzOnlineOutbox.json';
+import enFinanzOnlineReconciliation from './locales/en/finanzOnlineReconciliation.json';
+import enRksvHub from './locales/en/rksvHub.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
 import trNav from './locales/tr/nav.json';
 import trUsers from './locales/tr/users.json';
 import trSettings from './locales/tr/settings.json';
 import trProducts from './locales/tr/products.json';
+import trFinanzOnlineOutbox from './locales/tr/finanzOnlineOutbox.json';
+import trFinanzOnlineReconciliation from './locales/tr/finanzOnlineReconciliation.json';
+import trRksvHub from './locales/tr/rksvHub.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -29,9 +38,39 @@ export const TEXT_TO_FORMAT_LOCALE: Record<TextLocale, string> = {
 export const DEFAULT_FORMAT_LOCALE = TEXT_TO_FORMAT_LOCALE[DEFAULT_TEXT_LOCALE];
 
 const catalogs = {
-  de: { adminShell: deAdminShell, common: deCommon, nav: deNav, users: deUsers, settings: deSettings, products: deProducts },
-  en: { adminShell: enAdminShell, common: enCommon, nav: enNav, users: enUsers, settings: enSettings, products: enProducts },
-  tr: { adminShell: trAdminShell, common: trCommon, nav: trNav, users: trUsers, settings: trSettings, products: trProducts },
+  de: {
+    adminShell: deAdminShell,
+    common: deCommon,
+    nav: deNav,
+    users: deUsers,
+    settings: deSettings,
+    products: deProducts,
+    finanzOnlineOutbox: deFinanzOnlineOutbox,
+    finanzOnlineReconciliation: deFinanzOnlineReconciliation,
+    rksvHub: deRksvHub,
+  },
+  en: {
+    adminShell: enAdminShell,
+    common: enCommon,
+    nav: enNav,
+    users: enUsers,
+    settings: enSettings,
+    products: enProducts,
+    finanzOnlineOutbox: enFinanzOnlineOutbox,
+    finanzOnlineReconciliation: enFinanzOnlineReconciliation,
+    rksvHub: enRksvHub,
+  },
+  tr: {
+    adminShell: trAdminShell,
+    common: trCommon,
+    nav: trNav,
+    users: trUsers,
+    settings: trSettings,
+    products: trProducts,
+    finanzOnlineOutbox: trFinanzOnlineOutbox,
+    finanzOnlineReconciliation: trFinanzOnlineReconciliation,
+    rksvHub: trRksvHub,
+  },
 } as const;
 
 export type AdminNamespace = keyof (typeof catalogs)['de'];

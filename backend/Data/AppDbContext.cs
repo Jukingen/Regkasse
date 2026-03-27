@@ -58,6 +58,7 @@ namespace KasseAPI_Final.Data
 
         // FinanzOnline Audit
         public DbSet<FinanzOnlineSubmission> FinanzOnlineSubmissions { get; set; }
+        public DbSet<FinanzOnlineOutboxMessage> FinanzOnlineOutboxMessages { get; set; }
 
         // RKSV Receipt tables
         public DbSet<Receipt> Receipts { get; set; }
@@ -1016,6 +1017,39 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => new { e.ErrorType, e.OccurredAt });
                 entity.HasIndex(e => e.ReferenceId);
                 entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
+            });
+
+            builder.Entity<FinanzOnlineOutboxMessage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasMaxLength(64);
+                entity.Property(e => e.BranchId).HasMaxLength(64);
+                entity.Property(e => e.AggregateType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.MessageType).IsRequired().HasMaxLength(80);
+                entity.Property(e => e.BusinessKey).IsRequired().HasMaxLength(120);
+                entity.Property(e => e.IdempotencyKey).IsRequired().HasMaxLength(120);
+                entity.Property(e => e.PayloadHash).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.Mode).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(30);
+                entity.Property(e => e.LastErrorCode).HasMaxLength(80);
+                entity.Property(e => e.LastErrorMessage).HasMaxLength(500);
+                entity.Property(e => e.FailureCategory).HasMaxLength(40);
+                entity.Property(e => e.TransmissionId).HasMaxLength(120);
+                entity.Property(e => e.ExternalReferenceId).HasMaxLength(120);
+                entity.Property(e => e.ExternalStatus).HasMaxLength(40);
+                entity.Property(e => e.ProtocolCode).HasMaxLength(80);
+                entity.Property(e => e.ProtocolPayloadHash).HasMaxLength(128);
+                entity.Property(e => e.ProtocolSummary).HasMaxLength(500);
+                entity.Property(e => e.ProcessingToken).HasMaxLength(64);
+                entity.Property(e => e.CorrelationId).HasMaxLength(120);
+
+                entity.HasIndex(e => e.IdempotencyKey).IsUnique();
+                entity.HasIndex(e => new { e.Status, e.NextAttemptAt });
+                entity.HasIndex(e => new { e.AggregateType, e.AggregateId, e.MessageType });
+                entity.HasIndex(e => new { e.TenantId, e.BranchId, e.BusinessKey, e.MessageType });
+                entity.HasIndex(e => new { e.TenantId, e.BranchId, e.MessageType, e.BusinessKey, e.PayloadHash, e.Mode })
+                    .IsUnique();
+                entity.HasIndex(e => e.TransmissionId).HasFilter("\"TransmissionId\" IS NOT NULL");
             });
 
             // Cart configuration - Güvenlik ve performans için index'ler

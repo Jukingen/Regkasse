@@ -134,12 +134,22 @@ export interface CompanySettings {
   finanzOnlineEnabled?: boolean;
   finanzOnlineEnableValidation?: boolean;
   /**
+   * @maxLength 24
+   * @nullable
+   */
+  finanzOnlineHerstellerId?: string | null;
+  /**
    * @maxLength 100
    * @nullable
    */
   finanzOnlinePassword?: string | null;
   finanzOnlineRetryAttempts?: number;
   finanzOnlineSubmitInterval?: number;
+  /**
+   * @maxLength 12
+   * @nullable
+   */
+  finanzOnlineTelematikId?: string | null;
   /**
    * @maxLength 100
    * @nullable

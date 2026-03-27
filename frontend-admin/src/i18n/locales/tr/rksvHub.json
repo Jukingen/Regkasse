@@ -1,0 +1,204 @@
+{
+  "intro": {
+    "lead": "Kısa özet.",
+    "body": "Giriş noktaları ve durum — API verisi varsa yalnızca hafif özetler; aksi halde araçlara bağlantılar. Ayrıntılar yalnızca hedef sayfalarda."
+  },
+  "refresh": {
+    "label": "Verileri yenile",
+    "refreshedAt": "Zaman: {{time}}"
+  },
+  "env": {
+    "bannerProd": "FinanzOnline ortamı: PROD — canlı gönderimler.",
+    "bannerTest": "FinanzOnline ortamı: TEST — üretim gönderimi değil.",
+    "bannerUnknown": "FinanzOnline ortamı: ayarlı değil — net etiket için `NEXT_PUBLIC_RKSV_ENVIRONMENT` (TEST veya PROD) yapılandırın.",
+    "hintProd": "Her yeniden gönderimi ve iptali iki kez kontrol edin.",
+    "hintTest": "Eğitim ve tanı için uygundur; uyumluluk kararı için tek başına kullanmayın.",
+    "hintUnknown": "Açık etiket olmadan ortam, üretim API kullanımı ile karışabilir."
+  },
+  "nextSteps": {
+    "title": "Sonraki adımlar",
+    "critical": "En az bir durum sinyali kritik — önce Outbox ve Olay, ardından Yeniden oynatma ve bütünlük.",
+    "warning": "Uyarılar var — aşağıdaki ilgili alanları açın ve metrikleri ayrıntılı inceleyin."
+  },
+  "sections": {
+    "workByTask": "Göreve göre",
+    "workByTaskIntro": "Görev seçin.",
+    "workByTaskHint": "Kenar çubuğuyla aynı hedefler. Altında: durum sinyalleri ve araçlar.",
+    "status": "Durum",
+    "workflow": "Önerilen akış",
+    "workflowHint": "Önce daraltın, sonra toplu işi kontrol edin, sonra Outbox — gerekirse tanı.",
+    "moreTools": "Diğer araçlar",
+    "notes": "Kısa notlar"
+  },
+  "workflow": {
+    "step1Title": "1. Olayları daraltın",
+    "step1Hint": "Korelasyon kimliği, denetim ve FinanzOnline tek görünümde.",
+    "step1Cta": "Olayı aç",
+    "step2Title": "2. Yeniden oynatmayı kontrol edin",
+    "step2Hint": "Korelasyon kimliğine göre toplu iş; başarı, mükerrer ve hata.",
+    "step2Cta": "Yeniden oynatma araması",
+    "step3Title": "3. Outbox (SOAP)",
+    "step3Hint": "Operasyonel boru hattı — ödeme satırı eski yönteme göre birincil.",
+    "step3Cta": "Outbox’u aç"
+  },
+  "moreTools": {
+    "payloadHash": "Payload hash çakışmaları",
+    "queueLegacy": "FinanzOnline mutabakat (eski)",
+    "fiscalExport": "Mali export tanısı",
+    "integrity": "Veri bütünlüğü",
+    "offlineCoverage": "Çevrimdışı niyet kapsamı",
+    "verifications": "Doğrulamalar / denetim",
+    "auditLogs": "Denetim günlüğü (genel)"
+  },
+  "health": {
+    "cardFootnote": {
+      "payloadSample": "Örnek: en fazla {{maxRows}} satır — tam envanter değil.",
+      "coverageWindow": "Sabit pencere: son 24 saat UTC (yalnızca bu kart).",
+      "finanzOnlineMetrics": "Metrikler gönderimlere aittir — SOAP boru hattı için Outbox’u açın.",
+      "replayWindow": "Özet (24 saat): yığılma, kesin hatalar ve olay yoğunluğu — birleşik sinyal, vaka garantisi değil.",
+      "exportRisk": "Bu görünüm bütünlük kontrollerini yalnızca export riski için ilk ipucu olarak kullanır."
+    },
+    "cta": {
+      "payload": "Payload hash çakışmalarını aç",
+      "coverage": "Kapsam ayrıntılarını aç",
+      "finanzOnlinePrimary": "FinanzOnline · Outbox aç",
+      "finanzOnlineSecondary": "Ödeme mutabakatı (eski)",
+      "replay": "Olayı aç",
+      "replaySecondary": "Yeniden oynatma araması",
+      "export": "Tanıyı aç"
+    },
+    "titles": {
+      "payload": "Payload hash",
+      "coverage": "Çevrimdışı niyet kapsamı",
+      "finanzOnline": "FinanzOnline gönderimleri",
+      "replay": "Yeniden oynatma ve olay",
+      "export": "Export riski"
+    },
+    "payload": {
+      "summary": {
+        "unavailable": "API hatası veya yanıt yok — sinyal yok (“sorun yok” ile aynı değil).",
+        "critical": "Örnekte kritik payload-hash riskleri — triyaj.",
+        "warning": "Örnekte uyarılar — ayrıntı sayfasını ve gerekirse daha geniş kapsamı kontrol edin.",
+        "zero": "Örnekte 0 satır — değerlendirme sinyali yok (“her şey yolunda” değil).",
+        "ok": "Bu analizde bulgu yok — yalnızca örnek (en fazla satır), tam envanter değil."
+      },
+      "detail": {
+        "scanned": "Taranan: {{count}}",
+        "runtimeMismatch": "Çalışma zamanı uyumsuzluğu: {{count}}",
+        "conflictGroups": "Çakışma grupları: {{count}}",
+        "mismatchRatio": "Uyumsuzluk oranı: {{pct}}%",
+        "warning": "Not: {{message}}"
+      }
+    },
+    "coverage": {
+      "summary": {
+        "unavailable": "Kapsam API’si başarısız — sinyal yok (“sorun yok” ile aynı değil).",
+        "critical": "API’ye göre kapsam alarmı — ayrıntıları kontrol edin.",
+        "warning": "Eşiklerin altında kapsam — ayrıntıları kontrol edin.",
+        "zero": "Dönemde 0 kayıt — kapsam sinyali yok (“her şey yolunda” değil).",
+        "ok": "API’ye göre kapsam aralıkta (son 24 saat UTC; filtreler için ayrıntı sayfasına bakın)."
+      },
+      "detail": {
+        "total": "Kayıtlar (pencere): {{count}}",
+        "device": "Cihaz kimliği: {{pct}}%",
+        "sequence": "Sıra: {{pct}}%",
+        "alertReason": "Not: {{reason}}"
+      }
+    },
+    "finanzOnline": {
+      "summary": {
+        "unavailable": "Metrik API’si başarısız — sinyal yok (“sorun yok” ile aynı değil).",
+        "critical": "Metriklere göre kalıcı FinanzOnline gönderim hataları — mutabakatı kontrol edin.",
+        "warning": "Metriklere göre başarısız gönderimler — mutabakatı kontrol edin.",
+        "ok": "Metrik API’sine göre: başarısız gönderim yok (sayaçlar)."
+      },
+      "detail": {
+        "submitTotal": "Gönderim toplamı: {{count}}",
+        "failed": "Başarısız: {{count}}",
+        "permanent": "Kalıcı başarısız: {{count}}",
+        "transient": "Geçici başarısız: {{count}}",
+        "unknown": "Bilinmeyen: {{count}}"
+      }
+    },
+    "replay": {
+      "summary": {
+        "unavailable": "Yeniden oynatma özeti yok — güvenilir ifade yok.",
+        "critical": "Artmış yeniden oynatma riski (yığılma veya kesin hata kontrolleri).",
+        "warning": "Yeniden oynatma ilgi gerektiriyor (açık/başarısız öğeler).",
+        "ok": "{{hours}} saatlik pencerede yeniden oynatma sorunsuz görünüyor."
+      },
+      "detail": {
+        "backlog": "Yığılma: {{backlog}} (bekleyen {{pending}}, başarısız {{failed}})",
+        "finalFailure": "Kesin hata kontrolleri (pencere): {{count}}",
+        "synced": "OFFLINE_SYNCED (pencere): {{count}}",
+        "incidents": "Olay korelasyonları (24 saat): {{count}}"
+      }
+    },
+    "export": {
+      "summary": {
+        "unavailable": "Export/bütünlük özeti yok — güvenilir ifade yok.",
+        "critical": "Export/bütünlük riskleri var — bütünlük sayfasını kontrol edin.",
+        "ok": "Bu genel kontrolde export/bütünlük riski yok."
+      },
+      "detail": {
+        "total": "Risk toplamı: {{count}}",
+        "sequence": "Sıra mükerrer/monoton değil: {{dup}}/{{nonMono}}",
+        "orphanRefund": "Sahipsiz iadeler: {{count}}",
+        "paymentWithoutInvoice": "Faturasız ödemeler: {{count}}"
+      }
+    }
+  },
+  "healthLevel": {
+    "ok": "Tamam",
+    "warning": "Uyarı",
+    "critical": "Kritik",
+    "unavailable": "Kullanılamıyor",
+    "unavailableTooltip": "API çağrısı başarısız veya yanıt yok — durum değerlendirilemez."
+  },
+  "notes": {
+    "title": "Kartlar hakkında notlar",
+    "bullet1": "Tamam: bu API yanıtında belirtilen kapsamda bulgu yok — otomatik tam veri envanteri değil.",
+    "bullet2": "Uyarı / Kritik: trafik ışığı rengini kısa metin ve ayrıntı sayfasıyla birlikte yorumlayın.",
+    "bullet3": "Kullanılamıyor: çağrı başarısız — “her şey iyi” olarak okumayın.",
+    "bullet4": "Payload: POST analizi, sınırlı satır. Kapsam: GET özeti, 24 saat UTC. FinanzOnline: GET metrikleri.",
+    "bullet5": "Yeniden oynatma/Export: pano api/admin/operations/summary (24 saat) birleşik sinyal olarak kullanır."
+  },
+  "groups": {
+    "daily": {
+      "title": "Operasyonel",
+      "description": "Günlük iş: kasa özeti, Outbox/SOAP boru hattı (birincil) ve isteğe bağlı ödeme satırı eski yöntem."
+    },
+    "investigation": {
+      "title": "Olaylar",
+      "description": "Sorunları daraltın: Olay, Yeniden oynatma, hash çakışmaları ve denetim izi (imza/çevrimdışı)."
+    },
+    "diagnostics": {
+      "title": "Tanı",
+      "description": "Destek ve bütünlük: export riski, veritabanı geneli kontroller ve çevrimdışı kapsam."
+    },
+    "config": {
+      "title": "Bağlantı",
+      "description": "Arayüzler ve yapılandırma: durum, sertifika ve entegrasyon yüzeyi (mutabakat listesi değil)."
+    }
+  },
+  "link": {
+    "hub": "Genel bakış",
+    "outbox": "FinanzOnline · Outbox",
+    "queueLegacy": "Ödeme mutabakatı (eski)",
+    "incident": "Olay",
+    "replayBatch": "Yeniden oynatma toplu işi",
+    "payloadHash": "Payload hash",
+    "verifications": "Doğrulamalar",
+    "fiscalExport": "Mali export",
+    "integrity": "Veri bütünlüğü",
+    "offlineCoverage": "Çevrimdışı niyet",
+    "status": "Sistem durumu",
+    "cmcCertificate": "CMC / sertifika",
+    "finanzOnlineOps": "FinanzOnline · entegrasyon"
+  },
+  "aria": {
+    "cardRefreshing": "Kart içeriği yükleniyor",
+    "cardUpdating": "Kart güncelleniyor …",
+    "refreshingContent": "Kart içeriği yenileniyor"
+  }
+}

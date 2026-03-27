@@ -1,0 +1,94 @@
+{
+  "page": {
+    "leadTag": "Outbox / SOAP",
+    "leadLine": "Primäre operative Sicht für FinanzOnline-Übermittlung und Protokollabgleich (TEST und PROD).",
+    "leadNoPaymentRows": "Keine Zahlungszeilen — dafür",
+    "leadLegacyQueueLink": "Zahlungs-Abgleich (Legacy)"
+  },
+  "privacyAlert": {
+    "title": "Hinweis zum Datenschutz",
+    "description": "Es werden nur freigegebene Felder angezeigt (keine Session-IDs, keine PINs, kein Roh-Payload-XML)."
+  },
+  "filters": {
+    "bucket": "Bucket",
+    "statusCsv": "Exakter Status (CSV, optional)",
+    "statusCsvPlaceholder": "z. B. AwaitingProtocol,RetryableFailure",
+    "mode": "Modus",
+    "modePlaceholderAll": "alle",
+    "correlationId": "Correlation-ID",
+    "businessKey": "Business Key",
+    "createdDateRange": "Erstellt (Kalendertag, UTC-Bounds)"
+  },
+  "buckets": {
+    "all": "Alle",
+    "inFlight": "In Bearbeitung (Pending/Processing)",
+    "pending": "Pending",
+    "processing": "Processing",
+    "awaitingProtocol": "AwaitingProtocol",
+    "retryableFailure": "RetryableFailure",
+    "permanentFailure": "PermanentFailure",
+    "protocolFailure": "ProtocolFailure",
+    "manualReviewRequired": "ManualReviewRequired",
+    "protocolSuccess": "ProtocolSuccess",
+    "deadLetter": "DeadLetter"
+  },
+  "table": {
+    "columns": {
+      "outboxId": "Outbox-ID",
+      "businessKey": "Business Key",
+      "correlation": "Correlation",
+      "mode": "Modus",
+      "status": "Status",
+      "hintOrError": "Hinweis / Fehler",
+      "attempts": "Versuche",
+      "nextAttemptUtc": "Nächster Versuch (UTC)",
+      "paketTransmission": "Paket / Transmission",
+      "protocol": "Protokoll",
+      "createdUtc": "Erstellt (UTC)",
+      "processedUtc": "Verarbeitet (UTC)"
+    }
+  },
+  "empty": {
+    "noRows": "Keine Outbox-Einträge für die aktuellen Filter."
+  },
+  "error": {
+    "listLoadTitle": "Liste konnte nicht geladen werden."
+  },
+  "pagination": {
+    "showTotal": "Gesamt (Filter): {{total}} · Angezeigt: {{shown}}"
+  },
+  "drawer": {
+    "title": "Outbox-Details",
+    "fields": {
+      "outboxId": "Outbox-ID",
+      "businessKey": "Business Key",
+      "correlation": "Correlation",
+      "mode": "Modus",
+      "statusTechnical": "Status (technisch)",
+      "statusDisplay": "Status (Anzeige)",
+      "hint": "Hinweis",
+      "lastErrorCode": "Letzter Fehlercode",
+      "lastErrorSummary": "Letzte Fehlerzusammenfassung",
+      "failureCategory": "Failure-Kategorie",
+      "attempts": "Versuche",
+      "nextAttemptUtc": "Nächster Versuch (UTC)",
+      "paketTransmission": "Paket / Transmission",
+      "externalReference": "Externe Referenz",
+      "externalStatus": "Externer Status",
+      "protocolCode": "Protokollcode",
+      "protocolShort": "Protokoll (Kurz)",
+      "protocolPayloadHash": "Protokoll-Payload-Hash",
+      "createdUtc": "Erstellt (UTC)",
+      "processedUtc": "Verarbeitet (UTC)",
+      "terminal": "Terminal",
+      "idempotencySuffix": "Idempotency (Suffix)",
+      "scope": "Scope (Tenant / Branch / Register)",
+      "responsePreview": "Antwort (Preview, gekürzt)"
+    }
+  },
+  "format": {
+    "utcSuffix": " UTC",
+    "emptyValue": "—",
+    "hintErrorSeparator": " — "
+  }
+}

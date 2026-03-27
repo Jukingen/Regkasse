@@ -18,5 +18,7 @@
   "myProfile": "Mein Profil",
   "logout": "Abmelden",
   "rksvOperationsOverview": "RKSV Übersicht",
-  "finanzOnlineAbgleich": "FinanzOnline-Abgleich"
+  "finanzOnlineAbgleich": "FinanzOnline-Abgleich",
+  "finanzOnlineAbgleichLegacy": "FinanzOnline-Abgleich (Legacy)",
+  "finanzOnlineOutbox": "FinanzOnline · Outbox"
 }

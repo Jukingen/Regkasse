@@ -92,7 +92,7 @@ export const putApiUserSettings = (
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<UserSettings>(
+      return customInstance<void>(
       {url: `/api/user/settings`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
       data: updateUserSettingsRequest
@@ -135,6 +135,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPutApiUserSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiUserSettingsBootstrap = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<UserSettings>(
+      {url: `/api/user/settings/bootstrap`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiUserSettingsBootstrapMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>, void> = () => {
+          
+
+          return  postApiUserSettingsBootstrap(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiUserSettingsBootstrapMutationResult = NonNullable<Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>>
+    
+    export type PostApiUserSettingsBootstrapMutationError = unknown
+
+    export const usePostApiUserSettingsBootstrap = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiUserSettingsBootstrap>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiUserSettingsBootstrapMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -194,7 +243,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<UserSettings>(
+      return customInstance<void>(
       {url: `/api/user/settings/cash-register`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
       data: updateCashRegisterConfigRequest

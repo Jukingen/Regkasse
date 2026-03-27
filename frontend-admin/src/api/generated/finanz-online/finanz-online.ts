@@ -195,6 +195,9 @@ export const useGetApiFinanzOnlineStatus = <TData = Awaited<ReturnType<typeof ge
 
 
 
+/**
+ * @deprecated
+ */
 export const postApiFinanzOnlineSubmitInvoice = (
     finanzOnlineSubmitRequest: FinanzOnlineSubmitRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -233,7 +236,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PostApiFinanzOnlineSubmitInvoiceMutationBody = FinanzOnlineSubmitRequest
     export type PostApiFinanzOnlineSubmitInvoiceMutationError = unknown
 
-    export const usePostApiFinanzOnlineSubmitInvoice = <TError = unknown,
+    /**
+ * @deprecated
+ */
+export const usePostApiFinanzOnlineSubmitInvoice = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiFinanzOnlineSubmitInvoice>>, TError,{data: FinanzOnlineSubmitRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiFinanzOnlineSubmitInvoice>>,

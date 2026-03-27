@@ -9,6 +9,7 @@
 export interface ReceiptListItemDto {
   /** @nullable */
   cashierId?: string | null;
+  cashRegisterEntityId?: string;
   /** @nullable */
   cashRegisterId?: string | null;
   createdAt?: string;
@@ -17,6 +18,8 @@ export interface ReceiptListItemDto {
   receiptId?: string;
   /** @nullable */
   receiptNumber?: string | null;
+  /** @nullable */
+  registerDisplayNumber?: string | null;
   subTotal?: number;
   taxTotal?: number;
 }

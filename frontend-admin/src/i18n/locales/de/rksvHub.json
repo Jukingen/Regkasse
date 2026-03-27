@@ -1,0 +1,204 @@
+{
+  "intro": {
+    "lead": "Kurzüberblick.",
+    "body": "Einstiege und Status — wo API-Daten vorliegen, nur leichte Zusammenfassungen; sonst Links zu den Werkzeugen. Details nur auf den Zielseiten."
+  },
+  "refresh": {
+    "label": "Daten aktualisieren",
+    "refreshedAt": "Stand: {{time}}"
+  },
+  "env": {
+    "bannerProd": "FinanzOnline-Umgebung: PROD — Live-Übermittlungen.",
+    "bannerTest": "FinanzOnline-Umgebung: TEST — keine Produktionsübermittlungen.",
+    "bannerUnknown": "FinanzOnline-Umgebung: nicht gesetzt — bitte `NEXT_PUBLIC_RKSV_ENVIRONMENT` (TEST oder PROD) für klare Kennzeichnung setzen.",
+    "hintProd": "Prüfen Sie jede erneute Übermittlung und Storno doppelt.",
+    "hintTest": "Eignet sich für Schulung und Diagnose; nicht für GoBD-relevante Entscheidungen allein nutzen.",
+    "hintUnknown": "Ohne explizite Kennzeichnung kann die Umgebung mit der Produktions-API verwechselt werden."
+  },
+  "nextSteps": {
+    "title": "Nächste Schritte",
+    "critical": "Mindestens ein Statussignal ist kritisch — zuerst Outbox und Incident prüfen, dann Replay und Integrität.",
+    "warning": "Hinweise vorhanden — betroffene Bereiche unten öffnen und Metriken im Detail prüfen."
+  },
+  "sections": {
+    "workByTask": "Nach Arbeitsauftrag",
+    "workByTaskIntro": "Nach Aufgabe wählen.",
+    "workByTaskHint": "Dieselben Ziele wie in der Seitenleiste. Darunter: Status-Signale und Werkzeuge.",
+    "status": "Status",
+    "workflow": "Empfohlener Ablauf",
+    "workflowHint": "Zuerst eingrenzen, dann Batch prüfen, dann Outbox — danach Diagnose bei Bedarf.",
+    "moreTools": "Weitere Werkzeuge",
+    "notes": "Kurznotizen"
+  },
+  "workflow": {
+    "step1Title": "1. Vorfälle eingrenzen",
+    "step1Hint": "Correlation-ID, Audit und FinanzOnline in einem Bild.",
+    "step1Cta": "Incident öffnen",
+    "step2Title": "2. Replay prüfen",
+    "step2Hint": "Batch nach Correlation-ID; Erfolg, Duplikat und Fehler.",
+    "step2Cta": "Replay-Suche",
+    "step3Title": "3. Outbox (SOAP)",
+    "step3Hint": "Operative Pipeline — primär gegenüber Zahlungszeilen-Legacy.",
+    "step3Cta": "Outbox öffnen"
+  },
+  "moreTools": {
+    "payloadHash": "Payload-Hash-Konflikte",
+    "queueLegacy": "FinanzOnline-Abgleich (Legacy)",
+    "fiscalExport": "Fiscal-Export-Diagnose",
+    "integrity": "Datenintegrität",
+    "offlineCoverage": "Offline-Intent-Abdeckung",
+    "verifications": "Verifikationen / Audit",
+    "auditLogs": "Audit-Protokoll (global)"
+  },
+  "health": {
+    "cardFootnote": {
+      "payloadSample": "Stichprobe: max. {{maxRows}} Zeilen — kein vollständiger Bestand.",
+      "coverageWindow": "Festes Fenster: letzte 24 h UTC (nur diese Karte).",
+      "finanzOnlineMetrics": "Metriken beziehen sich auf Übermittlungen — Outbox für die SOAP-Pipeline öffnen.",
+      "replayWindow": "Übersicht (24 h): Rückstand, endgültige Fehler und Incident-Dichte — verbindendes Signal, keine Einzelfallgarantie.",
+      "exportRisk": "Die Übersicht nutzt Integritätschecks nur als ersten Hinweis zum Export-Risiko."
+    },
+    "cta": {
+      "payload": "Payload-Hash-Konflikte öffnen",
+      "coverage": "Details zur Abdeckung öffnen",
+      "finanzOnlinePrimary": "FinanzOnline · Outbox öffnen",
+      "finanzOnlineSecondary": "Zahlungs-Abgleich (Legacy)",
+      "replay": "Incident öffnen",
+      "replaySecondary": "Replay-Suche",
+      "export": "Diagnose öffnen"
+    },
+    "titles": {
+      "payload": "Payload-Hash",
+      "coverage": "Offline-Intent-Abdeckung",
+      "finanzOnline": "FinanzOnline-Übermittlungen",
+      "replay": "Replay und Incident",
+      "export": "Export-Risiko"
+    },
+    "payload": {
+      "summary": {
+        "unavailable": "API-Fehler oder keine Antwort — kein Signal (nicht gleichbedeutend mit „keine Probleme“).",
+        "critical": "Kritische Payload-Hash-Risiken in der Stichprobe — triagieren.",
+        "warning": "Hinweise in der Stichprobe — Detailseite und ggf. größeren Umfang prüfen.",
+        "zero": "0 Zeilen in der Stichprobe — kein Bewertungssignal (nicht „alles in Ordnung“).",
+        "ok": "Keine Auffälligkeiten in dieser Analyse — nur Stichprobe (max. Zeilen), kein vollständiger Datenbestand."
+      },
+      "detail": {
+        "scanned": "Gescannt: {{count}}",
+        "runtimeMismatch": "Abweichung (Laufzeit): {{count}}",
+        "conflictGroups": "Konfliktgruppen: {{count}}",
+        "mismatchRatio": "Mismatch-Quote: {{pct}}%",
+        "warning": "Hinweis: {{message}}"
+      }
+    },
+    "coverage": {
+      "summary": {
+        "unavailable": "Abdeckungs-API fehlgeschlagen — kein Signal (nicht gleichbedeutend mit „keine Probleme“).",
+        "critical": "Abdeckungsalarm laut API — Details prüfen.",
+        "warning": "Abdeckung unter Schwellen — Details prüfen.",
+        "zero": "0 Datensätze im Zeitraum — kein Abdeckungssignal (nicht „alles in Ordnung“).",
+        "ok": "Abdeckung laut API im grünen Bereich (letzte 24 h UTC, siehe Detailseite für Filter)."
+      },
+      "detail": {
+        "total": "Datensätze (Zeitraum): {{count}}",
+        "device": "Geräte-ID: {{pct}}%",
+        "sequence": "Sequenz: {{pct}}%",
+        "alertReason": "Hinweis: {{reason}}"
+      }
+    },
+    "finanzOnline": {
+      "summary": {
+        "unavailable": "Metriken-API fehlgeschlagen — kein Signal (nicht gleichbedeutend mit „keine Probleme“).",
+        "critical": "Permanente FinanzOnline-Übermittlungsfehler laut Metriken — Abgleich prüfen.",
+        "warning": "Fehlgeschlagene Übermittlungen laut Metriken — Abgleich prüfen.",
+        "ok": "Laut Metriken-API: keine fehlgeschlagenen Übermittlungen (Zähler)."
+      },
+      "detail": {
+        "submitTotal": "Übermittlungen gesamt: {{count}}",
+        "failed": "Fehlgeschlagen: {{count}}",
+        "permanent": "Permanent fehlgeschlagen: {{count}}",
+        "transient": "Vorübergehend fehlgeschlagen: {{count}}",
+        "unknown": "Unbekannt: {{count}}"
+      }
+    },
+    "replay": {
+      "summary": {
+        "unavailable": "Replay-Übersicht nicht verfügbar — keine belastbare Aussage.",
+        "critical": "Replay-Risiko erhöht (Rückstand oder Final-Failure-Prüfung).",
+        "warning": "Replay benötigt Aufmerksamkeit (offene/fehlgeschlagene Elemente).",
+        "ok": "Replay unauffällig im {{hours}}-h-Fenster."
+      },
+      "detail": {
+        "backlog": "Rückstand: {{backlog}} (ausstehend {{pending}}, fehlgeschlagen {{failed}})",
+        "finalFailure": "Final-Failure-Prüfung (Fenster): {{count}}",
+        "synced": "OFFLINE_SYNCED (Fenster): {{count}}",
+        "incidents": "Incident-Korrelationen (24 h): {{count}}"
+      }
+    },
+    "export": {
+      "summary": {
+        "unavailable": "Export-/Integritätsübersicht nicht verfügbar — keine belastbare Aussage.",
+        "critical": "Export-/Integritätsrisiken vorhanden — Integritätsseite prüfen.",
+        "ok": "Keine Export-/Integritätsrisiken im Übersichts-Check."
+      },
+      "detail": {
+        "total": "Risiken gesamt: {{count}}",
+        "sequence": "Sequenz Dupl./nicht monoton: {{dup}}/{{nonMono}}",
+        "orphanRefund": "Verwaiste Erstattungen: {{count}}",
+        "paymentWithoutInvoice": "Zahlungen ohne Rechnung: {{count}}"
+      }
+    }
+  },
+  "healthLevel": {
+    "ok": "OK",
+    "warning": "Hinweis",
+    "critical": "Kritisch",
+    "unavailable": "Nicht verfügbar",
+    "unavailableTooltip": "API-Aufruf fehlgeschlagen oder keine Antwort — Status nicht bewertbar."
+  },
+  "notes": {
+    "title": "Hinweise zu den Karten",
+    "bullet1": "OK: laut dieser API-Antwort keine Auffälligkeit im genannten Umfang — nicht automatisch vollständiger Datenbestand.",
+    "bullet2": "Hinweis / Kritisch: Ampelfarbe nur zusammen mit Kurztext und Detailseite interpretieren.",
+    "bullet3": "Nicht verfügbar: Aufruf fehlgeschlagen — nicht als „alles gut“ lesen.",
+    "bullet4": "Payload: POST-Analyse, begrenzte Zeilen. Abdeckung: GET-Zusammenfassung, 24 h UTC. FinanzOnline: GET-Metriken.",
+    "bullet5": "Replay/Export: Dashboard nutzt api/admin/operations/summary (24 h) als verbindendes Signal."
+  },
+  "groups": {
+    "daily": {
+      "title": "Operativ",
+      "description": "Tagesgeschäft: Kassenübersicht, Outbox-/SOAP-Pipeline (primär) und optional Zahlungszeilen-Legacy."
+    },
+    "investigation": {
+      "title": "Vorfälle",
+      "description": "Störungen eingrenzen: Incident, Replay, Hash-Konflikte und Audit-Spur (Signatur/Offline)."
+    },
+    "diagnostics": {
+      "title": "Diagnose",
+      "description": "Support und Integrität: Export-Risiko, DB-weite Checks und Offline-Abdeckung prüfen."
+    },
+    "config": {
+      "title": "Anbindung",
+      "description": "Schnittstellen und Konfiguration: Status, Zertifikat und Integrations-/Diagnose-Oberfläche (nicht die Abgleichsliste)."
+    }
+  },
+  "link": {
+    "hub": "Übersicht",
+    "outbox": "FinanzOnline · Outbox",
+    "queueLegacy": "Zahlungs-Abgleich (Legacy)",
+    "incident": "Incident",
+    "replayBatch": "Replay-Batch",
+    "payloadHash": "Payload-Hash",
+    "verifications": "Verifikationen",
+    "fiscalExport": "Fiscal-Export",
+    "integrity": "Datenintegrität",
+    "offlineCoverage": "Offline-Intent",
+    "status": "Systemstatus",
+    "cmcCertificate": "CMC / Zertifikat",
+    "finanzOnlineOps": "FinanzOnline · Integration"
+  },
+  "aria": {
+    "cardRefreshing": "Karteninhalt wird geladen",
+    "cardUpdating": "Karte wird aktualisiert …",
+    "refreshingContent": "Aktualisiere Karteninhalt"
+  }
+}

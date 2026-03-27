@@ -1,0 +1,9 @@
+{
+  "legacyBadge": "Eski",
+  "phasedDeprecationNote": "Bu ödeme satırı görünümü, Outbox/SOAP boru hattı lehine aşamalı olarak kaldırılıyor. Geçiş tamamlanana kadar ödeme başına yeniden deneme burada kalır.",
+  "outboxPrimaryBanner": {
+    "title": "Birincil boru hattı görünümü: FinanzOnline · Outbox",
+    "leadBeforeLink": "SOAP/outbox boru hattının (gönderim, protokol, yeniden denemeler) operasyonel izlenmesi için şunu kullanın:",
+    "leadAfterLink": ". Bu ekran, ödeme satırı durumu ve ödeme başına manuel yeniden deneme (eski akış) için kullanılmaya devam eder."
+  }
+}

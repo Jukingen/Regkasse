@@ -1,0 +1,204 @@
+{
+  "intro": {
+    "lead": "Quick overview.",
+    "body": "Entry points and status — where API data exists, only light summaries; otherwise links to tools. Details only on the target pages."
+  },
+  "refresh": {
+    "label": "Refresh data",
+    "refreshedAt": "As of: {{time}}"
+  },
+  "env": {
+    "bannerProd": "FinanzOnline environment: PROD — live submissions.",
+    "bannerTest": "FinanzOnline environment: TEST — not production submissions.",
+    "bannerUnknown": "FinanzOnline environment: not set — configure `NEXT_PUBLIC_RKSV_ENVIRONMENT` (TEST or PROD) for clear labelling.",
+    "hintProd": "Double-check every resubmit and reversal.",
+    "hintTest": "Use for training and diagnostics; do not rely on it alone for compliance decisions.",
+    "hintUnknown": "Without explicit labelling, the environment may be confused with production API usage."
+  },
+  "nextSteps": {
+    "title": "Next steps",
+    "critical": "At least one status signal is critical — review Outbox and Incident first, then Replay and integrity.",
+    "warning": "Warnings present — open the affected areas below and review metrics in detail."
+  },
+  "sections": {
+    "workByTask": "By task",
+    "workByTaskIntro": "Choose by task.",
+    "workByTaskHint": "Same destinations as the sidebar. Below: status signals and tools.",
+    "status": "Status",
+    "workflow": "Recommended flow",
+    "workflowHint": "Narrow down first, then check the batch, then Outbox — diagnostics only if needed.",
+    "moreTools": "More tools",
+    "notes": "Short notes"
+  },
+  "workflow": {
+    "step1Title": "1. Narrow down incidents",
+    "step1Hint": "Correlation ID, audit trail and FinanzOnline in one view.",
+    "step1Cta": "Open incident",
+    "step2Title": "2. Check replay",
+    "step2Hint": "Batch by correlation ID; success, duplicate and failure.",
+    "step2Cta": "Replay search",
+    "step3Title": "3. Outbox (SOAP)",
+    "step3Hint": "Operational pipeline — primary vs payment-row legacy.",
+    "step3Cta": "Open outbox"
+  },
+  "moreTools": {
+    "payloadHash": "Payload hash conflicts",
+    "queueLegacy": "FinanzOnline reconciliation (legacy)",
+    "fiscalExport": "Fiscal export diagnostics",
+    "integrity": "Data integrity",
+    "offlineCoverage": "Offline intent coverage",
+    "verifications": "Verifications / audit",
+    "auditLogs": "Audit log (global)"
+  },
+  "health": {
+    "cardFootnote": {
+      "payloadSample": "Sample: max. {{maxRows}} rows — not a full inventory.",
+      "coverageWindow": "Fixed window: last 24 h UTC (this card only).",
+      "finanzOnlineMetrics": "Metrics refer to submissions — open Outbox for the SOAP pipeline.",
+      "replayWindow": "Summary (24 h): backlog, final failures and incident density — aggregate signal, not a per-case guarantee.",
+      "exportRisk": "This view uses integrity checks only as a first hint for export risk."
+    },
+    "cta": {
+      "payload": "Open payload hash conflicts",
+      "coverage": "Open coverage details",
+      "finanzOnlinePrimary": "Open FinanzOnline · Outbox",
+      "finanzOnlineSecondary": "Payment reconciliation (legacy)",
+      "replay": "Open incident",
+      "replaySecondary": "Replay search",
+      "export": "Open diagnostics"
+    },
+    "titles": {
+      "payload": "Payload hash",
+      "coverage": "Offline intent coverage",
+      "finanzOnline": "FinanzOnline submissions",
+      "replay": "Replay and incident",
+      "export": "Export risk"
+    },
+    "payload": {
+      "summary": {
+        "unavailable": "API error or no response — no signal (not the same as “no issues”).",
+        "critical": "Critical payload-hash risks in the sample — triage.",
+        "warning": "Hints in the sample — check the detail page and possibly a larger scope.",
+        "zero": "0 rows in the sample — no assessment signal (not “all clear”).",
+        "ok": "No findings in this analysis — sample only (max rows), not a full inventory."
+      },
+      "detail": {
+        "scanned": "Scanned: {{count}}",
+        "runtimeMismatch": "Runtime mismatch: {{count}}",
+        "conflictGroups": "Conflict groups: {{count}}",
+        "mismatchRatio": "Mismatch ratio: {{pct}}%",
+        "warning": "Note: {{message}}"
+      }
+    },
+    "coverage": {
+      "summary": {
+        "unavailable": "Coverage API failed — no signal (not the same as “no issues”).",
+        "critical": "Coverage alert per API — check details.",
+        "warning": "Coverage below thresholds — check details.",
+        "zero": "0 records in the period — no coverage signal (not “all clear”).",
+        "ok": "Coverage in range per API (last 24 h UTC; see detail page for filters)."
+      },
+      "detail": {
+        "total": "Records (window): {{count}}",
+        "device": "Device ID: {{pct}}%",
+        "sequence": "Sequence: {{pct}}%",
+        "alertReason": "Note: {{reason}}"
+      }
+    },
+    "finanzOnline": {
+      "summary": {
+        "unavailable": "Metrics API failed — no signal (not the same as “no issues”).",
+        "critical": "Permanent FinanzOnline submission errors per metrics — review reconciliation.",
+        "warning": "Failed submissions per metrics — review reconciliation.",
+        "ok": "Per metrics API: no failed submissions (counters)."
+      },
+      "detail": {
+        "submitTotal": "Submissions total: {{count}}",
+        "failed": "Failed: {{count}}",
+        "permanent": "Permanent failures: {{count}}",
+        "transient": "Transient failures: {{count}}",
+        "unknown": "Unknown: {{count}}"
+      }
+    },
+    "replay": {
+      "summary": {
+        "unavailable": "Replay summary unavailable — no reliable statement.",
+        "critical": "Elevated replay risk (backlog or final-failure checks).",
+        "warning": "Replay needs attention (open/failed items).",
+        "ok": "Replay looks unremarkable in the {{hours}} h window."
+      },
+      "detail": {
+        "backlog": "Backlog: {{backlog}} (pending {{pending}}, failed {{failed}})",
+        "finalFailure": "Final-failure checks (window): {{count}}",
+        "synced": "OFFLINE_SYNCED (window): {{count}}",
+        "incidents": "Incident correlations (24 h): {{count}}"
+      }
+    },
+    "export": {
+      "summary": {
+        "unavailable": "Export/integrity overview unavailable — no reliable statement.",
+        "critical": "Export/integrity risks present — check integrity page.",
+        "ok": "No export/integrity risks in this overview check."
+      },
+      "detail": {
+        "total": "Risks total: {{count}}",
+        "sequence": "Sequence dup/non-monotonic: {{dup}}/{{nonMono}}",
+        "orphanRefund": "Orphan refunds: {{count}}",
+        "paymentWithoutInvoice": "Payments without invoice: {{count}}"
+      }
+    }
+  },
+  "healthLevel": {
+    "ok": "OK",
+    "warning": "Warning",
+    "critical": "Critical",
+    "unavailable": "Unavailable",
+    "unavailableTooltip": "API call failed or no response — status cannot be assessed."
+  },
+  "notes": {
+    "title": "Notes on the cards",
+    "bullet1": "OK: no finding in this API response for the stated scope — not automatically a full data inventory.",
+    "bullet2": "Warning / Critical: interpret traffic-light colour together with short text and the detail page.",
+    "bullet3": "Unavailable: call failed — do not read as “all good”.",
+    "bullet4": "Payload: POST analysis, limited rows. Coverage: GET summary, 24 h UTC. FinanzOnline: GET metrics.",
+    "bullet5": "Replay/Export: dashboard uses api/admin/operations/summary (24 h) as a connecting signal."
+  },
+  "groups": {
+    "daily": {
+      "title": "Operational",
+      "description": "Day-to-day: register overview, Outbox/SOAP pipeline (primary) and optional payment-row legacy."
+    },
+    "investigation": {
+      "title": "Incidents",
+      "description": "Narrow down issues: Incident, Replay, hash conflicts and audit trail (signature/offline)."
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "description": "Support and integrity: export risk, DB-wide checks and offline coverage."
+    },
+    "config": {
+      "title": "Connectivity",
+      "description": "Interfaces and configuration: status, certificate and integration surface (not the reconciliation list)."
+    }
+  },
+  "link": {
+    "hub": "Overview",
+    "outbox": "FinanzOnline · Outbox",
+    "queueLegacy": "Payment reconciliation (legacy)",
+    "incident": "Incident",
+    "replayBatch": "Replay batch",
+    "payloadHash": "Payload hash",
+    "verifications": "Verifications",
+    "fiscalExport": "Fiscal export",
+    "integrity": "Data integrity",
+    "offlineCoverage": "Offline intent",
+    "status": "System status",
+    "cmcCertificate": "CMC / certificate",
+    "finanzOnlineOps": "FinanzOnline · integration"
+  },
+  "aria": {
+    "cardRefreshing": "Loading card content",
+    "cardUpdating": "Updating card …",
+    "refreshingContent": "Refreshing card content"
+  }
+}

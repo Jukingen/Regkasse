@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * RKSV operations landing: read-only investigation tiles (drill-down links). Uses POST analyze only as a
- * snapshot query for the payload-hash card — no repair or payment mutations on this page.
+ * RKSV / FinanzOnline operational hub: health cards, workflow links, and task groups.
+ * Read-only investigation tiles; POST payload analyze is snapshot-only (no repair mutations here).
  */
 
 import { useCallback, useMemo, useState } from 'react';
@@ -11,6 +11,8 @@ import {
   Button,
   Card,
   Col,
+  Collapse,
+  List,
   Row,
   Skeleton,
   Space,
@@ -25,7 +27,7 @@ import Link from 'next/link';
 import dayjs from 'dayjs';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import {
   getApiAdminFinanzonlineReconciliationMetrics,
   getApiAdminOfflineIntentCoverage,
@@ -34,54 +36,78 @@ import {
 } from '@/api/generated/admin/admin';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import {
-  buildCoverageCardCopy,
-  buildExportRiskCardCopy,
-  buildFinanzOnlineCardCopy,
-  buildPayloadHashCardCopy,
-  buildReplaySummaryCardCopy,
-  healthLabelDe,
   healthTagColor,
   mapCoverageSummaryToHealth,
   mapExportRiskToHealth,
   mapFinanzOnlineMetricsToHealth,
   mapPayloadHashAnalyzeToHealth,
   mapReplaySummaryToHealth,
-  type OfflineIntentCoverageSummaryInput,
 } from '../normalizers';
-import { OPERATOR_FO_SUMMARY_SCREEN_COPY, OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
-import { buildRksvMenuGroups } from '@/shared/rksvMenuModel';
+import {
+  getCoverageHealthCopy,
+  getExportRiskHealthCopy,
+  getFinanzOnlineHealthCopy,
+  getPayloadHealthCopy,
+  getReplayHealthCopy,
+  type RksvHubTranslate,
+} from '../rksvHubHealthCopy';
+import { RKSV_HUB_GROUPS } from '../rksvHubNavigation';
+import { readRksvPublicEnvironment } from '../rksvHubEnv';
 import type { OpsHealthLevel } from '../types';
 import type { GetApiAdminOfflineIntentCoverageParams, GetApiAdminOperationsSummaryParams } from '@/api/generated/model';
+import { useI18n } from '@/i18n/I18nProvider';
 
 const PAYLOAD_QUICK_MAX_ROWS = 5000;
 
-/** Consistent grid gutter for dashboard rows (horizontal, vertical). */
 const ROW_GUTTER: [number, number] = [16, 16];
+
+function labelForHealthLevel(level: OpsHealthLevel, t: RksvHubTranslate): string {
+  switch (level) {
+    case 'healthy':
+      return t('rksvHub.healthLevel.ok');
+    case 'warning':
+      return t('rksvHub.healthLevel.warning');
+    case 'critical':
+      return t('rksvHub.healthLevel.critical');
+    default:
+      return t('rksvHub.healthLevel.unavailable');
+  }
+}
 
 function OpsHealthCard(props: {
   title: string;
   level: OpsHealthLevel;
-  /** First fetch: skeleton placeholder (avoids misleading health tags before data exists). */
+  healthLabel: string;
   pending: boolean;
-  /** Background refetch while previous data is shown (section-local, non-blocking). */
   refetching: boolean;
   summaryLine: string;
   detailLines?: string[];
-  ctaHref: string;
-  ctaLabel: string;
+  primaryHref: string;
+  primaryLabel: string;
+  secondaryHref?: string;
+  secondaryLabel?: string;
   footnote?: string;
+  pendingAriaLabel: string;
+  refetchAriaLabel: string;
+  unavailableTooltip: string;
 }) {
   const { token } = theme.useToken();
   const {
     title,
     level,
+    healthLabel,
     pending,
     refetching,
     summaryLine,
     detailLines,
-    ctaHref,
-    ctaLabel,
+    primaryHref,
+    primaryLabel,
+    secondaryHref,
+    secondaryLabel,
     footnote,
+    pendingAriaLabel,
+    refetchAriaLabel,
+    unavailableTooltip,
   } = props;
 
   if (pending) {
@@ -95,19 +121,15 @@ function OpsHealthCard(props: {
         <Typography.Text strong style={{ display: 'block', marginBottom: token.marginSM }}>
           {title}
         </Typography.Text>
-        <Skeleton active title={false} paragraph={{ rows: 3 }} aria-label="Karteninhalt wird geladen" />
+        <Skeleton active title={false} paragraph={{ rows: 3 }} aria-label={pendingAriaLabel} />
       </Card>
     );
   }
 
   return (
-    <Card
-      size="small"
-      style={{ height: '100%' }}
-      styles={{ body: { minHeight: 168, position: 'relative' } }}
-    >
+    <Card size="small" style={{ height: '100%' }} styles={{ body: { minHeight: 168, position: 'relative' } }}>
       {refetching ? (
-        <Tooltip title="Karte wird aktualisiert …">
+        <Tooltip title={refetchAriaLabel}>
           <span
             style={{
               position: 'absolute',
@@ -118,7 +140,7 @@ function OpsHealthCard(props: {
             role="status"
             aria-live="polite"
           >
-            <Spin size="small" aria-label="Aktualisiere Karteninhalt" />
+            <Spin size="small" aria-label={refetchAriaLabel} />
           </span>
         </Tooltip>
       ) : null}
@@ -132,11 +154,11 @@ function OpsHealthCard(props: {
           <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }} wrap>
             <Typography.Text strong>{title}</Typography.Text>
             {level === 'unavailable' ? (
-              <Tooltip title="API-Aufruf fehlgeschlagen oder keine Antwort — Status nicht bewertbar.">
-                <Tag color={healthTagColor(level)}>{healthLabelDe(level)}</Tag>
+              <Tooltip title={unavailableTooltip}>
+                <Tag color={healthTagColor(level)}>{healthLabel}</Tag>
               </Tooltip>
             ) : (
-              <Tag color={healthTagColor(level)}>{healthLabelDe(level)}</Tag>
+              <Tag color={healthTagColor(level)}>{healthLabel}</Tag>
             )}
           </Space>
           <Typography.Paragraph
@@ -158,56 +180,43 @@ function OpsHealthCard(props: {
               {detailLines.slice(0, 4).join(' · ')}
             </Typography.Paragraph>
           )}
-          <Link href={ctaHref} passHref legacyBehavior>
-            <Button
-              type="link"
-              size="small"
-              icon={<LinkOutlined aria-hidden />}
-              style={{ paddingLeft: 0, height: 'auto' }}
-            >
-              {ctaLabel}
-            </Button>
-          </Link>
-          {footnote && (
+          <Space direction="vertical" size={0}>
+            <Link href={primaryHref} passHref legacyBehavior>
+              <Button
+                type="link"
+                size="small"
+                icon={<LinkOutlined aria-hidden />}
+                style={{ paddingLeft: 0, height: 'auto' }}
+              >
+                {primaryLabel}
+              </Button>
+            </Link>
+            {secondaryHref && secondaryLabel ? (
+              <Link href={secondaryHref} passHref legacyBehavior>
+                <Button type="link" size="small" style={{ paddingLeft: 0, height: 'auto' }}>
+                  {secondaryLabel}
+                </Button>
+              </Link>
+            ) : null}
+          </Space>
+          {footnote ? (
             <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM, lineHeight: token.lineHeightSM }}>
               {footnote}
             </Typography.Text>
-          )}
+          ) : null}
         </Space>
       </div>
     </Card>
   );
 }
 
-function DrillTile(props: { title: string; line: string; href: string; action: string }) {
-  const { token } = theme.useToken();
-  return (
-    <Card size="small" style={{ height: '100%' }} role="region" aria-label={props.title}>
-      <Typography.Text strong>{props.title}</Typography.Text>
-      <Typography.Paragraph
-        type="secondary"
-        style={{
-          fontSize: token.fontSize,
-          marginTop: token.marginXS,
-          marginBottom: token.marginXS,
-          lineHeight: token.lineHeight,
-        }}
-      >
-        {props.line}
-      </Typography.Paragraph>
-      <Link href={props.href} passHref legacyBehavior>
-        <Button type="link" size="small" icon={<LinkOutlined aria-hidden />} style={{ paddingLeft: 0, height: 'auto' }}>
-          {props.action}
-        </Button>
-      </Link>
-    </Card>
-  );
-}
-
 export function RksvOperationsDashboard() {
   const { token } = theme.useToken();
+  const { t, formatLocale } = useI18n();
+  const hubT: RksvHubTranslate = (key, options) => t(key, options);
   const queryClient = useQueryClient();
-  /** Fixed window for dashboard card only; refetch uses same bounds until remount. */
+  const publicEnv = useMemo(() => readRksvPublicEnvironment(), []);
+
   const coverageParams = useMemo<GetApiAdminOfflineIntentCoverageParams>(
     () => ({
       fromUtc: dayjs().subtract(1, 'day').toISOString(),
@@ -252,7 +261,7 @@ export function RksvOperationsDashboard() {
     placeholderData: keepPreviousData,
   });
 
-  const coverageSummary: OfflineIntentCoverageSummaryInput | null = coverageQuery.data
+  const coverageSummary = coverageQuery.data
     ? {
         lowCoverageAlert: coverageQuery.data.lowCoverageAlert,
         alertReason: coverageQuery.data.alertReason,
@@ -269,14 +278,22 @@ export function RksvOperationsDashboard() {
     ? ('unavailable' as const)
     : mapCoverageSummaryToHealth(coverageSummary);
   const foLevel = foQuery.isError ? ('unavailable' as const) : mapFinanzOnlineMetricsToHealth(foQuery.data);
-  const replayLevel = opsSummaryQuery.isError ? ('unavailable' as const) : mapReplaySummaryToHealth(opsSummaryQuery.data);
-  const exportRiskLevel = opsSummaryQuery.isError ? ('unavailable' as const) : mapExportRiskToHealth(opsSummaryQuery.data);
+  const replayLevel = opsSummaryQuery.isError
+    ? ('unavailable' as const)
+    : mapReplaySummaryToHealth(opsSummaryQuery.data);
+  const exportRiskLevel = opsSummaryQuery.isError
+    ? ('unavailable' as const)
+    : mapExportRiskToHealth(opsSummaryQuery.data);
 
-  const payloadCopy = buildPayloadHashCardCopy(payloadQuery.data, payloadLevel);
-  const coverageCopy = buildCoverageCardCopy(coverageSummary, coverageLevel);
-  const foCopy = buildFinanzOnlineCardCopy(foQuery.data, foLevel);
-  const replayCopy = buildReplaySummaryCardCopy(opsSummaryQuery.data, replayLevel);
-  const exportRiskCopy = buildExportRiskCardCopy(opsSummaryQuery.data, exportRiskLevel);
+  const levels = [payloadLevel, coverageLevel, foLevel, replayLevel, exportRiskLevel];
+  const hasCritical = levels.some((l) => l === 'critical');
+  const hasWarning = !hasCritical && levels.some((l) => l === 'warning');
+
+  const payloadCopy = getPayloadHealthCopy(payloadQuery.data, payloadLevel, hubT);
+  const coverageCopy = getCoverageHealthCopy(coverageSummary, coverageLevel, hubT);
+  const foCopy = getFinanzOnlineHealthCopy(foQuery.data, foLevel, hubT);
+  const replayCopy = getReplayHealthCopy(opsSummaryQuery.data, replayLevel, hubT);
+  const exportRiskCopy = getExportRiskHealthCopy(opsSummaryQuery.data, exportRiskLevel, hubT);
 
   const onRefresh = useCallback(async () => {
     setHeaderRefreshBusy(true);
@@ -288,15 +305,44 @@ export function RksvOperationsDashboard() {
     }
   }, [queryClient]);
 
+  const refreshedLabel = useMemo(
+    () => refreshedAt.toLocaleString(formatLocale),
+    [refreshedAt, formatLocale]
+  );
+
+  const envBanner =
+    publicEnv === 'PROD'
+      ? { type: 'error' as const, message: t('rksvHub.env.bannerProd'), description: t('rksvHub.env.hintProd') }
+      : publicEnv === 'TEST'
+        ? { type: 'info' as const, message: t('rksvHub.env.bannerTest'), description: t('rksvHub.env.hintTest') }
+        : { type: 'warning' as const, message: t('rksvHub.env.bannerUnknown'), description: t('rksvHub.env.hintUnknown') };
+
+  const moreToolLinks = useMemo(
+    () => [
+      { href: '/rksv/payload-hash-conflicts', title: t('rksvHub.moreTools.payloadHash') },
+      { href: '/rksv/finanz-online-queue', title: t('rksvHub.moreTools.queueLegacy') },
+      { href: '/rksv/fiscal-export-diagnostics', title: t('rksvHub.moreTools.fiscalExport') },
+      { href: '/rksv/integrity', title: t('rksvHub.moreTools.integrity') },
+      { href: '/rksv/offline-intent-coverage', title: t('rksvHub.moreTools.offlineCoverage') },
+      { href: '/rksv/verifications', title: t('rksvHub.moreTools.verifications') },
+      { href: '/audit-logs', title: t('rksvHub.moreTools.auditLogs') },
+    ],
+    [t]
+  );
+
+  const pendingAria = t('rksvHub.aria.cardRefreshing');
+  const refetchAria = t('rksvHub.aria.cardUpdating');
+  const unavailableTip = t('rksvHub.healthLevel.unavailableTooltip');
+
   return (
     <div style={{ paddingBottom: token.marginXL }}>
       <AdminPageHeader
-        title={ADMIN_NAV_LABELS.rksvOperationsOverview}
-        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.rksvOperationsOverview }]}
+        title={t('nav.rksvOperationsOverview')}
+        breadcrumbs={[adminOverviewCrumb(t), { title: t('nav.rksvOperationsOverview') }]}
         actions={
           <Space>
             <Typography.Text type="secondary" style={{ fontSize: token.fontSizeSM, lineHeight: token.lineHeightSM }}>
-              Stand: {refreshedAt.toLocaleString('de-AT')}
+              {t('rksvHub.refresh.refreshedAt', { time: refreshedLabel })}
             </Typography.Text>
             <Button
               type="default"
@@ -304,23 +350,48 @@ export function RksvOperationsDashboard() {
               onClick={() => void onRefresh()}
               loading={headerRefreshBusy}
             >
-              Daten aktualisieren
+              {t('rksvHub.refresh.label')}
             </Button>
           </Space>
         }
       />
 
+      <Alert
+        showIcon
+        type={envBanner.type}
+        message={envBanner.message}
+        description={envBanner.description}
+        style={{ marginBottom: token.marginMD }}
+      />
+
+      {hasCritical ? (
+        <Alert
+          type="error"
+          showIcon
+          message={t('rksvHub.nextSteps.title')}
+          description={t('rksvHub.nextSteps.critical')}
+          style={{ marginBottom: token.marginMD }}
+        />
+      ) : hasWarning ? (
+        <Alert
+          type="warning"
+          showIcon
+          message={t('rksvHub.nextSteps.title')}
+          description={t('rksvHub.nextSteps.warning')}
+          style={{ marginBottom: token.marginMD }}
+        />
+      ) : null}
+
       <Typography.Paragraph type="secondary" style={{ marginBottom: token.margin, lineHeight: token.lineHeightLG }}>
         <Typography.Text strong style={{ color: 'inherit' }}>
-          Kurzüberblick.
+          {t('rksvHub.intro.lead')}
         </Typography.Text>{' '}
-        Einstiege und Status — wo API-Daten vorliegen, nur leichte Zusammenfassungen; sonst Links zu den Werkzeugen.
-        Details nur auf den Zielseiten.
+        {t('rksvHub.intro.body')}
       </Typography.Paragraph>
 
       <Card
         size="small"
-        title="Nach Arbeitsauftrag"
+        title={t('rksvHub.sections.workByTask')}
         style={{ marginBottom: token.marginLG }}
         styles={{ body: { paddingTop: token.paddingSM } }}
       >
@@ -329,12 +400,12 @@ export function RksvOperationsDashboard() {
           style={{ marginTop: 0, marginBottom: token.margin, fontSize: token.fontSize, lineHeight: token.lineHeightLG }}
         >
           <Typography.Text strong style={{ color: 'inherit' }}>
-            Nach Aufgabe wählen.
+            {t('rksvHub.sections.workByTaskIntro')}
           </Typography.Text>{' '}
-          Dieselben Ziele wie in der Seitenleiste. Darunter: Status-Signale und Werkzeug-Kacheln.
+          {t('rksvHub.sections.workByTaskHint')}
         </Typography.Paragraph>
         <Row gutter={ROW_GUTTER}>
-          {buildRksvMenuGroups(OPERATOR_VERIFICATIONS_COPY.navMenuLabel).map((group) => (
+          {RKSV_HUB_GROUPS.map((group) => (
             <Col xs={24} sm={12} md={12} lg={6} key={group.id}>
               <div
                 style={{
@@ -346,7 +417,7 @@ export function RksvOperationsDashboard() {
                 }}
               >
                 <Typography.Text strong style={{ display: 'block', marginBottom: token.marginXXS }}>
-                  {group.groupLabel}
+                  {t(group.titleKey)}
                 </Typography.Text>
                 <Typography.Paragraph
                   type="secondary"
@@ -356,11 +427,11 @@ export function RksvOperationsDashboard() {
                     lineHeight: token.lineHeightSM,
                   }}
                 >
-                  {group.hubTaskLine}
+                  {t(group.descriptionKey)}
                 </Typography.Paragraph>
                 <Space direction="vertical" size={token.marginXXS} style={{ width: '100%' }}>
-                  {group.items.map((item) => (
-                    <Link key={item.key} href={item.href} passHref legacyBehavior>
+                  {group.links.map((item) => (
+                    <Link key={item.href} href={item.href} passHref legacyBehavior>
                       <Button
                         type="link"
                         size="small"
@@ -373,7 +444,7 @@ export function RksvOperationsDashboard() {
                           textAlign: 'left',
                         }}
                       >
-                        {item.label}
+                        {t(item.labelKey)}
                       </Button>
                     </Link>
                   ))}
@@ -385,177 +456,186 @@ export function RksvOperationsDashboard() {
       </Card>
 
       <Typography.Title level={2} style={{ marginBottom: token.marginSM }}>
-        Status
+        {t('rksvHub.sections.workflow')}
       </Typography.Title>
+      <Typography.Paragraph type="secondary" style={{ marginTop: 0, marginBottom: token.margin }}>
+        {t('rksvHub.sections.workflowHint')}
+      </Typography.Paragraph>
       <Row gutter={ROW_GUTTER} style={{ marginBottom: token.marginLG }}>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <OpsHealthCard
-            title="Payload-Hash"
-            level={payloadLevel}
-            pending={payloadQuery.isPending}
-            refetching={payloadQuery.isFetching && !payloadQuery.isPending}
-            summaryLine={payloadCopy.summaryLine}
-            detailLines={payloadCopy.detailLines}
-            ctaHref="/rksv/payload-hash-conflicts"
-            ctaLabel="Payload-Hash-Konflikte öffnen"
-            footnote={`Stichprobe: max. ${PAYLOAD_QUICK_MAX_ROWS} Zeilen — kein vollständiger Bestand.`}
-          />
+        <Col xs={24} md={8}>
+          <Card size="small" style={{ height: '100%' }}>
+            <Typography.Title level={5} style={{ marginTop: 0 }}>
+              {t('rksvHub.workflow.step1Title')}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary">{t('rksvHub.workflow.step1Hint')}</Typography.Paragraph>
+            <Link href="/rksv/incident" passHref legacyBehavior>
+              <Button type="primary" block icon={<LinkOutlined aria-hidden />}>
+                {t('rksvHub.workflow.step1Cta')}
+              </Button>
+            </Link>
+          </Card>
         </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <OpsHealthCard
-            title="Offline-Intent-Abdeckung"
-            level={coverageLevel}
-            pending={coverageQuery.isPending}
-            refetching={coverageQuery.isFetching && !coverageQuery.isPending}
-            summaryLine={coverageCopy.summaryLine}
-            detailLines={coverageCopy.detailLines}
-            ctaHref="/rksv/offline-intent-coverage"
-            ctaLabel="Details zur Abdeckung öffnen"
-            footnote="Festes Fenster: letzte 24 h UTC (nur diese Karte)."
-          />
+        <Col xs={24} md={8}>
+          <Card size="small" style={{ height: '100%' }}>
+            <Typography.Title level={5} style={{ marginTop: 0 }}>
+              {t('rksvHub.workflow.step2Title')}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary">{t('rksvHub.workflow.step2Hint')}</Typography.Paragraph>
+            <Link href="/rksv/replay-batch" passHref legacyBehavior>
+              <Button type="primary" block icon={<LinkOutlined aria-hidden />}>
+                {t('rksvHub.workflow.step2Cta')}
+              </Button>
+            </Link>
+          </Card>
         </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <OpsHealthCard
-            title={OPERATOR_FO_SUMMARY_SCREEN_COPY.dashboardMetricsCardTitle}
-            level={foLevel}
-            pending={foQuery.isPending}
-            refetching={foQuery.isFetching && !foQuery.isPending}
-            summaryLine={foCopy.summaryLine}
-            detailLines={foCopy.detailLines}
-            ctaHref="/rksv/finanz-online-queue"
-            ctaLabel="FinanzOnline-Abgleich öffnen"
-            footnote={OPERATOR_FO_SUMMARY_SCREEN_COPY.dashboardMetricsCardFootnote}
-          />
-        </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <OpsHealthCard
-            title="Replay und Incident"
-            level={replayLevel}
-            pending={opsSummaryQuery.isPending}
-            refetching={opsSummaryQuery.isFetching && !opsSummaryQuery.isPending}
-            summaryLine={replayCopy.summaryLine}
-            detailLines={[
-              ...replayCopy.detailLines,
-              `Incident-Korrelationen (24 h): ${opsSummaryQuery.data?.incidentCorrelationCount ?? 0}`,
-            ]}
-            ctaHref="/rksv/incident"
-            ctaLabel="Incident öffnen"
-            footnote="Übersicht (24 h): Rückstand, endgültige Fehler und Incident-Dichte — verbindendes Signal, keine Einzelfallgarantie."
-          />
-        </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <OpsHealthCard
-            title="Export-Risiko"
-            level={exportRiskLevel}
-            pending={opsSummaryQuery.isPending}
-            refetching={opsSummaryQuery.isFetching && !opsSummaryQuery.isPending}
-            summaryLine={exportRiskCopy.summaryLine}
-            detailLines={exportRiskCopy.detailLines}
-            ctaHref="/rksv/fiscal-export-diagnostics"
-            ctaLabel="Diagnose öffnen"
-            footnote="Die Übersicht nutzt Integritätschecks nur als ersten Hinweis zum Export-Risiko."
-          />
-        </Col>
-      </Row>
-
-      <Typography.Title level={5} style={{ marginBottom: token.marginSM }}>
-        Werkzeuge
-      </Typography.Title>
-      <Row gutter={ROW_GUTTER} style={{ marginBottom: token.marginLG }}>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <DrillTile
-            title="Incident-Untersuchung"
-            line="Correlation-ID, Audit-Spur und FinanzOnline-Versuche in einem Ablauf."
-            href="/rksv/incident"
-            action="Incident öffnen"
-          />
-        </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <DrillTile
-            title="Replay-Batches"
-            line="Batch nach Correlation-ID suchen und Details anzeigen."
-            href="/rksv/replay-batch"
-            action="Suche öffnen"
-          />
-        </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <DrillTile
-            title="Payload-Hash-Konflikte / Behebung"
-            line="Analyse, CSV-Export; Behebung nur mit Systemberechtigung."
-            href="/rksv/payload-hash-conflicts"
-            action="Konflikte öffnen"
-          />
-        </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <DrillTile
-            title="Fiscal-Export-Diagnose"
-            line="JSON-Vorschau, Integritätshinweise, Download."
-            href="/rksv/fiscal-export-diagnostics"
-            action="Diagnose öffnen"
-          />
-        </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <DrillTile
-            title="Datenintegrität (Support)"
-            line="DB-weite Checks: Belegsequenz, Refund-Orphans, Zahlung ohne Rechnung."
-            href="/rksv/integrity"
-            action="Integrität öffnen"
-          />
-        </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <DrillTile
-            title="Abdeckung und Rollout"
-            line="Pro Kasse: Geräte-ID- und Sequenz-Abdeckung, höchstes Risiko."
-            href="/rksv/offline-intent-coverage"
-            action="Abdeckung öffnen"
-          />
-        </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <DrillTile
-            title="Audit / Korrelation"
-            line="Globale Audit-Logs mit Filtern; Korrelation oft über Incident verknüpft."
-            href="/audit-logs"
-            action="Audit-Logs öffnen"
-          />
-        </Col>
-        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
-          <DrillTile
-            title="FinanzOnline · Fehler und erneutes Senden"
-            line="Liste, Filter, erneutes Senden einzelner Übermittlungen."
-            href="/rksv/finanz-online-queue"
-            action="Abgleich öffnen"
-          />
+        <Col xs={24} md={8}>
+          <Card size="small" style={{ height: '100%' }}>
+            <Typography.Title level={5} style={{ marginTop: 0 }}>
+              {t('rksvHub.workflow.step3Title')}
+            </Typography.Title>
+            <Typography.Paragraph type="secondary">{t('rksvHub.workflow.step3Hint')}</Typography.Paragraph>
+            <Link href="/rksv/finanz-online-outbox" passHref legacyBehavior>
+              <Button type="primary" block icon={<LinkOutlined aria-hidden />}>
+                {t('rksvHub.workflow.step3Cta')}
+              </Button>
+            </Link>
+          </Card>
         </Col>
       </Row>
 
       <Typography.Title level={2} style={{ marginBottom: token.marginSM }}>
-        Kurznotizen
+        {t('rksvHub.sections.status')}
+      </Typography.Title>
+      <Row gutter={ROW_GUTTER} style={{ marginBottom: token.marginLG }}>
+        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
+          <OpsHealthCard
+            title={t('rksvHub.health.titles.payload')}
+            level={payloadLevel}
+            healthLabel={labelForHealthLevel(payloadLevel, hubT)}
+            pending={payloadQuery.isPending}
+            refetching={payloadQuery.isFetching && !payloadQuery.isPending}
+            summaryLine={payloadCopy.summaryLine}
+            detailLines={payloadCopy.detailLines}
+            primaryHref="/rksv/payload-hash-conflicts"
+            primaryLabel={t('rksvHub.health.cta.payload')}
+            footnote={t('rksvHub.health.cardFootnote.payloadSample', { maxRows: PAYLOAD_QUICK_MAX_ROWS })}
+            pendingAriaLabel={pendingAria}
+            refetchAriaLabel={refetchAria}
+            unavailableTooltip={unavailableTip}
+          />
+        </Col>
+        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
+          <OpsHealthCard
+            title={t('rksvHub.health.titles.coverage')}
+            level={coverageLevel}
+            healthLabel={labelForHealthLevel(coverageLevel, hubT)}
+            pending={coverageQuery.isPending}
+            refetching={coverageQuery.isFetching && !coverageQuery.isPending}
+            summaryLine={coverageCopy.summaryLine}
+            detailLines={coverageCopy.detailLines}
+            primaryHref="/rksv/offline-intent-coverage"
+            primaryLabel={t('rksvHub.health.cta.coverage')}
+            footnote={t('rksvHub.health.cardFootnote.coverageWindow')}
+            pendingAriaLabel={pendingAria}
+            refetchAriaLabel={refetchAria}
+            unavailableTooltip={unavailableTip}
+          />
+        </Col>
+        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
+          <OpsHealthCard
+            title={t('rksvHub.health.titles.finanzOnline')}
+            level={foLevel}
+            healthLabel={labelForHealthLevel(foLevel, hubT)}
+            pending={foQuery.isPending}
+            refetching={foQuery.isFetching && !foQuery.isPending}
+            summaryLine={foCopy.summaryLine}
+            detailLines={foCopy.detailLines}
+            primaryHref="/rksv/finanz-online-outbox"
+            primaryLabel={t('rksvHub.health.cta.finanzOnlinePrimary')}
+            secondaryHref="/rksv/finanz-online-queue"
+            secondaryLabel={t('rksvHub.health.cta.finanzOnlineSecondary')}
+            footnote={t('rksvHub.health.cardFootnote.finanzOnlineMetrics')}
+            pendingAriaLabel={pendingAria}
+            refetchAriaLabel={refetchAria}
+            unavailableTooltip={unavailableTip}
+          />
+        </Col>
+        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
+          <OpsHealthCard
+            title={t('rksvHub.health.titles.replay')}
+            level={replayLevel}
+            healthLabel={labelForHealthLevel(replayLevel, hubT)}
+            pending={opsSummaryQuery.isPending}
+            refetching={opsSummaryQuery.isFetching && !opsSummaryQuery.isPending}
+            summaryLine={replayCopy.summaryLine}
+            detailLines={replayCopy.detailLines}
+            primaryHref="/rksv/incident"
+            primaryLabel={t('rksvHub.health.cta.replay')}
+            secondaryHref="/rksv/replay-batch"
+            secondaryLabel={t('rksvHub.health.cta.replaySecondary')}
+            footnote={t('rksvHub.health.cardFootnote.replayWindow')}
+            pendingAriaLabel={pendingAria}
+            refetchAriaLabel={refetchAria}
+            unavailableTooltip={unavailableTip}
+          />
+        </Col>
+        <Col xs={24} sm={12} md={12} lg={8} xl={6}>
+          <OpsHealthCard
+            title={t('rksvHub.health.titles.export')}
+            level={exportRiskLevel}
+            healthLabel={labelForHealthLevel(exportRiskLevel, hubT)}
+            pending={opsSummaryQuery.isPending}
+            refetching={opsSummaryQuery.isFetching && !opsSummaryQuery.isPending}
+            summaryLine={exportRiskCopy.summaryLine}
+            detailLines={exportRiskCopy.detailLines}
+            primaryHref="/rksv/fiscal-export-diagnostics"
+            primaryLabel={t('rksvHub.health.cta.export')}
+            secondaryHref="/rksv/integrity"
+            secondaryLabel={t('rksvHub.moreTools.integrity')}
+            footnote={t('rksvHub.health.cardFootnote.exportRisk')}
+            pendingAriaLabel={pendingAria}
+            refetchAriaLabel={refetchAria}
+            unavailableTooltip={unavailableTip}
+          />
+        </Col>
+      </Row>
+
+      <Collapse
+        style={{ marginBottom: token.marginLG }}
+        items={[
+          {
+            key: 'more',
+            label: t('rksvHub.sections.moreTools'),
+            children: (
+              <List
+                size="small"
+                dataSource={moreToolLinks}
+                renderItem={(item) => (
+                  <List.Item>
+                    <Link href={item.href}>{item.title}</Link>
+                  </List.Item>
+                )}
+              />
+            ),
+          },
+        ]}
+      />
+
+      <Typography.Title level={2} style={{ marginBottom: token.marginSM }}>
+        {t('rksvHub.sections.notes')}
       </Typography.Title>
       <Alert
         type="info"
         showIcon
-        message="Hinweise zu den Karten"
+        message={t('rksvHub.notes.title')}
         role="note"
         description={
           <ul style={{ marginBottom: 0, paddingLeft: token.paddingLG }}>
-            <li>
-              <strong>OK</strong>: laut dieser API-Antwort keine Auffälligkeit im genannten Umfang — nicht automatisch
-              vollständiger Datenbestand.
-            </li>
-            <li>
-              <strong>Hinweis</strong> / <strong>Kritisch</strong>: Ampelfarbe nur zusammen mit Kurztext und Detailseite
-              interpretieren.
-            </li>
-            <li>
-              <strong>Nicht verfügbar</strong>: Aufruf fehlgeschlagen — nicht als „alles gut“ lesen.
-            </li>
-            <li>
-              Payload: POST-Analyse, begrenzte Zeilen. Abdeckung: GET-Zusammenfassung, 24 h UTC. FinanzOnline:
-              GET-Metriken.
-            </li>
-            <li>
-              Replay/Export: Dashboard nutzt `api/admin/operations/summary` (24 h) als verbindendes Signal.
-            </li>
+            <li>{t('rksvHub.notes.bullet1')}</li>
+            <li>{t('rksvHub.notes.bullet2')}</li>
+            <li>{t('rksvHub.notes.bullet3')}</li>
+            <li>{t('rksvHub.notes.bullet4')}</li>
+            <li>{t('rksvHub.notes.bullet5')}</li>
           </ul>
         }
       />

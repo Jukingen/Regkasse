@@ -286,4 +286,104 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const postApiAuthLogoutAll = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Auth/logout-all`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAuthLogoutAllMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthLogoutAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAuthLogoutAll>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAuthLogoutAll>>, void> = () => {
+          
+
+          return  postApiAuthLogoutAll(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAuthLogoutAllMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAuthLogoutAll>>>
+    
+    export type PostApiAuthLogoutAllMutationError = unknown
+
+    export const usePostApiAuthLogoutAll = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthLogoutAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAuthLogoutAll>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAuthLogoutAllMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAuthRevoke = (
+    refreshTokenModel: RefreshTokenModel,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Auth/revoke`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: refreshTokenModel
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAuthRevokeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthRevoke>>, TError,{data: RefreshTokenModel}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAuthRevoke>>, TError,{data: RefreshTokenModel}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAuthRevoke>>, {data: RefreshTokenModel}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAuthRevoke(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAuthRevokeMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAuthRevoke>>>
+    export type PostApiAuthRevokeMutationBody = RefreshTokenModel
+    export type PostApiAuthRevokeMutationError = unknown
+
+    export const usePostApiAuthRevoke = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthRevoke>>, TError,{data: RefreshTokenModel}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAuthRevoke>>,
+        TError,
+        {data: RefreshTokenModel},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAuthRevokeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     

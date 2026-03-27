@@ -118,6 +118,12 @@ namespace KasseAPI_Final.Models
         [MaxLength(100)]
         public string? FinanzOnlinePassword { get; set; }
 
+        [MaxLength(12)]
+        public string? FinanzOnlineTelematikId { get; set; }
+
+        [MaxLength(24)]
+        public string? FinanzOnlineHerstellerId { get; set; }
+
         public bool FinanzOnlineAutoSubmit { get; set; } = false;
 
         public int FinanzOnlineSubmitInterval { get; set; } = 60; // dakika

@@ -1,0 +1,94 @@
+{
+  "page": {
+    "leadTag": "Outbox / SOAP",
+    "leadLine": "FinanzOnline gönderimi ve protokol mutabakatı için birincil operasyonel görünüm (TEST ve PROD).",
+    "leadNoPaymentRows": "Ödeme satırı değil — bunun için",
+    "leadLegacyQueueLink": "Ödeme mutabakatı (eski)"
+  },
+  "privacyAlert": {
+    "title": "Gizlilik notu",
+    "description": "Yalnızca onaylı alanlar gösterilir (oturum kimliği, PIN veya ham payload XML yok)."
+  },
+  "filters": {
+    "bucket": "Kova (Bucket)",
+    "statusCsv": "Tam durum (CSV, isteğe bağlı)",
+    "statusCsvPlaceholder": "ör. AwaitingProtocol,RetryableFailure",
+    "mode": "Mod",
+    "modePlaceholderAll": "tümü",
+    "correlationId": "Correlation ID",
+    "businessKey": "İş anahtarı",
+    "createdDateRange": "Oluşturulma (takvim günü, UTC sınırları)"
+  },
+  "buckets": {
+    "all": "Tümü",
+    "inFlight": "İşlemde (Pending/Processing)",
+    "pending": "Pending",
+    "processing": "Processing",
+    "awaitingProtocol": "AwaitingProtocol",
+    "retryableFailure": "RetryableFailure",
+    "permanentFailure": "PermanentFailure",
+    "protocolFailure": "ProtocolFailure",
+    "manualReviewRequired": "ManualReviewRequired",
+    "protocolSuccess": "ProtocolSuccess",
+    "deadLetter": "DeadLetter"
+  },
+  "table": {
+    "columns": {
+      "outboxId": "Outbox kimliği",
+      "businessKey": "İş anahtarı",
+      "correlation": "Correlation",
+      "mode": "Mod",
+      "status": "Durum",
+      "hintOrError": "İpucu / hata",
+      "attempts": "Denemeler",
+      "nextAttemptUtc": "Sonraki deneme (UTC)",
+      "paketTransmission": "Paket / iletim",
+      "protocol": "Protokol",
+      "createdUtc": "Oluşturulma (UTC)",
+      "processedUtc": "İşlendi (UTC)"
+    }
+  },
+  "empty": {
+    "noRows": "Geçerli filtreler için Outbox kaydı yok."
+  },
+  "error": {
+    "listLoadTitle": "Liste yüklenemedi."
+  },
+  "pagination": {
+    "showTotal": "Toplam (filtre): {{total}} · Gösterilen: {{shown}}"
+  },
+  "drawer": {
+    "title": "Outbox ayrıntıları",
+    "fields": {
+      "outboxId": "Outbox kimliği",
+      "businessKey": "İş anahtarı",
+      "correlation": "Correlation",
+      "mode": "Mod",
+      "statusTechnical": "Durum (teknik)",
+      "statusDisplay": "Durum (görünen)",
+      "hint": "İpucu",
+      "lastErrorCode": "Son hata kodu",
+      "lastErrorSummary": "Son hata özeti",
+      "failureCategory": "Hata kategorisi",
+      "attempts": "Denemeler",
+      "nextAttemptUtc": "Sonraki deneme (UTC)",
+      "paketTransmission": "Paket / iletim",
+      "externalReference": "Harici referans",
+      "externalStatus": "Harici durum",
+      "protocolCode": "Protokol kodu",
+      "protocolShort": "Protokol (kısa)",
+      "protocolPayloadHash": "Protokol payload özeti",
+      "createdUtc": "Oluşturulma (UTC)",
+      "processedUtc": "İşlendi (UTC)",
+      "terminal": "Terminal",
+      "idempotencySuffix": "Idempotency (sonek)",
+      "scope": "Kapsam (tenant / şube / kasa)",
+      "responsePreview": "Yanıt (kısaltılmış önizleme)"
+    }
+  },
+  "format": {
+    "utcSuffix": " UTC",
+    "emptyValue": "—",
+    "hintErrorSeparator": " — "
+  }
+}

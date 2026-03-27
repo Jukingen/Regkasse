@@ -37,7 +37,10 @@
         "nav",
         "users",
         "settings",
-        "products"
+        "products",
+        "finanzOnlineOutbox",
+        "finanzOnlineReconciliation",
+        "rksvHub"
       ]
     }
   }

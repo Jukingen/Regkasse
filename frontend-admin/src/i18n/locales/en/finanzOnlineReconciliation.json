@@ -1,0 +1,9 @@
+{
+  "legacyBadge": "Legacy",
+  "phasedDeprecationNote": "This payment-row view is being phased out in favor of the Outbox/SOAP pipeline. Per-payment retry stays here until migration is complete.",
+  "outboxPrimaryBanner": {
+    "title": "Primary pipeline view: FinanzOnline · Outbox",
+    "leadBeforeLink": "For operational monitoring of the SOAP/outbox pipeline (submission, protocol, retries), use",
+    "leadAfterLink": ". This screen remains for payment-row status and manual retry per payment (legacy)."
+  }
+}

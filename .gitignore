@@ -122,6 +122,9 @@ Desktop.ini
 # Backend - Hassas Yapılandırma Dosyaları
 backend/**/appsettings.json
 backend/**/appsettings.*.json
+# Tracked templates (negate after generic ignore rules)
+!backend/appsettings.example.json
+!backend/appsettings.Development.example.json
 backend/**/appsettings.Development.json
 backend/**/appsettings.Production.json
 backend/**/appsettings.Staging.json

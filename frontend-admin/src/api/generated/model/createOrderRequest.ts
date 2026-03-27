@@ -5,9 +5,13 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { CustomerKind } from './customerKind';
 import type { OrderItemRequest } from './orderItemRequest';
 
 export interface CreateOrderRequest {
+  /** @nullable */
+  customerId?: string | null;
+  customerKind?: CustomerKind;
   /** @nullable */
   customerName?: string | null;
   /** @nullable */

@@ -18,5 +18,7 @@
   "myProfile": "Profilim",
   "logout": "Çıkış yap",
   "rksvOperationsOverview": "RKSV genel bakış",
-  "finanzOnlineAbgleich": "FinanzOnline mutabakatı"
+  "finanzOnlineAbgleich": "FinanzOnline mutabakatı",
+  "finanzOnlineAbgleichLegacy": "FinanzOnline mutabakatı (eski)",
+  "finanzOnlineOutbox": "FinanzOnline · Outbox"
 }
