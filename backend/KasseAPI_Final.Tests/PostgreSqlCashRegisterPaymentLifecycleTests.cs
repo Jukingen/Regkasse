@@ -4,6 +4,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Pricing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -408,6 +409,8 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             Options.Create(tseOptions),
             Mock.Of<ILogger<PaymentService>>(),
             cashRegResolver,
-            httpAccessorMock.Object);
+            httpAccessorMock.Object,
+            new PaymentMethodCatalogService(ctx),
+            new PricingRuleResolver(ctx));
     }
 }

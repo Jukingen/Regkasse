@@ -45,6 +45,7 @@ public class FiscalExportService : IFiscalExportService
         DateTime fromUtc,
         DateTime toUtc,
         bool includeCsv,
+        FiscalExportProfile exportProfile = FiscalExportProfile.Diagnostic,
         CancellationToken cancellationToken = default)
     {
         var from = NormalizeUtc(fromUtc);
@@ -282,9 +283,11 @@ public class FiscalExportService : IFiscalExportService
             package.ClosingsCsv = BuildClosingsCsv(closingDtos);
         }
 
+        FiscalExportProfileMetadata.Apply(package, exportProfile);
+
         _logger.LogInformation(
-            "Fiscal export built: register {Register}, receipts {Rc}, closings {Cc}, csv {Csv}",
-            register.RegisterNumber, package.ReceiptCount, package.ClosingCount, includeCsv);
+            "Fiscal export built: register {Register}, receipts {Rc}, closings {Cc}, csv {Csv}, profile {Profile}",
+            register.RegisterNumber, package.ReceiptCount, package.ClosingCount, includeCsv, exportProfile);
 
         return package;
     }

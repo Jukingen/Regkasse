@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Card, Col, Row, Statistic, DatePicker, Table, Spin, Typography } from 'antd';
 import { DollarOutlined, ShoppingOutlined, UserOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -12,6 +13,7 @@ import {
     useGetApiReportsPayments,
     useGetApiReportsCustomers
 } from '@/api/generated/reports/reports';
+import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
@@ -69,8 +71,8 @@ export default function DashboardPage() {
                 }
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    Geschäftszahlen für den gewählten Zeitraum (Umsatz, Verteilung, Top-Artikel). Operative RKSV-Einstiege:
-                    Seitenleiste unter «RKSV».
+                    Geschäftszahlen für den gewählten Zeitraum (Umsatz, Verteilung, Top-Artikel). Operative Kassenberichte:{' '}
+                    <Link href="/reporting">{t('nav.reporting')}</Link>. RKSV: Seitenleiste unter «RKSV».
                 </Typography.Paragraph>
             </AdminPageHeader>
 
@@ -86,6 +88,7 @@ export default function DashboardPage() {
                 </div>
             ) : (
                 <>
+            <HospitalityQuickLinksCard />
             {/* Key Metrics Row */}
             <Row gutter={16} style={{ marginBottom: 24 }}>
                 <Col span={6}>

@@ -4,6 +4,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Pricing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -105,7 +106,9 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
             Options.Create(tseOptions),
             Mock.Of<ILogger<PaymentService>>(),
             resolution,
-            httpAccessorMock.Object);
+            httpAccessorMock.Object,
+            new PaymentMethodCatalogService(context),
+            new PricingRuleResolver(context));
     }
 
     /// <summary>

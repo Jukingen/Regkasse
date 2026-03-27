@@ -87,6 +87,7 @@ public static class PermissionCatalog
         AppPermissions.AuditCleanup,
         AppPermissions.ReportView,
         AppPermissions.ReportExport,
+        AppPermissions.FiscalExportCompliance,
         // FinanzOnline
         AppPermissions.FinanzOnlineView,
         AppPermissions.FinanzOnlineManage,

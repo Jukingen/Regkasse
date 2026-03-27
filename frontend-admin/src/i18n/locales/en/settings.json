@@ -1,4 +1,15 @@
 {
+  "hub": {
+    "collapseTitle": "Areas & links",
+    "intro": "These pages are all back-office configuration but belong to different domains:",
+    "rowSystem": "System (global): tax rates, backup, notifications — API `GET/PUT /api/Settings` (SystemSettings). No dedicated admin UI yet.",
+    "rowCompany": "Company & fiscal (tenant): master data, FinanzOnline, TSE defaults — this area (`/api/CompanySettings`).",
+    "rowUser": "User: POS / register preferences — `GET/PUT /api/user/settings` (UserSettings), not tenant-wide.",
+    "rowReceipt": "Receipt templates & copy — Kasse & Belege → Receipt templates (`/receipt-templates`).",
+    "rowRksv": "RKSV operations (outbox, integrity, diagnostics) — RKSV menu, not under company settings.",
+    "linkReceiptTemplates": "Open receipt templates",
+    "linkRksv": "Open RKSV"
+  },
   "page": {
     "title": "Company settings",
     "loading": "Loading company settings…",
@@ -51,6 +62,87 @@
     },
     "tse": {
       "cardTitle": "TSE (Technical security device)"
+    }
+  },
+  "paymentMethods": {
+    "title": "Payment methods",
+    "add": "Add payment method",
+    "saved": "Saved.",
+    "created": "Payment method created.",
+    "saveFailed": "Save failed.",
+    "deactivate": "Deactivate",
+    "deactivated": "Payment method deactivated.",
+    "deactivateConfirmTitle": "Deactivate payment method?",
+    "deactivateConfirmBody": "POS will no longer offer “{{code}}”. Existing receipts are unchanged.",
+    "editTitle": "Edit payment method",
+    "createTitle": "Create payment method",
+    "columns": {
+      "code": "Code",
+      "name": "Name",
+      "active": "Active",
+      "default": "Default",
+      "order": "Order",
+      "legacy": "Legacy (0–5)",
+      "terminal": "Terminal",
+      "actions": "Actions"
+    },
+    "form": {
+      "code": "Code",
+      "codeHint": "Lowercase letters, digits, _ and - (stable key for POS).",
+      "name": "Display name",
+      "legacy": "Fiscal mapping (RKSV)",
+      "fiscalCategory": "Category (optional)",
+      "order": "Sort order",
+      "active": "Active",
+      "default": "Default on POS",
+      "requiresTerminal": "Requires terminal",
+      "terminalType": "Terminal type (optional)",
+      "allowRefund": "Allow refund",
+      "icon": "Ionicons name (optional)",
+      "metadata": "Metadata (JSON, optional)"
+    }
+  },
+  "pricingRules": {
+    "title": "Pricing rules",
+    "subtitle": "Happy hour, weekdays, product or category scope, optional register.",
+    "add": "New rule",
+    "saved": "Saved.",
+    "created": "Rule created.",
+    "saveFailed": "Save failed.",
+    "deactivate": "Deactivate",
+    "deactivated": "Rule deactivated.",
+    "deactivateConfirmTitle": "Deactivate rule?",
+    "deactivateConfirmBody": "The rule will be set inactive. Existing receipts are unchanged.",
+    "editTitle": "Edit pricing rule",
+    "createTitle": "Create pricing rule",
+    "columns": {
+      "name": "Name",
+      "priority": "Priority",
+      "active": "Active",
+      "validity": "Validity",
+      "target": "Target",
+      "action": "Action",
+      "actions": "Actions"
+    },
+    "form": {
+      "name": "Name",
+      "priority": "Priority (higher applies first)",
+      "active": "Active",
+      "validFrom": "Valid from",
+      "validTo": "Valid to",
+      "daysMask": "Weekday mask (1–127, default 127 = all days)",
+      "timeWindow": "Time window enabled",
+      "timeStart": "Start (minutes 0–1439)",
+      "timeEnd": "End (minutes 0–1439)",
+      "targetScope": "Target type",
+      "targetScopeProduct": "Product",
+      "targetScopeCategory": "Category",
+      "targetId": "Target ID (UUID)",
+      "actionType": "Action type",
+      "actionFixed": "Fixed gross unit price",
+      "actionPercent": "Percent off list price",
+      "actionValue": "Value",
+      "cashRegisterId": "Cash register (UUID, optional)"
     }
   }
 }

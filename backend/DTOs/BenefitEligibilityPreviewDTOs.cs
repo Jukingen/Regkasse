@@ -14,6 +14,9 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>Cart line items: product and quantity. Tax/category resolved from product.</summary>
         public List<BenefitEligibilityPreviewItemRequest> Items { get; set; } = new();
+
+        /// <summary>Optional: kasa kapsamlı fiyat kuralları için POS kasa kimliği.</summary>
+        public Guid? CashRegisterId { get; set; }
     }
 
     /// <summary>

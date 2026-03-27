@@ -8,6 +8,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Pricing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -81,7 +82,9 @@ public class OfflineTransactionReplayIntegrationTests
             Options.Create(tseOptions),
             loggerPayment,
             cashRegResolver,
-            httpAccessor);
+            httpAccessor,
+            new PaymentMethodCatalogService(context),
+            new PricingRuleResolver(context));
 
         var offlineService = new OfflineTransactionService(
             context,

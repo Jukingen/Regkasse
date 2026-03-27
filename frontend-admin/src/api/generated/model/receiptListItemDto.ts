@@ -15,6 +15,7 @@ export interface ReceiptListItemDto {
   createdAt?: string;
   grandTotal?: number;
   issuedAt?: string;
+  paymentId?: string;
   receiptId?: string;
   /** @nullable */
   receiptNumber?: string | null;

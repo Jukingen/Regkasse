@@ -2,13 +2,22 @@
  * Single place to parse GET /api/pos/payment/methods (and similar) response bodies.
  * Backend SuccessResponse shape: { success, message, data: T, timestamp }.
  * Does not invent fields; drops rows without a usable id.
+ * `type` is the stable code sent in POST payment.method (admin-configurable).
  */
+
+const CODE_PATTERN = /^[a-z0-9_-]+$/;
 
 export type NormalizedPosPaymentMethod = {
   id: string;
   name: string;
-  type: 'cash' | 'card' | 'voucher' | 'transfer';
+  /** Stable payment method code (POST payment.method). */
+  type: string;
   icon: string;
+  isDefault?: boolean;
+  requiresReceivedAmount?: boolean;
+  requiresTerminal?: boolean;
+  terminalType?: string | null;
+  allowRefund?: boolean;
 };
 
 export function isRecord(v: unknown): v is Record<string, unknown> {
@@ -26,11 +35,15 @@ export function extractPaymentMethodsArrayFromApiBody(body: unknown): unknown[] 
   return [];
 }
 
-const ALLOWED_TYPES = new Set(['cash', 'card', 'voucher', 'transfer']);
-
-function coerceType(raw: unknown): NormalizedPosPaymentMethod['type'] | null {
+function coerceCode(raw: unknown): string | null {
   const s = String(raw ?? '').toLowerCase().trim();
-  return ALLOWED_TYPES.has(s) ? (s as NormalizedPosPaymentMethod['type']) : null;
+  if (!s || !CODE_PATTERN.test(s)) return null;
+  return s;
+}
+
+function coerceBool(raw: unknown): boolean | undefined {
+  if (typeof raw === 'boolean') return raw;
+  return undefined;
 }
 
 /** Normalize to POS payment method rows used by paymentService / UI. */
@@ -42,16 +55,39 @@ export function normalizeToPosPaymentMethods(body: unknown): NormalizedPosPaymen
     const id = String(row.id ?? row.Id ?? '').trim();
     if (!id) continue;
     const name = String(row.name ?? row.Name ?? id);
-    const type = coerceType(row.type ?? row.Type);
+    const type = coerceType(row.type ?? row.Type ?? row.code ?? row.Code);
     if (!type) {
-      // Keep behavior explicit: do not silently remap unknown backend method types to cash.
-      console.warn('[normalizeToPosPaymentMethods] Unsupported payment type dropped:', row.type ?? row.Type);
+      console.warn('[normalizeToPosPaymentMethods] Unsupported payment method code dropped:', row.type ?? row.Type);
       continue;
     }
     const icon = String(row.icon ?? row.Icon ?? 'ellipse-outline');
-    out.push({ id, name, type, icon });
+    const isDefault = coerceBool(row.isDefault ?? row.IsDefault);
+    const requiresReceivedAmount = coerceBool(
+      row.requiresReceivedAmount ?? row.RequiresReceivedAmount
+    );
+    const requiresTerminal = coerceBool(row.requiresTerminal ?? row.RequiresTerminal);
+    const terminalType =
+      row.terminalType != null || row.TerminalType != null
+        ? String(row.terminalType ?? row.TerminalType ?? '')
+        : undefined;
+    const allowRefund = coerceBool(row.allowRefund ?? row.AllowRefund);
+    out.push({
+      id,
+      name,
+      type,
+      icon,
+      ...(isDefault !== undefined ? { isDefault } : {}),
+      ...(requiresReceivedAmount !== undefined ? { requiresReceivedAmount } : {}),
+      ...(requiresTerminal !== undefined ? { requiresTerminal } : {}),
+      ...(terminalType !== undefined ? { terminalType: terminalType || null } : {}),
+      ...(allowRefund !== undefined ? { allowRefund } : {}),
+    });
   }
   return out;
+}
+
+function coerceType(raw: unknown): string | null {
+  return coerceCode(raw);
 }
 
 /**

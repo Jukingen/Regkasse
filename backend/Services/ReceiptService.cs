@@ -389,6 +389,7 @@ namespace KasseAPI_Final.Services
                 .Select(r => new ReceiptListItemDto
                 {
                     ReceiptId = r.ReceiptId,
+                    PaymentId = r.PaymentId,
                     ReceiptNumber = r.ReceiptNumber,
                     IssuedAt = r.IssuedAt,
                     CashierId = r.CashierId,

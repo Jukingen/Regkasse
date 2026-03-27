@@ -44,7 +44,7 @@
   "moreTools": {
     "payloadHash": "Payload hash conflicts",
     "queueLegacy": "FinanzOnline reconciliation (legacy)",
-    "fiscalExport": "Fiscal export diagnostics",
+    "fiscalExport": "Fiscal export (profiles)",
     "integrity": "Data integrity",
     "offlineCoverage": "Offline intent coverage",
     "verifications": "Verifications / audit",
@@ -195,6 +195,21 @@
     "status": "System status",
     "cmcCertificate": "CMC / certificate",
     "finanzOnlineOps": "FinanzOnline · integration"
+  },
+  "fiscalExportPage": {
+    "title": "Fiscal export",
+    "breadcrumb": "Fiscal export",
+    "profileLabel": "Export profile",
+    "profileHelp": "The profile sets purpose and required permissions. Every payload still carries the «not statutory RKSV proof» notice — including compliance packs.",
+    "diagnostic": "Diagnostic / support",
+    "diagnosticDesc": "Engineering analysis and support: integrity flags are slice-scoped and best-effort.",
+    "auditHandoff": "Audit handoff",
+    "auditHandoffDesc": "Structured bundle for internal or external auditors — alongside the audit log; not a substitute for official registers or FinanzOnline.",
+    "compliance": "Compliance / legal review",
+    "complianceDesc": "Pack for external compliance or legal review (requires fiscal.export.compliance); not a FinanzOnline substitute.",
+    "profileForbidden": "You do not have permission for this profile.",
+    "globalIntegrityHint": "Use «Data integrity» for database-wide checks; export cards only show slice-level risk.",
+    "sliceVsGlobalTitle": "Export (slice) vs. global integrity"
   },
   "aria": {
     "cardRefreshing": "Loading card content",

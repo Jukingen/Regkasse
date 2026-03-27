@@ -29,18 +29,21 @@ namespace KasseAPI_Final.Controllers
     public class PaymentController : BaseController
     {
         private readonly IPaymentService _paymentService;
+        private readonly IPaymentMethodCatalogService _paymentMethodCatalog;
         private readonly SignaturePipeline _signaturePipeline;
 
         private readonly IQrImageService _qrImageService;
 
         public PaymentController(
             IPaymentService paymentService,
+            IPaymentMethodCatalogService paymentMethodCatalog,
             IQrImageService qrImageService,
             SignaturePipeline signaturePipeline,
             ILogger<PaymentController> logger) 
             : base(logger)
         {
             _paymentService = paymentService;
+            _paymentMethodCatalog = paymentMethodCatalog;
             _qrImageService = qrImageService;
             _signaturePipeline = signaturePipeline;
         }
@@ -49,7 +52,7 @@ namespace KasseAPI_Final.Controllers
         /// Mevcut ödeme yöntemlerini getir
         /// </summary>
         [HttpGet("methods")]
-        public IActionResult GetPaymentMethods()
+        public async Task<IActionResult> GetPaymentMethods(CancellationToken cancellationToken)
         {
             try
             {
@@ -60,14 +63,7 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("User not authenticated", 401);
                 }
 
-                var paymentMethods = new[]
-                {
-                    new { id = "cash", name = "Nakit", type = "cash", icon = "cash-outline" },
-                    new { id = "card", name = "Kart", type = "card", icon = "card-outline" },
-                    new { id = "voucher", name = "Kupon", type = "voucher", icon = "ticket-outline" },
-                    new { id = "transfer", name = "Havale", type = "transfer", icon = "swap-horizontal-outline" }
-                };
-
+                var paymentMethods = await _paymentMethodCatalog.GetActivePosMethodsAsync(cancellationToken);
                 return SuccessResponse(paymentMethods, "Payment methods retrieved successfully");
             }
             catch (Exception ex)

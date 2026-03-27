@@ -53,7 +53,7 @@ export default function SettingsPage() {
         }
     };
 
-    const headerBreadcrumbs = [adminOverviewCrumb(t), { title: t('nav.settings') }];
+    const headerBreadcrumbs = [adminOverviewCrumb(t), { title: t('settings.page.title') }];
 
     if (isLoading) {
         return (

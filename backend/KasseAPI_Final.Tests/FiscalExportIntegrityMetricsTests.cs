@@ -500,6 +500,8 @@ public class FiscalExportIntegrityMetricsTests
         Assert.False(string.IsNullOrEmpty(export.NotLegalProofNotice));
         Assert.Contains("NOT LEGAL PROOF", export.NotLegalProofNotice, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(FiscalExportService.NotLegalProofNoticeText, export.NotLegalProofNotice);
+        Assert.Equal("diagnostic", export.ExportProfile);
+        Assert.Contains("Diagnostic profile", export.ExportProfileIntentNotice, StringComparison.OrdinalIgnoreCase);
     }
 }
 

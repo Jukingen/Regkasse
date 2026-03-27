@@ -8,6 +8,8 @@ namespace KasseAPI_Final.DTOs
     public class ReceiptListItemDto
     {
         public Guid ReceiptId { get; set; }
+        /// <summary>Zugehörige Zahlung — für Nachdruck-Flow (by-payment) ohne Extra-Lookup.</summary>
+        public Guid PaymentId { get; set; }
         public string ReceiptNumber { get; set; } = string.Empty;
         public DateTime IssuedAt { get; set; }
         public string? CashierId { get; set; }

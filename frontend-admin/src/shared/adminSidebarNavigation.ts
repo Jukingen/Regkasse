@@ -17,20 +17,25 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
     sortiment: 'grp-sortiment',
     kundenVorteile: 'grp-kunden-vorteile',
     verwaltung: 'grp-verwaltung',
+    /** Nested under Verwaltung: /settings + /settings/payment-methods */
+    settingsArea: 'grp-settings-area',
 } as const;
 
 /** Route prefixes per group — used to auto-open the matching submenu for nested routes (e.g. /receipts/[id]). */
 export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     [ADMIN_SIDEBAR_GROUP_KEYS.kasseBelege]: [
+        '/operations-center',
         '/receipts',
         '/payments',
+        '/reporting',
         '/tagesabschluss',
         '/receipt-templates',
         '/receipt-generate',
+        '/tables',
     ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.sortiment]: ['/products', '/modifier-groups', '/categories'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.sortiment]: ['/products', '/modifier-groups', '/categories', '/inventory'],
     [ADMIN_SIDEBAR_GROUP_KEYS.kundenVorteile]: ['/customers', '/benefit-definitions', '/benefit-assignments'],
-    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', '/settings'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', '/settings', '/settings/payment-methods'],
 };
 
 /**
@@ -79,6 +84,9 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     const keys: string[] = [];
     for (const [groupKey, routes] of Object.entries(ADMIN_SIDEBAR_GROUP_ROUTES)) {
         if (routes.some((r) => p === r || p.startsWith(`${r}/`))) keys.push(groupKey);
+    }
+    if (p === '/settings' || p.startsWith('/settings/')) {
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
     }
     return keys;
 }

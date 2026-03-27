@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using KasseAPI_Final.Authorization;
 
 namespace KasseAPI_Final.Security;
 
@@ -15,4 +16,13 @@ public static class PrincipalActorExtensions
 
     public static string? GetActorRole(this ClaimsPrincipal? principal) =>
         principal?.FindFirst(ClaimTypes.Role)?.Value;
+
+    /// <summary>
+    /// Permission claim eşleşmesi (RolePermissionMatrix ile üretilen JWT permission claim’leri).
+    /// </summary>
+    public static bool HasPermissionClaim(this ClaimsPrincipal? principal, string permission)
+    {
+        if (principal == null || string.IsNullOrEmpty(permission)) return false;
+        return principal.HasClaim(PermissionCatalog.PermissionClaimType, permission);
+    }
 }

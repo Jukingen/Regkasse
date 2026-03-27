@@ -15,6 +15,7 @@ using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final;
 using KasseAPI_Final.Tse;
@@ -368,6 +369,7 @@ builder.Services.AddScoped<IFinanzOnlineSubmissionService, FinanzOnlineSubmissio
 builder.Services.AddScoped<IFinanzOnlineOutboxService, FinanzOnlineOutboxService>();
 builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
 builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
+builder.Services.AddScoped<IOperationalReportingService, OperationalReportingService>();
 builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi eklendi
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
 // builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
@@ -377,6 +379,8 @@ builder.Services.AddScoped<IReceiptSequenceService, ReceiptSequenceService>();
 builder.Services.AddScoped<ICashRegisterResolutionService, CashRegisterResolutionService>();
 builder.Services.AddScoped<ICashRegisterShiftService, CashRegisterShiftService>();
 builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterReadinessService>();
+builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
+builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi

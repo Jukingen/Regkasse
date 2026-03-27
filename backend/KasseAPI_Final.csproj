@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <Compile Remove="KasseAPI_Final.Tests\**" />
+    <Compile Remove="artifacts\**" />
     <Content Remove="KasseAPI_Final.Tests\**" />
     <None Remove="KasseAPI_Final.Tests\**" />
   </ItemGroup>

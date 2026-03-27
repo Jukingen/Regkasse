@@ -3,15 +3,16 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Models.Export;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// DEP-like fiscal export: receipts, RKSV/TSE signatures, chain state, closings.
-/// JSON by default; optional CSV when includeCsv=true.
-/// Integrity booleans and chainContinuityWarnings are best-effort, observed-within-scope diagnostics only—not a legal RKSV guarantee; always read exportScopeWarnings and integrity.integrityDiagnosticNotes on the payload.
+/// DEP-benzeri fiscal export: fişler, RKSV/TSE imzaları, zincir durumu, kapanışlar.
+/// exportProfile: diagnostic (varsayılan), audit_handoff, compliance — yetki kuralları <see cref="FiscalExportProfileRules"/>.
+/// Bütünlük bayrakları tanılama amaçlıdır; yasal RKSV garantisi değildir (payload notLegalProofNotice).
 /// </summary>
 [Authorize]
 [ApiController]
@@ -41,45 +42,68 @@ public class FiscalExportController : ControllerBase
     }
 
     /// <summary>
-    /// Export fiscal package for one cash register and UTC time range. Receipts are filtered by IssuedAt in [fromUtc, toUtc]; may truncate at 50k rows. Chain/sequence flags apply only to included receipts.
+    /// Export fiscal package for one cash register and UTC time range.
     /// </summary>
-    /// <param name="cashRegisterId">Target register.</param>
-    /// <param name="fromUtc">Inclusive start (UTC).</param>
-    /// <param name="toUtc">Inclusive end (UTC).</param>
-    /// <param name="includeCsv">When true, adds receiptsCsv and closingsCsv (UTF-8 text, comma-separated).</param>
-    /// <param name="format">json (default) or jsonDownload — download sets Content-Disposition attachment.</param>
+    /// <param name="exportProfile">diagnostic (default) | audit_handoff | compliance</param>
     [HttpGet]
-    [HasPermission(AppPermissions.ReportExport)]
     public async Task<IActionResult> GetExport(
         [FromQuery] Guid cashRegisterId,
         [FromQuery] DateTime fromUtc,
         [FromQuery] DateTime toUtc,
         [FromQuery] bool includeCsv = false,
         [FromQuery] string format = "json",
+        [FromQuery] string? exportProfile = null,
         CancellationToken cancellationToken = default)
     {
-        // Caller range: inclusive UTC instants on IssuedAt (see FiscalExportService; not Austria calendar half-open).
+        if (!FiscalExportProfileRules.TryParseProfile(exportProfile, out var profile))
+        {
+            return BadRequest(new
+            {
+                message = "Invalid exportProfile. Use: diagnostic, audit_handoff, or compliance.",
+                code = "FISCAL_EXPORT_INVALID_PROFILE"
+            });
+        }
+
+        if (!FiscalExportProfileRules.CanExport(User, profile))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                message = FiscalExportProfileRules.ForbiddenDetail(profile),
+                code = "FISCAL_EXPORT_PROFILE_FORBIDDEN",
+                exportProfile = profile.ToString()
+            });
+        }
+
         try
         {
             var package = await _exportService.BuildExportAsync(
-                cashRegisterId, fromUtc, toUtc, includeCsv, cancellationToken);
+                cashRegisterId, fromUtc, toUtc, includeCsv, profile, cancellationToken);
 
             try
             {
                 var userId = User.GetActorUserId() ?? "unknown";
                 var userRole = User.GetActorRole() ?? "Unknown";
+                var auditAction = profile switch
+                {
+                    FiscalExportProfile.Diagnostic => "FiscalExportDiagnostic",
+                    FiscalExportProfile.AuditHandoff => "FiscalExportAuditHandoff",
+                    FiscalExportProfile.LegalCompliance => "FiscalExportCompliancePack",
+                    _ => "FiscalExportDiagnostic"
+                };
+
                 await _auditLogService.LogSystemOperationAsync(
-                    "FiscalExportRequested",
+                    auditAction,
                     "FiscalExport",
                     userId,
                     userRole,
-                    description: $"Fiscal export register {cashRegisterId}",
-                    requestData: new { cashRegisterId, fromUtc, toUtc, includeCsv },
+                    description: $"Fiscal export ({package.ExportProfile}) register {cashRegisterId}",
+                    requestData: new { cashRegisterId, fromUtc, toUtc, includeCsv, exportProfile = package.ExportProfile },
                     responseData: new
                     {
                         package.ReceiptCount,
                         package.ClosingCount,
-                        chainWarningCount = package.ChainContinuityWarnings?.Count ?? 0
+                        chainWarningCount = package.ChainContinuityWarnings?.Count ?? 0,
+                        package.ExportProfile
                     });
             }
             catch (Exception auditEx)
@@ -90,7 +114,7 @@ public class FiscalExportController : ControllerBase
             if (string.Equals(format, "jsonDownload", StringComparison.OrdinalIgnoreCase))
             {
                 var fileName =
-                    $"fiscal-export-{cashRegisterId:D}-{fromUtc:yyyyMMdd}-{toUtc:yyyyMMdd}.json";
+                    $"fiscal-export-{package.ExportProfile}-{cashRegisterId:D}-{fromUtc:yyyyMMdd}-{toUtc:yyyyMMdd}.json";
                 var bytes = JsonSerializer.SerializeToUtf8Bytes(package, JsonOptions);
                 return File(bytes, "application/json", fileName);
             }

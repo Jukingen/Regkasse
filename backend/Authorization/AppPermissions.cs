@@ -92,6 +92,9 @@ public static class AppPermissions
     public const string ReportView = "report.view";
     public const string ReportExport = "report.export";
 
+    /// <summary>Uyum / hukuki inceleme paketi (fiscal export compliance profili). Tanılama veya denetim devrinden ayrı.</summary>
+    public const string FiscalExportCompliance = "fiscal.export.compliance";
+
     // --- FinanzOnline ---
     public const string FinanzOnlineView = "finanzonline.view";
     public const string FinanzOnlineManage = "finanzonline.manage";

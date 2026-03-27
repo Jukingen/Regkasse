@@ -18,6 +18,8 @@ export const PERMISSIONS = {
   ORDER_CREATE: 'order.create',
   ORDER_UPDATE: 'order.update',
   ORDER_CANCEL: 'order.cancel',
+  TABLE_VIEW: 'table.view',
+  TABLE_MANAGE: 'table.manage',
   CART_VIEW: 'cart.view',
   CART_MANAGE: 'cart.manage',
   PAYMENT_VIEW: 'payment.view',
@@ -33,6 +35,8 @@ export const PERMISSIONS = {
   AUDIT_CLEANUP: 'audit.cleanup',
   REPORT_VIEW: 'report.view',
   REPORT_EXPORT: 'report.export',
+  /** Fiscal export “compliance / legal review” profile (separate from diagnostic-only report.export). */
+  FISCAL_EXPORT_COMPLIANCE: 'fiscal.export.compliance',
   INVOICE_VIEW: 'invoice.view',
   INVOICE_MANAGE: 'invoice.manage',
   INVOICE_EXPORT: 'invoice.export',

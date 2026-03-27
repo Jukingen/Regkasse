@@ -5,9 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using AuditLogStatus = KasseAPI_Final.Models.AuditLogStatus;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Data.Repositories;
+using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Time;
 using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
@@ -15,6 +17,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System;
 using System.Threading.Tasks;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -44,6 +47,8 @@ namespace KasseAPI_Final.Services
         private readonly IFinanzOnlineMetrics? _finanzOnlineMetrics;
         private readonly ICashRegisterResolutionService _cashRegisterResolution;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IPaymentMethodCatalogService _paymentMethodCatalog;
+        private readonly IPricingRuleResolver _pricingRuleResolver;
 
         public PaymentService(
             AppDbContext context,
@@ -62,6 +67,8 @@ namespace KasseAPI_Final.Services
             ILogger<PaymentService> logger,
             ICashRegisterResolutionService cashRegisterResolution,
             IHttpContextAccessor httpContextAccessor,
+            IPaymentMethodCatalogService paymentMethodCatalog,
+            IPricingRuleResolver pricingRuleResolver,
             IFinanzOnlineMetrics? finanzOnlineMetrics = null)
         {
             _context = context;
@@ -80,6 +87,8 @@ namespace KasseAPI_Final.Services
             _logger = logger;
             _cashRegisterResolution = cashRegisterResolution;
             _httpContextAccessor = httpContextAccessor;
+            _paymentMethodCatalog = paymentMethodCatalog;
+            _pricingRuleResolver = pricingRuleResolver;
             _finanzOnlineMetrics = finanzOnlineMetrics;
         }
 
@@ -329,6 +338,8 @@ namespace KasseAPI_Final.Services
                     decimal totalTaxAmount = 0;
                     var taxDetails = new Dictionary<string, decimal>();
 
+                    var cartSnapshotPrices = await TryGetCartSnapshotUnitPricesAsync(userId, request.TableNumber, request.Items);
+
                     foreach (var itemRequest in request.Items)
                     {
                         var product = await _context.Products
@@ -379,7 +390,23 @@ namespace KasseAPI_Final.Services
 
                         // VAT oranı kategoriden (yüzde: 10, 20); tek rounding noktası CartMoneyHelper. decimal only.
                         var vatRatePercent = product.CategoryNavigation.VatRate;
-                        var line = CartMoneyHelper.ComputeLine(product.Price, itemRequest.Quantity, vatRatePercent);
+                        decimal unitGross;
+                        if (cartSnapshotPrices != null && cartSnapshotPrices.TryGetValue(product.Id, out var snapGross))
+                        {
+                            unitGross = snapGross;
+                        }
+                        else
+                        {
+                            var priceRes = await _pricingRuleResolver.ResolveUnitGrossAsync(
+                                product.Price,
+                                product.Id,
+                                product.CategoryId,
+                                cashRegisterId,
+                                DateTime.UtcNow);
+                            unitGross = priceRes.UnitPriceGross;
+                        }
+
+                        var line = CartMoneyHelper.ComputeLine(unitGross, itemRequest.Quantity, vatRatePercent);
                         totalAmount += line.LineGross;
                         totalTaxAmount += line.LineTax;
 
@@ -613,6 +640,19 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
+                var methodResolution = await _paymentMethodCatalog.ResolveForPaymentAsync(request.Payment.Method);
+                if (!methodResolution.Ok)
+                {
+                    await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = methodResolution.ErrorMessage ?? "Invalid payment method.",
+                        Errors = { methodResolution.ErrorMessage ?? "Invalid payment method." }
+                    };
+                }
+
                 // Single database transaction: register row lock + stock + BelegNr + payment + invoice + receipt commit together.
                 PaymentDetails? payment = null;
                 Invoice? posInvoice = null;
@@ -629,7 +669,7 @@ namespace KasseAPI_Final.Services
                         TotalAmount = totalAmount,
                         TaxAmount = totalTaxAmount,
                         TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(taxDetails)),
-                        PaymentMethodRaw = GetPaymentMethodEnum(request.Payment.Method),
+                        PaymentMethodRaw = methodResolution.LegacyRaw,
                         Notes = request.Notes,
                         CreatedBy = userId,
                         CreatedAt = DateTime.UtcNow,
@@ -910,7 +950,13 @@ namespace KasseAPI_Final.Services
                 if (product?.CategoryNavigation == null) continue;
 
                 var vatRatePercent = product.CategoryNavigation.VatRate;
-                var line = CartMoneyHelper.ComputeLine(product.Price, item.Quantity, vatRatePercent);
+                var priceRes = await _pricingRuleResolver.ResolveUnitGrossAsync(
+                    product.Price,
+                    product.Id,
+                    product.CategoryId,
+                    request.CashRegisterId,
+                    DateTime.UtcNow);
+                var line = CartMoneyHelper.ComputeLine(priceRes.UnitPriceGross, item.Quantity, vatRatePercent);
                 totalAmount += line.LineGross;
                 paymentItems.Add(new PaymentItem
                 {
@@ -1246,14 +1292,6 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Ödeme yöntemi validasyonu
-                var validMethods = new[] { "cash", "card", "voucher", "transfer", "banktransfer" };
-                if (!validMethods.Contains(paymentMethod.ToLower()))
-                {
-                    _logger.LogWarning("Invalid payment method: {PaymentMethod}", paymentMethod);
-                    return Enumerable.Empty<PaymentDetails>();
-                }
-
                 // Sayfa boyutu validasyonu
                 if (pageSize <= 0 || pageSize > 100)
                 {
@@ -1267,10 +1305,12 @@ namespace KasseAPI_Final.Services
                     pageNumber = 1;
                 }
 
+                var methodRaw = await _paymentMethodCatalog.ResolveRawForFilterAsync(paymentMethod);
+
                 var (items, totalCount) = await _paymentRepository.GetPagedAsync(
                     pageNumber, 
                     pageSize, 
-                    p => p.PaymentMethodRaw == GetPaymentMethodEnum(paymentMethod) && p.IsActive,
+                    p => p.PaymentMethodRaw == methodRaw && p.IsActive,
                     p => p.CreatedAt,
                     false);
 
@@ -2374,6 +2414,108 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        /// <summary>
+        /// Backoffice: bestätigter Nachdruck — eine strukturierte Audit-Zeile (<c>ReceiptReprintConfirmed</c> / <c>ReceiptReprintRejected</c>), kein neuer Beleg, keine TSE-Neuerzeugung.
+        /// </summary>
+        public async Task<ReceiptReprintOperationResult> ConfirmReceiptReprintAsync(Guid paymentId, ReceiptReprintRequest? request, string userId, CancellationToken cancellationToken = default)
+        {
+            _ = cancellationToken;
+            const int maxNote = 500;
+            static string? TrimCap(string? s, int max)
+            {
+                if (string.IsNullOrWhiteSpace(s)) return null;
+                s = s.Trim();
+                return s.Length <= max ? s : s.Substring(0, max);
+            }
+
+            var routing = new PrintRoutingContext
+            {
+                DeviceId = TrimCap(request?.DeviceId, 64),
+                PrinterProfileId = TrimCap(request?.PrinterProfileId, 64),
+                Resolved = false,
+                IsSimulated = true
+            };
+
+            var requestSnapshot = new
+            {
+                ReprintReasonCode = request?.ReprintReasonCode,
+                ReasonDetail = TrimCap(request?.ReasonDetail, maxNote),
+                DeviceId = routing.DeviceId,
+                PrinterProfileId = routing.PrinterProfileId,
+                Note = TrimCap(request?.Note, maxNote),
+                IdempotencyKey = TrimCap(request?.IdempotencyKey, 128)
+            };
+
+            if (request == null || string.IsNullOrWhiteSpace(request.ReprintReasonCode))
+            {
+                var id = await LogReceiptReprintAuditAsync("ReceiptReprintRejected", paymentId, userId, requestSnapshot,
+                    new { ErrorCode = "VALIDATION_MISSING_REASON" }, AuditLogStatus.Failed, "Missing reprintReasonCode").ConfigureAwait(false);
+                return new ReceiptReprintOperationResult
+                {
+                    Success = false,
+                    ErrorCode = "VALIDATION_MISSING_REASON",
+                    ErrorMessage = "reprintReasonCode is required.",
+                    AuditLogId = id,
+                    Routing = routing
+                };
+            }
+
+            if (!ReceiptReprintReasonCodes.IsValid(request.ReprintReasonCode))
+            {
+                var id = await LogReceiptReprintAuditAsync("ReceiptReprintRejected", paymentId, userId, requestSnapshot,
+                    new { ErrorCode = "VALIDATION_INVALID_REASON", ReasonCode = request.ReprintReasonCode }, AuditLogStatus.Failed, "Invalid reprintReasonCode").ConfigureAwait(false);
+                return new ReceiptReprintOperationResult
+                {
+                    Success = false,
+                    ErrorCode = "VALIDATION_INVALID_REASON",
+                    ErrorMessage = "Invalid reprintReasonCode.",
+                    AuditLogId = id,
+                    Routing = routing
+                };
+            }
+
+            var receiptDto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
+            if (receiptDto == null)
+            {
+                var id = await LogReceiptReprintAuditAsync("ReceiptReprintRejected", paymentId, userId, requestSnapshot,
+                    new { ErrorCode = "NOT_FOUND" }, AuditLogStatus.Failed, "No persisted receipt for payment").ConfigureAwait(false);
+                return new ReceiptReprintOperationResult
+                {
+                    Success = false,
+                    NotFound = true,
+                    ErrorCode = "NOT_FOUND",
+                    ErrorMessage = "No persisted receipt for this payment.",
+                    AuditLogId = id,
+                    Routing = routing
+                };
+            }
+
+            var successPayload = new
+            {
+                ReprintReasonCode = request.ReprintReasonCode.Trim(),
+                ReasonDetail = TrimCap(request.ReasonDetail, maxNote),
+                DeviceId = routing.DeviceId,
+                PrinterProfileId = routing.PrinterProfileId,
+                Note = TrimCap(request.Note, maxNote),
+                IdempotencyKey = TrimCap(request?.IdempotencyKey, 128),
+                ReceiptNumber = receiptDto.ReceiptNumber,
+                ReceiptId = receiptDto.ReceiptId,
+                RoutingSimulated = true,
+                ReportableEventType = "ReceiptReprintConfirmed"
+            };
+
+            var auditId = await LogReceiptReprintAuditAsync("ReceiptReprintConfirmed", paymentId, userId, requestSnapshot,
+                successPayload, AuditLogStatus.Success, null, receiptDto.GrandTotal).ConfigureAwait(false);
+
+            return new ReceiptReprintOperationResult
+            {
+                Success = true,
+                Receipt = receiptDto,
+                AuditLogId = auditId,
+                Routing = routing
+            };
+        }
+
         #region Private Methods
 
         /// <summary>Resolves user role for audit. Returns "Unknown" if user not found.</summary>
@@ -2402,28 +2544,44 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        /// <summary>Nachdruck-Audit (append-only); Fehler beim Schreiben werden geschluckt wie bei anderen Payment-Audits.</summary>
+        private async Task<Guid?> LogReceiptReprintAuditAsync(
+            string action,
+            Guid paymentId,
+            string userId,
+            object requestSnapshot,
+            object? responseSnapshot,
+            AuditLogStatus status,
+            string? errorDetails,
+            decimal? amount = null)
+        {
+            try
+            {
+                var userRole = await GetUserRoleAsync(userId).ConfigureAwait(false);
+                var audit = await _auditLogService.LogPaymentOperationAsync(
+                    action,
+                    "Payment",
+                    paymentId,
+                    userId,
+                    userRole,
+                    amount: amount,
+                    requestData: requestSnapshot,
+                    responseData: responseSnapshot,
+                    status: status,
+                    errorDetails: errorDetails,
+                    description: $"Receipt reprint {action} for payment {paymentId}").ConfigureAwait(false);
+                return audit.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Audit log write failed for receipt reprint {Action} PaymentId={PaymentId}", action, paymentId);
+                return null;
+            }
+        }
+
         private decimal GetTaxRate(int taxType)
         {
             return TaxTypes.GetTaxRate(taxType) / 100.0m; // Convert 20.0 to 0.20
-        }
-
-        /// <summary>
-        /// Convert payment method string to DB format (numeric string)
-        /// </summary>
-        private string GetPaymentMethodEnum(string paymentMethod)
-        {
-            // Map common payment method strings to numeric strings
-            return paymentMethod?.ToLower() switch
-            {
-                "cash" => "0",
-                "card" => "1",
-                "banktransfer" => "2",
-                "transfer" => "2",
-                "check" => "3",
-                "voucher" => "4",
-                "mobile" => "5",
-                _ => "0" // Default to Cash
-            };
         }
 
         private bool IsValidAustrianTaxNumber(string taxNumber)
@@ -2578,6 +2736,44 @@ namespace KasseAPI_Final.Services
             if (msg.Contains("duplicate") || msg.Contains("already submitted") || msg.Contains("validation") || msg.Contains("forbidden"))
                 return FinanzOnlineFailureKind.Permanent;
             return FinanzOnlineFailureKind.Unknown;
+        }
+
+        /// <summary>
+        /// Aktif sepet satırları ödeme kalemleriyle (ürün + miktar) birebir örtüşüyorsa birim brüt fiyatları döndürür; böylece ödeme toplamı sepetteki anlık fiyatla uyumlu kalır.
+        /// </summary>
+        private async Task<Dictionary<Guid, decimal>?> TryGetCartSnapshotUnitPricesAsync(
+            string userId,
+            int tableNumber,
+            IReadOnlyList<PaymentItemRequest> items)
+        {
+            var cart = await _context.Carts
+                .AsNoTracking()
+                .Include(c => c.Items)
+                .FirstOrDefaultAsync(c => c.UserId == userId && c.TableNumber == tableNumber && c.Status == CartStatus.Active);
+            if (cart?.Items == null || cart.Items.Count == 0)
+                return null;
+
+            var reqByProduct = items.GroupBy(i => i.ProductId).ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+            var cartByProduct = cart.Items.GroupBy(ci => ci.ProductId).ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+            if (reqByProduct.Count != cartByProduct.Count)
+                return null;
+            foreach (var kv in reqByProduct)
+            {
+                if (!cartByProduct.TryGetValue(kv.Key, out var cq) || cq != kv.Value)
+                    return null;
+            }
+
+            var result = new Dictionary<Guid, decimal>();
+            foreach (var g in cart.Items.GroupBy(ci => ci.ProductId))
+            {
+                var qty = g.Sum(x => x.Quantity);
+                if (qty <= 0)
+                    return null;
+                var weighted = g.Sum(x => x.UnitPrice * x.Quantity);
+                result[g.Key] = Math.Round(weighted / qty, 2, MidpointRounding.AwayFromZero);
+            }
+
+            return result;
         }
 
         #endregion

@@ -65,6 +65,84 @@
         }
       }
     },
+    "/api/admin/backoffice/print-routing/options": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrintRoutingOptionsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backoffice/receipts/{paymentId}/reprint-request": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptReprintRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptReprintResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptReprintResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptReprintResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/payments": {
       "get": {
         "tags": [
@@ -5080,11 +5158,26 @@
               "type": "string",
               "default": "json"
             }
+          },
+          {
+            "name": "exportProfile",
+            "in": "query",
+            "description": "diagnostic (default) | audit_handoff | compliance — see FISCAL_EXPORT_DIAGNOSTICS.md",
+            "schema": {
+              "type": "string",
+              "default": "diagnostic"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden — insufficient permissions for selected export profile"
           }
         }
       }
@@ -5403,6 +5496,38 @@
         }
       }
     },
+    "/api/Inventory/{id}/transfer": {
+      "post": {
+        "tags": [
+          "Inventory"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferInventoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Inventory/low-stock": {
       "get": {
         "tags": [
@@ -5433,6 +5558,91 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/InventoryItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Inventory/history": {
+      "get": {
+        "tags": [
+          "Inventory"
+        ],
+        "parameters": [
+          {
+            "name": "inventoryId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryHistoryPageDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Inventory/reorder-suggestions": {
+      "get": {
+        "tags": [
+          "Inventory"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReorderSuggestionDto"
                   }
                 }
               }
@@ -11038,6 +11248,392 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Reports/operational/staff-performance": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cashierId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paymentMethod",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "activeOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "includePerStaffPerDay",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffPerformanceReportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Reports/operational/summary": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cashierId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paymentMethod",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "activeOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Reports/operational/periodic": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "parameters": [
+          {
+            "name": "periodPreset",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "custom"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cashierId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paymentMethod",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "activeOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodicOperationalReportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Reports/operational/interim": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cashierId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paymentMethod",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "activeOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterimOperationalReportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Reports/operational/closings": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClosingReferenceReportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Reports/operational/export/summary.csv": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cashierId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paymentMethod",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "activeOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         }
       }
@@ -19037,6 +19633,475 @@
         },
         "additionalProperties": false
       },
+      "OperationalReportMetaDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportGeneratedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodStartUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodEndUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodStartLocalDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodEndLocalDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodPreset": {
+            "type": "string",
+            "nullable": true
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "cashierId": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentMethodFilter": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "activeOnly": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentMethodBucketDto": {
+        "type": "object",
+        "properties": {
+          "methodKey": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalAmount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CashierBucketDto": {
+        "type": "object",
+        "properties": {
+          "cashierId": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalAmount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StaffPerformanceReliabilityDto": {
+        "type": "object",
+        "properties": {
+          "primaryDataSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessTimeZone": {
+            "type": "string",
+            "nullable": true
+          },
+          "dayBucketNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "auditSeparationNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "cashierIdentityNote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StaffPerformanceTotalsDto": {
+        "type": "object",
+        "properties": {
+          "saleTransactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "grossSalesAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "refundRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refundAmountTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "stornoRowCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StaffPerformanceStaffRowDto": {
+        "type": "object",
+        "properties": {
+          "cashierId": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "saleTransactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "grossSalesAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "refundRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refundAmountTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "stornoRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refundRowsPerSale": {
+            "type": "number",
+            "format": "double"
+          },
+          "stornoRowsPerSale": {
+            "type": "number",
+            "format": "double"
+          },
+          "refundAmountToGrossRatio": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StaffPerformanceStaffMethodSliceDto": {
+        "type": "object",
+        "properties": {
+          "cashierId": {
+            "type": "string"
+          },
+          "paymentMethodRaw": {
+            "type": "string"
+          },
+          "saleCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "grossAmount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StaffPerformanceLocalDayAggregateDto": {
+        "type": "object",
+        "properties": {
+          "localDayYyyyMmDd": {
+            "type": "string"
+          },
+          "saleTransactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "grossSalesAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "refundRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stornoRowCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StaffPerformanceLocalDayStaffDto": {
+        "type": "object",
+        "properties": {
+          "localDayYyyyMmDd": {
+            "type": "string"
+          },
+          "cashierId": {
+            "type": "string"
+          },
+          "saleTransactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "grossSalesAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "refundRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stornoRowCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StaffPerformanceAnomalyDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "nullable": true
+          },
+          "cashierId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "metricValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "threshold": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StaffPerformanceReportDto": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/OperationalReportMetaDto"
+          },
+          "reliability": {
+            "$ref": "#/components/schemas/StaffPerformanceReliabilityDto"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/StaffPerformanceTotalsDto"
+          },
+          "byStaff": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffPerformanceStaffRowDto"
+            },
+            "nullable": true
+          },
+          "byStaffAndPaymentMethod": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffPerformanceStaffMethodSliceDto"
+            },
+            "nullable": true
+          },
+          "aggregateByLocalDay": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffPerformanceLocalDayAggregateDto"
+            },
+            "nullable": true
+          },
+          "byLocalDayAndStaff": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffPerformanceLocalDayStaffDto"
+            },
+            "nullable": true
+          },
+          "anomalies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StaffPerformanceAnomalyDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OperationalSummaryDto": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/OperationalReportMetaDto"
+          },
+          "paymentRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "grossTotalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxTotalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "refundRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "refundAmountTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "byPaymentMethod": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentMethodBucketDto"
+            },
+            "nullable": true
+          },
+          "byCashier": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CashierBucketDto"
+            },
+            "nullable": true
+          },
+          "interimDisclaimer": {
+            "type": "string",
+            "nullable": true
+          },
+          "closingDisclaimer": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PeriodicOperationalReportDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/OperationalSummaryDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InterimOperationalReportDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/OperationalSummaryDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClosingReferenceRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "closingDateUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closingType": {
+            "type": "string"
+          },
+          "totalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTaxAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "hasTseSignature": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ClosingReferenceReportDto": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/OperationalReportMetaDto"
+          },
+          "dailyClosings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClosingReferenceRowDto"
+            },
+            "nullable": true
+          },
+          "operatorNote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PaymentStatistics": {
         "type": "object",
         "properties": {
@@ -19836,6 +20901,10 @@
         "type": "object",
         "properties": {
           "receiptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "paymentId": {
             "type": "string",
             "format": "uuid"
           },
@@ -20989,6 +22058,132 @@
           "revenue": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryHistoryRowDto": {
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "inventoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "productCategory": {
+            "type": "string"
+          },
+          "transactionType": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionDateUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryHistoryPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryHistoryRowDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReorderSuggestionDto": {
+        "type": "object",
+        "properties": {
+          "inventoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "productCategory": {
+            "type": "string"
+          },
+          "currentStock": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minStockLevel": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reorderPoint": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "suggestedOrderQuantity": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransferInventoryRequest": {
+        "type": "object",
+        "properties": {
+          "targetInventoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -22667,6 +23862,124 @@
           },
           "pagination": {
             "$ref": "#/components/schemas/UsersListPagination"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PrintRoutingContext": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "printerProfileId": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PrintRoutingDeviceOption": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PrintRoutingOptionsResponse": {
+        "type": "object",
+        "properties": {
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrintRoutingDeviceOption"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptReprintRequest": {
+        "type": "object",
+        "properties": {
+          "reprintReasonCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "reasonDetail": {
+            "type": "string",
+            "nullable": true
+          },
+          "deviceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "printerProfileId": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptReprintResponse": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "auditLogId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reportableEventType": {
+            "type": "string",
+            "nullable": true
+          },
+          "receipt": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReceiptDTO"
+              }
+            ]
+          },
+          "routing": {
+            "$ref": "#/components/schemas/PrintRoutingContext"
           }
         },
         "additionalProperties": false

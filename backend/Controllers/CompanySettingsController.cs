@@ -91,7 +91,6 @@ namespace KasseAPI_Final.Controllers
         // PUT: api/companysettings
         [HttpPut]
         [HasPermission(AppPermissions.SettingsManage)]
-        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateCompanySettings([FromBody] UpdateCompanySettingsRequest request)
         {
             try
@@ -186,7 +185,6 @@ namespace KasseAPI_Final.Controllers
         // PUT: api/companysettings/business-hours
         [HttpPut("business-hours")]
         [HasPermission(AppPermissions.SettingsManage)]
-        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateBusinessHours([FromBody] Dictionary<string, string> businessHours)
         {
             try
@@ -243,7 +241,6 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/companysettings/banking
         [HttpPut("banking")]
-        [HasPermission(AppPermissions.SettingsManage)]
         [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateBankingInfo([FromBody] UpdateBankingInfoRequest request)
         {
@@ -319,7 +316,6 @@ namespace KasseAPI_Final.Controllers
         // PUT: api/companysettings/localization
         [HttpPut("localization")]
         [HasPermission(AppPermissions.SettingsManage)]
-        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateLocalizationSettings([FromBody] LocalizationSettings request)
         {
             try
@@ -388,7 +384,6 @@ namespace KasseAPI_Final.Controllers
         // PUT: api/companysettings/billing
         [HttpPut("billing")]
         [HasPermission(AppPermissions.SettingsManage)]
-        [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> UpdateBillingSettings([FromBody] UpdateBillingSettingsRequest request)
         {
             try
@@ -424,7 +419,6 @@ namespace KasseAPI_Final.Controllers
 
         // GET: api/companysettings/export
         [HttpGet("export")]
-        [HasPermission(AppPermissions.SettingsManage)]
         [HasPermission(AppPermissions.SettingsManage)]
         public async Task<IActionResult> ExportCompanySettings()
         {

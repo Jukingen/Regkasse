@@ -1,4 +1,15 @@
 {
+  "hub": {
+    "collapseTitle": "Bereiche & Verweise",
+    "intro": "Diese Seiten gehören zur Backoffice-Konfiguration, sind aber fachlich getrennt:",
+    "rowSystem": "System (global): Steuersätze, Backup, Benachrichtigungen — API `GET/PUT /api/Settings` (SystemSettings). Aktuell keine eigene Admin-Oberfläche.",
+    "rowCompany": "Firma & Fiskal (Mandant): Stammdaten, FinanzOnline, TSE-Defaults — diese Seite (`/api/CompanySettings`).",
+    "rowUser": "Benutzer: POS-/Kassen-Präferenzen — `GET/PUT /api/user/settings` (UserSettings), nicht Mandanten-weit.",
+    "rowReceipt": "Belegvorlagen & Texte — Kasse & Belege → Belegvorlagen (`/receipt-templates`).",
+    "rowRksv": "RKSV-Betrieb (Outbox, Integrität, Diagnose) — Menü RKSV, nicht unter Firmeneinstellungen.",
+    "linkReceiptTemplates": "Zu Belegvorlagen",
+    "linkRksv": "Zu RKSV"
+  },
   "page": {
     "title": "Firmeneinstellungen",
     "loading": "Firmeneinstellungen werden geladen…",
@@ -51,6 +62,87 @@
     },
     "tse": {
       "cardTitle": "TSE (Technische Sicherheitseinrichtung)"
+    }
+  },
+  "paymentMethods": {
+    "title": "Zahlungsarten",
+    "add": "Neue Zahlungsart",
+    "saved": "Gespeichert.",
+    "created": "Zahlungsart angelegt.",
+    "saveFailed": "Speichern fehlgeschlagen.",
+    "deactivate": "Deaktivieren",
+    "deactivated": "Zahlungsart deaktiviert.",
+    "deactivateConfirmTitle": "Zahlungsart deaktivieren?",
+    "deactivateConfirmBody": "POS zeigt „{{code}}“ nicht mehr. Bestehende Belege bleiben unverändert.",
+    "editTitle": "Zahlungsart bearbeiten",
+    "createTitle": "Zahlungsart anlegen",
+    "columns": {
+      "code": "Code",
+      "name": "Name",
+      "active": "Aktiv",
+      "default": "Standard",
+      "order": "Reihenfolge",
+      "legacy": "Legacy (0–5)",
+      "terminal": "Terminal",
+      "actions": "Aktionen"
+    },
+    "form": {
+      "code": "Code",
+      "codeHint": "Kleinbuchstaben, Ziffern, _ und - (stabiler Schlüssel für POS).",
+      "name": "Anzeigename",
+      "legacy": "Fiskal-Mapping (RKSV)",
+      "fiscalCategory": "Kategorie (optional)",
+      "order": "Sortierung",
+      "active": "Aktiv",
+      "default": "Standard am POS",
+      "requiresTerminal": "Terminal erforderlich",
+      "terminalType": "Terminal-Typ (optional)",
+      "allowRefund": "Erstattung erlaubt",
+      "icon": "Ionicons-Name (optional)",
+      "metadata": "Metadaten (JSON, optional)"
+    }
+  },
+  "pricingRules": {
+    "title": "Preisregeln",
+    "subtitle": "Happy Hour, Wochentage, Produkt- oder Kategoriepreise, optional Kasse.",
+    "add": "Neue Regel",
+    "saved": "Gespeichert.",
+    "created": "Regel angelegt.",
+    "saveFailed": "Speichern fehlgeschlagen.",
+    "deactivate": "Deaktivieren",
+    "deactivated": "Regel deaktiviert.",
+    "deactivateConfirmTitle": "Regel deaktivieren?",
+    "deactivateConfirmBody": "Die Regel wird inaktiv gesetzt. Bestehende Belege bleiben unverändert.",
+    "editTitle": "Preisregel bearbeiten",
+    "createTitle": "Preisregel anlegen",
+    "columns": {
+      "name": "Name",
+      "priority": "Priorität",
+      "active": "Aktiv",
+      "validity": "Gültigkeit",
+      "target": "Ziel",
+      "action": "Aktion",
+      "actions": "Aktionen"
+    },
+    "form": {
+      "name": "Name",
+      "priority": "Priorität (höher = zuerst)",
+      "active": "Aktiv",
+      "validFrom": "Gültig von",
+      "validTo": "Gültig bis",
+      "daysMask": "Wochentage-Maske (1–127, Standard 127 = alle Tage)",
+      "timeWindow": "Zeitfenster aktiv",
+      "timeStart": "Start (Minuten 0–1439)",
+      "timeEnd": "Ende (Minuten 0–1439)",
+      "targetScope": "Zieltyp",
+      "targetScopeProduct": "Produkt",
+      "targetScopeCategory": "Kategorie",
+      "targetId": "Ziel-ID (UUID)",
+      "actionType": "Aktionstyp",
+      "actionFixed": "Fester Bruttopreis",
+      "actionPercent": "Rabatt % vom Listenpreis",
+      "actionValue": "Wert",
+      "cashRegisterId": "Kasse (UUID, optional)"
     }
   }
 }

@@ -694,6 +694,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("AppliedPricingRuleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("applied_pricing_rule_id");
+
                     b.Property<string>("CartId")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -735,6 +739,8 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppliedPricingRuleId");
 
                     b.HasIndex("CartId");
 
@@ -2880,6 +2886,86 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("PaymentLogs");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.PaymentMethodDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AllowRefund")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_refund");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("display_order");
+
+                    b.Property<string>("FiscalCategory")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("fiscal_category");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("icon");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default");
+
+                    b.Property<int>("LegacyPaymentMethodValue")
+                        .HasColumnType("integer")
+                        .HasColumnName("legacy_payment_method_value");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("text")
+                        .HasColumnName("metadata_json");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("name");
+
+                    b.Property<bool>("RequiresTerminal")
+                        .HasColumnType("boolean")
+                        .HasColumnName("requires_terminal");
+
+                    b.Property<string>("TerminalType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("terminal_type");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive", "DisplayOrder");
+
+                    b.ToTable("payment_method_definitions");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.PaymentMetrics", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3102,6 +3188,88 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("InvoiceId");
 
                     b.ToTable("PaymentSessions");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.PricingRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ActionType")
+                        .HasColumnType("integer")
+                        .HasColumnName("action_type");
+
+                    b.Property<decimal>("ActionValue")
+                        .HasColumnType("decimal(18,4)")
+                        .HasColumnName("action_value");
+
+                    b.Property<Guid?>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<int>("DaysOfWeekMask")
+                        .HasColumnType("integer")
+                        .HasColumnName("days_of_week_mask");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("integer")
+                        .HasColumnName("priority");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_id");
+
+                    b.Property<int>("TargetScope")
+                        .HasColumnType("integer")
+                        .HasColumnName("target_scope");
+
+                    b.Property<int>("TimeEndMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("time_end_minutes");
+
+                    b.Property<int>("TimeStartMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("time_start_minutes");
+
+                    b.Property<bool>("TimeWindowEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("time_window_enabled");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<DateOnly>("ValidFromDate")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_from_date");
+
+                    b.Property<DateOnly>("ValidToDate")
+                        .HasColumnType("date")
+                        .HasColumnName("valid_to_date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId");
+
+                    b.HasIndex("IsActive", "ValidFromDate", "ValidToDate");
+
+                    b.ToTable("pricing_rules");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Product", b =>
@@ -4644,6 +4812,11 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.CartItem", b =>
                 {
+                    b.HasOne("KasseAPI_Final.Models.PricingRule", null)
+                        .WithMany()
+                        .HasForeignKey("AppliedPricingRuleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("KasseAPI_Final.Models.Cart", "Cart")
                         .WithMany("Items")
                         .HasForeignKey("CartId")
@@ -4862,6 +5035,14 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.PricingRule", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", null)
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Product", b =>

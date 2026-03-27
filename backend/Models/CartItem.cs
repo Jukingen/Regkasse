@@ -23,6 +23,10 @@ namespace KasseAPI_Final.Models
         [MaxLength(500)]
         public string? Notes { get; set; }
 
+        /// <summary>Ödeme anındaki fiyatı hangi kuralın ürettiği (denetim / rapor). Yoksa katalog fiyatı.</summary>
+        [Column("applied_pricing_rule_id")]
+        public Guid? AppliedPricingRuleId { get; set; }
+
         // Navigation properties
         public virtual Cart Cart { get; set; } = null!;
         /// <summary>Phase 2 deprecated: Legacy embedded modifiers. Read-only for compatibility; new add-ons are separate cart lines (product-only). Do not write new CartItemModifier from add-item for sellable add-on products.</summary>

@@ -30,8 +30,8 @@ export type { PendingPaymentEntry } from '../payment/pendingPaymentQueue';
 /** Same row shape as `normalizeToPosPaymentMethods` — single source of truth. */
 export type PaymentMethod = NormalizedPosPaymentMethod;
 
-/** String sent in `payment.method` on POST /api/pos/payment; must match backend GetPaymentMethodEnum (incl. transfer → BankTransfer). */
-export type PosPaymentMethodCode = NormalizedPosPaymentMethod['type'];
+/** String sent in `payment.method` on POST /api/pos/payment — stable code from admin / GET methods. */
+export type PosPaymentMethodCode = string;
 
 // Backend PaymentItemRequest: one item per cart line. Phase D: POS does not send modifierIds; add-ons are separate lines.
 export interface PaymentItem {
@@ -45,7 +45,7 @@ export interface PaymentRequest {
   customerId: string; // Guid string formatında (00000000-0000-0000-0000-000000000000)
   items: PaymentItem[];
   payment: {
-    method: PosPaymentMethodCode;
+    method: string;
     tseRequired: boolean;
     amount?: number; // Opsiyonel
   };

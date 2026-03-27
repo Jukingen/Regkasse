@@ -36,7 +36,6 @@ import { PaymentSuccessQr } from './PaymentSuccessQr';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
-import type { PosPaymentMethodCode } from '../services/api/paymentService';
 import { downloadInvoicePdf, InvoicePdfHttpError } from '../services/api/invoiceService';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
 import {
@@ -146,10 +145,6 @@ function normalizeReceiptDto(r: any): ReceiptDTO {
   };
 }
 
-function isPosPaymentMethodCode(value: string): value is PosPaymentMethodCode {
-  return value === 'cash' || value === 'card' || value === 'voucher' || value === 'transfer';
-}
-
 // Türkçe Açıklama: Ödeme alma modal'ı - Sepet içeriğini ödeme işlemine dönüştürür
 interface PaymentModalProps {
   visible: boolean;
@@ -184,7 +179,7 @@ export default function PaymentModal({
 }: PaymentModalProps) {
   const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings']);
   const { user } = useAuth();
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cash' | 'card' | 'voucher' | 'transfer'>('cash');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('cash');
   const [amountReceived, setAmountReceived] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [guestCustomerId, setGuestCustomerId] = useState<string>(WALK_IN_CUSTOMER_ID_FALLBACK);
@@ -273,6 +268,12 @@ export default function PaymentModal({
     processPayment,
     clearError
   } = usePayment();
+
+  const requiresCashAmount = useMemo(() => {
+    const m = paymentMethods.find((x) => x.type === selectedPaymentMethod);
+    if (m?.requiresReceivedAmount !== undefined) return m.requiresReceivedAmount;
+    return selectedPaymentMethod === 'cash';
+  }, [paymentMethods, selectedPaymentMethod]);
 
   // Backend line toplamları kullan - FE hesaplama yapmaz (totalPrice = lineGross)
   const calculatedCartItems = useMemo(() => {
@@ -366,6 +367,14 @@ export default function PaymentModal({
       .then((id) => setGuestCustomerId(id))
       .catch((err) => console.warn('[PaymentModal] Failed to load guest customer:', err));
   }, [visible, getPaymentMethods]);
+
+  useEffect(() => {
+    if (!visible || !paymentMethods?.length) return;
+    const hasSelection = paymentMethods.some((m) => m.type === selectedPaymentMethod);
+    if (hasSelection) return;
+    const def = paymentMethods.find((m) => m.isDefault) ?? paymentMethods[0];
+    if (def) setSelectedPaymentMethod(def.type);
+  }, [visible, paymentMethods, selectedPaymentMethod]);
 
   // Eligibility preview: only when customer selected (not guest), cart has items, and modal visible. Race-safe.
   const shouldFetchEligibility =
@@ -568,7 +577,7 @@ export default function PaymentModal({
         return;
       }
 
-      if (selectedPaymentMethod === 'cash') {
+      if (requiresCashAmount) {
         const received = parseFloat(amountReceived);
         if (isNaN(received) || received < totalAmount) {
           debugPosPaymentTrace('submit_blocked_cash_amount', { received, totalAmount });
@@ -651,7 +660,7 @@ export default function PaymentModal({
         payment: {
           method: selectedPaymentMethod,
           tseRequired: shouldRequireTse,
-          amount: selectedPaymentMethod === 'cash' ? parseFloat(amountReceived) : undefined
+          amount: requiresCashAmount ? parseFloat(amountReceived) : undefined
         },
         tableNumber: resolvedTableNumber,
         totalAmount: totalAmount,
@@ -994,11 +1003,7 @@ export default function PaymentModal({
                           isSelected && styles.selectedPaymentMethod,
                           pressed && SoftState.pressedScale,
                         ]}
-                        onPress={() => {
-                          if (isPosPaymentMethodCode(method.type)) {
-                            setSelectedPaymentMethod(method.type);
-                          }
-                        }}
+                        onPress={() => setSelectedPaymentMethod(method.type)}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isSelected }}
                         accessibilityLabel={`${method.name}${isSelected ? ', ausgewählt' : ''}`}
@@ -1029,7 +1034,7 @@ export default function PaymentModal({
             </View>
 
             {/* Step 3: Nakit – Betrag & Rückgeld */}
-            {selectedPaymentMethod === 'cash' && (
+            {requiresCashAmount && (
               <View style={styles.section}>
                 <Text style={styles.stepLabel}>3</Text>
                 <Text style={styles.sectionTitle}>Barzahlung</Text>

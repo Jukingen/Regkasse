@@ -44,7 +44,7 @@
   "moreTools": {
     "payloadHash": "Payload-Hash-Konflikte",
     "queueLegacy": "FinanzOnline-Abgleich (Legacy)",
-    "fiscalExport": "Fiscal-Export-Diagnose",
+    "fiscalExport": "Fiscal-Export (Profile)",
     "integrity": "Datenintegrität",
     "offlineCoverage": "Offline-Intent-Abdeckung",
     "verifications": "Verifikationen / Audit",
@@ -195,6 +195,21 @@
     "status": "Systemstatus",
     "cmcCertificate": "CMC / Zertifikat",
     "finanzOnlineOps": "FinanzOnline · Integration"
+  },
+  "fiscalExportPage": {
+    "title": "Fiscal-Export",
+    "breadcrumb": "Fiscal-Export",
+    "profileLabel": "Exportprofil",
+    "profileHelp": "Profil bestimmt Zweck und erforderliche Berechtigungen. Jeder Export enthält den Hinweis «kein gesetzlicher RKSV-Nachweis» — auch bei Compliance-Paketen.",
+    "diagnostic": "Diagnose / Support",
+    "diagnosticDesc": "Technische Analyse und Support: Integritätsflags nur für den gewählten Zeitraum (best effort).",
+    "auditHandoff": "Audit-Übergabe",
+    "auditHandoffDesc": "Strukturierte Übergabe an Prüfer — zusätzlich zum Audit-Protokoll; kein Ersatz für offizielle Register oder FinanzOnline.",
+    "compliance": "Compliance / Rechtsreview",
+    "complianceDesc": "Paket für externe Compliance- oder Rechtsprüfung (nur mit fiscal.export.compliance); keine FinanzOnline-Ersatzleistung.",
+    "profileForbidden": "Für dieses Profil fehlen Berechtigungen.",
+    "globalIntegrityHint": "Für datenbankweite Integrität nutzen Sie «Datenintegrität»; die Export-Karten zeigen nur Slice-Risiken.",
+    "sliceVsGlobalTitle": "Export (Slice) vs. globale Integrität"
   },
   "aria": {
     "cardRefreshing": "Karteninhalt wird geladen",

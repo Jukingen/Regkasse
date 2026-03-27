@@ -17,6 +17,7 @@ namespace KasseAPI_Final.Data
         public DbSet<Product> Products { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<BenefitDefinition> BenefitDefinitions { get; set; }
+        public DbSet<PaymentMethodDefinition> PaymentMethodDefinitions { get; set; }
         public DbSet<BenefitAssignment> BenefitAssignments { get; set; }
         public DbSet<BenefitDailyUsage> BenefitDailyUsages { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
@@ -76,6 +77,9 @@ namespace KasseAPI_Final.Data
         public DbSet<ProductModifierGroupAssignment> ProductModifierGroupAssignments { get; set; }
         /// <summary>Faz 1: Grup içi product referansları (suggested add-on); fiyat Product'ta.</summary>
         public DbSet<AddOnGroupProduct> AddOnGroupProducts { get; set; }
+
+        /// <summary>Hospitality: saat/gün/kasa kapsamında fiyat kuralları (Happy Hour vb.).</summary>
+        public DbSet<PricingRule> PricingRules { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -224,6 +228,14 @@ namespace KasseAPI_Final.Data
                     .HasForeignKey(e => e.AllowanceCategoryId)
                     .OnDelete(DeleteBehavior.SetNull);
                 entity.HasIndex(e => e.Code).IsUnique();
+            });
+
+            builder.Entity<PaymentMethodDefinition>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.MetadataJson).HasColumnType("text");
+                entity.HasIndex(e => e.Code).IsUnique();
+                entity.HasIndex(e => new { e.IsActive, e.DisplayOrder });
             });
 
             // BenefitDailyUsage configuration
@@ -1084,18 +1096,36 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Quantity).IsRequired();
                 entity.Property(e => e.UnitPrice).IsRequired().HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Notes).HasMaxLength(500);
-                
+                entity.Property(e => e.AppliedPricingRuleId).HasColumnName("applied_pricing_rule_id");
+
                 // Foreign key relationships
                 entity.HasOne(e => e.Cart)
                     .WithMany(c => c.Items)
                     .HasForeignKey(e => e.CartId)
                     .OnDelete(DeleteBehavior.Cascade);
-                
+
+                entity.HasOne<PricingRule>()
+                    .WithMany()
+                    .HasForeignKey(e => e.AppliedPricingRuleId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
                 // Product relationship removed to prevent shadow property conflicts
                 // entity.HasOne(e => e.Product)
                 //     .WithMany()
                 //     .HasForeignKey(e => e.ProductId)
                 //     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<PricingRule>(entity =>
+            {
+                entity.Property(e => e.TargetScope).HasConversion<int>();
+                entity.Property(e => e.ActionType).HasConversion<int>();
+                entity.HasIndex(e => new { e.IsActive, e.ValidFromDate, e.ValidToDate });
+                entity.HasIndex(e => e.CashRegisterId);
+                entity.HasOne<CashRegister>()
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             builder.Entity<CartItemModifier>(entity =>

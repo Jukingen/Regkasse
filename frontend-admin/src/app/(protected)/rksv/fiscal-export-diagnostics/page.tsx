@@ -1,6 +1,10 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+/**
+ * Fiscal export ekranı: exportProfile ile tanılama / audit devri / uyum paketi ayrımı (RBAC + açıklayıcı metinler).
+ */
+
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Alert,
     Button,
@@ -8,18 +12,23 @@ import {
     Checkbox,
     DatePicker,
     List,
+    Segmented,
     Select,
     Space,
     Spin,
     Tag,
     Typography,
 } from 'antd';
+import type { SegmentedValue } from 'antd/es/segmented';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { useI18n } from '@/i18n/I18nProvider';
+import { usePermissions } from '@/shared/auth/usePermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import {
     downloadFiscalExportJson,
     extractApiErrorMessage,
@@ -30,6 +39,8 @@ import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { GetApiAdminFiscalExportParams } from '@/api/generated/model';
 
 const { RangePicker } = DatePicker;
+
+type ExportProfileValue = 'diagnostic' | 'audit_handoff' | 'compliance';
 
 type FiscalExportIntegrity = {
     signatureChainValid?: boolean;
@@ -55,6 +66,8 @@ type FiscalExportIntegrity = {
 type FiscalExportPackage = {
     schemaVersion?: string;
     notLegalProofNotice?: string;
+    exportProfile?: string;
+    exportProfileIntentNotice?: string;
     generatedAtUtc?: string;
     cashRegisterId?: string;
     registerNumber?: string;
@@ -84,6 +97,24 @@ function downloadBlob(blob: unknown, fileName: string) {
 }
 
 export default function FiscalExportDiagnosticsPage() {
+    const { t } = useI18n();
+    const { hasPermission } = usePermissions();
+
+    const canDiagnostic = hasPermission(PERMISSIONS.REPORT_EXPORT);
+    const canAuditHandoff =
+        hasPermission(PERMISSIONS.REPORT_EXPORT) && hasPermission(PERMISSIONS.AUDIT_VIEW);
+    const canCompliance =
+        hasPermission(PERMISSIONS.REPORT_EXPORT) &&
+        hasPermission(PERMISSIONS.AUDIT_VIEW) &&
+        hasPermission(PERMISSIONS.FISCAL_EXPORT_COMPLIANCE);
+
+    const [exportProfile, setExportProfile] = useState<ExportProfileValue>('diagnostic');
+
+    useEffect(() => {
+        if (exportProfile === 'audit_handoff' && !canAuditHandoff) setExportProfile('diagnostic');
+        if (exportProfile === 'compliance' && !canCompliance) setExportProfile('diagnostic');
+    }, [exportProfile, canAuditHandoff, canCompliance]);
+
     const [cashRegisterId, setCashRegisterId] = useState<string | undefined>(undefined);
     const [includeCsv, setIncludeCsv] = useState<boolean>(false);
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([
@@ -104,7 +135,7 @@ export default function FiscalExportDiagnosticsPage() {
     const fromUtc = dateRange?.[0]?.toISOString();
     const toUtc = dateRange?.[1]?.toISOString();
 
-    const canRun = Boolean(cashRegisterId && fromUtc && toUtc && !exportLoading);
+    const canRun = Boolean(cashRegisterId && fromUtc && toUtc && !exportLoading && canDiagnostic);
 
     const params = useMemo<GetApiAdminFiscalExportParams>(() => {
         return {
@@ -112,12 +143,21 @@ export default function FiscalExportDiagnosticsPage() {
             fromUtc,
             toUtc,
             includeCsv,
+            exportProfile,
         };
-    }, [cashRegisterId, fromUtc, toUtc, includeCsv]);
+    }, [cashRegisterId, fromUtc, toUtc, includeCsv, exportProfile]);
+
+    const profileBlocked =
+        (exportProfile === 'audit_handoff' && !canAuditHandoff) ||
+        (exportProfile === 'compliance' && !canCompliance);
 
     const runPreview = async () => {
         if (!cashRegisterId || !fromUtc || !toUtc) {
             setExportError('Bitte Kasse und UTC Zeitraum auswählen.');
+            return;
+        }
+        if (profileBlocked) {
+            setExportError(t('rksvHub.fiscalExportPage.profileForbidden'));
             return;
         }
 
@@ -125,7 +165,7 @@ export default function FiscalExportDiagnosticsPage() {
         setExportError(null);
 
         try {
-            const data = await getFiscalExportPreview(params);
+            const data = (await getFiscalExportPreview(params)) as FiscalExportPackage;
             setPreview(data);
         } catch (e) {
             const msg = extractApiErrorMessage(e, 'Export failed');
@@ -141,18 +181,21 @@ export default function FiscalExportDiagnosticsPage() {
             setExportError('Bitte Kasse und UTC Zeitraum auswählen.');
             return;
         }
+        if (profileBlocked) {
+            setExportError(t('rksvHub.fiscalExportPage.profileForbidden'));
+            return;
+        }
 
         setExportLoading(true);
         setExportError(null);
 
         try {
             const blob = await downloadFiscalExportJson(params);
-            const fileName = `fiscal-export-${cashRegisterId}-${fromUtc.slice(0, 10)}-${toUtc.slice(0, 10)}.json`;
+            const fileName = `fiscal-export-${exportProfile}-${cashRegisterId}-${fromUtc.slice(0, 10)}-${toUtc.slice(0, 10)}.json`;
 
-            // Avoid downloading backend error payloads (JSON error envelope).
             const maybeText = await blob.text();
             try {
-                const parsed = JSON.parse(maybeText);
+                const parsed = JSON.parse(maybeText) as { message?: string; code?: string };
                 if (typeof parsed?.message === 'string' && typeof parsed?.code === 'string') {
                     setExportError(parsed.message);
                     return;
@@ -161,7 +204,7 @@ export default function FiscalExportDiagnosticsPage() {
                 // Not an error envelope; proceed with download.
             }
 
-            downloadBlob(blob, fileName);
+            downloadBlob(new Blob([maybeText], { type: 'application/json' }), fileName);
         } catch (e) {
             const msg = extractApiErrorMessage(e, 'Download failed');
             setExportError(msg);
@@ -172,14 +215,39 @@ export default function FiscalExportDiagnosticsPage() {
 
     const previewJson = preview ? JSON.stringify(preview, null, 2) : '';
 
+    const segmentedOptions = useMemo(
+        () => [
+            {
+                label: t('rksvHub.fiscalExportPage.diagnostic'),
+                value: 'diagnostic' as const,
+                disabled: !canDiagnostic,
+            },
+            {
+                label: t('rksvHub.fiscalExportPage.auditHandoff'),
+                value: 'audit_handoff' as const,
+                disabled: !canAuditHandoff,
+            },
+            {
+                label: t('rksvHub.fiscalExportPage.compliance'),
+                value: 'compliance' as const,
+                disabled: !canCompliance,
+            },
+        ],
+        [t, canDiagnostic, canAuditHandoff, canCompliance],
+    );
+
+    const onProfileChange = (v: SegmentedValue) => {
+        setExportProfile(v as ExportProfileValue);
+    };
+
     return (
         <>
             <AdminPageHeader
-                title="Fiscal-Export"
+                title={t('rksvHub.fiscalExportPage.title')}
                 breadcrumbs={[
                     ADMIN_OVERVIEW_CRUMB,
                     { title: 'RKSV', href: '/rksv' },
-                    { title: 'Fiscal-Export Diagnose' },
+                    { title: t('rksvHub.fiscalExportPage.breadcrumb') },
                 ]}
             />
 
@@ -187,15 +255,16 @@ export default function FiscalExportDiagnosticsPage() {
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message="Ergänzung: globale Integritätsprüfung"
+                message={t('rksvHub.fiscalExportPage.sliceVsGlobalTitle')}
                 description={
                     <span>
-                        Export-Integrität bezieht sich auf den gewählten Slice. Für datenbankweite Konsistenz (Duplikate,
-                        Sequenzen, Refunds, Zahlung ohne Rechnung) siehe{' '}
-                        <Link href="/rksv/integrity">Datenintegrität (Support)</Link>.
+                        {t('rksvHub.fiscalExportPage.globalIntegrityHint')}{' '}
+                        <Link href="/rksv/integrity">{t('rksvHub.link.integrity')}</Link>.
                     </span>
                 }
             />
+
+            <Alert type="info" showIcon style={{ marginBottom: 16 }} message={t('rksvHub.fiscalExportPage.profileHelp')} />
 
             {cashLoading ? (
                 <div style={{ textAlign: 'center', padding: 80 }}>
@@ -214,70 +283,109 @@ export default function FiscalExportDiagnosticsPage() {
             ) : null}
 
             <Card size="small" style={{ marginBottom: 16 }}>
-                <Space wrap>
+                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                     <div>
-                        <Typography.Text strong>Cash Register</Typography.Text>
-                        <br />
-                        <Select
-                            placeholder="Wähle Kasse"
-                            style={{ minWidth: 280 }}
-                            allowClear
-                            value={cashRegisterId}
-                            onChange={(v) => setCashRegisterId(v)}
-                            options={(cashRegisters ?? [])
-                                .filter((r) => typeof r.id === 'string' && r.id.length > 0)
-                                .map((r) => ({
-                                    value: r.id as string,
-                                    label: r.registerNumber ? `${r.registerNumber} (${(r.id as string).slice(0, 8)}…)` : (r.id as string),
-                                }))}
-                        />
+                        <Typography.Text strong>{t('rksvHub.fiscalExportPage.profileLabel')}</Typography.Text>
+                        <div style={{ marginTop: 8 }}>
+                            <Segmented
+                                options={segmentedOptions}
+                                value={exportProfile}
+                                onChange={onProfileChange}
+                            />
+                        </div>
+                        <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+                            {exportProfile === 'diagnostic' ? t('rksvHub.fiscalExportPage.diagnosticDesc') : null}
+                            {exportProfile === 'audit_handoff' ? t('rksvHub.fiscalExportPage.auditHandoffDesc') : null}
+                            {exportProfile === 'compliance' ? t('rksvHub.fiscalExportPage.complianceDesc') : null}
+                        </Typography.Paragraph>
                     </div>
 
-                    <div>
-                        <Typography.Text strong>UTC Zeitraum</Typography.Text>
-                        <br />
-                        <RangePicker
-                            showTime
-                            value={[dateRange[0] ?? null, dateRange[1] ?? null]}
-                            onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null])}
-                        />
-                    </div>
+                    <Space wrap>
+                        <div>
+                            <Typography.Text strong>Cash Register</Typography.Text>
+                            <br />
+                            <Select
+                                placeholder="Wähle Kasse"
+                                style={{ minWidth: 280 }}
+                                allowClear
+                                value={cashRegisterId}
+                                onChange={(v) => setCashRegisterId(v)}
+                                options={(cashRegisters ?? [])
+                                    .filter((r) => typeof r.id === 'string' && r.id.length > 0)
+                                    .map((r) => ({
+                                        value: r.id as string,
+                                        label: r.registerNumber
+                                            ? `${r.registerNumber} (${(r.id as string).slice(0, 8)}…)`
+                                            : (r.id as string),
+                                    }))}
+                            />
+                        </div>
 
-                    <div>
-                        <Typography.Text strong>Include CSV</Typography.Text>
-                        <br />
-                        <Checkbox checked={includeCsv} onChange={(e) => setIncludeCsv(e.target.checked)}>
-                            CSV Fragmente im JSON-Payload
-                        </Checkbox>
-                    </div>
+                        <div>
+                            <Typography.Text strong>UTC Zeitraum</Typography.Text>
+                            <br />
+                            <RangePicker
+                                showTime
+                                value={[dateRange[0] ?? null, dateRange[1] ?? null]}
+                                onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null])}
+                            />
+                        </div>
 
-                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                        <Space>
-                            <Button type="primary" onClick={runPreview} loading={exportLoading} disabled={!canRun}>
-                                JSON Vorschau
-                            </Button>
-                            <Button onClick={runDownload} loading={exportLoading} disabled={!canRun}>
-                                JSON herunterladen
-                            </Button>
-                        </Space>
-                    </div>
+                        <div>
+                            <Typography.Text strong>Include CSV</Typography.Text>
+                            <br />
+                            <Checkbox checked={includeCsv} onChange={(e) => setIncludeCsv(e.target.checked)}>
+                                CSV Fragmente im JSON-Payload
+                            </Checkbox>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                            <Space>
+                                <Button
+                                    type="primary"
+                                    onClick={runPreview}
+                                    loading={exportLoading}
+                                    disabled={!canRun || profileBlocked}
+                                >
+                                    JSON Vorschau
+                                </Button>
+                                <Button onClick={runDownload} loading={exportLoading} disabled={!canRun || profileBlocked}>
+                                    JSON herunterladen
+                                </Button>
+                            </Space>
+                        </div>
+                    </Space>
                 </Space>
             </Card>
 
             {preview ? (
                 <>
+                    {preview.exportProfileIntentNotice != null ? (
+                        <Alert
+                            type="warning"
+                            showIcon
+                            style={{ marginBottom: 16 }}
+                            message={preview.exportProfile ?? 'export'}
+                            description={
+                                <span>
+                                    <Tag>{preview.exportProfile}</Tag> {preview.exportProfileIntentNotice}
+                                </span>
+                            }
+                        />
+                    ) : null}
                     {preview.notLegalProofNotice != null ? (
                         <Alert
                             type="warning"
                             showIcon
                             style={{ marginBottom: 16 }}
                             message={preview.notLegalProofNotice || 'NOT LEGAL PROOF'}
-                            description="Bitte den Export ausschließlich zur Diagnose/Auswertung verwenden (kein Rechtsnachweis)."
+                            description="Statutory disclaimer: not an RKSV attestation — applies to all profiles."
                         />
                     ) : null}
 
                     <Card size="small" style={{ marginBottom: 16 }} title="Summary">
                         <Space wrap>
+                            <Tag color="blue">exportProfile: {preview.exportProfile ?? '—'}</Tag>
                             <Tag color="blue">receiptCount: {preview.receiptCount ?? 0}</Tag>
                             <Tag color="blue">closingCount: {preview.closingCount ?? 0}</Tag>
                             {typeof preview.totalReceiptsMatchingPeriod === 'number' ? (
@@ -383,11 +491,9 @@ export default function FiscalExportDiagnosticsPage() {
 
             {!exportLoading && !preview ? (
                 <Card size="small" title="Hinweis" style={{ marginTop: 16 }}>
-                    Wähle eine Kasse und einen UTC Zeitraum und starte anschließend „JSON Vorschau“ oder „JSON
-                    herunterladen“.
+                    Wähle Exportprofil, Kasse und UTC-Zeitraum; starte „JSON Vorschau“ oder „JSON herunterladen“.
                 </Card>
             ) : null}
         </>
     );
 }
-

@@ -71,7 +71,10 @@ import type {
   OfflinePayloadHashRepairResult,
   OfflinePayloadHashRiskResponse,
   PaymentStatistics,
+  PrintRoutingOptionsResponse,
   Product,
+  ReceiptReprintRequest,
+  ReceiptReprintResponse,
   RefundPaymentRequest,
   RepairRequest,
   ReplayBatchDetailResponse,
@@ -198,7 +201,114 @@ export const useGetApiAdminOperationsSummary = <TData = Awaited<ReturnType<typeo
 
 
 
-export const getApiAdminPayments = (
+export const getApiAdminBackofficePrintRoutingOptions = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PrintRoutingOptionsResponse>(
+      {url: `/api/admin/backoffice/print-routing/options`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackofficePrintRoutingOptionsQueryKey = () => {
+    return [`/api/admin/backoffice/print-routing/options`] as const;
+    }
+
+    
+export const getGetApiAdminBackofficePrintRoutingOptionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackofficePrintRoutingOptions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackofficePrintRoutingOptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackofficePrintRoutingOptionsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackofficePrintRoutingOptions>>> = ({ signal }) => getApiAdminBackofficePrintRoutingOptions(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackofficePrintRoutingOptions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackofficePrintRoutingOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackofficePrintRoutingOptions>>>
+export type GetApiAdminBackofficePrintRoutingOptionsQueryError = unknown
+
+export const useGetApiAdminBackofficePrintRoutingOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackofficePrintRoutingOptions>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackofficePrintRoutingOptions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackofficePrintRoutingOptionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminBackofficeReceiptsPaymentIdReprintRequest = (
+    paymentId: string,
+    receiptReprintRequest: ReceiptReprintRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<ReceiptReprintResponse>(
+      {url: `/api/admin/backoffice/receipts/${paymentId}/reprint-request`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: receiptReprintRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackofficeReceiptsPaymentIdReprintRequestMutationOptions = <TError = ReceiptReprintResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackofficeReceiptsPaymentIdReprintRequest>>, TError,{paymentId: string;data: ReceiptReprintRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackofficeReceiptsPaymentIdReprintRequest>>, TError,{paymentId: string;data: ReceiptReprintRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackofficeReceiptsPaymentIdReprintRequest>>, {paymentId: string;data: ReceiptReprintRequest}> = (props) => {
+          const {paymentId,data} = props ?? {};
+
+          return  postApiAdminBackofficeReceiptsPaymentIdReprintRequest(paymentId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackofficeReceiptsPaymentIdReprintRequestMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackofficeReceiptsPaymentIdReprintRequest>>>
+    export type PostApiAdminBackofficeReceiptsPaymentIdReprintRequestMutationBody = ReceiptReprintRequest
+    export type PostApiAdminBackofficeReceiptsPaymentIdReprintRequestMutationError = ReceiptReprintResponse
+
+    export const usePostApiAdminBackofficeReceiptsPaymentIdReprintRequest = <TError = ReceiptReprintResponse,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackofficeReceiptsPaymentIdReprintRequest>>, TError,{paymentId: string;data: ReceiptReprintRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackofficeReceiptsPaymentIdReprintRequest>>,
+        TError,
+        {paymentId: string;data: ReceiptReprintRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackofficeReceiptsPaymentIdReprintRequestMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminPayments = (
     params?: GetApiAdminPaymentsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -2564,7 +2674,7 @@ export const getGetApiAdminFiscalExportQueryKey = (params?: GetApiAdminFiscalExp
     }
 
     
-export const getGetApiAdminFiscalExportQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminFiscalExport>>, TError = unknown>(params?: GetApiAdminFiscalExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiscalExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiAdminFiscalExportQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminFiscalExport>>, TError = void>(params?: GetApiAdminFiscalExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiscalExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -2583,9 +2693,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetApiAdminFiscalExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFiscalExport>>>
-export type GetApiAdminFiscalExportQueryError = unknown
+export type GetApiAdminFiscalExportQueryError = void
 
-export const useGetApiAdminFiscalExport = <TData = Awaited<ReturnType<typeof getApiAdminFiscalExport>>, TError = unknown>(
+export const useGetApiAdminFiscalExport = <TData = Awaited<ReturnType<typeof getApiAdminFiscalExport>>, TError = void>(
  params?: GetApiAdminFiscalExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFiscalExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {

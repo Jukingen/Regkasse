@@ -15,5 +15,6 @@ public interface IFiscalExportService
         DateTime fromUtc,
         DateTime toUtc,
         bool includeCsv,
+        FiscalExportProfile exportProfile = FiscalExportProfile.Diagnostic,
         CancellationToken cancellationToken = default);
 }

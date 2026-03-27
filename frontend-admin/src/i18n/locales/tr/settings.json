@@ -1,4 +1,15 @@
 {
+  "hub": {
+    "collapseTitle": "Alanlar ve baglantilar",
+    "intro": "Bu sayfalar backoffice yapilandirmasidir; fakat farkli bounded context'lere aittir:",
+    "rowSystem": "Sistem (global): vergi oranlari, yedekleme, bildirimler — API `GET/PUT /api/Settings` (SystemSettings). Ayri admin arayuzu yok.",
+    "rowCompany": "Sirket ve mali (tenant): ana veri, FinanzOnline, TSE varsayilanlari — bu bolge (`/api/CompanySettings`).",
+    "rowUser": "Kullanici: POS / kasa tercihleri — `GET/PUT /api/user/settings` (UserSettings), tenant geneli degil.",
+    "rowReceipt": "Fis sablonlari ve metinler — Kasse & Belege → Fis sablonlari (`/receipt-templates`).",
+    "rowRksv": "RKSV operasyonu (outbox, butunluk, tani) — RKSV menusu, sirket ayarlari altinda degil.",
+    "linkReceiptTemplates": "Fis sablonlarina git",
+    "linkRksv": "RKSV'ye git"
+  },
   "page": {
     "title": "Şirket ayarları",
     "loading": "Şirket ayarları yükleniyor…",
@@ -51,6 +62,87 @@
     },
     "tse": {
       "cardTitle": "TSE (Teknik guvenlik cihazi)"
+    }
+  },
+  "paymentMethods": {
+    "title": "Ödeme yöntemleri",
+    "add": "Yeni ödeme yöntemi",
+    "saved": "Kaydedildi.",
+    "created": "Ödeme yöntemi oluşturuldu.",
+    "saveFailed": "Kayıt başarısız.",
+    "deactivate": "Devre dışı bırak",
+    "deactivated": "Ödeme yöntemi devre dışı.",
+    "deactivateConfirmTitle": "Ödeme yöntemi devre dışı bırakılsın mı?",
+    "deactivateConfirmBody": "POS artık “{{code}}” sunmayacak. Mevcut fişler değişmez.",
+    "editTitle": "Ödeme yöntemini düzenle",
+    "createTitle": "Ödeme yöntemi oluştur",
+    "columns": {
+      "code": "Kod",
+      "name": "Ad",
+      "active": "Aktif",
+      "default": "Varsayılan",
+      "order": "Sıra",
+      "legacy": "Legacy (0–5)",
+      "terminal": "Terminal",
+      "actions": "İşlemler"
+    },
+    "form": {
+      "code": "Kod",
+      "codeHint": "Küçük harf, rakam, _ ve - (POS için sabit anahtar).",
+      "name": "Görünen ad",
+      "legacy": "Mali eşleme (RKSV)",
+      "fiscalCategory": "Kategori (isteğe bağlı)",
+      "order": "Sıralama",
+      "active": "Aktif",
+      "default": "POS varsayılanı",
+      "requiresTerminal": "Terminal gerekli",
+      "terminalType": "Terminal tipi (isteğe bağlı)",
+      "allowRefund": "İadeye izin ver",
+      "icon": "Ionicons adı (isteğe bağlı)",
+      "metadata": "Meta veri (JSON, isteğe bağlı)"
+    }
+  },
+  "pricingRules": {
+    "title": "Fiyat kuralları",
+    "subtitle": "Happy hour, hafta günleri, ürün veya kategori, isteğe bağlı kasa.",
+    "add": "Yeni kural",
+    "saved": "Kaydedildi.",
+    "created": "Kural oluşturuldu.",
+    "saveFailed": "Kayıt başarısız.",
+    "deactivate": "Devre dışı bırak",
+    "deactivated": "Kural devre dışı.",
+    "deactivateConfirmTitle": "Kural devre dışı bırakılsın mı?",
+    "deactivateConfirmBody": "Kural pasif yapılır. Mevcut fişler değişmez.",
+    "editTitle": "Fiyat kuralını düzenle",
+    "createTitle": "Fiyat kuralı oluştur",
+    "columns": {
+      "name": "Ad",
+      "priority": "Öncelik",
+      "active": "Aktif",
+      "validity": "Geçerlilik",
+      "target": "Hedef",
+      "action": "Aksiyon",
+      "actions": "İşlemler"
+    },
+    "form": {
+      "name": "Ad",
+      "priority": "Öncelik (yüksek = önce uygulanır)",
+      "active": "Aktif",
+      "validFrom": "Geçerlilik başlangıç",
+      "validTo": "Geçerlilik bitiş",
+      "daysMask": "Hafta maskesi (1–127, varsayılan 127 = tüm günler)",
+      "timeWindow": "Zaman penceresi açık",
+      "timeStart": "Başlangıç (dakika 0–1439)",
+      "timeEnd": "Bitiş (dakika 0–1439)",
+      "targetScope": "Hedef tipi",
+      "targetScopeProduct": "Ürün",
+      "targetScopeCategory": "Kategori",
+      "targetId": "Hedef UUID",
+      "actionType": "Aksiyon tipi",
+      "actionFixed": "Sabit brüt birim fiyat",
+      "actionPercent": "Liste fiyatından % indirim",
+      "actionValue": "Değer",
+      "cashRegisterId": "Kasa (UUID, isteğe bağlı)"
     }
   }
 }

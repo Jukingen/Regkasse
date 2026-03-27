@@ -25,8 +25,12 @@ import {
     LogoutOutlined,
     ShopOutlined,
     AppstoreOutlined,
+    InboxOutlined,
     UsergroupAddOutlined,
     ToolOutlined,
+    ControlOutlined,
+    FundOutlined,
+    TableOutlined,
 } from '@ant-design/icons';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -109,12 +113,14 @@ export default function DashboardLayout({
                 label: t(ADMIN_NAV_GROUP_LABEL_KEYS.sortiment),
                 children: [
                     { key: '/products', icon: <ShoppingOutlined />, label: <Link href="/products">{t(ADMIN_NAV_LABEL_KEYS.products)}</Link> },
+                    { key: '/pricing-rules', icon: <TagOutlined />, label: <Link href="/pricing-rules">{t(ADMIN_NAV_LABEL_KEYS.pricingRules)}</Link> },
                     { key: '/categories', icon: <FolderOutlined />, label: <Link href="/categories">{t(ADMIN_NAV_LABEL_KEYS.categories)}</Link> },
                     {
                         key: '/modifier-groups',
                         icon: <GroupOutlined />,
                         label: <Link href="/modifier-groups">{t(ADMIN_NAV_LABEL_KEYS.modifierGroups)}</Link>,
                     },
+                    { key: '/inventory', icon: <InboxOutlined />, label: <Link href="/inventory">{t(ADMIN_NAV_LABEL_KEYS.inventory)}</Link> },
                 ],
             },
             {
@@ -140,6 +146,21 @@ export default function DashboardLayout({
                 icon: <ShopOutlined />,
                 label: t(ADMIN_NAV_GROUP_LABEL_KEYS.kasseBelege),
                 children: [
+                    {
+                        key: '/operations-center',
+                        icon: <ControlOutlined />,
+                        label: <Link href="/operations-center">{t(ADMIN_NAV_LABEL_KEYS.operationsCenter)}</Link>,
+                    },
+                    {
+                        key: '/reporting',
+                        icon: <FundOutlined />,
+                        label: <Link href="/reporting">{t(ADMIN_NAV_LABEL_KEYS.reporting)}</Link>,
+                    },
+                    {
+                        key: '/reporting/staff',
+                        icon: <TeamOutlined />,
+                        label: <Link href="/reporting/staff">{t(ADMIN_NAV_LABEL_KEYS.staffPerformance)}</Link>,
+                    },
                     { key: '/receipts', icon: <FileSearchOutlined />, label: <Link href="/receipts">{t(ADMIN_NAV_LABEL_KEYS.receipts)}</Link> },
                     { key: '/payments', icon: <CreditCardOutlined />, label: <Link href="/payments">{t(ADMIN_NAV_LABEL_KEYS.payments)}</Link> },
                     {
@@ -157,6 +178,11 @@ export default function DashboardLayout({
                         icon: <EyeOutlined />,
                         label: <Link href="/receipt-generate">{t(ADMIN_NAV_LABEL_KEYS.receiptGenerate)}</Link>,
                     },
+                    {
+                        key: '/tables',
+                        icon: <TableOutlined />,
+                        label: <Link href="/tables">{t(ADMIN_NAV_LABEL_KEYS.tables)}</Link>,
+                    },
                 ],
             },
             { key: '/audit-logs', icon: <SafetyCertificateOutlined />, label: <Link href="/audit-logs">{t(ADMIN_NAV_LABEL_KEYS.auditLogs)}</Link> },
@@ -166,7 +192,25 @@ export default function DashboardLayout({
                 label: t(ADMIN_NAV_GROUP_LABEL_KEYS.verwaltung),
                 children: [
                     { key: '/users', icon: <TeamOutlined />, label: <Link href="/users">{t(ADMIN_NAV_LABEL_KEYS.users)}</Link> },
-                    { key: '/settings', icon: <SettingOutlined />, label: <Link href="/settings">{t(ADMIN_NAV_LABEL_KEYS.settings)}</Link> },
+                    {
+                        key: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
+                        icon: <SettingOutlined />,
+                        label: t(ADMIN_NAV_LABEL_KEYS.settingsHub),
+                        children: [
+                            {
+                                key: '/settings',
+                                icon: <ShopOutlined />,
+                                label: <Link href="/settings">{t(ADMIN_NAV_LABEL_KEYS.companySettings)}</Link>,
+                            },
+                            {
+                                key: '/settings/payment-methods',
+                                icon: <CreditCardOutlined />,
+                                label: (
+                                    <Link href="/settings/payment-methods">{t(ADMIN_NAV_LABEL_KEYS.paymentMethods)}</Link>
+                                ),
+                            },
+                        ],
+                    },
                 ],
             },
             {

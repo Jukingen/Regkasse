@@ -22,6 +22,7 @@ import type {
 function toListItem(row: NonNullable<ReceiptListItemDtoPagedResult['items']>[number]): ReceiptListItemDto {
   return {
     receiptId: row.receiptId ?? '',
+    paymentId: row.paymentId ?? '',
     receiptNumber: row.receiptNumber ?? '',
     issuedAt: row.issuedAt ?? '',
     cashierId: row.cashierId ?? null,

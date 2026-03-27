@@ -8,6 +8,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Pricing;
 using Microsoft.AspNetCore.Http;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
@@ -150,7 +151,9 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             Options.Create(new TseOptions { TseMode = "Demo" }),
             Mock.Of<ILogger<PaymentService>>(),
             cashRegResolver,
-            httpAccessor);
+            httpAccessor,
+            new PaymentMethodCatalogService(ctx),
+            new PricingRuleResolver(ctx));
 
         var offlineService = new OfflineTransactionService(
             ctx,

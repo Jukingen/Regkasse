@@ -4,6 +4,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Pricing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -121,7 +122,9 @@ public class PaymentRegisterCommitGateTests
             Options.Create(tseOptions),
             loggerPayment,
             cashRegisterResolution,
-            httpAccessorMock.Object);
+            httpAccessorMock.Object,
+            new PaymentMethodCatalogService(context),
+            new PricingRuleResolver(context));
     }
 
     private static (Guid CustomerId, Guid ProductId, Guid CashRegisterId) SeedSoleOpenRegisterU1(AppDbContext ctx)

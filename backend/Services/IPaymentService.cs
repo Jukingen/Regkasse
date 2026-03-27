@@ -54,8 +54,14 @@ namespace KasseAPI_Final.Services
         
         /// <summary>
         /// Get formatted receipt data for payment. When userId is provided, audit is written for ReceiptGenerated or ReceiptReprinted.
+        /// Backoffice-Nachdruck: Vorschau ohne Audit über Receipts-API; Bestätigung nur über <see cref="ConfirmReceiptReprintAsync"/>.
         /// </summary>
         Task<ReceiptDTO?> GetReceiptDataAsync(Guid paymentId, string? userId = null);
+
+        /// <summary>
+        /// Bestätigter Nachdruck (Backoffice): validiert Begründung, schreibt eine Audit-Zeile (ReceiptReprintConfirmed / ReceiptReprintRejected), kein TSE-Recreate.
+        /// </summary>
+        Task<ReceiptReprintOperationResult> ConfirmReceiptReprintAsync(Guid paymentId, ReceiptReprintRequest? request, string userId, CancellationToken cancellationToken = default);
         
         /// <summary>
         /// TSE imzası oluştur

@@ -71,9 +71,11 @@ public static class RolePermissionMatrix
                 AppPermissions.CashRegisterView, AppPermissions.CashRegisterManage,
                 AppPermissions.ShiftView, AppPermissions.ShiftManage,
                 AppPermissions.InventoryView, AppPermissions.InventoryManage,
+                AppPermissions.InventoryAdjust, AppPermissions.InventoryDelete,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView, AppPermissions.InvoiceManage, AppPermissions.InvoiceExport,
                 AppPermissions.ReportView, AppPermissions.ReportExport,
+                AppPermissions.FiscalExportCompliance,
                 AppPermissions.AuditView, AppPermissions.AuditExport,
                 AppPermissions.SettingsView,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
@@ -131,6 +133,7 @@ public static class RolePermissionMatrix
             [Roles.Accountant] = new[]
             {
                 AppPermissions.ReportView, AppPermissions.ReportExport,
+                AppPermissions.FiscalExportCompliance,
                 AppPermissions.AuditView,
                 AppPermissions.FinanzOnlineView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),

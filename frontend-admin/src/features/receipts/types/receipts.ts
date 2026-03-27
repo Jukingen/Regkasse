@@ -38,6 +38,8 @@ export const RECEIPT_LIST_DEFAULTS: ReceiptListParams = {
  */
 export interface ReceiptListItemDto {
     receiptId: string;
+    /** Zahlung für Nachdruck / by-payment Preview */
+    paymentId?: string;
     receiptNumber: string;
     issuedAt: string;
     cashierId: string | null;

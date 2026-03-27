@@ -29,4 +29,8 @@
     <ProjectReference Include="..\KasseAPI_Final.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="artifacts\**" />
+  </ItemGroup>
+
 </Project>

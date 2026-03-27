@@ -44,7 +44,7 @@
   "moreTools": {
     "payloadHash": "Payload hash çakışmaları",
     "queueLegacy": "FinanzOnline mutabakat (eski)",
-    "fiscalExport": "Mali export tanısı",
+    "fiscalExport": "Mali export (profil)",
     "integrity": "Veri bütünlüğü",
     "offlineCoverage": "Çevrimdışı niyet kapsamı",
     "verifications": "Doğrulamalar / denetim",
@@ -195,6 +195,21 @@
     "status": "Sistem durumu",
     "cmcCertificate": "CMC / sertifika",
     "finanzOnlineOps": "FinanzOnline · entegrasyon"
+  },
+  "fiscalExportPage": {
+    "title": "Mali export",
+    "breadcrumb": "Mali export",
+    "profileLabel": "Export profili",
+    "profileHelp": "Profil amacı ve gerekli izinleri belirler. Her çıktıda «yasal RKSV kanıtı değildir» uyarısı vardır — uyum paketlerinde de.",
+    "diagnostic": "Tanı / destek",
+    "diagnosticDesc": "Teknik analiz ve destek: bütünlük bayrakları yalnızca seçilen dönem için (best effort).",
+    "auditHandoff": "Denetim devri",
+    "auditHandoffDesc": "İç veya dış denetçi için yapılandırılmış paket — audit günlüğüne ek; resmi defter veya FinanzOnline yerine geçmez.",
+    "compliance": "Uyum / hukuk incelemesi",
+    "complianceDesc": "Dış uyum veya hukuk incelemesi için paket (fiscal.export.compliance gerekir); FinanzOnline yerine geçmez.",
+    "profileForbidden": "Bu profil için izin yok.",
+    "globalIntegrityHint": "Veritabanı geneli için «Veri bütünlüğü» sayfasını kullanın; export yalnızca dilim riski gösterir.",
+    "sliceVsGlobalTitle": "Export (dilim) ve genel bütünlük"
   },
   "aria": {
     "cardRefreshing": "Kart içeriği yükleniyor",

@@ -15,16 +15,27 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  ClosingReferenceReportDto,
   CustomerReport,
   GetApiReportsCustomersParams,
   GetApiReportsExportSalesParams,
+  GetApiReportsOperationalClosingsParams,
+  GetApiReportsOperationalExportSummaryCsvParams,
+  GetApiReportsOperationalInterimParams,
+  GetApiReportsOperationalPeriodicParams,
+  GetApiReportsOperationalStaffPerformanceParams,
+  GetApiReportsOperationalSummaryParams,
   GetApiReportsPaymentsParams,
   GetApiReportsProductsParams,
   GetApiReportsSalesParams,
+  InterimOperationalReportDto,
   InventoryReport,
+  OperationalSummaryDto,
   PaymentReport,
+  PeriodicOperationalReportDto,
   ProductReport,
-  SalesReport
+  SalesReport,
+  StaffPerformanceReportDto
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -357,6 +368,343 @@ export const useGetApiReportsExportSales = <TData = Awaited<ReturnType<typeof ge
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiReportsExportSalesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiReportsOperationalStaffPerformance = (
+    params?: GetApiReportsOperationalStaffPerformanceParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<StaffPerformanceReportDto>(
+      {url: `/api/Reports/operational/staff-performance`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiReportsOperationalStaffPerformanceQueryKey = (params?: GetApiReportsOperationalStaffPerformanceParams,) => {
+    return [`/api/Reports/operational/staff-performance`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiReportsOperationalStaffPerformanceQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsOperationalStaffPerformance>>, TError = unknown>(params?: GetApiReportsOperationalStaffPerformanceParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalStaffPerformance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReportsOperationalStaffPerformanceQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsOperationalStaffPerformance>>> = ({ signal }) => getApiReportsOperationalStaffPerformance(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalStaffPerformance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiReportsOperationalStaffPerformanceQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsOperationalStaffPerformance>>>
+export type GetApiReportsOperationalStaffPerformanceQueryError = unknown
+
+export const useGetApiReportsOperationalStaffPerformance = <TData = Awaited<ReturnType<typeof getApiReportsOperationalStaffPerformance>>, TError = unknown>(
+ params?: GetApiReportsOperationalStaffPerformanceParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalStaffPerformance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiReportsOperationalStaffPerformanceQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiReportsOperationalSummary = (
+    params?: GetApiReportsOperationalSummaryParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<OperationalSummaryDto>(
+      {url: `/api/Reports/operational/summary`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiReportsOperationalSummaryQueryKey = (params?: GetApiReportsOperationalSummaryParams,) => {
+    return [`/api/Reports/operational/summary`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiReportsOperationalSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsOperationalSummary>>, TError = unknown>(params?: GetApiReportsOperationalSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReportsOperationalSummaryQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsOperationalSummary>>> = ({ signal }) => getApiReportsOperationalSummary(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiReportsOperationalSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsOperationalSummary>>>
+export type GetApiReportsOperationalSummaryQueryError = unknown
+
+export const useGetApiReportsOperationalSummary = <TData = Awaited<ReturnType<typeof getApiReportsOperationalSummary>>, TError = unknown>(
+ params?: GetApiReportsOperationalSummaryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiReportsOperationalSummaryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiReportsOperationalPeriodic = (
+    params?: GetApiReportsOperationalPeriodicParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PeriodicOperationalReportDto>(
+      {url: `/api/Reports/operational/periodic`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiReportsOperationalPeriodicQueryKey = (params?: GetApiReportsOperationalPeriodicParams,) => {
+    return [`/api/Reports/operational/periodic`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiReportsOperationalPeriodicQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsOperationalPeriodic>>, TError = unknown>(params?: GetApiReportsOperationalPeriodicParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalPeriodic>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReportsOperationalPeriodicQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsOperationalPeriodic>>> = ({ signal }) => getApiReportsOperationalPeriodic(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalPeriodic>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiReportsOperationalPeriodicQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsOperationalPeriodic>>>
+export type GetApiReportsOperationalPeriodicQueryError = unknown
+
+export const useGetApiReportsOperationalPeriodic = <TData = Awaited<ReturnType<typeof getApiReportsOperationalPeriodic>>, TError = unknown>(
+ params?: GetApiReportsOperationalPeriodicParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalPeriodic>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiReportsOperationalPeriodicQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiReportsOperationalInterim = (
+    params?: GetApiReportsOperationalInterimParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<InterimOperationalReportDto>(
+      {url: `/api/Reports/operational/interim`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiReportsOperationalInterimQueryKey = (params?: GetApiReportsOperationalInterimParams,) => {
+    return [`/api/Reports/operational/interim`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiReportsOperationalInterimQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsOperationalInterim>>, TError = unknown>(params?: GetApiReportsOperationalInterimParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalInterim>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReportsOperationalInterimQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsOperationalInterim>>> = ({ signal }) => getApiReportsOperationalInterim(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalInterim>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiReportsOperationalInterimQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsOperationalInterim>>>
+export type GetApiReportsOperationalInterimQueryError = unknown
+
+export const useGetApiReportsOperationalInterim = <TData = Awaited<ReturnType<typeof getApiReportsOperationalInterim>>, TError = unknown>(
+ params?: GetApiReportsOperationalInterimParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalInterim>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiReportsOperationalInterimQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiReportsOperationalClosings = (
+    params?: GetApiReportsOperationalClosingsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ClosingReferenceReportDto>(
+      {url: `/api/Reports/operational/closings`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiReportsOperationalClosingsQueryKey = (params?: GetApiReportsOperationalClosingsParams,) => {
+    return [`/api/Reports/operational/closings`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiReportsOperationalClosingsQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsOperationalClosings>>, TError = unknown>(params?: GetApiReportsOperationalClosingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalClosings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReportsOperationalClosingsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsOperationalClosings>>> = ({ signal }) => getApiReportsOperationalClosings(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalClosings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiReportsOperationalClosingsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsOperationalClosings>>>
+export type GetApiReportsOperationalClosingsQueryError = unknown
+
+export const useGetApiReportsOperationalClosings = <TData = Awaited<ReturnType<typeof getApiReportsOperationalClosings>>, TError = unknown>(
+ params?: GetApiReportsOperationalClosingsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalClosings>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiReportsOperationalClosingsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiReportsOperationalExportSummaryCsv = (
+    params?: GetApiReportsOperationalExportSummaryCsvParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/Reports/operational/export/summary.csv`, method: 'GET',
+        params,
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiReportsOperationalExportSummaryCsvQueryKey = (params?: GetApiReportsOperationalExportSummaryCsvParams,) => {
+    return [`/api/Reports/operational/export/summary.csv`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiReportsOperationalExportSummaryCsvQueryOptions = <TData = Awaited<ReturnType<typeof getApiReportsOperationalExportSummaryCsv>>, TError = unknown>(params?: GetApiReportsOperationalExportSummaryCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalExportSummaryCsv>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiReportsOperationalExportSummaryCsvQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiReportsOperationalExportSummaryCsv>>> = ({ signal }) => getApiReportsOperationalExportSummaryCsv(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalExportSummaryCsv>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiReportsOperationalExportSummaryCsvQueryResult = NonNullable<Awaited<ReturnType<typeof getApiReportsOperationalExportSummaryCsv>>>
+export type GetApiReportsOperationalExportSummaryCsvQueryError = unknown
+
+export const useGetApiReportsOperationalExportSummaryCsv = <TData = Awaited<ReturnType<typeof getApiReportsOperationalExportSummaryCsv>>, TError = unknown>(
+ params?: GetApiReportsOperationalExportSummaryCsvParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiReportsOperationalExportSummaryCsv>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiReportsOperationalExportSummaryCsvQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

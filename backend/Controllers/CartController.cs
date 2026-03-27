@@ -6,6 +6,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Security;
 using System.Security.Claims;
 
@@ -25,12 +26,18 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly ILogger<CartController> _logger;
         private readonly IProductModifierValidationService _modifierValidation;
+        private readonly IPricingRuleResolver _pricingRuleResolver;
 
-        public CartController(AppDbContext context, ILogger<CartController> logger, IProductModifierValidationService modifierValidation)
+        public CartController(
+            AppDbContext context,
+            ILogger<CartController> logger,
+            IProductModifierValidationService modifierValidation,
+            IPricingRuleResolver pricingRuleResolver)
         {
             _context = context;
             _logger = logger;
             _modifierValidation = modifierValidation;
+            _pricingRuleResolver = pricingRuleResolver;
         }
 
         // GET: api/cart/current - Belirli masadaki aktif sepeti getir
@@ -287,7 +294,13 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "Product not found" });
                 }
 
-                var baseUnitPrice = Math.Round(product.Price, 2, MidpointRounding.AwayFromZero);
+                var priced = await _pricingRuleResolver.ResolveUnitGrossAsync(
+                    product.Price,
+                    product.Id,
+                    product.CategoryId,
+                    request.CashRegisterId,
+                    DateTime.UtcNow);
+                var baseUnitPrice = priced.UnitPriceGross;
 
                 // Phase 2: Flat cart — sellable add-on products are always a single line (no embedded modifiers). Merge by ProductId only.
                 if (product.IsSellableAddOn)
@@ -309,7 +322,8 @@ namespace KasseAPI_Final.Controllers
                             ProductId = request.ProductId,
                             Quantity = request.Quantity,
                             UnitPrice = baseUnitPrice,
-                            Notes = request.Notes
+                            Notes = request.Notes,
+                            AppliedPricingRuleId = priced.AppliedRuleId
                         });
                         _logger.LogInformation("Added flat add-on line: CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}", cart.CartId, request.ProductId, request.Quantity);
                     }
@@ -352,7 +366,8 @@ namespace KasseAPI_Final.Controllers
                         ProductId = request.ProductId,
                         Quantity = request.Quantity,
                         UnitPrice = baseUnitPrice,
-                        Notes = request.Notes
+                        Notes = request.Notes,
+                        AppliedPricingRuleId = priced.AppliedRuleId
                     });
                     _logger.LogInformation("Added product-only line (no modifiers written): CartId={CartId}, ProductId={ProductId}, Quantity={Quantity}", cart.CartId, request.ProductId, request.Quantity);
                 }
@@ -422,6 +437,13 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "Product not found" });
                 }
 
+                var priced = await _pricingRuleResolver.ResolveUnitGrossAsync(
+                    product.Price,
+                    product.Id,
+                    product.CategoryId,
+                    request.CashRegisterId,
+                    DateTime.UtcNow);
+
                 // Sepette bu ürün zaten var mı kontrol et
                 var existingItem = await _context.CartItems
                     .FirstOrDefaultAsync(ci => ci.CartId == cartId && ci.ProductId == request.ProductId);
@@ -440,8 +462,9 @@ namespace KasseAPI_Final.Controllers
                         CartId = cartId,
                         ProductId = request.ProductId,
                         Quantity = request.Quantity,
-                        UnitPrice = product.Price,
-                        Notes = request.Notes
+                        UnitPrice = priced.UnitPriceGross,
+                        Notes = request.Notes,
+                        AppliedPricingRuleId = priced.AppliedRuleId
                     };
                     _context.CartItems.Add(cartItem);
                 }
@@ -1496,6 +1519,7 @@ namespace KasseAPI_Final.Controllers
                     Notes = ci.Notes,
                     TaxType = productLine.TaxType,
                     TaxRate = productLine.TaxRate,
+                    AppliedPricingRuleId = ci.AppliedPricingRuleId,
                     SelectedModifiers = selectedModifiers
                 };
             }).ToList();
@@ -1557,6 +1581,8 @@ namespace KasseAPI_Final.Controllers
         /// <summary>Display-only label; does not change which user owns the cart.</summary>
         public string? WaiterName { get; set; }
         public string? Notes { get; set; }
+        /// <summary>İsteğe bağlı: kasa kapsamlı fiyat kuralları için POS kasa kimliği.</summary>
+        public Guid? CashRegisterId { get; set; }
         /// <summary>Phase 2 legacy: Prefer flat cart (add-on = separate add-item). Still accepted for backward compat.</summary>
         [Obsolete("Add add-ons as separate add-item(productId) lines. Kept for backward compat.", false)]
         public List<SelectedModifierInputDto>? SelectedModifiers { get; set; }
@@ -1567,6 +1593,8 @@ namespace KasseAPI_Final.Controllers
         public Guid ProductId { get; set; }
         public int Quantity { get; set; }
         public string? Notes { get; set; }
+        /// <summary>İsteğe bağlı: kasa kapsamlı fiyat kuralları için POS kasa kimliği.</summary>
+        public Guid? CashRegisterId { get; set; }
     }
 
     /// <summary>Primary: Quantity, Notes. Legacy: SelectedModifiers (prefer flat cart).</summary>
@@ -1636,6 +1664,8 @@ namespace KasseAPI_Final.Controllers
         public string? Notes { get; set; }
         public int TaxType { get; set; } = 1;
         public decimal TaxRate { get; set; }
+        /// <summary>Uygulanan fiyat kuralı (yoksa null).</summary>
+        public Guid? AppliedPricingRuleId { get; set; }
         /// <summary>Phase 2 legacy: Read-only for existing carts. New add-ons appear as separate Items.</summary>
         [Obsolete("Read-only for legacy carts. New add-ons are separate Items.", false)]
         public List<SelectedModifierDto> SelectedModifiers { get; set; } = new();

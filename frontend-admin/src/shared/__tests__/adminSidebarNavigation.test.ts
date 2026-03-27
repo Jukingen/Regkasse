@@ -33,10 +33,15 @@ describe('adminSidebarNavigation', () => {
     });
 
     it('returns open group keys for paths under grouped routes', () => {
+        expect(getNonRksvSidebarOpenGroupKeys('/operations-center')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.kasseBelege);
+        expect(getNonRksvSidebarOpenGroupKeys('/tables')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.kasseBelege);
         expect(getNonRksvSidebarOpenGroupKeys('/payments')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.kasseBelege);
         expect(getNonRksvSidebarOpenGroupKeys('/products')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.sortiment);
         expect(getNonRksvSidebarOpenGroupKeys('/customers')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.kundenVorteile);
         expect(getNonRksvSidebarOpenGroupKeys('/settings')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.verwaltung);
+        expect(getNonRksvSidebarOpenGroupKeys('/settings')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
+        expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.verwaltung);
+        expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
         expect(getNonRksvSidebarOpenGroupKeys('/rksv/incident')).toEqual([]);
     });
 });
