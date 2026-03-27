@@ -25,6 +25,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Services.LegalExportCompleteness;
 
 var builder = WebApplication.CreateBuilder(args);
 var isDevelopment = builder.Environment.IsDevelopment();
@@ -374,6 +375,7 @@ builder.Services.AddScoped<ITagesberichtService, TagesberichtService>();
 builder.Services.AddScoped<IMonatsberichtService, MonatsberichtService>();
 builder.Services.AddScoped<IJahresberichtService, JahresberichtService>();
 builder.Services.AddScoped<IReportSubmissionCompatibilityService, ReportSubmissionCompatibilityService>();
+builder.Services.AddScoped<IReportHistoryService, ReportHistoryService>();
 builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi eklendi
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
 // builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
@@ -431,6 +433,7 @@ builder.Services.AddHostedService<KasseAPI_Final.Services.PayloadHashRepairHoste
 builder.Services.AddScoped<ILegalHoldService, LegalHoldService>();
 builder.Services.AddScoped<IIntegrityCheckService, IntegrityCheckService>();
 builder.Services.AddScoped<IFiscalExportService, FiscalExportService>();
+builder.Services.AddScoped<ILegalExportCompletenessService, LegalExportCompletenessService>();
 builder.Services.AddScoped<IActorDisplayNameResolver, ActorDisplayNameResolver>();
 builder.Services.AddScoped<IUserUniquenessValidationService, UserUniquenessValidationService>();
 

@@ -44,7 +44,10 @@ public sealed class JahresberichtService : IJahresberichtService
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            await AuditReportMutationFailureAsync("JahresberichtGenerateFailed", actorUserId, "Jahresbericht generation failed", "Actor required.", null, new { request.ViennaYearAnyDay, request.ScopeKind, request.CashRegisterId, request.ForceNewProvisional });
             throw new ArgumentException("Actor required.", nameof(actorUserId));
+        }
 
         var yearStart = NormalizeViennaYearStart(request.ViennaYearAnyDay);
         var scopeKind = (request.ScopeKind ?? MonatsberichtScopeKinds.Register).Trim();
@@ -59,7 +62,10 @@ public sealed class JahresberichtService : IJahresberichtService
 
         if (scopeKind == MonatsberichtScopeKinds.Register &&
             !await _db.CashRegisters.AsNoTracking().AnyAsync(x => x.Id == request.CashRegisterId!.Value, cancellationToken))
+        {
+            await AuditReportMutationFailureAsync("JahresberichtGenerateFailed", actorUserId, "Jahresbericht generation failed", "Cash register not found.", null, new { request.ViennaYearAnyDay, request.ScopeKind, request.CashRegisterId, request.ForceNewProvisional });
             throw new InvalidOperationException("Cash register not found.");
+        }
 
         var existing = await _db.Set<JahresberichtReport>()
             .Where(x =>
@@ -81,16 +87,9 @@ public sealed class JahresberichtService : IJahresberichtService
             existing.SnapshotSchemaVersion = SnapshotSchemaVersion;
             existing.SnapshotGrossSalesAmount = built.AggregationFromMonthly.GrossSalesAmount;
             existing.StoreLabel = await ResolveStoreLabelAsync(scopeKind, request.CashRegisterId, cancellationToken);
+            FormalReportPropagationMarkers.ClearUpstreamReview(existing);
             await _db.SaveChangesAsync(cancellationToken);
-            await _audit.LogSystemOperationAsync(
-                "JahresberichtSnapshotRefreshed",
-                nameof(JahresberichtReport),
-                actorUserId,
-                "ReportActor",
-                description: "Jahresbericht provisional refreshed",
-                requestData: new { existing.Id, yearStart, scopeKind },
-                responseData: new { existing.SnapshotHash },
-                status: AuditLogStatus.Success);
+            await AuditReportMutationSuccessAsync("JahresberichtSnapshotRefreshed", actorUserId, "Jahresbericht provisional refreshed", existing, new { yearStart, scopeKind, request.CashRegisterId, request.ForceNewProvisional }, new { existing.SnapshotHash });
             return await MapToDtoAsync(existing.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
         }
 
@@ -122,15 +121,7 @@ public sealed class JahresberichtService : IJahresberichtService
         _db.Set<JahresberichtReport>().Add(row);
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
-            "JahresberichtGenerated",
-            nameof(JahresberichtReport),
-            actorUserId,
-            "ReportActor",
-            description: "Jahresbericht provisional created",
-            requestData: new { row.Id, yearStart, scopeKind },
-            responseData: new { row.SnapshotHash },
-            status: AuditLogStatus.Success);
+        await AuditReportMutationSuccessAsync("JahresberichtGenerated", actorUserId, "Jahresbericht provisional created", row, new { yearStart, scopeKind, request.CashRegisterId, request.ForceNewProvisional }, new { row.SnapshotHash });
 
         return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
     }
@@ -141,10 +132,16 @@ public sealed class JahresberichtService : IJahresberichtService
             ?? throw new InvalidOperationException("Jahresbericht not found.");
 
         if (row.ReportStatus == MonatsberichtReportStatuses.Finalized)
+        {
+            await AuditReportMutationFailureAsync("JahresberichtFinalizeFailed", actorUserId, "Jahresbericht finalize failed", "Report already finalized.", row, new { request.ReportId, request.Note });
             throw new InvalidOperationException("Report already finalized.");
+        }
 
         if (row.ReportStatus == MonatsberichtReportStatuses.Superseded)
+        {
+            await AuditReportMutationFailureAsync("JahresberichtFinalizeFailed", actorUserId, "Jahresbericht finalize failed", "Cannot finalize superseded report.", row, new { request.ReportId, request.Note });
             throw new InvalidOperationException("Cannot finalize superseded report.");
+        }
 
         var summary = await BuildYearlySnapshotAsync(row.ViennaYearStart, row.ScopeKind, row.CashRegisterId, cancellationToken);
 
@@ -156,17 +153,11 @@ public sealed class JahresberichtService : IJahresberichtService
         row.FinalizedByUserId = actorUserId;
         row.ReportRevisionReason = request.Note ?? row.ReportRevisionReason ?? "Finalized";
         row.SnapshotGrossSalesAmount = summary.AggregationFromMonthly.GrossSalesAmount;
+        FormalReportPropagationMarkers.ClearUpstreamReview(row);
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
-            "JahresberichtFinalized",
-            nameof(JahresberichtReport),
-            actorUserId,
-            "ReportActor",
-            description: request.Note ?? "Jahresbericht finalized",
-            requestData: new { row.Id, row.SnapshotHash },
-            status: AuditLogStatus.Success);
+        await AuditReportMutationSuccessAsync("JahresberichtFinalized", actorUserId, request.Note ?? "Jahresbericht finalized", row, new { request.ReportId, request.Note }, new { row.SnapshotHash });
 
         return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
     }
@@ -177,15 +168,24 @@ public sealed class JahresberichtService : IJahresberichtService
             ?? throw new InvalidOperationException("Prior Jahresbericht not found.");
 
         if (prior.ReportStatus != MonatsberichtReportStatuses.Finalized)
+        {
+            await AuditReportMutationFailureAsync("JahresberichtCorrectionFailed", actorUserId, "Jahresbericht correction failed", "Correction requires finalized prior report.", prior, new { request.SupersedesReportId, request.Reason });
             throw new InvalidOperationException("Correction requires finalized prior report.");
+        }
 
         if (prior.SupersededByReportId != null)
+        {
+            await AuditReportMutationFailureAsync("JahresberichtCorrectionFailed", actorUserId, "Jahresbericht correction failed", "Prior already superseded.", prior, new { request.SupersedesReportId, request.Reason });
             throw new InvalidOperationException("Prior already superseded.");
+        }
 
         var duplicate = await _db.Set<JahresberichtReport>().AsNoTracking()
             .AnyAsync(x => x.CorrectionOfReportId == prior.Id && x.SupersededByReportId == null, cancellationToken);
         if (duplicate)
+        {
+            await AuditReportMutationFailureAsync("JahresberichtCorrectionFailed", actorUserId, "Jahresbericht correction failed", "Duplicate correction request blocked for same prior report.", prior, new { request.SupersedesReportId, request.Reason });
             throw new InvalidOperationException("Duplicate correction request blocked for same prior report.");
+        }
 
         var summary = await BuildYearlySnapshotAsync(prior.ViennaYearStart, prior.ScopeKind, prior.CashRegisterId, cancellationToken);
 
@@ -224,14 +224,7 @@ public sealed class JahresberichtService : IJahresberichtService
         _db.Set<JahresberichtReport>().Add(row);
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
-            "JahresberichtCorrectionCreated",
-            nameof(JahresberichtReport),
-            actorUserId,
-            "ReportActor",
-            description: request.Reason ?? "Jahresbericht correction",
-            requestData: new { priorReportId = prior.Id, newReportId = row.Id },
-            status: AuditLogStatus.Success);
+        await AuditReportMutationSuccessAsync("JahresberichtCorrectionCreated", actorUserId, request.Reason ?? "Jahresbericht correction", row, new { request.SupersedesReportId, request.Reason, supersededReportId = prior.Id }, new { correctionReportId = row.Id, row.SubmissionImpact, row.CorrectionType });
 
         return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
     }
@@ -298,6 +291,8 @@ public sealed class JahresberichtService : IJahresberichtService
                 GrossSalesAmount = x.SnapshotGrossSalesAmount,
                 CreatedAtUtc = x.CreatedAtUtc,
                 Submission = await BuildSubmissionStateAsync(x, cancellationToken),
+                UpstreamReviewRequired = x.UpstreamReviewRequired,
+                UpstreamReviewReasonCode = x.UpstreamReviewReasonCode,
             });
         }
 
@@ -306,11 +301,39 @@ public sealed class JahresberichtService : IJahresberichtService
 
     public async Task<JahresberichtDto> SubmitToFinanzOnlineAsync(Guid reportId, string actorUserId, CancellationToken cancellationToken = default)
     {
-        var row = await _db.Set<JahresberichtReport>().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken)
+        JahresberichtReport? row = null;
+        try
+        {
+        row = await _db.Set<JahresberichtReport>().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken)
             ?? throw new InvalidOperationException("Jahresbericht not found.");
 
         if (row.ReportStatus != MonatsberichtReportStatuses.Finalized)
+        {
+            await AuditReportMutationFailureAsync("JahresberichtFinanzOnlineSubmitFailed", actorUserId, "Jahresbericht outbox enqueue failed", "Only finalized Jahresbericht can be submitted.", row, new { reportId });
             throw new InvalidOperationException("Only finalized Jahresbericht can be submitted.");
+        }
+
+        var pre = await FormalReportSubmissionGuards.EvaluateSubmitPrecheckAsync(
+            _db,
+            "JahresberichtReport",
+            row.Id,
+            row.ReportStatus,
+            row.SupersededByReportId,
+            row.LastFinanzOnlineOutboxMessageId,
+            cancellationToken);
+        if (pre == FormalReportSubmitPrecheckDecision.RejectSuperseded)
+        {
+            await AuditReportMutationFailureAsync("JahresberichtFinanzOnlineSubmitFailed", actorUserId, "Jahresbericht outbox enqueue failed", "Superseded Jahresbericht cannot be submitted.", row, new { reportId });
+            throw new InvalidOperationException("Superseded Jahresbericht cannot be submitted. Use the successor report.");
+        }
+        if (pre == FormalReportSubmitPrecheckDecision.RejectAlreadyAccepted)
+        {
+            await AuditReportMutationFailureAsync("JahresberichtFinanzOnlineSubmitFailed", actorUserId, "Jahresbericht outbox enqueue failed", "Submission already accepted.", row, new { reportId });
+            throw new InvalidOperationException(
+                "FinanzOnline submission already accepted for this report. Create a correction report for a new submission chain.");
+        }
+        if (pre == FormalReportSubmitPrecheckDecision.ReturnExistingWithoutEnqueue)
+            return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
 
         var summary = JsonSerializer.Deserialize<JahresberichtSummaryDto>(row.SnapshotJson, JsonOpts)
             ?? throw new InvalidOperationException("Snapshot corrupt.");
@@ -324,6 +347,9 @@ public sealed class JahresberichtService : IJahresberichtService
 
         var mode = FinanzOnlineIntegrationMode.TEST;
 
+        var submissionAttemptIndex = await FormalReportSubmissionGuards.CountOutboxMessagesForAggregateAsync(
+            _db, "JahresberichtReport", row.Id, cancellationToken);
+
         var payloadJson = JsonSerializer.Serialize(new
         {
             kind = "JahresberichtAnnualSummary",
@@ -335,11 +361,19 @@ public sealed class JahresberichtService : IJahresberichtService
             registerNumber,
             grossFromMonthly = summary.AggregationFromMonthly.GrossSalesAmount,
             grossFromRaw = summary.RawPaymentRollup.GrossSalesAmount,
+            submissionAttemptIndex,
         }, JsonOpts);
 
         var hashHex = ComputeSha256Hex(payloadJson);
-        var businessKey = $"{row.ScopeKind}|{summary.ViennaYear}|{registerNumber}|{row.Id:N}";
+        var businessKey = ReportFinanzOnlineBusinessKeys.Jahresbericht(
+            row.ScopeKind,
+            summary.ViennaYear,
+            registerNumber,
+            row.Id,
+            submissionAttemptIndex);
 
+        var previousOutboxId = row.LastFinanzOnlineOutboxMessageId;
+        var previousStatus = row.LastSubmissionStatusCode;
         var msg = await _outbox.EnqueueSubmissionAsync(
             aggregateType: "JahresberichtReport",
             aggregateId: row.Id,
@@ -366,16 +400,97 @@ public sealed class JahresberichtService : IJahresberichtService
         row.SubmissionImpact = ReportSubmissionImpacts.RequiresResubmission;
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
+        await AuditReportMutationSuccessAsync(
             "JahresberichtFinanzOnlineSubmit",
+            actorUserId,
+            "Jahresbericht enqueued to FinanzOnline outbox",
+            row,
+            new { reportId = row.Id, previousOutboxId, previousStatus, retrySubmissionAttempt = previousOutboxId != null },
+            new { outboxMessageId = msg.Id, outboxStatus = msg.Status, correlationId = msg.CorrelationId, businessKey = msg.BusinessKey },
+            msg.CorrelationId);
+
+        return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
+        }
+        catch (Exception ex)
+        {
+            await AuditReportMutationFailureAsync("JahresberichtFinanzOnlineSubmitFailed", actorUserId, "Jahresbericht outbox enqueue failed", ex.Message, row, new { reportId, retrySubmissionAttempt = row?.LastFinanzOnlineOutboxMessageId != null });
+            throw;
+        }
+    }
+
+    private Task AuditReportMutationSuccessAsync(
+        string action,
+        string actorUserId,
+        string description,
+        JahresberichtReport row,
+        object? requestData,
+        object? responseData,
+        string? correlationIdOverride = null)
+    {
+        return _audit.LogSystemOperationAsync(
+            action,
             nameof(JahresberichtReport),
             actorUserId,
             "ReportActor",
-            description: "Jahresbericht enqueued to FinanzOnline outbox",
-            requestData: new { reportId = row.Id, outboxMessageId = msg.Id },
-            status: AuditLogStatus.Success);
+            description: description,
+            status: AuditLogStatus.Success,
+            requestData: new
+            {
+                reportType = "Jahresbericht",
+                reportId = row.Id,
+                reportVersion = row.ReportVersion,
+                reportStatus = row.ReportStatus,
+                scopeKind = row.ScopeKind,
+                scopeId = row.CashRegisterId,
+                period = row.ViennaYearStart.ToString("yyyy", CultureInfo.InvariantCulture),
+                originalReportId = row.OriginalReportId,
+                correctionOfReportId = row.CorrectionOfReportId,
+                supersedesReportId = row.SupersedesReportId,
+                supersededByReportId = row.SupersededByReportId,
+                outboxMessageId = row.LastFinanzOnlineOutboxMessageId,
+                actorUserId,
+                requestData
+            },
+            responseData: responseData,
+            correlationIdOverride: correlationIdOverride);
+    }
 
-        return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
+    private Task AuditReportMutationFailureAsync(
+        string action,
+        string actorUserId,
+        string description,
+        string errorMessage,
+        JahresberichtReport? row,
+        object? requestData,
+        string? correlationIdOverride = null)
+    {
+        return _audit.LogSystemOperationAsync(
+            action,
+            nameof(JahresberichtReport),
+            actorUserId,
+            "ReportActor",
+            description: description,
+            status: AuditLogStatus.Failed,
+            errorDetails: errorMessage,
+            requestData: new
+            {
+                reportType = "Jahresbericht",
+                reportId = row?.Id,
+                reportVersion = row?.ReportVersion,
+                reportStatus = row?.ReportStatus,
+                scopeKind = row?.ScopeKind,
+                scopeId = row?.CashRegisterId,
+                period = row == null ? null : row.ViennaYearStart.ToString("yyyy", CultureInfo.InvariantCulture),
+                originalReportId = row?.OriginalReportId,
+                correctionOfReportId = row?.CorrectionOfReportId,
+                supersedesReportId = row?.SupersedesReportId,
+                supersededByReportId = row?.SupersededByReportId,
+                outboxMessageId = row?.LastFinanzOnlineOutboxMessageId,
+                actorUserId,
+                requestData
+            },
+            responseData: new { error = errorMessage },
+            correlationIdOverride: correlationIdOverride);
     }
 
     private async Task<JahresberichtSummaryDto> BuildYearlySnapshotAsync(
@@ -667,7 +782,8 @@ public sealed class JahresberichtService : IJahresberichtService
                 SupersedesReportId = row.SupersedesReportId,
                 SupersededByReportId = row.SupersededByReportId
             },
-            ExportProfiles = BuildExportProfiles()
+            ExportProfiles = BuildExportProfiles(),
+            UpstreamPropagation = FormalReportPropagationNotes.ToUpstreamPropagationDto(row)
         };
     }
 

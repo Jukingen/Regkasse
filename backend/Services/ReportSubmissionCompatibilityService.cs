@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
@@ -30,6 +32,8 @@ public sealed class ReportSubmissionCompatibilityService : IReportSubmissionComp
             ReportType = request.ReportType,
             ReportId = request.ReportId,
             ReportState = request.ReportState,
+            SubmissionVersusReportNoteDe =
+                "Berichtsstatus (Provisional/Finalized/Superseded) und FinanzOnline-Abgabe sind getrennt. Export-Profil steuert keine Meldung.",
             SubmissionState = "not_submitted",
             OutboxMessageId = request.OutboxMessageId,
             LegalExportPackageReference = request.LegalExportPackageReference ?? $"fiscal-export:{request.ReportType}:{request.ReportId:N}",
@@ -55,7 +59,7 @@ public sealed class ReportSubmissionCompatibilityService : IReportSubmissionComp
                 RequiresCorrection = false,
                 RetryScheduled = false
             };
-            envelope.RemediationHintsDe = new[] { "Noch nicht an FinanzOnline übermittelt." };
+            envelope.RemediationHintsDe = MergeChainHints(request, new[] { "Noch nicht an FinanzOnline übermittelt." });
             return envelope;
         }
 
@@ -74,7 +78,11 @@ public sealed class ReportSubmissionCompatibilityService : IReportSubmissionComp
                 LastErrorMessage = "Outbox row missing."
             };
             envelope.RejectionReasons = new[] { "outbox_row_missing" };
-            envelope.RemediationHintsDe = new[] { "Übermittlungszustand unklar — Outbox-Zeile fehlt, manuell prüfen." };
+            envelope.RemediationHintsDe = MergeChainHints(request, new[]
+            {
+                "Übermittlungszustand unklar — Outbox-Zeile fehlt oder veraltete Referenz.",
+                "Outbox-Admin prüfen; ggf. erneut einreihen nach Datenbank-Konsistenz."
+            });
             return envelope;
         }
 
@@ -87,7 +95,8 @@ public sealed class ReportSubmissionCompatibilityService : IReportSubmissionComp
         var isTerminal = msg.Status is FinanzOnlineOutboxStatuses.ProtocolSuccess
             or FinanzOnlineOutboxStatuses.ProtocolFailure
             or FinanzOnlineOutboxStatuses.PermanentFailure
-            or FinanzOnlineOutboxStatuses.DeadLetter;
+            or FinanzOnlineOutboxStatuses.DeadLetter
+            or FinanzOnlineOutboxStatuses.ManualReviewRequired;
 
         envelope.SubmissionState = lifecycle;
         envelope.OutboxStatus = msg.Status;
@@ -133,12 +142,13 @@ public sealed class ReportSubmissionCompatibilityService : IReportSubmissionComp
         if (requiresCorrection && rejectionReasons.Count == 0)
             rejectionReasons.Add("correction_required");
         envelope.RejectionReasons = rejectionReasons;
-        envelope.RemediationHintsDe = BuildRemediationHints(msg.Status, msg.LastErrorMessage);
+        envelope.RemediationHintsDe = MergeChainHints(request, BuildRemediationHints(request, msg));
         return envelope;
     }
 
     public TagesberichtSubmissionStateDto ToLegacySubmissionState(ReportSubmissionEnvelopeDto envelope)
     {
+        var hints = envelope.RemediationHintsDe?.Where(x => !string.IsNullOrWhiteSpace(x)).ToList() ?? new List<string>();
         return new TagesberichtSubmissionStateDto
         {
             Lifecycle = envelope.State.Lifecycle,
@@ -148,7 +158,7 @@ public sealed class ReportSubmissionCompatibilityService : IReportSubmissionComp
             TransmissionId = envelope.State.TransmissionId,
             LastErrorCode = envelope.State.LastErrorCode,
             LastErrorMessage = envelope.State.LastErrorMessage,
-            OperatorHintDe = envelope.RemediationHintsDe.FirstOrDefault()
+            OperatorHintDe = hints.Count > 0 ? string.Join(" | ", hints) : null
         };
     }
 
@@ -169,18 +179,67 @@ public sealed class ReportSubmissionCompatibilityService : IReportSubmissionComp
         };
     }
 
-    private static IReadOnlyList<string> BuildRemediationHints(string status, string? error)
+    private static IReadOnlyList<string> BuildRemediationHints(
+        BuildReportSubmissionEnvelopeRequest request,
+        FinanzOnlineOutboxMessage msg)
     {
+        var status = msg.Status;
+        var error = msg.LastErrorMessage;
+        if (status == FinanzOnlineOutboxStatuses.Pending)
+            return new[] { "In Warteschlange — Abgabe noch nicht gestartet." };
+        if (status == FinanzOnlineOutboxStatuses.Processing)
+            return new[] { "Wird verarbeitet — bitte kurz warten (Outbox-Worker)." };
         if (status == FinanzOnlineOutboxStatuses.ProtocolSuccess)
-            return new[] { "Übermittlung erfolgreich (Outbox)." };
+        {
+            var list = new List<string> { "Übermittlung akzeptiert (Outbox-Status ProtocolSuccess)." };
+            if (string.Equals(request.ReportState, "Superseded", StringComparison.OrdinalIgnoreCase) && request.SupersededByReportId != null)
+                list.Add("Historischer Stand: Abgabe kann zur alten Version gehören — aktuelle Kette prüfen.");
+            return list;
+        }
         if (status == FinanzOnlineOutboxStatuses.RetryableFailure)
-            return new[] { "Vorübergehender Fehler — automatischer Wiederholungsversuch läuft." };
+            return new[]
+            {
+                "Vorübergehender Fehler — automatischer Wiederholungsversuch läuft.",
+                "Bei anhaltendem Fehler Outbox-Eintrag und Korrelation prüfen."
+            };
         if (status == FinanzOnlineOutboxStatuses.AwaitingProtocol)
-            return new[] { "Warte auf Protokollbestätigung." };
+            return new[]
+            {
+                "Warte auf Protokollbestätigung / SOAP-Nachreicher (AwaitingProtocol).",
+                "Kein erneuter Klick nötig — Reconciliation läuft im Hintergrund."
+            };
         if (status == FinanzOnlineOutboxStatuses.ManualReviewRequired)
-            return new[] { "Manuelle Prüfung erforderlich.", "Bei Korrektur bitte neuen Bericht mit Supersede-Kette erzeugen." };
+            return new[]
+            {
+                "Manuelle Prüfung erforderlich (ManualReviewRequired).",
+                "Keine erneute Abgabe desselben Artefakts ohne Klärung — ggf. neuen Korrekturbericht erzeugen."
+            };
         if (status is FinanzOnlineOutboxStatuses.DeadLetter or FinanzOnlineOutboxStatuses.PermanentFailure or FinanzOnlineOutboxStatuses.ProtocolFailure)
-            return new[] { string.IsNullOrWhiteSpace(error) ? "Dauerhafte Ablehnung oder Fehler — bitte prüfen." : error };
+        {
+            var core = string.IsNullOrWhiteSpace(error) ? "Dauerhafte Ablehnung oder Fehler — bitte prüfen." : error;
+            return new[]
+            {
+                core,
+                "Erneuter Versand: „An FinanzOnline senden“ erzeugt einen neuen Versuch (neuer Payload/Attempt), sofern Bericht nicht bereits akzeptiert."
+            };
+        }
         return Array.Empty<string>();
+    }
+
+    private static IReadOnlyList<string> MergeChainHints(
+        BuildReportSubmissionEnvelopeRequest request,
+        IReadOnlyList<string> baseHints)
+    {
+        var list = new List<string>();
+        if (string.Equals(request.ReportState, "Superseded", StringComparison.OrdinalIgnoreCase))
+            list.Add("Bericht ist Superseded — neue FinanzOnline-Abgabe erfolgt über den Nachfolgebericht (eigene Outbox-Kette).");
+        else if (request.SupersededByReportId != null)
+            list.Add("Nachfolgebericht vorhanden — für aktuelle Abgabe dessen Status nutzen.");
+        foreach (var h in baseHints)
+        {
+            if (!string.IsNullOrWhiteSpace(h))
+                list.Add(h);
+        }
+        return list;
     }
 }

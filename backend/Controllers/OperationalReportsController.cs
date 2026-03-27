@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models.Reports;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 
 namespace KasseAPI_Final.Controllers;
@@ -83,6 +84,43 @@ public class OperationalReportsController : ControllerBase
         return Ok(data);
     }
 
+    [HasPermission(AppPermissions.ReportExport)]
+    [HttpPost("periodic/freeze")]
+    [ProducesResponseType(typeof(PeriodenberichtRunDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PeriodenberichtRunDto>> FreezePeriodic(
+        [FromBody] FreezePeriodenberichtRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = User.GetActorUserId() ?? "unknown";
+        var data = await _reporting.FreezePeriodicAsync(request, userId, cancellationToken);
+        return Ok(data);
+    }
+
+    [HttpGet("periodic/frozen")]
+    [ProducesResponseType(typeof(IReadOnlyList<PeriodenberichtRunListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<PeriodenberichtRunListItemDto>>> ListFrozenPeriodic(
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
+        [FromQuery] Guid? cashRegisterId,
+        [FromQuery] int limit = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var data = await _reporting.ListFrozenPeriodenberichteAsync(fromDate, toDate, cashRegisterId, limit, cancellationToken);
+        return Ok(data);
+    }
+
+    [HttpGet("periodic/frozen/{id:guid}")]
+    [ProducesResponseType(typeof(PeriodenberichtRunDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PeriodenberichtRunDto>> GetFrozenPeriodicById(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var data = await _reporting.GetFrozenPeriodenberichtByIdAsync(id, cancellationToken);
+        if (data == null) return NotFound();
+        return Ok(data);
+    }
+
     [HttpGet("interim")]
     [ProducesResponseType(typeof(InterimOperationalReportDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<InterimOperationalReportDto>> GetInterim(
@@ -106,6 +144,24 @@ public class OperationalReportsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var data = await _reporting.GetClosingReferenceAsync(startDate, endDate, cashRegisterId, cancellationToken);
+        return Ok(data);
+    }
+
+    /// <summary>
+    /// X/Z reference bundle: interim (X-like), full-day operational totals, daily closings (Z-like). Read model, not hardware TSE output.
+    /// </summary>
+    [HttpGet("xz-reference-bundle")]
+    [ProducesResponseType(typeof(XzReferenceBundleDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<XzReferenceBundleDto>> GetXzReferenceBundle(
+        [FromQuery] DateTime? businessDate = null,
+        [FromQuery] Guid? cashRegisterId = null,
+        [FromQuery] string? cashierId = null,
+        [FromQuery] int? paymentMethod = null,
+        [FromQuery] bool activeOnly = true,
+        CancellationToken cancellationToken = default)
+    {
+        var data = await _reporting.GetXzReferenceBundleAsync(
+            businessDate, cashRegisterId, cashierId, paymentMethod, activeOnly, cancellationToken);
         return Ok(data);
     }
 

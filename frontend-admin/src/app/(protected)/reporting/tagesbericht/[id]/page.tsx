@@ -12,6 +12,7 @@ import {
   Space,
   Table,
   Tag,
+  Timeline,
   Typography,
   message,
 } from 'antd';
@@ -24,6 +25,7 @@ import { useI18n } from '@/i18n/I18nProvider';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
 
 type TagesberichtDto = {
   id: string;
@@ -61,12 +63,48 @@ type TagesberichtDto = {
     externalReferenceId?: string;
   };
   submissionEnvelope?: {
+    submissionVersusReportNoteDe?: string;
     attempts?: { attemptCount: number; status?: string; nextAttemptAtUtc?: string; failureCategory?: string }[];
     rejectionReasons?: string[];
     remediationHintsDe?: string[];
   };
   exportProfiles: { profileKey: string; labelDe: string; descriptionDe: string; includeTraceIds: boolean; nonLegalOutput?: boolean; isDiagnosticOnly?: boolean }[];
   correction: { isCorrection: boolean; supersedesReportId?: string };
+};
+
+type ReportHistoryTimelineDto = {
+  reportType: string;
+  requestedReportId: string;
+  chainRootReportId: string;
+  currentActiveReportId?: string | null;
+  items: {
+    reportId: string;
+    reportVersion: number;
+    reportStatus: string;
+    originalReportId?: string | null;
+    correctionOfReportId?: string | null;
+    supersedesReportId?: string | null;
+    supersededByReportId?: string | null;
+    createdAtUtc: string;
+    finalizedAtUtc?: string | null;
+    isCurrentActiveVersion: boolean;
+    isOriginalVersion: boolean;
+    isCorrectionVersion: boolean;
+    labelKeys: string[];
+    submission: {
+      lifecycle: string;
+      outboxMessageId?: string | null;
+      outboxStatus?: string | null;
+      latestStatusCode?: string | null;
+      externalReferenceId?: string | null;
+      lastErrorMessage?: string | null;
+      isSubmitted: boolean;
+      isAccepted: boolean;
+      isRejected: boolean;
+      isRetrying: boolean;
+      hasMissingOutboxReference: boolean;
+    };
+  }[];
 };
 
 export default function TagesberichtDetailPage() {
@@ -85,6 +123,15 @@ export default function TagesberichtDetailPage() {
     queryKey: ['tagesbericht', id],
     queryFn: async () => {
       const { data } = await AXIOS_INSTANCE.get<TagesberichtDto>(`/api/reports/tagesbericht/${id}`);
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const historyQ = useQuery({
+    queryKey: ['report-history', 'tagesbericht', id],
+    queryFn: async () => {
+      const { data } = await AXIOS_INSTANCE.get<ReportHistoryTimelineDto>(`/api/reports/history/tagesbericht/${id}`);
       return data;
     },
     enabled: !!id,
@@ -195,6 +242,11 @@ export default function TagesberichtDetailPage() {
             <Typography.Text type="danger">Diagnostic Package ist nur für technische Analyse gedacht.</Typography.Text>
           ) : null}
           <Typography.Text type="secondary">Profil steuert Export/Ansicht, nicht den FinanzOnline-Submission-Status.</Typography.Text>
+          <LegalExportCompletenessBanner
+            reportKind="tagesbericht"
+            reportId={id}
+            enabled={profile === 'legalComplianceExport'}
+          />
         </Space>
       </Card>
 
@@ -208,6 +260,11 @@ export default function TagesberichtDetailPage() {
           {d.submissionImpact ? <Descriptions.Item label="Submission Impact">{d.submissionImpact}</Descriptions.Item> : null}
           {d.reportRevisionReason ? <Descriptions.Item label="Revision Reason">{d.reportRevisionReason}</Descriptions.Item> : null}
           {d.rebuildCause ? <Descriptions.Item label="Rebuild Cause">{d.rebuildCause}</Descriptions.Item> : null}
+          {d.submissionEnvelope?.submissionVersusReportNoteDe ? (
+            <Descriptions.Item label="Bericht vs. Abgabe">
+              <Typography.Text type="secondary">{d.submissionEnvelope.submissionVersusReportNoteDe}</Typography.Text>
+            </Descriptions.Item>
+          ) : null}
           <Descriptions.Item label="Übermittlung">
             <Tag>{d.submission.lifecycle}</Tag> {d.submission.operatorHintDe}
           </Descriptions.Item>
@@ -296,6 +353,43 @@ export default function TagesberichtDetailPage() {
           </Typography.Paragraph>
         </Card>
       ) : null}
+
+      <Card title="History Timeline" style={{ marginTop: 16 }}>
+        {historyQ.isLoading ? (
+          <Typography.Text type="secondary">Lade Verlauf…</Typography.Text>
+        ) : historyQ.data?.items?.length ? (
+          <Timeline
+            items={historyQ.data.items.map((item) => ({
+              color: item.isCurrentActiveVersion ? 'green' : item.reportStatus === 'Superseded' ? 'orange' : 'blue',
+              children: (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text strong>
+                    v{item.reportVersion} · {item.reportId.slice(0, 8)} · {item.reportStatus}
+                  </Typography.Text>
+                  <Space size={[4, 4]} wrap>
+                    {item.labelKeys.map((k) => (
+                      <Tag key={`${item.reportId}-${k}`}>{k}</Tag>
+                    ))}
+                  </Space>
+                  <Typography.Text type="secondary">
+                    Created: {new Date(item.createdAtUtc).toLocaleString()} {item.finalizedAtUtc ? `· Finalized: ${new Date(item.finalizedAtUtc).toLocaleString()}` : ''}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    Submission: {item.submission.lifecycle}
+                    {item.submission.outboxMessageId ? ` · Outbox: ${item.submission.outboxMessageId.slice(0, 8)}` : ''}
+                    {item.submission.hasMissingOutboxReference ? ' · Missing outbox reference' : ''}
+                  </Typography.Text>
+                  {item.submission.lastErrorMessage ? (
+                    <Typography.Text type="warning">{item.submission.lastErrorMessage}</Typography.Text>
+                  ) : null}
+                </Space>
+              ),
+            }))}
+          />
+        ) : (
+          <Typography.Text type="secondary">Keine Korrekturkette vorhanden.</Typography.Text>
+        )}
+      </Card>
     </div>
   );
 }

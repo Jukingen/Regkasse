@@ -4,7 +4,7 @@
  * Jahresbericht-Detail: linked months, annual aggregation, correction timeline, submission state.
  */
 import React, { useMemo, useState } from 'react';
-import { Button, Card, Descriptions, Radio, Space, Table, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Descriptions, Radio, Space, Table, Tag, Timeline, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -16,6 +16,7 @@ import { useI18n } from '@/i18n/I18nProvider';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
 
 type JahresberichtDto = {
   id: string;
@@ -75,12 +76,36 @@ type JahresberichtDto = {
     externalReferenceId?: string;
   };
   submissionEnvelope?: {
+    submissionVersusReportNoteDe?: string;
     attempts?: { attemptCount: number; status?: string; nextAttemptAtUtc?: string; failureCategory?: string }[];
     rejectionReasons?: string[];
     remediationHintsDe?: string[];
   };
   exportProfiles: { profileKey: string; labelDe: string; descriptionDe: string; includeTraceIds: boolean; nonLegalOutput?: boolean; isDiagnosticOnly?: boolean }[];
   correction: { isCorrection: boolean; supersedesReportId?: string | null; supersededByReportId?: string | null };
+  upstreamPropagation?: { requiresReview: boolean; reasonCode?: string; noteDe?: string };
+};
+
+type ReportHistoryTimelineDto = {
+  reportType: string;
+  requestedReportId: string;
+  chainRootReportId: string;
+  currentActiveReportId?: string | null;
+  items: {
+    reportId: string;
+    reportVersion: number;
+    reportStatus: string;
+    createdAtUtc: string;
+    finalizedAtUtc?: string | null;
+    isCurrentActiveVersion: boolean;
+    labelKeys: string[];
+    submission: {
+      lifecycle: string;
+      outboxMessageId?: string | null;
+      lastErrorMessage?: string | null;
+      hasMissingOutboxReference: boolean;
+    };
+  }[];
 };
 
 export default function JahresberichtDetailPage() {
@@ -99,6 +124,15 @@ export default function JahresberichtDetailPage() {
     queryKey: ['jahresbericht', id],
     queryFn: async () => {
       const { data } = await AXIOS_INSTANCE.get<JahresberichtDto>(`/api/reports/jahresbericht/${id}`);
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const historyQ = useQuery({
+    queryKey: ['report-history', 'jahresbericht', id],
+    queryFn: async () => {
+      const { data } = await AXIOS_INSTANCE.get<ReportHistoryTimelineDto>(`/api/reports/history/jahresbericht/${id}`);
       return data;
     },
     enabled: !!id,
@@ -189,6 +223,16 @@ export default function JahresberichtDetailPage() {
         }
       />
 
+      {d.upstreamPropagation?.requiresReview && d.upstreamPropagation?.noteDe ? (
+        <Alert
+          type="warning"
+          showIcon
+          message="Abgleich nach untergeordneter Korrektur"
+          description={d.upstreamPropagation.noteDe}
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
+
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space direction="vertical">
           <Typography.Text type="secondary">Anzeigeprofil</Typography.Text>
@@ -205,6 +249,11 @@ export default function JahresberichtDetailPage() {
             <Typography.Text type="danger">Diagnostic Package ist nur für technische Analyse gedacht.</Typography.Text>
           ) : null}
           <Typography.Text type="secondary">Profil steuert Export/Ansicht, nicht den FinanzOnline-Submission-Status.</Typography.Text>
+          <LegalExportCompletenessBanner
+            reportKind="jahresbericht"
+            reportId={id}
+            enabled={profile === 'legalComplianceExport'}
+          />
         </Space>
       </Card>
 
@@ -222,6 +271,11 @@ export default function JahresberichtDetailPage() {
           ) : null}
           {d.supersededByReportId ? (
             <Descriptions.Item label="Ersetzt durch"><Link href={`/reporting/jahresbericht/${d.supersededByReportId}`}>{d.supersededByReportId}</Link></Descriptions.Item>
+          ) : null}
+          {d.submissionEnvelope?.submissionVersusReportNoteDe ? (
+            <Descriptions.Item label="Bericht vs. Abgabe">
+              <Typography.Text type="secondary">{d.submissionEnvelope.submissionVersusReportNoteDe}</Typography.Text>
+            </Descriptions.Item>
           ) : null}
           <Descriptions.Item label="Übermittlung"><Tag>{d.submission.lifecycle}</Tag> {d.submission.operatorHintDe}</Descriptions.Item>
           {d.submissionEnvelope?.attempts?.length ? (
@@ -310,6 +364,43 @@ export default function JahresberichtDetailPage() {
           </Typography.Paragraph>
         </Card>
       ) : null}
+
+      <Card title="History Timeline" style={{ marginTop: 16 }}>
+        {historyQ.isLoading ? (
+          <Typography.Text type="secondary">Lade Verlauf…</Typography.Text>
+        ) : historyQ.data?.items?.length ? (
+          <Timeline
+            items={historyQ.data.items.map((item) => ({
+              color: item.isCurrentActiveVersion ? 'green' : item.reportStatus === 'Superseded' ? 'orange' : 'blue',
+              children: (
+                <Space direction="vertical" size={2}>
+                  <Typography.Text strong>
+                    v{item.reportVersion} · {item.reportId.slice(0, 8)} · {item.reportStatus}
+                  </Typography.Text>
+                  <Space size={[4, 4]} wrap>
+                    {item.labelKeys.map((k) => (
+                      <Tag key={`${item.reportId}-${k}`}>{k}</Tag>
+                    ))}
+                  </Space>
+                  <Typography.Text type="secondary">
+                    Created: {new Date(item.createdAtUtc).toLocaleString()} {item.finalizedAtUtc ? `· Finalized: ${new Date(item.finalizedAtUtc).toLocaleString()}` : ''}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    Submission: {item.submission.lifecycle}
+                    {item.submission.outboxMessageId ? ` · Outbox: ${item.submission.outboxMessageId.slice(0, 8)}` : ''}
+                    {item.submission.hasMissingOutboxReference ? ' · Missing outbox reference' : ''}
+                  </Typography.Text>
+                  {item.submission.lastErrorMessage ? (
+                    <Typography.Text type="warning">{item.submission.lastErrorMessage}</Typography.Text>
+                  ) : null}
+                </Space>
+              ),
+            }))}
+          />
+        ) : (
+          <Typography.Text type="secondary">Keine Korrekturkette vorhanden.</Typography.Text>
+        )}
+      </Card>
     </div>
   );
 }

@@ -51,13 +51,31 @@ public sealed class TagesberichtService : ITagesberichtService
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtGenerateFailed",
+                actorUserId,
+                "Tagesbericht generation failed",
+                "Actor required.",
+                null,
+                new { request.ViennaBusinessDate, request.CashRegisterId, request.OperatorUserIdScope, request.ForceNewProvisional });
             throw new ArgumentException("Actor required.", nameof(actorUserId));
+        }
 
         var viennaDate = NormalizeViennaDate(request.ViennaBusinessDate);
         var (fromUtc, toExclusive) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaDate);
 
         if (!await _db.CashRegisters.AsNoTracking().AnyAsync(x => x.Id == request.CashRegisterId, cancellationToken))
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtGenerateFailed",
+                actorUserId,
+                "Tagesbericht generation failed",
+                "Cash register not found.",
+                null,
+                new { request.ViennaBusinessDate, request.CashRegisterId, request.OperatorUserIdScope, request.ForceNewProvisional });
             throw new InvalidOperationException("Cash register not found.");
+        }
 
         var scopeKey = request.OperatorUserIdScope?.Trim();
         var existing = await _db.Set<TagesberichtReport>()
@@ -79,15 +97,13 @@ public sealed class TagesberichtService : ITagesberichtService
             existing.SnapshotSchemaVersion = SnapshotSchemaVersion;
             existing.SnapshotGrossSalesAmount = built.GrossSalesAmount;
             await _db.SaveChangesAsync(cancellationToken);
-            await _audit.LogSystemOperationAsync(
+            await AuditReportMutationSuccessAsync(
                 "TagesberichtSnapshotRefreshed",
-                nameof(TagesberichtReport),
                 actorUserId,
-                "ReportActor",
-                description: "Tagesbericht provisional snapshot refreshed",
-                requestData: new { existing.Id, viennaDate, request.CashRegisterId },
-                responseData: new { existing.SnapshotHash },
-                status: AuditLogStatus.Success);
+                "Tagesbericht provisional snapshot refreshed",
+                existing,
+                new { viennaDate, request.CashRegisterId, request.OperatorUserIdScope, request.ForceNewProvisional },
+                new { existing.SnapshotHash });
             return await MapToDtoAsync(existing.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
         }
 
@@ -120,15 +136,13 @@ public sealed class TagesberichtService : ITagesberichtService
         _db.Set<TagesberichtReport>().Add(row);
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
+        await AuditReportMutationSuccessAsync(
             "TagesberichtGenerated",
-            nameof(TagesberichtReport),
             actorUserId,
-            "ReportActor",
-            description: "Tagesbericht provisional report created",
-            requestData: new { row.Id, viennaDate, request.CashRegisterId },
-            responseData: new { row.SnapshotHash },
-            status: AuditLogStatus.Success);
+            "Tagesbericht provisional report created",
+            row,
+            new { viennaDate, request.CashRegisterId, request.OperatorUserIdScope, request.ForceNewProvisional },
+            new { row.SnapshotHash });
 
         return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
     }
@@ -139,10 +153,28 @@ public sealed class TagesberichtService : ITagesberichtService
             ?? throw new InvalidOperationException("Tagesbericht not found.");
 
         if (row.ReportStatus == TagesberichtReportStatuses.Finalized)
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtFinalizeFailed",
+                actorUserId,
+                "Tagesbericht finalize failed",
+                "Report already finalized (duplicate finalize blocked).",
+                row,
+                new { request.ReportId, request.Note });
             throw new InvalidOperationException("Report already finalized (duplicate finalize blocked).");
+        }
 
         if (row.ReportStatus == TagesberichtReportStatuses.Superseded)
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtFinalizeFailed",
+                actorUserId,
+                "Tagesbericht finalize failed",
+                "Cannot finalize a superseded report.",
+                row,
+                new { request.ReportId, request.Note });
             throw new InvalidOperationException("Cannot finalize a superseded report.");
+        }
 
         var viennaDate = NormalizeViennaDate(row.ViennaBusinessDate);
         var (fromUtc, toExclusive) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaDate);
@@ -175,14 +207,13 @@ public sealed class TagesberichtService : ITagesberichtService
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
+        await AuditReportMutationSuccessAsync(
             "TagesberichtFinalized",
-            nameof(TagesberichtReport),
             actorUserId,
-            "ReportActor",
-            description: request.Note ?? "Tagesbericht finalized (immutable snapshot)",
-            requestData: new { row.Id, row.SnapshotHash },
-            status: AuditLogStatus.Success);
+            request.Note ?? "Tagesbericht finalized (immutable snapshot)",
+            row,
+            new { request.ReportId, request.Note },
+            new { row.SnapshotHash, row.LinkedDailyClosingId });
 
         return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
     }
@@ -193,15 +224,42 @@ public sealed class TagesberichtService : ITagesberichtService
             ?? throw new InvalidOperationException("Prior Tagesbericht not found.");
 
         if (prior.ReportStatus != TagesberichtReportStatuses.Finalized)
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtCorrectionFailed",
+                actorUserId,
+                "Tagesbericht correction failed",
+                "Correction requires a finalized prior report.",
+                prior,
+                new { request.SupersedesReportId, request.Reason });
             throw new InvalidOperationException("Correction requires a finalized prior report.");
+        }
 
         if (prior.SupersededByReportId != null)
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtCorrectionFailed",
+                actorUserId,
+                "Tagesbericht correction failed",
+                "Prior report already has a successor.",
+                prior,
+                new { request.SupersedesReportId, request.Reason });
             throw new InvalidOperationException("Prior report already has a successor.");
+        }
 
         var duplicate = await _db.Set<TagesberichtReport>().AsNoTracking()
             .AnyAsync(x => x.CorrectionOfReportId == prior.Id && x.SupersededByReportId == null, cancellationToken);
         if (duplicate)
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtCorrectionFailed",
+                actorUserId,
+                "Tagesbericht correction failed",
+                "Duplicate correction request blocked for same prior report.",
+                prior,
+                new { request.SupersedesReportId, request.Reason });
             throw new InvalidOperationException("Duplicate correction request blocked for same prior report.");
+        }
 
         var viennaDate = NormalizeViennaDate(prior.ViennaBusinessDate);
         var (fromUtc, toExclusive) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaDate);
@@ -246,16 +304,20 @@ public sealed class TagesberichtService : ITagesberichtService
         prior.ReportStatus = TagesberichtReportStatuses.Superseded;
 
         _db.Set<TagesberichtReport>().Add(row);
+        await FormalReportPropagationMarkers.MarkAfterTagesCorrectionAsync(
+            _db,
+            prior.ViennaBusinessDate,
+            prior.CashRegisterId,
+            cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
+        await AuditReportMutationSuccessAsync(
             "TagesberichtCorrectionCreated",
-            nameof(TagesberichtReport),
             actorUserId,
-            "ReportActor",
-            description: request.Reason ?? "Tagesbericht correction chain",
-            requestData: new { priorReportId = prior.Id, newReportId = row.Id },
-            status: AuditLogStatus.Success);
+            request.Reason ?? "Tagesbericht correction chain",
+            row,
+            new { request.SupersedesReportId, request.Reason, supersededReportId = prior.Id },
+            new { correctionReportId = row.Id, correctionType = row.CorrectionType, submissionImpact = row.SubmissionImpact });
 
         return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
     }
@@ -321,11 +383,57 @@ public sealed class TagesberichtService : ITagesberichtService
 
     public async Task<TagesberichtDto> SubmitToFinanzOnlineAsync(Guid reportId, string actorUserId, CancellationToken cancellationToken = default)
     {
-        var row = await _db.Set<TagesberichtReport>().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken)
+        TagesberichtReport? row = null;
+        try
+        {
+        row = await _db.Set<TagesberichtReport>().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken)
             ?? throw new InvalidOperationException("Tagesbericht not found.");
 
         if (row.ReportStatus != TagesberichtReportStatuses.Finalized)
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtFinanzOnlineSubmitFailed",
+                actorUserId,
+                "Tagesbericht outbox enqueue failed",
+                "Only finalized Tagesbericht can be submitted to FinanzOnline.",
+                row,
+                new { reportId });
             throw new InvalidOperationException("Only finalized Tagesbericht can be submitted to FinanzOnline.");
+        }
+
+        var pre = await FormalReportSubmissionGuards.EvaluateSubmitPrecheckAsync(
+            _db,
+            "TagesberichtReport",
+            row.Id,
+            row.ReportStatus,
+            row.SupersededByReportId,
+            row.LastFinanzOnlineOutboxMessageId,
+            cancellationToken);
+        if (pre == FormalReportSubmitPrecheckDecision.RejectSuperseded)
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtFinanzOnlineSubmitFailed",
+                actorUserId,
+                "Tagesbericht outbox enqueue failed",
+                "Superseded Tagesbericht cannot be submitted; use successor report.",
+                row,
+                new { reportId });
+            throw new InvalidOperationException("Superseded Tagesbericht cannot be submitted. Use the successor report in the correction chain.");
+        }
+        if (pre == FormalReportSubmitPrecheckDecision.RejectAlreadyAccepted)
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtFinanzOnlineSubmitFailed",
+                actorUserId,
+                "Tagesbericht outbox enqueue failed",
+                "FinanzOnline submission already accepted for this report artefact.",
+                row,
+                new { reportId, row.LastFinanzOnlineOutboxMessageId });
+            throw new InvalidOperationException(
+                "FinanzOnline submission already accepted for this report. Create a correction report for a new submission chain.");
+        }
+        if (pre == FormalReportSubmitPrecheckDecision.ReturnExistingWithoutEnqueue)
+            return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
 
         var summary = JsonSerializer.Deserialize<TagesberichtSummaryDto>(row.SnapshotJson, JsonOpts)
             ?? throw new InvalidOperationException("Snapshot corrupt.");
@@ -333,6 +441,9 @@ public sealed class TagesberichtService : ITagesberichtService
         var register = await _db.CashRegisters.AsNoTracking().FirstAsync(x => x.Id == row.CashRegisterId, cancellationToken);
         // Bilgilendirici özet hattı: gerçek RKDB üretimi yok; PROD kesim koruması ve SOAP zorunluluğundan kaçınmak için TEST modu.
         var mode = FinanzOnlineIntegrationMode.TEST;
+
+        var submissionAttemptIndex = await FormalReportSubmissionGuards.CountOutboxMessagesForAggregateAsync(
+            _db, "TagesberichtReport", row.Id, cancellationToken);
 
         var payloadJson = JsonSerializer.Serialize(new
         {
@@ -345,11 +456,18 @@ public sealed class TagesberichtService : ITagesberichtService
             gross = summary.GrossSalesAmount,
             tax = summary.TaxTotalAmount,
             refunds = summary.RefundAmountTotal,
+            submissionAttemptIndex,
         }, JsonOpts);
 
         var hashHex = ComputeSha256Hex(payloadJson);
-        var businessKey = $"{row.CashRegisterId:N}|{PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMmDd(PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(NormalizeViennaDate(row.ViennaBusinessDate)))}|{row.Id:N}";
+        var businessKey = ReportFinanzOnlineBusinessKeys.Tagesbericht(
+            row.CashRegisterId,
+            NormalizeViennaDate(row.ViennaBusinessDate),
+            row.Id,
+            submissionAttemptIndex);
 
+        var previousOutboxId = row.LastFinanzOnlineOutboxMessageId;
+        var previousStatus = row.LastSubmissionStatusCode;
         var msg = await _outbox.EnqueueSubmissionAsync(
             aggregateType: "TagesberichtReport",
             aggregateId: row.Id,
@@ -379,16 +497,129 @@ public sealed class TagesberichtService : ITagesberichtService
         row.SubmissionImpact = ReportSubmissionImpacts.RequiresResubmission;
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
+        await AuditReportMutationSuccessAsync(
             "TagesberichtFinanzOnlineSubmit",
-            nameof(TagesberichtReport),
             actorUserId,
-            "ReportActor",
-            description: "Tagesbericht submission enqueued to FinanzOnline outbox",
-            requestData: new { reportId = row.Id, outboxMessageId = msg.Id },
-            status: AuditLogStatus.Success);
+            "Tagesbericht submission enqueued to FinanzOnline outbox",
+            row,
+            new
+            {
+                reportId = row.Id,
+                previousOutboxId,
+                previousStatus,
+                retrySubmissionAttempt = previousOutboxId != null
+            },
+            new
+            {
+                outboxMessageId = msg.Id,
+                outboxStatus = msg.Status,
+                correlationId = msg.CorrelationId,
+                businessKey = msg.BusinessKey
+            },
+            msg.CorrelationId);
 
         return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
+        }
+        catch (Exception ex)
+        {
+            await AuditReportMutationFailureAsync(
+                "TagesberichtFinanzOnlineSubmitFailed",
+                actorUserId,
+                "Tagesbericht outbox enqueue failed",
+                ex.Message,
+                row,
+                new { reportId, retrySubmissionAttempt = row?.LastFinanzOnlineOutboxMessageId != null });
+            throw;
+        }
+    }
+
+    private async Task AuditReportMutationSuccessAsync(
+        string action,
+        string actorUserId,
+        string description,
+        TagesberichtReport row,
+        object? requestData,
+        object? responseData,
+        string? correlationIdOverride = null)
+    {
+        try
+        {
+            await _audit.LogSystemOperationAsync(
+                action,
+                nameof(TagesberichtReport),
+                actorUserId,
+                "ReportActor",
+                description: description,
+                status: AuditLogStatus.Success,
+                requestData: new
+                {
+                    reportType = "Tagesbericht",
+                    reportId = row.Id,
+                    reportVersion = row.ReportVersion,
+                    reportStatus = row.ReportStatus,
+                    scopeKind = "Register",
+                    scopeId = row.CashRegisterId,
+                    period = row.ViennaBusinessDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    originalReportId = row.OriginalReportId,
+                    correctionOfReportId = row.CorrectionOfReportId,
+                    supersedesReportId = row.SupersedesReportId,
+                    supersededByReportId = row.SupersededByReportId,
+                    outboxMessageId = row.LastFinanzOnlineOutboxMessageId,
+                    actorUserId,
+                    requestData
+                },
+                responseData: responseData,
+                correlationIdOverride: correlationIdOverride);
+        }
+        catch (Exception auditEx)
+        {
+            _logger.LogWarning(auditEx, "Audit log failed for {Action} report {ReportId}", action, row.Id);
+        }
+    }
+
+    private async Task AuditReportMutationFailureAsync(
+        string action,
+        string actorUserId,
+        string description,
+        string errorMessage,
+        TagesberichtReport? row,
+        object? requestData,
+        string? correlationIdOverride = null)
+    {
+        try
+        {
+            await _audit.LogSystemOperationAsync(
+                action,
+                nameof(TagesberichtReport),
+                actorUserId,
+                "ReportActor",
+                description: description,
+                status: AuditLogStatus.Failed,
+                errorDetails: errorMessage,
+                requestData: new
+                {
+                    reportType = "Tagesbericht",
+                    reportId = row?.Id,
+                    reportVersion = row?.ReportVersion,
+                    reportStatus = row?.ReportStatus,
+                    scopeKind = "Register",
+                    scopeId = row?.CashRegisterId,
+                    period = row == null ? null : row.ViennaBusinessDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    originalReportId = row?.OriginalReportId,
+                    correctionOfReportId = row?.CorrectionOfReportId,
+                    supersedesReportId = row?.SupersedesReportId,
+                    supersededByReportId = row?.SupersededByReportId,
+                    outboxMessageId = row?.LastFinanzOnlineOutboxMessageId,
+                    actorUserId,
+                    requestData
+                },
+                responseData: new { error = errorMessage },
+                correlationIdOverride: correlationIdOverride);
+        }
+        catch (Exception auditEx)
+        {
+            _logger.LogWarning(auditEx, "Audit failure log failed for {Action}", action);
+        }
     }
 
     private async Task<TagesberichtSummaryDto> BuildSnapshotAsync(

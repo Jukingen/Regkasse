@@ -43,7 +43,10 @@ public sealed class MonatsberichtService : IMonatsberichtService
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(actorUserId))
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtGenerateFailed", actorUserId, "Monatsbericht generation failed", "Actor required.", null, new { request.ViennaMonthAnyDay, request.ScopeKind, request.CashRegisterId, request.ForceNewProvisional });
             throw new ArgumentException("Actor required.", nameof(actorUserId));
+        }
 
         var monthStart = NormalizeViennaMonthStart(request.ViennaMonthAnyDay);
         var scopeKind = (request.ScopeKind ?? MonatsberichtScopeKinds.Register).Trim();
@@ -58,7 +61,10 @@ public sealed class MonatsberichtService : IMonatsberichtService
 
         if (scopeKind == MonatsberichtScopeKinds.Register &&
             !await _db.CashRegisters.AsNoTracking().AnyAsync(x => x.Id == request.CashRegisterId!.Value, cancellationToken))
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtGenerateFailed", actorUserId, "Monatsbericht generation failed", "Cash register not found.", null, new { request.ViennaMonthAnyDay, request.ScopeKind, request.CashRegisterId, request.ForceNewProvisional });
             throw new InvalidOperationException("Cash register not found.");
+        }
 
         var existing = await _db.Set<MonatsberichtReport>()
             .Where(x =>
@@ -80,16 +86,9 @@ public sealed class MonatsberichtService : IMonatsberichtService
             existing.SnapshotSchemaVersion = SnapshotSchemaVersion;
             existing.SnapshotGrossSalesAmount = built.AggregationFromDaily.GrossSalesAmount;
             existing.StoreLabel = await ResolveStoreLabelAsync(scopeKind, request.CashRegisterId, cancellationToken);
+            FormalReportPropagationMarkers.ClearUpstreamReview(existing);
             await _db.SaveChangesAsync(cancellationToken);
-            await _audit.LogSystemOperationAsync(
-                "MonatsberichtSnapshotRefreshed",
-                nameof(MonatsberichtReport),
-                actorUserId,
-                "ReportActor",
-                description: "Monatsbericht provisional refreshed",
-                requestData: new { existing.Id, monthStart, scopeKind },
-                responseData: new { existing.SnapshotHash },
-                status: AuditLogStatus.Success);
+            await AuditReportMutationSuccessAsync("MonatsberichtSnapshotRefreshed", actorUserId, "Monatsbericht provisional refreshed", existing, new { monthStart, scopeKind, request.CashRegisterId, request.ForceNewProvisional }, new { existing.SnapshotHash });
             return await MapToDtoAsync(existing.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
         }
 
@@ -121,15 +120,7 @@ public sealed class MonatsberichtService : IMonatsberichtService
         _db.Set<MonatsberichtReport>().Add(row);
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
-            "MonatsberichtGenerated",
-            nameof(MonatsberichtReport),
-            actorUserId,
-            "ReportActor",
-            description: "Monatsbericht provisional created",
-            requestData: new { row.Id, monthStart, scopeKind },
-            responseData: new { row.SnapshotHash },
-            status: AuditLogStatus.Success);
+        await AuditReportMutationSuccessAsync("MonatsberichtGenerated", actorUserId, "Monatsbericht provisional created", row, new { monthStart, scopeKind, request.CashRegisterId, request.ForceNewProvisional }, new { row.SnapshotHash });
 
         return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
     }
@@ -140,10 +131,16 @@ public sealed class MonatsberichtService : IMonatsberichtService
             ?? throw new InvalidOperationException("Monatsbericht not found.");
 
         if (row.ReportStatus == MonatsberichtReportStatuses.Finalized)
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtFinalizeFailed", actorUserId, "Monatsbericht finalize failed", "Report already finalized.", row, new { request.ReportId, request.Note });
             throw new InvalidOperationException("Report already finalized.");
+        }
 
         if (row.ReportStatus == MonatsberichtReportStatuses.Superseded)
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtFinalizeFailed", actorUserId, "Monatsbericht finalize failed", "Cannot finalize superseded report.", row, new { request.ReportId, request.Note });
             throw new InvalidOperationException("Cannot finalize superseded report.");
+        }
 
         var summary = await BuildMonthlySnapshotAsync(row.ViennaMonthStart, row.ScopeKind, row.CashRegisterId, cancellationToken);
 
@@ -155,17 +152,11 @@ public sealed class MonatsberichtService : IMonatsberichtService
         row.FinalizedByUserId = actorUserId;
         row.ReportRevisionReason = request.Note ?? row.ReportRevisionReason ?? "Finalized";
         row.SnapshotGrossSalesAmount = summary.AggregationFromDaily.GrossSalesAmount;
+        FormalReportPropagationMarkers.ClearUpstreamReview(row);
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
-            "MonatsberichtFinalized",
-            nameof(MonatsberichtReport),
-            actorUserId,
-            "ReportActor",
-            description: request.Note ?? "Monatsbericht finalized",
-            requestData: new { row.Id, row.SnapshotHash },
-            status: AuditLogStatus.Success);
+        await AuditReportMutationSuccessAsync("MonatsberichtFinalized", actorUserId, request.Note ?? "Monatsbericht finalized", row, new { request.ReportId, request.Note }, new { row.SnapshotHash });
 
         return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
     }
@@ -176,15 +167,24 @@ public sealed class MonatsberichtService : IMonatsberichtService
             ?? throw new InvalidOperationException("Prior Monatsbericht not found.");
 
         if (prior.ReportStatus != MonatsberichtReportStatuses.Finalized)
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtCorrectionFailed", actorUserId, "Monatsbericht correction failed", "Correction requires finalized prior report.", prior, new { request.SupersedesReportId, request.Reason });
             throw new InvalidOperationException("Correction requires finalized prior report.");
+        }
 
         if (prior.SupersededByReportId != null)
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtCorrectionFailed", actorUserId, "Monatsbericht correction failed", "Prior already superseded.", prior, new { request.SupersedesReportId, request.Reason });
             throw new InvalidOperationException("Prior already superseded.");
+        }
 
         var duplicate = await _db.Set<MonatsberichtReport>().AsNoTracking()
             .AnyAsync(x => x.CorrectionOfReportId == prior.Id && x.SupersededByReportId == null, cancellationToken);
         if (duplicate)
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtCorrectionFailed", actorUserId, "Monatsbericht correction failed", "Duplicate correction request blocked for same prior report.", prior, new { request.SupersedesReportId, request.Reason });
             throw new InvalidOperationException("Duplicate correction request blocked for same prior report.");
+        }
 
         var summary = await BuildMonthlySnapshotAsync(prior.ViennaMonthStart, prior.ScopeKind, prior.CashRegisterId, cancellationToken);
 
@@ -221,16 +221,15 @@ public sealed class MonatsberichtService : IMonatsberichtService
         prior.ReportStatus = MonatsberichtReportStatuses.Superseded;
 
         _db.Set<MonatsberichtReport>().Add(row);
+        await FormalReportPropagationMarkers.MarkAfterMonatsCorrectionAsync(
+            _db,
+            prior.ViennaMonthStart,
+            prior.ScopeKind,
+            prior.CashRegisterId,
+            cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
-            "MonatsberichtCorrectionCreated",
-            nameof(MonatsberichtReport),
-            actorUserId,
-            "ReportActor",
-            description: request.Reason ?? "Monatsbericht correction",
-            requestData: new { priorReportId = prior.Id, newReportId = row.Id },
-            status: AuditLogStatus.Success);
+        await AuditReportMutationSuccessAsync("MonatsberichtCorrectionCreated", actorUserId, request.Reason ?? "Monatsbericht correction", row, new { request.SupersedesReportId, request.Reason, supersededReportId = prior.Id }, new { correctionReportId = row.Id, row.SubmissionImpact, row.CorrectionType });
 
         return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
     }
@@ -297,6 +296,8 @@ public sealed class MonatsberichtService : IMonatsberichtService
                 GrossSalesAmount = x.SnapshotGrossSalesAmount,
                 CreatedAtUtc = x.CreatedAtUtc,
                 Submission = await BuildSubmissionStateAsync(x, cancellationToken),
+                UpstreamReviewRequired = x.UpstreamReviewRequired,
+                UpstreamReviewReasonCode = x.UpstreamReviewReasonCode,
             });
         }
 
@@ -305,11 +306,39 @@ public sealed class MonatsberichtService : IMonatsberichtService
 
     public async Task<MonatsberichtDto> SubmitToFinanzOnlineAsync(Guid reportId, string actorUserId, CancellationToken cancellationToken = default)
     {
-        var row = await _db.Set<MonatsberichtReport>().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken)
+        MonatsberichtReport? row = null;
+        try
+        {
+        row = await _db.Set<MonatsberichtReport>().FirstOrDefaultAsync(x => x.Id == reportId, cancellationToken)
             ?? throw new InvalidOperationException("Monatsbericht not found.");
 
         if (row.ReportStatus != MonatsberichtReportStatuses.Finalized)
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtFinanzOnlineSubmitFailed", actorUserId, "Monatsbericht outbox enqueue failed", "Only finalized Monatsbericht can be submitted.", row, new { reportId });
             throw new InvalidOperationException("Only finalized Monatsbericht can be submitted.");
+        }
+
+        var pre = await FormalReportSubmissionGuards.EvaluateSubmitPrecheckAsync(
+            _db,
+            "MonatsberichtReport",
+            row.Id,
+            row.ReportStatus,
+            row.SupersededByReportId,
+            row.LastFinanzOnlineOutboxMessageId,
+            cancellationToken);
+        if (pre == FormalReportSubmitPrecheckDecision.RejectSuperseded)
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtFinanzOnlineSubmitFailed", actorUserId, "Monatsbericht outbox enqueue failed", "Superseded Monatsbericht cannot be submitted.", row, new { reportId });
+            throw new InvalidOperationException("Superseded Monatsbericht cannot be submitted. Use the successor report.");
+        }
+        if (pre == FormalReportSubmitPrecheckDecision.RejectAlreadyAccepted)
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtFinanzOnlineSubmitFailed", actorUserId, "Monatsbericht outbox enqueue failed", "Submission already accepted.", row, new { reportId });
+            throw new InvalidOperationException(
+                "FinanzOnline submission already accepted for this report. Create a correction report for a new submission chain.");
+        }
+        if (pre == FormalReportSubmitPrecheckDecision.ReturnExistingWithoutEnqueue)
+            return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
 
         var summary = JsonSerializer.Deserialize<MonatsberichtSummaryDto>(row.SnapshotJson, JsonOpts)
             ?? throw new InvalidOperationException("Snapshot corrupt.");
@@ -323,6 +352,9 @@ public sealed class MonatsberichtService : IMonatsberichtService
 
         var mode = FinanzOnlineIntegrationMode.TEST;
 
+        var submissionAttemptIndex = await FormalReportSubmissionGuards.CountOutboxMessagesForAggregateAsync(
+            _db, "MonatsberichtReport", row.Id, cancellationToken);
+
         var payloadJson = JsonSerializer.Serialize(new
         {
             kind = "MonatsberichtMonthlySummary",
@@ -334,12 +366,19 @@ public sealed class MonatsberichtService : IMonatsberichtService
             registerNumber,
             grossFromDaily = summary.AggregationFromDaily.GrossSalesAmount,
             grossFromRaw = summary.RawPaymentRollup.GrossSalesAmount,
+            submissionAttemptIndex,
         }, JsonOpts);
 
         var hashHex = ComputeSha256Hex(payloadJson);
-        var ym = summary.ViennaYearMonth.Replace("-", "", StringComparison.Ordinal);
-        var businessKey = $"{row.ScopeKind}|{ym}|{registerNumber}|{row.Id:N}";
+        var businessKey = ReportFinanzOnlineBusinessKeys.Monatsbericht(
+            row.ScopeKind,
+            summary.ViennaYearMonth,
+            registerNumber,
+            row.Id,
+            submissionAttemptIndex);
 
+        var previousOutboxId = row.LastFinanzOnlineOutboxMessageId;
+        var previousStatus = row.LastSubmissionStatusCode;
         var msg = await _outbox.EnqueueSubmissionAsync(
             aggregateType: "MonatsberichtReport",
             aggregateId: row.Id,
@@ -366,16 +405,97 @@ public sealed class MonatsberichtService : IMonatsberichtService
         row.SubmissionImpact = ReportSubmissionImpacts.RequiresResubmission;
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _audit.LogSystemOperationAsync(
+        await AuditReportMutationSuccessAsync(
             "MonatsberichtFinanzOnlineSubmit",
+            actorUserId,
+            "Monatsbericht enqueued to FinanzOnline outbox",
+            row,
+            new { reportId = row.Id, previousOutboxId, previousStatus, retrySubmissionAttempt = previousOutboxId != null },
+            new { outboxMessageId = msg.Id, outboxStatus = msg.Status, correlationId = msg.CorrelationId, businessKey = msg.BusinessKey },
+            msg.CorrelationId);
+
+        return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
+        }
+        catch (Exception ex)
+        {
+            await AuditReportMutationFailureAsync("MonatsberichtFinanzOnlineSubmitFailed", actorUserId, "Monatsbericht outbox enqueue failed", ex.Message, row, new { reportId, retrySubmissionAttempt = row?.LastFinanzOnlineOutboxMessageId != null });
+            throw;
+        }
+    }
+
+    private Task AuditReportMutationSuccessAsync(
+        string action,
+        string actorUserId,
+        string description,
+        MonatsberichtReport row,
+        object? requestData,
+        object? responseData,
+        string? correlationIdOverride = null)
+    {
+        return _audit.LogSystemOperationAsync(
+            action,
             nameof(MonatsberichtReport),
             actorUserId,
             "ReportActor",
-            description: "Monatsbericht enqueued to FinanzOnline outbox",
-            requestData: new { reportId = row.Id, outboxMessageId = msg.Id },
-            status: AuditLogStatus.Success);
+            description: description,
+            status: AuditLogStatus.Success,
+            requestData: new
+            {
+                reportType = "Monatsbericht",
+                reportId = row.Id,
+                reportVersion = row.ReportVersion,
+                reportStatus = row.ReportStatus,
+                scopeKind = row.ScopeKind,
+                scopeId = row.CashRegisterId,
+                period = row.ViennaMonthStart.ToString("yyyy-MM", CultureInfo.InvariantCulture),
+                originalReportId = row.OriginalReportId,
+                correctionOfReportId = row.CorrectionOfReportId,
+                supersedesReportId = row.SupersedesReportId,
+                supersededByReportId = row.SupersededByReportId,
+                outboxMessageId = row.LastFinanzOnlineOutboxMessageId,
+                actorUserId,
+                requestData
+            },
+            responseData: responseData,
+            correlationIdOverride: correlationIdOverride);
+    }
 
-        return await MapToDtoAsync(row.Id, cancellationToken) ?? throw new InvalidOperationException("Map failed.");
+    private Task AuditReportMutationFailureAsync(
+        string action,
+        string actorUserId,
+        string description,
+        string errorMessage,
+        MonatsberichtReport? row,
+        object? requestData,
+        string? correlationIdOverride = null)
+    {
+        return _audit.LogSystemOperationAsync(
+            action,
+            nameof(MonatsberichtReport),
+            actorUserId,
+            "ReportActor",
+            description: description,
+            status: AuditLogStatus.Failed,
+            errorDetails: errorMessage,
+            requestData: new
+            {
+                reportType = "Monatsbericht",
+                reportId = row?.Id,
+                reportVersion = row?.ReportVersion,
+                reportStatus = row?.ReportStatus,
+                scopeKind = row?.ScopeKind,
+                scopeId = row?.CashRegisterId,
+                period = row == null ? null : row.ViennaMonthStart.ToString("yyyy-MM", CultureInfo.InvariantCulture),
+                originalReportId = row?.OriginalReportId,
+                correctionOfReportId = row?.CorrectionOfReportId,
+                supersedesReportId = row?.SupersedesReportId,
+                supersededByReportId = row?.SupersededByReportId,
+                outboxMessageId = row?.LastFinanzOnlineOutboxMessageId,
+                actorUserId,
+                requestData
+            },
+            responseData: new { error = errorMessage },
+            correlationIdOverride: correlationIdOverride);
     }
 
     private async Task<MonatsberichtSummaryDto> BuildMonthlySnapshotAsync(
@@ -665,7 +785,8 @@ public sealed class MonatsberichtService : IMonatsberichtService
                 SupersedesReportId = row.SupersedesReportId,
                 SupersededByReportId = row.SupersededByReportId
             },
-            ExportProfiles = BuildExportProfiles()
+            ExportProfiles = BuildExportProfiles(),
+            UpstreamPropagation = FormalReportPropagationNotes.ToUpstreamPropagationDto(row)
         };
     }
 

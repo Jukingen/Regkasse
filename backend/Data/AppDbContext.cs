@@ -47,6 +47,7 @@ namespace KasseAPI_Final.Data
         public DbSet<TagesberichtReport> TagesberichtReports { get; set; }
         public DbSet<MonatsberichtReport> MonatsberichtReports { get; set; }
         public DbSet<JahresberichtReport> JahresberichtReports { get; set; }
+        public DbSet<PeriodenberichtRun> PeriodenberichtRuns { get; set; }
         public DbSet<TseSignature> TseSignatures { get; set; }
         public DbSet<FinanzOnlineError> FinanzOnlineErrors { get; set; }
         public DbSet<PaymentLogEntry> PaymentLogs { get; set; }
@@ -1045,6 +1046,8 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.LastSubmissionStatusCode).HasMaxLength(40);
                 entity.Property(e => e.LastSubmissionError).HasMaxLength(500);
                 entity.Property(e => e.SnapshotGrossSalesAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.UpstreamReviewRequired).HasDefaultValue(false);
+                entity.Property(e => e.UpstreamReviewReasonCode).HasMaxLength(80);
                 entity.HasIndex(e => new { e.ViennaMonthStart, e.ScopeKind, e.ReportStatus });
                 entity.HasIndex(e => new { e.OriginalReportId, e.ReportVersion });
                 entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId).IsRequired(false);
@@ -1071,8 +1074,37 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.LastSubmissionStatusCode).HasMaxLength(40);
                 entity.Property(e => e.LastSubmissionError).HasMaxLength(500);
                 entity.Property(e => e.SnapshotGrossSalesAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.UpstreamReviewRequired).HasDefaultValue(false);
+                entity.Property(e => e.UpstreamReviewReasonCode).HasMaxLength(80);
                 entity.HasIndex(e => new { e.ViennaYearStart, e.ScopeKind, e.ReportStatus });
                 entity.HasIndex(e => new { e.OriginalReportId, e.ReportVersion });
+                entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId).IsRequired(false);
+            });
+
+            builder.Entity<PeriodenberichtRun>(entity =>
+            {
+                entity.ToTable("periodenbericht_runs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PeriodPreset).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.PeriodStartLocalDate).HasColumnType("date");
+                entity.Property(e => e.PeriodEndLocalDate).HasColumnType("date");
+                entity.Property(e => e.ScopeKind).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.CashierId).HasMaxLength(450);
+                entity.Property(e => e.QueryParametersJson).HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.QueryParametersHash).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.SnapshotJson).HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.SnapshotHash).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.SnapshotSchemaVersion).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.GrossTotalAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TaxTotalAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.RefundAmountTotal).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.WarningsJson).HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.CreatedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.ExportProfileKey).HasMaxLength(50);
+                entity.Property(e => e.CorrelationId).HasMaxLength(100);
+                entity.HasIndex(e => e.CreatedAtUtc);
+                entity.HasIndex(e => new { e.PeriodStartLocalDate, e.PeriodEndLocalDate, e.ScopeKind });
+                entity.HasIndex(e => e.QueryParametersHash);
                 entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId).IsRequired(false);
             });
 

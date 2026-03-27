@@ -24,6 +24,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { useSearchParams } from 'next/navigation';
+import { useMutation } from '@tanstack/react-query';
 
 dayjs.extend(utc);
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -39,6 +40,7 @@ import {
 } from '@/api/generated/reports/reports';
 import { useGetApiUserManagement } from '@/api/generated/user-management/user-management';
 import type { CashRegister, ClosingReferenceRowDto } from '@/api/generated/model';
+import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 
@@ -82,6 +84,7 @@ export default function ReportingPage() {
   const [periodPreset, setPeriodPreset] = useState<'day' | 'week' | 'month' | 'custom'>('custom');
   const [closingStatusFilter, setClosingStatusFilter] = useState<string | undefined>();
   const [exporting, setExporting] = useState(false);
+  const [freezing, setFreezing] = useState(false);
 
   const startDate = dateRange[0].format('YYYY-MM-DD');
   const endDate = dateRange[1].format('YYYY-MM-DD');
@@ -211,6 +214,23 @@ export default function ReportingPage() {
       setExporting(false);
     }
   }, [canExport, filterParams, startDate, endDate, t]);
+
+  const freezeMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        periodPreset,
+        startDate: periodPreset === 'custom' ? startDate : undefined,
+        endDate: periodPreset === 'custom' ? endDate : undefined,
+        cashRegisterId,
+        cashierId,
+        paymentMethod,
+        activeOnly,
+      };
+      await AXIOS_INSTANCE.post('/api/reports/operational/periodic/freeze', payload);
+    },
+    onSuccess: () => message.success('Periodenbericht wurde eingefroren.'),
+    onError: () => message.error('Freeze fehlgeschlagen.'),
+  });
 
   const payCols: ColumnsType<{ methodKey?: string; count?: number; totalAmount?: number }> = [
     {
@@ -448,6 +468,22 @@ export default function ReportingPage() {
                       ]}
                     />
                   </div>
+                  <Space>
+                    <Button
+                      type="primary"
+                      loading={freezeMutation.isPending || freezing}
+                      onClick={async () => {
+                        setFreezing(true);
+                        try {
+                          await freezeMutation.mutateAsync();
+                        } finally {
+                          setFreezing(false);
+                        }
+                      }}
+                    >
+                      Periodenbericht einfrieren
+                    </Button>
+                  </Space>
                   {periodicQ.data?.summary && (
                     <>
                       <Typography.Title level={5}>{t('adminShell.reporting.totalsTitle')}</Typography.Title>

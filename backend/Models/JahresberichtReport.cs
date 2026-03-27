@@ -87,6 +87,12 @@ public sealed class JahresberichtReport
     [Column(TypeName = "decimal(18,2)")]
     public decimal SnapshotGrossSalesAmount { get; set; }
 
+    /// <summary>True wenn ein untergeordneter Tages- oder Monatsbericht korrigiert wurde — Snapshot nicht automatisch mutiert.</summary>
+    public bool UpstreamReviewRequired { get; set; }
+
+    [MaxLength(80)]
+    public string? UpstreamReviewReasonCode { get; set; }
+
     [ForeignKey(nameof(CashRegisterId))]
     public CashRegister? CashRegister { get; set; }
 }

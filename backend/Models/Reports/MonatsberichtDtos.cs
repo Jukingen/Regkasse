@@ -2,6 +2,14 @@ using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Models.Reports;
 
+/// <summary>Überlagerung: untergeordnete Korrektur betrifft Aggregation — getrennt von FinanzOnline-Submission.</summary>
+public sealed class FormalReportUpstreamPropagationDto
+{
+    public bool RequiresReview { get; set; }
+    public string? ReasonCode { get; set; }
+    public string? NoteDe { get; set; }
+}
+
 public sealed class MonatsberichtDto
 {
     public Guid Id { get; set; }
@@ -32,6 +40,7 @@ public sealed class MonatsberichtDto
     public ReportSubmissionEnvelopeDto SubmissionEnvelope { get; set; } = new();
     public TagesberichtCorrectionInfoDto Correction { get; set; } = new();
     public IReadOnlyList<TagesberichtExportProfileDto> ExportProfiles { get; set; } = Array.Empty<TagesberichtExportProfileDto>();
+    public FormalReportUpstreamPropagationDto UpstreamPropagation { get; set; } = new();
 }
 
 /// <summary>Aylık özet: bağlı günlük raporlar + toplamlar + ham ödeme doğrulaması.</summary>
@@ -112,6 +121,8 @@ public sealed class MonatsberichtListItemDto
     public decimal GrossSalesAmount { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public TagesberichtSubmissionStateDto Submission { get; set; } = new();
+    public bool UpstreamReviewRequired { get; set; }
+    public string? UpstreamReviewReasonCode { get; set; }
 }
 
 public sealed class MonatsberichtGenerationRequest

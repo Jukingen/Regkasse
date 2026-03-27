@@ -32,6 +32,7 @@ public sealed class JahresberichtDto
     public ReportSubmissionEnvelopeDto SubmissionEnvelope { get; set; } = new();
     public TagesberichtCorrectionInfoDto Correction { get; set; } = new();
     public IReadOnlyList<TagesberichtExportProfileDto> ExportProfiles { get; set; } = Array.Empty<TagesberichtExportProfileDto>();
+    public FormalReportUpstreamPropagationDto UpstreamPropagation { get; set; } = new();
 }
 
 public sealed class JahresberichtSummaryDto
@@ -112,6 +113,8 @@ public sealed class JahresberichtListItemDto
     public decimal GrossSalesAmount { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public TagesberichtSubmissionStateDto Submission { get; set; } = new();
+    public bool UpstreamReviewRequired { get; set; }
+    public string? UpstreamReviewReasonCode { get; set; }
 }
 
 public sealed class JahresberichtGenerationRequest

@@ -507,6 +507,11 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
             candidate.ProcessedAt = DateTime.UtcNow;
 
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await TagesberichtOutboxAggregateUpdater.ApplyAfterOutboxPersistAsync(context, candidate, cancellationToken).ConfigureAwait(false);
+        await MonatsberichtOutboxAggregateUpdater.ApplyAfterOutboxPersistAsync(context, candidate, cancellationToken).ConfigureAwait(false);
+        await JahresberichtOutboxAggregateUpdater.ApplyAfterOutboxPersistAsync(context, candidate, cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static (bool retryable, string category, string terminalStatus) ClassifyFailure(string? errorCode)

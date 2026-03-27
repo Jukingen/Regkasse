@@ -5,6 +5,8 @@ public sealed class ReportSubmissionEnvelopeDto
     public string ReportType { get; set; } = string.Empty;
     public Guid ReportId { get; set; }
     public string ReportState { get; set; } = string.Empty;
+    /// <summary>Operator-facing DE: report lifecycle vs FinanzOnline submission (orthogonal).</summary>
+    public string? SubmissionVersusReportNoteDe { get; set; }
     public string SubmissionState { get; set; } = "not_submitted";
     public Guid? OutboxMessageId { get; set; }
     public string? OutboxStatus { get; set; }
