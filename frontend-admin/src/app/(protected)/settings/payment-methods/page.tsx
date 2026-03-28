@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Button,
   Table,
@@ -13,6 +13,8 @@ import {
   Switch,
   Select,
   Tag,
+  Typography,
+  Empty,
 } from 'antd';
 import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
@@ -28,18 +30,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { adminPaymentMethodDefinitionsQueryKeys } from '@/api/admin/payment-method-definitions';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n/I18nProvider';
+import { useI18n } from '@/i18n';
+import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
-
-const LEGACY_OPTIONS: { value: number; label: string }[] = [
-  { value: 0, label: '0 — Bar (Cash)' },
-  { value: 1, label: '1 — Karte (Card)' },
-  { value: 2, label: '2 — Überweisung (BankTransfer)' },
-  { value: 3, label: '3 — Scheck (Check)' },
-  { value: 4, label: '4 — Gutschein (Voucher)' },
-  { value: 5, label: '5 — Mobil (Mobile)' },
-];
 
 export default function PaymentMethodsSettingsPage() {
   const { t } = useI18n();
@@ -56,6 +50,18 @@ export default function PaymentMethodsSettingsPage() {
   const [form] = Form.useForm<CreatePaymentMethodDefinitionRequest>();
 
   const rows = listQuery.data ?? [];
+
+  const legacyPaymentMethodOptions = useMemo(
+    () => [
+      { value: 0, label: t('settings.paymentMethods.form.legacyOption0') },
+      { value: 1, label: t('settings.paymentMethods.form.legacyOption1') },
+      { value: 2, label: t('settings.paymentMethods.form.legacyOption2') },
+      { value: 3, label: t('settings.paymentMethods.form.legacyOption3') },
+      { value: 4, label: t('settings.paymentMethods.form.legacyOption4') },
+      { value: 5, label: t('settings.paymentMethods.form.legacyOption5') },
+    ],
+    [t],
+  );
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.lists() });
 
@@ -172,7 +178,8 @@ export default function PaymentMethodsSettingsPage() {
       title: t('settings.paymentMethods.columns.terminal'),
       key: 'term',
       width: 120,
-      render: (_, r) => (r.requiresTerminal ? r.terminalType || '—' : '—'),
+      render: (_, r) =>
+        r.requiresTerminal ? r.terminalType?.trim() || FORMAT_EMPTY_DISPLAY : FORMAT_EMPTY_DISPLAY,
     },
     {
       title: t('settings.paymentMethods.columns.actions'),
@@ -205,6 +212,9 @@ export default function PaymentMethodsSettingsPage() {
     <>
       <AdminPageHeader title={t('settings.paymentMethods.title')} breadcrumbs={headerBreadcrumbs} />
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          {t('settings.paymentMethods.intro')}
+        </Typography.Paragraph>
         <Space>
           {canManage && (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
@@ -218,6 +228,9 @@ export default function PaymentMethodsSettingsPage() {
           dataSource={rows}
           columns={columns}
           pagination={{ pageSize: 20 }}
+          locale={{
+            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('settings.paymentMethods.tableEmpty')} />,
+          }}
         />
       </Space>
 
@@ -229,6 +242,8 @@ export default function PaymentMethodsSettingsPage() {
         confirmLoading={createMutation.isPending || updateMutation.isPending}
         destroyOnClose
         width={640}
+        okText={t('common.buttons.save')}
+        cancelText={t('common.buttons.cancel')}
       >
         <Form form={form} layout="vertical">
           <Form.Item
@@ -243,7 +258,7 @@ export default function PaymentMethodsSettingsPage() {
             <Input />
           </Form.Item>
           <Form.Item name="legacyPaymentMethodValue" label={t('settings.paymentMethods.form.legacy')} rules={[{ required: true }]}>
-            <Select options={LEGACY_OPTIONS} />
+            <Select options={legacyPaymentMethodOptions} />
           </Form.Item>
           <Form.Item name="fiscalCategory" label={t('settings.paymentMethods.form.fiscalCategory')}>
             <Input />
@@ -267,7 +282,7 @@ export default function PaymentMethodsSettingsPage() {
             <Switch />
           </Form.Item>
           <Form.Item name="icon" label={t('settings.paymentMethods.form.icon')}>
-            <Input placeholder="cash-outline" />
+            <Input placeholder={t('settings.paymentMethods.form.iconPlaceholder')} />
           </Form.Item>
           <Form.Item name="metadataJson" label={t('settings.paymentMethods.form.metadata')}>
             <Input.TextArea rows={3} />

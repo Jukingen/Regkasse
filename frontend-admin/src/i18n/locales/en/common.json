@@ -11,10 +11,36 @@
     "refresh": "Refresh",
     "close": "Close",
     "delete": "Delete",
-    "edit": "Edit"
+    "edit": "Edit",
+    "reload": "Reload"
+  },
+  "toolbar": {
+    "refetchHint": "Refresh data manually (cache may be stale)."
   },
   "messages": {
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "noTechnicalDetail": "No technical detail message available."
+  },
+  "loadErrors": {
+    "list": "The list could not be loaded",
+    "batch": "The batch could not be loaded",
+    "incidentAggregate": "The incident aggregate could not be loaded"
+  },
+  "loading": {
+    "data": "Loading data…",
+    "incidentAggregate": "Loading incident aggregate…",
+    "batchDetail": "Loading batch details…",
+    "invoiceDetail": "Loading invoice details…"
+  },
+  "empty": {
+    "batchDetailsForCorrelation": "No batch details for this correlation ID."
+  },
+  "incident": {
+    "aggregateNotFoundTitle": "No incident aggregate",
+    "aggregateNotFoundDescription": "The API returns no summarized result for this correlation ID — do not read this as “no data in the register”."
+  },
+  "investigation": {
+    "furtherLabel": "Investigate further"
   },
   "errors": {
     "http400": "Invalid request.",
@@ -45,13 +71,70 @@
   },
   "dataList": {
     "errorLoadTitle": "Error loading data",
-    "emptyDefault": "No data found"
+    "emptyDefault": "No data found",
+    "loadingTip": "Loading data…"
+  },
+  "auditLogs": {
+    "filterCardTitle": "Filters",
+    "criteriaLabel": "Criteria",
+    "actionPlaceholder": "Action",
+    "activeFiltersLabel": "Active filters:",
+    "clearAllFilters": "Reset all filters",
+    "forensicsHint": "For RKSV/offline spot checks (correlation, signature keywords) use the audit trail — this log is the general GET /api/AuditLog list.",
+    "forensicsLinkVerifications": "Open RKSV audit trail",
+    "dateRangeIncompleteTitle": "Date range incomplete",
+    "dateRangeIncompleteDescription": "Only one date is selected. Set both start and end for a clear range, or clear the range (otherwise the API receives only one date).",
+    "emptyFiltered": "No entries for this query. Widen the period, clear the action, or reset filters — the table shows only the current API page.",
+    "emptyNoRows": "No data in this API response.",
+    "errorTitle": "Audit log could not be loaded",
+    "paginationZero": "0 results",
+    "paginationRangeOfTotal": "{{from}}–{{to}} of {{total}} entries",
+    "scopeApiPageNote": "Display = this API page only (not the full log).",
+    "activeViewLabel": "Active view:",
+    "refreshingSuffix": "(Refreshing …)",
+    "introLead": "Filter by action and date range; export uses the same filters.",
+    "introStrongTable": "The table shows only the current API page",
+    "introTrail": "— paging changes the server-side page, not a client-side slice.",
+    "exportJson": "Export JSON",
+    "exportCsv": "Export CSV",
+    "tagActionPrefix": "Action:",
+    "tagDateRangePrefix": "Period:",
+    "scopePage": "Page {{page}}",
+    "scopeRowsPerRequest": "{{pageSize}} rows per API request",
+    "scopeTotalEntries": "{{total}} entries total per API",
+    "scopeTotalLoading": "Total count loading …",
+    "scopeActionIs": "Action = {{action}}",
+    "scopeNoDateFilter": "no date filter",
+    "actionLabels": {
+      "login": "Login",
+      "createInvoice": "Create invoice",
+      "payment": "Payment"
+    },
+    "exportStarted": "Export started",
+    "exportFailed": "Export failed",
+    "table": {
+      "time": "Time",
+      "correlation": "Correlation",
+      "user": "User",
+      "action": "Action",
+      "entity": "Entity",
+      "details": "Details",
+      "status": "Status"
+    }
+  },
+  "validation": {
+    "fieldRequired": "Please fill in this field.",
+    "numberBetween": "Enter a value between {{min}} and {{max}}."
   },
   "auth": {
+    "appTitle": "Regkasse Admin",
     "subtitle": "Sign in to manage your POS system",
     "username": "Username",
     "password": "Password",
     "login": "Log in",
+    "loginSubmitLoading": "Signing in…",
+    "checkingSession": "Checking authentication…",
+    "logoutSuccess": "Signed out successfully.",
     "loginSuccess": "Login successful",
     "loginFailedWithStatus": "Login failed ({{status}}): {{details}}",
     "loginInvalidCredentials": "Invalid username or password.",
@@ -74,6 +157,19 @@
     "emptyCategories": "No categories",
     "deleteConfirmTitle": "Delete category?",
     "deleteConfirmDescription": "Products linked to this category may be affected.",
+    "form": {
+      "modalTitleCreate": "New category",
+      "modalTitleEdit": "Edit category",
+      "nameLabel": "Category name",
+      "nameRequired": "Please enter a category name.",
+      "namePlaceholder": "e.g. Food, Beverages",
+      "vatLabel": "VAT rate (%)",
+      "vatRequired": "Please enter a VAT rate.",
+      "vatRange": "VAT rate must be between {{min}} and {{max}}.",
+      "vatPlaceholder": "10 or 20",
+      "sortOrderLabel": "Sort order",
+      "activeLabel": "Active"
+    },
     "table": {
       "name": "Name",
       "product": "Product",
@@ -93,8 +189,5 @@
       "deleted": "Category deleted.",
       "deleteError": "Category could not be deleted."
     }
-  },
-  "operator": {
-    "refetchHintToolbar": "Refresh data manually (cache may be stale)."
   }
 }

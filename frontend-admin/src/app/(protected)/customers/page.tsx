@@ -13,6 +13,7 @@ import { useCustomers, useCustomerFilters } from '@/features/customers/hooks/use
 import { Customer } from '@/api/generated/model';
 import { useAdminBenefitAssignmentsList } from '@/api/admin/benefit-assignments';
 import { customInstance } from '@/lib/axios';
+import { useI18n } from '@/i18n';
 
 /** Admin-only: fetches assignment count for display (assignment visibility). Same API as POS preview but distinct intent. */
 async function getAdminCustomerAssignmentCount(customerId: string): Promise<number | null> {
@@ -31,6 +32,7 @@ async function getAdminCustomerAssignmentCount(customerId: string): Promise<numb
 }
 
 export default function CustomersPage() {
+    const { t } = useI18n();
     const { filters, setParam } = useCustomerFilters();
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -73,11 +75,11 @@ export default function CustomersPage() {
     const handleCreate = async (values: Customer) => {
         try {
             await createMutation.mutateAsync({ data: values });
-            message.success('Kunde angelegt.');
+            message.success(t('customers.messages.created'));
             setIsFormVisible(false);
             invalidateList();
         } catch (err) {
-            message.error('Kunde konnte nicht angelegt werden.');
+            message.error(t('customers.messages.createFailed'));
         }
     };
 
@@ -85,22 +87,22 @@ export default function CustomersPage() {
         if (!editingCustomer?.id) return;
         try {
             await updateMutation.mutateAsync({ id: editingCustomer.id, data: values });
-            message.success('Kunde aktualisiert.');
+            message.success(t('customers.messages.updated'));
             setIsFormVisible(false);
             setEditingCustomer(null);
             invalidateList();
         } catch (err) {
-            message.error('Kunde konnte nicht aktualisiert werden.');
+            message.error(t('customers.messages.updateFailed'));
         }
     };
 
     const handleDelete = async (id: string) => {
         try {
             await deleteMutation.mutateAsync({ id });
-            message.success('Kunde gelöscht.');
+            message.success(t('customers.messages.deleted'));
             invalidateList();
         } catch (err) {
-            message.error('Kunde konnte nicht gelöscht werden.');
+            message.error(t('customers.messages.deleteFailed'));
         }
     };
 
@@ -121,12 +123,12 @@ export default function CustomersPage() {
                 breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.customers }]}
                 actions={
                     <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
-                        Neuer Kunde
+                        {t('customers.page.newCustomer')}
                     </Button>
                 }
             >
                 <Input.Search
-                    placeholder="Search customers..."
+                    placeholder={t('customers.page.searchPlaceholder')}
                     value={searchInput}
                     onChange={(e) => {
                         const v = e.target.value;

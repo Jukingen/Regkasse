@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Formal Jahresbericht: liste, yıl bazlı filtre, provisional üretim/güncelleme.
+ * Formal Jahresbericht: list, year filter, provisional generation/update.
  */
 import React, { useMemo, useState } from 'react';
 import { Button, Card, DatePicker, Select, Space, Table, Tag, Typography, message } from 'antd';
@@ -63,10 +63,11 @@ export default function JahresberichtListPage() {
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
 
   const registersQ = useGetApiCashRegister();
-  const registerRows = Array.isArray((registersQ.data as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registersQ.data as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registersQ.data)
-      ? (registersQ.data as CashRegister[])
+  const registersData = registersQ.data as unknown;
+  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
+    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
+    : Array.isArray(registersData)
+      ? (registersData as CashRegister[])
       : [];
 
   const listQ = useQuery({

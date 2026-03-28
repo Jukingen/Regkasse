@@ -1,6 +1,8 @@
 {
   "policy": {
-    "formalReportLanguageBanner": "Resmi rapor metinleri (sunucu) yalnizca Almanca veya Ingilizce gosterilir; arayuz Turkce olsa bile bu metinler Turkce degildir."
+    "formalReportLanguageTitle": "Resmi rapor metinleri",
+    "formalReportLanguageBody": "Yonetim arayuzu Turkce olabilir; bu bolumdeki yasal ve muhasebe rapor metinleri yalnizca Almanca veya Ingilizce gosterilir (varsayilan: Almanca).",
+    "formalReportLanguageProfileCue": "Profil ve disa aktarma: rapor metni Almanca veya Ingilizce kalir (varsayilan: Almanca)."
   },
   "backend": {
     "germanFieldTooltip": "Sunucu alani (genelde Almanca, *De). Cok dilli API sonraya birakilabilir.",

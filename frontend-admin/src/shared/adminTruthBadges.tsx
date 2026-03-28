@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * Provenance badges — copy from @/shared/operatorTruthCopy (single source for operator German strings).
+ * Provenance badges — German operator strings from `OPERATOR_TRUTH_BADGE` in `operatorTruthCopy.ts`.
+ * Translatable list/table labels elsewhere use `t('…')`; see `docs/OPERATOR_COPY_AND_RUNTIME_I18N.md`.
  */
 
 import React from 'react';

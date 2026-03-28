@@ -1,0 +1,62 @@
+{
+  "page": {
+    "title": "Add-on-Gruppen",
+    "intro": "Hier verwalten Sie Gruppen (z. B. Saucen, Extras) und deren Add-on-Produkte. Mit „Bearbeiten“ ändern Sie Gruppennamen und Sortierung. Mit „+ Produkt“ fügen Sie verkaufbare Add-on-Produkte zu einer Gruppe hinzu. Welche Gruppen pro Produkt angezeigt werden, legen Sie auf der Produktseite fest.",
+    "loading": "Add-on-Gruppen werden geladen…"
+  },
+  "actions": {
+    "addGroup": "Gruppe anlegen",
+    "edit": "Bearbeiten",
+    "addProduct": "+ Produkt",
+    "remove": "Entfernen",
+    "removeTitle": "Aus Gruppe entfernen?"
+  },
+  "collapse": {
+    "productsTitle": "Add-on-Produkte (empfohlen)",
+    "productsHint": "Verkaufbare Produkte – Add-on = Produkt. Für neue Extras bitte „+ Produkt“ verwenden.",
+    "emptyProducts": "Keine Add-on-Produkte. Klicken Sie auf „+ Produkt“.",
+    "taxTypeSuffix": "MwSt.-Typ {{type}}",
+    "popconfirmRemoveDescription": "Das Produkt wird nur aus dieser Gruppe entfernt. Das Produkt selbst bleibt erhalten."
+  },
+  "messages": {
+    "groupCreated": "Add-on-Gruppe angelegt.",
+    "groupUpdated": "Gruppe aktualisiert.",
+    "productRemoved": "Produkt aus Gruppe entfernt.",
+    "productAdded": "Produkt zur Gruppe hinzugefügt.",
+    "invalidProductOrGroup": "Produkt oder Gruppe ungültig.",
+    "selectProduct": "Bitte wählen Sie ein Produkt.",
+    "categoryRequiredNewAddon": "Kategorie ist bei neuem Add-on erforderlich."
+  },
+  "modal": {
+    "newGroupTitle": "Neue Add-on-Gruppe",
+    "editGroupTitle": "Gruppe „{{name}}“ bearbeiten",
+    "editGroupTitleFallback": "Gruppe bearbeiten",
+    "addProductTitle": "Produkt zu „{{name}}“ hinzufügen",
+    "addProductTitleFallback": "Produkt hinzufügen",
+    "okCreate": "Anlegen",
+    "okSave": "Speichern",
+    "okAdd": "Hinzufügen"
+  },
+  "form": {
+    "name": "Name",
+    "nameRequired": "Name ist erforderlich.",
+    "minSelections": "Min. Auswahl",
+    "maxSelections": "Max. Auswahl (leer = unbegrenzt)",
+    "isRequired": "Pflicht (mind. 1 Auswahl)",
+    "sortOrder": "Sortierung",
+    "placeholderGroupName": "z. B. Saucen, Extras, Beilagen",
+    "product": "Produkt",
+    "selectProductPlaceholder": "Produkt auswählen…",
+    "selectProductRequired": "Bitte Produkt wählen.",
+    "price": "Preis (€)",
+    "taxType": "MwSt.-Typ (1=20%, 2=10%, 3=13%)",
+    "category": "Kategorie",
+    "categoryRequired": "Kategorie ist erforderlich.",
+    "placeholderCategory": "Kategorie wählen",
+    "placeholderNewAddonName": "z. B. Extra Käse"
+  },
+  "tabs": {
+    "existingProduct": "Bestehendes Produkt",
+    "newAddon": "Neues Add-on anlegen"
+  }
+}

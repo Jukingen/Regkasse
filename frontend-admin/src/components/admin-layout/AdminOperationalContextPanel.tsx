@@ -2,7 +2,7 @@
 
 /**
  * Lightweight "context / hints / investigation" band for complex operational admin pages.
- * Keeps copyable IDs and deep links visible while long honesty copy stays in an optional Collapse.
+ * Keeps copyable IDs and deep links visible while long explanatory copy stays in an optional Collapse.
  *
  * Do not use for critical errors — use Ant Design Alert (or error Result) at a higher priority band.
  */
@@ -13,7 +13,7 @@ import { Card, Collapse, Space, Typography } from 'antd';
 export type AdminOperationalContextCollapsible = {
     /** Stable key for Ant Collapse (default: 'detail'). */
     panelKey?: string;
-    /** Panel header — e.g. German "Voller Hinweis …". */
+    /** Panel header (localized at call site). */
     label: React.ReactNode;
     /** Long helper / contract / methodology copy. */
     children: React.ReactNode;
@@ -22,10 +22,10 @@ export type AdminOperationalContextCollapsible = {
 };
 
 export type AdminOperationalContextPanelProps = {
-    /** Short Card title (operator-visible; typically German). */
+    /** Short Card title (localized at call site). */
     title: React.ReactNode;
     /**
-     * Optional eyebrow above summary — e.g. "Untersuchungskontext".
+     * Optional eyebrow above summary (localized at call site).
      * Use sparingly; prefer a concise `title`.
      */
     eyebrow?: React.ReactNode;

@@ -1,15 +1,10 @@
 'use client';
 
 /**
- * RKSV Audit-Spur (Verifikationen): heuristische Stichprobe aus AuditLogEntryDto.
+ * RKSV audit trail (Verifikationen): heuristic sample from AuditLogEntryDto.
  *
- * Mimari not (lokalizasyon / operatör metni):
- * - Uzun prosedürel metinler (banner, çökme panelleri, sayfalama showTotal, boş tablo)
- *   şimdilik `operatorTruthCopy.OPERATOR_VERIFICATIONS_COPY` içinde kalır (tek kaynak, domain tonu).
- * - Güvenli UI literal’leri (sütun başlıkları, client filtre etiketleri, expand DTO alan etiketleri,
- *   sözleşme sınırı etiketi) `rksvHub.verifications` altında i18n’de.
- * - `describeVerificationsKeywordMatchDe`, tablo `action`/`entityType` ve `RKSv_ADMIN_CONTRACT_GAPS`
- *   metinleri ham API / İngilizce sözleşme dili — locale dışı bilinçli; follow-up: ayrı adapter veya çok dilli backend.
+ * Copy split: long procedural text stays in `OPERATOR_VERIFICATIONS_COPY`; safe UI literals use `rksvHub.verifications`;
+ * API/action/contract-gap strings stay raw or English by design.
  */
 
 import React, { useCallback, useMemo } from 'react';
@@ -31,7 +26,6 @@ import {
 import {
     OPERATOR_FO_SUMMARY_SCREEN_COPY,
     OPERATOR_LINK_LABELS,
-    OPERATOR_SHARED_COPY,
     OPERATOR_VERIFICATIONS_COPY,
 } from '@/shared/operatorTruthCopy';
 import { RKSv_ADMIN_CONTRACT_GAPS } from '@/shared/rksvAdminTruth';
@@ -581,7 +575,7 @@ export default function RksvVerificationsPage() {
                                     {correlationId}
                                 </Typography.Text>
                                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                    <strong>{OPERATOR_SHARED_COPY.investigateFurtherLabel}:</strong>
+                                    <strong>{t('common.investigation.furtherLabel')}:</strong>
                                 </Typography.Text>
                                 <Space wrap split={<Typography.Text type="secondary">·</Typography.Text>}>
                                     {[

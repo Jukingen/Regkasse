@@ -136,7 +136,6 @@ export const usersCopy = {
   errorResetPasswordUserNotFound: 'Benutzer wurde nicht gefunden.',
   errorResetPasswordForbidden: 'Keine Berechtigung, dieses Passwort zurückzusetzen.',
   sessionExpiredOrUnauthorized: 'Sitzung abgelaufen oder nicht angemeldet. Bitte erneut anmelden.',
-  successCreateRole: 'Rolle angelegt.',
   roleName: 'Rollenname',
   roleNameRequired: 'Rollenname erforderlich',
   // Role management (Rollen verwalten)

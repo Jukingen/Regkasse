@@ -13,6 +13,10 @@ import dePayments from './locales/de/payments.json';
 import deTagesabschluss from './locales/de/tagesabschluss.json';
 import deReporting from './locales/de/reporting.json';
 import deErrors from './locales/de/errors.json';
+import deModifierGroups from './locales/de/modifierGroups.json';
+import deBenefits from './locales/de/benefits.json';
+import deCustomers from './locales/de/customers.json';
+import deInvoices from './locales/de/invoices.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
@@ -28,6 +32,10 @@ import enPayments from './locales/en/payments.json';
 import enTagesabschluss from './locales/en/tagesabschluss.json';
 import enReporting from './locales/en/reporting.json';
 import enErrors from './locales/en/errors.json';
+import enModifierGroups from './locales/en/modifierGroups.json';
+import enBenefits from './locales/en/benefits.json';
+import enCustomers from './locales/en/customers.json';
+import enInvoices from './locales/en/invoices.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
 import trNav from './locales/tr/nav.json';
@@ -43,6 +51,10 @@ import trPayments from './locales/tr/payments.json';
 import trTagesabschluss from './locales/tr/tagesabschluss.json';
 import trReporting from './locales/tr/reporting.json';
 import trErrors from './locales/tr/errors.json';
+import trModifierGroups from './locales/tr/modifierGroups.json';
+import trBenefits from './locales/tr/benefits.json';
+import trCustomers from './locales/tr/customers.json';
+import trInvoices from './locales/tr/invoices.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -72,6 +84,10 @@ const catalogs = {
     tagesabschluss: deTagesabschluss,
     reporting: deReporting,
     errors: deErrors,
+    modifierGroups: deModifierGroups,
+    benefits: deBenefits,
+    customers: deCustomers,
+    invoices: deInvoices,
   },
   en: {
     adminShell: enAdminShell,
@@ -89,6 +105,10 @@ const catalogs = {
     tagesabschluss: enTagesabschluss,
     reporting: enReporting,
     errors: enErrors,
+    modifierGroups: enModifierGroups,
+    benefits: enBenefits,
+    customers: enCustomers,
+    invoices: enInvoices,
   },
   tr: {
     adminShell: trAdminShell,
@@ -106,6 +126,10 @@ const catalogs = {
     tagesabschluss: trTagesabschluss,
     reporting: trReporting,
     errors: trErrors,
+    modifierGroups: trModifierGroups,
+    benefits: trBenefits,
+    customers: trCustomers,
+    invoices: trInvoices,
   },
 } as const;
 

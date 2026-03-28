@@ -12,7 +12,10 @@
     "collapseSidebar": "Seitenleiste einklappen"
   },
   "header": {
+    "headerActionsAria": "Oberflächensprache und Benutzerkonto",
     "languageSelectAria": "Oberflächensprache wählen",
+    "languageSelectTitle": "Oberflächensprache",
+    "languageSelectHint": "Gilt nur für die Bedienoberfläche. Formale Berichtstexte bleiben Deutsch oder Englisch.",
     "languageNameDe": "Deutsch",
     "languageNameEn": "English",
     "languageNameTr": "Türkçe"
@@ -114,6 +117,9 @@
     "presetMonth": "Aktueller Monat",
     "exportCsv": "CSV exportieren",
     "exportNoPermission": "Für CSV-Export ist «report.export» erforderlich.",
+    "exportCsvFailed": "CSV-Export fehlgeschlagen.",
+    "freezeSuccess": "Periodenbericht wurde eingefroren.",
+    "freezeError": "Einfrieren fehlgeschlagen.",
     "totalsTitle": "Summen",
     "gross": "Brutto (Verkäufe)",
     "tax": "Steuer (Summe)",
@@ -304,7 +310,9 @@
     "countReasonPrefix": "INV_COUNT",
     "permissionDenied": "Fehlende Berechtigung für diese Aktion.",
     "success": "Gespeichert.",
-    "error": "Fehler"
+    "error": "Fehler",
+    "countNoVariance": "Keine Differenzen.",
+    "errorRequestFailed": "Anfrage fehlgeschlagen."
   },
   "tablesAdmin": {
     "intro": "POS-Fläche und Tischplan werden primär auf dem mobilen Kassierer bedient. Diese Seite ist eine lesbare Übersicht für Backoffice und Schichtleitung (API /api/Table).",

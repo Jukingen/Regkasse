@@ -59,10 +59,11 @@ export default function TagesberichtListPage() {
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
 
   const registersQ = useGetApiCashRegister();
-  const registerRows = Array.isArray((registersQ.data as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registersQ.data as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registersQ.data)
-      ? (registersQ.data as CashRegister[])
+  const registersData = registersQ.data as unknown;
+  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
+    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
+    : Array.isArray(registersData)
+      ? (registersData as CashRegister[])
       : [];
 
   const fromDate = range[0].format('YYYY-MM-DD');

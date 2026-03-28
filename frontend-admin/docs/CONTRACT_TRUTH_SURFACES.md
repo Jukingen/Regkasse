@@ -2,7 +2,7 @@
 
 These UI areas must stay aligned with **Orval-generated** types under `src/api/generated/`. Silent drift (casts to `any`, duplicate DTOs, swallowing parse errors) is treated as a release risk.
 
-**QA (manual + automation plan):** `docs/RKSV_TRUTH_SURFACES_QA_CHECKLIST.md` · **Automated truth tests:** `docs/TRUTH_SURFACE_AUTOMATED_TESTS.md` · **Reusable QA template:** `docs/QA_TRUTH_CRITICAL_TEMPLATE.md`
+**QA (manual + automation plan):** `docs/RKSV_TRUTH_SURFACES_QA_CHECKLIST.md` · **Automated truth tests:** `docs/TRUTH_SURFACE_AUTOMATED_TESTS.md` · **Reusable QA template:** `docs/QA_TRUTH_CRITICAL_TEMPLATE.md` · **Operator copy vs i18n catalogs:** `docs/OPERATOR_COPY_AND_RUNTIME_I18N.md`
 
 ## In-scope paths
 

@@ -3,18 +3,20 @@
 import { useCallback, useMemo } from 'react';
 import { useI18n } from '@/i18n';
 import {
-  fiscalReportFieldTooltip,
-  resolveFiscalReportBackendText,
+  formalReportBackendFieldTooltip,
+  joinFormalReportRemediationHints,
+  resolveFormalReportContentFromDualFields,
+  resolveFormalReportExportProfileRow,
+  resolveFormalReportLegalExportIssueMessage,
+  type FiscalExportProfileBackendRow,
   type FiscalReportResolvedText,
-} from '@/shared/backendLocale';
-import {
-  preferredReportContentLanguage,
-  type ReportContentLanguage,
-} from '@/shared/reporting/reportContentLanguagePolicy';
+  type LegalExportCompletenessIssueText,
+} from '@/shared/reporting/formalReportContentResolver';
+import { preferredReportContentLanguage, type ReportContentLanguage } from '@/shared/reporting/reportContentLanguagePolicy';
 
 /**
- * Hooks `TextLocale` to formal report content resolution (`ReportContentLanguage`: de | en only).
- * General UI strings stay on `useI18n().t`; server-provided formal prose uses `resolveFiscal` / `resolveFormalReportBackendText`.
+ * Binds `TextLocale` from `useI18n` to formal report content resolution (`ReportContentLanguage`: de | en only).
+ * General UI strings stay on `useI18n().t`; server-provided formal prose uses the helpers below.
  */
 export function useFiscalReportText() {
   const { t, textLocale } = useI18n();
@@ -25,23 +27,41 @@ export function useFiscalReportText() {
   );
 
   const fiscalTooltip = useCallback(
-    (contentLang: ReportContentLanguage) => fiscalReportFieldTooltip(t, contentLang),
+    (contentLang: ReportContentLanguage) => formalReportBackendFieldTooltip(t, contentLang),
     [t],
   );
 
   const resolveFiscal = useCallback(
     (textDe?: string | null, textEn?: string | null): FiscalReportResolvedText | undefined =>
-      resolveFiscalReportBackendText(textDe, textLocale, textEn),
+      resolveFormalReportContentFromDualFields(textDe, textLocale, textEn),
     [textLocale],
   );
 
-  const resolveFormalReportBackendText = resolveFiscal;
+  const joinRemediationHints = useCallback(
+    (hints: readonly string[] | null | undefined, separator?: string) =>
+      joinFormalReportRemediationHints(hints, textLocale, separator),
+    [textLocale],
+  );
+
+  const resolveExportProfileRow = useCallback(
+    (p: FiscalExportProfileBackendRow) => resolveFormalReportExportProfileRow(p, textLocale),
+    [textLocale],
+  );
+
+  const resolveLegalExportCompletenessIssue = useCallback(
+    (issue: LegalExportCompletenessIssueText) => resolveFormalReportLegalExportIssueMessage(issue, textLocale),
+    [textLocale],
+  );
 
   return {
     textLocale,
     reportContentLanguage,
     fiscalTooltip,
     resolveFiscal,
-    resolveFormalReportBackendText,
+    resolveFormalReportContentFromDualFields: resolveFiscal,
+    joinRemediationHints,
+    resolveExportProfileRow,
+    resolveLegalExportCompletenessIssue,
+    resolveFormalReportBackendText: resolveFiscal,
   };
 }

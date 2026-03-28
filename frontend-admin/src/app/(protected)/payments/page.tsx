@@ -50,6 +50,8 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getReceiptByPaymentForensics } from '@/features/receipts/api/forensics-client';
 import { useI18n } from '@/i18n';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 import {
   FORMAT_EMPTY_DISPLAY,
   createIntlFormatters,
@@ -86,20 +88,44 @@ function shortId(value?: string | null): string {
   return value.length > 12 ? `${value.slice(0, 8)}…` : value;
 }
 
-function getPaymentsListErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message.trim()) return error.message.trim();
-  const norm = (error as { normalized?: { message?: string } })?.normalized;
-  if (norm?.message?.trim()) return norm.message.trim();
-  const msg = (error as { message?: string })?.message;
-  if (typeof msg === 'string' && msg.trim()) return msg.trim();
-  return fallback;
-}
-
 export default function PaymentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t, formatLocale } = useI18n();
   const fmt = useMemo(() => createIntlFormatters(formatLocale), [formatLocale]);
+
+  const paymentStatusUiLabel = useCallback(
+    (status: string | null | undefined) => {
+      const s = status?.trim();
+      if (!s) return FORMAT_EMPTY_DISPLAY;
+      const keyMap: Record<string, string> = {
+        Success: 'payments.statusLabels.payment.Success',
+        Pending: 'payments.statusLabels.payment.Pending',
+        Failed: 'payments.statusLabels.payment.Failed',
+        Cancelled: 'payments.statusLabels.payment.Cancelled',
+        Refunded: 'payments.statusLabels.payment.Refunded',
+      };
+      const path = keyMap[s];
+      return path ? t(path) : s;
+    },
+    [t],
+  );
+
+  const finanzOnlineStatusUiLabel = useCallback(
+    (status: string | null | undefined) => {
+      const s = status?.trim();
+      if (!s) return FORMAT_EMPTY_DISPLAY;
+      const keyMap: Record<string, string> = {
+        Submitted: 'payments.statusLabels.finanzOnline.Submitted',
+        Pending: 'payments.statusLabels.finanzOnline.Pending',
+        Failed: 'payments.statusLabels.finanzOnline.Failed',
+        NeedsReconciliation: 'payments.statusLabels.finanzOnline.NeedsReconciliation',
+      };
+      const path = keyMap[s];
+      return path ? t(path) : s;
+    },
+    [t],
+  );
 
   const detailStr = useCallback(
     (value: unknown) => formatDetailValue(value, fmt, t('payments.display.yes'), t('payments.display.no')),
@@ -175,11 +201,9 @@ export default function PaymentsPage() {
       t('payments.scope.filteredLine', { count: filteredPayments.length }),
     ];
     if (methodFilter) parts.push(t('payments.scope.methodLine', { value: methodFilter }));
-    if (statusFilter) parts.push(t('payments.scope.statusLine', { value: statusFilter }));
+    if (statusFilter) parts.push(t('payments.scope.statusLine', { value: paymentStatusUiLabel(statusFilter) }));
     return parts.join(' · ');
-  }, [dateRange, payments.length, filteredPayments.length, methodFilter, statusFilter, fmt, t]);
-
-  const loadErrorFallback = t('payments.list.loadErrorFallback');
+  }, [dateRange, payments.length, filteredPayments.length, methodFilter, statusFilter, fmt, t, paymentStatusUiLabel]);
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
@@ -209,8 +233,11 @@ export default function PaymentsPage() {
       setRefundReason('');
       await refetch();
     },
-    onError: (err: Error) => {
-      message.error(err?.message ?? t('payments.messages.refundError'));
+    onError: (err: unknown) => {
+      openApiErrorMessage(message.open, t, err, {
+        logContext: 'PaymentsPage.refundPayment',
+        fallbackKey: 'payments.messages.refundError',
+      });
     },
   });
 
@@ -279,7 +306,8 @@ export default function PaymentsPage() {
             Cancelled: 'default',
             Refunded: 'purple',
           };
-          return <Tag color={colors[status] || 'default'}>{status || FORMAT_EMPTY_DISPLAY}</Tag>;
+          const label = paymentStatusUiLabel(status);
+          return <Tag color={colors[status] || 'default'}>{label}</Tag>;
         },
       },
       {
@@ -355,7 +383,7 @@ export default function PaymentsPage() {
               {hasFo ? (
                 <Space direction="vertical" size={2} style={{ width: '100%' }}>
                   <Tag color={foColor}>
-                    {t('payments.table.foTagPrefix')} {row.finanzOnlineStatus}
+                    {t('payments.table.foTagPrefix')} {finanzOnlineStatusUiLabel(row.finanzOnlineStatus)}
                   </Tag>
                   {foErr ? (
                     <Typography.Text
@@ -384,7 +412,7 @@ export default function PaymentsPage() {
         ),
       },
     ],
-    [t, formatLocale]
+    [t, formatLocale, paymentStatusUiLabel, finanzOnlineStatusUiLabel]
   );
 
   return (
@@ -431,7 +459,7 @@ export default function PaymentsPage() {
             value={statusFilter}
             onChange={(v) => setStatusFilter(v)}
             style={{ width: 180 }}
-            options={statusOptions.map((s) => ({ value: s, label: s }))}
+            options={statusOptions.map((s) => ({ value: s, label: paymentStatusUiLabel(s) }))}
           />
         </Space>
       </Card>
@@ -443,7 +471,18 @@ export default function PaymentsPage() {
           type="error"
           showIcon
           message={t('payments.list.loadErrorTitle')}
-          description={getPaymentsListErrorMessage(error, loadErrorFallback)}
+          description={
+            error ? (
+              <ApiErrorAlertDescription
+                t={t}
+                error={error}
+                logContext="PaymentsPage.list"
+                fallbackKey="payments.list.loadErrorFallback"
+              />
+            ) : (
+              t('payments.list.loadErrorFallback')
+            )
+          }
           action={
             <Button size="small" onClick={() => refetch()}>
               {t('payments.toolbar.retryAfterError')}
@@ -700,7 +739,9 @@ export default function PaymentsPage() {
 
             <Card size="small" title={t('payments.detail.sectionFinanzOnline')} style={{ marginBottom: 12 }}>
               <Descriptions size="small" column={1} bordered>
-                <Descriptions.Item label={t('payments.detail.labelFoStatus')}>{detailStr(safeOperationalDetail.finanzOnlineStatus)}</Descriptions.Item>
+                <Descriptions.Item label={t('payments.detail.labelFoStatus')}>
+                  {finanzOnlineStatusUiLabel(safeOperationalDetail.finanzOnlineStatus)}
+                </Descriptions.Item>
                 <Descriptions.Item label={t('payments.detail.labelFoError')}>
                   {safeOperationalDetail.finanzOnlineError ? (
                     <Typography.Text

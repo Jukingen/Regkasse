@@ -46,7 +46,11 @@
         "receiptTemplates",
         "payments",
         "tagesabschluss",
-        "reporting"
+        "reporting",
+        "modifierGroups",
+        "benefits",
+        "customers",
+        "invoices"
       ]
     }
   }

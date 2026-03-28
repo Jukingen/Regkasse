@@ -34,9 +34,11 @@ import { useGetApiCustomer } from '@/api/generated/customer/customer';
 import { useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
-import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
+import { useI18n } from '@/i18n';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 export default function BenefitAssignmentsPage() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const listQuery = useAdminBenefitAssignmentsList();
   const definitionsQuery = useAdminBenefitDefinitionsList();
@@ -95,77 +97,77 @@ export default function BenefitAssignmentsPage() {
       };
       if (editing) {
         await updateMutation.mutateAsync({ id: editing.id, data: payload });
-        message.success('Zuweisung aktualisiert');
+        message.success(t('benefits.assignments.messages.updated'));
       } else {
         await createMutation.mutateAsync({ data: payload });
-        message.success('Zuweisung angelegt');
+        message.success(t('benefits.assignments.messages.created'));
       }
       setModalOpen(false);
       setEditing(null);
       invalidateList();
     } catch (e) {
       if (e && typeof e === 'object' && 'errorFields' in e) return;
-      message.error(editing ? 'Aktualisierung fehlgeschlagen' : 'Anlegen fehlgeschlagen');
+      message.error(editing ? t('benefits.assignments.messages.updateFailed') : t('benefits.assignments.messages.saveFailed'));
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync({ id });
-      message.success('Zuweisung deaktiviert');
+      message.success(t('benefits.assignments.messages.deactivated'));
       invalidateList();
     } catch {
-      message.error('Löschen fehlgeschlagen');
+      message.error(t('benefits.assignments.messages.deleteFailed'));
     }
   };
 
   const columns: ColumnType<BenefitAssignment>[] = [
     {
-      title: 'Vorteil',
+      title: t('benefits.assignments.columnBenefit'),
       key: 'definition',
       render: (_: unknown, r: BenefitAssignment) => r.benefitDefinition?.name ?? r.benefitDefinitionId,
     },
     {
-      title: 'Kunde',
+      title: t('benefits.shared.customer'),
       key: 'customer',
       render: (_: unknown, r: BenefitAssignment) => r.customer?.name ?? r.customerId,
     },
     {
-      title: 'Gültig von',
+      title: t('benefits.assignments.columnValidFrom'),
       dataIndex: 'validFrom',
       key: 'validFrom',
       render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY') : '–'),
     },
     {
-      title: 'Gültig bis',
+      title: t('benefits.assignments.columnValidTo'),
       dataIndex: 'validTo',
       key: 'validTo',
       render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY') : '–'),
     },
-    { title: 'Priorität', dataIndex: 'priority', key: 'priority', align: 'right' },
+    { title: t('benefits.shared.priority'), dataIndex: 'priority', key: 'priority', align: 'right' },
     {
-      title: 'Aktiv',
+      title: t('benefits.shared.active'),
       dataIndex: 'isActive',
       key: 'isActive',
       align: 'center',
-      render: (v: boolean) => (v ? 'Ja' : 'Nein'),
+      render: (v: boolean) => (v ? t('benefits.shared.yes') : t('benefits.shared.no')),
     },
     {
-      title: 'Aktionen',
+      title: t('benefits.shared.actions'),
       key: 'actions',
       align: 'right',
       render: (_: unknown, record: BenefitAssignment) => (
         <Space>
-          <Tooltip title="Bearbeiten">
+          <Tooltip title={t('benefits.shared.edit')}>
             <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
           </Tooltip>
           <Popconfirm
-            title="Zuweisung deaktivieren?"
+            title={t('benefits.assignments.popconfirmDeactivate')}
             onConfirm={() => record.id && handleDelete(record.id)}
-            okText="Ja"
-            cancelText="Nein"
+            okText={t('common.buttons.yes')}
+            cancelText={t('common.buttons.no')}
           >
-            <Tooltip title="Deaktivieren">
+            <Tooltip title={t('benefits.shared.deactivate')}>
               <Button
                 type="text"
                 size="small"
@@ -183,11 +185,11 @@ export default function BenefitAssignmentsPage() {
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
-        title="Vorteile (Zuweisungen)"
-        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: 'Vorteile (Zuweisungen)' }]}
+        title={t('benefits.assignments.pageTitle')}
+        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: t('benefits.assignments.breadcrumb') }]}
         actions={
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Neue Zuweisung
+            {t('benefits.assignments.newAssignment')}
           </Button>
         }
       />
@@ -195,12 +197,21 @@ export default function BenefitAssignmentsPage() {
       {listQuery.isError ? (
         <Alert
           type="error"
-          message="Laden fehlgeschlagen"
-          description={listQuery.error?.message}
+          message={t('benefits.shared.loadFailedTitle')}
+          description={
+            listQuery.error ? (
+              <ApiErrorAlertDescription
+                t={t}
+                error={listQuery.error}
+                logContext="BenefitAssignments.list"
+                fallbackKey="common.messages.unknownError"
+              />
+            ) : undefined
+          }
           showIcon
           action={
             <Button size="small" onClick={() => listQuery.refetch()}>
-              {OPERATOR_SHARED_COPY.retryAfterError}
+              {t('common.buttons.retry')}
             </Button>
           }
         />
@@ -212,44 +223,46 @@ export default function BenefitAssignmentsPage() {
         rowKey="id"
         loading={listQuery.isLoading}
         pagination={{ pageSize: 10, showSizeChanger: true }}
-        locale={{ emptyText: <Empty description="Keine Zuweisungen" /> }}
+        locale={{ emptyText: <Empty description={t('benefits.assignments.emptyList')} /> }}
       />
 
       <Modal
-        title={editing ? 'Zuweisung bearbeiten' : 'Neue Vorteilszuweisung'}
+        title={editing ? t('benefits.assignments.modalEditTitle') : t('benefits.assignments.modalCreateTitle')}
         open={modalOpen}
         onOk={handleSubmit}
         onCancel={() => { setModalOpen(false); setEditing(null); }}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
         destroyOnClose
+        okText={t('common.buttons.save')}
+        cancelText={t('common.buttons.cancel')}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="benefitDefinitionId" label="Vorteilsdefinition" rules={[{ required: true, message: 'Definition wählen' }]}>
+          <Form.Item name="benefitDefinitionId" label={t('benefits.assignments.formDefinition')} rules={[{ required: true, message: t('benefits.assignments.formDefinitionRequired') }]}>
             <Select
-              placeholder="Definition wählen"
+              placeholder={t('benefits.assignments.formDefinitionPlaceholder')}
               loading={definitionsQuery.isLoading}
               options={definitions.filter((d) => d.isActive).map((d) => ({ value: d.id, label: `${d.code} – ${d.name}` }))}
             />
           </Form.Item>
-          <Form.Item name="customerId" label="Kunde" rules={[{ required: true, message: 'Kunde wählen' }]}>
+          <Form.Item name="customerId" label={t('benefits.shared.customer')} rules={[{ required: true, message: t('benefits.assignments.formCustomerRequired') }]}>
             <Select
-              placeholder="Kunde wählen"
+              placeholder={t('benefits.assignments.formCustomerPlaceholder')}
               loading={customersQuery.isLoading}
               options={customers.map((c) => ({ value: c.id, label: c.customerNumber ? `${c.customerNumber} – ${c.name}` : c.name }))}
               showSearch
               optionFilterProp="label"
             />
           </Form.Item>
-          <Form.Item name="validFrom" label="Gültig von" rules={[{ required: true, message: 'Datum angeben' }]}>
+          <Form.Item name="validFrom" label={t('benefits.assignments.formValidFrom')} rules={[{ required: true, message: t('benefits.assignments.formValidFromRequired') }]}>
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="validTo" label="Gültig bis">
+          <Form.Item name="validTo" label={t('benefits.assignments.formValidTo')}>
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="priority" label="Priorität (höher = Vorrang)">
+          <Form.Item name="priority" label={t('benefits.assignments.formPriorityHint')}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="isActive" label="Aktiv" valuePropName="checked">
+          <Form.Item name="isActive" label={t('benefits.shared.active')} valuePropName="checked">
             <Switch />
           </Form.Item>
         </Form>

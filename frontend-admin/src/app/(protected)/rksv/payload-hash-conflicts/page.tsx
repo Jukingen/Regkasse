@@ -5,7 +5,7 @@
  * from the Eingriff (repair dry-run / apply). Permissions unchanged; repair requires elevated rights on the API.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Card,
   Table,
@@ -28,7 +28,10 @@ import { ReloadOutlined, DownloadOutlined, ToolOutlined, SafetyOutlined } from '
 import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { useI18n } from '@/i18n';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 import {
   postApiAdminOfflinePayloadHashAnalyze,
   postApiAdminOfflinePayloadHashRepair,
@@ -54,6 +57,7 @@ function severityColor(severity: string): string {
 }
 
 export default function PayloadHashConflictsPage() {
+  const { t } = useI18n();
   const { user } = useAuth();
   const canRepair = hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
   const [maxRows, setMaxRows] = useState(10_000);
@@ -87,9 +91,13 @@ export default function PayloadHashConflictsPage() {
       a.download = 'offline-payload-hash-analyze.csv';
       a.click();
       URL.revokeObjectURL(url);
-      message.success('CSV heruntergeladen');
+      message.success(t('rksvHub.payloadHashConflictsPage.csvDownloaded'));
     },
-    onError: (e: Error) => message.error(e?.message ?? 'Export fehlgeschlagen'),
+    onError: (e: unknown) =>
+      openApiErrorMessage(message.open, t, e, {
+        logContext: 'PayloadHashConflicts.exportCsv',
+        fallbackKey: 'rksvHub.payloadHashConflictsPage.exportFailed',
+      }),
   });
 
   const dryRunMutation = useMutation({
@@ -101,9 +109,9 @@ export default function PayloadHashConflictsPage() {
       }),
     onSuccess: (res) => {
       setLastRepairResult(res);
-      message.success('Dry-Run abgeschlossen');
+      message.success(t('rksvHub.payloadHashConflictsPage.dryRunDone'));
     },
-    onError: (e: Error) => message.error(e?.message ?? 'Dry-Run fehlgeschlagen'),
+    onError: (e: Error) => message.error(e?.message ?? t('rksvHub.payloadHashConflictsPage.dryRunFailed')),
   });
 
   const applyMutation = useMutation({
@@ -115,106 +123,127 @@ export default function PayloadHashConflictsPage() {
       }),
     onSuccess: async (res) => {
       setLastRepairResult(res);
-      message.success(`Repair angewendet: ${res.updated} aktualisiert`);
+      message.success(t('rksvHub.payloadHashConflictsPage.repairApplied', { updated: res.updated ?? 0 }));
       await refetch();
     },
-    onError: (e: Error) => message.error(e?.message ?? 'Repair fehlgeschlagen'),
+    onError: (e: unknown) =>
+      openApiErrorMessage(message.open, t, e, {
+        logContext: 'PayloadHashConflicts.repairApply',
+        fallbackKey: 'rksvHub.payloadHashConflictsPage.repairFailed',
+      }),
   });
 
-  const conflictColumns = [
-    {
-      title: 'Kasse',
-      dataIndex: 'cashRegisterId',
-      key: 'cashRegisterId',
-      width: 120,
-      render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 8)}…</Typography.Text>,
-    },
-    {
-      title: 'Canonical Hash',
-      dataIndex: 'canonicalHash',
-      key: 'canonicalHash',
-      width: 120,
-      ellipsis: true,
-      render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 12)}…</Typography.Text>,
-    },
-    {
-      title: 'Grund (Skip)',
-      dataIndex: 'skipReason',
-      key: 'skipReason',
-      width: 180,
-      render: (v: string) => <Tag>{v ?? '—'}</Tag>,
-    },
-    {
-      title: 'Priorität',
-      dataIndex: 'severitySuggestion',
-      key: 'severitySuggestion',
-      width: 90,
-      render: (v: string) => <Tag color={severityColor(v)}>{v ?? '—'}</Tag>,
-    },
-    {
-      title: 'Neueste (UTC)',
-      dataIndex: 'latestCreatedAtUtc',
-      key: 'latestCreatedAtUtc',
-      width: 160,
-      render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm') : '—'),
-    },
-    {
-      title: 'Mismatch-Row-IDs',
-      key: 'mismatchRowIds',
-      render: (_: unknown, r: PayloadHashConflictGroup) =>
-        r.mismatchRowIds?.length ? (
-          <Typography.Text copyable={{ text: r.mismatchRowIds.join('; ') }}>
-            {r.mismatchRowIds.length} ID(s)
-          </Typography.Text>
-        ) : (
-          '—'
-        ),
-    },
-    {
-      title: 'Blockierende Row-IDs',
-      key: 'occupantRowIds',
-      render: (_: unknown, r: PayloadHashConflictGroup) =>
-        r.occupantRowIds?.length ? (
-          <Typography.Text copyable={{ text: r.occupantRowIds.join('; ') }}>
-            {r.occupantRowIds.length} ID(s)
-          </Typography.Text>
-        ) : (
-          '—'
-        ),
-    },
-  ];
+  const conflictColumns = useMemo(
+    () => [
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colRegister'),
+        dataIndex: 'cashRegisterId',
+        key: 'cashRegisterId',
+        width: 120,
+        render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 8)}…</Typography.Text>,
+      },
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colCanonicalHash'),
+        dataIndex: 'canonicalHash',
+        key: 'canonicalHash',
+        width: 120,
+        ellipsis: true,
+        render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 12)}…</Typography.Text>,
+      },
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colSkipReason'),
+        dataIndex: 'skipReason',
+        key: 'skipReason',
+        width: 180,
+        render: (v: string) => <Tag>{v ?? '—'}</Tag>,
+      },
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colSeverity'),
+        dataIndex: 'severitySuggestion',
+        key: 'severitySuggestion',
+        width: 90,
+        render: (v: string) => <Tag color={severityColor(v)}>{v ?? '—'}</Tag>,
+      },
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colLatestUtc'),
+        dataIndex: 'latestCreatedAtUtc',
+        key: 'latestCreatedAtUtc',
+        width: 160,
+        render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm') : '—'),
+      },
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colMismatchRowIds'),
+        key: 'mismatchRowIds',
+        render: (_: unknown, r: PayloadHashConflictGroup) =>
+          r.mismatchRowIds?.length ? (
+            <Typography.Text copyable={{ text: r.mismatchRowIds.join('; ') }}>
+              {t('rksvHub.payloadHashConflictsPage.idCount', { count: r.mismatchRowIds.length })}
+            </Typography.Text>
+          ) : (
+            '—'
+          ),
+      },
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colBlockingRowIds'),
+        key: 'occupantRowIds',
+        render: (_: unknown, r: PayloadHashConflictGroup) =>
+          r.occupantRowIds?.length ? (
+            <Typography.Text copyable={{ text: r.occupantRowIds.join('; ') }}>
+              {t('rksvHub.payloadHashConflictsPage.idCount', { count: r.occupantRowIds.length })}
+            </Typography.Text>
+          ) : (
+            '—'
+          ),
+      },
+    ],
+    [t],
+  );
 
-  const repairableColumns = [
-    {
-      title: 'Kasse',
-      dataIndex: 'cashRegisterId',
-      key: 'cashRegisterId',
-      width: 120,
-      render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 8)}…</Typography.Text>,
-    },
-    {
-      title: 'Canonical Hash',
-      dataIndex: 'canonicalHash',
-      key: 'canonicalHash',
-      width: 120,
-      ellipsis: true,
-      render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 12)}…</Typography.Text>,
-    },
-    {
-      title: 'Row-ID',
-      dataIndex: 'rowId',
-      key: 'rowId',
-      width: 120,
-      render: (v: string) => <Typography.Text code copyable>{v}</Typography.Text>,
-    },
-    {
-      title: 'CreatedAt (UTC)',
-      dataIndex: 'createdAtUtc',
-      key: 'createdAtUtc',
-      width: 160,
-      render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm') : '—'),
-    },
-  ];
+  const repairableColumns = useMemo(
+    () => [
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colRegister'),
+        dataIndex: 'cashRegisterId',
+        key: 'cashRegisterId',
+        width: 120,
+        render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 8)}…</Typography.Text>,
+      },
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colCanonicalHash'),
+        dataIndex: 'canonicalHash',
+        key: 'canonicalHash',
+        width: 120,
+        ellipsis: true,
+        render: (v: string) => <Typography.Text code copyable>{v?.slice(0, 12)}…</Typography.Text>,
+      },
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colRowId'),
+        dataIndex: 'rowId',
+        key: 'rowId',
+        width: 120,
+        render: (v: string) => <Typography.Text code copyable>{v}</Typography.Text>,
+      },
+      {
+        title: t('rksvHub.payloadHashConflictsPage.colCreatedAtUtc'),
+        dataIndex: 'createdAtUtc',
+        key: 'createdAtUtc',
+        width: 160,
+        render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm') : '—'),
+      },
+    ],
+    [t],
+  );
+
+  const confirmApplyRepair = useCallback(() => {
+    Modal.confirm({
+      title: t('rksvHub.payloadHashConflictsPage.modalApplyTitle'),
+      content: t('rksvHub.payloadHashConflictsPage.modalApplyContent'),
+      okText: t('rksvHub.payloadHashConflictsPage.modalOk'),
+      okButtonProps: { danger: true },
+      cancelText: t('rksvHub.payloadHashConflictsPage.modalCancel'),
+      onOk: () => applyMutation.mutate(),
+    });
+  }, [t, applyMutation]);
 
   const result = data as OfflinePayloadHashAnalyzeResult | undefined;
   const conflictGroups = result?.conflictGroups ?? [];
@@ -223,24 +252,30 @@ export default function PayloadHashConflictsPage() {
   return (
     <>
       <AdminPageHeader
-        title="Payload-Hash Konflikte"
+        title={t('rksvHub.payloadHashConflictsPage.title')}
         breadcrumbs={[
-          ADMIN_OVERVIEW_CRUMB,
-          { title: 'RKSV', href: '/rksv' },
-          { title: 'Payload-Hash Konflikte' },
+          adminOverviewCrumb(t),
+          { title: t(ADMIN_NAV_GROUP_LABEL_KEYS.rksv), href: '/rksv' },
+          { title: t('rksvHub.payloadHashConflictsPage.breadcrumb') },
         ]}
       />
 
       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-        Gemischte Oberfläche: Untersuchung (Analyse, Tabellen, Export) und separater Eingriff (Repair). Parameter
-        (max. Zeilen, Kasse) gelten für beide Bereiche.
+        {t('rksvHub.payloadHashConflictsPage.intro')}
       </Typography.Paragraph>
 
       {error && (
         <Alert
           type="error"
-          message="Analyse fehlgeschlagen"
-          description={error instanceof Error ? error.message : 'Unbekannter Fehler'}
+          message={t('rksvHub.payloadHashConflictsPage.analyzeFailed')}
+          description={
+            <ApiErrorAlertDescription
+              t={t}
+              error={error}
+              logContext="PayloadHashConflicts.analyze"
+              fallbackKey="rksvHub.payloadHashConflictsPage.unknownError"
+            />
+          }
           style={{ marginBottom: 16 }}
           showIcon
         />
@@ -249,7 +284,7 @@ export default function PayloadHashConflictsPage() {
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap size="middle">
           <Space>
-            <Typography.Text strong>Max. Zeilen:</Typography.Text>
+            <Typography.Text strong>{t('rksvHub.payloadHashConflictsPage.maxRowsLabel')}</Typography.Text>
             <InputNumber
               min={1}
               max={100_000}
@@ -258,9 +293,9 @@ export default function PayloadHashConflictsPage() {
             />
           </Space>
           <Space>
-            <Typography.Text strong>Kasse:</Typography.Text>
+            <Typography.Text strong>{t('rksvHub.payloadHashConflictsPage.registerLabel')}</Typography.Text>
             <Select
-              placeholder="Alle Kassen"
+              placeholder={t('rksvHub.payloadHashConflictsPage.registerPlaceholderAll')}
               allowClear
               value={cashRegisterId ?? undefined}
               onChange={(v) => setCashRegisterId(v ?? undefined)}
@@ -274,7 +309,7 @@ export default function PayloadHashConflictsPage() {
             />
           </Space>
           <Button type="primary" onClick={() => refetch()}>
-            Analyse ausführen
+            {t('rksvHub.payloadHashConflictsPage.runAnalyze')}
           </Button>
         </Space>
       </Card>
@@ -285,46 +320,52 @@ export default function PayloadHashConflictsPage() {
         items={[
           {
             key: 'investigation',
-            label: 'Untersuchung & Export',
+            label: t('rksvHub.payloadHashConflictsPage.tabInvestigation'),
             children: (
               <>
                 <Space wrap style={{ marginBottom: 16 }}>
                   <Button icon={<ReloadOutlined />} onClick={() => refetch()}>
-                    Analyse neu
+                    {t('rksvHub.payloadHashConflictsPage.refreshAnalysis')}
                   </Button>
                   <Button
                     icon={<DownloadOutlined />}
                     loading={downloadCsvMutation.isPending}
                     onClick={() => downloadCsvMutation.mutate()}
                   >
-                    CSV exportieren
+                    {t('rksvHub.payloadHashConflictsPage.exportCsv')}
                   </Button>
                 </Space>
                 {isLoading && !result ? (
                   <Card>
-                    <Spin tip="Analyse läuft…" size="large" />
+                    <Spin tip={t('rksvHub.payloadHashConflictsPage.spinAnalyzing')} size="large" />
                   </Card>
                 ) : result ? (
                   <>
                     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                       <Col xs={24} sm={12} md={6}>
                         <Card size="small">
-                          <Statistic title="Gescannt" value={result.scanned} />
+                          <Statistic title={t('rksvHub.payloadHashConflictsPage.statScanned')} value={result.scanned} />
                         </Card>
                       </Col>
                       <Col xs={24} sm={12} md={6}>
                         <Card size="small">
-                          <Statistic title="Mismatch" value={result.runtimeMismatchCount} />
+                          <Statistic title={t('rksvHub.payloadHashConflictsPage.statMismatch')} value={result.runtimeMismatchCount} />
                         </Card>
                       </Col>
                       <Col xs={24} sm={12} md={6}>
                         <Card size="small">
-                          <Statistic title="Reparierbar (ohne Konflikt)" value={result.repairableNoConflictCount} />
+                          <Statistic
+                            title={t('rksvHub.payloadHashConflictsPage.statRepairableNoConflict')}
+                            value={result.repairableNoConflictCount}
+                          />
                         </Card>
                       </Col>
                       <Col xs={24} sm={12} md={6}>
                         <Card size="small">
-                          <Statistic title="Konflikt (übersprungen)" value={result.skippedWouldConflictCount} />
+                          <Statistic
+                            title={t('rksvHub.payloadHashConflictsPage.statConflictSkipped')}
+                            value={result.skippedWouldConflictCount}
+                          />
                         </Card>
                       </Col>
                     </Row>
@@ -332,37 +373,47 @@ export default function PayloadHashConflictsPage() {
                     {result.legacyDataQualityRiskHigh && result.warningMessage && (
                       <Alert
                         type="warning"
-                        message="Risiko: Legacy-Datenqualität"
+                        message={t('rksvHub.payloadHashConflictsPage.legacyDataQualityTitle')}
                         description={result.warningMessage}
                         style={{ marginBottom: 16 }}
                         showIcon
                       />
                     )}
 
-                    <Card size="small" title={`Konfliktgruppen (${conflictGroups.length})`} style={{ marginBottom: 16 }}>
+                    <Card
+                      size="small"
+                      title={t('rksvHub.payloadHashConflictsPage.conflictGroupsTitle', { count: conflictGroups.length })}
+                      style={{ marginBottom: 16 }}
+                    >
                       {conflictGroups.length === 0 ? (
-                        <Typography.Text type="secondary">Keine Konflikte in diesem Scope.</Typography.Text>
+                        <Typography.Text type="secondary">{t('rksvHub.payloadHashConflictsPage.noConflictsInScope')}</Typography.Text>
                       ) : (
                         <Table
                           columns={conflictColumns}
                           dataSource={conflictGroups}
                           rowKey={(r) => `${r.cashRegisterId}-${r.canonicalHash}-${r.skipReason}`}
-                          pagination={{ pageSize: 20, showTotal: (t) => `Gesamt: ${t}` }}
+                          pagination={{
+                            pageSize: 20,
+                            showTotal: (tot) => t('rksvHub.payloadHashConflictsPage.paginationTotal', { total: tot }),
+                          }}
                           size="small"
                           scroll={{ x: 900 }}
                         />
                       )}
                     </Card>
 
-                    <Card size="small" title={`Reparierbare Einträge (${repairableItems.length})`}>
+                    <Card size="small" title={t('rksvHub.payloadHashConflictsPage.repairableTitle', { count: repairableItems.length })}>
                       {repairableItems.length === 0 ? (
-                        <Typography.Text type="secondary">Keine reparierbaren Einträge in diesem Scope.</Typography.Text>
+                        <Typography.Text type="secondary">{t('rksvHub.payloadHashConflictsPage.noRepairableInScope')}</Typography.Text>
                       ) : (
                         <Table
                           columns={repairableColumns}
                           dataSource={repairableItems}
                           rowKey="rowId"
-                          pagination={{ pageSize: 20, showTotal: (t) => `Gesamt: ${t}` }}
+                          pagination={{
+                            pageSize: 20,
+                            showTotal: (tot) => t('rksvHub.payloadHashConflictsPage.paginationTotal', { total: tot }),
+                          }}
                           size="small"
                           scroll={{ x: 600 }}
                         />
@@ -371,37 +422,35 @@ export default function PayloadHashConflictsPage() {
 
                     <Alert
                       type="info"
-                      message="Untersuchung (read-only)"
-                      description="Analyse und CSV-Export ändern keine Daten. Repair (Dry-Run / Anwenden) liegt im Tab Eingriff (Repair)."
+                      message={t('rksvHub.payloadHashConflictsPage.investigationReadOnlyTitle')}
+                      description={t('rksvHub.payloadHashConflictsPage.investigationReadOnlyBody')}
                       style={{ marginTop: 16 }}
                       showIcon
                     />
                   </>
                 ) : (
-                  <Typography.Text type="secondary">
-                    Bitte mit den Parametern oben eine Analyse ausführen.
-                  </Typography.Text>
+                  <Typography.Text type="secondary">{t('rksvHub.payloadHashConflictsPage.runAnalysisHint')}</Typography.Text>
                 )}
               </>
             ),
           },
           {
             key: 'repair',
-            label: 'Eingriff (Repair)',
+            label: t('rksvHub.payloadHashConflictsPage.tabRepair'),
             children: (
               <>
                 <Alert
                   type="error"
                   showIcon
-                  message="Gefahrenbereich / Eingriff"
-                  description="Dry-Run und Repair nutzen dieselben Endpunkte wie zuvor. Apply schreibt in die Datenbank — zuerst im Tab Untersuchung analysieren."
+                  message={t('rksvHub.payloadHashConflictsPage.repairDangerTitle')}
+                  description={t('rksvHub.payloadHashConflictsPage.repairDangerBody')}
                   style={{ marginBottom: 16 }}
                 />
                 {!canRepair && (
                   <Alert
                     type="warning"
-                    message="Repair-Aktionen gesperrt"
-                    description="Für Dry-Run und Repair ist die Berechtigung system.critical erforderlich."
+                    message={t('rksvHub.payloadHashConflictsPage.repairLockedTitle')}
+                    description={t('rksvHub.payloadHashConflictsPage.repairLockedBody')}
                     style={{ marginBottom: 16 }}
                     showIcon
                   />
@@ -413,26 +462,16 @@ export default function PayloadHashConflictsPage() {
                     loading={dryRunMutation.isPending}
                     disabled={!canRepair || applyMutation.isPending}
                   >
-                    Repair Dry-Run
+                    {t('rksvHub.payloadHashConflictsPage.dryRunButton')}
                   </Button>
                   <Button
                     danger
                     icon={<SafetyOutlined />}
                     loading={applyMutation.isPending}
                     disabled={!canRepair || dryRunMutation.isPending}
-                    onClick={() => {
-                      Modal.confirm({
-                        title: 'Repair wirklich anwenden?',
-                        content:
-                          'Diese Aktion schreibt payload_hash Werte in der Datenbank. Bitte erst Dry-Run prüfen. Fortfahren?',
-                        okText: 'Ja, Repair anwenden',
-                        okButtonProps: { danger: true },
-                        cancelText: 'Abbrechen',
-                        onOk: () => applyMutation.mutate(),
-                      });
-                    }}
+                    onClick={confirmApplyRepair}
                   >
-                    Repair anwenden
+                    {t('rksvHub.payloadHashConflictsPage.applyRepairButton')}
                   </Button>
                 </Space>
                 {lastRepairResult && (
@@ -440,29 +479,41 @@ export default function PayloadHashConflictsPage() {
                     size="small"
                     title={
                       lastRepairResult.dryRun
-                        ? 'Letztes Repair-Ergebnis (Dry-Run)'
-                        : 'Letztes Repair-Ergebnis (Apply)'
+                        ? t('rksvHub.payloadHashConflictsPage.resultTitleDryRun')
+                        : t('rksvHub.payloadHashConflictsPage.resultTitleApply')
                     }
                     style={{ marginBottom: 16 }}
                   >
                     <Row gutter={[16, 16]}>
                       <Col xs={24} sm={12} md={4}>
-                        <Statistic title="Gescannt" value={lastRepairResult.scanned} />
+                        <Statistic title={t('rksvHub.payloadHashConflictsPage.resultScanned')} value={lastRepairResult.scanned} />
                       </Col>
                       <Col xs={24} sm={12} md={4}>
-                        <Statistic title="Aktualisiert" value={lastRepairResult.updated} />
+                        <Statistic title={t('rksvHub.payloadHashConflictsPage.resultUpdated')} value={lastRepairResult.updated} />
                       </Col>
                       <Col xs={24} sm={12} md={4}>
-                        <Statistic title="Konflikt übersprungen" value={lastRepairResult.skippedConflict} />
+                        <Statistic
+                          title={t('rksvHub.payloadHashConflictsPage.resultSkippedConflict')}
+                          value={lastRepairResult.skippedConflict}
+                        />
                       </Col>
                       <Col xs={24} sm={12} md={4}>
-                        <Statistic title="Bereits aligned" value={lastRepairResult.skippedAlreadyAligned} />
+                        <Statistic
+                          title={t('rksvHub.payloadHashConflictsPage.resultSkippedAligned')}
+                          value={lastRepairResult.skippedAlreadyAligned}
+                        />
                       </Col>
                       <Col xs={24} sm={12} md={4}>
-                        <Statistic title="Null Payload" value={lastRepairResult.skippedNullPayload} />
+                        <Statistic
+                          title={t('rksvHub.payloadHashConflictsPage.resultSkippedNullPayload')}
+                          value={lastRepairResult.skippedNullPayload}
+                        />
                       </Col>
                       <Col xs={24} sm={12} md={4}>
-                        <Statistic title="Normalize-Fehler" value={lastRepairResult.skippedNormalizeError} />
+                        <Statistic
+                          title={t('rksvHub.payloadHashConflictsPage.resultSkippedNormalizeError')}
+                          value={lastRepairResult.skippedNormalizeError}
+                        />
                       </Col>
                     </Row>
                   </Card>

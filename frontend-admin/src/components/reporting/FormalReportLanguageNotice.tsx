@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * Formel rapor alanlarında sunucu metni yalnızca Almanca veya İngilizce gösterilir; `TextLocale` Türkçe olsa bile
- * resmi metin Türkçe değildir. Genel arayüz çevirisi `useI18n` ile ayrı kalır.
+ * Server-provided formal report fields are shown only in German or English; even when the admin UI is
+ * Turkish, that prose is not Turkish. General chrome still follows `useI18n` / `TextLocale`.
  */
-import { Alert } from 'antd';
+import { Alert, Typography } from 'antd';
 import { useI18n } from '@/i18n';
 
 export function FormalReportLanguageNotice() {
@@ -14,7 +14,18 @@ export function FormalReportLanguageNotice() {
       type="info"
       showIcon
       style={{ marginBottom: 16 }}
-      message={t('reporting.policy.formalReportLanguageBanner')}
+      message={t('reporting.policy.formalReportLanguageTitle')}
+      description={t('reporting.policy.formalReportLanguageBody')}
     />
+  );
+}
+
+/** Kısa satır: profil / dışa aktarma alanında formal metin politikasını hatırlatır (detay sayfaları). */
+export function FormalReportProfileLanguageCue() {
+  const { t } = useI18n();
+  return (
+    <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+      {t('reporting.policy.formalReportLanguageProfileCue')}
+    </Typography.Text>
   );
 }

@@ -1,0 +1,62 @@
+{
+  "page": {
+    "title": "Add-on gruplari",
+    "intro": "Gruplari (sos, ekstra vb.) ve add-on urunlerini yonetin. „Duzenle“ ile ad ve siralama; „+ Urun“ ile satilabilir add-on ekleyin. Urun basina hangi gruplar gorunsun, urun sayfasinda belirlenir.",
+    "loading": "Add-on gruplari yukleniyor…"
+  },
+  "actions": {
+    "addGroup": "Grup olustur",
+    "edit": "Duzenle",
+    "addProduct": "+ Urun",
+    "remove": "Kaldir",
+    "removeTitle": "Gruptan kaldirilsin mi?"
+  },
+  "collapse": {
+    "productsTitle": "Add-on urunler (onerilen)",
+    "productsHint": "Satilabilir urunler — add-on = urun. Yeni ekstralar icin „+ Urun“ kullanin.",
+    "emptyProducts": "Add-on urun yok. „+ Urun“e tiklayin.",
+    "taxTypeSuffix": "KDV tipi {{type}}",
+    "popconfirmRemoveDescription": "Urun yalnizca bu gruptan cikarilir; urunun kendisi kalir."
+  },
+  "messages": {
+    "groupCreated": "Add-on grubu olusturuldu.",
+    "groupUpdated": "Grup guncellendi.",
+    "productRemoved": "Urun gruptan kaldirildi.",
+    "productAdded": "Urun gruba eklendi.",
+    "invalidProductOrGroup": "Gecersiz urun veya grup.",
+    "selectProduct": "Lutfen bir urun secin.",
+    "categoryRequiredNewAddon": "Yeni add-on icin kategori zorunlu."
+  },
+  "modal": {
+    "newGroupTitle": "Yeni add-on grubu",
+    "editGroupTitle": "„{{name}}“ grubunu duzenle",
+    "editGroupTitleFallback": "Grubu duzenle",
+    "addProductTitle": "„{{name}}“ grubuna urun ekle",
+    "addProductTitleFallback": "Urun ekle",
+    "okCreate": "Olustur",
+    "okSave": "Kaydet",
+    "okAdd": "Ekle"
+  },
+  "form": {
+    "name": "Ad",
+    "nameRequired": "Ad zorunlu.",
+    "minSelections": "Min. secim",
+    "maxSelections": "Max. secim (bos = sinirsiz)",
+    "isRequired": "Zorunlu (en az 1 secim)",
+    "sortOrder": "Siralama",
+    "placeholderGroupName": "orn. soslar, ekstralar",
+    "product": "Urun",
+    "selectProductPlaceholder": "Urun secin…",
+    "selectProductRequired": "Lutfen urun secin.",
+    "price": "Fiyat (€)",
+    "taxType": "KDV tipi (1=%20, 2=%10, 3=%13)",
+    "category": "Kategori",
+    "categoryRequired": "Kategori zorunlu.",
+    "placeholderCategory": "Kategori secin",
+    "placeholderNewAddonName": "orn. ekstra peynir"
+  },
+  "tabs": {
+    "existingProduct": "Mevcut urun",
+    "newAddon": "Yeni add-on olustur"
+  }
+}

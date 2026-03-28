@@ -1,0 +1,221 @@
+{
+  "page": {
+    "title": "Invoices",
+    "listLead": "Server-filtered invoice list with batch actions (print, export, reconcile). Open details for TSE traces, context, and FinanzOnline links."
+  },
+  "actions": {
+    "batchPrint": "Batch: Print",
+    "batchExport": "Batch: Export",
+    "batchReconcile": "Batch: Reconcile",
+    "exportCsvAll": "CSV export (all)"
+  },
+  "filters": {
+    "searchPlaceholder": "Search no., customer …",
+    "statusPlaceholder": "Status",
+    "registerPlaceholder": "Register UUID (cash_registers.Id)",
+    "registerListFilterApiFootnote": "Free text is passed unchanged to the list API; deep links to the reconciliation page only with a valid UUID.",
+    "invalidRegisterOnlyCheckboxLabel": "Only rows without a valid register UUID (no link FK)",
+    "activeFiltersLabel": "Active filters",
+    "clearAllFilters": "Reset all filters"
+  },
+  "dateRange": {
+    "blocksQueryTitle": "Query paused",
+    "blocksQuerySuffix": "The list loads only once the date range is valid."
+  },
+  "filterTags": {
+    "searchPrefix": "Search",
+    "statusPrefix": "Status",
+    "dateRangePrefix": "Period",
+    "registerUuid": "Register (UUID)",
+    "registerApi": "Register (API)",
+    "invalidRegisterShort": "Without register UUID (client)"
+  },
+  "registerFilter": {
+    "invalidTitle": "Register filter without a safe deep link",
+    "invalidDescription": "The value is sent to the list API but does not meet the UUID rule for safe register deep links (FinanzOnline reconciliation). Select the register explicitly in the reconciliation view."
+  },
+  "errors": {
+    "listGeneric": "The list could not be loaded. Please try again or check your filters.",
+    "listUnauthorized": "Not signed in or session expired. Please sign in again.",
+    "listForbidden": "No permission to access the invoice list.",
+    "listNotFound": "List endpoint not found. Please contact support.",
+    "listServer": "Server error. Please try again later.",
+    "listNetwork": "Network error. Check the connection and try again."
+  },
+  "empty": {
+    "invalidDateRange": "Invalid date range",
+    "loadFailedTitle": "List unavailable",
+    "loadFailedHint": "Check connection, permissions, and filters. Widen or reset filters, then reload.",
+    "dateRange": "No invoices in the selected period. Adjust filters.",
+    "default": "No invoices. Adjust filters.",
+    "moreHint": "Tip: narrow search, status, period, or register. Cancellation reference and full TSE data are in the detail view."
+  },
+  "listSummary": {
+    "apiTotal": "Total matches (API)",
+    "rowsThisPage": "Rows on this page",
+    "clientFilterNote": "Client filter active: visible rows on a page may be fewer than the page size.",
+    "refreshingHint": "Refreshing …",
+    "staleAfterErrorNote": "Note: the table shows the last successful response — the current request failed."
+  },
+  "pagination": {
+    "zeroResults": "0 results",
+    "rangeOfTotal": "{{from}}–{{to}} of {{total}}"
+  },
+  "list": {
+    "loadingTip": "Loading invoices…",
+    "kassenHeaderTooltip": "Display cash register ID; register FK (raw value) in the cell tooltip.",
+    "kassenCellTooltipWithFk": "Register FK (raw value from API list): {{fk}}",
+    "kassenCellTooltipNoFk": "No cashRegisterId in list DTO — column shows display text only.",
+    "tseHeaderTooltip": "TSE signature preview; full value in the detail dialog."
+  },
+  "columns": {
+    "invoiceNumber": "Invoice no.",
+    "date": "Date",
+    "customer": "Customer (snapshot)",
+    "total": "Amount",
+    "status": "Status",
+    "kassenShort": "Register (disp.)",
+    "tseShort": "TSE",
+    "actions": "Actions"
+  },
+  "creditNoteTagShort": "CN",
+  "status": {
+    "draft": "Draft",
+    "sent": "Sent",
+    "paid": "Paid",
+    "partiallyPaid": "Partially paid",
+    "unpaid": "Open",
+    "overdue": "Overdue",
+    "cancelled": "Cancelled",
+    "creditNote": "Credit note",
+    "unknown": "Unknown"
+  },
+  "paymentMethod": {
+    "bar": "Cash",
+    "card": "Card",
+    "transfer": "Bank transfer",
+    "check": "Check",
+    "voucher": "Voucher",
+    "mobile": "Mobile"
+  },
+  "rowActions": {
+    "detailExtendedTooltip": "Invoice dialog: line items, TSE, register, FinanzOnline context.",
+    "detailTooltip": "Details",
+    "printTooltip": "Open PDF in a new tab",
+    "printCompact": "Print",
+    "creditNoteTooltip": "Create credit note (dialog)",
+    "creditCompact": "Credit"
+  },
+  "display": {
+    "unknownInvoice": "Unknown"
+  },
+  "batch": {
+    "exportSuccess": "Batch export: {{success}} exported, {{fail}} failed",
+    "reconcileHandoffBody": "{{success}} invoice/payment rows processed. Please check the current reconciliation status.",
+    "reconcileFooterHint": "Success: {{success}}, Failed: {{fail}}, Skipped: {{skipped}}, Already submitted: {{alreadySubmitted}}"
+  },
+  "messages": {
+    "batchPrint": "Batch print: {{ok}} succeeded, {{fail}} failed",
+    "batchReconcileSummary": "Reconcile: {{ok}} ok, {{fail}} failed, {{skipped}} skipped, {{already}} already submitted.",
+    "exportCsvOk": "CSV export started.",
+    "exportCsvFailed": "CSV export failed.",
+    "pdfSessionExpired": "Session expired. Please sign in again.",
+    "pdfNotFound": "Invoice not found or deleted.",
+    "pdfFailed": "PDF could not be generated.",
+    "noPaymentLinkedForReconcile": "No linked payment found for reconciliation.",
+    "finanzOnlineSubmitOk": "FinanzOnline submission completed successfully.",
+    "finanzOnlineAlreadySubmitted": "Already marked as submitted.",
+    "reconciliationRetryTriggerFailed": "Could not trigger reconciliation retry.",
+    "creditNoteCreated": "Credit note created.",
+    "creditNoteExists": "A credit note already exists for this invoice.",
+    "creditNoteBadRequest": "Invalid request.",
+    "creditNoteFailed": "Credit note could not be created."
+  },
+  "modals": {
+    "batchReconcileTitle": "Batch: resend FinanzOnline reconciliation?",
+    "batchReconcileBody": "Trigger FinanzOnline reconciliation for {{count}} selected row(s)?",
+    "batchReconcileOk": "Run",
+    "batchReconcileCancel": "Cancel",
+    "batchReconcileFinishedTitle": "Batch reconciliation finished",
+    "openFinanzOnlineQueue": "Open reconciliation",
+    "reconciliationSuccessTitle": "Reconciliation successful",
+    "alreadySubmittedTitle": "Already submitted",
+    "reconciliationFailedTitle": "Reconciliation failed",
+    "reconciliationErrorTitle": "Reconciliation error"
+  },
+  "handoff": {
+    "submissionIdLabel": "Submission ID",
+    "submittedAtLabel": "Submitted at",
+    "registerFilterOmitted": "Note: this invoice’s register FK is not link-safe (not a valid non-nil UUID). The reconciliation URL therefore omits the cashRegisterId filter; payment and batch context in the URL remain.",
+    "defaultFooter": "Opens the FinanzOnline reconciliation view with filters. Valid payment and batch correlation IDs are carried in the URL as context or focus — see the note on the reconciliation page."
+  },
+  "creditNote": {
+    "modalTitle": "Create credit note",
+    "modalOk": "Create credit note",
+    "modalCancel": "Cancel",
+    "alertMessage": "Credit note notice",
+    "alertDescription": "Creates a credit note with negative amounts (verify accounting impact).",
+    "formReasonCodeLabel": "Reason (code)",
+    "formReasonTextLabel": "Justification",
+    "formReasonPlaceholder": "Select reason…",
+    "formReasonCodeRequired": "Please select a reason.",
+    "formReasonTextRequired": "Please enter a justification.",
+    "formReasonTextAreaPlaceholder": "Briefly explain why the credit note is required …",
+    "reasonReturn": "Return",
+    "reasonError": "Invoice error",
+    "reasonDiscount": "Discount",
+    "reasonCancel": "Full cancellation",
+    "reasonOther": "Other"
+  },
+  "export": {
+    "csvHeaderRow": "Rechnungsnummer;Rechnungsdatum;Kundenname;Firmenname;Bruttobetrag;Status;Belegart;StornoReferenz;KassenIdAnzeige;RegisterFK;TseSignatur"
+  },
+  "reconciliation": {
+    "checkStatusAfter": " Check reconciliation status now.",
+    "retryUnknownError": "Unknown error during retry.",
+    "failedOpenQueueHint": "Open FinanzOnline reconciliation to review status/retry state.",
+    "catchFallbackMessage": "Failed to trigger reconciliation retry.",
+    "errorOpenQueueHint": "You can open the reconciliation view to check the current state."
+  },
+  "detail": {
+    "invoiceLabel": "Invoice",
+    "creditNoteTag": "Credit note",
+    "statusLabel": "Status",
+    "dateLabel": "Date",
+    "grossLabel": "Gross",
+    "paymentReconciliation": "Payment (reconciliation):",
+    "openPayment": "Open",
+    "noPaymentLinked": "— no payment linked",
+    "provenanceFromResponse": "Provenance (response):",
+    "provenancePlain": "Provenance:",
+    "retryFooterHint": "Retry: FinanzOnline reconciliation via the button at the bottom of this dialog (footer).",
+    "collapseTseRaw": "TSE signature (raw field)",
+    "positionsCollapseLabel": "Line items (OpenAPI: unknown) — {{label}}",
+    "positionsJsonError": "JSON error",
+    "positionsTypeLabel": "Type {{primitive}}",
+    "positionsRowCount": "{{count}} lines",
+    "positionsEmptyRaw": "empty / raw payload",
+    "itemsParseErrorTitle": "invoiceItems could not be read as JSON",
+    "itemsUnexpectedTypeTitle": "Unexpected runtime type",
+    "itemsUnexpectedTypeDesc": "Received: {{primitive}}",
+    "itemsNoRows": "No line items (empty or null after normalization).",
+    "modalTitlePrefix": "Invoice:",
+    "modalClose": "Close",
+    "modalPrint": "Print",
+    "modalReconciliationRetry": "Resend reconciliation",
+    "registerMachineLabel": "Register (machine link)",
+    "foLinkWithContext": "FinanzOnline reconciliation (with URL context)",
+    "foLinkRegisterOnly": "FinanzOnline reconciliation (this register, with URL context)",
+    "correlationPathsLabel": "Batch correlation / investigation",
+    "provenanceUntypedApiNote": "Value from API response; not yet typed as a required field in the generated client.",
+    "provenanceOperatorFooter": "Without a typed invoiceDataProvenance field in the OpenAPI client, persistence vs. payment derivation remains ambiguous (no heuristic from other fields). Links use cashRegisterId (machine link), not kassenId — see contract gaps.",
+    "contractInvoiceItemsTitle": "Contract status (line items)",
+    "descLabelCompany": "Company",
+    "descLabelTotalAmount": "Gross total",
+    "descLabelTaxAmount": "Tax amount",
+    "descLabelPaymentMethod": "Payment method",
+    "descRegisterFkMachine": "Register (FK, machine only)",
+    "descKassenIdDisplay": "Cash register ID / number (display)",
+    "emptyLoadFailed": "No details loaded or error while loading."
+  }
+}

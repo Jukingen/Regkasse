@@ -11,10 +11,36 @@
     "refresh": "Yenile",
     "close": "Kapat",
     "delete": "Sil",
-    "edit": "Düzenle"
+    "edit": "Düzenle",
+    "reload": "Yeniden yukle"
+  },
+  "toolbar": {
+    "refetchHint": "Verileri manuel yenileyin (onbellek eski olabilir)."
   },
   "messages": {
-    "unknownError": "Bilinmeyen hata"
+    "unknownError": "Bilinmeyen hata",
+    "noTechnicalDetail": "Teknik ayrinti mesaji yok."
+  },
+  "loadErrors": {
+    "list": "Liste yuklenemedi",
+    "batch": "Toplu is yuklenemedi",
+    "incidentAggregate": "Olay ozeti yuklenemedi"
+  },
+  "loading": {
+    "data": "Veriler yukleniyor…",
+    "incidentAggregate": "Olay ozeti yukleniyor…",
+    "batchDetail": "Toplu detaylari yukleniyor…",
+    "invoiceDetail": "Fatura detaylari yukleniyor…"
+  },
+  "empty": {
+    "batchDetailsForCorrelation": "Bu korelasyon kimligi icin toplu detay yok."
+  },
+  "incident": {
+    "aggregateNotFoundTitle": "Olay ozeti yok",
+    "aggregateNotFoundDescription": "API bu korelasyon kimligi icin ozet sonuc dondurmuyor — bunu „kasada veri yok“ olarak yorumlamayin."
+  },
+  "investigation": {
+    "furtherLabel": "Daha fazla incele"
   },
   "errors": {
     "http400": "Gecersiz istek.",
@@ -45,13 +71,70 @@
   },
   "dataList": {
     "errorLoadTitle": "Veri yuklenirken hata olustu",
-    "emptyDefault": "Veri bulunamadi"
+    "emptyDefault": "Veri bulunamadi",
+    "loadingTip": "Veriler yukleniyor…"
+  },
+  "auditLogs": {
+    "filterCardTitle": "Filtreler",
+    "criteriaLabel": "Olcutler",
+    "actionPlaceholder": "Islem",
+    "activeFiltersLabel": "Aktif filtreler:",
+    "clearAllFilters": "Tum filtreleri sifirla",
+    "forensicsHint": "RKSV/cevrimdisi ornek kontrolleri (korelasyon, imza anahtar kelimeleri) icin denetim izini kullanin — bu gunluk genel GET /api/AuditLog listesidir.",
+    "forensicsLinkVerifications": "RKSV denetim izini ac",
+    "dateRangeIncompleteTitle": "Tarih araligi eksik",
+    "dateRangeIncompleteDescription": "Yalnizca bir tarih secildi. Net aralik icin baslangic ve bitis secin veya araligi temizleyin (aksi halde API tek tarih alir).",
+    "emptyFiltered": "Bu sorgu icin kayit yok. Donemi genisletin, islemi kaldirin veya filtreleri sifirlayin — tablo yalnizca guncel API sayfasini gosterir.",
+    "emptyNoRows": "Bu API yanitinda veri yok.",
+    "errorTitle": "Denetim gunlugu yuklenemedi",
+    "paginationZero": "0 sonuc",
+    "paginationRangeOfTotal": "{{from}}–{{to}} / {{total}} kayit",
+    "scopeApiPageNote": "Gorunum = yalnizca bu API sayfasi (tum gunluk degil).",
+    "activeViewLabel": "Aktif gorunum:",
+    "refreshingSuffix": "(Yenileniyor …)",
+    "introLead": "Islem ve tarih araligina gore filtreleyin; disa aktarma ayni filtreleri kullanir.",
+    "introStrongTable": "Tablo yalnizca guncel API sayfasini gosterir",
+    "introTrail": "— sayfalama istemci dilimini degil sunucu sayfasini degistirir.",
+    "exportJson": "JSON disa aktar",
+    "exportCsv": "CSV disa aktar",
+    "tagActionPrefix": "Islem:",
+    "tagDateRangePrefix": "Donem:",
+    "scopePage": "Sayfa {{page}}",
+    "scopeRowsPerRequest": "API istegi basina {{pageSize}} satir",
+    "scopeTotalEntries": "APIye gore toplam {{total}} kayit",
+    "scopeTotalLoading": "Toplam sayi yukleniyor …",
+    "scopeActionIs": "Islem = {{action}}",
+    "scopeNoDateFilter": "tarih filtresi yok",
+    "actionLabels": {
+      "login": "Giris",
+      "createInvoice": "Fatura olustur",
+      "payment": "Odeme"
+    },
+    "exportStarted": "Disa aktarma baslatildi",
+    "exportFailed": "Disa aktarma basarisiz",
+    "table": {
+      "time": "Zaman",
+      "correlation": "Correlation",
+      "user": "Kullanici",
+      "action": "Islem",
+      "entity": "Varlik",
+      "details": "Detaylar",
+      "status": "Durum"
+    }
+  },
+  "validation": {
+    "fieldRequired": "Lutfen bu alani doldurun.",
+    "numberBetween": "Lutfen {{min}} ile {{max}} arasinda bir deger girin."
   },
   "auth": {
+    "appTitle": "Regkasse Admin",
     "subtitle": "POS sisteminizi yonetmek icin giris yapin",
     "username": "Kullanici adi",
     "password": "Sifre",
     "login": "Giris yap",
+    "loginSubmitLoading": "Giris yapiliyor…",
+    "checkingSession": "Kimlik dogrulaniyor…",
+    "logoutSuccess": "Cikis basarili.",
     "loginSuccess": "Giris basarili",
     "loginFailedWithStatus": "Giris basarisiz ({{status}}): {{details}}",
     "loginInvalidCredentials": "Kullanici adi veya sifre hatali.",
@@ -74,6 +157,19 @@
     "emptyCategories": "Kategori yok",
     "deleteConfirmTitle": "Kategori silinsin mi?",
     "deleteConfirmDescription": "Bu kategoriye bagli urunler etkilenebilir.",
+    "form": {
+      "modalTitleCreate": "Yeni kategori",
+      "modalTitleEdit": "Kategoriyi duzenle",
+      "nameLabel": "Kategori adi",
+      "nameRequired": "Lutfen kategori adini girin.",
+      "namePlaceholder": "Or. Yiyecek, Icecek",
+      "vatLabel": "KDV orani (%)",
+      "vatRequired": "Lutfen KDV oranini girin.",
+      "vatRange": "KDV orani {{min}} ile {{max}} arasinda olmalidir.",
+      "vatPlaceholder": "10 veya 20",
+      "sortOrderLabel": "Siralama",
+      "activeLabel": "Aktif"
+    },
     "table": {
       "name": "Ad",
       "product": "Urun",
@@ -93,8 +189,5 @@
       "deleted": "Kategori silindi.",
       "deleteError": "Kategori silinemedi."
     }
-  },
-  "operator": {
-    "refetchHintToolbar": "Verileri manuel yenileyin (onbellek eski olabilir)."
   }
 }

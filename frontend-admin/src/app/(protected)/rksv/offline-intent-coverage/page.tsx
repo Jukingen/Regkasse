@@ -21,6 +21,8 @@ import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { useI18n } from '@/i18n';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import {
     getApiAdminOfflineIntentCoverage,
     getApiAdminOfflineIntentCoverageTopRisk,
@@ -45,6 +47,7 @@ function formatPercent01AsPct(value: number): string {
 }
 
 export default function OfflineIntentCoveragePage() {
+    const { t } = useI18n();
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([
         dayjs().subtract(1, 'day'),
         dayjs(),
@@ -168,7 +171,14 @@ export default function OfflineIntentCoveragePage() {
                 <Alert
                     type="error"
                     message="Coverage query failed"
-                    description={error instanceof Error ? error.message : String(error)}
+                    description={
+                        <ApiErrorAlertDescription
+                            t={t}
+                            error={error}
+                            logContext="OfflineIntentCoverage.load"
+                            fallbackKey="common.messages.unknownError"
+                        />
+                    }
                     showIcon
                 />
             ) : (

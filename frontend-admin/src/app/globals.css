@@ -1,3 +1,23 @@
+/* Screen-reader-only legend / labels (fieldset grouping for header language). */
+.admin-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Admin header language Select: visible focus ring (keyboard). */
+.admin-header-language-select.ant-select-focused:not(.ant-select-disabled).ant-select:not(.ant-select-customize-input)
+  .ant-select-selector {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 1px;
+}
+
 body {
   margin: 0;
   padding: 0;

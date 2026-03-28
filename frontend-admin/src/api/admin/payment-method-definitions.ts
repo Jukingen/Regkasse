@@ -135,7 +135,9 @@ export function useDeleteAdminPaymentMethodDefinition(
 ): UseMutationResult<void, Error, string> {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id) => deleteAdminPaymentMethodDefinition(id),
+    mutationFn: async (id) => {
+      await deleteAdminPaymentMethodDefinition(id);
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.lists() }),
     ...options,
   });

@@ -1,12 +1,13 @@
 import type { TextLocale } from '@/i18n/config';
 
 /**
- * Genel (formel rapor dışı) çift dil seçimi: örn. ileride operasyonel mesajlar.
- * **Formel rapor / hukuki dışa aktarım metni:** `resolveFiscalReportBackendText` veya
- * `resolveLegalExportCompletenessIssueMessage` kullanın — `TextLocale === 'tr'` iken bile Türkçe yok.
+ * General (non–formal-report) dual-locale pick for operational messages.
+ * For formal fiscal / legal export copy, use `resolveFormalReportContentFromDualFields` or
+ * `resolveFormalReportLegalExportIssueMessage` from `../reporting/formalReportContentResolver` — Turkish is
+ * never used for that layer even when `TextLocale === 'tr'`.
  *
- * - `en`: önce `messageEn`, yoksa `messageDe`.
- * - `de` / `tr` / diğer: önce `messageDe`, sonra `messageEn`.
+ * - `en`: prefer `messageEn`, then `messageDe`.
+ * - `de` / `tr` / other: prefer `messageDe`, then `messageEn`.
  */
 export function pickDualLocaleMessage(
   messageDe: string,
@@ -31,7 +32,7 @@ export function pickDualLocaleMessage(
  * Yalnızca Almanca üretilen API alanları (`*De`, `noteDe`, `operatorHintDe`, …).
  * Şimdilik değeri olduğu gibi döndürür; ileride reasonCode / sabit kod → i18n eşlemesi burada toplanacak.
  *
- * Formal reporting UI: use `resolveFiscalReportBackendText` from `./fiscalReportTextPolicy` instead.
+ * Formal reporting UI: use `resolveFormalReportContentFromDualFields` from `../reporting/formalReportContentResolver` instead.
  */
 export function pickDeOnlyBackendText(value: string | null | undefined): string | undefined {
   if (value == null) return undefined;

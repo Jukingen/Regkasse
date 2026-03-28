@@ -132,6 +132,8 @@
   },
   "paymentMethods": {
     "title": "Ödeme yöntemleri",
+    "intro": "POS ve mali RKSV eslemesi icin odeme yontemleri. Degisiklikler yeni satislara uygulanir; mevcut fisler degismez.",
+    "tableEmpty": "Yapilandirilmis odeme yontemi yok.",
     "add": "Yeni ödeme yöntemi",
     "saved": "Kaydedildi.",
     "created": "Ödeme yöntemi oluşturuldu.",
@@ -165,7 +167,14 @@
       "terminalType": "Terminal tipi (isteğe bağlı)",
       "allowRefund": "İadeye izin ver",
       "icon": "Ionicons adı (isteğe bağlı)",
-      "metadata": "Meta veri (JSON, isteğe bağlı)"
+      "iconPlaceholder": "orn. cash-outline",
+      "metadata": "Meta veri (JSON, isteğe bağlı)",
+      "legacyOption0": "0 — Nakit",
+      "legacyOption1": "1 — Kart",
+      "legacyOption2": "2 — Havale",
+      "legacyOption3": "3 — Cek",
+      "legacyOption4": "4 — Kupon",
+      "legacyOption5": "5 — Mobil"
     }
   },
   "pricingRules": {

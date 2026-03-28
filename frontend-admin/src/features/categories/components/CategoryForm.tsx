@@ -5,6 +5,7 @@ import { Form, Input, InputNumber, Modal, Switch } from 'antd';
 import type { Category } from '@/api/generated/model';
 import type { CreateCategoryFormValues, UpdateCategoryFormValues } from '../types';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { useI18n } from '@/i18n';
 
 export type CategoryFormSubmitValues = CreateCategoryFormValues | UpdateCategoryFormValues;
 
@@ -23,6 +24,7 @@ export default function CategoryForm({
     onSubmit,
     loading,
 }: CategoryFormProps) {
+    const { t } = useI18n();
     const [form] = Form.useForm<CategoryFormSubmitValues>();
 
     useEffect(() => {
@@ -62,13 +64,22 @@ export default function CategoryForm({
         }
     };
 
+    const vatMin = 0;
+    const vatMax = 100;
+
     return (
         <Modal
-            title={initialValues ? 'Edit Category' : 'Create New Category'}
+            title={
+                initialValues
+                    ? t('common.categories.form.modalTitleEdit')
+                    : t('common.categories.form.modalTitleCreate')
+            }
             open={visible}
             onOk={handleOk}
             onCancel={onCancel}
             confirmLoading={loading}
+            okText={t('common.buttons.save')}
+            cancelText={t('common.buttons.cancel')}
             destroyOnHidden
         >
             <Form
@@ -78,37 +89,42 @@ export default function CategoryForm({
             >
                 <Form.Item
                     name="name"
-                    label="Category Name"
-                    rules={[{ required: true, message: 'Please enter category name' }]}
+                    label={t('common.categories.form.nameLabel')}
+                    rules={[{ required: true, message: t('common.categories.form.nameRequired') }]}
                 >
-                    <Input placeholder="E.g. Speisen, Getränke" />
+                    <Input placeholder={t('common.categories.form.namePlaceholder')} />
                 </Form.Item>
 
                 <Form.Item
                     name="vatRate"
-                    label="VAT Rate (%)"
+                    label={t('common.categories.form.vatLabel')}
                     rules={[
-                        { required: true, message: 'Please enter VAT rate' },
-                        { type: 'number', min: 0, max: 100, message: 'VAT rate must be 0–100' },
+                        { required: true, message: t('common.categories.form.vatRequired') },
+                        {
+                            type: 'number',
+                            min: vatMin,
+                            max: vatMax,
+                            message: t('common.categories.form.vatRange', { min: vatMin, max: vatMax }),
+                        },
                     ]}
                 >
                     <InputNumber
                         style={{ width: '100%' }}
-                        min={0}
-                        max={100}
+                        min={vatMin}
+                        max={vatMax}
                         precision={2}
                         addonAfter="%"
-                        placeholder="10 or 20"
+                        placeholder={t('common.categories.form.vatPlaceholder')}
                     />
                 </Form.Item>
 
-                <Form.Item name="sortOrder" label="Sort Order">
+                <Form.Item name="sortOrder" label={t('common.categories.form.sortOrderLabel')}>
                     <InputNumber style={{ width: '100%' }} min={0} precision={0} />
                 </Form.Item>
 
                 <Form.Item
                     name="isActive"
-                    label="Active"
+                    label={t('common.categories.form.activeLabel')}
                     valuePropName="checked"
                 >
                     <Switch />

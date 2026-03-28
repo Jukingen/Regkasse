@@ -49,7 +49,6 @@ import {
     OPERATOR_INCIDENT_COPY,
     OPERATOR_INVESTIGATION_CONTEXT_COPY,
     OPERATOR_LINK_LABELS,
-    OPERATOR_SHARED_COPY,
     OPERATOR_FO_SUMMARY_SCREEN_COPY,
 } from '@/shared/operatorTruthCopy';
 import { viewAuditLogStatusPresentation } from '@/shared/verificationsAuditView';
@@ -526,11 +525,11 @@ export default function IncidentInvestigationPage() {
             {incidentError && (
                 <Alert
                     type="error"
-                    message={OPERATOR_SHARED_COPY.loadFailedIncident}
+                    message={t('common.loadErrors.incidentAggregate')}
                     description={
                         incidentError instanceof Error
                             ? incidentError.message
-                            : OPERATOR_SHARED_COPY.unknownErrorDetail
+                            : t('common.messages.noTechnicalDetail')
                     }
                     style={{ marginBottom: 16 }}
                 />
@@ -539,15 +538,15 @@ export default function IncidentInvestigationPage() {
             {notFound && (
                 <Alert
                     type="info"
-                    message={OPERATOR_SHARED_COPY.notFoundIncidentTitle}
-                    description={OPERATOR_SHARED_COPY.notFoundIncidentDescription}
+                    message={t('common.incident.aggregateNotFoundTitle')}
+                    description={t('common.incident.aggregateNotFoundDescription')}
                     style={{ marginBottom: 16 }}
                 />
             )}
 
             {isLoading && (
                 <Card>
-                    <Spin tip={OPERATOR_SHARED_COPY.loadingIncident} />
+                    <Spin tip={t('common.loading.incidentAggregate')} />
                 </Card>
             )}
 
@@ -564,9 +563,9 @@ export default function IncidentInvestigationPage() {
                                 </Typography.Text>
                             </div>
                             <Space wrap>
-                                <Tag color="blue">{ti('batchItemsTag', { count: batch.totalItems })}</Tag>
-                                <Tag color="green">{ti('successTag', { count: batch.successCount })}</Tag>
-                                <Tag color="orange">{ti('failedDuplicateTag', { count: batch.failedOrDuplicateCount })}</Tag>
+                                <Tag color="blue">{ti('batchItemsTag', { count: batch.totalItems ?? 0 })}</Tag>
+                                <Tag color="green">{ti('successTag', { count: batch.successCount ?? 0 })}</Tag>
+                                <Tag color="orange">{ti('failedDuplicateTag', { count: batch.failedOrDuplicateCount ?? 0 })}</Tag>
                                 {batch.offlineSyncedAuditCount != null && (
                                     <Tag>{ti('auditOfflineSyncedTag', { count: batch.offlineSyncedAuditCount })}</Tag>
                                 )}
@@ -611,7 +610,7 @@ export default function IncidentInvestigationPage() {
                             {batch.correlationId ? (
                                 <Space wrap size={8}>
                                     <Typography.Text type="secondary">
-                                        {OPERATOR_SHARED_COPY.investigateFurtherLabel}:
+                                        {t('common.investigation.furtherLabel')}:
                                     </Typography.Text>
                                     <Link href={`/rksv/replay-batch/${encodeURIComponent(String(batch.correlationId))}`}>
                                         {OPERATOR_LINK_LABELS.replayBatchDetail}

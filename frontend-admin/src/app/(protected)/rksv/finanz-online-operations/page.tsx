@@ -22,10 +22,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
-import {
-  extractApiErrorMessage,
-} from '@/api/admin-rksv/client';
+import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { useI18n } from '@/i18n';
+import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 import {
   getApiFinanzOnlineConfig,
   getApiFinanzOnlineErrors,
@@ -34,7 +35,7 @@ import {
   postApiFinanzOnlineTestConnection,
 } from '@/api/generated/finanz-online/finanz-online';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
-import { OPERATOR_FO_OPERATIONS_PAGE_COPY, OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
+import { OPERATOR_FO_OPERATIONS_PAGE_COPY } from '@/shared/operatorTruthCopy';
 
 function statusColor(isConnected: boolean | undefined): string {
   if (isConnected === true) return 'green';
@@ -43,6 +44,7 @@ function statusColor(isConnected: boolean | undefined): string {
 }
 
 export default function FinanzOnlineOperationsPage() {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [invoiceId, setInvoiceId] = useState('');
   const [appliedInvoiceId, setAppliedInvoiceId] = useState('');
@@ -71,11 +73,15 @@ export default function FinanzOnlineOperationsPage() {
   const testMutation = useMutation({
     mutationFn: () => postApiFinanzOnlineTestConnection(),
     onSuccess: (result) => {
-      if (result.success) message.success(result.message || 'Verbindungstest erfolgreich.');
-      else message.warning(result.message || 'Verbindungstest fehlgeschlagen.');
+      if (result.success) message.success(result.message || t('rksvHub.finanzOnlineOpsPage.testSuccess'));
+      else message.warning(result.message || t('rksvHub.finanzOnlineOpsPage.testWarning'));
       queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnlineOps.base });
     },
-    onError: (err) => message.error(extractApiErrorMessage(err, 'Verbindungstest fehlgeschlagen.')),
+    onError: (err) =>
+      openApiErrorMessage(message.open, t, err, {
+        logContext: 'FinanzOnlineOperations.testConnection',
+        fallbackKey: 'rksvHub.finanzOnlineOpsPage.testErrorFallback',
+      }),
   });
 
   const errors = errorsQuery.data ?? [];
@@ -89,8 +95,8 @@ export default function FinanzOnlineOperationsPage() {
       <AdminPageHeader
         title={OPERATOR_FO_OPERATIONS_PAGE_COPY.pageTitle}
         breadcrumbs={[
-          ADMIN_OVERVIEW_CRUMB,
-          { title: 'RKSV', href: '/rksv' },
+          adminOverviewCrumb(t),
+          { title: t(ADMIN_NAV_GROUP_LABEL_KEYS.rksv), href: '/rksv' },
           { title: OPERATOR_FO_OPERATIONS_PAGE_COPY.breadcrumbTitle },
         ]}
         actions={
@@ -98,7 +104,7 @@ export default function FinanzOnlineOperationsPage() {
             icon={<ReloadOutlined />}
             onClick={() => queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnlineOps.base })}
           >
-            {OPERATOR_SHARED_COPY.toolbarRefresh}
+            {t('common.buttons.refresh')}
           </Button>
         }
       />
@@ -110,26 +116,49 @@ export default function FinanzOnlineOperationsPage() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card title="Detaillierter Status" size="small">
+          <Card title={t('rksvHub.finanzOnlineOpsPage.detailedStatusCard')} size="small">
             {statusQuery.isLoading ? (
               <Spin />
             ) : statusQuery.isError ? (
-              <Alert type="error" message={extractApiErrorMessage(statusQuery.error, 'Status konnte nicht geladen werden.')} />
+              <Alert
+                type="error"
+                message={t('rksvHub.finanzOnlineOpsPage.statusLoadFailed')}
+                description={
+                  <ApiErrorAlertDescription
+                    t={t}
+                    error={statusQuery.error}
+                    logContext="FinanzOnlineOperations.statusQuery"
+                    fallbackKey="rksvHub.finanzOnlineOpsPage.statusLoadFailed"
+                  />
+                }
+              />
             ) : (
               <Descriptions bordered size="small" column={1}>
-                <Descriptions.Item label="Verbindung">
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.connectionLabel')}>
                   <Tag
                     color={statusColor(statusQuery.data?.isConnected)}
                     icon={statusQuery.data?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
                   >
-                    {statusQuery.data?.isConnected ? 'Connected' : 'Disconnected'}
+                    {statusQuery.data?.isConnected
+                      ? t('rksvHub.finanzOnlineOpsPage.connected')
+                      : t('rksvHub.finanzOnlineOpsPage.disconnected')}
                   </Tag>
                 </Descriptions.Item>
-                <Descriptions.Item label="API Version">{statusQuery.data?.apiVersion || '—'}</Descriptions.Item>
-                <Descriptions.Item label="Last Sync">{statusQuery.data?.lastSync || '—'}</Descriptions.Item>
-                <Descriptions.Item label="Pending Invoices">{statusQuery.data?.pendingInvoices ?? 0}</Descriptions.Item>
-                <Descriptions.Item label="Pending Reports">{statusQuery.data?.pendingReports ?? 0}</Descriptions.Item>
-                <Descriptions.Item label="Fehlermeldung">{statusQuery.data?.errorMessage || '—'}</Descriptions.Item>
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.apiVersionLabel')}>
+                  {statusQuery.data?.apiVersion || '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.lastSyncLabel')}>
+                  {statusQuery.data?.lastSync || '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.pendingInvoicesLabel')}>
+                  {statusQuery.data?.pendingInvoices ?? 0}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.pendingReportsLabel')}>
+                  {statusQuery.data?.pendingReports ?? 0}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.errorMessageLabel')}>
+                  {statusQuery.data?.errorMessage || '—'}
+                </Descriptions.Item>
               </Descriptions>
             )}
           </Card>
@@ -137,44 +166,89 @@ export default function FinanzOnlineOperationsPage() {
 
         <Col xs={24} lg={12}>
           <Card
-            title="Konfiguration (nur Anzeige) & Verbindungstest (API-Aufruf)"
+            title={t('rksvHub.finanzOnlineOpsPage.configCardTitle')}
             size="small"
             extra={
               <Button loading={testMutation.isPending} onClick={() => testMutation.mutate()} type="primary">
-                Test Connection
+                {t('rksvHub.finanzOnlineOpsPage.testConnectionButton')}
               </Button>
             }
           >
             {configQuery.isLoading ? (
               <Spin />
             ) : configQuery.isError ? (
-              <Alert type="error" message={extractApiErrorMessage(configQuery.error, 'Konfiguration konnte nicht geladen werden.')} />
+              <Alert
+                type="error"
+                message={t('rksvHub.finanzOnlineOpsPage.configLoadFailed')}
+                description={
+                  <ApiErrorAlertDescription
+                    t={t}
+                    error={configQuery.error}
+                    logContext="FinanzOnlineOperations.configQuery"
+                    fallbackKey="rksvHub.finanzOnlineOpsPage.configLoadFailed"
+                  />
+                }
+              />
             ) : (
               <Space direction="vertical" style={{ width: '100%' }} size="middle">
                 <Row gutter={[12, 12]}>
                   <Col span={12}>
-                    <Statistic title="Enabled" value={configQuery.data?.isEnabled ? 'Ja' : 'Nein'} />
+                    <Statistic
+                      title={t('rksvHub.finanzOnlineOpsPage.statEnabled')}
+                      value={configQuery.data?.isEnabled ? t('rksvHub.finanzOnlineOpsPage.yes') : t('rksvHub.finanzOnlineOpsPage.no')}
+                    />
                   </Col>
                   <Col span={12}>
-                    <Statistic title="Auto Submit" value={configQuery.data?.autoSubmit ? 'Ja' : 'Nein'} />
+                    <Statistic
+                      title={t('rksvHub.finanzOnlineOpsPage.statAutoSubmit')}
+                      value={configQuery.data?.autoSubmit ? t('rksvHub.finanzOnlineOpsPage.yes') : t('rksvHub.finanzOnlineOpsPage.no')}
+                    />
                   </Col>
                   <Col span={12}>
-                    <Statistic title="Submit Interval (min)" value={configQuery.data?.submitInterval ?? 0} />
+                    <Statistic
+                      title={t('rksvHub.finanzOnlineOpsPage.statSubmitInterval')}
+                      value={configQuery.data?.submitInterval ?? 0}
+                    />
                   </Col>
                   <Col span={12}>
-                    <Statistic title="Retry Attempts" value={configQuery.data?.retryAttempts ?? 0} />
+                    <Statistic
+                      title={t('rksvHub.finanzOnlineOpsPage.statRetryAttempts')}
+                      value={configQuery.data?.retryAttempts ?? 0}
+                    />
                   </Col>
                 </Row>
                 <Descriptions bordered size="small" column={1}>
-                  <Descriptions.Item label="API URL">{configQuery.data?.apiUrl || '—'}</Descriptions.Item>
-                  <Descriptions.Item label="Username">{configQuery.data?.username || '—'}</Descriptions.Item>
-                  <Descriptions.Item label="Validation">{configQuery.data?.enableValidation ? 'Enabled' : 'Disabled'}</Descriptions.Item>
+                  <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.apiUrlLabel')}>
+                    {configQuery.data?.apiUrl || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.usernameLabel')}>
+                    {configQuery.data?.username || '—'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.validationLabel')}>
+                    {configQuery.data?.enableValidation
+                      ? t('rksvHub.finanzOnlineOpsPage.validationEnabled')
+                      : t('rksvHub.finanzOnlineOpsPage.validationDisabled')}
+                  </Descriptions.Item>
                 </Descriptions>
                 {testResult && (
                   <Alert
                     type={testResult.success ? 'success' : 'warning'}
-                    message={testResult.message}
-                    description={`Response time: ${testResult.responseTime} ms · ${testResult.timestamp}`}
+                    message={
+                      testResult.success
+                        ? t('rksvHub.finanzOnlineOpsPage.testSuccess')
+                        : t('rksvHub.finanzOnlineOpsPage.testWarning')
+                    }
+                    description={
+                      <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                        <Typography.Text>
+                          {t('rksvHub.finanzOnlineOpsPage.responseTimeLine', {
+                            ms: String(testResult.responseTime ?? ''),
+                            timestamp: String(testResult.timestamp ?? ''),
+                          })}
+                        </Typography.Text>
+                        <BackendRawTextBlock introKey="common.backend.serverHintIntro" body={testResult.message} />
+                      </Space>
+                    }
                     showIcon
                   />
                 )}
@@ -184,13 +258,24 @@ export default function FinanzOnlineOperationsPage() {
         </Col>
       </Row>
 
-      <Card title={`Recent Errors (${errors.length})`} size="small" style={{ marginTop: 16 }}>
+      <Card title={t('rksvHub.finanzOnlineOpsPage.recentErrorsTitle', { count: errors.length })} size="small" style={{ marginTop: 16 }}>
         {errorsQuery.isLoading ? (
           <Spin />
         ) : errorsQuery.isError ? (
-          <Alert type="error" message={extractApiErrorMessage(errorsQuery.error, 'Fehlerliste konnte nicht geladen werden.')} />
+          <Alert
+            type="error"
+            message={t('rksvHub.finanzOnlineOpsPage.errorsLoadFailed')}
+            description={
+              <ApiErrorAlertDescription
+                t={t}
+                error={errorsQuery.error}
+                logContext="FinanzOnlineOperations.errorsQuery"
+                fallbackKey="rksvHub.finanzOnlineOpsPage.errorsLoadFailed"
+              />
+            }
+          />
         ) : errors.length === 0 ? (
-          <Alert type="info" message="Keine Fehler gefunden." />
+          <Alert type="info" message={t('rksvHub.finanzOnlineOpsPage.noErrorsFound')} />
         ) : (
           <Table
             size="small"
@@ -198,42 +283,59 @@ export default function FinanzOnlineOperationsPage() {
             rowKey={(r) => `${r.code}-${r.timestamp}-${r.invoiceNumber}`}
             dataSource={errors}
             columns={[
-              { title: 'Code', dataIndex: 'code', key: 'code', width: 120 },
-              { title: 'Message', dataIndex: 'message', key: 'message' },
-              { title: 'Timestamp', dataIndex: 'timestamp', key: 'timestamp', width: 180 },
-              { title: 'Invoice', dataIndex: 'invoiceNumber', key: 'invoiceNumber', width: 180, render: (v: string) => v || '—' },
-              { title: 'Retry', dataIndex: 'retryCount', key: 'retryCount', width: 90 },
+              { title: t('rksvHub.finanzOnlineOpsPage.colCode'), dataIndex: 'code', key: 'code', width: 120 },
+              { title: t('rksvHub.finanzOnlineOpsPage.colMessage'), dataIndex: 'message', key: 'message' },
+              { title: t('rksvHub.finanzOnlineOpsPage.colTimestamp'), dataIndex: 'timestamp', key: 'timestamp', width: 180 },
+              {
+                title: t('rksvHub.finanzOnlineOpsPage.colInvoice'),
+                dataIndex: 'invoiceNumber',
+                key: 'invoiceNumber',
+                width: 180,
+                render: (v: string) => v || '—',
+              },
+              { title: t('rksvHub.finanzOnlineOpsPage.colRetry'), dataIndex: 'retryCount', key: 'retryCount', width: 90 },
             ]}
           />
         )}
       </Card>
 
       <Card
-        title="Submission History by Invoice ID"
+        title={t('rksvHub.finanzOnlineOpsPage.historyCardTitle')}
         size="small"
         style={{ marginTop: 16 }}
         extra={
           <Space>
             <Input
-              placeholder="Invoice ID (GUID)"
+              placeholder={t('rksvHub.finanzOnlineOpsPage.invoiceIdPlaceholder')}
               style={{ width: 280 }}
               value={invoiceId}
               onChange={(e) => setInvoiceId(e.target.value)}
             />
             <Button type="primary" onClick={() => setAppliedInvoiceId(invoiceId.trim())}>
-              Verlauf laden
+              {t('rksvHub.finanzOnlineOpsPage.loadHistoryButton')}
             </Button>
           </Space>
         }
       >
         {!canRunHistory ? (
-          <Alert type="info" message="Bitte eine Invoice ID eingeben, um Verlauf zu laden." />
+          <Alert type="info" message={t('rksvHub.finanzOnlineOpsPage.enterInvoiceIdHint')} />
         ) : historyQuery.isLoading ? (
           <Spin />
         ) : historyQuery.isError ? (
-          <Alert type="error" message={extractApiErrorMessage(historyQuery.error, 'Verlauf konnte nicht geladen werden.')} />
+          <Alert
+            type="error"
+            message={t('rksvHub.finanzOnlineOpsPage.historyLoadFailed')}
+            description={
+              <ApiErrorAlertDescription
+                t={t}
+                error={historyQuery.error}
+                logContext="FinanzOnlineOperations.historyQuery"
+                fallbackKey="rksvHub.finanzOnlineOpsPage.historyLoadFailed"
+              />
+            }
+          />
         ) : history.length === 0 ? (
-          <Alert type="info" message="Kein Submission-Verlauf fuer diese Invoice ID gefunden." />
+          <Alert type="info" message={t('rksvHub.finanzOnlineOpsPage.historyEmpty')} />
         ) : (
           <Table
             size="small"
@@ -242,21 +344,25 @@ export default function FinanzOnlineOperationsPage() {
             pagination={{ pageSize: 10 }}
             columns={[
               {
-                title: 'Submitted At',
+                title: t('rksvHub.finanzOnlineOpsPage.colSubmittedAt'),
                 dataIndex: 'submittedAt',
                 key: 'submittedAt',
                 width: 180,
                 render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm:ss') : '—'),
               },
               {
-                title: 'Success',
+                title: t('rksvHub.finanzOnlineOpsPage.colSuccess'),
                 dataIndex: 'success',
                 key: 'success',
                 width: 90,
-                render: (v: boolean) => <Tag color={v ? 'green' : 'red'}>{v ? 'Yes' : 'No'}</Tag>,
+                render: (v: boolean) => (
+                  <Tag color={v ? 'green' : 'red'}>
+                    {v ? t('rksvHub.finanzOnlineOpsPage.yesShort') : t('rksvHub.finanzOnlineOpsPage.noShort')}
+                  </Tag>
+                ),
               },
-              { title: 'HTTP', dataIndex: 'responseStatusCode', key: 'responseStatusCode', width: 80 },
-              { title: 'Error', dataIndex: 'errorMessage', key: 'errorMessage', ellipsis: true },
+              { title: t('rksvHub.finanzOnlineOpsPage.colHttp'), dataIndex: 'responseStatusCode', key: 'responseStatusCode', width: 80 },
+              { title: t('rksvHub.finanzOnlineOpsPage.colError'), dataIndex: 'errorMessage', key: 'errorMessage', ellipsis: true },
             ]}
           />
         )}

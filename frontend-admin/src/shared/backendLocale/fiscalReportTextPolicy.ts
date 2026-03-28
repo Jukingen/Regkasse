@@ -13,6 +13,7 @@ export type { ReportContentLanguage } from '@/shared/reporting/reportContentLang
  * - UI `tr` (or other) → never Turkish for this content: prefer German, then English.
  *
  * @see {@link ReportContentLanguage} in `@/shared/reporting/reportContentLanguagePolicy`
+ * @see `@/shared/reporting/formalReportContentResolver` — canonical re-exports for reporting UI
  */
 
 /** @deprecated Use `ReportContentLanguage` from `@/shared/reporting/reportContentLanguagePolicy`. */

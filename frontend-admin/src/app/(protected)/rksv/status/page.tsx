@@ -12,8 +12,11 @@ import {
     OPERATOR_FO_SUMMARY_SCREEN_COPY,
     OPERATOR_RKSV_GENERAL_STATUS_COPY,
 } from '@/shared/operatorTruthCopy';
+import { useI18n } from '@/i18n';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 export default function RksvStatusPage() {
+    const { t } = useI18n();
     const { data: tseStatus, isLoading: tseLoading, error: tseError } = useGetApiTseStatus();
     const { data: foStatus, isLoading: foLoading, error: foError } = useGetApiFinanzOnlineStatus();
 
@@ -81,7 +84,14 @@ export default function RksvStatusPage() {
                 <Alert
                     type="error"
                     message={OPERATOR_RKSV_GENERAL_STATUS_COPY.tseStatusLoadError}
-                    description={tseError instanceof Error ? tseError.message : String(tseError)}
+                    description={
+                        <ApiErrorAlertDescription
+                            t={t}
+                            error={tseError}
+                            logContext="RksvStatus.tse"
+                            fallbackKey="common.messages.unknownError"
+                        />
+                    }
                     style={{ marginBottom: 16 }}
                 />
             )}
@@ -89,7 +99,14 @@ export default function RksvStatusPage() {
                 <Alert
                     type="warning"
                     message={OPERATOR_RKSV_GENERAL_STATUS_COPY.foStatusLoadError}
-                    description={foError instanceof Error ? foError.message : String(foError)}
+                    description={
+                        <ApiErrorAlertDescription
+                            t={t}
+                            error={foError}
+                            logContext="RksvStatus.finanzOnline"
+                            fallbackKey="common.messages.unknownError"
+                        />
+                    }
                     style={{ marginBottom: 16 }}
                 />
             )}

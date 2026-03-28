@@ -1,0 +1,221 @@
+{
+  "page": {
+    "title": "Rechnungen",
+    "listLead": "Servergefilterte Rechnungsliste mit Stapelaktionen (Druck, Export, Abgleich). Details öffnen für TSE-/Kontextspuren und FinanzOnline-Verknüpfungen."
+  },
+  "actions": {
+    "batchPrint": "Stapel: Druck",
+    "batchExport": "Stapel: Export",
+    "batchReconcile": "Stapel: Abgleich",
+    "exportCsvAll": "CSV-Export (alle)"
+  },
+  "filters": {
+    "searchPlaceholder": "Suche Nr., Kunde …",
+    "statusPlaceholder": "Status",
+    "registerPlaceholder": "Register-UUID (cash_registers.Id)",
+    "registerListFilterApiFootnote": "Freitext wird unverändert an die Listen-API übergeben; Deep-Links zur Abgleichsseite nur mit gültiger UUID.",
+    "invalidRegisterOnlyCheckboxLabel": "Nur ohne gültige Register-UUID (kein Link-FK)",
+    "activeFiltersLabel": "Aktive Filter",
+    "clearAllFilters": "Alle Filter zurücksetzen"
+  },
+  "dateRange": {
+    "blocksQueryTitle": "Abfrage pausiert",
+    "blocksQuerySuffix": "Die Liste wird erst geladen, wenn der Zeitraum gültig ist."
+  },
+  "filterTags": {
+    "searchPrefix": "Suche",
+    "statusPrefix": "Status",
+    "dateRangePrefix": "Zeitraum",
+    "registerUuid": "Register (UUID)",
+    "registerApi": "Register (API)",
+    "invalidRegisterShort": "Ohne Register-UUID (Client)"
+  },
+  "registerFilter": {
+    "invalidTitle": "Register-Filter ohne sicheren Deep-Link",
+    "invalidDescription": "Der Wert wird an die Listen-API übergeben, erfüllt aber nicht die UUID-Regel für sichere Kassen-Deep-Links (FinanzOnline-Abgleich). Kasse in der Abgleichsansicht gezielt wählen."
+  },
+  "errors": {
+    "listGeneric": "Die Liste konnte nicht geladen werden. Bitte erneut versuchen oder die Filter prüfen.",
+    "listUnauthorized": "Nicht angemeldet oder Sitzung abgelaufen. Bitte neu anmelden.",
+    "listForbidden": "Keine Berechtigung für die Rechnungsliste.",
+    "listNotFound": "Listen-Endpunkt nicht gefunden. Bitte Support informieren.",
+    "listServer": "Serverfehler. Bitte später erneut versuchen.",
+    "listNetwork": "Netzwerkfehler. Verbindung prüfen und erneut versuchen."
+  },
+  "empty": {
+    "invalidDateRange": "Ungültiger Zeitraum",
+    "loadFailedTitle": "Liste nicht verfügbar",
+    "loadFailedHint": "Verbindung, Berechtigung und Filter prüfen. Filter lockern oder zurücksetzen, dann erneut laden.",
+    "dateRange": "Keine Rechnungen im gewählten Zeitraum. Filter anpassen.",
+    "default": "Keine Rechnungen. Filter anpassen.",
+    "moreHint": "Tipp: Suche, Status, Zeitraum oder Register eingrenzen. Storno-Referenz und vollständige TSE-Daten siehe Detailansicht."
+  },
+  "listSummary": {
+    "apiTotal": "Treffer gesamt (API)",
+    "rowsThisPage": "Zeilen auf dieser Seite",
+    "clientFilterNote": "Client-Filter aktiv: sichtbare Zeilen können auf einer Seite weniger sein als die eingestellte Seitengröße.",
+    "refreshingHint": "Aktualisiert …",
+    "staleAfterErrorNote": "Hinweis: Tabelle zeigt die letzte erfolgreiche Antwort — der aktuelle Abruf ist fehlgeschlagen."
+  },
+  "pagination": {
+    "zeroResults": "0 Treffer",
+    "rangeOfTotal": "{{from}}–{{to}} von {{total}}"
+  },
+  "list": {
+    "loadingTip": "Rechnungen werden geladen…",
+    "kassenHeaderTooltip": "Anzeige-Kassen-ID; Register-FK (Rohwert) im Tooltip der Zelle.",
+    "kassenCellTooltipWithFk": "Register-FK (Rohwert aus API-Liste): {{fk}}",
+    "kassenCellTooltipNoFk": "Kein cashRegisterId im List-DTO — Spalte zeigt nur Anzeigetext.",
+    "tseHeaderTooltip": "Vorschau der TSE-Signatur; vollständiger Wert im Detaildialog."
+  },
+  "columns": {
+    "invoiceNumber": "Rechnung Nr.",
+    "date": "Datum",
+    "customer": "Kunde (Snapshot)",
+    "total": "Betrag",
+    "status": "Status",
+    "kassenShort": "Kasse (Anz.)",
+    "tseShort": "TSE",
+    "actions": "Aktionen"
+  },
+  "creditNoteTagShort": "GS",
+  "status": {
+    "draft": "Entwurf",
+    "sent": "Gesendet",
+    "paid": "Bezahlt",
+    "partiallyPaid": "Teilweise bezahlt",
+    "unpaid": "Offen",
+    "overdue": "Überfällig",
+    "cancelled": "Storniert",
+    "creditNote": "Gutschrift",
+    "unknown": "Unbekannt"
+  },
+  "paymentMethod": {
+    "bar": "Bar",
+    "card": "Karte",
+    "transfer": "Überweisung",
+    "check": "Scheck",
+    "voucher": "Gutschein",
+    "mobile": "Mobil"
+  },
+  "rowActions": {
+    "detailExtendedTooltip": "Rechnungsdialog: Positionen, TSE, Register, FinanzOnline-Kontext.",
+    "detailTooltip": "Details",
+    "printTooltip": "PDF im neuen Tab öffnen",
+    "printCompact": "Druck",
+    "creditNoteTooltip": "Gutschrift erstellen (Dialog)",
+    "creditCompact": "Gutschrift"
+  },
+  "display": {
+    "unknownInvoice": "Unbekannt"
+  },
+  "batch": {
+    "exportSuccess": "Stapel-Export: {{success}} exportiert, {{fail}} fehlgeschlagen",
+    "reconcileHandoffBody": "{{success}} Rechnung/Payment-Zeilen verarbeitet. Bitte den aktuellen Abgleichsstatus prüfen.",
+    "reconcileFooterHint": "Erfolg: {{success}}, Fehlgeschlagen: {{fail}}, Übersprungen: {{skipped}}, Bereits submitted: {{alreadySubmitted}}"
+  },
+  "messages": {
+    "batchPrint": "Stapel-Druck: {{ok}} erfolgreich, {{fail}} fehlgeschlagen",
+    "batchReconcileSummary": "Abgleich: {{ok}} ok, {{fail}} fehlgeschlagen, {{skipped}} übersprungen, {{already}} bereits übermittelt.",
+    "exportCsvOk": "CSV-Export gestartet.",
+    "exportCsvFailed": "CSV-Export fehlgeschlagen.",
+    "pdfSessionExpired": "Sitzung abgelaufen. Bitte erneut anmelden.",
+    "pdfNotFound": "Rechnung nicht gefunden oder gelöscht.",
+    "pdfFailed": "PDF konnte nicht erzeugt werden.",
+    "noPaymentLinkedForReconcile": "Kein verknüpftes Payment für den Abgleich gefunden.",
+    "finanzOnlineSubmitOk": "FinanzOnline-Übermittlung erfolgreich abgeschlossen.",
+    "finanzOnlineAlreadySubmitted": "Bereits als übermittelt markiert.",
+    "reconciliationRetryTriggerFailed": "Abgleich-Retry konnte nicht ausgelöst werden.",
+    "creditNoteCreated": "Gutschrift erstellt.",
+    "creditNoteExists": "Für diese Rechnung existiert bereits eine Gutschrift.",
+    "creditNoteBadRequest": "Ungültige Anfrage.",
+    "creditNoteFailed": "Gutschrift konnte nicht erstellt werden."
+  },
+  "modals": {
+    "batchReconcileTitle": "Stapel: FinanzOnline-Abgleich erneut senden?",
+    "batchReconcileBody": "FinanzOnline-Abgleich für {{count}} ausgewählte Zeile(n) anstoßen?",
+    "batchReconcileOk": "Ausführen",
+    "batchReconcileCancel": "Abbrechen",
+    "batchReconcileFinishedTitle": "Stapel-Abgleich abgeschlossen",
+    "openFinanzOnlineQueue": "Zum Abgleich",
+    "reconciliationSuccessTitle": "Abgleich erfolgreich",
+    "alreadySubmittedTitle": "Bereits übermittelt",
+    "reconciliationFailedTitle": "Abgleich fehlgeschlagen",
+    "reconciliationErrorTitle": "Abgleich-Fehler"
+  },
+  "handoff": {
+    "submissionIdLabel": "Submission-ID",
+    "submittedAtLabel": "Übermittelt am",
+    "registerFilterOmitted": "Hinweis: Der Register-FK dieser Rechnung ist nicht link-sicher (kein gültiger Nicht-Nil-UUID). Die Abgleich-URL setzt daher keinen cashRegisterId-Filter; Zahlungs- und Batch-Kontext in der URL bleiben erhalten.",
+    "defaultFooter": "Öffnet die FinanzOnline-Abgleichsansicht mit Filtern. Gültige Payment- und Batch-Correlation-IDs werden in der URL als Kontext bzw. Fokus mitgeführt — siehe Hinweis auf der Abgleichsseite."
+  },
+  "creditNote": {
+    "modalTitle": "Gutschrift erstellen",
+    "modalOk": "Gutschrift erstellen",
+    "modalCancel": "Abbrechen",
+    "alertMessage": "Hinweis zur Gutschrift",
+    "alertDescription": "Erstellt eine Gutschrift mit negativen Beträgen (buchhalterische Wirkung prüfen).",
+    "formReasonCodeLabel": "Grund (Code)",
+    "formReasonTextLabel": "Begründung",
+    "formReasonPlaceholder": "Grund wählen…",
+    "formReasonCodeRequired": "Bitte einen Grund wählen.",
+    "formReasonTextRequired": "Bitte die Begründung eingeben.",
+    "formReasonTextAreaPlaceholder": "Kurz begründen, warum die Gutschrift nötig ist …",
+    "reasonReturn": "Retoure",
+    "reasonError": "Rechnungsfehler",
+    "reasonDiscount": "Rabatt",
+    "reasonCancel": "Vollstornierung",
+    "reasonOther": "Sonstiges"
+  },
+  "export": {
+    "csvHeaderRow": "Rechnungsnummer;Rechnungsdatum;Kundenname;Firmenname;Bruttobetrag;Status;Belegart;StornoReferenz;KassenIdAnzeige;RegisterFK;TseSignatur"
+  },
+  "reconciliation": {
+    "checkStatusAfter": " Status jetzt im Abgleich prüfen.",
+    "retryUnknownError": "Unbekannter Fehler beim Retry.",
+    "failedOpenQueueHint": "Öffnen Sie den FinanzOnline-Abgleich, um Status/Retry-Zustand zu prüfen.",
+    "catchFallbackMessage": "Fehler beim Auslösen des Reconciliation-Retry.",
+    "errorOpenQueueHint": "Sie können direkt zur Abgleichsansicht wechseln, um den aktuellen Zustand zu prüfen."
+  },
+  "detail": {
+    "invoiceLabel": "Rechnung",
+    "creditNoteTag": "Gutschrift",
+    "statusLabel": "Status",
+    "dateLabel": "Datum",
+    "grossLabel": "Brutto",
+    "paymentReconciliation": "Zahlung (Reconciliation):",
+    "openPayment": "Öffnen",
+    "noPaymentLinked": "— kein Payment verknüpft",
+    "provenanceFromResponse": "Herkunft (Antwort):",
+    "provenancePlain": "Herkunft:",
+    "retryFooterHint": "Retry: FinanzOnline-Reconciliation über Schaltfläche unten im Dialog (Footer).",
+    "collapseTseRaw": "TSE-Signatur (Rohfeld)",
+    "positionsCollapseLabel": "Positionen / Artikel (OpenAPI: unknown) — {{label}}",
+    "positionsJsonError": "JSON-Fehler",
+    "positionsTypeLabel": "Typ {{primitive}}",
+    "positionsRowCount": "{{count}} Zeilen",
+    "positionsEmptyRaw": "leer / Rohpayload",
+    "itemsParseErrorTitle": "invoiceItems konnte nicht als JSON gelesen werden",
+    "itemsUnexpectedTypeTitle": "Unerwarteter Laufzeit-Typ",
+    "itemsUnexpectedTypeDesc": "Erhalten: {{primitive}}",
+    "itemsNoRows": "Keine Positionsdaten (leer oder null laut Normalisierung).",
+    "modalTitlePrefix": "Rechnung:",
+    "modalClose": "Schließen",
+    "modalPrint": "Drucken",
+    "modalReconciliationRetry": "Abgleich erneut senden",
+    "registerMachineLabel": "Register (Maschinenbezug)",
+    "foLinkWithContext": "FinanzOnline-Abgleich (mit URL-Kontext)",
+    "foLinkRegisterOnly": "FinanzOnline-Abgleich (diese Kasse, mit URL-Kontext)",
+    "correlationPathsLabel": "Batch-Correlation / Untersuchung",
+    "provenanceUntypedApiNote": "Wert aus API-Antwort; im generierten Client noch nicht als Pflichtfeld typisiert.",
+    "provenanceOperatorFooter": "Ohne typisiertes Feld invoiceDataProvenance im OpenAPI-Client bleibt Persistenz vs. Zahlungsableitung unscharf (keine Heuristik aus anderen Feldern). Verknüpfungen nutzen cashRegisterId (Maschinenbezug), nicht kassenId — siehe Vertragslücken.",
+    "contractInvoiceItemsTitle": "Vertragslage (Positionen)",
+    "descLabelCompany": "Unternehmen",
+    "descLabelTotalAmount": "Brutto gesamt",
+    "descLabelTaxAmount": "Steuerbetrag",
+    "descLabelPaymentMethod": "Zahlungsart",
+    "descRegisterFkMachine": "Register (FK, nur Maschine)",
+    "descKassenIdDisplay": "Kassen-ID / Nummer (Anzeige)",
+    "emptyLoadFailed": "Keine Details geladen oder Fehler beim Laden."
+  }
+}

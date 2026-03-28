@@ -1,9 +1,19 @@
 /**
- * Central German (de-DE) copy for operator truth, diagnostics, and investigation UX.
+ * Canonical German (de-DE) operator wording for truth surfaces, diagnostics, and RKSV investigation UX.
+ *
+ * **Ownership (keep boundaries explicit):**
+ * - **This file** — Stable German reference for long-form operator/compliance copy, badges, and RKSV pages
+ *   that still render `OPERATOR_*` literals. That is intentional: authoritative operator phrasing stays
+ *   fixed in German on those routes until a surface is explicitly migrated to `t(...)`.
+ * - **Runtime i18n** — `src/i18n/locales/{de,en,tr}/*.json` is the source for translatable admin UI.
+ *   Where a concept exists in both places, **German (`de`) catalog text should match** the matching
+ *   `OPERATOR_*` string (see `docs/OPERATOR_COPY_AND_RUNTIME_I18N.md`).
+ * - **Raw backend / `technicalConsole`** — English; never embed server payload text inside these strings.
+ *
  * Do not imply legal/accounting finality where data is derived, diagnostic, or best-effort.
  *
- * i18n: Strings are keyed by semantic role; for a translation layer, map these keys to catalogs
- * without renaming concepts (API / Anzeige / Verknüpft / Diagnose / Abgleich / Aggregat).
+ * i18n: Strings are keyed by semantic role; when mapping to catalogs, preserve concepts
+ * (API / Anzeige / Verknüpft / Diagnose / Abgleich / Aggregat).
  */
 
 // --- Provenance badges (short cell label + hover + Tag color) ---
@@ -63,20 +73,41 @@ export const OPERATOR_TRIAGE_COPY = {
 } as const;
 
 // --- Shared loading / error / empty (honest, no false certainty) ---
+//
+// Reference-only block: not imported by components today. German strings MUST stay byte-identical to
+// `de/common.json` keys below so reviewers can diff canonical vs runtime `de` in one place.
+// | OPERATOR_SHARED_COPY field     | de/common.json path                    |
+// |--------------------------------|----------------------------------------|
+// | unknownErrorDetail             | common.messages.noTechnicalDetail      |
+// | loadFailedList                 | common.loadErrors.list                 |
+// | loadFailedBatch                | common.loadErrors.batch                |
+// | loadFailedIncident             | common.loadErrors.incidentAggregate    |
+// | notFoundIncidentTitle          | common.incident.aggregateNotFoundTitle |
+// | notFoundIncidentDescription    | common.incident.aggregateNotFoundDescription |
+// | loadingIncident                | common.loading.incidentAggregate       |
+// | loadingBatchDetail             | common.loading.batchDetail             |
+// | loadingInvoiceDetail           | common.loading.invoiceDetail           |
+// | emptyBatchForCorrelation       | common.empty.batchDetailsForCorrelation |
+// | refetchHintToolbar             | common.toolbar.refetchHint             |
+// | investigateFurtherLabel        | common.investigation.furtherLabel      |
+// | retryLoadShort                 | common.buttons.reload                  |
+// | toolbarRefresh                 | common.buttons.refresh                 |
+// | retryAfterError                | common.buttons.retry                   |
 
+/** Canonical de-DE strings aligned with `src/i18n/locales/de/common.json` (see table above). */
 export const OPERATOR_SHARED_COPY = {
-    unknownErrorDetail: 'Keine technische Detailmeldung verfügbar.',
+    unknownErrorDetail: 'Keine technische Detailmeldung verfuegbar.',
     /** Use with Error.message when present */
     loadFailedList: 'Liste konnte nicht geladen werden',
     loadFailedBatch: 'Batch konnte nicht geladen werden',
     loadFailedIncident: 'Incident-Aggregat konnte nicht geladen werden',
     notFoundIncidentTitle: 'Kein Incident-Aggregat',
     notFoundIncidentDescription:
-        'Für diese Correlation-ID liefert die API kein zusammengefasstes Ergebnis — nicht als „keine Daten in der Kasse“ interpretieren.',
+        'Fuer diese Correlation-ID liefert die API kein zusammengefasstes Ergebnis — nicht als „keine Daten in der Kasse“ interpretieren.',
     loadingIncident: 'Lade Incident-Aggregat…',
     loadingBatchDetail: 'Lade Batch-Details…',
     loadingInvoiceDetail: 'Rechnungsdetails werden geladen…',
-    emptyBatchForCorrelation: 'Keine Batch-Details für diese Correlation-ID.',
+    emptyBatchForCorrelation: 'Keine Batch-Details fuer diese Correlation-ID.',
     /** Refetch / stale: operator hint */
     refetchHintToolbar: 'Daten manuell aktualisieren (Cache kann veraltet sein).',
     /** Cross-screen navigation block heading (links to incident / replay / FO queue) */
@@ -494,6 +525,11 @@ export const OPERATOR_REGISTER_LINK_COPY = {
 } as const;
 
 // --- Invoice list / detail (truth-critical strings only) ---
+//
+// **Runtime:** `/invoices` uses `t('invoices.*')` from `src/i18n/locales/{de,en,tr}/invoices.json`.
+// **Canonical:** This object is the de-DE reference; when changing operator/fiscal wording, update
+// `OPERATOR_INVOICE_COPY` and mirror the same German in `de/invoices.json` (EN/TR follow separately).
+// **Pairing:** e.g. `detailProvenanceFooter` ↔ `invoices.detail.provenanceOperatorFooter` (see `adminTruthFacets`).
 
 export const OPERATOR_INVOICE_COPY = {
     /** List page (`/invoices`): operator framing aligned with de-DE truth copy */

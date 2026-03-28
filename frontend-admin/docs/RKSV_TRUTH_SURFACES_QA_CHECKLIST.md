@@ -4,7 +4,7 @@
 
 **Canonical operator-facing German copy:** `src/shared/operatorTruthCopy.ts` (and badge tooltips via `adminTruthBadges` → `OPERATOR_TRUTH_BADGE`).
 
-**Template:** `docs/QA_TRUTH_CRITICAL_TEMPLATE.md` · **Contract gate:** `docs/CONTRACT_TRUTH_SURFACES.md` · **Roles reference:** `ROLE_MANAGEMENT_QA_CHECKLIST.md`
+**Template:** `docs/QA_TRUTH_CRITICAL_TEMPLATE.md` · **Contract gate:** `docs/CONTRACT_TRUTH_SURFACES.md` · **Canonical vs runtime i18n:** `docs/OPERATOR_COPY_AND_RUNTIME_I18N.md` · **Roles reference:** `ROLE_MANAGEMENT_QA_CHECKLIST.md`
 
 ---
 

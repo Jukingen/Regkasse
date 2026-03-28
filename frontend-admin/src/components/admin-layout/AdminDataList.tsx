@@ -3,11 +3,14 @@
 import React, { ReactNode } from 'react';
 import { Card, Spin, Alert, Empty } from 'antd';
 import { useI18n } from '@/i18n';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 interface AdminDataListProps {
     isLoading: boolean;
     isError?: boolean;
     error?: Error | null;
+    /** Label for technicalConsole (English only) */
+    errorLogContext?: string;
     isEmpty?: boolean;
     emptyText?: string;
     children: ReactNode;
@@ -17,6 +20,7 @@ export function AdminDataList({
     isLoading,
     isError,
     error,
+    errorLogContext = 'AdminDataList',
     isEmpty,
     emptyText,
     children,
@@ -28,7 +32,7 @@ export function AdminDataList({
         return (
             <Card>
                 <div style={{ textAlign: 'center', padding: '50px 0' }}>
-                    <Spin size="large" />
+                    <Spin size="large" tip={t('common.dataList.loadingTip')} />
                 </div>
             </Card>
         );
@@ -40,7 +44,18 @@ export function AdminDataList({
                 <Alert
                     type="error"
                     message={t('common.dataList.errorLoadTitle')}
-                    description={error?.message ?? t('common.messages.unknownError')}
+                    description={
+                        error ? (
+                            <ApiErrorAlertDescription
+                                t={t}
+                                error={error}
+                                logContext={errorLogContext}
+                                fallbackKey="common.messages.unknownError"
+                            />
+                        ) : (
+                            t('common.messages.unknownError')
+                        )
+                    }
                     showIcon
                 />
             </Card>

@@ -25,10 +25,9 @@ import { formatCurrency, formatDateTime, formatNumber, useI18n } from '@/i18n';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { FormalReportLanguageNotice, FormalReportProfileLanguageCue } from '@/components/reporting/FormalReportLanguageNotice';
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
-import { joinFiscalReportRemediationHints } from '@/shared/backendLocale';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 type TagesberichtDto = {
@@ -124,7 +123,7 @@ type ReportHistoryTimelineDto = {
 
 export default function TagesberichtDetailPage() {
   const { t, formatLocale } = useI18n();
-  const { fiscalTooltip, resolveFiscal, textLocale } = useFiscalReportText();
+  const { fiscalTooltip, resolveFiscal, joinRemediationHints } = useFiscalReportText();
   const td = useCallback((path: string) => t(`reporting.tagesbericht.detail.${path}`), [t]);
   const router = useRouter();
   const params = useParams();
@@ -238,11 +237,7 @@ export default function TagesberichtDetailPage() {
     d.submissionEnvelope?.submissionVersusReportNoteEn,
   );
   const operatorHintResolved = resolveFiscal(d.submission.operatorHintDe, d.submission.operatorHintEn);
-  const remediationResolved = joinFiscalReportRemediationHints(
-    d.submissionEnvelope?.remediationHintsDe,
-    textLocale,
-    ' | ',
-  );
+  const remediationResolved = joinRemediationHints(d.submissionEnvelope?.remediationHintsDe, ' | ');
 
   return (
     <div style={{ paddingBottom: 24 }}>
@@ -286,6 +281,7 @@ export default function TagesberichtDetailPage() {
             <Radio.Button value="legalComplianceExport">{td('profile.legal')}</Radio.Button>
             <Radio.Button value="diagnosticPackage">{td('profile.diagnostic')}</Radio.Button>
           </Radio.Group>
+          <FormalReportProfileLanguageCue />
           {profile !== 'legalComplianceExport' ? (
             <Typography.Text type="warning">{td('profile.warnNonLegal')}</Typography.Text>
           ) : null}

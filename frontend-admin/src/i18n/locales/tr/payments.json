@@ -122,5 +122,20 @@
   "display": {
     "yes": "Evet",
     "no": "Hayir"
+  },
+  "statusLabels": {
+    "payment": {
+      "Success": "Basarili",
+      "Pending": "Beklemede",
+      "Failed": "Basarisiz",
+      "Cancelled": "Iptal",
+      "Refunded": "Iade"
+    },
+    "finanzOnline": {
+      "Submitted": "Gonderildi",
+      "Pending": "Beklemede",
+      "Failed": "Basarisiz",
+      "NeedsReconciliation": "Mutabakat gerekli"
+    }
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Operatör ve muhasebe için POS ödeme tabanlı raporlar: filtreler, sekmeler (Auswertung, Zeitraum, X, Z-Referenz), CSV dışa aktarma.
+ * POS payment–based operational reports: filters, tabs (summary, period, interim X, closing Z reference), CSV export.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -136,10 +136,11 @@ export default function ReportingPage() {
   );
 
   const { data: registers } = useGetApiCashRegister();
-  const registerRows = Array.isArray((registers as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registers as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registers)
-      ? (registers as CashRegister[])
+  const registersData = registers as unknown;
+  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
+    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
+    : Array.isArray(registersData)
+      ? (registersData as CashRegister[])
       : [];
   const { data: usersPage } = useGetApiUserManagement({ pageSize: 500, isActive: true });
 
@@ -208,7 +209,7 @@ export default function ReportingPage() {
       w.URL.revokeObjectURL(url);
       message.success(t('adminShell.reporting.exportCsv'));
     } catch {
-      message.error('Export failed');
+      message.error(t('adminShell.reporting.exportCsvFailed'));
     } finally {
       setExporting(false);
     }
@@ -227,8 +228,8 @@ export default function ReportingPage() {
       };
       await AXIOS_INSTANCE.post('/api/reports/operational/periodic/freeze', payload);
     },
-    onSuccess: () => message.success('Periodenbericht wurde eingefroren.'),
-    onError: () => message.error('Freeze fehlgeschlagen.'),
+    onSuccess: () => message.success(t('adminShell.reporting.freezeSuccess')),
+    onError: () => message.error(t('adminShell.reporting.freezeError')),
   });
 
   const payCols: ColumnsType<{ methodKey?: string; count?: number; totalAmount?: number }> = [

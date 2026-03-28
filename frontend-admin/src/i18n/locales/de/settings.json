@@ -132,6 +132,8 @@
   },
   "paymentMethods": {
     "title": "Zahlungsarten",
+    "intro": "Zahlungsarten für POS und fiskales RKSV-Mapping. Änderungen gelten für neue Verkäufe; bestehende Belege bleiben unverändert.",
+    "tableEmpty": "Keine Zahlungsarten konfiguriert.",
     "add": "Neue Zahlungsart",
     "saved": "Gespeichert.",
     "created": "Zahlungsart angelegt.",
@@ -165,7 +167,14 @@
       "terminalType": "Terminal-Typ (optional)",
       "allowRefund": "Erstattung erlaubt",
       "icon": "Ionicons-Name (optional)",
-      "metadata": "Metadaten (JSON, optional)"
+      "iconPlaceholder": "z. B. cash-outline",
+      "metadata": "Metadaten (JSON, optional)",
+      "legacyOption0": "0 — Bar (Cash)",
+      "legacyOption1": "1 — Karte (Card)",
+      "legacyOption2": "2 — Überweisung (BankTransfer)",
+      "legacyOption3": "3 — Scheck (Check)",
+      "legacyOption4": "4 — Gutschein (Voucher)",
+      "legacyOption5": "5 — Mobil (Mobile)"
     }
   },
   "pricingRules": {

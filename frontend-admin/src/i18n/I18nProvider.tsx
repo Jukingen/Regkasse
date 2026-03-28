@@ -1,6 +1,8 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 import {
   DEFAULT_FORMAT_LOCALE,
   DEFAULT_TEXT_LOCALE,
@@ -73,8 +75,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [formatLocale, setFormatLocaleState] = useState<string>(DEFAULT_FORMAT_LOCALE);
   const [isLocaleReady, setIsLocaleReady] = useState(false);
 
-  useEffect(() => {
-    // Metin dili: localStorage yoksa strict `de` (tarayıcı dili kullanılmaz — languageStorage).
+  useIsoLayoutEffect(() => {
+    // Text locale: strict `de` when nothing stored (languageStorage); navigator is not used.
+    // Layout effect on the client runs before paint so the first visible frame matches storage.
     const storedTextLocale = getStoredLanguage();
     const savedFormatLocale = typeof window !== 'undefined' ? window.localStorage.getItem(FORMAT_STORAGE_KEY) : null;
     const nextFormatLocale = savedFormatLocale

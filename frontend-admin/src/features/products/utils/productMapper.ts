@@ -19,15 +19,25 @@ export function taxTypeToRate(taxType: number): number {
     }
 }
 
-/** Display in form/table: enum id to label. */
-export function taxTypeToLabel(taxType: number): string {
-    const rate = taxTypeToRate(taxType);
+/** Translate tax type for list/tooltips; uses `products.taxLabels.*` with {{rate}}. */
+export function formatTaxTypeLabelForLocale(
+    taxType: number,
+    taxRate: number | undefined | null,
+    t: (key: string, options?: Record<string, string | number>) => string,
+): string {
+    const rate =
+        taxRate != null && Number.isFinite(Number(taxRate)) ? Number(taxRate) : taxTypeToRate(taxType);
     switch (taxType) {
-        case 1: return `${rate}% (Standard)`;
-        case 2: return `${rate}% (Reduced)`;
-        case 3: return `${rate}% (Special)`;
-        case 4: return `${rate}% (Zero)`;
-        default: return '20% (Standard)';
+        case TAX_TYPE_ENUM.Standard:
+            return t('products.taxLabels.standard', { rate });
+        case TAX_TYPE_ENUM.Reduced:
+            return t('products.taxLabels.reduced', { rate });
+        case TAX_TYPE_ENUM.Special:
+            return t('products.taxLabels.special', { rate });
+        case TAX_TYPE_ENUM.ZeroRate:
+            return t('products.taxLabels.zero', { rate });
+        default:
+            return t('products.taxLabels.fallback', { rate });
     }
 }
 

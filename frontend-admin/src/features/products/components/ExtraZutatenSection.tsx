@@ -9,6 +9,7 @@
 import React from 'react';
 import { Alert, Checkbox, Collapse, Spin, Typography } from 'antd';
 import type { ModifierGroupDto, AddOnGroupProductItemDto } from '@/lib/api/modifierGroups';
+import { useI18n } from '@/i18n';
 
 const { Text } = Typography;
 
@@ -34,6 +35,8 @@ export default function ExtraZutatenSection({
   onChange,
   loading,
 }: ExtraZutatenSectionProps) {
+  const { t } = useI18n();
+
   const toggleGroup = (groupId: string, checked: boolean) => {
     if (!groupId) return;
     if (checked) {
@@ -51,7 +54,12 @@ export default function ExtraZutatenSection({
     const gid = getGroupId(group);
     const products: AddOnGroupProductItemDto[] = group.products ?? [];
     const productCount = products.length;
-    const countLabel = productCount === 0 ? 'leer' : `${productCount} Produkt${productCount !== 1 ? 'e' : ''}`;
+    const countLabel =
+      productCount === 0
+        ? t('products.addonGroups.countEmpty')
+        : productCount === 1
+          ? t('products.addonGroups.countOne')
+          : t('products.addonGroups.countMany', { count: productCount });
     return {
       key: gid,
       label: (
@@ -68,20 +76,22 @@ export default function ExtraZutatenSection({
       ),
       children: (
         <div style={{ paddingLeft: 24 }}>
-          <div style={{ marginBottom: 8, fontSize: 12, color: '#333' }}>Add-on-Produkte in dieser Gruppe</div>
+          <div style={{ marginBottom: 8, fontSize: 12, color: '#333' }}>{t('products.addonGroups.sectionTitle')}</div>
           {products.length === 0 ? (
-            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>Keine Add-on-Produkte in dieser Gruppe.</Text>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>{t('products.addonGroups.noneInGroup')}</Text>
           ) : (
             <ul style={{ margin: 0, paddingLeft: 20, marginBottom: 12 }}>
               {products.map((p) => (
                 <li key={p.productId} style={{ marginBottom: 4 }}>
-                  <Text>{p.productName} — €{Number(p.price).toFixed(2)} (MwSt.-Typ {p.taxType})</Text>
+                  <Text>
+                    {p.productName} — €{Number(p.price).toFixed(2)} ({t('products.addonGroups.taxSuffix', { type: p.taxType })})
+                  </Text>
                 </li>
               ))}
             </ul>
           )}
           <Text type="secondary" style={{ display: 'block' }}>
-            Neue Laufzeit nutzt nur Add-on-Produkte aus dieser Gruppe.
+            {t('products.addonGroups.runtimeHint')}
           </Text>
         </div>
       ),
@@ -91,7 +101,7 @@ export default function ExtraZutatenSection({
   if (loading) {
     return (
       <div style={{ padding: '12px 0' }}>
-        <Spin tip="Add-on-Gruppen werden geladen…" />
+        <Spin tip={t('products.addonGroups.loading')} />
       </div>
     );
   }
@@ -99,7 +109,7 @@ export default function ExtraZutatenSection({
   if (groups.length === 0) {
     return (
       <div style={{ padding: '12px 0' }}>
-        <Text type="secondary">Keine Add-on-Gruppen. Legen Sie unter „Add-on-Gruppen“ Gruppen an und fügen Sie Add-on-Produkte hinzu. Anschließend wählen Sie hier, welche Gruppen für dieses Produkt angezeigt werden.</Text>
+        <Text type="secondary">{t('products.addonGroups.emptyCatalog')}</Text>
       </div>
     );
   }
@@ -110,12 +120,12 @@ export default function ExtraZutatenSection({
         <Alert
           type="warning"
           showIcon
-          message="Leere Gruppen ausgewählt"
+          message={t('products.addonGroups.warningTitle')}
           description={
             <>
               {emptySelectedGroups.map((g) => (
                 <div key={getGroupId(g)} style={{ marginBottom: 4 }}>
-                  Die Gruppe „{g.name}“ enthält keine Add-on-Produkte. Im POS erscheinen keine Extras für diese Gruppe. Fügen Sie unter „Add-on-Gruppen“ Produkte hinzu.
+                  {t('products.addonGroups.warningItem', { name: g.name })}
                 </div>
               ))}
             </>

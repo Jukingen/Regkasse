@@ -122,5 +122,20 @@
   "display": {
     "yes": "Yes",
     "no": "No"
+  },
+  "statusLabels": {
+    "payment": {
+      "Success": "Successful",
+      "Pending": "Pending",
+      "Failed": "Failed",
+      "Cancelled": "Cancelled",
+      "Refunded": "Refunded"
+    },
+    "finanzOnline": {
+      "Submitted": "Submitted",
+      "Pending": "Pending",
+      "Failed": "Failed",
+      "NeedsReconciliation": "Needs reconciliation"
+    }
   }
 }

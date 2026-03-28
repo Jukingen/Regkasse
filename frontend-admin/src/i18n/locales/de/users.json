@@ -7,6 +7,9 @@
     "createRole": "Rolle anlegen",
     "manageRoles": "Rollen verwalten"
   },
+  "messages": {
+    "roleCreated": "Rolle angelegt."
+  },
   "roles": {
     "displayNames": {
       "SuperAdmin": "Super-Administrator",
@@ -64,7 +67,7 @@
     "filterRolePlaceholder": "Rolle",
     "filterStatusPlaceholder": "Status",
     "errorLoad": "Benutzerliste konnte nicht geladen werden.",
-    "errorLoadDetailFallback": "Keine technische Detailmeldung verfügbar.",
+    "errorLoadDetailFallback": "Keine technische Detailmeldung verfuegbar.",
     "retry": "Erneut versuchen",
     "paginationZeroResults": "0 Treffer",
     "paginationRange": "{{from}}–{{to}} von {{total}}",

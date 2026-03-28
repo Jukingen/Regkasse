@@ -7,6 +7,9 @@
     "createRole": "Create role",
     "manageRoles": "Manage roles"
   },
+  "messages": {
+    "roleCreated": "Role created."
+  },
   "roles": {
     "displayNames": {
       "SuperAdmin": "Super administrator",

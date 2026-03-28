@@ -3,6 +3,7 @@ import { Table, Space, Button, Popconfirm, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Product } from '@/api/generated/model';
 import { useProductFilters } from '../hooks/useProducts';
+import { useI18n } from '@/i18n';
 
 interface ProductListProps {
     data: Product[];
@@ -12,11 +13,12 @@ interface ProductListProps {
 }
 
 export default function ProductList({ data, loading, onEdit, onDelete }: ProductListProps) {
+    const { t } = useI18n();
     const { setParam } = useProductFilters();
 
     const columns = [
         {
-            title: 'Name',
+            title: t('products.table.product'),
             dataIndex: 'name',
             key: 'name',
             render: (text: string, record: Product) => (
@@ -27,13 +29,13 @@ export default function ProductList({ data, loading, onEdit, onDelete }: Product
             ),
         },
         {
-            title: 'Price',
+            title: t('products.table.price'),
             dataIndex: 'price',
             key: 'price',
             render: (price: number) => `€${price.toFixed(2)}`,
         },
         {
-            title: 'Stock',
+            title: t('products.table.stock'),
             dataIndex: 'stockQuantity',
             key: 'stockQuantity',
             render: (stock: number, record: Product) => {
@@ -41,24 +43,24 @@ export default function ProductList({ data, loading, onEdit, onDelete }: Product
                 const isLow = stock <= minStock;
                 return (
                     <Tag color={isLow ? 'red' : 'green'}>
-                        {stock} {record.unit || 'pcs'}
+                        {stock} {record.unit || t('products.table.unitPieces')}
                     </Tag>
                 );
             }
         },
         {
-            title: 'Category',
+            title: t('products.table.category'),
             dataIndex: 'category',
             key: 'category',
         },
         {
-            title: 'Tax',
+            title: t('products.table.tax'),
             dataIndex: 'taxRate',
             key: 'taxRate',
             render: (rate: number) => `${rate}%`,
         },
         {
-            title: 'Actions',
+            title: t('products.table.actions'),
             key: 'actions',
             render: (_: any, record: Product) => (
                 <Space>
@@ -67,11 +69,11 @@ export default function ProductList({ data, loading, onEdit, onDelete }: Product
                         onClick={() => onEdit(record)}
                     />
                     <Popconfirm
-                        title="Delete product?"
-                        description="Are you sure you want to delete this product?"
+                        title={t('products.actions.deleteConfirmTitle')}
+                        description={t('products.actions.deleteConfirmDescription')}
                         onConfirm={() => record.id && onDelete(record.id)}
-                        okText="Yes"
-                        cancelText="No"
+                        okText={t('common.buttons.yes')}
+                        cancelText={t('common.buttons.no')}
                     >
                         <Button danger icon={<DeleteOutlined />} />
                     </Popconfirm>

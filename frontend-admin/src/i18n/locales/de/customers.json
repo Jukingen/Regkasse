@@ -1,0 +1,50 @@
+{
+  "page": {
+    "newCustomer": "Neuer Kunde",
+    "searchPlaceholder": "Kunden suchen …"
+  },
+  "messages": {
+    "created": "Kunde angelegt.",
+    "createFailed": "Kunde konnte nicht angelegt werden.",
+    "updated": "Kunde aktualisiert.",
+    "updateFailed": "Kunde konnte nicht aktualisiert werden.",
+    "deleted": "Kunde gelöscht.",
+    "deleteFailed": "Kunde konnte nicht gelöscht werden."
+  },
+  "form": {
+    "titleNew": "Neuer Kunde",
+    "titleEdit": "Kunde bearbeiten",
+    "name": "Name",
+    "nameRequired": "Pflichtfeld",
+    "namePlaceholder": "Max Mustermann",
+    "customerNumber": "Kundennummer",
+    "customerNumberPlaceholder": "Leer = automatisch",
+    "email": "E-Mail",
+    "emailPlaceholder": "beispiel@firma.at",
+    "phone": "Telefon",
+    "phonePlaceholder": "+43 …",
+    "address": "Adresse",
+    "taxNumber": "Steuernummer",
+    "birthDate": "Geburtsdatum",
+    "notes": "Notizen",
+    "active": "Aktiv",
+    "vip": "VIP",
+    "assignedBenefitsHint": "Aktive Vorteilszuweisungen: {{count}}"
+  },
+  "list": {
+    "columnName": "Name",
+    "columnContact": "Kontakt",
+    "columnPoints": "Punkte",
+    "columnTotalSpent": "Gesamt",
+    "columnVisits": "Besuche",
+    "columnBenefits": "Vorteile",
+    "columnStatus": "Status",
+    "columnActions": "Aktionen",
+    "statusActive": "Aktiv",
+    "statusInactive": "Inaktiv",
+    "tagVip": "VIP",
+    "benefitFallback": "Vorteil",
+    "deleteConfirmTitle": "Kunde löschen?",
+    "deleteConfirmDescription": "Möchten Sie diesen Kunden wirklich löschen?"
+  }
+}

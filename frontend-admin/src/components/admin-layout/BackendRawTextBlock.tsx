@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Sunucudan gelen ham metni operatör/diagnostic bağlamında gösterir; ana UI diliyle karışmaması için kısa giriş + kopyalanabilir gövde.
+ * Shows raw server text in an operator/diagnostic context: short localized intro + copyable body (kept separate from main UI copy).
  */
 import { Typography } from 'antd';
 import { useI18n } from '@/i18n';

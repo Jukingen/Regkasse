@@ -18,7 +18,7 @@ export default function RootLayout({
     children: ReactNode;
 }) {
     return (
-        <html lang="de">
+        <html lang="de" suppressHydrationWarning>
             <body style={{ margin: 0, padding: 0 }}>
                 <QueryProvider>
                     <StyledComponentsRegistry>

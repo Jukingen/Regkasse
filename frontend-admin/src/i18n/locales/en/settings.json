@@ -132,6 +132,8 @@
   },
   "paymentMethods": {
     "title": "Payment methods",
+    "intro": "Payment methods for POS and fiscal RKSV mapping. Changes apply to new sales; existing receipts stay unchanged.",
+    "tableEmpty": "No payment methods configured.",
     "add": "Add payment method",
     "saved": "Saved.",
     "created": "Payment method created.",
@@ -165,7 +167,14 @@
       "terminalType": "Terminal type (optional)",
       "allowRefund": "Allow refund",
       "icon": "Ionicons name (optional)",
-      "metadata": "Metadata (JSON, optional)"
+      "iconPlaceholder": "e.g. cash-outline",
+      "metadata": "Metadata (JSON, optional)",
+      "legacyOption0": "0 — Cash",
+      "legacyOption1": "1 — Card",
+      "legacyOption2": "2 — Bank transfer",
+      "legacyOption3": "3 — Check",
+      "legacyOption4": "4 — Voucher",
+      "legacyOption5": "5 — Mobile"
     }
   },
   "pricingRules": {

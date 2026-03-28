@@ -22,11 +22,14 @@ import {
 } from '@/lib/api/modifierGroups';
 import { getAdminProductsList } from '@/api/admin/products';
 import { useCategories } from '@/features/categories/hooks/useCategories';
+import { useI18n } from '@/i18n';
+import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 const modifierGroupsKey = ['modifier-groups'] as const;
 const adminProductsListKey = ['admin', 'products', 'list'] as const;
 
 export default function ModifierGroupsPage() {
+  const { t } = useI18n();
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<ModifierGroupDto | null>(null);
@@ -64,13 +67,16 @@ export default function ModifierGroupsPage() {
         isRequired: values.isRequired ?? false,
         sortOrder: values.sortOrder ?? 0,
       });
-      message.success('Add-on-Gruppe angelegt.');
+      message.success(t('modifierGroups.messages.groupCreated'));
       setGroupModalOpen(false);
       groupForm.resetFields();
       await queryClient.refetchQueries({ queryKey: modifierGroupsKey });
-    } catch (e: any) {
-      if (e?.errorFields) return;
-      message.error('Gruppe konnte nicht angelegt werden.');
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'errorFields' in e) return;
+      openApiErrorMessage(message.open, t, e, {
+        logContext: 'ModifierGroups.createGroup',
+        fallbackKey: 'common.messages.unknownError',
+      });
     }
   };
 
@@ -104,28 +110,34 @@ export default function ModifierGroupsPage() {
         isRequired: values.isRequired ?? false,
         sortOrder: values.sortOrder ?? 0,
       });
-      message.success('Gruppe aktualisiert.');
+      message.success(t('modifierGroups.messages.groupUpdated'));
       setEditGroupModalOpen(false);
       setGroupToEdit(null);
       editGroupForm.resetFields();
       await queryClient.refetchQueries({ queryKey: modifierGroupsKey });
-    } catch (e: any) {
-      if (e?.errorFields) return;
-      message.error('Gruppe konnte nicht aktualisiert werden.');
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'errorFields' in e) return;
+      openApiErrorMessage(message.open, t, e, {
+        logContext: 'ModifierGroups.updateGroup',
+        fallbackKey: 'common.messages.unknownError',
+      });
     }
   };
 
   const handleRemoveProduct = async (group: ModifierGroupDto, productId: string) => {
     if (!productId?.trim() || !group?.id) {
-      message.error('Produkt oder Gruppe ungültig.');
+      message.error(t('modifierGroups.messages.invalidProductOrGroup'));
       return;
     }
     try {
       await removeProductFromGroup(group.id, productId);
       await queryClient.refetchQueries({ queryKey: modifierGroupsKey });
-      message.success('Produkt aus Gruppe entfernt.');
-    } catch (e: any) {
-      message.error(e?.response?.data?.message ?? 'Produkt konnte nicht entfernt werden.');
+      message.success(t('modifierGroups.messages.productRemoved'));
+    } catch (e: unknown) {
+      openApiErrorMessage(message.open, t, e, {
+        logContext: 'ModifierGroups.removeProduct',
+        fallbackKey: 'common.messages.unknownError',
+      });
     }
   };
 
@@ -135,14 +147,14 @@ export default function ModifierGroupsPage() {
       if (productModalTab === 'existing') {
         const productId = productForm.getFieldValue('productId');
         if (!productId) {
-          message.error('Bitte wählen Sie ein Produkt.');
+          message.error(t('modifierGroups.messages.selectProduct'));
           return;
         }
         await addProductToGroup(selectedGroup.id, { productId });
       } else {
         const values = await productForm.validateFields(['name', 'price', 'taxType', 'categoryId', 'sortOrder']);
         if (!values.categoryId) {
-          message.error('Kategorie ist bei neuem Add-on erforderlich.');
+          message.error(t('modifierGroups.messages.categoryRequiredNewAddon'));
           return;
         }
         await addProductToGroup(selectedGroup.id, {
@@ -155,14 +167,17 @@ export default function ModifierGroupsPage() {
           },
         });
       }
-      message.success('Produkt zur Gruppe hinzugefügt.');
+      message.success(t('modifierGroups.messages.productAdded'));
       setProductModalOpen(false);
       setSelectedGroup(null);
       productForm.resetFields();
       await queryClient.refetchQueries({ queryKey: modifierGroupsKey });
-    } catch (e: any) {
-      if (e?.errorFields) return;
-      message.error(e?.message ?? 'Produkt konnte nicht hinzugefügt werden.');
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'errorFields' in e) return;
+      openApiErrorMessage(message.open, t, e, {
+        logContext: 'ModifierGroups.addProduct',
+        fallbackKey: 'common.messages.unknownError',
+      });
     }
   };
 
@@ -176,42 +191,44 @@ export default function ModifierGroupsPage() {
       extra: (
         <span>
           <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openEditGroup(g)}>
-            Bearbeiten
+            {t('modifierGroups.actions.edit')}
           </Button>
           <Button type="link" size="small" onClick={() => openAddProduct(g)}>
-            + Produkt
+            {t('modifierGroups.actions.addProduct')}
           </Button>
         </span>
       ),
       children: (
         <div style={{ paddingLeft: 8 }}>
-          <div style={{ marginBottom: 4, fontWeight: 600, color: '#1890ff' }}>Add-on-Produkte (empfohlen)</div>
-          <div style={{ marginBottom: 8, fontSize: 12, color: '#666' }}>Verkaufbare Produkte – Add-on = Produkt. Für neue Extras bitte „+ Produkt“ verwenden.</div>
+          <div style={{ marginBottom: 4, fontWeight: 600, color: '#1890ff' }}>{t('modifierGroups.collapse.productsTitle')}</div>
+          <div style={{ marginBottom: 8, fontSize: 12, color: '#666' }}>{t('modifierGroups.collapse.productsHint')}</div>
           {products.length === 0 ? (
-            <div style={{ color: '#999', marginBottom: 12 }}>Keine Add-on-Produkte. Klicken Sie auf „+ Produkt“.</div>
+            <div style={{ color: '#999', marginBottom: 12 }}>{t('modifierGroups.collapse.emptyProducts')}</div>
           ) : (
             <ul style={{ margin: 0, paddingLeft: 20, marginBottom: 12 }}>
               {products.map((p) => {
                 const productId = (p as { productId?: string; ProductId?: string }).productId ?? (p as { productId?: string; ProductId?: string }).ProductId ?? '';
                 return (
                 <li key={productId} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ flex: 1 }}>{p.productName} — €{Number(p.price).toFixed(2)} (MwSt.-Typ {p.taxType})</span>
+                  <span style={{ flex: 1 }}>
+                    {p.productName} — €{Number(p.price).toFixed(2)} ({t('modifierGroups.collapse.taxTypeSuffix', { type: p.taxType })})
+                  </span>
                   <span onClick={(e) => e.stopPropagation()}>
                     <Popconfirm
-                      title="Aus Gruppe entfernen?"
-                      description="Das Produkt wird nur aus dieser Gruppe entfernt. Das Produkt selbst bleibt erhalten."
+                      title={t('modifierGroups.actions.removeTitle')}
+                      description={t('modifierGroups.collapse.popconfirmRemoveDescription')}
                       onConfirm={() => handleRemoveProduct(g, productId)}
-                      okText="Entfernen"
-                      cancelText="Abbrechen"
+                      okText={t('modifierGroups.actions.remove')}
+                      cancelText={t('common.buttons.cancel')}
                     >
                       <Button
                         type="link"
                         size="small"
                         danger
                         icon={<DeleteOutlined />}
-                        title="Aus Gruppe entfernen"
+                        title={t('modifierGroups.actions.removeTitle')}
                       >
-                        Entfernen
+                        {t('modifierGroups.actions.remove')}
                       </Button>
                     </Popconfirm>
                   </span>
@@ -228,16 +245,16 @@ export default function ModifierGroupsPage() {
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
-        title="Add-on-Gruppen"
+        title={t('modifierGroups.page.title')}
         breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.modifierGroups }]}
         actions={
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setGroupModalOpen(true)}>
-            Gruppe anlegen
+            {t('modifierGroups.actions.addGroup')}
           </Button>
         }
       >
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          Hier verwalten Sie Gruppen (z. B. Saucen, Extras) und deren Add-on-Produkte. Mit „Bearbeiten“ ändern Sie Gruppennamen und Sortierung. Mit „+ Produkt“ fügen Sie verkaufbare Add-on-Produkte zu einer Gruppe hinzu. Welche Gruppen pro Produkt angezeigt werden, legen Sie auf der Produktseite fest.
+          {t('modifierGroups.page.intro')}
         </Typography.Paragraph>
       </AdminPageHeader>
 
@@ -246,7 +263,7 @@ export default function ModifierGroupsPage() {
           <div style={{ textAlign: 'center', padding: '48px 24px' }}>
             <Spin size="large" />
             <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
-              Add-on-Gruppen werden geladen…
+              {t('modifierGroups.page.loading')}
             </Typography.Paragraph>
           </div>
         </Card>
@@ -255,63 +272,74 @@ export default function ModifierGroupsPage() {
       )}
 
       <Modal
-        title="Neue Add-on-Gruppe"
+        title={t('modifierGroups.modal.newGroupTitle')}
         open={groupModalOpen}
         onOk={handleAddGroup}
         onCancel={() => { setGroupModalOpen(false); groupForm.resetFields(); }}
-        okText="Anlegen"
+        okText={t('modifierGroups.modal.okCreate')}
+        cancelText={t('common.buttons.cancel')}
       >
         <Form form={groupForm} layout="vertical" initialValues={{ minSelections: 0, sortOrder: 0, isRequired: false }}>
-          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-            <Input placeholder="z. B. Saucen, Extras, Beilagen" />
+          <Form.Item name="name" label={t('modifierGroups.form.name')} rules={[{ required: true }]}>
+            <Input placeholder={t('modifierGroups.form.placeholderGroupName')} />
           </Form.Item>
-          <Form.Item name="minSelections" label="Min. Auswahl">
+          <Form.Item name="minSelections" label={t('modifierGroups.form.minSelections')}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="maxSelections" label="Max. Auswahl (leer = unbegrenzt)">
+          <Form.Item name="maxSelections" label={t('modifierGroups.form.maxSelections')}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="isRequired" label="Pflicht (mind. 1 Auswahl)" valuePropName="checked">
+          <Form.Item name="isRequired" label={t('modifierGroups.form.isRequired')} valuePropName="checked">
             <Switch />
           </Form.Item>
-          <Form.Item name="sortOrder" label="Sortierung">
+          <Form.Item name="sortOrder" label={t('modifierGroups.form.sortOrder')}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title={groupToEdit ? `Gruppe „${groupToEdit.name}“ bearbeiten` : 'Gruppe bearbeiten'}
+        title={
+          groupToEdit
+            ? t('modifierGroups.modal.editGroupTitle', { name: groupToEdit.name })
+            : t('modifierGroups.modal.editGroupTitleFallback')
+        }
         open={editGroupModalOpen}
         onOk={handleEditGroup}
         onCancel={() => { setEditGroupModalOpen(false); setGroupToEdit(null); editGroupForm.resetFields(); }}
-        okText="Speichern"
+        okText={t('modifierGroups.modal.okSave')}
+        cancelText={t('common.buttons.cancel')}
       >
         <Form form={editGroupForm} layout="vertical" initialValues={{ minSelections: 0, sortOrder: 0, isRequired: false }}>
-          <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name ist erforderlich.' }]}>
-            <Input placeholder="z. B. Saucen, Extras, Beilagen" maxLength={100} showCount />
+          <Form.Item name="name" label={t('modifierGroups.form.name')} rules={[{ required: true, message: t('modifierGroups.form.nameRequired') }]}>
+            <Input placeholder={t('modifierGroups.form.placeholderGroupName')} maxLength={100} showCount />
           </Form.Item>
-          <Form.Item name="minSelections" label="Min. Auswahl">
+          <Form.Item name="minSelections" label={t('modifierGroups.form.minSelections')}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="maxSelections" label="Max. Auswahl (leer = unbegrenzt)">
+          <Form.Item name="maxSelections" label={t('modifierGroups.form.maxSelections')}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="isRequired" label="Pflicht (mind. 1 Auswahl)" valuePropName="checked">
+          <Form.Item name="isRequired" label={t('modifierGroups.form.isRequired')} valuePropName="checked">
             <Switch />
           </Form.Item>
-          <Form.Item name="sortOrder" label="Sortierung">
+          <Form.Item name="sortOrder" label={t('modifierGroups.form.sortOrder')}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title={selectedGroup ? `Produkt zu „${selectedGroup.name}“ hinzufügen` : 'Produkt hinzufügen'}
+        title={
+          selectedGroup
+            ? t('modifierGroups.modal.addProductTitle', { name: selectedGroup.name })
+            : t('modifierGroups.modal.addProductTitleFallback')
+        }
         open={productModalOpen}
         onOk={handleAddProduct}
         onCancel={() => { setProductModalOpen(false); setSelectedGroup(null); productForm.resetFields(); }}
-        okText="Hinzufügen"
+        okText={t('modifierGroups.modal.okAdd')}
+        cancelText={t('common.buttons.cancel')}
         width={480}
       >
         <Tabs
@@ -320,13 +348,17 @@ export default function ModifierGroupsPage() {
           items={[
             {
               key: 'existing',
-              label: 'Bestehendes Produkt',
+              label: t('modifierGroups.tabs.existingProduct'),
               children: (
                 <Form form={productForm} layout="vertical">
-                  <Form.Item name="productId" label="Produkt" rules={productModalTab === 'existing' ? [{ required: true, message: 'Bitte Produkt wählen.' }] : []}>
+                  <Form.Item
+                    name="productId"
+                    label={t('modifierGroups.form.product')}
+                    rules={productModalTab === 'existing' ? [{ required: true, message: t('modifierGroups.form.selectProductRequired') }] : []}
+                  >
                     <Select
                       showSearch
-                      placeholder="Produkt auswählen…"
+                      placeholder={t('modifierGroups.form.selectProductPlaceholder')}
                       options={productOptions}
                       filterOption={(input, opt) => (opt?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())}
                       loading={!productsRes}
@@ -337,22 +369,22 @@ export default function ModifierGroupsPage() {
             },
             {
               key: 'new',
-              label: 'Neues Add-on anlegen',
+              label: t('modifierGroups.tabs.newAddon'),
               children: (
                 <Form form={productForm} layout="vertical" initialValues={{ price: 0, taxType: 1, sortOrder: 0 }}>
-                  <Form.Item name="name" label="Name" rules={productModalTab === 'new' ? [{ required: true }] : []}>
-                    <Input placeholder="z. B. Extra Käse" />
+                  <Form.Item name="name" label={t('modifierGroups.form.name')} rules={productModalTab === 'new' ? [{ required: true }] : []}>
+                    <Input placeholder={t('modifierGroups.form.placeholderNewAddonName')} />
                   </Form.Item>
-                  <Form.Item name="price" label="Preis (€)" rules={productModalTab === 'new' ? [{ required: true }] : []}>
+                  <Form.Item name="price" label={t('modifierGroups.form.price')} rules={productModalTab === 'new' ? [{ required: true }] : []}>
                     <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
                   </Form.Item>
-                  <Form.Item name="taxType" label="MwSt.-Typ (1=20%, 2=10%, 3=13%)">
+                  <Form.Item name="taxType" label={t('modifierGroups.form.taxType')}>
                     <InputNumber min={1} max={4} style={{ width: '100%' }} />
                   </Form.Item>
-                  <Form.Item name="categoryId" label="Kategorie" rules={[{ required: true, message: 'Kategorie ist erforderlich.' }]}>
-                    <Select placeholder="Kategorie wählen" options={categoryOptions} />
+                  <Form.Item name="categoryId" label={t('modifierGroups.form.category')} rules={[{ required: true, message: t('modifierGroups.form.categoryRequired') }]}>
+                    <Select placeholder={t('modifierGroups.form.placeholderCategory')} options={categoryOptions} />
                   </Form.Item>
-                  <Form.Item name="sortOrder" label="Sortierung">
+                  <Form.Item name="sortOrder" label={t('modifierGroups.form.sortOrder')}>
                     <InputNumber min={0} style={{ width: '100%' }} />
                   </Form.Item>
                 </Form>

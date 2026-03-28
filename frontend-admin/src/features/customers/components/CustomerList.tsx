@@ -3,6 +3,7 @@ import { Table, Space, Button, Popconfirm, Tag, Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
 import { Customer } from '@/api/generated/model';
 import type { BenefitAssignment } from '@/api/admin/benefit-assignments';
+import { useI18n } from '@/i18n';
 
 interface CustomerListProps {
     data: Customer[];
@@ -16,29 +17,31 @@ interface CustomerListProps {
 /** Active assignments for a customer; safe labels from benefit definition. */
 function getBenefitSummaryForCustomer(
     customerId: string | undefined,
-    assignments: BenefitAssignment[] | undefined | null
+    assignments: BenefitAssignment[] | undefined | null,
+    benefitFallback: string,
 ): { label: string; code?: string }[] {
     if (!customerId || !Array.isArray(assignments)) return [];
     return assignments
         .filter((a) => a.customerId === customerId && a.isActive)
         .map((a) => ({
-            label: a.benefitDefinition?.name ?? a.benefitDefinition?.code ?? 'Benefit',
+            label: a.benefitDefinition?.name ?? a.benefitDefinition?.code ?? benefitFallback,
             code: a.benefitDefinition?.code,
         }))
         .filter((x) => x.label);
 }
 
 export default function CustomerList({ data, loading, onEdit, onDelete, benefitAssignments }: CustomerListProps) {
+    const { t } = useI18n();
     const dataSource = Array.isArray(data) ? data : [];
     const columns = [
         {
-            title: 'Name',
+            title: t('customers.list.columnName'),
             dataIndex: 'name',
             key: 'name',
             render: (text: string) => <span style={{ fontWeight: 500 }}>{text}</span>,
         },
         {
-            title: 'Contact',
+            title: t('customers.list.columnContact'),
             key: 'contact',
             render: (_: any, record: Customer) => (
                 <Space direction="vertical" size={0}>
@@ -48,28 +51,28 @@ export default function CustomerList({ data, loading, onEdit, onDelete, benefitA
             ),
         },
         {
-            title: 'Points',
+            title: t('customers.list.columnPoints'),
             dataIndex: 'loyaltyPoints',
             key: 'loyaltyPoints',
             render: (points: number) => points || 0,
         },
         {
-            title: 'Total Spent',
+            title: t('customers.list.columnTotalSpent'),
             dataIndex: 'totalSpent',
             key: 'totalSpent',
             render: (val: number) => `€${(val || 0).toFixed(2)}`,
         },
         {
-            title: 'Visits',
+            title: t('customers.list.columnVisits'),
             dataIndex: 'visitCount',
             key: 'visitCount',
             render: (val: number) => val || 0,
         },
         {
-            title: 'Benefits',
+            title: t('customers.list.columnBenefits'),
             key: 'benefits',
             render: (_: unknown, record: Customer) => {
-                const items = getBenefitSummaryForCustomer(record.id, benefitAssignments);
+                const items = getBenefitSummaryForCustomer(record.id, benefitAssignments, t('customers.list.benefitFallback'));
                 if (items.length === 0) return <span style={{ color: '#999' }}>—</span>;
                 const content = (
                     <Space size={4} wrap>
@@ -89,17 +92,17 @@ export default function CustomerList({ data, loading, onEdit, onDelete, benefitA
             },
         },
         {
-            title: 'Status',
+            title: t('customers.list.columnStatus'),
             key: 'status',
             render: (_: any, record: Customer) => (
                 <Space>
-                    {record.isActive ? <Tag color="green">Active</Tag> : <Tag color="red">Inactive</Tag>}
-                    {record.isVip && <Tag color="gold">VIP</Tag>}
+                    {record.isActive ? <Tag color="green">{t('customers.list.statusActive')}</Tag> : <Tag color="red">{t('customers.list.statusInactive')}</Tag>}
+                    {record.isVip && <Tag color="gold">{t('customers.list.tagVip')}</Tag>}
                 </Space>
             )
         },
         {
-            title: 'Actions',
+            title: t('customers.list.columnActions'),
             key: 'actions',
             render: (_: any, record: Customer) => (
                 <Space>
@@ -108,11 +111,11 @@ export default function CustomerList({ data, loading, onEdit, onDelete, benefitA
                         onClick={() => onEdit(record)}
                     />
                     <Popconfirm
-                        title="Delete customer?"
-                        description="Are you sure you want to delete this customer?"
+                        title={t('customers.list.deleteConfirmTitle')}
+                        description={t('customers.list.deleteConfirmDescription')}
                         onConfirm={() => record.id && onDelete(record.id)}
-                        okText="Yes"
-                        cancelText="No"
+                        okText={t('common.buttons.yes')}
+                        cancelText={t('common.buttons.no')}
                     >
                         <Button danger icon={<DeleteOutlined />} />
                     </Popconfirm>

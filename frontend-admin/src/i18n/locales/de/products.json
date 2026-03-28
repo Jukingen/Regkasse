@@ -31,7 +31,54 @@
     "deleteConfirmDescription": "Dieser Vorgang kann nicht rückgängig gemacht werden."
   },
   "stockModal": {
-    "title": "Lager anpassen"
+    "title": "Lager anpassen",
+    "productLabel": "Produkt",
+    "quantityLabel": "Menge (Lagerbestand)"
+  },
+  "taxLabels": {
+    "standard": "{{rate}}% (Normal)",
+    "reduced": "{{rate}}% (ermäßigt)",
+    "special": "{{rate}}% (besonders)",
+    "zero": "{{rate}}% (Nullsatz)",
+    "fallback": "{{rate}}% (Normal)"
+  },
+  "form": {
+    "titleCreate": "Neues Produkt",
+    "titleEdit": "Produkt bearbeiten",
+    "name": "Produktname",
+    "nameRequired": "Bitte Produktnamen eingeben",
+    "namePlaceholder": "z. B. Coca Cola 0,33 l",
+    "barcode": "Barcode",
+    "barcodePlaceholder": "Scannen oder eingeben",
+    "category": "Kategorie",
+    "categoryRequired": "Bitte Kategorie wählen",
+    "categoryPlaceholder": "Kategorie wählen",
+    "price": "Preis (€)",
+    "priceRequired": "Bitte Preis eingeben",
+    "cost": "Einkaufspreis (€)",
+    "taxType": "Steuerart",
+    "taxTypeRequired": "Steuerart wählen",
+    "taxTypePlaceholder": "Steuerart wählen",
+    "taxStandard": "20 % (Normal)",
+    "taxReduced": "10 % (ermäßigt)",
+    "taxSpecial": "13 % (besonders)",
+    "description": "Beschreibung",
+    "active": "Aktiv",
+    "addonGroupsLabel": "Add-on-Gruppen für dieses Produkt",
+    "addonGroupsExtra": "Welche Gruppen sind für dieses Produkt wählbar? Add-on-Produkte pro Gruppe verwalten Sie unter „Add-on-Gruppen“."
+  },
+  "addonGroups": {
+    "countEmpty": "leer",
+    "countOne": "1 Produkt",
+    "countMany": "{{count}} Produkte",
+    "sectionTitle": "Add-on-Produkte in dieser Gruppe",
+    "noneInGroup": "Keine Add-on-Produkte in dieser Gruppe.",
+    "taxSuffix": "MwSt.-Typ {{type}}",
+    "runtimeHint": "Neue Laufzeit nutzt nur Add-on-Produkte aus dieser Gruppe.",
+    "loading": "Add-on-Gruppen werden geladen…",
+    "emptyCatalog": "Keine Add-on-Gruppen. Legen Sie unter „Add-on-Gruppen“ Gruppen an und fügen Sie Add-on-Produkte hinzu. Anschließend wählen Sie hier, welche Gruppen für dieses Produkt angezeigt werden.",
+    "warningTitle": "Leere Gruppen ausgewählt",
+    "warningItem": "Die Gruppe „{{name}}“ enthält keine Add-on-Produkte. Im POS erscheinen keine Extras für diese Gruppe. Fügen Sie unter „Add-on-Gruppen“ Produkte hinzu."
   },
   "messages": {
     "createSuccess": "Produkt angelegt.",
@@ -42,6 +89,8 @@
     "deleteSuccess": "Produkt gelöscht.",
     "deleteError": "Produkt konnte nicht gelöscht werden.",
     "stockUpdateSuccess": "Lagerbestand aktualisiert.",
-    "stockUpdateError": "Lagerbestand konnte nicht aktualisiert werden."
+    "stockUpdateError": "Lagerbestand konnte nicht aktualisiert werden.",
+    "modifierGroupsLoadFailed": "Add-on-Gruppen konnten nicht geladen werden.",
+    "categoryPickRequired": "Bitte eine Kategorie wählen."
   }
 }

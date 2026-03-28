@@ -85,7 +85,7 @@ export function updateAdminPricingRule(
 
 export function deleteAdminPricingRule(id: string, options?: SecondParameter<typeof customInstance>) {
   return customInstance<{ id: string; message?: string }>({ url: `${BASE}/${id}`, method: 'DELETE' }, options).then((res) =>
-    unwrapData(res)
+    unwrapData<{ id: string; message?: string }>(res)
   );
 }
 

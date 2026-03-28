@@ -1,6 +1,8 @@
 {
   "policy": {
-    "formalReportLanguageBanner": "Formal report text from the server is shown in German or English only — never Turkish, even when the UI is Turkish."
+    "formalReportLanguageTitle": "Formal report text",
+    "formalReportLanguageBody": "Your admin UI may be Turkish; legal and accounting report text in this area is only shown in German or English (default: German).",
+    "formalReportLanguageProfileCue": "Profile and export: report text stays German or English (default: German)."
   },
   "backend": {
     "germanFieldTooltip": "Server field (typically German, *De). Multilingual API may follow later.",

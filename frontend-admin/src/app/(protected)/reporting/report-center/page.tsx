@@ -194,10 +194,11 @@ export default function ReportCenterPage() {
   const [outboxAggregateFilter, setOutboxAggregateFilter] = useState<string | undefined>(undefined);
 
   const { data: registers } = useGetApiCashRegister();
-  const registerRows = Array.isArray((registers as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registers as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registers)
-      ? (registers as CashRegister[])
+  const registersData = registers as unknown;
+  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
+    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
+    : Array.isArray(registersData)
+      ? (registersData as CashRegister[])
       : [];
 
   const pickerMode = tab === 'monatsbericht' ? 'month' : tab === 'jahresbericht' ? 'year' : 'date';

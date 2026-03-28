@@ -12,7 +12,10 @@
     "collapseSidebar": "Kenar çubuğunu daralt"
   },
   "header": {
+    "headerActionsAria": "Dil ve kullanıcı hesabı",
     "languageSelectAria": "Arayüz dilini seçin",
+    "languageSelectTitle": "Arayüz dili",
+    "languageSelectHint": "Yalnızca yönetim arayüzü için. Resmi mali rapor metinleri Almanca veya İngilizce kalır.",
     "languageNameDe": "Almanca",
     "languageNameEn": "İngilizce",
     "languageNameTr": "Türkçe"
@@ -114,6 +117,9 @@
     "presetMonth": "Bu ay",
     "exportCsv": "CSV dışa aktar",
     "exportNoPermission": "CSV için «report.export» gerekir.",
+    "exportCsvFailed": "CSV dışa aktarma başarısız.",
+    "freezeSuccess": "Dönem raporu donduruldu.",
+    "freezeError": "Dondurma başarısız.",
     "totalsTitle": "Toplamlar",
     "gross": "Brüt (satış)",
     "tax": "Vergi (toplam)",
@@ -304,7 +310,9 @@
     "countReasonPrefix": "INV_COUNT",
     "permissionDenied": "Yetki yok.",
     "success": "Kaydedildi.",
-    "error": "Hata"
+    "error": "Hata",
+    "countNoVariance": "Kaydedilecek fark yok.",
+    "errorRequestFailed": "İstek başarısız."
   },
   "tablesAdmin": {
     "intro": "Masa ve salon akisi mobil POS uzerinden yurutulur. Bu sayfa backoffice icin salt okunur ozet sunar (API /api/Table).",

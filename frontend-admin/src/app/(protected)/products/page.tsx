@@ -6,13 +6,14 @@ import { Button, Table, Space, message, Tag, Input, Popconfirm, Alert, Empty, Mo
 import { PlusOutlined, EditOutlined, DeleteOutlined, StockOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
 import { useProducts, useProductFilters } from '@/features/products/hooks/useProducts';
 import { Product } from '@/api/generated/model';
-import { mapApiProductToUi, mapUiProductToApi, taxTypeToLabel } from '@/features/products/utils/productMapper';
+import { mapApiProductToUi, mapUiProductToApi, formatTaxTypeLabelForLocale } from '@/features/products/utils/productMapper';
 import ProductForm, { type ProductFormSubmitValues } from '@/features/products/components/ProductForm';
 import { ColumnType } from 'antd/es/table';
-import { useI18n } from '@/i18n/I18nProvider';
+import { useI18n } from '@/i18n';
+import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 const SEARCH_DEBOUNCE_MS = 400;
 const MIN_SEARCH_LENGTH = 2;
@@ -177,7 +178,7 @@ export default function ProductsPage() {
                 const cell = (
                     <Space direction="vertical" size={2} style={{ width: '100%', maxWidth: 320 }}>
                         <Typography.Text strong ellipsis style={{ display: 'block' }}>
-                            {record.name || '—'}
+                            {record.name?.trim() ? record.name : FORMAT_EMPTY_DISPLAY}
                         </Typography.Text>
                         {bc ? (
                             <Typography.Text
@@ -255,7 +256,7 @@ export default function ProductsPage() {
             ellipsis: true,
             render: (text: string) => (
                 <Typography.Text type="secondary" ellipsis={{ tooltip: true }}>
-                    {text?.trim() || '—'}
+                    {text?.trim() ? text : FORMAT_EMPTY_DISPLAY}
                 </Typography.Text>
             ),
         },
@@ -266,7 +267,7 @@ export default function ProductsPage() {
             align: 'right',
             render: (_: unknown, record: Product) => {
                 const rate = Number(record.taxRate ?? 0);
-                const label = taxTypeToLabel(Number(record.taxType ?? 1));
+                const label = formatTaxTypeLabelForLocale(Number(record.taxType ?? 1), record.taxRate, t);
                 const short = `${rate}%`;
                 const labelShort = label.length > 22 ? `${label.slice(0, 20)}…` : label;
                 return (
@@ -343,7 +344,18 @@ export default function ProductsPage() {
                 <Alert
                     type="error"
                     message={t('products.page.loadErrorTitle')}
-                    description={error instanceof Error ? error.message : t('common.messages.unknownError')}
+                    description={
+                        error ? (
+                            <ApiErrorAlertDescription
+                                t={t}
+                                error={error}
+                                logContext="ProductsPage"
+                                fallbackKey="common.messages.unknownError"
+                            />
+                        ) : (
+                            t('common.messages.unknownError')
+                        )
+                    }
                     showIcon
                     action={
                         <Button size="small" onClick={() => refetch()}>
@@ -381,10 +393,19 @@ export default function ProductsPage() {
                 onCancel={() => setStockModalProduct(null)}
                 confirmLoading={stockMutation.isPending}
                 okText={t('common.buttons.save')}
+                cancelText={t('common.buttons.cancel')}
             >
                 {stockModalProduct && (
                     <div style={{ marginTop: 8 }}>
-                        <div style={{ marginBottom: 8 }}>{stockModalProduct.name}</div>
+                        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+                            {t('products.stockModal.productLabel')}
+                        </Typography.Text>
+                        <Typography.Text strong style={{ display: 'block', marginBottom: 12 }}>
+                            {stockModalProduct.name?.trim() ? stockModalProduct.name : FORMAT_EMPTY_DISPLAY}
+                        </Typography.Text>
+                        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+                            {t('products.stockModal.quantityLabel')}
+                        </Typography.Text>
                         <InputNumber
                             min={0}
                             value={stockQuantity}

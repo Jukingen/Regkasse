@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * User Management – RKSV/DSGVO uyumlu kullanıcı yaşam döngüsü.
- * Tablo: name, email, role, branch, status, last login, actions.
- * Filtreler: role, status, branch, search. Drawer create/edit, deaktive (reason), reaktive, Activity timeline tab.
+ * User management – RKSV/DSGVO-aligned user lifecycle.
+ * Table: name, email, role, branch, status, last login, actions.
+ * Filters: role, status, branch, search. Drawer create/edit, deactivate (reason), reactivate, activity timeline tab.
  */
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
@@ -334,7 +334,7 @@ export default function UsersPage() {
     const createRoleMutation = useMutation({
         mutationFn: (data: { name: string }) => gatewayCreateRole({ name: data.name.trim() }),
         onSuccess: () => {
-            message.success(usersCopy.successCreateRole ?? 'Rolle angelegt.');
+            message.success(t('users.messages.roleCreated'));
             queryClient.invalidateQueries({ queryKey: rolesQueryKey });
             queryClient.invalidateQueries({ queryKey: rolesWithPermissionsQueryKey });
             setCreateRoleOpen(false);
@@ -589,7 +589,7 @@ export default function UsersPage() {
                 breadcrumbs={[adminOverviewCrumb(t), { title: t('users.page.title') }]}
                 actions={
                     <Space wrap>
-                        <Tooltip title={t('common.operator.refetchHintToolbar')}>
+                        <Tooltip title={t('common.toolbar.refetchHint')}>
                             <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
                                 {t('users.list.actionRefresh')}
                             </Button>

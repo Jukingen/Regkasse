@@ -68,7 +68,23 @@
     "colTax": "Steuer",
     "colTransactions": "Vorgänge",
     "colStatus": "Status",
-    "colFinanzOnline": "FinanzOnline"
+    "colFinanzOnline": "FinanzOnline",
+    "closingTypes": {
+      "Daily": "Täglich",
+      "Monthly": "Monatlich",
+      "Yearly": "Jährlich"
+    },
+    "rowStatus": {
+      "Completed": "Abgeschlossen",
+      "Failed": "Fehlgeschlagen",
+      "Pending": "Ausstehend"
+    },
+    "finanzOnlineStatus": {
+      "Submitted": "Übermittelt",
+      "Failed": "Fehlgeschlagen",
+      "Pending": "Ausstehend",
+      "NeedsReconciliation": "Abgleich nötig"
+    }
   },
   "messages": {
     "successDaily": "Tagesabschluss (täglich) ausgeführt.",
@@ -77,6 +93,8 @@
     "warningUuid": "Bitte gültige Kassen-ID wählen oder eingeben (UUID)."
   },
   "errors": {
-    "unknown": "Unbekannter Fehler"
+    "unknown": "Unbekannter Fehler",
+    "loadStatsTitle": "Statistik konnte nicht geladen werden",
+    "loadHistoryTitle": "Historie konnte nicht geladen werden"
   }
 }

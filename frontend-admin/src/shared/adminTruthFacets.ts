@@ -6,6 +6,11 @@
  * - Register deep-link badge here applies only when the **same DTO’s** `cashRegisterId` is the link source
  *   (invoice list/detail, FO reconciliation table). Incident’s FO-joined register cell still layers
  *   `derived_from_foreign_row` separately — do not replace that composition with this helper alone.
+ *
+ * **Canonical vs runtime copy:** Invoice provenance footer text is defined for operators in
+ * `OPERATOR_INVOICE_COPY.detailProvenanceFooter` (`operatorTruthCopy.ts`). The translatable UI string is
+ * `invoices.detail.provenanceOperatorFooter` — keep German entries identical. See
+ * `docs/OPERATOR_COPY_AND_RUNTIME_I18N.md`.
  */
 
 import type { Invoice } from '@/api/generated/model/invoice';
@@ -44,7 +49,7 @@ export type InvoiceProvenanceUiFacet =
       }
     | {
           kind: 'contract_incomplete_no_response_field';
-          /** Use `OPERATOR_INVOICE_COPY.detailProvenanceFooter` in UI */
+          /** UI: `t('invoices.detail.provenanceOperatorFooter')` (aligned with `OPERATOR_INVOICE_COPY.detailProvenanceFooter`) */
           operatorCopyKey: 'detailProvenanceFooter';
       };
 

@@ -69,6 +69,52 @@ export default function TagesabschlussPage() {
   const queryClient = useQueryClient();
   const { t, formatLocale } = useI18n();
 
+  const closingTypeLabel = useCallback(
+    (v: string | null | undefined) => {
+      const s = v?.trim();
+      if (!s) return FORMAT_EMPTY_DISPLAY;
+      const m: Record<string, string> = {
+        Daily: 'tagesabschluss.history.closingTypes.Daily',
+        Monthly: 'tagesabschluss.history.closingTypes.Monthly',
+        Yearly: 'tagesabschluss.history.closingTypes.Yearly',
+      };
+      const p = m[s];
+      return p ? t(p) : s;
+    },
+    [t],
+  );
+
+  const closingRowStatusLabel = useCallback(
+    (v: string | null | undefined) => {
+      const s = v?.trim();
+      if (!s) return FORMAT_EMPTY_DISPLAY;
+      const m: Record<string, string> = {
+        Completed: 'tagesabschluss.history.rowStatus.Completed',
+        Failed: 'tagesabschluss.history.rowStatus.Failed',
+        Pending: 'tagesabschluss.history.rowStatus.Pending',
+      };
+      const p = m[s];
+      return p ? t(p) : s;
+    },
+    [t],
+  );
+
+  const historyFinanzOnlineStatusLabel = useCallback(
+    (v: string | null | undefined) => {
+      const s = v?.trim();
+      if (!s) return FORMAT_EMPTY_DISPLAY;
+      const m: Record<string, string> = {
+        Submitted: 'tagesabschluss.history.finanzOnlineStatus.Submitted',
+        Failed: 'tagesabschluss.history.finanzOnlineStatus.Failed',
+        Pending: 'tagesabschluss.history.finanzOnlineStatus.Pending',
+        NeedsReconciliation: 'tagesabschluss.history.finanzOnlineStatus.NeedsReconciliation',
+      };
+      const p = m[s];
+      return p ? t(p) : s;
+    },
+    [t],
+  );
+
   const { hasPermission } = usePermissions();
   const canListRegisters = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
 
@@ -214,7 +260,13 @@ export default function TagesabschlussPage() {
         width: 200,
         render: (d: string) => (d ? formatDateTime(d, formatLocale) : FORMAT_EMPTY_DISPLAY),
       },
-      { title: t('tagesabschluss.history.colType'), dataIndex: 'closingType', key: 'closingType', width: 100 },
+      {
+        title: t('tagesabschluss.history.colType'),
+        dataIndex: 'closingType',
+        key: 'closingType',
+        width: 100,
+        render: (v: string | null | undefined) => closingTypeLabel(v),
+      },
       {
         title: t('tagesabschluss.history.colGross'),
         dataIndex: 'totalAmount',
@@ -234,10 +286,22 @@ export default function TagesabschlussPage() {
         width: 100,
         render: (v: number) => formatNumber(v ?? 0, formatLocale, { maximumFractionDigits: 0 }),
       },
-      { title: t('tagesabschluss.history.colStatus'), dataIndex: 'status', key: 'status', width: 120 },
-      { title: t('tagesabschluss.history.colFinanzOnline'), dataIndex: 'finanzOnlineStatus', key: 'fo', width: 140 },
+      {
+        title: t('tagesabschluss.history.colStatus'),
+        dataIndex: 'status',
+        key: 'status',
+        width: 120,
+        render: (v: string | null | undefined) => closingRowStatusLabel(v),
+      },
+      {
+        title: t('tagesabschluss.history.colFinanzOnline'),
+        dataIndex: 'finanzOnlineStatus',
+        key: 'fo',
+        width: 140,
+        render: (v: string | null | undefined) => historyFinanzOnlineStatusLabel(v),
+      },
     ],
-    [t, formatLocale]
+    [t, formatLocale, closingTypeLabel, closingRowStatusLabel, historyFinanzOnlineStatusLabel]
   );
 
   const closingBusy = dailyMu.isPending || monthlyMu.isPending || yearlyMu.isPending;
@@ -407,6 +471,7 @@ export default function TagesabschlussPage() {
             ) : statsQuery.isError ? (
               <Alert
               type="error"
+              message={t('tagesabschluss.errors.loadStatsTitle')}
               description={getUserFacingApiErrorMessage(t, statsQuery.error, {
                 logContext: 'TagesabschlussStatistics',
                 fallbackKey: 'tagesabschluss.errors.unknown',
@@ -448,6 +513,7 @@ export default function TagesabschlussPage() {
             ) : historyQuery.isError ? (
               <Alert
               type="error"
+              message={t('tagesabschluss.errors.loadHistoryTitle')}
               description={getUserFacingApiErrorMessage(t, historyQuery.error, {
                 logContext: 'TagesabschlussHistory',
                 fallbackKey: 'tagesabschluss.errors.unknown',

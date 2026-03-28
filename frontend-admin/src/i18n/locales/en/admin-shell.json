@@ -12,7 +12,10 @@
     "collapseSidebar": "Collapse sidebar"
   },
   "header": {
+    "headerActionsAria": "Language and user account",
     "languageSelectAria": "Choose interface language",
+    "languageSelectTitle": "Interface language",
+    "languageSelectHint": "Applies to the admin UI only. Formal fiscal report text stays German or English.",
     "languageNameDe": "German",
     "languageNameEn": "English",
     "languageNameTr": "Turkish"
@@ -114,6 +117,9 @@
     "presetMonth": "Current month",
     "exportCsv": "Export CSV",
     "exportNoPermission": "CSV export requires «report.export».",
+    "exportCsvFailed": "CSV export failed.",
+    "freezeSuccess": "Periodic report has been frozen.",
+    "freezeError": "Freeze failed.",
     "totalsTitle": "Totals",
     "gross": "Gross (sales)",
     "tax": "Tax (sum)",
@@ -304,7 +310,9 @@
     "countReasonPrefix": "INV_COUNT",
     "permissionDenied": "Missing permission for this action.",
     "success": "Saved.",
-    "error": "Error"
+    "error": "Error",
+    "countNoVariance": "No variances to book.",
+    "errorRequestFailed": "Request failed."
   },
   "tablesAdmin": {
     "intro": "Floor and table layout are primarily used on mobile POS. This page is a read-only back-office overview (API /api/Table).",

@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, afterEach } from 'vitest';
+import { clearApiErrorCodeRegistryForTests, registerApiErrorCodeTranslation } from '../apiErrorCodeRegistry';
 import { getUserFacingApiErrorMessage } from '../userFacingApiError';
 
 vi.mock('@/shared/dev/technicalConsole', () => ({
@@ -8,6 +9,10 @@ vi.mock('@/shared/dev/technicalConsole', () => ({
 const t = (key: string) => key;
 
 describe('getUserFacingApiErrorMessage', () => {
+  afterEach(() => {
+    clearApiErrorCodeRegistryForTests();
+  });
+
   it('maps 401 in loginContext to loginInvalidCredentials', () => {
     expect(
       getUserFacingApiErrorMessage(t, { response: { status: 401 } }, { logContext: 'x', loginContext: true }),
@@ -27,5 +32,16 @@ describe('getUserFacingApiErrorMessage', () => {
         fallbackKey: 'tagesabschluss.errors.unknown',
       }),
     ).toBe('tagesabschluss.errors.unknown');
+  });
+
+  it('prefers registered code mapping over HTTP status', () => {
+    registerApiErrorCodeTranslation('INVOICE_LOCKED', 'payments.errors.invoiceLocked');
+    expect(
+      getUserFacingApiErrorMessage(
+        t,
+        { response: { status: 409, data: { code: 'INVOICE_LOCKED', message: 'x' } } },
+        { logContext: 'x' },
+      ),
+    ).toBe('payments.errors.invoiceLocked');
   });
 });

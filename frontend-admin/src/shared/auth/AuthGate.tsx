@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { Spin } from 'antd';
+import { useI18n } from '@/i18n';
 
 interface GuardProps {
     children: ReactNode;
@@ -16,6 +17,7 @@ interface GuardProps {
  * Managed strict redirect logic for public and protected routes.
  */
 export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
+    const { t } = useI18n();
     const { authStatus, isInitialized } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
@@ -52,7 +54,7 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
     if (!isInitialized || authStatus === AuthStatus.Loading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f2f5' }}>
-                <Spin spinning tip="Checking authentication...">
+                <Spin spinning tip={t('common.auth.checkingSession')}>
                     <div style={{ padding: 50 }} />
                 </Spin>
             </div>

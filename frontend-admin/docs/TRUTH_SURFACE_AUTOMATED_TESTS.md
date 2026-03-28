@@ -19,6 +19,7 @@ Catch regressions where admin UI would: hide backend FK text, treat display labe
 | `contract/*` | `invoiceItems` unknown shaping; Axios error narrowing |
 | `invoiceListSort.test.ts` | Unknown table sort field does not pass through to API params |
 | `adminTruthFacets.test.ts` | `registerDeepLinkEligibleBadgeKind`; `invoiceProvenanceUiFacet` explicit vs contract-gap |
+| `operatorCopyDeLocaleParity.test.ts` | Documented mirrors: `OPERATOR_SHARED_COPY` ↔ `de/common.json`, selected `OPERATOR_INVOICE_COPY` ↔ `de/invoices.json` (Node fs; no app env). Run: `npm run test:operator-copy-locale-parity` |
 
 ## Not covered here (integration / E2E)
 

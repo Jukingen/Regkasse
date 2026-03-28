@@ -400,7 +400,11 @@ export default function DashboardLayout({
                                 height: 64,
                             }}
                         />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'auto' }}
+                            role="toolbar"
+                            aria-label={t('adminShell.header.headerActionsAria')}
+                        >
                             <HeaderLanguageQuickSwitch />
                             <Dropdown menu={userMenu} placement="bottomRight">
                                 <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>

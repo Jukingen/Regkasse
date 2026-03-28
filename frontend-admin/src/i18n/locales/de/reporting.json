@@ -1,6 +1,8 @@
 {
   "policy": {
-    "formalReportLanguageBanner": "Formale Berichtstexte (Server) werden nur auf Deutsch oder Englisch dargestellt — nicht auf Türkisch, auch wenn die Oberfläche Türkisch ist."
+    "formalReportLanguageTitle": "Formale Berichtstexte",
+    "formalReportLanguageBody": "Die Oberfläche kann auf Türkisch eingestellt sein; formale Berichtstexte in diesem Bereich sind jedoch nur auf Deutsch oder Englisch verfügbar (Standard: Deutsch).",
+    "formalReportLanguageProfileCue": "Anzeigeprofil und Export: Berichtstexte bleiben Deutsch oder Englisch (Standard: Deutsch)."
   },
   "backend": {
     "germanFieldTooltip": "Feld vom Server (typischerweise Deutsch, *De). Mehrsprachige API später möglich.",

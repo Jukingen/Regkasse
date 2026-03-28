@@ -1,3 +1,5 @@
+'use client';
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef } from 'react';
@@ -8,6 +10,7 @@ import { message } from 'antd';
 import { authStorage } from '@/features/auth/services/authStorage';
 import type { AuthUser } from '@/shared/auth/types';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { useI18n } from '@/i18n';
 
 // Define the key for the user query
 export const AUTH_KEYS = {
@@ -73,6 +76,7 @@ export enum AuthStatus {
 }
 
 export const useAuth = () => {
+    const { t } = useI18n();
     const queryClient = useQueryClient();
     const router = useRouter();
 
@@ -99,9 +103,9 @@ export const useAuth = () => {
             queryClient.setQueryData(AUTH_KEYS.user, null);
             queryClient.clear(); // Clear everything to be safe
             router.replace('/login');
-            message.success('Logged out successfully');
+            message.success(t('common.auth.logoutSuccess'));
         }
-    }, [logoutMutation, queryClient, router]);
+    }, [logoutMutation, queryClient, router, t]);
 
     // Strict Status Logic
     let authStatus: AuthStatus = AuthStatus.Loading;

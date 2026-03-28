@@ -72,15 +72,7 @@ import {
     OPERATOR_FO_QUEUE_COPY,
     OPERATOR_INVESTIGATION_CONTEXT_COPY,
     OPERATOR_LINK_LABELS,
-    OPERATOR_SHARED_COPY,
 } from '@/shared/operatorTruthCopy';
-
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-    { value: 'Pending', label: 'Ausstehend (Pending)' },
-    { value: 'Failed', label: 'Fehlgeschlagen (Failed)' },
-    { value: 'NeedsReconciliation', label: 'Abgleich erforderlich (NeedsReconciliation)' },
-    { value: 'Submitted', label: 'Eingereicht (Submitted)' },
-];
 
 function statusBadgeColor(status: string | null): string {
     if (!status) return 'default';
@@ -352,8 +344,8 @@ export default function FinanzOnlineReconciliationPage() {
         },
         {
             title: (
-                <Tooltip title="finanzOnlineReferenceId — FinanzOnline-Referenz aus dem Listen-DTO.">
-                    <span>Referenz (FO)</span>
+                <Tooltip title={t('finanzOnlineReconciliation.queuePage.columns.foRefTooltip')}>
+                    <span>{t('finanzOnlineReconciliation.queuePage.columns.referenceFoShort')}</span>
                 </Tooltip>
             ),
             dataIndex: 'finanzOnlineReferenceId',
@@ -464,7 +456,7 @@ export default function FinanzOnlineReconciliationPage() {
                     { title: t(ADMIN_NAV_LABEL_KEYS.finanzOnlineAbgleichLegacy) },
                 ]}
                 actions={
-                    <Tooltip title={OPERATOR_SHARED_COPY.refetchHintToolbar}>
+                    <Tooltip title={t('common.toolbar.refetchHint')}>
                         <Button
                             icon={<ReloadOutlined />}
                             onClick={() => {
@@ -472,7 +464,7 @@ export default function FinanzOnlineReconciliationPage() {
                                 queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.metrics });
                             }}
                         >
-                            {OPERATOR_SHARED_COPY.toolbarRefresh}
+                            {t('common.buttons.refresh')}
                         </Button>
                     </Tooltip>
                 }
@@ -559,9 +551,9 @@ export default function FinanzOnlineReconciliationPage() {
             {listError ? (
                 <Alert
                     type="error"
-                    message={OPERATOR_SHARED_COPY.loadFailedList}
+                    message={t('common.loadErrors.list')}
                     description={
-                        listError instanceof Error ? listError.message : OPERATOR_SHARED_COPY.unknownErrorDetail
+                        listError instanceof Error ? listError.message : t('common.messages.noTechnicalDetail')
                     }
                     style={{ marginBottom: 12 }}
                     showIcon
@@ -573,7 +565,7 @@ export default function FinanzOnlineReconciliationPage() {
                                 queryClient.invalidateQueries({ queryKey: rksvAdminQueryKeys.finanzOnline.metrics });
                             }}
                         >
-                            {OPERATOR_SHARED_COPY.retryAfterError}
+                            {t('common.buttons.retry')}
                         </Button>
                     }
                 />
@@ -817,7 +809,7 @@ export default function FinanzOnlineReconciliationPage() {
                 </Space>
             </Card>
 
-            <Card title={`Abgleich (${items.length} Einträge)`} size="small">
+            <Card title={t('finanzOnlineReconciliation.queuePage.table.cardTitle', { count: items.length })} size="small">
                 {isLoading && !listData ? (
                     <div style={{ textAlign: 'center', padding: 48 }}>
                         <Spin size="large" />
@@ -868,7 +860,7 @@ export default function FinanzOnlineReconciliationPage() {
                                 return (
                                     <div style={{ padding: '8px 12px 16px', background: '#fafafa' }}>
                                         <Typography.Text strong style={{ fontSize: 12, display: 'block' }}>
-                                            Zeile — technische Details (Listen-API)
+                                            {t('finanzOnlineReconciliation.queuePage.expandRow.technicalDetailsHeader')}
                                         </Typography.Text>
 
                                         <Divider orientation="left" plain style={{ margin: '12px 0 8px' }}>

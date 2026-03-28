@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Backoffice Lager-Operationen: Bestand, Bewegungen, Nachbestell-Vorschläge, Inventur-Entwurf, Umlagerung — mit Berechtigungen und Bestätigungsdialogen.
+ * Back-office inventory: stock, movements, reorder suggestions, stocktake draft, transfers — permissions and confirm dialogs.
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -92,14 +92,14 @@ function txLabel(t: (k: string) => string, v: number | undefined): string {
   }
 }
 
-function extractApiError(err: unknown): string {
+function extractApiError(err: unknown, translate: (key: string) => string): string {
   if (axios.isAxiosError(err)) {
     const d = err.response?.data;
     if (d && typeof d === 'object' && 'message' in d && typeof (d as { message: unknown }).message === 'string') {
       return (d as { message: string }).message;
     }
   }
-  return 'Request failed';
+  return translate('adminShell.inventory.errorRequestFailed');
 }
 
 export default function InventoryOperationsPage() {
@@ -190,7 +190,7 @@ export default function InventoryOperationsPage() {
         setRestockOpen(false);
         await invalidateAll();
       },
-      onError: (e) => message.error(extractApiError(e)),
+      onError: (e) => message.error(extractApiError(e, t)),
     },
   });
 
@@ -201,7 +201,7 @@ export default function InventoryOperationsPage() {
         setAdjustOpen(false);
         await invalidateAll();
       },
-      onError: (e) => message.error(extractApiError(e)),
+      onError: (e) => message.error(extractApiError(e, t)),
     },
   });
 
@@ -212,7 +212,7 @@ export default function InventoryOperationsPage() {
         setTransferOpen(false);
         await invalidateAll();
       },
-      onError: (e) => message.error(extractApiError(e)),
+      onError: (e) => message.error(extractApiError(e, t)),
     },
   });
 
@@ -222,7 +222,7 @@ export default function InventoryOperationsPage() {
         message.success(t('adminShell.inventory.success'));
         await invalidateAll();
       },
-      onError: (e) => message.error(extractApiError(e)),
+      onError: (e) => message.error(extractApiError(e, t)),
     },
   });
 
@@ -394,7 +394,7 @@ export default function InventoryOperationsPage() {
       if (adj !== 0) tasks.push({ id: r.id, adj, booked: r.currentStock, counted });
     }
     if (tasks.length === 0) {
-      message.info('Keine Differenzen.');
+      message.info(t('adminShell.inventory.countNoVariance'));
       return;
     }
     Modal.confirm({

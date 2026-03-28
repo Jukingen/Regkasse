@@ -33,15 +33,24 @@ import { useAdminCategoriesList } from '@/api/admin/categories';
 import { useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
-import { OPERATOR_SHARED_COPY } from '@/shared/operatorTruthCopy';
-
-const BENEFIT_KIND_LABELS: Record<AppliedBenefitKind, string> = {
-  [AppliedBenefitKind.PercentageDiscount]: 'Prozent-Rabatt',
-  [AppliedBenefitKind.FreeAllowance]: 'Kostenlose Tageskontingent',
-  [AppliedBenefitKind.BuyXGetY]: 'X kaufen, Y gratis',
-};
+import { useI18n } from '@/i18n';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 export default function BenefitDefinitionsPage() {
+  const { t } = useI18n();
+
+  const benefitKindLabel = (k: AppliedBenefitKind) => {
+    switch (k) {
+      case AppliedBenefitKind.PercentageDiscount:
+        return t('benefits.definitions.kindPercentage');
+      case AppliedBenefitKind.FreeAllowance:
+        return t('benefits.definitions.kindAllowance');
+      case AppliedBenefitKind.BuyXGetY:
+        return t('benefits.definitions.kindBuyXGetY');
+      default:
+        return String(k);
+    }
+  };
   const queryClient = useQueryClient();
   const listQuery = useAdminBenefitDefinitionsList();
   const categoriesQuery = useAdminCategoriesList();
@@ -108,69 +117,69 @@ export default function BenefitDefinitionsPage() {
       };
       if (editing) {
         await updateMutation.mutateAsync({ id: editing.id, data: payload });
-        message.success('Vorteil aktualisiert');
+        message.success(t('benefits.definitions.messages.updated'));
       } else {
         await createMutation.mutateAsync({ data: payload });
-        message.success('Vorteil angelegt');
+        message.success(t('benefits.definitions.messages.created'));
       }
       setModalOpen(false);
       setEditing(null);
       invalidateList();
     } catch (e) {
       if (e && typeof e === 'object' && 'errorFields' in e) return;
-      message.error(editing ? 'Aktualisierung fehlgeschlagen' : 'Anlegen fehlgeschlagen');
+      message.error(editing ? t('benefits.definitions.messages.updateFailed') : t('benefits.definitions.messages.saveFailed'));
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync({ id });
-      message.success('Vorteil deaktiviert');
+      message.success(t('benefits.definitions.messages.deactivated'));
       invalidateList();
     } catch {
-      message.error('Löschen fehlgeschlagen');
+      message.error(t('benefits.definitions.messages.deleteFailed'));
     }
   };
 
   const columns: ColumnType<BenefitDefinition>[] = [
-    { title: 'Code', dataIndex: 'code', key: 'code', width: 120 },
-    { title: 'Name', dataIndex: 'name', key: 'name' },
+    { title: t('benefits.shared.code'), dataIndex: 'code', key: 'code', width: 120 },
+    { title: t('benefits.shared.name'), dataIndex: 'name', key: 'name' },
     {
-      title: 'Art',
+      title: t('benefits.shared.kind'),
       dataIndex: 'benefitKind',
       key: 'benefitKind',
-      render: (k: AppliedBenefitKind) => BENEFIT_KIND_LABELS[k] ?? k,
+      render: (k: AppliedBenefitKind) => benefitKindLabel(k),
     },
     {
-      title: '%',
+      title: t('benefits.definitions.columnPercent'),
       dataIndex: 'percentageValue',
       key: 'percentageValue',
       align: 'right',
       render: (v: number | null) => (v != null ? `${v}%` : '–'),
     },
     {
-      title: 'Aktiv',
+      title: t('benefits.shared.active'),
       dataIndex: 'isActive',
       key: 'isActive',
       align: 'center',
-      render: (v: boolean) => (v ? 'Ja' : 'Nein'),
+      render: (v: boolean) => (v ? t('benefits.shared.yes') : t('benefits.shared.no')),
     },
     {
-      title: 'Aktionen',
+      title: t('benefits.shared.actions'),
       key: 'actions',
       align: 'right',
       render: (_: unknown, record: BenefitDefinition) => (
         <Space>
-          <Tooltip title="Bearbeiten">
+          <Tooltip title={t('benefits.shared.edit')}>
             <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
           </Tooltip>
           <Popconfirm
-            title="Vorteil deaktivieren?"
+            title={t('benefits.definitions.popconfirmDeactivate')}
             onConfirm={() => record.id && handleDelete(record.id)}
-            okText="Ja"
-            cancelText="Nein"
+            okText={t('common.buttons.yes')}
+            cancelText={t('common.buttons.no')}
           >
-            <Tooltip title="Deaktivieren">
+            <Tooltip title={t('benefits.shared.deactivate')}>
               <Button
                 type="text"
                 size="small"
@@ -188,11 +197,11 @@ export default function BenefitDefinitionsPage() {
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
-        title="Vorteile (Definitionen)"
-        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: 'Vorteile (Definitionen)' }]}
+        title={t('benefits.definitions.pageTitle')}
+        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: t('benefits.definitions.breadcrumb') }]}
         actions={
           <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            Neue Definition
+            {t('benefits.definitions.newDefinition')}
           </Button>
         }
       />
@@ -200,12 +209,21 @@ export default function BenefitDefinitionsPage() {
       {listQuery.isError ? (
         <Alert
           type="error"
-          message="Laden fehlgeschlagen"
-          description={listQuery.error?.message}
+          message={t('benefits.shared.loadFailedTitle')}
+          description={
+            listQuery.error ? (
+              <ApiErrorAlertDescription
+                t={t}
+                error={listQuery.error}
+                logContext="BenefitDefinitions.list"
+                fallbackKey="common.messages.unknownError"
+              />
+            ) : undefined
+          }
           showIcon
           action={
             <Button size="small" onClick={() => listQuery.refetch()}>
-              {OPERATOR_SHARED_COPY.retryAfterError}
+              {t('common.buttons.retry')}
             </Button>
           }
         />
@@ -217,53 +235,55 @@ export default function BenefitDefinitionsPage() {
         rowKey="id"
         loading={listQuery.isLoading}
         pagination={{ pageSize: 10, showSizeChanger: true }}
-        locale={{ emptyText: <Empty description="Keine Definitionen" /> }}
+        locale={{ emptyText: <Empty description={t('benefits.definitions.emptyList')} /> }}
       />
 
       <Modal
-        title={editing ? 'Vorteil bearbeiten' : 'Neue Vorteilsdefinition'}
+        title={editing ? t('benefits.definitions.modalEditTitle') : t('benefits.definitions.modalCreateTitle')}
         open={modalOpen}
         onOk={handleSubmit}
         onCancel={() => { setModalOpen(false); setEditing(null); }}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
         destroyOnClose
+        okText={t('common.buttons.save')}
+        cancelText={t('common.buttons.cancel')}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="code" label="Code" rules={[{ required: true, message: 'Code angeben' }]}>
-            <Input placeholder="z.B. STAFF_10" maxLength={50} />
+          <Form.Item name="code" label={t('benefits.shared.code')} rules={[{ required: true, message: t('benefits.definitions.formCodeRequired') }]}>
+            <Input placeholder={t('benefits.definitions.codePlaceholder')} maxLength={50} />
           </Form.Item>
-          <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name angeben' }]}>
-            <Input placeholder="z.B. Mitarbeiter 10 %" maxLength={100} />
+          <Form.Item name="name" label={t('benefits.shared.name')} rules={[{ required: true, message: t('benefits.definitions.formNameRequired') }]}>
+            <Input placeholder={t('benefits.definitions.namePlaceholder')} maxLength={100} />
           </Form.Item>
-          <Form.Item name="benefitKind" label="Art" rules={[{ required: true }]}>
+          <Form.Item name="benefitKind" label={t('benefits.shared.kind')} rules={[{ required: true }]}>
             <Select
               options={[
-                { value: AppliedBenefitKind.PercentageDiscount, label: BENEFIT_KIND_LABELS[AppliedBenefitKind.PercentageDiscount] },
-                { value: AppliedBenefitKind.FreeAllowance, label: BENEFIT_KIND_LABELS[AppliedBenefitKind.FreeAllowance] },
-                { value: AppliedBenefitKind.BuyXGetY, label: BENEFIT_KIND_LABELS[AppliedBenefitKind.BuyXGetY] },
+                { value: AppliedBenefitKind.PercentageDiscount, label: benefitKindLabel(AppliedBenefitKind.PercentageDiscount) },
+                { value: AppliedBenefitKind.FreeAllowance, label: benefitKindLabel(AppliedBenefitKind.FreeAllowance) },
+                { value: AppliedBenefitKind.BuyXGetY, label: benefitKindLabel(AppliedBenefitKind.BuyXGetY) },
               ]}
             />
           </Form.Item>
-          <Form.Item name="percentageValue" label="Prozentwert (für Prozent-Rabatt)">
+          <Form.Item name="percentageValue" label={t('benefits.definitions.formPercentValue')}>
             <InputNumber min={0} max={100} step={0.5} style={{ width: '100%' }} placeholder="10" />
           </Form.Item>
-          <Form.Item name="allowanceQuantity" label="Kontingent (für Tageskontingent)">
+          <Form.Item name="allowanceQuantity" label={t('benefits.definitions.formAllowanceQty')}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="allowanceScope" label="Scope (z.B. per_day)">
-            <Input maxLength={50} placeholder="per_day" />
+          <Form.Item name="allowanceScope" label={t('benefits.definitions.formAllowanceScope')}>
+            <Input maxLength={50} placeholder={t('benefits.definitions.formAllowanceScopePlaceholder')} />
           </Form.Item>
-          <Form.Item name="allowanceCategoryId" label="Kategorie (für Tageskontingent – nur diese Kategorie)">
+          <Form.Item name="allowanceCategoryId" label={t('benefits.definitions.formAllowanceCategory')}>
             <Select
               allowClear
-              placeholder="Kategorie wählen"
+              placeholder={t('benefits.shared.selectCategory')}
               loading={categoriesQuery.isLoading}
               options={(categoriesQuery.data ?? []).map((c) => ({ value: c.id, label: c.name }))}
             />
           </Form.Item>
           <Form.Item
             name="buyXQuantity"
-            label="Buy X (für X kaufen Y gratis)"
+            label={t('benefits.definitions.formBuyX')}
             required={benefitKindWatch === AppliedBenefitKind.BuyXGetY}
             dependencies={['benefitKind']}
             rules={[
@@ -271,7 +291,7 @@ export default function BenefitDefinitionsPage() {
                 validator(_, value) {
                   if (form.getFieldValue('benefitKind') !== AppliedBenefitKind.BuyXGetY) return Promise.resolve();
                   if (value == null || value === '' || Number(value) < 1) {
-                    return Promise.reject(new Error('Buy X ist bei „X kaufen, Y gratis“ erforderlich (mind. 1).'));
+                    return Promise.reject(new Error(t('benefits.definitions.validationBuyX')));
                   }
                   return Promise.resolve();
                 },
@@ -282,7 +302,7 @@ export default function BenefitDefinitionsPage() {
           </Form.Item>
           <Form.Item
             name="getYQuantity"
-            label="Get Y (für X kaufen Y gratis)"
+            label={t('benefits.definitions.formGetY')}
             required={benefitKindWatch === AppliedBenefitKind.BuyXGetY}
             dependencies={['benefitKind']}
             rules={[
@@ -290,7 +310,7 @@ export default function BenefitDefinitionsPage() {
                 validator(_, value) {
                   if (form.getFieldValue('benefitKind') !== AppliedBenefitKind.BuyXGetY) return Promise.resolve();
                   if (value == null || value === '' || Number(value) < 1) {
-                    return Promise.reject(new Error('Get Y ist bei „X kaufen, Y gratis“ erforderlich (mind. 1).'));
+                    return Promise.reject(new Error(t('benefits.definitions.validationGetY')));
                   }
                   return Promise.resolve();
                 },
@@ -299,7 +319,7 @@ export default function BenefitDefinitionsPage() {
           >
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="isActive" label="Aktiv" valuePropName="checked">
+          <Form.Item name="isActive" label={t('benefits.shared.active')} valuePropName="checked">
             <Switch />
           </Form.Item>
         </Form>

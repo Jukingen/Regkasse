@@ -11,10 +11,36 @@
     "refresh": "Aktualisieren",
     "close": "Schließen",
     "delete": "Löschen",
-    "edit": "Bearbeiten"
+    "edit": "Bearbeiten",
+    "reload": "Erneut laden"
+  },
+  "toolbar": {
+    "refetchHint": "Daten manuell aktualisieren (Cache kann veraltet sein)."
   },
   "messages": {
-    "unknownError": "Unbekannter Fehler"
+    "unknownError": "Unbekannter Fehler",
+    "noTechnicalDetail": "Keine technische Detailmeldung verfuegbar."
+  },
+  "loadErrors": {
+    "list": "Liste konnte nicht geladen werden",
+    "batch": "Batch konnte nicht geladen werden",
+    "incidentAggregate": "Incident-Aggregat konnte nicht geladen werden"
+  },
+  "loading": {
+    "data": "Daten werden geladen…",
+    "incidentAggregate": "Lade Incident-Aggregat…",
+    "batchDetail": "Lade Batch-Details…",
+    "invoiceDetail": "Rechnungsdetails werden geladen…"
+  },
+  "empty": {
+    "batchDetailsForCorrelation": "Keine Batch-Details fuer diese Correlation-ID."
+  },
+  "incident": {
+    "aggregateNotFoundTitle": "Kein Incident-Aggregat",
+    "aggregateNotFoundDescription": "Fuer diese Correlation-ID liefert die API kein zusammengefasstes Ergebnis — nicht als „keine Daten in der Kasse“ interpretieren."
+  },
+  "investigation": {
+    "furtherLabel": "Weiter untersuchen"
   },
   "errors": {
     "http400": "Ungueltige Anfrage.",
@@ -45,13 +71,70 @@
   },
   "dataList": {
     "errorLoadTitle": "Fehler beim Laden der Daten",
-    "emptyDefault": "Keine Daten gefunden"
+    "emptyDefault": "Keine Daten gefunden",
+    "loadingTip": "Daten werden geladen…"
+  },
+  "auditLogs": {
+    "filterCardTitle": "Filter",
+    "criteriaLabel": "Kriterien",
+    "actionPlaceholder": "Aktion",
+    "activeFiltersLabel": "Aktive Filter:",
+    "clearAllFilters": "Alle Filter zuruecksetzen",
+    "forensicsHint": "Fuer RKSV-/Offline-Stichproben (Correlation, Signatur-Stichworte) nutzen Sie die Audit-Spur — dieses Protokoll ist die allgemeine GET-/api/AuditLog-Liste.",
+    "forensicsLinkVerifications": "RKSV Audit-Spur oeffnen",
+    "dateRangeIncompleteTitle": "Zeitraum unvollstaendig",
+    "dateRangeIncompleteDescription": "Es ist nur ein Datum gewaehlt. Fuer einen klaren Zeitraum bitte Start- und Enddatum setzen oder den Bereich leeren (API erhaelt sonst nur ein Datum).",
+    "emptyFiltered": "Keine Eintraege fuer diese Abfrage. Zeitraum erweitern, Aktion loeschen oder Filter zuruecksetzen — die Tabelle zeigt nur die aktuelle API-Seite.",
+    "emptyNoRows": "Keine Daten in dieser API-Antwort.",
+    "errorTitle": "Audit-Protokoll konnte nicht geladen werden",
+    "paginationZero": "0 Treffer",
+    "paginationRangeOfTotal": "{{from}}–{{to}} von {{total}} Eintraegen",
+    "scopeApiPageNote": "Anzeige = nur diese API-Seite (nicht das gesamte Protokoll).",
+    "activeViewLabel": "Aktive Ansicht:",
+    "refreshingSuffix": "(Aktualisiert …)",
+    "introLead": "Nach Aktion und Zeitraum filtern; Export nutzt dieselben Filter.",
+    "introStrongTable": "Die Tabelle zeigt nur die aktuelle API-Seite",
+    "introTrail": "— weiterblaettern aendert die serverseitige Seite, nicht einen clientseitigen Ausschnitt.",
+    "exportJson": "Export JSON",
+    "exportCsv": "Export CSV",
+    "tagActionPrefix": "Aktion:",
+    "tagDateRangePrefix": "Zeitraum:",
+    "scopePage": "Seite {{page}}",
+    "scopeRowsPerRequest": "{{pageSize}} Zeilen pro API-Anfrage",
+    "scopeTotalEntries": "{{total}} Eintraege gesamt laut API",
+    "scopeTotalLoading": "Gesamtanzahl wird geladen …",
+    "scopeActionIs": "Aktion = {{action}}",
+    "scopeNoDateFilter": "kein Datumsfilter",
+    "actionLabels": {
+      "login": "Login",
+      "createInvoice": "Rechnung erstellen",
+      "payment": "Zahlung"
+    },
+    "exportStarted": "Export gestartet",
+    "exportFailed": "Export fehlgeschlagen",
+    "table": {
+      "time": "Zeit",
+      "correlation": "Correlation",
+      "user": "Benutzer",
+      "action": "Aktion",
+      "entity": "Entitaet",
+      "details": "Details",
+      "status": "Status"
+    }
+  },
+  "validation": {
+    "fieldRequired": "Bitte dieses Feld ausfuellen.",
+    "numberBetween": "Bitte einen Wert zwischen {{min}} und {{max}} eingeben."
   },
   "auth": {
+    "appTitle": "Regkasse Admin",
     "subtitle": "Melden Sie sich an, um Ihr Kassensystem zu verwalten",
     "username": "Benutzername",
     "password": "Passwort",
     "login": "Anmelden",
+    "loginSubmitLoading": "Anmeldung läuft …",
+    "checkingSession": "Authentifizierung wird geprueft …",
+    "logoutSuccess": "Abmeldung erfolgreich.",
     "loginSuccess": "Anmeldung erfolgreich",
     "loginFailedWithStatus": "Anmeldung fehlgeschlagen ({{status}}): {{details}}",
     "loginInvalidCredentials": "Benutzername oder Passwort ist ungueltig.",
@@ -74,6 +157,19 @@
     "emptyCategories": "Keine Kategorien",
     "deleteConfirmTitle": "Kategorie loeschen?",
     "deleteConfirmDescription": "Produkte, die mit dieser Kategorie verknuepft sind, koennen betroffen sein.",
+    "form": {
+      "modalTitleCreate": "Neue Kategorie",
+      "modalTitleEdit": "Kategorie bearbeiten",
+      "nameLabel": "Kategoriename",
+      "nameRequired": "Bitte Kategorienamen eingeben.",
+      "namePlaceholder": "z. B. Speisen, Getraenke",
+      "vatLabel": "MwSt. (%)",
+      "vatRequired": "Bitte MwSt.-Satz eingeben.",
+      "vatRange": "MwSt. muss zwischen {{min}} und {{max}} liegen.",
+      "vatPlaceholder": "10 oder 20",
+      "sortOrderLabel": "Sortierung",
+      "activeLabel": "Aktiv"
+    },
     "table": {
       "name": "Name",
       "product": "Produkt",
@@ -93,8 +189,5 @@
       "deleted": "Kategorie geloescht.",
       "deleteError": "Kategorie konnte nicht geloescht werden."
     }
-  },
-  "operator": {
-    "refetchHintToolbar": "Daten manuell aktualisieren (Cache kann veraltet sein)."
   }
 }

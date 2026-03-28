@@ -21,6 +21,14 @@ describe('extractRawApiErrorMessage', () => {
   it('returns undefined for empty', () => {
     expect(extractRawApiErrorMessage({ response: { data: {} } })).toBeUndefined();
   });
+
+  it('reads normalized.message when present on error object', () => {
+    expect(
+      extractRawApiErrorMessage({
+        normalized: { message: 'Wrapped client message' },
+      }),
+    ).toBe('Wrapped client message');
+  });
 });
 
 describe('extractHttpStatusFromUnknownError', () => {

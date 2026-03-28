@@ -44,11 +44,4 @@ export async function downloadFiscalExportJson(params: GetApiAdminFiscalExportPa
   return response.data;
 }
 
-export function extractApiErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message) return error.message;
-  if (typeof error === 'object' && error !== null) {
-    const candidate = (error as { response?: { data?: { message?: unknown } } }).response?.data?.message;
-    if (typeof candidate === 'string' && candidate.length > 0) return candidate;
-  }
-  return fallback;
-}
+export { extractApiErrorMessage } from '@/shared/errors/apiErrorMessageFallback';

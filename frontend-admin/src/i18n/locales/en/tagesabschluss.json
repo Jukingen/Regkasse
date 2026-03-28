@@ -68,7 +68,23 @@
     "colTax": "Tax",
     "colTransactions": "Transactions",
     "colStatus": "Status",
-    "colFinanzOnline": "FinanzOnline"
+    "colFinanzOnline": "FinanzOnline",
+    "closingTypes": {
+      "Daily": "Daily",
+      "Monthly": "Monthly",
+      "Yearly": "Yearly"
+    },
+    "rowStatus": {
+      "Completed": "Completed",
+      "Failed": "Failed",
+      "Pending": "Pending"
+    },
+    "finanzOnlineStatus": {
+      "Submitted": "Submitted",
+      "Failed": "Failed",
+      "Pending": "Pending",
+      "NeedsReconciliation": "Needs reconciliation"
+    }
   },
   "messages": {
     "successDaily": "Daily closing executed.",
@@ -77,6 +93,8 @@
     "warningUuid": "Please select or enter a valid register ID (UUID)."
   },
   "errors": {
-    "unknown": "Unknown error"
+    "unknown": "Unknown error",
+    "loadStatsTitle": "Could not load statistics",
+    "loadHistoryTitle": "Could not load history"
   }
 }

@@ -31,7 +31,54 @@
     "deleteConfirmDescription": "This action cannot be undone."
   },
   "stockModal": {
-    "title": "Adjust stock"
+    "title": "Adjust stock",
+    "productLabel": "Product",
+    "quantityLabel": "Quantity (stock)"
+  },
+  "taxLabels": {
+    "standard": "{{rate}}% (standard)",
+    "reduced": "{{rate}}% (reduced)",
+    "special": "{{rate}}% (special)",
+    "zero": "{{rate}}% (zero rate)",
+    "fallback": "{{rate}}% (standard)"
+  },
+  "form": {
+    "titleCreate": "Create new product",
+    "titleEdit": "Edit product",
+    "name": "Product name",
+    "nameRequired": "Please enter a product name",
+    "namePlaceholder": "e.g. Coca Cola 0.33L",
+    "barcode": "Barcode",
+    "barcodePlaceholder": "Scan or type barcode",
+    "category": "Category",
+    "categoryRequired": "Please select a category",
+    "categoryPlaceholder": "Select category",
+    "price": "Price (€)",
+    "priceRequired": "Please enter price",
+    "cost": "Cost (€)",
+    "taxType": "Tax type",
+    "taxTypeRequired": "Select tax type",
+    "taxTypePlaceholder": "Select tax type",
+    "taxStandard": "20% (standard)",
+    "taxReduced": "10% (reduced)",
+    "taxSpecial": "13% (special)",
+    "description": "Description",
+    "active": "Active",
+    "addonGroupsLabel": "Add-on groups for this product",
+    "addonGroupsExtra": "Which groups are selectable for this product? Manage add-on products per group under “Add-on groups”."
+  },
+  "addonGroups": {
+    "countEmpty": "empty",
+    "countOne": "1 product",
+    "countMany": "{{count}} products",
+    "sectionTitle": "Add-on products in this group",
+    "noneInGroup": "No add-on products in this group.",
+    "taxSuffix": "VAT type {{type}}",
+    "runtimeHint": "New sales only use add-on products from this group.",
+    "loading": "Loading add-on groups…",
+    "emptyCatalog": "No add-on groups. Create groups under “Add-on groups” and add add-on products. Then select which groups appear for this product.",
+    "warningTitle": "Empty groups selected",
+    "warningItem": "The group “{{name}}” has no add-on products. No extras will appear for this group at the POS. Add products under “Add-on groups”."
   },
   "messages": {
     "createSuccess": "Product created.",
@@ -42,6 +89,8 @@
     "deleteSuccess": "Product deleted.",
     "deleteError": "Could not delete product.",
     "stockUpdateSuccess": "Stock updated.",
-    "stockUpdateError": "Could not update stock."
+    "stockUpdateError": "Could not update stock.",
+    "modifierGroupsLoadFailed": "Could not load add-on groups.",
+    "categoryPickRequired": "Please select a category."
   }
 }

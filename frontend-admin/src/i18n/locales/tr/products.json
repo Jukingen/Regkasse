@@ -31,7 +31,54 @@
     "deleteConfirmDescription": "Bu islem geri alinamaz."
   },
   "stockModal": {
-    "title": "Stok ayarla"
+    "title": "Stok ayarla",
+    "productLabel": "Urun",
+    "quantityLabel": "Miktar (stok)"
+  },
+  "taxLabels": {
+    "standard": "{{rate}}% (normal)",
+    "reduced": "{{rate}}% (indirimli)",
+    "special": "{{rate}}% (ozel)",
+    "zero": "{{rate}}% (sifir)",
+    "fallback": "{{rate}}% (normal)"
+  },
+  "form": {
+    "titleCreate": "Yeni urun",
+    "titleEdit": "Urunu duzenle",
+    "name": "Urun adi",
+    "nameRequired": "Urun adi girin",
+    "namePlaceholder": "orn. Coca Cola 0,33 l",
+    "barcode": "Barkod",
+    "barcodePlaceholder": "Tara veya yaz",
+    "category": "Kategori",
+    "categoryRequired": "Kategori secin",
+    "categoryPlaceholder": "Kategori secin",
+    "price": "Fiyat (EUR)",
+    "priceRequired": "Fiyat girin",
+    "cost": "Maliyet (EUR)",
+    "taxType": "Vergi turu",
+    "taxTypeRequired": "Vergi turu secin",
+    "taxTypePlaceholder": "Vergi turu secin",
+    "taxStandard": "%20 (normal)",
+    "taxReduced": "%10 (indirimli)",
+    "taxSpecial": "%13 (ozel)",
+    "description": "Aciklama",
+    "active": "Aktif",
+    "addonGroupsLabel": "Bu urun icin ek urun gruplari",
+    "addonGroupsExtra": "Bu urun icin hangi gruplar secilebilir? Grup basina ek urunleri \"Ek urun gruplari\" altinda yonetin."
+  },
+  "addonGroups": {
+    "countEmpty": "bos",
+    "countOne": "1 urun",
+    "countMany": "{{count}} urun",
+    "sectionTitle": "Bu gruptaki ek urunler",
+    "noneInGroup": "Bu grupta ek urun yok.",
+    "taxSuffix": "KDV tipi {{type}}",
+    "runtimeHint": "Yeni satis yalnizca bu gruptaki ek urunleri kullanir.",
+    "loading": "Ek urun gruplari yukleniyor…",
+    "emptyCatalog": "Ek urun grubu yok. \"Ek urun gruplari\" altinda grup olusturun ve ek urun ekleyin; ardindan bu urun icin hangi gruplarin gorunecegini secin.",
+    "warningTitle": "Bos gruplar secildi",
+    "warningItem": "\"{{name}}\" grubunda ek urun yok. POS'ta bu grup icin ekstra gorunmez. \"Ek urun gruplari\" altinda urun ekleyin."
   },
   "messages": {
     "createSuccess": "Ürün oluşturuldu.",
@@ -42,6 +89,8 @@
     "deleteSuccess": "Ürün silindi.",
     "deleteError": "Ürün silinemedi.",
     "stockUpdateSuccess": "Stok güncellendi.",
-    "stockUpdateError": "Stok güncellenemedi."
+    "stockUpdateError": "Stok güncellenemedi.",
+    "modifierGroupsLoadFailed": "Ek urun gruplari yuklenemedi.",
+    "categoryPickRequired": "Lutfen bir kategori secin."
   }
 }

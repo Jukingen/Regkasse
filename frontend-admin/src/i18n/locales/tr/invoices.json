@@ -1,0 +1,221 @@
+{
+  "page": {
+    "title": "Faturalar",
+    "listLead": "Sunucu tarafindan filtrelenmis fatura listesi; toplu islemler (yazdirma, disa aktarma, mutabakat). TSE izleri, baglam ve FinanzOnline baglantilari icin detaylari acin."
+  },
+  "actions": {
+    "batchPrint": "Toplu: Yazdir",
+    "batchExport": "Toplu: Disa aktar",
+    "batchReconcile": "Toplu: Mutabakat",
+    "exportCsvAll": "CSV disa aktar (tumu)"
+  },
+  "filters": {
+    "searchPlaceholder": "No, musteri ara …",
+    "statusPlaceholder": "Durum",
+    "registerPlaceholder": "Kayit UUID (cash_registers.Id)",
+    "registerListFilterApiFootnote": "Serbest metin liste API'sine degistirilmeden gonderilir; mutabakat sayfasina derin baglantilar yalnizca gecerli UUID ile.",
+    "invalidRegisterOnlyCheckboxLabel": "Yalnizca gecerli kayit UUID'si olmayan satirlar (baglanti FK yok)",
+    "activeFiltersLabel": "Aktif filtreler",
+    "clearAllFilters": "Tum filtreleri sifirla"
+  },
+  "dateRange": {
+    "blocksQueryTitle": "Sorgu duraklatildi",
+    "blocksQuerySuffix": "Liste, tarih araligi gecerli oldugunda yuklenir."
+  },
+  "filterTags": {
+    "searchPrefix": "Arama",
+    "statusPrefix": "Durum",
+    "dateRangePrefix": "Donem",
+    "registerUuid": "Kayit (UUID)",
+    "registerApi": "Kayit (API)",
+    "invalidRegisterShort": "Kayit UUID yok (istemci)"
+  },
+  "registerFilter": {
+    "invalidTitle": "Guvenli derin baglanti olmadan kayit filtresi",
+    "invalidDescription": "Deger liste API'sine gonderilir ancak guvenli kayit derin baglantilari icin UUID kuralini karsilamaz (FinanzOnline mutabakati). Kaydi mutabakat gorunumunde acikca secin."
+  },
+  "errors": {
+    "listGeneric": "Liste yuklenemedi. Lutfen tekrar deneyin veya filtreleri kontrol edin.",
+    "listUnauthorized": "Oturum acilmamis veya oturum suresi doldu. Lutfen yeniden giris yapin.",
+    "listForbidden": "Fatura listesine erisim izni yok.",
+    "listNotFound": "Liste uç noktasi bulunamadi. Lutfen destek ile iletisime gecin.",
+    "listServer": "Sunucu hatasi. Lutfen sonra tekrar deneyin.",
+    "listNetwork": "Ag hatasi. Baglantiyi kontrol edip tekrar deneyin."
+  },
+  "empty": {
+    "invalidDateRange": "Gecersiz tarih araligi",
+    "loadFailedTitle": "Liste kullanilamiyor",
+    "loadFailedHint": "Baglanti, yetki ve filtreleri kontrol edin. Filtreleri genisletin veya sifirlayip yeniden yukleyin.",
+    "dateRange": "Secilen donemde fatura yok. Filtreleri ayarlayin.",
+    "default": "Fatura yok. Filtreleri ayarlayin.",
+    "moreHint": "Ipucu: arama, durum, donem veya kayit ile daratin. Iptal referansi ve tam TSE verisi detay gorunumundadir."
+  },
+  "listSummary": {
+    "apiTotal": "Toplam eslesme (API)",
+    "rowsThisPage": "Bu sayfadaki satirlar",
+    "clientFilterNote": "Istemci filtresi aktif: gorunen satirlar sayfa boyutundan az olabilir.",
+    "refreshingHint": "Yenileniyor …",
+    "staleAfterErrorNote": "Not: tablo son basarili yaniti gosterir — guncel istek basarisiz oldu."
+  },
+  "pagination": {
+    "zeroResults": "0 sonuc",
+    "rangeOfTotal": "{{from}}–{{to}} / {{total}}"
+  },
+  "list": {
+    "loadingTip": "Faturalar yukleniyor…",
+    "kassenHeaderTooltip": "Goruntulenen kasa kimligi; hucre ipucunda kayit FK (ham deger).",
+    "kassenCellTooltipWithFk": "Kayit FK (API listesinden ham): {{fk}}",
+    "kassenCellTooltipNoFk": "Liste DTO'sunda cashRegisterId yok — sutun yalnizca gorunen metni gosterir.",
+    "tseHeaderTooltip": "TSE imzasi onizlemesi; tam deger detay diyalogunda."
+  },
+  "columns": {
+    "invoiceNumber": "Fatura no.",
+    "date": "Tarih",
+    "customer": "Musteri (anlik)",
+    "total": "Tutar",
+    "status": "Durum",
+    "kassenShort": "Kasa (gor.)",
+    "tseShort": "TSE",
+    "actions": "Islemler"
+  },
+  "creditNoteTagShort": "IF",
+  "status": {
+    "draft": "Taslak",
+    "sent": "Gonderildi",
+    "paid": "Odendi",
+    "partiallyPaid": "Kismen odendi",
+    "unpaid": "Acik",
+    "overdue": "Vadesi gecmis",
+    "cancelled": "Iptal",
+    "creditNote": "Iade faturasi",
+    "unknown": "Bilinmiyor"
+  },
+  "paymentMethod": {
+    "bar": "Nakit",
+    "card": "Kart",
+    "transfer": "Havale",
+    "check": "Cek",
+    "voucher": "Kupon",
+    "mobile": "Mobil"
+  },
+  "rowActions": {
+    "detailExtendedTooltip": "Fatura diyalogu: kalemler, TSE, kayit, FinanzOnline baglami.",
+    "detailTooltip": "Detaylar",
+    "printTooltip": "PDF'yi yeni sekmede ac",
+    "printCompact": "Yazdir",
+    "creditNoteTooltip": "Iade faturasi olustur (diyalog)",
+    "creditCompact": "Iade"
+  },
+  "display": {
+    "unknownInvoice": "Bilinmiyor"
+  },
+  "batch": {
+    "exportSuccess": "Toplu disa aktarma: {{success}} basarili, {{fail}} basarisiz",
+    "reconcileHandoffBody": "{{success}} fatura/odeme satiri islendi. Guncel mutabakat durumunu kontrol edin.",
+    "reconcileFooterHint": "Basari: {{success}}, Basarisiz: {{fail}}, Atlanan: {{skipped}}, Zaten gonderilmis: {{alreadySubmitted}}"
+  },
+  "messages": {
+    "batchPrint": "Toplu yazdirma: {{ok}} basarili, {{fail}} basarisiz",
+    "batchReconcileSummary": "Mutabakat: {{ok}} tamam, {{fail}} basarisiz, {{skipped}} atlandi, {{already}} zaten gonderildi.",
+    "exportCsvOk": "CSV disa aktarma baslatildi.",
+    "exportCsvFailed": "CSV disa aktarma basarisiz.",
+    "pdfSessionExpired": "Oturum suresi doldu. Lutfen yeniden giris yapin.",
+    "pdfNotFound": "Fatura bulunamadi veya silindi.",
+    "pdfFailed": "PDF olusturulamadi.",
+    "noPaymentLinkedForReconcile": "Mutabakat icin bagli odeme bulunamadi.",
+    "finanzOnlineSubmitOk": "FinanzOnline gonderimi basariyla tamamlandi.",
+    "finanzOnlineAlreadySubmitted": "Zaten gonderilmis olarak isaretli.",
+    "reconciliationRetryTriggerFailed": "Mutabakat yeniden denemesi tetiklenemedi.",
+    "creditNoteCreated": "Iade faturasi olusturuldu.",
+    "creditNoteExists": "Bu fatura icin zaten bir iade faturasi var.",
+    "creditNoteBadRequest": "Gecersiz istek.",
+    "creditNoteFailed": "Iade faturasi olusturulamadi."
+  },
+  "modals": {
+    "batchReconcileTitle": "Toplu: FinanzOnline mutabakati yeniden gonderilsin mi?",
+    "batchReconcileBody": "{{count}} secili satir icin FinanzOnline mutabakati tetiklensin mi?",
+    "batchReconcileOk": "Calistir",
+    "batchReconcileCancel": "Iptal",
+    "batchReconcileFinishedTitle": "Toplu mutabakat tamamlandi",
+    "openFinanzOnlineQueue": "Mutabakata git",
+    "reconciliationSuccessTitle": "Mutabakat basarili",
+    "alreadySubmittedTitle": "Zaten gonderildi",
+    "reconciliationFailedTitle": "Mutabakat basarisiz",
+    "reconciliationErrorTitle": "Mutabakat hatasi"
+  },
+  "handoff": {
+    "submissionIdLabel": "Gonderim kimligi",
+    "submittedAtLabel": "Gonderim zamani",
+    "registerFilterOmitted": "Not: Bu faturanin kayit FK'si baglanti icin guvenli degil (gecerli bos-olmayan UUID degil). Mutabakat URL'si bu nedenle cashRegisterId filtresi koymaz; URL'deki odeme ve toplu baglam korunur.",
+    "defaultFooter": "Filtrelerle FinanzOnline mutabakat gorunumunu acar. Gecerli odeme ve toplu korelasyon kimlikleri URL'de baglam veya odak olarak tasınir — mutabakat sayfasindaki nota bakin."
+  },
+  "creditNote": {
+    "modalTitle": "Iade faturasi olustur",
+    "modalOk": "Iade faturasi olustur",
+    "modalCancel": "Iptal",
+    "alertMessage": "Iade faturasi uyarisi",
+    "alertDescription": "Negatif tutarlarla iade faturasi olusturur (muhasebe etkisini dogrulayin).",
+    "formReasonCodeLabel": "Neden (kod)",
+    "formReasonTextLabel": "Gerekce",
+    "formReasonPlaceholder": "Neden secin…",
+    "formReasonCodeRequired": "Lutfen bir neden secin.",
+    "formReasonTextRequired": "Lutfen gerekceyi girin.",
+    "formReasonTextAreaPlaceholder": "Iade faturasinin neden gerekli oldugunu kisaca aciklayin …",
+    "reasonReturn": "Iade",
+    "reasonError": "Fatura hatasi",
+    "reasonDiscount": "Indirim",
+    "reasonCancel": "Tam iptal",
+    "reasonOther": "Diger"
+  },
+  "export": {
+    "csvHeaderRow": "Rechnungsnummer;Rechnungsdatum;Kundenname;Firmenname;Bruttobetrag;Status;Belegart;StornoReferenz;KassenIdAnzeige;RegisterFK;TseSignatur"
+  },
+  "reconciliation": {
+    "checkStatusAfter": " Simdi mutabakat durumunu kontrol edin.",
+    "retryUnknownError": "Yeniden denemede bilinmeyen hata.",
+    "failedOpenQueueHint": "Durumu/yeniden deneme durumunu gormek icin FinanzOnline mutabakatini acin.",
+    "catchFallbackMessage": "Mutabakat yeniden denemesi tetiklenemedi.",
+    "errorOpenQueueHint": "Guncel durumu gormek icin mutabakat gorunumune gecebilirsiniz."
+  },
+  "detail": {
+    "invoiceLabel": "Fatura",
+    "creditNoteTag": "Iade faturasi",
+    "statusLabel": "Durum",
+    "dateLabel": "Tarih",
+    "grossLabel": "Brut",
+    "paymentReconciliation": "Odeme (mutabakat):",
+    "openPayment": "Ac",
+    "noPaymentLinked": "— bagli odeme yok",
+    "provenanceFromResponse": "Koken (yanit):",
+    "provenancePlain": "Koken:",
+    "retryFooterHint": "Yeniden deneme: FinanzOnline mutabakati, diyalogun altindaki dugme ile (footer).",
+    "collapseTseRaw": "TSE imzasi (ham alan)",
+    "positionsCollapseLabel": "Kalemler (OpenAPI: unknown) — {{label}}",
+    "positionsJsonError": "JSON hatasi",
+    "positionsTypeLabel": "Tur {{primitive}}",
+    "positionsRowCount": "{{count}} satir",
+    "positionsEmptyRaw": "bos / ham yuk",
+    "itemsParseErrorTitle": "invoiceItems JSON olarak okunamadi",
+    "itemsUnexpectedTypeTitle": "Beklenmeyen calisma zamani turu",
+    "itemsUnexpectedTypeDesc": "Alinan: {{primitive}}",
+    "itemsNoRows": "Kalem verisi yok (normalizasyon sonrasi bos veya null).",
+    "modalTitlePrefix": "Fatura:",
+    "modalClose": "Kapat",
+    "modalPrint": "Yazdir",
+    "modalReconciliationRetry": "Mutabakati yeniden gonder",
+    "registerMachineLabel": "Kayit (makine baglantisi)",
+    "foLinkWithContext": "FinanzOnline mutabakat (URL baglami ile)",
+    "foLinkRegisterOnly": "FinanzOnline mutabakat (bu kayit, URL baglami ile)",
+    "correlationPathsLabel": "Toplu korelasyon / inceleme",
+    "provenanceUntypedApiNote": "API yanitindan deger; uretilen istemcide henuz zorunlu alan olarak tipize edilmedi.",
+    "provenanceOperatorFooter": "OpenAPI istemcisinde tipize invoiceDataProvenance alani olmadan kalicilik ile odeme turevi belirsiz kalir (diger alanlardan sezgisel cikarim yok). Baglantilar kassenId degil cashRegisterId (makine baglantisi) kullanir — sozlesme aciklarina bakin.",
+    "contractInvoiceItemsTitle": "Sozlesme durumu (kalemler)",
+    "descLabelCompany": "Sirket",
+    "descLabelTotalAmount": "Brut toplam",
+    "descLabelTaxAmount": "Vergi tutari",
+    "descLabelPaymentMethod": "Odeme yontemi",
+    "descRegisterFkMachine": "Kayit (FK, yalnizca makine)",
+    "descKassenIdDisplay": "Kasa kimligi / numara (gorunum)",
+    "emptyLoadFailed": "Detay yuklenmedi veya yukleme hatasi."
+  }
+}

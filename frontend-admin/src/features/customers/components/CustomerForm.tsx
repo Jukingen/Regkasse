@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Form, Input, Switch, Modal, Row, Col } from 'antd';
 import { Customer } from '@/api/generated/model';
+import { useI18n } from '@/i18n';
 
 interface CustomerFormProps {
     visible: boolean;
@@ -13,6 +14,7 @@ interface CustomerFormProps {
 }
 
 export default function CustomerForm({ visible, initialValues, onCancel, onSubmit, loading, assignedBenefitCount }: CustomerFormProps) {
+    const { t } = useI18n();
     const [form] = Form.useForm();
 
     useEffect(() => {
@@ -41,30 +43,32 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
 
     return (
         <Modal
-            title={initialValues ? 'Edit Customer' : 'New Customer'}
+            title={initialValues ? t('customers.form.titleEdit') : t('customers.form.titleNew')}
             open={visible}
             onCancel={onCancel}
             onOk={handleSubmit}
             confirmLoading={loading}
             width={700}
+            okText={t('common.buttons.save')}
+            cancelText={t('common.buttons.cancel')}
         >
             <Form form={form} layout="vertical">
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item
-                            label="Name"
+                            label={t('customers.form.name')}
                             name="name"
-                            rules={[{ required: true, message: 'Required' }]}
+                            rules={[{ required: true, message: t('customers.form.nameRequired') }]}
                         >
-                            <Input placeholder="John Doe" />
+                            <Input placeholder={t('customers.form.namePlaceholder')} />
                         </Form.Item>
                     </Col>
                     <Col span={12}>
                         <Form.Item
-                            label="Customer Number"
+                            label={t('customers.form.customerNumber')}
                             name="customerNumber"
                         >
-                            <Input placeholder="Auto-generated if empty" />
+                            <Input placeholder={t('customers.form.customerNumberPlaceholder')} />
                         </Form.Item>
                     </Col>
                 </Row>
@@ -72,25 +76,25 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item
-                            label="Email"
+                            label={t('customers.form.email')}
                             name="email"
                             rules={[{ type: 'email' }]}
                         >
-                            <Input placeholder="john@example.com" />
+                            <Input placeholder={t('customers.form.emailPlaceholder')} />
                         </Form.Item>
                     </Col>
                     <Col span={12}>
                         <Form.Item
-                            label="Phone"
+                            label={t('customers.form.phone')}
                             name="phone"
                         >
-                            <Input placeholder="+43 ..." />
+                            <Input placeholder={t('customers.form.phonePlaceholder')} />
                         </Form.Item>
                     </Col>
                 </Row>
 
                 <Form.Item
-                    label="Address"
+                    label={t('customers.form.address')}
                     name="address"
                 >
                     <Input.TextArea rows={2} />
@@ -99,7 +103,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item
-                            label="Tax Number"
+                            label={t('customers.form.taxNumber')}
                             name="taxNumber"
                         >
                             <Input />
@@ -107,7 +111,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                     </Col>
                     <Col span={12}>
                         <Form.Item
-                            label="Birth Date"
+                            label={t('customers.form.birthDate')}
                             name="birthDate"
                         >
                             <Input type="date" />
@@ -116,7 +120,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                 </Row>
 
                 <Form.Item
-                    label="Notes"
+                    label={t('customers.form.notes')}
                     name="notes"
                 >
                     <Input.TextArea rows={2} />
@@ -127,7 +131,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                         <Form.Item
                             name="isActive"
                             valuePropName="checked"
-                            label="Active"
+                            label={t('customers.form.active')}
                         >
                             <Switch />
                         </Form.Item>
@@ -136,7 +140,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                         <Form.Item
                             name="isVip"
                             valuePropName="checked"
-                            label="VIP"
+                            label={t('customers.form.vip')}
                         >
                             <Switch />
                         </Form.Item>
@@ -146,7 +150,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
                     <Row>
                         <Col span={24}>
                             <div style={{ fontSize: 12, color: '#666' }}>
-                                Aktive Benefit-Zuweisungen: {assignedBenefitCount}
+                                {t('customers.form.assignedBenefitsHint', { count: assignedBenefitCount })}
                             </div>
                         </Col>
                     </Row>

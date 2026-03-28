@@ -14,6 +14,7 @@ import type { CategoryFormSubmitValues } from '@/features/categories/components/
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import type { ColumnType } from 'antd/es/table';
 import { useI18n } from '@/i18n';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 type CategoryCreatePayload = CreateCategoryRequest & { vatRate?: number };
 type CategoryUpdatePayload = UpdateCategoryRequest & { vatRate?: number };
@@ -38,7 +39,16 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
                 <Alert
                     type="error"
                     message={t('common.categories.productsLoadError')}
-                    description={error instanceof Error ? error.message : undefined}
+                    description={
+                        error ? (
+                            <ApiErrorAlertDescription
+                                t={t}
+                                error={error}
+                                logContext="CategoryProducts"
+                                fallbackKey="common.messages.unknownError"
+                            />
+                        ) : undefined
+                    }
                     action={<Button size="small" onClick={() => refetch()}>{t('common.buttons.retry')}</Button>}
                 />
             </div>
@@ -285,7 +295,18 @@ export default function CategoriesPage() {
                 <Alert
                     type="error"
                     message={t('common.categories.loadErrorTitle')}
-                    description={error instanceof Error ? error.message : t('common.messages.unknownError')}
+                    description={
+                        error ? (
+                            <ApiErrorAlertDescription
+                                t={t}
+                                error={error}
+                                logContext="CategoriesPage"
+                                fallbackKey="common.messages.unknownError"
+                            />
+                        ) : (
+                            t('common.messages.unknownError')
+                        )
+                    }
                     showIcon
                     action={
                         <Button size="small" onClick={() => refetch()}>

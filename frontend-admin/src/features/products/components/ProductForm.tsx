@@ -8,13 +8,7 @@ import { getModifierGroups, getProductModifierGroups, type ModifierGroupDto } fr
 import { TAX_TYPE_ENUM } from '@/features/products/utils/productMapper';
 import ExtraZutatenSection from './ExtraZutatenSection';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
-
-/** Dropdown options: backend enum id (1,2,3) and display label. */
-const TAX_TYPE_OPTIONS = [
-    { value: TAX_TYPE_ENUM.Standard, label: '20% (Standard)' },
-    { value: TAX_TYPE_ENUM.Reduced, label: '10% (Reduced)' },
-    { value: TAX_TYPE_ENUM.Special, label: '13% (Special)' },
-] as const;
+import { useI18n } from '@/i18n';
 
 export type ProductFormSubmitValues = Product & { modifierGroupIds?: string[]; categoryId?: string };
 
@@ -35,6 +29,7 @@ export default function ProductForm({
     onSubmit,
     loading,
 }: ProductFormProps) {
+    const { t } = useI18n();
     const [form] = Form.useForm();
     const [modifierGroups, setModifierGroups] = useState<ModifierGroupDto[]>([]);
     const [selectedModifierGroupIds, setSelectedModifierGroupIds] = useState<string[]>([]);
@@ -58,7 +53,7 @@ export default function ProductForm({
                 );
             } catch (e) {
                 if (!cancelled) {
-                    message.error('Add-on-Gruppen konnten nicht geladen werden.');
+                    message.error(t('products.messages.modifierGroupsLoadFailed'));
                     setModifierGroups([]);
                     setSelectedModifierGroupIds([]);
                 }
@@ -67,7 +62,16 @@ export default function ProductForm({
             }
         })();
         return () => { cancelled = true; };
-    }, [visible, initialValues?.id]);
+    }, [visible, initialValues?.id, t]);
+
+    const taxTypeOptions = useMemo(
+        () => [
+            { value: TAX_TYPE_ENUM.Standard, label: t('products.form.taxStandard') },
+            { value: TAX_TYPE_ENUM.Reduced, label: t('products.form.taxReduced') },
+            { value: TAX_TYPE_ENUM.Special, label: t('products.form.taxSpecial') },
+        ],
+        [t],
+    );
 
     // Category list: /api/admin/categories (useCategories → src/api/admin/categories)
     const { useList } = useCategories();
@@ -125,7 +129,7 @@ export default function ProductForm({
             // Category: dropdown value is categoryId (GUID); backend also expects [Required] Category (name)
             const categoryId = values.categoryId as string | undefined;
             if (!categoryId?.trim()) {
-                message.error('Bitte eine Kategorie wählen.');
+                message.error(t('products.messages.categoryPickRequired'));
                 return;
             }
             const categoryName =
@@ -175,7 +179,7 @@ export default function ProductForm({
 
     return (
         <Modal
-            title={initialValues ? 'Edit Product' : 'Create New Product'}
+            title={initialValues ? t('products.form.titleEdit') : t('products.form.titleCreate')}
             open={visible}
             onOk={handleOk}
             onCancel={onCancel}
@@ -185,6 +189,8 @@ export default function ProductForm({
             }}
             width={600}
             destroyOnHidden
+            okText={t('common.buttons.save')}
+            cancelText={t('common.buttons.cancel')}
         >
             <Form
                 form={form}
@@ -198,27 +204,27 @@ export default function ProductForm({
 
                 <Form.Item
                     name="name"
-                    label="Product Name"
-                    rules={[{ required: true, message: 'Please enter product name' }]}
+                    label={t('products.form.name')}
+                    rules={[{ required: true, message: t('products.form.nameRequired') }]}
                 >
-                    <Input placeholder="E.g., Coca Cola 0.33L" />
+                    <Input placeholder={t('products.form.namePlaceholder')} />
                 </Form.Item>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <Form.Item
                         name="barcode"
-                        label="Barcode"
+                        label={t('products.form.barcode')}
                     >
-                        <Input placeholder="Scan or type barcode" />
+                        <Input placeholder={t('products.form.barcodePlaceholder')} />
                     </Form.Item>
 
                     <Form.Item
                         name="categoryId"
-                        label="Category"
-                        rules={[{ required: true, message: 'Please select a category' }]}
+                        label={t('products.form.category')}
+                        rules={[{ required: true, message: t('products.form.categoryRequired') }]}
                     >
                         <Select
-                            placeholder="Select category"
+                            placeholder={t('products.form.categoryPlaceholder')}
                             options={categoryOptions}
                             loading={!categoryList}
                             allowClear={false}
@@ -231,8 +237,8 @@ export default function ProductForm({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <Form.Item
                         name="price"
-                        label="Price (€)"
-                        rules={[{ required: true, message: 'Please enter price' }]}
+                        label={t('products.form.price')}
+                        rules={[{ required: true, message: t('products.form.priceRequired') }]}
                     >
                         <InputNumber
                             style={{ width: '100%' }}
@@ -244,7 +250,7 @@ export default function ProductForm({
 
                     <Form.Item
                         name="cost"
-                        label="Cost (€)"
+                        label={t('products.form.cost')}
                     >
                         <InputNumber
                             style={{ width: '100%' }}
@@ -257,33 +263,33 @@ export default function ProductForm({
 
                 <Form.Item
                     name="taxType"
-                    label="Tax Type"
-                    rules={[{ required: true, message: 'Select tax type' }]}
+                    label={t('products.form.taxType')}
+                    rules={[{ required: true, message: t('products.form.taxTypeRequired') }]}
                 >
                     <Select
-                        options={TAX_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                        placeholder="Select tax type"
+                        options={taxTypeOptions.map((o) => ({ value: o.value, label: o.label }))}
+                        placeholder={t('products.form.taxTypePlaceholder')}
                     />
                 </Form.Item>
 
                 <Form.Item
                     name="description"
-                    label="Description"
+                    label={t('products.form.description')}
                 >
                     <TextArea rows={3} />
                 </Form.Item>
 
                 <Form.Item
                     name="isActive"
-                    label="Active"
+                    label={t('products.form.active')}
                     valuePropName="checked"
                 >
                     <Switch />
                 </Form.Item>
 
                 <Form.Item
-                    label="Add-on-Gruppen für dieses Produkt"
-                    extra="Welche Gruppen sind für dieses Produkt wählbar? Add-on-Produkte pro Gruppe verwalten Sie unter „Add-on-Gruppen“."
+                    label={t('products.form.addonGroupsLabel')}
+                    extra={t('products.form.addonGroupsExtra')}
                     style={{ marginBottom: 0 }}
                 >
                     <ExtraZutatenSection

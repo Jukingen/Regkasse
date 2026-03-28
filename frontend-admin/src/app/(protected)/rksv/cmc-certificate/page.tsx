@@ -5,6 +5,7 @@ import { Alert, Button, Card, Descriptions, Divider, Spin, Space, Typography } f
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { FORMAT_EMPTY_DISPLAY, useI18n } from '@/i18n';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { useGetApiTseStatus } from '@/api/generated/tse/tse';
 import { useGetApiTseDevices } from '@/api/generated/tse/tse';
 import Link from 'next/link';
@@ -46,7 +47,14 @@ export default function RksvCmcCertificatePage() {
                     type="error"
                     showIcon
                     message={tc('errorLoad')}
-                    description={statusError instanceof Error ? statusError.message : String(statusError)}
+                    description={
+                        <ApiErrorAlertDescription
+                            t={t}
+                            error={statusError}
+                            logContext="RksvCmcCertificate.tseStatus"
+                            fallbackKey="rksvHub.cmcCertificate.errorLoad"
+                        />
+                    }
                     style={{ marginBottom: 16 }}
                 />
             )}

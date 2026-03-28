@@ -1,0 +1,50 @@
+{
+  "page": {
+    "newCustomer": "Yeni musteri",
+    "searchPlaceholder": "Musteri ara…"
+  },
+  "messages": {
+    "created": "Musteri olusturuldu.",
+    "createFailed": "Musteri olusturulamadi.",
+    "updated": "Musteri guncellendi.",
+    "updateFailed": "Musteri guncellenemedi.",
+    "deleted": "Musteri silindi.",
+    "deleteFailed": "Musteri silinemedi."
+  },
+  "form": {
+    "titleNew": "Yeni musteri",
+    "titleEdit": "Musteriyi duzenle",
+    "name": "Ad",
+    "nameRequired": "Zorunlu",
+    "namePlaceholder": "Ad Soyad",
+    "customerNumber": "Musteri numarasi",
+    "customerNumberPlaceholder": "Bos = otomatik",
+    "email": "E-posta",
+    "emailPlaceholder": "ornek@sirket.com",
+    "phone": "Telefon",
+    "phonePlaceholder": "+43 …",
+    "address": "Adres",
+    "taxNumber": "Vergi numarasi",
+    "birthDate": "Dogum tarihi",
+    "notes": "Notlar",
+    "active": "Aktif",
+    "vip": "VIP",
+    "assignedBenefitsHint": "Aktif avantaj atamalari: {{count}}"
+  },
+  "list": {
+    "columnName": "Ad",
+    "columnContact": "Iletisim",
+    "columnPoints": "Puan",
+    "columnTotalSpent": "Toplam harcama",
+    "columnVisits": "Ziyaret",
+    "columnBenefits": "Avantajlar",
+    "columnStatus": "Durum",
+    "columnActions": "Islemler",
+    "statusActive": "Aktif",
+    "statusInactive": "Pasif",
+    "tagVip": "VIP",
+    "benefitFallback": "Avantaj",
+    "deleteConfirmTitle": "Musteri silinsin mi?",
+    "deleteConfirmDescription": "Bu musteriyi silmek istediginize emin misiniz?"
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "page": {
+    "title": "Add-on groups",
+    "intro": "Manage groups (e.g. sauces, extras) and their add-on products. Use “Edit” to change names and sort order. Use “+ Product” to attach sellable add-on products. Which groups appear per product is set on the product page.",
+    "loading": "Loading add-on groups…"
+  },
+  "actions": {
+    "addGroup": "Create group",
+    "edit": "Edit",
+    "addProduct": "+ Product",
+    "remove": "Remove",
+    "removeTitle": "Remove from group?"
+  },
+  "collapse": {
+    "productsTitle": "Add-on products (recommended)",
+    "productsHint": "Sellable products — add-on equals product. For new extras, use “+ Product”.",
+    "emptyProducts": "No add-on products. Click “+ Product”.",
+    "taxTypeSuffix": "VAT type {{type}}",
+    "popconfirmRemoveDescription": "The product is only removed from this group. The product itself remains."
+  },
+  "messages": {
+    "groupCreated": "Add-on group created.",
+    "groupUpdated": "Group updated.",
+    "productRemoved": "Product removed from group.",
+    "productAdded": "Product added to group.",
+    "invalidProductOrGroup": "Invalid product or group.",
+    "selectProduct": "Please select a product.",
+    "categoryRequiredNewAddon": "Category is required for a new add-on."
+  },
+  "modal": {
+    "newGroupTitle": "New add-on group",
+    "editGroupTitle": "Edit group “{{name}}”",
+    "editGroupTitleFallback": "Edit group",
+    "addProductTitle": "Add product to “{{name}}”",
+    "addProductTitleFallback": "Add product",
+    "okCreate": "Create",
+    "okSave": "Save",
+    "okAdd": "Add"
+  },
+  "form": {
+    "name": "Name",
+    "nameRequired": "Name is required.",
+    "minSelections": "Min. selections",
+    "maxSelections": "Max. selections (empty = unlimited)",
+    "isRequired": "Required (at least one selection)",
+    "sortOrder": "Sort order",
+    "placeholderGroupName": "e.g. sauces, extras, sides",
+    "product": "Product",
+    "selectProductPlaceholder": "Select product…",
+    "selectProductRequired": "Please select a product.",
+    "price": "Price (€)",
+    "taxType": "VAT type (1=20%, 2=10%, 3=13%)",
+    "category": "Category",
+    "categoryRequired": "Category is required.",
+    "placeholderCategory": "Select category",
+    "placeholderNewAddonName": "e.g. extra cheese"
+  },
+  "tabs": {
+    "existingProduct": "Existing product",
+    "newAddon": "Create new add-on"
+  }
+}

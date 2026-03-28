@@ -36,6 +36,7 @@ import type { FinanzOnlineOutboxItemDto } from '@/api/generated/model/finanzOnli
 import type { GetApiAdminFinanzonlineOutboxParams } from '@/api/generated/model/getApiAdminFinanzonlineOutboxParams';
 import { useI18n } from '@/i18n/I18nProvider';
 import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
+import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 dayjs.extend(utc);
 
@@ -399,12 +400,12 @@ export default function FinanzOnlineOutboxPage() {
                     showIcon
                     message={t('finanzOnlineOutbox.error.listLoadTitle')}
                     description={
-                        typeof error === 'object' &&
-                        error !== null &&
-                        'normalized' in error &&
-                        typeof (error as { normalized?: { message?: string } }).normalized?.message === 'string'
-                            ? (error as { normalized: { message: string } }).normalized.message
-                            : String((error as Error)?.message ?? error)
+                        <ApiErrorAlertDescription
+                            t={t}
+                            error={error}
+                            logContext="FinanzOnlineOutbox.list"
+                            fallbackKey="finanzOnlineOutbox.error.listLoadTitle"
+                        />
                     }
                 />
             ) : null}

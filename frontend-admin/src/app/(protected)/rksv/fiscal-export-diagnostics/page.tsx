@@ -25,7 +25,7 @@ import dayjs from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -153,7 +153,7 @@ export default function FiscalExportDiagnosticsPage() {
 
     const runPreview = async () => {
         if (!cashRegisterId || !fromUtc || !toUtc) {
-            setExportError('Bitte Kasse und UTC Zeitraum auswählen.');
+            setExportError(t('rksvHub.fiscalExportPage.selectRegisterAndUtcError'));
             return;
         }
         if (profileBlocked) {
@@ -168,7 +168,7 @@ export default function FiscalExportDiagnosticsPage() {
             const data = (await getFiscalExportPreview(params)) as FiscalExportPackage;
             setPreview(data);
         } catch (e) {
-            const msg = extractApiErrorMessage(e, 'Export failed');
+            const msg = extractApiErrorMessage(e, t('rksvHub.fiscalExportPage.exportFailedAlert'));
             setExportError(msg);
             setPreview(null);
         } finally {
@@ -178,7 +178,7 @@ export default function FiscalExportDiagnosticsPage() {
 
     const runDownload = async () => {
         if (!cashRegisterId || !fromUtc || !toUtc) {
-            setExportError('Bitte Kasse und UTC Zeitraum auswählen.');
+            setExportError(t('rksvHub.fiscalExportPage.selectRegisterAndUtcError'));
             return;
         }
         if (profileBlocked) {
@@ -245,8 +245,8 @@ export default function FiscalExportDiagnosticsPage() {
             <AdminPageHeader
                 title={t('rksvHub.fiscalExportPage.title')}
                 breadcrumbs={[
-                    ADMIN_OVERVIEW_CRUMB,
-                    { title: 'RKSV', href: '/rksv' },
+                    adminOverviewCrumb(t),
+                    { title: t(ADMIN_NAV_GROUP_LABEL_KEYS.rksv), href: '/rksv' },
                     { title: t('rksvHub.fiscalExportPage.breadcrumb') },
                 ]}
             />
@@ -277,7 +277,7 @@ export default function FiscalExportDiagnosticsPage() {
                     type="error"
                     showIcon
                     style={{ marginBottom: 16 }}
-                    message="Export fehlgeschlagen"
+                    message={t('rksvHub.fiscalExportPage.exportFailedAlert')}
                     description={exportError}
                 />
             ) : null}
@@ -302,10 +302,10 @@ export default function FiscalExportDiagnosticsPage() {
 
                     <Space wrap>
                         <div>
-                            <Typography.Text strong>Cash Register</Typography.Text>
+                            <Typography.Text strong>{t('rksvHub.fiscalExportPage.cashRegisterLabel')}</Typography.Text>
                             <br />
                             <Select
-                                placeholder="Wähle Kasse"
+                                placeholder={t('rksvHub.fiscalExportPage.cashRegisterPlaceholder')}
                                 style={{ minWidth: 280 }}
                                 allowClear
                                 value={cashRegisterId}
@@ -322,7 +322,7 @@ export default function FiscalExportDiagnosticsPage() {
                         </div>
 
                         <div>
-                            <Typography.Text strong>UTC Zeitraum</Typography.Text>
+                            <Typography.Text strong>{t('rksvHub.fiscalExportPage.utcRangeLabel')}</Typography.Text>
                             <br />
                             <RangePicker
                                 showTime
@@ -332,10 +332,10 @@ export default function FiscalExportDiagnosticsPage() {
                         </div>
 
                         <div>
-                            <Typography.Text strong>Include CSV</Typography.Text>
+                            <Typography.Text strong>{t('rksvHub.fiscalExportPage.includeCsvLabel')}</Typography.Text>
                             <br />
                             <Checkbox checked={includeCsv} onChange={(e) => setIncludeCsv(e.target.checked)}>
-                                CSV Fragmente im JSON-Payload
+                                {t('rksvHub.fiscalExportPage.csvFragmentsCheckbox')}
                             </Checkbox>
                         </div>
 
@@ -347,10 +347,10 @@ export default function FiscalExportDiagnosticsPage() {
                                     loading={exportLoading}
                                     disabled={!canRun || profileBlocked}
                                 >
-                                    JSON Vorschau
+                                    {t('rksvHub.fiscalExportPage.previewJsonButton')}
                                 </Button>
                                 <Button onClick={runDownload} loading={exportLoading} disabled={!canRun || profileBlocked}>
-                                    JSON herunterladen
+                                    {t('rksvHub.fiscalExportPage.downloadJsonButton')}
                                 </Button>
                             </Space>
                         </div>
@@ -378,12 +378,12 @@ export default function FiscalExportDiagnosticsPage() {
                             type="warning"
                             showIcon
                             style={{ marginBottom: 16 }}
-                            message={preview.notLegalProofNotice || 'NOT LEGAL PROOF'}
-                            description="Statutory disclaimer: not an RKSV attestation — applies to all profiles."
+                            message={preview.notLegalProofNotice || t('rksvHub.fiscalExportPage.notLegalProofFallback')}
+                            description={t('rksvHub.fiscalExportPage.statutoryDisclaimerBody')}
                         />
                     ) : null}
 
-                    <Card size="small" style={{ marginBottom: 16 }} title="Summary">
+                    <Card size="small" style={{ marginBottom: 16 }} title={t('rksvHub.fiscalExportPage.summaryCardTitle')}>
                         <Space wrap>
                             <Tag color="blue">exportProfile: {preview.exportProfile ?? '—'}</Tag>
                             <Tag color="blue">receiptCount: {preview.receiptCount ?? 0}</Tag>
@@ -402,7 +402,7 @@ export default function FiscalExportDiagnosticsPage() {
                     </Card>
 
                     {preview.exportScopeWarnings?.length ? (
-                        <Card size="small" style={{ marginBottom: 16 }} title="ExportScopeWarnings">
+                        <Card size="small" style={{ marginBottom: 16 }} title={t('rksvHub.fiscalExportPage.exportScopeWarningsCardTitle')}>
                             <List
                                 size="small"
                                 dataSource={preview.exportScopeWarnings}
@@ -428,13 +428,13 @@ export default function FiscalExportDiagnosticsPage() {
                     ) : null}
 
                     {preview.integrity ? (
-                        <Card size="small" style={{ marginBottom: 16 }} title="Integrity diagnostics">
+                        <Card size="small" style={{ marginBottom: 16 }} title={t('rksvHub.fiscalExportPage.integrityDiagnosticsCardTitle')}>
                             {preview.integrity.lowCoverageAlert ? (
                                 <Alert
                                     type="warning"
                                     showIcon
                                     style={{ marginBottom: 12 }}
-                                    message="Low offline-intent coverage"
+                                    message={t('rksvHub.fiscalExportPage.lowOfflineIntentCoverageTitle')}
                                     description={`DeviceId: ${
                                         preview.integrity.deviceIdCoveragePercent != null
                                             ? preview.integrity.deviceIdCoveragePercent.toFixed(1) + '%'
@@ -452,7 +452,7 @@ export default function FiscalExportDiagnosticsPage() {
                                     type="warning"
                                     showIcon
                                     style={{ marginBottom: 12 }}
-                                    message="Legacy payload-hash quality risk"
+                                    message={t('rksvHub.fiscalExportPage.legacyPayloadHashQualityTitle')}
                                     description={`Mismatch ratio: ${
                                         preview.integrity.legacyPayloadHashMismatchRatioPercent != null
                                             ? preview.integrity.legacyPayloadHashMismatchRatioPercent.toFixed(1) + '%'
@@ -464,7 +464,7 @@ export default function FiscalExportDiagnosticsPage() {
                             {preview.integrity.integrityDiagnosticNotes?.length ? (
                                 <List
                                     size="small"
-                                    header="IntegrityDiagnosticNotes"
+                                    header={t('rksvHub.fiscalExportPage.integrityDiagnosticNotesHeader')}
                                     dataSource={preview.integrity.integrityDiagnosticNotes}
                                     renderItem={(n) => <List.Item>{n}</List.Item>}
                                 />
@@ -472,7 +472,7 @@ export default function FiscalExportDiagnosticsPage() {
                         </Card>
                     ) : null}
 
-                    <Card size="small" title="JSON Preview">
+                    <Card size="small" title={t('rksvHub.fiscalExportPage.jsonPreviewCardTitle')}>
                         <pre
                             style={{
                                 fontSize: 11,
@@ -490,8 +490,8 @@ export default function FiscalExportDiagnosticsPage() {
             ) : null}
 
             {!exportLoading && !preview ? (
-                <Card size="small" title="Hinweis" style={{ marginTop: 16 }}>
-                    Wähle Exportprofil, Kasse und UTC-Zeitraum; starte „JSON Vorschau“ oder „JSON herunterladen“.
+                <Card size="small" title={t('rksvHub.fiscalExportPage.emptyHintCardTitle')} style={{ marginTop: 16 }}>
+                    {t('rksvHub.fiscalExportPage.emptyHintCardBody')}
                 </Card>
             ) : null}
         </>

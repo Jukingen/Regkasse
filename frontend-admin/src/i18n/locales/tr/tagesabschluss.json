@@ -68,7 +68,23 @@
     "colTax": "Vergi",
     "colTransactions": "Islemler",
     "colStatus": "Durum",
-    "colFinanzOnline": "FinanzOnline"
+    "colFinanzOnline": "FinanzOnline",
+    "closingTypes": {
+      "Daily": "Gunluk",
+      "Monthly": "Aylik",
+      "Yearly": "Yillik"
+    },
+    "rowStatus": {
+      "Completed": "Tamamlandi",
+      "Failed": "Basarisiz",
+      "Pending": "Beklemede"
+    },
+    "finanzOnlineStatus": {
+      "Submitted": "Gonderildi",
+      "Failed": "Basarisiz",
+      "Pending": "Beklemede",
+      "NeedsReconciliation": "Mutabakat gerekli"
+    }
   },
   "messages": {
     "successDaily": "Gunluk gun sonu uygulandi.",
@@ -77,6 +93,8 @@
     "warningUuid": "Gecerli kasa kimligi secin veya girin (UUID)."
   },
   "errors": {
-    "unknown": "Bilinmeyen hata"
+    "unknown": "Bilinmeyen hata",
+    "loadStatsTitle": "Istatistik yuklenemedi",
+    "loadHistoryTitle": "Gecmis yuklenemedi"
   }
 }

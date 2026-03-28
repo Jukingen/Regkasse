@@ -44,6 +44,8 @@ import {
 } from '@/shared/investigationNavigation';
 import { RKSv_ADMIN_CONTRACT_GAPS, viewInvoiceListRegister } from '@/shared/rksvAdminTruth';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
+import { extractRawApiErrorMessage } from '@/shared/errors/extractRawApiErrorMessage';
 import { AdminTruthBadge } from '@/shared/adminTruthBadges';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -55,55 +57,53 @@ import {
 import {
     OPERATOR_FO_OPERATIONS_PAGE_COPY,
     OPERATOR_FO_QUEUE_COPY,
-    OPERATOR_INVOICE_COPY,
     OPERATOR_LINK_LABELS,
     OPERATOR_REGISTER_LINK_COPY,
-    OPERATOR_SHARED_COPY,
 } from '@/shared/operatorTruthCopy';
 import { useI18n } from '@/i18n';
-import { createIntlFormatters } from '@/i18n/formatting';
+import { FORMAT_EMPTY_DISPLAY, createIntlFormatters } from '@/i18n/formatting';
 
 const { RangePicker } = DatePicker;
 
-// Manual mapping because Orval generated NUMBER_0 etc. for enum (labels: de-DE operator surface)
-const InvoiceStatusMap: Record<number, { label: string; color: string }> = {
-    0: { label: OPERATOR_INVOICE_COPY.invoiceStatusDraft, color: 'default' },
-    1: { label: OPERATOR_INVOICE_COPY.invoiceStatusSent, color: 'processing' },
-    2: { label: OPERATOR_INVOICE_COPY.invoiceStatusPaid, color: 'success' },
-    3: { label: OPERATOR_INVOICE_COPY.invoiceStatusPartiallyPaid, color: 'warning' },
-    4: { label: OPERATOR_INVOICE_COPY.invoiceStatusUnpaid, color: 'error' },
-    5: { label: OPERATOR_INVOICE_COPY.invoiceStatusOverdue, color: 'error' },
-    6: { label: OPERATOR_INVOICE_COPY.invoiceStatusCancelled, color: 'default' },
-    7: { label: OPERATOR_INVOICE_COPY.invoiceStatusCreditNote, color: 'purple' },
-};
+type InvoiceTranslateFn = (key: string, options?: Record<string, string | number>) => string;
 
-const getPaymentMethodLabel = (method?: PaymentMethod) => {
+// Manual mapping because Orval generated NUMBER_0 etc. for enum
+function buildInvoiceStatusMap(t: InvoiceTranslateFn): Record<number, { label: string; color: string }> {
+    return {
+        0: { label: t('invoices.status.draft'), color: 'default' },
+        1: { label: t('invoices.status.sent'), color: 'processing' },
+        2: { label: t('invoices.status.paid'), color: 'success' },
+        3: { label: t('invoices.status.partiallyPaid'), color: 'warning' },
+        4: { label: t('invoices.status.unpaid'), color: 'error' },
+        5: { label: t('invoices.status.overdue'), color: 'error' },
+        6: { label: t('invoices.status.cancelled'), color: 'default' },
+        7: { label: t('invoices.status.creditNote'), color: 'purple' },
+    };
+}
+
+function getPaymentMethodLabel(method: PaymentMethod | undefined, t: InvoiceTranslateFn): string {
     switch (method) {
-        case 0: return OPERATOR_INVOICE_COPY.paymentMethodBar;
-        case 1: return OPERATOR_INVOICE_COPY.paymentMethodCard;
-        case 2: return OPERATOR_INVOICE_COPY.paymentMethodTransfer;
-        case 3: return OPERATOR_INVOICE_COPY.paymentMethodCheck;
-        case 4: return OPERATOR_INVOICE_COPY.paymentMethodVoucher;
-        case 5: return OPERATOR_INVOICE_COPY.paymentMethodMobile;
-        default: return '—';
+        case 0: return t('invoices.paymentMethod.bar');
+        case 1: return t('invoices.paymentMethod.card');
+        case 2: return t('invoices.paymentMethod.transfer');
+        case 3: return t('invoices.paymentMethod.check');
+        case 4: return t('invoices.paymentMethod.voucher');
+        case 5: return t('invoices.paymentMethod.mobile');
+        default: return FORMAT_EMPTY_DISPLAY;
     }
-};
+}
 
-/** User-facing list error line: API message when short/safe; else HTTP status or generic German copy (no raw stack traces). */
-function invoiceListErrorUserMessage(err: unknown): string {
-    const api = getAxiosResponseDataString(err)?.trim();
-    if (api && api.length > 0 && api.length < 400) {
-        return api;
-    }
+/** Short user-facing hint; raw API text is shown separately via `BackendRawTextBlock`. */
+function invoiceListLocalizedErrorHint(err: unknown, t: InvoiceTranslateFn): string {
     const status = getAxiosResponseStatus(err);
-    if (status === 401) return OPERATOR_INVOICE_COPY.listErrorUnauthorized;
-    if (status === 403) return OPERATOR_INVOICE_COPY.listErrorForbidden;
-    if (status === 404) return OPERATOR_INVOICE_COPY.listErrorNotFound;
-    if (status != null && status >= 500) return OPERATOR_INVOICE_COPY.listErrorServer;
+    if (status === 401) return t('invoices.errors.listUnauthorized');
+    if (status === 403) return t('invoices.errors.listForbidden');
+    if (status === 404) return t('invoices.errors.listNotFound');
+    if (status != null && status >= 500) return t('invoices.errors.listServer');
     if (err instanceof Error && /network|failed to fetch|load failed|econnrefused|timeout/i.test(err.message)) {
-        return OPERATOR_INVOICE_COPY.listErrorNetwork;
+        return t('invoices.errors.listNetwork');
     }
-    return OPERATOR_INVOICE_COPY.listErrorGeneric;
+    return t('invoices.errors.listGeneric');
 }
 
 /** Display-only: does not coerce API values into fake DTOs. */
@@ -127,8 +127,9 @@ function escapeCsvScalar(v: unknown): string {
 export const InvoiceList: React.FC = () => {
     const { token } = theme.useToken();
     const queryClient = useQueryClient();
-    const { formatLocale } = useI18n();
+    const { formatLocale, t } = useI18n();
     const fmt = useMemo(() => createIntlFormatters(formatLocale), [formatLocale]);
+    const invoiceStatusMap = useMemo(() => buildInvoiceStatusMap(t), [t]);
 
     // State
     const [pagination, setPagination] = useState<TablePaginationConfig>({
@@ -244,7 +245,7 @@ export const InvoiceList: React.FC = () => {
         });
         Modal.success({
             title: args.title,
-            okText: OPERATOR_INVOICE_COPY.modalOpenFinanzOnlineQueue,
+            okText: t('invoices.modals.openFinanzOnlineQueue'),
             onOk: () => {
                 window.open(link, '_blank', 'noopener,noreferrer');
             },
@@ -253,22 +254,22 @@ export const InvoiceList: React.FC = () => {
                     <Typography.Text>{args.messageText}</Typography.Text>
                     {args.submissionId ? (
                         <Typography.Text copyable={{ text: args.submissionId }}>
-                            {OPERATOR_INVOICE_COPY.handoffLabelSubmissionId}: {args.submissionId}
+                            {t('invoices.handoff.submissionIdLabel')}: {args.submissionId}
                         </Typography.Text>
                     ) : null}
                     {args.submittedAt ? (
                         <Typography.Text>
-                            {OPERATOR_INVOICE_COPY.handoffLabelSubmittedAt}:{' '}
+                            {t('invoices.handoff.submittedAtLabel')}:{' '}
                             {dayjs(args.submittedAt).isValid() ? dayjs(args.submittedAt).format('DD.MM.YYYY HH:mm:ss') : args.submittedAt}
                         </Typography.Text>
                     ) : null}
                     {registerFilterOmitted ? (
                         <Typography.Paragraph type="warning" style={{ marginBottom: 0, fontSize: 12 }}>
-                            {OPERATOR_INVOICE_COPY.reconciliationHandoffRegisterFilterOmitted}
+                            {t('invoices.handoff.registerFilterOmitted')}
                         </Typography.Paragraph>
                     ) : null}
                     <Typography.Text type="secondary">
-                        {args.footerHint || OPERATOR_INVOICE_COPY.reconciliationHandoffFooter}
+                        {args.footerHint || t('invoices.handoff.defaultFooter')}
                     </Typography.Text>
                 </Space>
             ),
@@ -305,20 +306,20 @@ export const InvoiceList: React.FC = () => {
                 reasonCode: values.reasonCode,
                 reasonText: values.reasonText,
             });
-            message.success(OPERATOR_INVOICE_COPY.toastCreditNoteCreated);
+            message.success(t('invoices.messages.creditNoteCreated'));
             setCreditNoteVisible(false);
             creditNoteForm.resetFields();
             refetch();
         } catch (err: unknown) {
             const status = getAxiosResponseStatus(err);
             if (status === 409) {
-                message.warning(OPERATOR_INVOICE_COPY.toastCreditNoteExists);
+                message.warning(t('invoices.messages.creditNoteExists'));
             } else if (status === 400) {
-                message.error(getAxiosResponseDataString(err) ?? OPERATOR_INVOICE_COPY.toastCreditNoteBadRequest);
+                message.error(getAxiosResponseDataString(err) ?? t('invoices.messages.creditNoteBadRequest'));
             } else if (isAntdFormValidateError(err)) {
                 // form validation error — ignore, form shows inline
             } else {
-                message.error(OPERATOR_INVOICE_COPY.toastCreditNoteFailed);
+                message.error(t('invoices.messages.creditNoteFailed'));
             }
         } finally {
             setCreditNoteLoading(false);
@@ -348,7 +349,7 @@ export const InvoiceList: React.FC = () => {
             }
         }
         setBatchLoading(false);
-        message.success(OPERATOR_INVOICE_COPY.toastBatchPrint(success, fail));
+        message.success(t('invoices.messages.batchPrint', { ok: success, fail }));
         setSelectedRowKeys([]);
     };
 
@@ -357,7 +358,7 @@ export const InvoiceList: React.FC = () => {
         setBatchLoading(true);
         let success = 0;
         let fail = 0;
-        const lines: string[] = [OPERATOR_INVOICE_COPY.csvExportHeaderRow];
+        const lines: string[] = [t('invoices.export.csvHeaderRow')];
 
         for (const key of selectedRowKeys) {
             try {
@@ -383,17 +384,17 @@ export const InvoiceList: React.FC = () => {
             window.URL.revokeObjectURL(url);
         }
         setBatchLoading(false);
-        message.success(`Batch Export: ${success} exported, ${fail} failed`);
+        message.success(t('invoices.batch.exportSuccess', { success, fail }));
         setSelectedRowKeys([]);
     };
 
     const handleBatchSubmit = () => {
         if (!selectedRowKeys.length) return;
         Modal.confirm({
-            title: OPERATOR_INVOICE_COPY.batchReconcileModalTitle,
-            content: OPERATOR_INVOICE_COPY.batchReconcileModalBody(selectedRowKeys.length),
-            okText: OPERATOR_INVOICE_COPY.batchReconcileModalOk,
-            cancelText: OPERATOR_INVOICE_COPY.batchReconcileModalCancel,
+            title: t('invoices.modals.batchReconcileTitle'),
+            content: t('invoices.modals.batchReconcileBody', { count: selectedRowKeys.length }),
+            okText: t('invoices.modals.batchReconcileOk'),
+            cancelText: t('invoices.modals.batchReconcileCancel'),
             onOk: async () => {
                 setBatchLoading(true);
                 let success = 0;
@@ -439,7 +440,14 @@ export const InvoiceList: React.FC = () => {
                     }
                 }
                 setBatchLoading(false);
-                message.info(OPERATOR_INVOICE_COPY.toastBatchReconcileSummary(success, fail, skipped, alreadySubmitted));
+                message.info(
+                    t('invoices.messages.batchReconcileSummary', {
+                        ok: success,
+                        fail,
+                        skipped,
+                        already: alreadySubmitted,
+                    }),
+                );
                 if (success > 0) {
                     const firstRegister = attemptedRows.find((x) => !!x.cashRegisterId)?.cashRegisterId;
                     const dates = attemptedRows
@@ -452,14 +460,19 @@ export const InvoiceList: React.FC = () => {
                         ? dates.map((d) => dayjs(d)).reduce((a, b) => (b.isAfter(a) ? b : a))
                         : dayjs();
                     openReconciliationHandoffModal({
-                        title: OPERATOR_INVOICE_COPY.batchReconcileFinishedTitle,
-                        messageText: `${success} Rechnung/Payment-Zeilen verarbeitet. Bitte den aktuellen Abgleichsstatus prüfen.`,
+                        title: t('invoices.modals.batchReconcileFinishedTitle'),
+                        messageText: t('invoices.batch.reconcileHandoffBody', { success }),
                         cashRegisterId: firstRegister,
                         focusPaymentId: handoffFocusPaymentId,
                         investigationBatchCorrelationId: handoffBatchCorrelation,
                         fromUtc: minDate.startOf('day').toISOString(),
                         toUtc: maxDate.endOf('day').toISOString(),
-                        footerHint: `Erfolg: ${success}, Fehlgeschlagen: ${fail}, Übersprungen: ${skipped}, Bereits submitted: ${alreadySubmitted}`,
+                        footerHint: t('invoices.batch.reconcileFooterHint', {
+                            success,
+                            fail,
+                            skipped,
+                            alreadySubmitted,
+                        }),
                     });
                 }
                 setSelectedRowKeys([]);
@@ -489,10 +502,10 @@ export const InvoiceList: React.FC = () => {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-            message.success(OPERATOR_INVOICE_COPY.toastExportCsvOk);
+            message.success(t('invoices.messages.exportCsvOk'));
         } catch (error) {
             technicalConsole.error('[InvoiceList] CSV export failed', error);
-            message.error(OPERATOR_INVOICE_COPY.toastExportCsvFailed);
+            message.error(t('invoices.messages.exportCsvFailed'));
         } finally {
             setExportLoading(false);
         }
@@ -508,11 +521,11 @@ export const InvoiceList: React.FC = () => {
         } catch (err: unknown) {
             const status = getAxiosResponseStatus(err);
             if (status === 401) {
-                message.error(OPERATOR_INVOICE_COPY.toastPdfSessionExpired);
+                message.error(t('invoices.messages.pdfSessionExpired'));
             } else if (status === 404) {
-                message.error(OPERATOR_INVOICE_COPY.toastPdfNotFound);
+                message.error(t('invoices.messages.pdfNotFound'));
             } else {
-                message.error(OPERATOR_INVOICE_COPY.toastPdfFailed);
+                message.error(t('invoices.messages.pdfFailed'));
             }
         }
     };
@@ -520,7 +533,7 @@ export const InvoiceList: React.FC = () => {
     const handleSubmitFinanzOnline = async (invoice: Invoice) => {
         const paymentId = invoice.sourcePaymentId ?? invoice.id;
         if (!paymentId) {
-            message.error(OPERATOR_INVOICE_COPY.toastNoPaymentLinkedForReconcile);
+            message.error(t('invoices.messages.noPaymentLinkedForReconcile'));
             return;
         }
         try {
@@ -528,14 +541,14 @@ export const InvoiceList: React.FC = () => {
             const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
             if (data.success) {
                 const uiMessage = data.referenceId
-                    ? OPERATOR_INVOICE_COPY.finanzOnlineToastSubmitOk
-                    : OPERATOR_INVOICE_COPY.finanzOnlineToastAlreadySubmitted;
+                    ? t('invoices.messages.finanzOnlineSubmitOk')
+                    : t('invoices.messages.finanzOnlineAlreadySubmitted');
                 message.success(uiMessage);
                 openReconciliationHandoffModal({
                     title: data.referenceId
-                        ? OPERATOR_INVOICE_COPY.modalReconciliationSuccessTitle
-                        : OPERATOR_INVOICE_COPY.modalAlreadySubmittedTitle,
-                    messageText: `${uiMessage} Status jetzt im Abgleich prüfen.`,
+                        ? t('invoices.modals.reconciliationSuccessTitle')
+                        : t('invoices.modals.alreadySubmittedTitle'),
+                    messageText: `${uiMessage}${t('invoices.reconciliation.checkStatusAfter')}`,
                     submissionId: data.referenceId || null,
                     submittedAt: data.submittedAt || null,
                     cashRegisterId: invoice.cashRegisterId,
@@ -545,18 +558,18 @@ export const InvoiceList: React.FC = () => {
                     toUtc: invoiceDate.endOf('day').toISOString(),
                 });
             } else {
-                message.warning(`${OPERATOR_INVOICE_COPY.modalReconciliationFailedTitle}: ${data.message}`);
+                message.warning(`${t('invoices.modals.reconciliationFailedTitle')}: ${data.message}`);
                 Modal.warning({
-                    title: OPERATOR_INVOICE_COPY.modalReconciliationFailedTitle,
+                    title: t('invoices.modals.reconciliationFailedTitle'),
                     content: (
                         <Space direction="vertical" size={8}>
-                            <Typography.Text>{data.message || 'Unbekannter Fehler beim Retry.'}</Typography.Text>
+                            <Typography.Text>{data.message || t('invoices.reconciliation.retryUnknownError')}</Typography.Text>
                             <Typography.Text type="secondary">
-                                Öffne den FinanzOnline-Abgleich, um Status/Retry-Zustand zu prüfen.
+                                {t('invoices.reconciliation.failedOpenQueueHint')}
                             </Typography.Text>
                         </Space>
                     ),
-                    okText: OPERATOR_INVOICE_COPY.modalOpenFinanzOnlineQueue,
+                    okText: t('invoices.modals.openFinanzOnlineQueue'),
                     onOk: () => {
                         const link = buildFinanzOnlineQueueInvestigationHref({
                             registerRowId: toLinkSafeRegisterRowId(invoice.cashRegisterId),
@@ -575,21 +588,21 @@ export const InvoiceList: React.FC = () => {
             }
             void invalidateReconciliationViews();
         } catch (err: unknown) {
-            message.error(OPERATOR_INVOICE_COPY.toastReconciliationRetryTriggerFailed);
+            message.error(t('invoices.messages.reconciliationRetryTriggerFailed'));
             Modal.error({
-                title: OPERATOR_INVOICE_COPY.modalReconciliationErrorTitle,
+                title: t('invoices.modals.reconciliationErrorTitle'),
                 content: (
                     <Space direction="vertical" size={8}>
                         <Typography.Text>
                             {getAxiosResponseDataString(err) ??
-                                'Fehler beim Auslösen des Reconciliation-Retry.'}
+                                t('invoices.reconciliation.catchFallbackMessage')}
                         </Typography.Text>
                         <Typography.Text type="secondary">
-                            Du kannst direkt zur Abgleichsansicht wechseln, um den aktuellen Zustand zu prüfen.
+                            {t('invoices.reconciliation.errorOpenQueueHint')}
                         </Typography.Text>
                     </Space>
                 ),
-                okText: OPERATOR_INVOICE_COPY.modalOpenFinanzOnlineQueue,
+                okText: t('invoices.modals.openFinanzOnlineQueue'),
                 onOk: () => {
                     const invoiceDate = dayjs(invoice.invoiceDate).isValid() ? dayjs(invoice.invoiceDate) : dayjs();
                     const link = buildFinanzOnlineQueueInvestigationHref({
@@ -624,7 +637,7 @@ export const InvoiceList: React.FC = () => {
     // Columns: business-first order; technical columns de-emphasized; Storno-Ref → detail view only
     const columns: TableProps<InvoiceListItemDto>['columns'] = [
         {
-            title: OPERATOR_INVOICE_COPY.listColumnInvoiceNumber,
+            title: t('invoices.columns.invoiceNumber'),
             dataIndex: 'invoiceNumber',
             key: 'invoiceNumber',
             sorter: true,
@@ -636,7 +649,7 @@ export const InvoiceList: React.FC = () => {
                     <Space size={4} wrap>
                         <span style={{ fontWeight: 600 }}>{text}</span>
                         {record.documentType === DocumentType.NUMBER_1 && (
-                            <Tag color="purple" style={{ fontSize: 10 }}>{OPERATOR_INVOICE_COPY.creditNoteTagShort}</Tag>
+                            <Tag color="purple" style={{ fontSize: 10 }}>{t('invoices.creditNoteTagShort')}</Tag>
                         )}
                         <AdminTruthBadge
                             kind={registerDeepLinkEligibleBadgeKind({
@@ -648,7 +661,7 @@ export const InvoiceList: React.FC = () => {
             },
         },
         {
-            title: OPERATOR_INVOICE_COPY.listColumnDate,
+            title: t('invoices.columns.date'),
             dataIndex: 'invoiceDate',
             key: 'invoiceDate',
             sorter: true,
@@ -656,15 +669,15 @@ export const InvoiceList: React.FC = () => {
             render: (date) => dayjs(date).format('DD.MM.YYYY HH:mm'),
         },
         {
-            title: OPERATOR_INVOICE_COPY.listColumnCustomer,
+            title: t('invoices.columns.customer'),
             dataIndex: 'customerName',
             key: 'customerName',
             width: 168,
             ellipsis: { showTitle: true },
-            render: (text) => text || '—',
+            render: (text) => text || FORMAT_EMPTY_DISPLAY,
         },
         {
-            title: OPERATOR_INVOICE_COPY.listColumnTotal,
+            title: t('invoices.columns.total'),
             dataIndex: 'totalAmount',
             key: 'totalAmount',
             sorter: true,
@@ -673,21 +686,21 @@ export const InvoiceList: React.FC = () => {
             render: (amount) => fmt.formatCurrency(Number(amount ?? 0)),
         },
         {
-            title: OPERATOR_INVOICE_COPY.listColumnStatus,
+            title: t('invoices.columns.status'),
             dataIndex: 'status',
             key: 'status',
             sorter: true,
             width: 112,
             render: (status: InvoiceStatus | undefined) => {
                 const code = status ?? InvoiceStatus.NUMBER_0;
-                const info = InvoiceStatusMap[code] || { label: OPERATOR_INVOICE_COPY.invoiceStatusUnknown, color: 'default' };
+                const info = invoiceStatusMap[code] || { label: t('invoices.status.unknown'), color: 'default' };
                 return <Tag color={info.color}>{info.label}</Tag>;
             },
         },
         {
             title: (
-                <Tooltip title="Anzeige-Kassen-ID; Register-FK (Rohwert) im Tooltip der Zelle.">
-                    <Typography.Text type="secondary">{OPERATOR_INVOICE_COPY.listColumnKassenShort}</Typography.Text>
+                <Tooltip title={t('invoices.list.kassenHeaderTooltip')}>
+                    <Typography.Text type="secondary">{t('invoices.columns.kassenShort')}</Typography.Text>
                 </Tooltip>
             ),
             dataIndex: 'kassenId',
@@ -701,11 +714,11 @@ export const InvoiceList: React.FC = () => {
                         <Tooltip
                             title={
                                 apiFk
-                                    ? `Register-FK (Rohwert aus API-Liste): ${apiFk}`
-                                    : 'Kein cashRegisterId im List-DTO — Spalte zeigt nur Anzeigetext.'
+                                    ? t('invoices.list.kassenCellTooltipWithFk', { fk: apiFk })
+                                    : t('invoices.list.kassenCellTooltipNoFk')
                             }
                         >
-                            <Typography.Text type="secondary">{text?.trim() || '—'}</Typography.Text>
+                            <Typography.Text type="secondary">{text?.trim() || FORMAT_EMPTY_DISPLAY}</Typography.Text>
                         </Tooltip>
                         <AdminTruthBadge kind="display_only_label" />
                     </Space>
@@ -714,19 +727,19 @@ export const InvoiceList: React.FC = () => {
         },
         {
             title: (
-                <Tooltip title="Vorschau der TSE-Signatur; vollständiger Wert im Detaildialog.">
-                    <Typography.Text type="secondary">{OPERATOR_INVOICE_COPY.listColumnTseShort}</Typography.Text>
+                <Tooltip title={t('invoices.list.tseHeaderTooltip')}>
+                    <Typography.Text type="secondary">{t('invoices.columns.tseShort')}</Typography.Text>
                 </Tooltip>
             ),
             key: 'tsePrefix',
             width: 92,
             ellipsis: true,
             render: (_: unknown, record: InvoiceListItemDto) => {
-                const t = record.tseSignature?.trim();
-                if (!t) return <Typography.Text type="secondary">—</Typography.Text>;
-                const shortT = t.length > 22 ? `${t.slice(0, 22)}…` : t;
+                const tseSig = record.tseSignature?.trim();
+                if (!tseSig) return <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>;
+                const shortT = tseSig.length > 22 ? `${tseSig.slice(0, 22)}…` : tseSig;
                 return (
-                    <Tooltip title={t}>
+                    <Tooltip title={tseSig}>
                         <Typography.Text code style={{ fontSize: 10 }} ellipsis>
                             {shortT}
                         </Typography.Text>
@@ -735,50 +748,50 @@ export const InvoiceList: React.FC = () => {
             },
         },
         {
-            title: OPERATOR_INVOICE_COPY.listColumnActions,
+            title: t('invoices.columns.actions'),
             key: 'actions',
             width: 268,
             fixed: 'right',
             render: (_, record) => (
                 <Space size={4} wrap align="center">
-                    <Tooltip title={OPERATOR_INVOICE_COPY.rowActionDetailExtendedTooltip}>
+                    <Tooltip title={t('invoices.rowActions.detailExtendedTooltip')}>
                         <Button
                             type="link"
                             size="small"
                             style={{ paddingInline: 0 }}
-                            aria-label={OPERATOR_INVOICE_COPY.rowActionDetailExtendedTooltip}
+                            aria-label={t('invoices.rowActions.detailExtendedTooltip')}
                             onClick={() => {
                                 setSelectedInvoiceId(record.id ?? null);
                                 setDetailVisible(true);
                             }}
                         >
-                            {OPERATOR_INVOICE_COPY.rowActionDetailTooltip}
+                            {t('invoices.rowActions.detailTooltip')}
                         </Button>
                     </Tooltip>
-                    <Tooltip title={OPERATOR_INVOICE_COPY.rowActionPrintTooltip}>
+                    <Tooltip title={t('invoices.rowActions.printTooltip')}>
                         <Button
                             icon={<PrinterOutlined />}
                             size="small"
-                            aria-label={OPERATOR_INVOICE_COPY.rowActionPrintTooltip}
+                            aria-label={t('invoices.rowActions.printTooltip')}
                             onClick={() => handlePrint(record.id ?? '')}
                         >
-                            {OPERATOR_INVOICE_COPY.rowActionPrintCompact}
+                            {t('invoices.rowActions.printCompact')}
                         </Button>
                     </Tooltip>
                     {(record.status === InvoiceStatus.NUMBER_2 || record.status === InvoiceStatus.NUMBER_1) &&
                         record.documentType !== DocumentType.NUMBER_1 && (
-                        <Tooltip title={OPERATOR_INVOICE_COPY.rowActionCreditNoteTooltip}>
+                        <Tooltip title={t('invoices.rowActions.creditNoteTooltip')}>
                             <Button
                                 icon={<RollbackOutlined />}
                                 size="small"
                                 danger
-                                aria-label={OPERATOR_INVOICE_COPY.rowActionCreditNoteTooltip}
+                                aria-label={t('invoices.rowActions.creditNoteTooltip')}
                                 onClick={() => {
                                     setCreditNoteTargetId(record.id ?? null);
                                     setCreditNoteVisible(true);
                                 }}
                             >
-                                {OPERATOR_INVOICE_COPY.rowActionCreditCompact}
+                                {t('invoices.rowActions.creditCompact')}
                             </Button>
                         </Tooltip>
                     )}
@@ -799,37 +812,38 @@ export const InvoiceList: React.FC = () => {
             InvoiceStatus.NUMBER_7,
         ] as const
     ).map((value) => ({
-        label: InvoiceStatusMap[value]?.label ?? String(value),
+        label: invoiceStatusMap[value]?.label ?? String(value),
         value,
     }));
 
     const selectedRow = data?.items?.find((item) => item.id === selectedInvoiceId);
     const displayInvoiceNumber =
-        detailInvoice?.invoiceNumber || selectedRow?.invoiceNumber || selectedInvoiceId || OPERATOR_INVOICE_COPY.displayUnknownInvoice;
+        detailInvoice?.invoiceNumber || selectedRow?.invoiceNumber || selectedInvoiceId || t('invoices.display.unknownInvoice');
 
     const tableEmptyText =
         isInitialListLoading ? undefined : dateRangeError ? (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={OPERATOR_INVOICE_COPY.emptyListInvalidDateRange}>
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('invoices.empty.invalidDateRange')}>
                 <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
                     {dateRangeError}
                 </Typography.Paragraph>
                 <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
-                    {OPERATOR_INVOICE_COPY.dateRangeBlocksQuerySuffix}
+                    {t('invoices.dateRange.blocksQuerySuffix')}
                 </Typography.Paragraph>
             </Empty>
         ) : isError && !data ? (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={OPERATOR_INVOICE_COPY.emptyListLoadFailedTitle}>
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('invoices.empty.loadFailedTitle')}>
                 <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8 }}>
-                    {invoiceListErrorUserMessage(listQueryError)}
+                    {invoiceListLocalizedErrorHint(listQueryError, t)}
                 </Typography.Paragraph>
+                <BackendRawTextBlock introKey="common.backend.serverHintIntro" body={extractRawApiErrorMessage(listQueryError)} />
                 <Space wrap size={[12, 12]} style={{ marginTop: 12 }}>
                     <Button type="primary" onClick={() => refetch()}>
-                        {OPERATOR_SHARED_COPY.retryLoadShort}
+                        {t('common.buttons.reload')}
                     </Button>
-                    <Button onClick={clearAllFilters}>{OPERATOR_INVOICE_COPY.clearAllFilters}</Button>
+                    <Button onClick={clearAllFilters}>{t('invoices.filters.clearAllFilters')}</Button>
                 </Space>
                 <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 12, marginBottom: 0 }}>
-                    {OPERATOR_INVOICE_COPY.emptyListLoadFailedHint}
+                    {t('invoices.empty.loadFailedHint')}
                 </Typography.Paragraph>
             </Empty>
         ) : (
@@ -837,18 +851,18 @@ export const InvoiceList: React.FC = () => {
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                     dateRange?.[0] && dateRange?.[1]
-                        ? OPERATOR_INVOICE_COPY.emptyListDateRange
-                        : OPERATOR_INVOICE_COPY.emptyListDefault
+                        ? t('invoices.empty.dateRange')
+                        : t('invoices.empty.default')
                 }
             >
                 <Space wrap size={[12, 12]} style={{ marginTop: 12 }}>
                     <Button type="primary" onClick={() => refetch()}>
-                        {OPERATOR_SHARED_COPY.retryLoadShort}
+                        {t('common.buttons.reload')}
                     </Button>
-                    <Button onClick={clearAllFilters}>{OPERATOR_INVOICE_COPY.clearAllFilters}</Button>
+                    <Button onClick={clearAllFilters}>{t('invoices.filters.clearAllFilters')}</Button>
                 </Space>
                 <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 0, marginTop: 8 }}>
-                    {OPERATOR_INVOICE_COPY.emptyListMoreHint}
+                    {t('invoices.empty.moreHint')}
                 </Typography.Paragraph>
             </Empty>
         );
@@ -857,8 +871,8 @@ export const InvoiceList: React.FC = () => {
         <React.Fragment>
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
                 <AdminPageHeader
-                    title={OPERATOR_INVOICE_COPY.pageTitle}
-                    breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: OPERATOR_INVOICE_COPY.pageTitle }]}
+                    title={t('invoices.page.title')}
+                    breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: t('invoices.page.title') }]}
                     actions={
                         <Space wrap>
                             <Button
@@ -867,7 +881,7 @@ export const InvoiceList: React.FC = () => {
                                 onClick={handleBatchPrint}
                                 loading={batchLoading}
                             >
-                                {OPERATOR_INVOICE_COPY.actionBatchPrint}
+                                {t('invoices.actions.batchPrint')}
                             </Button>
                             <Button
                                 disabled={!selectedRowKeys.length}
@@ -875,7 +889,7 @@ export const InvoiceList: React.FC = () => {
                                 onClick={handleBatchExport}
                                 loading={batchLoading}
                             >
-                                {OPERATOR_INVOICE_COPY.actionBatchExport}
+                                {t('invoices.actions.batchExport')}
                             </Button>
                             <Button
                                 disabled={!selectedRowKeys.length}
@@ -883,7 +897,7 @@ export const InvoiceList: React.FC = () => {
                                 onClick={handleBatchSubmit}
                                 loading={batchLoading}
                             >
-                                {OPERATOR_INVOICE_COPY.actionBatchReconcile}
+                                {t('invoices.actions.batchReconcile')}
                             </Button>
                             <Button
                                 type="primary"
@@ -891,13 +905,13 @@ export const InvoiceList: React.FC = () => {
                                 onClick={handleExport}
                                 loading={exportLoading}
                             >
-                                {OPERATOR_INVOICE_COPY.actionExportCsvAll}
+                                {t('invoices.actions.exportCsvAll')}
                             </Button>
                         </Space>
                     }
                 >
                     <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
-                        {OPERATOR_INVOICE_COPY.listPageLead}
+                        {t('invoices.page.listLead')}
                     </Typography.Paragraph>
                     <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                         {OPERATOR_FO_QUEUE_COPY.relatedSupportingLabel}:{' '}
@@ -914,7 +928,7 @@ export const InvoiceList: React.FC = () => {
                     <Row gutter={[16, 16]}>
                         <Col xs={24} sm={8} md={6}>
                             <Input
-                                placeholder={OPERATOR_INVOICE_COPY.listSearchPlaceholder}
+                                placeholder={t('invoices.filters.searchPlaceholder')}
                                 prefix={<SearchOutlined />}
                                 value={searchText}
                                 onChange={(e) => setSearchText(e.target.value)}
@@ -923,7 +937,7 @@ export const InvoiceList: React.FC = () => {
                         </Col>
                         <Col xs={24} sm={8} md={4}>
                             <Select
-                                placeholder={OPERATOR_INVOICE_COPY.listStatusPlaceholder}
+                                placeholder={t('invoices.filters.statusPlaceholder')}
                                 style={{ width: '100%' }}
                                 allowClear
                                 value={statusFilter}
@@ -934,19 +948,19 @@ export const InvoiceList: React.FC = () => {
                         <Col xs={24} sm={8} md={5}>
                             <Space direction="vertical" size={4} style={{ width: '100%' }}>
                                 <Input
-                                    placeholder={OPERATOR_INVOICE_COPY.listRegisterPlaceholder}
+                                    placeholder={t('invoices.filters.registerPlaceholder')}
                                     value={cashRegisterIdFilter}
                                     onChange={(e) => { setCashRegisterIdFilter(e.target.value || undefined); setPagination(p => ({ ...p, current: 1 })); }}
                                     allowClear
                                 />
                                 <Typography.Text type="secondary" style={{ display: 'block', fontSize: 11 }}>
-                                    {OPERATOR_INVOICE_COPY.registerListFilterApiFootnote}
+                                    {t('invoices.filters.registerListFilterApiFootnote')}
                                 </Typography.Text>
                                 <Checkbox
                                     checked={invalidRegisterOnly}
                                     onChange={e => setInvalidRegisterOnly(e.target.checked)}
                                 >
-                                    {OPERATOR_INVOICE_COPY.invalidRegisterOnlyCheckboxLabel}
+                                    {t('invoices.filters.invalidRegisterOnlyCheckboxLabel')}
                                 </Checkbox>
                             </Space>
                         </Col>
@@ -968,13 +982,13 @@ export const InvoiceList: React.FC = () => {
                             lg={2}
                             style={{ textAlign: 'right' }}
                         >
-                            <Tooltip title={OPERATOR_SHARED_COPY.refetchHintToolbar}>
+                            <Tooltip title={t('common.toolbar.refetchHint')}>
                                 <Button
                                     icon={<ReloadOutlined />}
                                     onClick={() => refetch()}
                                     loading={isFetching}
                                 >
-                                    {OPERATOR_SHARED_COPY.toolbarRefresh}
+                                    {t('common.buttons.refresh')}
                                 </Button>
                             </Tooltip>
                         </Col>
@@ -984,12 +998,12 @@ export const InvoiceList: React.FC = () => {
                         <Alert
                             type="warning"
                             showIcon
-                            message={OPERATOR_INVOICE_COPY.dateRangeBlocksQueryTitle}
+                            message={t('invoices.dateRange.blocksQueryTitle')}
                             description={
                                 <Space direction="vertical" size={4}>
                                     <Typography.Text>{dateRangeError}</Typography.Text>
                                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                        {OPERATOR_INVOICE_COPY.dateRangeBlocksQuerySuffix}
+                                        {t('invoices.dateRange.blocksQuerySuffix')}
                                     </Typography.Text>
                                 </Space>
                             }
@@ -1001,7 +1015,7 @@ export const InvoiceList: React.FC = () => {
                         <div>
                             <Space wrap size={[8, 8]} align="center">
                                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                    {OPERATOR_INVOICE_COPY.activeFiltersLabel}:
+                                    {t('invoices.filters.activeFiltersLabel')}:
                                 </Typography.Text>
                                 {debouncedSearch.trim() ? (
                                     <Tag
@@ -1011,7 +1025,7 @@ export const InvoiceList: React.FC = () => {
                                             setPagination((p) => ({ ...p, current: 1 }));
                                         }}
                                     >
-                                        {OPERATOR_INVOICE_COPY.filterTagSearchPrefix}: {debouncedSearch.trim()}
+                                        {t('invoices.filterTags.searchPrefix')}: {debouncedSearch.trim()}
                                     </Tag>
                                 ) : null}
                                 {statusFilter !== undefined ? (
@@ -1022,8 +1036,8 @@ export const InvoiceList: React.FC = () => {
                                             setPagination((p) => ({ ...p, current: 1 }));
                                         }}
                                     >
-                                        {OPERATOR_INVOICE_COPY.filterTagStatusPrefix}:{' '}
-                                        {InvoiceStatusMap[statusFilter]?.label ?? String(statusFilter)}
+                                        {t('invoices.filterTags.statusPrefix')}:{' '}
+                                        {invoiceStatusMap[statusFilter]?.label ?? String(statusFilter)}
                                     </Tag>
                                 ) : null}
                                 {dateRange?.[0] && dateRange?.[1] ? (
@@ -1034,7 +1048,7 @@ export const InvoiceList: React.FC = () => {
                                             setPagination((p) => ({ ...p, current: 1 }));
                                         }}
                                     >
-                                        {OPERATOR_INVOICE_COPY.filterTagDateRangePrefix}:{' '}
+                                        {t('invoices.filterTags.dateRangePrefix')}:{' '}
                                         {dayjs(dateRange[0]).format('DD.MM.YYYY')} –{' '}
                                         {dayjs(dateRange[1]).format('DD.MM.YYYY')}
                                     </Tag>
@@ -1049,8 +1063,8 @@ export const InvoiceList: React.FC = () => {
                                         color={registerListFilterAnalysis.linkSafeUuid ? 'geekblue' : 'orange'}
                                     >
                                         {registerListFilterAnalysis.linkSafeUuid
-                                            ? `${OPERATOR_INVOICE_COPY.filterTagRegisterUuid}: `
-                                            : `${OPERATOR_INVOICE_COPY.filterTagRegisterApi}: `}
+                                            ? `${t('invoices.filterTags.registerUuid')}: `
+                                            : `${t('invoices.filterTags.registerApi')}: `}
                                         {cashRegisterIdFilter.trim()}
                                     </Tag>
                                 ) : null}
@@ -1060,11 +1074,11 @@ export const InvoiceList: React.FC = () => {
                                         onClose={() => setInvalidRegisterOnly(false)}
                                         color="purple"
                                     >
-                                        {OPERATOR_INVOICE_COPY.filterTagInvalidRegisterShort}
+                                        {t('invoices.filterTags.invalidRegisterShort')}
                                     </Tag>
                                 ) : null}
                                 <Button type="link" size="small" onClick={clearAllFilters}>
-                                    {OPERATOR_INVOICE_COPY.clearAllFilters}
+                                    {t('invoices.filters.clearAllFilters')}
                                 </Button>
                             </Space>
                         </div>
@@ -1074,8 +1088,8 @@ export const InvoiceList: React.FC = () => {
                         <Alert
                             type="warning"
                             showIcon
-                            message={OPERATOR_INVOICE_COPY.registerFilterInvalidTitle}
-                            description={OPERATOR_INVOICE_COPY.registerFilterInvalidDescription}
+                            message={t('invoices.registerFilter.invalidTitle')}
+                            description={t('invoices.registerFilter.invalidDescription')}
                         />
                     )}
 
@@ -1083,12 +1097,13 @@ export const InvoiceList: React.FC = () => {
                     {isError && data ? (
                         <Alert
                             type="error"
-                            message={OPERATOR_SHARED_COPY.loadFailedList}
+                            message={t('common.loadErrors.list')}
                             description={
                                 <Space direction="vertical" size={4}>
-                                    <Typography.Text>{invoiceListErrorUserMessage(listQueryError)}</Typography.Text>
+                                    <Typography.Text>{invoiceListLocalizedErrorHint(listQueryError, t)}</Typography.Text>
+                                    <BackendRawTextBlock introKey="common.backend.serverHintIntro" body={extractRawApiErrorMessage(listQueryError)} />
                                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                        {OPERATOR_INVOICE_COPY.listStaleAfterErrorNote}
+                                        {t('invoices.listSummary.staleAfterErrorNote')}
                                     </Typography.Text>
                                 </Space>
                             }
@@ -1097,10 +1112,10 @@ export const InvoiceList: React.FC = () => {
                             action={
                                 <Space wrap>
                                     <Button size="small" type="primary" onClick={() => refetch()}>
-                                        {OPERATOR_SHARED_COPY.retryLoadShort}
+                                        {t('common.buttons.reload')}
                                     </Button>
                                     <Button size="small" onClick={clearAllFilters}>
-                                        {OPERATOR_INVOICE_COPY.clearAllFilters}
+                                        {t('invoices.filters.clearAllFilters')}
                                     </Button>
                                 </Space>
                             }
@@ -1117,21 +1132,21 @@ export const InvoiceList: React.FC = () => {
                             }}
                         >
                             <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-                                <strong>{OPERATOR_INVOICE_COPY.listSummaryApiTotal}:</strong>{' '}
+                                <strong>{t('invoices.listSummary.apiTotal')}:</strong>{' '}
                                 {fmt.formatNumber(data.totalCount ?? 0, { maximumFractionDigits: 0 })}
                                 {' · '}
-                                <strong>{OPERATOR_INVOICE_COPY.listSummaryRowsThisPage}:</strong>{' '}
+                                <strong>{t('invoices.listSummary.rowsThisPage')}:</strong>{' '}
                                 {fmt.formatNumber(displayedItems.length, { maximumFractionDigits: 0 })}
                                 {invalidRegisterOnly ? (
                                     <>
                                         {' — '}
-                                        {OPERATOR_INVOICE_COPY.listSummaryClientFilterNote}
+                                        {t('invoices.listSummary.clientFilterNote')}
                                     </>
                                 ) : null}
                                 {isListRefreshing && !isError ? (
                                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                         {' '}
-                                        ({OPERATOR_INVOICE_COPY.listRefreshingHint})
+                                        ({t('invoices.listSummary.refreshingHint')})
                                     </Typography.Text>
                                 ) : null}
                             </Typography.Text>
@@ -1152,16 +1167,20 @@ export const InvoiceList: React.FC = () => {
                             total: data?.totalCount || 0,
                             showTotal: (total, range) => {
                                 if (total <= 0) {
-                                    return OPERATOR_INVOICE_COPY.paginationZeroResults;
+                                    return t('invoices.pagination.zeroResults');
                                 }
                                 const from = range[0] ?? 0;
                                 const to = range[1] ?? 0;
-                                return `${fmt.formatNumber(from, { maximumFractionDigits: 0 })}–${fmt.formatNumber(to, { maximumFractionDigits: 0 })} von ${fmt.formatNumber(total, { maximumFractionDigits: 0 })}`;
+                                return t('invoices.pagination.rangeOfTotal', {
+                                    from: fmt.formatNumber(from, { maximumFractionDigits: 0 }),
+                                    to: fmt.formatNumber(to, { maximumFractionDigits: 0 }),
+                                    total: fmt.formatNumber(total, { maximumFractionDigits: 0 }),
+                                });
                             },
                         }}
                         loading={
                             isInitialListLoading
-                                ? { tip: OPERATOR_INVOICE_COPY.listLoadingTip }
+                                ? { tip: t('invoices.list.loadingTip') }
                                 : false
                         }
                         onChange={handleTableChange}
@@ -1176,12 +1195,12 @@ export const InvoiceList: React.FC = () => {
 
             {/* Detail Modal */}
             <Modal
-                title={`${OPERATOR_INVOICE_COPY.detailModalTitlePrefix} ${displayInvoiceNumber}`}
+                title={`${t('invoices.detail.modalTitlePrefix')} ${displayInvoiceNumber}`}
                 open={detailVisible}
                 onCancel={() => setDetailVisible(false)}
                 footer={[
                     <Button key="close" onClick={() => setDetailVisible(false)}>
-                        {OPERATOR_INVOICE_COPY.detailModalClose}
+                        {t('invoices.detail.modalClose')}
                     </Button>,
                     <Button
                         key="print"
@@ -1189,7 +1208,7 @@ export const InvoiceList: React.FC = () => {
                         icon={<PrinterOutlined />}
                         onClick={() => handlePrint(selectedInvoiceId || '')}
                     >
-                        {OPERATOR_INVOICE_COPY.detailModalPrint}
+                        {t('invoices.detail.modalPrint')}
                     </Button>,
                     (detailInvoice && (detailInvoice.status === 1 || detailInvoice.status === 2)) && (
                         <Button
@@ -1197,7 +1216,7 @@ export const InvoiceList: React.FC = () => {
                             icon={<CloudUploadOutlined />}
                             onClick={() => void handleSubmitFinanzOnline(detailInvoice)}
                         >
-                            {OPERATOR_INVOICE_COPY.detailModalReconciliationRetry}
+                            {t('invoices.detail.modalReconciliationRetry')}
                         </Button>
                     ),
                 ]}
@@ -1205,7 +1224,7 @@ export const InvoiceList: React.FC = () => {
             >
                 {detailLoading ? (
                     <div style={{ textAlign: 'center', padding: '20px' }}>
-                        {OPERATOR_SHARED_COPY.loadingInvoiceDetail}
+                        {t('common.loading.invoiceDetail')}
                     </div>
                 ) : detailInvoice ? (
                     <React.Fragment>
@@ -1221,12 +1240,12 @@ export const InvoiceList: React.FC = () => {
 
                             const positionsLabel =
                                 itemsDisplay.kind === 'parse_error'
-                                    ? 'JSON-Fehler'
+                                    ? t('invoices.detail.positionsJsonError')
                                     : itemsDisplay.kind === 'unsupported_primitive'
-                                      ? `Typ ${itemsDisplay.primitive}`
+                                      ? t('invoices.detail.positionsTypeLabel', { primitive: itemsDisplay.primitive })
                                       : itemsDisplay.rows.length > 0
-                                        ? `${itemsDisplay.rows.length} Zeilen`
-                                        : 'leer / Rohpayload';
+                                        ? t('invoices.detail.positionsRowCount', { count: itemsDisplay.rows.length })
+                                        : t('invoices.detail.positionsEmptyRaw');
 
                             return (
                                 <Space direction="vertical" size={0} style={{ width: '100%' }}>
@@ -1234,32 +1253,32 @@ export const InvoiceList: React.FC = () => {
                                         <Space wrap size={[16, 12]} align="start">
                                             <div>
                                                 <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                                    Rechnung
+                                                    {t('invoices.detail.invoiceLabel')}
                                                 </Typography.Text>
                                                 <Space size={6}>
                                                     <Typography.Text strong>{displayScalar(detailInvoice.invoiceNumber)}</Typography.Text>
                                                     {detailInvoice.documentType === DocumentType.NUMBER_1 ? (
-                                                        <Tag color="purple">Gutschrift</Tag>
+                                                        <Tag color="purple">{t('invoices.detail.creditNoteTag')}</Tag>
                                                     ) : null}
                                                 </Space>
                                             </div>
                                             <div>
                                                 <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                                    Status
+                                                    {t('invoices.detail.statusLabel')}
                                                 </Typography.Text>
-                                                <Tag color={InvoiceStatusMap[detailInvoice.status]?.color || 'default'}>
-                                                    {InvoiceStatusMap[detailInvoice.status]?.label || displayScalar(detailInvoice.status)}
+                                                <Tag color={invoiceStatusMap[detailInvoice.status]?.color || 'default'}>
+                                                    {invoiceStatusMap[detailInvoice.status]?.label || displayScalar(detailInvoice.status)}
                                                 </Tag>
                                             </div>
                                             <div>
                                                 <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                                    Datum
+                                                    {t('invoices.detail.dateLabel')}
                                                 </Typography.Text>
                                                 <Typography.Text>{displayScalar(detailDate)}</Typography.Text>
                                             </div>
                                             <div>
                                                 <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
-                                                    Brutto
+                                                    {t('invoices.detail.grossLabel')}
                                                 </Typography.Text>
                                                 <Typography.Text strong>
                                                     {fmt.formatCurrency(detailInvoice.totalAmount ?? 0)}
@@ -1269,7 +1288,7 @@ export const InvoiceList: React.FC = () => {
                                         <Divider style={{ margin: '12px 0' }} />
                                         <Space wrap align="center" size={8}>
                                             <Typography.Text type="secondary">
-                                                {OPERATOR_INVOICE_COPY.detailRegisterMachineLabel}:
+                                                {t('invoices.detail.registerMachineLabel')}:
                                             </Typography.Text>
                                             <AdminTruthBadge
                                                 kind={registerDeepLinkEligibleBadgeKind(detailRegFk)}
@@ -1288,14 +1307,14 @@ export const InvoiceList: React.FC = () => {
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                 >
-                                                    {OPERATOR_INVOICE_COPY.detailFoLinkWithContext}
+                                                    {t('invoices.detail.foLinkWithContext')}
                                                 </Link>
                                             ) : null}
                                         </Space>
                                         <Divider style={{ margin: '12px 0' }} />
                                         <Space direction="vertical" size={6} style={{ width: '100%' }}>
                                             <Space wrap align="center">
-                                                <Typography.Text type="secondary">Zahlung (Reconciliation):</Typography.Text>
+                                                <Typography.Text type="secondary">{t('invoices.detail.paymentReconciliation')}</Typography.Text>
                                                 {detailInvoice.sourcePaymentId ? (
                                                     <>
                                                         <Typography.Text code copyable>
@@ -1306,16 +1325,16 @@ export const InvoiceList: React.FC = () => {
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                         >
-                                                            Öffnen
+                                                            {t('invoices.detail.openPayment')}
                                                         </Link>
                                                     </>
                                                 ) : (
-                                                    <Typography.Text type="secondary">— kein Payment verknüpft</Typography.Text>
+                                                    <Typography.Text type="secondary">{t('invoices.detail.noPaymentLinked')}</Typography.Text>
                                                 )}
                                             </Space>
                                             <Space wrap align="center">
                                                 <Typography.Text type="secondary">
-                                                    {OPERATOR_INVOICE_COPY.correlationPathsLabel}:
+                                                    {t('invoices.detail.correlationPathsLabel')}:
                                                 </Typography.Text>
                                                 {detailCorrelationTrimmed ? (
                                                     <>
@@ -1346,44 +1365,43 @@ export const InvoiceList: React.FC = () => {
                                         <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0, fontSize: 12 }}>
                                             {provenanceFacet.kind === 'explicit_backend_string' ? (
                                                 <>
-                                                    <strong>Herkunft (Antwort):</strong>{' '}
+                                                    <strong>{t('invoices.detail.provenanceFromResponse')}</strong>{' '}
                                                     {provenanceFacet.operatorLabel}
                                                     <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4, fontSize: 11 }}>
-                                                        {OPERATOR_INVOICE_COPY.detailProvenanceUntypedApiNote}
+                                                        {t('invoices.detail.provenanceUntypedApiNote')}
                                                     </Typography.Text>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <strong>Herkunft:</strong> {OPERATOR_INVOICE_COPY.detailProvenanceFooter}
+                                                    <strong>{t('invoices.detail.provenancePlain')}</strong> {t('invoices.detail.provenanceOperatorFooter')}
                                                 </>
                                             )}
                                         </Typography.Paragraph>
                                         {(detailInvoice.status === InvoiceStatus.NUMBER_1 || detailInvoice.status === InvoiceStatus.NUMBER_2) && (
                                             <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
-                                                <strong>Retry:</strong> FinanzOnline-Reconciliation über Schaltfläche unten im Dialog
-                                                (Footer).
+                                                {t('invoices.detail.retryFooterHint')}
                                             </Typography.Paragraph>
                                         )}
                                     </OperatorSummaryStrip>
 
                                     <OperatorBusinessSection>
                                         <Descriptions bordered column={2} size="small">
-                                            <Descriptions.Item label={OPERATOR_INVOICE_COPY.listColumnCustomer} span={2}>
+                                            <Descriptions.Item label={t('invoices.columns.customer')} span={2}>
                                                 {displayScalar(detailInvoice.customerName)} <br />
                                                 {displayScalar(detailInvoice.customerAddress)} <br />
                                                 {displayScalar(detailInvoice.customerTaxNumber)}
                                             </Descriptions.Item>
-                                            <Descriptions.Item label={OPERATOR_INVOICE_COPY.descLabelCompany} span={2}>
+                                            <Descriptions.Item label={t('invoices.detail.descLabelCompany')} span={2}>
                                                 {displayScalar(detailInvoice.companyName)} <br />
                                                 {displayScalar(detailInvoice.companyTaxNumber)}
                                             </Descriptions.Item>
-                                            <Descriptions.Item label={OPERATOR_INVOICE_COPY.descLabelTotalAmount}>
+                                            <Descriptions.Item label={t('invoices.detail.descLabelTotalAmount')}>
                                                 {fmt.formatCurrency(detailInvoice.totalAmount ?? 0)}
                                             </Descriptions.Item>
-                                            <Descriptions.Item label={OPERATOR_INVOICE_COPY.descLabelTaxAmount}>
+                                            <Descriptions.Item label={t('invoices.detail.descLabelTaxAmount')}>
                                                 {fmt.formatCurrency(detailInvoice.taxAmount ?? 0)}
                                             </Descriptions.Item>
-                                            <Descriptions.Item label={OPERATOR_INVOICE_COPY.descRegisterFkMachine} span={2}>
+                                            <Descriptions.Item label={t('invoices.detail.descRegisterFkMachine')} span={2}>
                                                 <Space direction="vertical" size={8} style={{ width: '100%' }}>
                                                     {detailRegFk.isRawPresentButNotLinkSafe ? (
                                                         <Alert
@@ -1413,7 +1431,7 @@ export const InvoiceList: React.FC = () => {
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                             >
-                                                                {OPERATOR_INVOICE_COPY.detailFoLinkRegisterOnly}
+                                                                {t('invoices.detail.foLinkRegisterOnly')}
                                                             </Link>
                                                         </div>
                                                     ) : (
@@ -1425,14 +1443,14 @@ export const InvoiceList: React.FC = () => {
                                                     )}
                                                 </Space>
                                             </Descriptions.Item>
-                                            <Descriptions.Item label={OPERATOR_INVOICE_COPY.descKassenIdDisplay} span={2}>
+                                            <Descriptions.Item label={t('invoices.detail.descKassenIdDisplay')} span={2}>
                                                 <Space wrap align="center">
                                                     <AdminTruthBadge kind="display_only_label" />
                                                     <span>{formatRegisterDisplayLabel(detailInvoice.kassenId)}</span>
                                                 </Space>
                                             </Descriptions.Item>
-                                            <Descriptions.Item label={OPERATOR_INVOICE_COPY.descLabelPaymentMethod} span={2}>
-                                                {displayScalar(getPaymentMethodLabel(detailInvoice.paymentMethod))}
+                                            <Descriptions.Item label={t('invoices.detail.descLabelPaymentMethod')} span={2}>
+                                                {displayScalar(getPaymentMethodLabel(detailInvoice.paymentMethod, t))}
                                             </Descriptions.Item>
                                         </Descriptions>
                                     </OperatorBusinessSection>
@@ -1443,7 +1461,7 @@ export const InvoiceList: React.FC = () => {
                                             items={[
                                                 {
                                                     key: 'tse',
-                                                    label: 'TSE-Signatur (Rohfeld)',
+                                                    label: t('invoices.detail.collapseTseRaw'),
                                                     children: (
                                                         <Typography.Paragraph
                                                             code
@@ -1461,20 +1479,20 @@ export const InvoiceList: React.FC = () => {
                                                 },
                                                 {
                                                     key: 'items',
-                                                    label: `Positionen / Artikel (OpenAPI: unknown) — ${positionsLabel}`,
+                                                    label: t('invoices.detail.positionsCollapseLabel', { label: positionsLabel }),
                                                     children: (
                                                         <Space direction="vertical" size={8} style={{ width: '100%' }}>
                                                             <Alert
                                                                 type="info"
                                                                 showIcon
-                                                                message={OPERATOR_INVOICE_COPY.contractInvoiceItemsTitle}
+                                                                message={t('invoices.detail.contractInvoiceItemsTitle')}
                                                                 description={RKSv_ADMIN_CONTRACT_GAPS.invoiceDetailInvoiceItems}
                                                             />
                                                             {itemsDisplay.kind === 'parse_error' ? (
                                                                 <Alert
                                                                     type="warning"
                                                                     showIcon
-                                                                    message="invoiceItems konnte nicht als JSON gelesen werden"
+                                                                    message={t('invoices.detail.itemsParseErrorTitle')}
                                                                     description={itemsDisplay.message}
                                                                 />
                                                             ) : null}
@@ -1482,8 +1500,10 @@ export const InvoiceList: React.FC = () => {
                                                                 <Alert
                                                                     type="warning"
                                                                     showIcon
-                                                                    message="Unerwarteter Laufzeit-Typ"
-                                                                    description={`Erhalten: ${itemsDisplay.primitive}`}
+                                                                    message={t('invoices.detail.itemsUnexpectedTypeTitle')}
+                                                                    description={t('invoices.detail.itemsUnexpectedTypeDesc', {
+                                                                        primitive: itemsDisplay.primitive,
+                                                                    })}
                                                                 />
                                                             ) : null}
                                                             {itemsDisplay.kind === 'rows' && itemsDisplay.rows.length > 0 ? (
@@ -1501,7 +1521,7 @@ export const InvoiceList: React.FC = () => {
                                                                 </pre>
                                                             ) : itemsDisplay.kind === 'rows' ? (
                                                                 <Typography.Text type="secondary">
-                                                                    Keine Positionsdaten (leer oder null laut Normalisierung).
+                                                                    {t('invoices.detail.itemsNoRows')}
                                                                 </Typography.Text>
                                                             ) : null}
                                                         </Space>
@@ -1515,48 +1535,48 @@ export const InvoiceList: React.FC = () => {
                         })()}
                     </React.Fragment>
                 ) : (
-                    <Empty description={OPERATOR_INVOICE_COPY.detailEmptyLoadFailed} />
+                    <Empty description={t('invoices.detail.emptyLoadFailed')} />
                 )}
             </Modal>
 
             {/* Credit Note Modal */}
             <Modal
-                title={OPERATOR_INVOICE_COPY.creditNoteModalTitle}
+                title={t('invoices.creditNote.modalTitle')}
                 open={creditNoteVisible}
                 onCancel={() => { setCreditNoteVisible(false); creditNoteForm.resetFields(); }}
                 onOk={handleCreateCreditNote}
                 confirmLoading={creditNoteLoading}
-                okText={OPERATOR_INVOICE_COPY.creditNoteModalOk}
-                cancelText={OPERATOR_INVOICE_COPY.creditNoteModalCancel}
+                okText={t('invoices.creditNote.modalOk')}
+                cancelText={t('invoices.creditNote.modalCancel')}
                 okButtonProps={{ danger: true }}
             >
                 <Alert
                     type="warning"
-                    message={OPERATOR_INVOICE_COPY.creditNoteAlertMessage}
-                    description={OPERATOR_INVOICE_COPY.creditNoteAlertDescription}
+                    message={t('invoices.creditNote.alertMessage')}
+                    description={t('invoices.creditNote.alertDescription')}
                     showIcon
                     style={{ marginBottom: 16 }}
                 />
                 <Form form={creditNoteForm} layout="vertical">
                     <Form.Item
                         name="reasonCode"
-                        label={OPERATOR_INVOICE_COPY.formReasonCodeLabel}
-                        rules={[{ required: true, message: OPERATOR_INVOICE_COPY.formReasonCodeRequired }]}
+                        label={t('invoices.creditNote.formReasonCodeLabel')}
+                        rules={[{ required: true, message: t('invoices.creditNote.formReasonCodeRequired') }]}
                     >
-                        <Select placeholder={OPERATOR_INVOICE_COPY.formReasonPlaceholder}>
-                            <Select.Option value="RETURN">{OPERATOR_INVOICE_COPY.creditReasonReturn}</Select.Option>
-                            <Select.Option value="ERROR">{OPERATOR_INVOICE_COPY.creditReasonError}</Select.Option>
-                            <Select.Option value="DISCOUNT">{OPERATOR_INVOICE_COPY.creditReasonDiscount}</Select.Option>
-                            <Select.Option value="CANCEL">{OPERATOR_INVOICE_COPY.creditReasonCancel}</Select.Option>
-                            <Select.Option value="OTHER">{OPERATOR_INVOICE_COPY.creditReasonOther}</Select.Option>
+                        <Select placeholder={t('invoices.creditNote.formReasonPlaceholder')}>
+                            <Select.Option value="RETURN">{t('invoices.creditNote.reasonReturn')}</Select.Option>
+                            <Select.Option value="ERROR">{t('invoices.creditNote.reasonError')}</Select.Option>
+                            <Select.Option value="DISCOUNT">{t('invoices.creditNote.reasonDiscount')}</Select.Option>
+                            <Select.Option value="CANCEL">{t('invoices.creditNote.reasonCancel')}</Select.Option>
+                            <Select.Option value="OTHER">{t('invoices.creditNote.reasonOther')}</Select.Option>
                         </Select>
                     </Form.Item>
                     <Form.Item
                         name="reasonText"
-                        label={OPERATOR_INVOICE_COPY.formReasonTextLabel}
-                        rules={[{ required: true, message: OPERATOR_INVOICE_COPY.formReasonTextRequired }]}
+                        label={t('invoices.creditNote.formReasonTextLabel')}
+                        rules={[{ required: true, message: t('invoices.creditNote.formReasonTextRequired') }]}
                     >
-                        <Input.TextArea rows={3} placeholder={OPERATOR_INVOICE_COPY.formReasonTextAreaPlaceholder} />
+                        <Input.TextArea rows={3} placeholder={t('invoices.creditNote.formReasonTextAreaPlaceholder')} />
                     </Form.Item>
                 </Form>
             </Modal>

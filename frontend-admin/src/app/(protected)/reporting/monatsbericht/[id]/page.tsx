@@ -27,10 +27,9 @@ import { formatCurrency, formatDate, formatDateTime, formatNumber, useI18n } fro
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
+import { FormalReportLanguageNotice, FormalReportProfileLanguageCue } from '@/components/reporting/FormalReportLanguageNotice';
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExportCompletenessBanner';
-import { joinFiscalReportRemediationHints, resolveFiscalExportProfileRow } from '@/shared/backendLocale';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
 
 type MonatsberichtDto = {
@@ -140,7 +139,7 @@ type ReportHistoryTimelineDto = {
 
 export default function MonatsberichtDetailPage() {
   const { t, formatLocale } = useI18n();
-  const { fiscalTooltip, resolveFiscal, textLocale } = useFiscalReportText();
+  const { fiscalTooltip, resolveFiscal, joinRemediationHints, resolveExportProfileRow } = useFiscalReportText();
   const td = useCallback((path: string) => t(`reporting.monatsbericht.detail.${path}`), [t]);
   const ts = useCallback((path: string) => t(`reporting.tagesbericht.detail.${path}`), [t]);
   const router = useRouter();
@@ -286,11 +285,7 @@ export default function MonatsberichtDetailPage() {
     d.submissionEnvelope?.submissionVersusReportNoteEn,
   );
   const operatorHintResolved = resolveFiscal(d.submission.operatorHintDe, d.submission.operatorHintEn);
-  const remediationResolved = joinFiscalReportRemediationHints(
-    d.submissionEnvelope?.remediationHintsDe,
-    textLocale,
-    ' | ',
-  );
+  const remediationResolved = joinRemediationHints(d.submissionEnvelope?.remediationHintsDe, ' | ');
   const upstreamNote = d.upstreamPropagation
     ? resolveFiscal(d.upstreamPropagation.noteDe, d.upstreamPropagation.noteEn)
     : undefined;
@@ -350,6 +345,7 @@ export default function MonatsberichtDetailPage() {
             <Radio.Button value="legalComplianceExport">{ts('profile.legal')}</Radio.Button>
             <Radio.Button value="diagnosticPackage">{ts('profile.diagnostic')}</Radio.Button>
           </Radio.Group>
+          <FormalReportProfileLanguageCue />
           {profile !== 'legalComplianceExport' ? (
             <Typography.Text type="warning">{ts('profile.warnNonLegal')}</Typography.Text>
           ) : null}
@@ -364,7 +360,7 @@ export default function MonatsberichtDetailPage() {
               title={t('reporting.backend.fiscalReportExportProfilesHint')}
             >
               {d.exportProfiles.map((p) => {
-                const row = resolveFiscalExportProfileRow(p, textLocale);
+                const row = resolveExportProfileRow(p);
                 if (!row) return null;
                 return (
                   <span key={p.profileKey} style={{ marginRight: 12 }}>
