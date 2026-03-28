@@ -15,8 +15,8 @@ using KasseAPI_Final.Time;
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// Admin: <b>legacy</b> payment-row FinanzOnline reconciliation (PaymentDetails columns) — list and retry by payment id.
-/// Operational visibility for the SOAP/outbox pipeline: <c>GET /api/admin/finanzonline-outbox</c> (<see cref="FinanzOnlineOutboxAdminController"/>).
+/// Admin: <b>legacy</b> payment-row FinanzOnline reconciliation (<b>derived</b> from <see cref="PaymentDetails"/> columns) — list and retry by payment id.
+/// <b>Primary</b> submission lifecycle: <c>GET /api/admin/finanzonline-outbox</c> (<see cref="FinanzOnlineOutboxAdminController"/>).
 /// This controller remains supported during phased deprecation; do not build new features on it.
 /// </summary>
 [Authorize]

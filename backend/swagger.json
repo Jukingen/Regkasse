@@ -4780,26 +4780,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FinanzOnlineErrorResponse"
-                  }
+                  "$ref": "#/components/schemas/FinanzOnlineErrorsListResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FinanzOnlineErrorResponse"
-                  }
+                  "$ref": "#/components/schemas/FinanzOnlineErrorsListResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FinanzOnlineErrorResponse"
-                  }
+                  "$ref": "#/components/schemas/FinanzOnlineErrorsListResponse"
                 }
               }
             }
@@ -17362,6 +17353,10 @@
       "FinanzOnlineErrorResponse": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "code": {
             "type": "string",
             "nullable": true
@@ -17381,6 +17376,29 @@
           "retryCount": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineErrorsListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinanzOnlineErrorResponse"
+            },
+            "nullable": true
+          },
+          "isAuthoritative": {
+            "type": "boolean"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "diagnosticWarning": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -17685,6 +17703,38 @@
           "errorMessage": {
             "type": "string",
             "nullable": true
+          },
+          "finanzOnlineTransportsSimulated": {
+            "type": "boolean"
+          },
+          "enableRealTestSubmission": {
+            "type": "boolean"
+          },
+          "transportDiagnostics": {
+            "type": "string",
+            "nullable": true
+          },
+          "sessionProbeSucceeded": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "sessionProbeTimestamp": {
+            "type": "string",
+            "nullable": true
+          },
+          "sessionProbeIntegrationMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "isAuthoritative": {
+            "type": "boolean"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "diagnosticWarning": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -17807,6 +17857,30 @@
             "format": "int32"
           },
           "timestamp": {
+            "type": "string",
+            "nullable": true
+          },
+          "finanzOnlineTransportsSimulated": {
+            "type": "boolean"
+          },
+          "enableRealTestSubmission": {
+            "type": "boolean"
+          },
+          "transportDiagnostics": {
+            "type": "string",
+            "nullable": true
+          },
+          "probeIntegrationMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "isAuthoritative": {
+            "type": "boolean"
+          },
+          "isSimulated": {
+            "type": "boolean"
+          },
+          "diagnosticWarning": {
             "type": "string",
             "nullable": true
           }

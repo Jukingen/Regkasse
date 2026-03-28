@@ -15,7 +15,9 @@ using KasseAPI_Final.Services;
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// Admin: single payload for correlation-centred incident investigation (replay batch + audit + FO state per batch payment).
+/// Admin: single payload for correlation-centred incident investigation (replay batch + audit + payment-row FO fields per batch payment).
+/// Embedded FO rows mirror <see cref="PaymentDetails"/> reconciliation columns (derived). For pipeline truth use outbox with the same correlation/business keys:
+/// <see cref="FinanzOnlineOutboxAdminController"/>.
 /// </summary>
 [Authorize]
 [ApiController]

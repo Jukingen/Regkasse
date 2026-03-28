@@ -24,19 +24,22 @@ namespace KasseAPI_Final.Services
         private readonly IOptionsMonitor<FinanzOnlineCutoverGuardOptions> _cutoverOptions;
         private readonly IHostEnvironment _hostEnvironment;
         private readonly ILogger<FinanzOnlineService> _logger;
+        private readonly IFinanzOnlineAdminConnectivityService _adminConnectivity;
 
         public FinanzOnlineService(
             AppDbContext context,
             IFinanzOnlineOutboxService outboxService,
             IOptionsMonitor<FinanzOnlineCutoverGuardOptions> cutoverOptions,
             IHostEnvironment hostEnvironment,
-            ILogger<FinanzOnlineService> logger)
+            ILogger<FinanzOnlineService> logger,
+            IFinanzOnlineAdminConnectivityService adminConnectivity)
         {
             _context = context;
             _outboxService = outboxService;
             _cutoverOptions = cutoverOptions;
             _hostEnvironment = hostEnvironment;
             _logger = logger;
+            _adminConnectivity = adminConnectivity;
         }
 
         public async Task<bool> IsEnabledAsync()
@@ -117,22 +120,52 @@ namespace KasseAPI_Final.Services
                     return new FinanzOnlineStatus
                     {
                         IsEnabled = false,
-                        Status = "Disabled"
+                        Status = "Disabled",
+                        IsConnected = false,
+                        ErrorMessage = "FinanzOnline disabled in company settings."
                     };
                 }
 
                 var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
-                var lastSync = companySettings?.LastFinanzOnlineSync;
+                var lastSync = companySettings?.LastFinanzOnlineSync ?? DateTime.UtcNow;
+
+                var tseDevice = await _context.TseDevices
+                    .AsNoTracking()
+                    .Where(t => t.IsActive && t.FinanzOnlineEnabled)
+                    .FirstOrDefaultAsync()
+                    .ConfigureAwait(false);
+
+                if (tseDevice == null)
+                {
+                    return new FinanzOnlineStatus
+                    {
+                        IsEnabled = true,
+                        IsConnected = false,
+                        Status = "NoActiveDevice",
+                        LastConnectionTime = lastSync,
+                        LastSubmissionTime = lastSync,
+                        PendingSubmissions = companySettings?.PendingInvoices ?? 0,
+                        FailedSubmissions = 0,
+                        ErrorMessage = "No active TSE with FinanzOnline enabled; use GET /api/FinanzOnline/status for diagnostics."
+                    };
+                }
+
+                var snap = await _adminConnectivity
+                    .BuildStatusAsync(tseDevice, CancellationToken.None)
+                    .ConfigureAwait(false);
 
                 return new FinanzOnlineStatus
                 {
                     IsEnabled = true,
-                    IsConnected = true, // Simulate connection
-                    Status = "Connected",
-                    LastConnectionTime = lastSync ?? DateTime.UtcNow,
-                    LastSubmissionTime = lastSync ?? DateTime.UtcNow,
-                    PendingSubmissions = companySettings?.PendingInvoices ?? 0,
-                    FailedSubmissions = 0
+                    IsConnected = snap.IsConnected,
+                    Status = snap.IsAuthoritative
+                        ? (snap.IsConnected ? "Connected" : "Disconnected")
+                        : (snap.FinanzOnlineTransportsSimulated ? "Simulated" : "ProbePending"),
+                    LastConnectionTime = lastSync,
+                    LastSubmissionTime = lastSync,
+                    PendingSubmissions = snap.PendingInvoices,
+                    FailedSubmissions = 0,
+                    ErrorMessage = snap.ErrorMessage ?? string.Empty
                 };
             }
             catch
@@ -140,7 +173,8 @@ namespace KasseAPI_Final.Services
                 return new FinanzOnlineStatus
                 {
                     IsEnabled = false,
-                    Status = "Error"
+                    Status = "Error",
+                    IsConnected = false
                 };
             }
         }
@@ -149,15 +183,28 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var config = await GetConfigAsync();
+                var config = await GetConfigAsync().ConfigureAwait(false);
                 if (string.IsNullOrEmpty(config.ApiUrl) || string.IsNullOrEmpty(config.Username))
                 {
                     return false;
                 }
 
-                // Simulate connection test
-                await Task.Delay(1000);
-                return true;
+                var tseDevice = await _context.TseDevices
+                    .AsNoTracking()
+                    .Where(t => t.IsActive && t.FinanzOnlineEnabled)
+                    .FirstOrDefaultAsync()
+                    .ConfigureAwait(false);
+
+                if (tseDevice == null)
+                {
+                    return false;
+                }
+
+                var test = await _adminConnectivity
+                    .RunTestConnectionAsync(tseDevice, CancellationToken.None)
+                    .ConfigureAwait(false);
+
+                return test.Success;
             }
             catch
             {

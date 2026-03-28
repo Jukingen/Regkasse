@@ -4,12 +4,16 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Authorization;
-using System.Security.Claims;
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
 {
+    /// <summary>
+    /// FinanzOnline <b>configuration, connectivity diagnostics, and historical artifacts</b> (config, status probe, errors table, submission rows per invoice).
+    /// Not the authoritative surface for per-message BMF pipeline state — use <see cref="FinanzOnlineOutboxAdminController"/> for that.
+    /// </summary>
     [HasPermission(AppPermissions.SettingsView)]
     [ApiController]
     [Route("api/[controller]")]
@@ -17,11 +21,16 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<FinanzOnlineController> _logger;
+        private readonly IFinanzOnlineAdminConnectivityService _adminConnectivity;
 
-        public FinanzOnlineController(AppDbContext context, ILogger<FinanzOnlineController> logger)
+        public FinanzOnlineController(
+            AppDbContext context,
+            ILogger<FinanzOnlineController> logger,
+            IFinanzOnlineAdminConnectivityService adminConnectivity)
         {
             _context = context;
             _logger = logger;
+            _adminConnectivity = adminConnectivity;
         }
 
         // GET: api/finanzonline/config
@@ -122,22 +131,16 @@ namespace KasseAPI_Final.Controllers
                         LastSync = "",
                         PendingInvoices = 0,
                         PendingReports = 0,
-                        ErrorMessage = "FinanzOnline etkin değil"
+                        ErrorMessage = "FinanzOnline etkin değil",
+                        IsAuthoritative = false,
+                        IsSimulated = false,
+                        DiagnosticWarning =
+                            "No active TSE device with FinanzOnline enabled — connectivity flags are not applicable."
                     });
                 }
 
-                // FinanzOnline bağlantı durumu simülasyonu
-                bool isConnected = await CheckFinanzOnlineConnection(tseDevice);
-
-                return Ok(new FinanzOnlineStatusResponse
-                {
-                    IsConnected = isConnected,
-                    ApiVersion = "1.0",
-                    LastSync = tseDevice.LastFinanzOnlineSync.ToString("yyyy-MM-ddTHH:mm:ss"),
-                    PendingInvoices = tseDevice.PendingInvoices,
-                    PendingReports = tseDevice.PendingReports,
-                    ErrorMessage = isConnected ? null : "FinanzOnline API'ye bağlanılamadı"
-                });
+                var snapshot = await _adminConnectivity.BuildStatusAsync(tseDevice, HttpContext.RequestAborted);
+                return Ok(ToStatusResponse(snapshot));
             }
             catch (Exception ex)
             {
@@ -193,41 +196,23 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = submission.ErrorMessage });
                 }
 
-                // Fatura gönderimi simülasyonu
-                bool submitSuccess = await SubmitInvoiceToFinanzOnline(tseDevice, request);
-                
-                submission.Success = submitSuccess;
-                submission.ResponseStatusCode = submitSuccess ? "200" : "400";
-                
-                if (submitSuccess)
+                submission.Success = false;
+                submission.ResponseStatusCode = "410";
+                submission.ErrorMessage =
+                    "Deprecated endpoint does not perform live FinanzOnline submission; use outbox pipeline (GET /api/admin/finanzonline-outbox).";
+                var reject = new FinanzOnlineSubmitResponse
                 {
-                    tseDevice.LastFinanzOnlineSync = DateTime.UtcNow;
-                    tseDevice.PendingInvoices = Math.Max(0, tseDevice.PendingInvoices - 1);
-                    
-                    var response = new FinanzOnlineSubmitResponse
-                    {
-                        Success = true,
-                        Message = "Fatura FinanzOnline'a başarıyla gönderildi",
-                        SubmissionId = Guid.NewGuid().ToString(),
-                        Timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss")
-                    };
-                    
-                    submission.ResponseBodyJson = JsonSerializer.Serialize(response);
-                    _context.FinanzOnlineSubmissions.Add(submission);
-                    await _context.SaveChangesAsync();
-                    
-                    _logger.LogInformation("Invoice submitted to FinanzOnline: {InvoiceNumber}", request.InvoiceNumber);
-                    
-                    return Ok(response);
-                }
-                else
-                {
-                    submission.ErrorMessage = "Fatura FinanzOnline'a gönderilemedi";
-                    _context.FinanzOnlineSubmissions.Add(submission);
-                    await _context.SaveChangesAsync();
+                    Success = false,
+                    Message =
+                        "This endpoint is deprecated and does not submit to FinanzOnline. Use the operational outbox and GET /api/admin/finanzonline-reconciliation for FO state.",
+                    SubmissionId = string.Empty,
+                    Timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss")
+                };
+                submission.ResponseBodyJson = JsonSerializer.Serialize(reject);
+                _context.FinanzOnlineSubmissions.Add(submission);
+                await _context.SaveChangesAsync();
 
-                    return BadRequest(new { message = submission.ErrorMessage });
-                }
+                return BadRequest(reject);
             }
             catch (Exception ex)
             {
@@ -245,24 +230,33 @@ namespace KasseAPI_Final.Controllers
 
         [HasPermission(AppPermissions.FinanzOnlineView)]
         [HttpGet("errors")]
-        public async Task<ActionResult<List<FinanzOnlineErrorResponse>>> GetErrors()
+        public async Task<ActionResult<FinanzOnlineErrorsListResponse>> GetErrors()
         {
             try
             {
-                // Son hataları getir (gerçek implementasyonda ayrı tablo kullanılır)
-                var errors = new List<FinanzOnlineErrorResponse>
-                {
-                    new FinanzOnlineErrorResponse
+                var errors = await _context.FinanzOnlineErrors
+                    .AsNoTracking()
+                    .OrderByDescending(e => e.OccurredAt)
+                    .Take(50)
+                    .Select(e => new FinanzOnlineErrorResponse
                     {
-                        Code = "API_001",
-                        Message = "API bağlantısı başarısız",
-                        Timestamp = DateTime.UtcNow.AddHours(-1).ToString("yyyy-MM-ddTHH:mm:ss"),
-                        InvoiceNumber = "",
-                        RetryCount = 2
-                    }
-                };
+                        Id = e.Id,
+                        Code = e.ErrorType,
+                        Message = e.ErrorMessage,
+                        Timestamp = e.OccurredAt.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss"),
+                        InvoiceNumber = e.InvoiceNumber ?? string.Empty,
+                        RetryCount = e.RetryCount
+                    })
+                    .ToListAsync();
 
-                return Ok(errors);
+                return Ok(new FinanzOnlineErrorsListResponse
+                {
+                    Items = errors,
+                    IsAuthoritative = true,
+                    IsSimulated = false,
+                    DiagnosticWarning =
+                        "Authoritative for persisted FinanzOnlineErrors rows only (last 50). Not a live BMF feed; for per-payment FO state use GET /api/admin/finanzonline-reconciliation."
+                });
             }
             catch (Exception ex)
             {
@@ -286,17 +280,8 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "FinanzOnline etkin değil" });
                 }
 
-                // Bağlantı testi simülasyonu
-                bool isConnected = await CheckFinanzOnlineConnection(tseDevice);
-
-                return Ok(new FinanzOnlineTestResponse
-                {
-                    Success = isConnected,
-                    Message = isConnected ? "FinanzOnline bağlantısı başarılı" : "FinanzOnline bağlantısı başarısız",
-                    ApiVersion = "1.0",
-                    ResponseTime = 150, // ms
-                    Timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss")
-                });
+                var testSnapshot = await _adminConnectivity.RunTestConnectionAsync(tseDevice, HttpContext.RequestAborted);
+                return Ok(ToTestResponse(testSnapshot));
             }
             catch (Exception ex)
             {
@@ -325,23 +310,58 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // Private helper methods
-        private async Task<bool> CheckFinanzOnlineConnection(TseDevice device)
-        {
-            // Gerçek implementasyonda FinanzOnline API'ye bağlantı testi yapılır
-            await Task.Delay(100); // Simülasyon için kısa bekleme
-            
-            // Basit bağlantı kontrolü simülasyonu
-            return !string.IsNullOrEmpty(device.FinanzOnlineUsername);
-        }
+        private static FinanzOnlineStatusResponse ToStatusResponse(FinanzOnlineAdministrativeStatusSnapshot s) =>
+            new()
+            {
+                IsConnected = s.IsConnected,
+                ApiVersion = s.ApiVersion,
+                LastSync = s.LastSync,
+                PendingInvoices = s.PendingInvoices,
+                PendingReports = s.PendingReports,
+                ErrorMessage = s.ErrorMessage,
+                FinanzOnlineTransportsSimulated = s.FinanzOnlineTransportsSimulated,
+                EnableRealTestSubmission = s.EnableRealTestSubmission,
+                TransportDiagnostics = s.TransportDiagnostics,
+                SessionProbeSucceeded = s.SessionProbeSucceeded,
+                SessionProbeTimestamp = s.SessionProbeTimestamp,
+                SessionProbeIntegrationMode = s.SessionProbeIntegrationMode,
+                IsAuthoritative = s.IsAuthoritative,
+                IsSimulated = s.FinanzOnlineTransportsSimulated,
+                DiagnosticWarning = BuildStatusDiagnosticWarning(s)
+            };
 
-        private async Task<bool> SubmitInvoiceToFinanzOnline(TseDevice device, FinanzOnlineSubmitRequest request)
+        private static FinanzOnlineTestResponse ToTestResponse(FinanzOnlineAdministrativeTestSnapshot s) =>
+            new()
+            {
+                Success = s.Success,
+                Message = s.Message,
+                ApiVersion = s.ApiVersion,
+                ResponseTime = s.ResponseTime,
+                Timestamp = s.Timestamp,
+                FinanzOnlineTransportsSimulated = s.FinanzOnlineTransportsSimulated,
+                EnableRealTestSubmission = s.EnableRealTestSubmission,
+                TransportDiagnostics = s.TransportDiagnostics,
+                ProbeIntegrationMode = s.ProbeIntegrationMode,
+                IsAuthoritative = s.IsAuthoritative,
+                IsSimulated = s.FinanzOnlineTransportsSimulated,
+                DiagnosticWarning = s.IsAuthoritative
+                    ? null
+                    : "Diagnostic only — no live SOAP session probe ran (simulated transports)."
+            };
+
+        private static string? BuildStatusDiagnosticWarning(FinanzOnlineAdministrativeStatusSnapshot s)
         {
-            // Gerçek implementasyonda FinanzOnline API'ye fatura gönderilir
-            await Task.Delay(300); // Simülasyon için kısa bekleme
-            
-            // Fatura gönderimi simülasyonu
-            return !string.IsNullOrEmpty(request.InvoiceNumber) && request.TotalAmount > 0;
+            if (s.IsAuthoritative)
+            {
+                return null;
+            }
+
+            if (s.FinanzOnlineTransportsSimulated)
+            {
+                return "Diagnostic only — at least one FinanzOnline transport is simulated; IsConnected is not live BMF.";
+            }
+
+            return "Diagnostic only — no cached SOAP session probe yet; run POST /api/FinanzOnline/test-connection, then refresh.";
         }
     }
 
@@ -379,6 +399,18 @@ namespace KasseAPI_Final.Controllers
         public int PendingInvoices { get; set; }
         public int PendingReports { get; set; }
         public string? ErrorMessage { get; set; }
+        public bool FinanzOnlineTransportsSimulated { get; set; }
+        public bool EnableRealTestSubmission { get; set; }
+        public string TransportDiagnostics { get; set; } = string.Empty;
+        public bool? SessionProbeSucceeded { get; set; }
+        public string? SessionProbeTimestamp { get; set; }
+        public string? SessionProbeIntegrationMode { get; set; }
+        /// <summary>True when <see cref="IsConnected"/> is backed by a cached SOAP session probe (live transport, not simulated).</summary>
+        public bool IsAuthoritative { get; set; }
+        /// <summary>True when FinanzOnline SOAP transports are in simulation mode (same signal as <see cref="FinanzOnlineTransportsSimulated"/>).</summary>
+        public bool IsSimulated { get; set; }
+        /// <summary>English operator hint when <see cref="IsAuthoritative"/> is false; null when authoritative.</summary>
+        public string? DiagnosticWarning { get; set; }
     }
 
     public class FinanzOnlineSubmitRequest
@@ -412,11 +444,21 @@ namespace KasseAPI_Final.Controllers
 
     public class FinanzOnlineErrorResponse
     {
+        public Guid Id { get; set; }
         public string Code { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
         public string Timestamp { get; set; } = string.Empty;
         public string InvoiceNumber { get; set; } = string.Empty;
         public int RetryCount { get; set; }
+    }
+
+    public class FinanzOnlineErrorsListResponse
+    {
+        public List<FinanzOnlineErrorResponse> Items { get; set; } = new();
+        /// <summary>True: rows are persisted FinanzOnlineErrors facts (still not a live BMF stream).</summary>
+        public bool IsAuthoritative { get; set; }
+        public bool IsSimulated { get; set; }
+        public string? DiagnosticWarning { get; set; }
     }
 
     public class FinanzOnlineTestResponse
@@ -426,5 +468,12 @@ namespace KasseAPI_Final.Controllers
         public string ApiVersion { get; set; } = string.Empty;
         public int ResponseTime { get; set; }
         public string Timestamp { get; set; } = string.Empty;
+        public bool FinanzOnlineTransportsSimulated { get; set; }
+        public bool EnableRealTestSubmission { get; set; }
+        public string TransportDiagnostics { get; set; } = string.Empty;
+        public string? ProbeIntegrationMode { get; set; }
+        public bool IsAuthoritative { get; set; }
+        public bool IsSimulated { get; set; }
+        public string? DiagnosticWarning { get; set; }
     }
 }

@@ -16,8 +16,9 @@ using KasseAPI_Final.Time;
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// Admin: FinanzOnline outbox operational visibility (SOAP pipeline). Raw payload XML/JSON and credentials are never exposed.
-/// Legacy payment-row reconciliation: <see cref="FinanzOnlineReconciliationController"/>.
+/// <b>Primary source of truth</b> for FinanzOnline <em>submission lifecycle</em> (queue → processing → protocol / terminal states).
+/// Admin operational visibility for the SOAP pipeline; raw payload XML/JSON and credentials are never exposed.
+/// Payment-row list/retry remains legacy convenience only: <see cref="FinanzOnlineReconciliationController"/>.
 /// </summary>
 [Authorize]
 [ApiController]

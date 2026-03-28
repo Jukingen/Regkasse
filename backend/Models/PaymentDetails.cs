@@ -165,7 +165,10 @@ namespace KasseAPI_Final.Models
         [Column("cancel_idempotency_key")]
         public string? CancelIdempotencyKey { get; set; }
 
-        /// <summary>Reconciliation: FinanzOnline submit state. NotSent / Pending / Submitted / Failed / NeedsReconciliation.</summary>
+        /// <summary>
+        /// Derived FinanzOnline submit snapshot (post-payment enqueue/retry). NotSent / Pending / Submitted / Failed / NeedsReconciliation.
+        /// Authoritative BMF submission lifecycle for invoices is <c>finanz_online_outbox_messages</c> (admin: GET /api/admin/finanzonline-outbox).
+        /// </summary>
         [MaxLength(30)]
         [Column("finanz_online_status")]
         public string? FinanzOnlineStatus { get; set; }

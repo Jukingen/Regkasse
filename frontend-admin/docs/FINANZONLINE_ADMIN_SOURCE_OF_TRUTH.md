@@ -32,10 +32,10 @@
 | Method | Path | Used by Operations page | Truth character |
 |--------|------|-------------------------|-----------------|
 | GET | `/api/FinanzOnline/config` | Yes | **Company + TSE toggle snapshot** (real settings); Operations UI is read-only (no PUT from this page). |
-| GET | `/api/FinanzOnline/status` | Yes; also RKSV Status | **TSE-device-oriented** aggregate (`TseDevice` last sync, pending invoice/report counters, simulated connectivity). **Not** derived from `PaymentDetails` FO reconciliation. |
-| GET | `/api/FinanzOnline/errors` | Yes | **Not authoritative today:** controller returns a **hard-coded sample list** (placeholder implementation). |
+| GET | `/api/FinanzOnline/status` | Yes; also RKSV Status | **TSE-device-oriented** aggregate (`TseDevice` last sync, pending invoice/report counters). **SOAP reachability:** if all integration transports use `UseSimulation=false`, `isConnected` reflects the **last cached SOAP session probe** (updated by `test-connection` or a prior probe within ~2 minutes); otherwise `finanzOnlineTransportsSimulated=true` and `isConnected=false`. Response includes `transportDiagnostics` (simulation flags + `EnableRealTestSubmission`). **Not** derived from `PaymentDetails` FO reconciliation. |
+| GET | `/api/FinanzOnline/errors` | Yes | Reads last **50** rows from **`FinanzOnlineErrors`** (audit-style table). **Not** the same as per-payment reconciliation errors on `PaymentDetails`. |
 | GET | `/api/FinanzOnline/history/{invoiceId}` | Yes | Reads `FinanzOnlineSubmissions` by `invoiceId`. History is tied to the **legacy submission log model**; it does **not** guarantee coverage of the current payment-based FO pipeline. |
-| POST | `/api/FinanzOnline/test-connection` | Yes | Exercises the same **simulated** connectivity path as status (not a substitute for reconciliation outcomes). |
+| POST | `/api/FinanzOnline/test-connection` | Yes | When transports are **not** simulated: runs a **real FinanzOnline SOAP session** probe (tries **TEST** then **PROD** mode) and refreshes the server-side probe cache used by `GET …/status`. When simulated: returns **success=false** and does **not** claim SOAP connectivity. |
 | POST | `/api/FinanzOnline/submit-invoice` | Not linked in admin UI | Marked **obsolete** in backend; canonical path is admin reconciliation retry. |
 
 ### 2.3 Same payment FO fields elsewhere (supporting read)
@@ -49,8 +49,8 @@ Admin payments APIs expose the same `PaymentDetails` FO fields on list/detail DT
 | “Which payments need FO attention?” / retry workflow | **`/rksv/finanz-online-queue`** + `GET/POST …/finanzonline-reconciliation` | Operations page **does not** list payment queue |
 | Per-payment `FinanzOnlineStatus`, error text, reference id, retries | **`FinanzOnlineReconciliationItemDto`** (and admin payment DTOs with same fields) | `GET …/FinanzOnline/status` **does not** expose per-payment state |
 | FO **configuration** (URL, user, flags from company settings, enabled on TSE) | **`GET …/FinanzOnline/config`** | Reconciliation API does not replace config reads |
-| **Connectivity smoke test** (as implemented) | **`POST …/FinanzOnline/test-connection`** (diagnostic) | Do not equate with “all payments submitted” |
-| **Recent FO errors list** | **Do not use** `GET …/FinanzOnline/errors` as truth (placeholder data) | Use reconciliation rows + audit/incident flows |
+| **Connectivity smoke test** (SOAP session) | **`POST …/FinanzOnline/test-connection`** when transports are real | Do not equate with “all payments submitted”; not a substitute for reconciliation row state |
+| **Recent FO errors list** | **`GET …/FinanzOnline/errors`** → `FinanzOnlineErrors` table (supporting) | For per-payment FO state use reconciliation list; this table is a separate persistence path |
 | **Submission history by invoice** | **Secondary / legacy log only** — `GET …/FinanzOnline/history/{invoiceId}` | For contested payments prefer reconciliation row + payment id + audit |
 
 ## 4. Proposed authoritative-flow statement (for UI copy / runbooks)
@@ -62,14 +62,16 @@ Admin payments APIs expose the same `PaymentDetails` FO fields on list/detail DT
 ## 5. Where truth can diverge today (concrete)
 
 1. **`pendingInvoices` / `pendingReports`** (`FinanzOnlineStatusResponse`) vs payments in `Pending` / `Failed` / `NeedsReconciliation` on reconciliation list — different backing stores and semantics.
-2. **`GET …/errors`** static payload vs real `finanzOnlineError` on payment rows.
+2. **`FinanzOnlineErrors` rows** vs `finanzOnlineError` on payment reconciliation rows — different tables and semantics.
 3. **`FinanzOnlineSubmissions` history** vs rows that only ever went through `PaymentService` FO updates (history may be empty or incomplete for modern flow).
-4. **Simulated `isConnected`** (username heuristic in backend) vs actual FinanzOnline API outcome per payment.
+4. **`GET …/status` `isConnected`** vs per-payment FO outcome — status reflects **SOAP session probe cache** (or simulation), not payment-level submit success.
 5. **Metrics counters** vs DB — restart resets counters; list is still DB-backed.
 
 ## 6. Concrete UI labels / copy changes (no backend refactor)
 
 Apply German operator-facing strings; prefer badges/tooltips over long titles where space is tight.
+
+**Implemented (this repo):** `/rksv/finanz-online-operations` shows a **non-authoritative** warning banner, simulated-transport info alert when applicable, `transportDiagnostics` / probe lines on the status card, and an **errors table hint** (`FinanzOnlineErrors`). `/rksv/status` FO card shows **Simuliert (kein SOAP)** when `finanzOnlineTransportsSimulated` is true. Backend startup logs FinanzOnline transport flags under logger category **`FinanzOnline.TransportStartup`**.
 
 | Location | Current (representative) | Proposed |
 |----------|-------------------------|----------|
@@ -77,7 +79,7 @@ Apply German operator-facing strings; prefer badges/tooltips over long titles wh
 | Sidebar | `FinanzOnline Abgleich` | `FinanzOnline Abgleich (Zahlungen)` or keep label + tooltip: **„Maßgeblich für FO-Status pro Zahlung“** |
 | Operations `AdminPageHeader` title | `FinanzOnline Operations` | `FinanzOnline Diagnose (Legacy-Pfade)` or `FinanzOnline — Diagnose & Konfiguration` |
 | Operations intro paragraph | Already mentions Abgleich for mutating reconciliation | Add one sentence: **„Pending Invoices hier ≠ Abgleichsliste.“** Add **Alert** `type="warning"` above status card: **„Keine Abgleichswahrheit — Zahlungsstatus siehe FinanzOnline Abgleich.“** |
-| Operations “Recent Errors” card title | `Recent Errors` | `Letzte Fehler (API-Platzhalter — nicht operativ)` |
+| Operations “Recent Errors” card | Placeholder list | **DB-backed** `FinanzOnlineErrors` (hint text in UI); still not payment-reconciliation truth |
 | Operations history card | `Submission History by Invoice ID` | `Submission-Verlauf (Legacy-Tabelle FinanzOnlineSubmissions)` |
 | RKSV Status FO card (`status/page.tsx`) | Link `Open FinanzOnline Operations` | `Diagnose & Konfiguration öffnen` + secondary link **„Zahlungsabgleich öffnen“** → `/rksv/finanz-online-queue` |
 | Abgleich page “Verwandt” line | `FinanzOnline Operations` | `Diagnose / Konfiguration (ohne Abgleichswahrheit)` |

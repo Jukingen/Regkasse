@@ -10,9 +10,19 @@ export interface FinanzOnlineTestResponse {
   /** @nullable */
   apiVersion?: string | null;
   /** @nullable */
+  diagnosticWarning?: string | null;
+  enableRealTestSubmission?: boolean;
+  finanzOnlineTransportsSimulated?: boolean;
+  isAuthoritative?: boolean;
+  isSimulated?: boolean;
+  /** @nullable */
   message?: string | null;
+  /** @nullable */
+  probeIntegrationMode?: string | null;
   responseTime?: number;
   success?: boolean;
   /** @nullable */
   timestamp?: string | null;
+  /** @nullable */
+  transportDiagnostics?: string | null;
 }

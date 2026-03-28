@@ -17,8 +17,9 @@ using Microsoft.EntityFrameworkCore;
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
-/// Admin canonical payments surface.
-/// Source of truth for frontend-admin payments list/detail/stats/actions.
+/// Admin canonical payments surface (source of truth for payment rows, receipts linkage, and admin actions).
+/// <c>FinanzOnline*</c> columns on payments are <b>derived</b> from submit/retry responses for UX and legacy reconciliation — for BMF pipeline state prefer
+/// <see cref="FinanzOnlineOutboxAdminController"/> (filter by correlation id / business key / aggregate).
 /// </summary>
 [Authorize]
 [ApiController]

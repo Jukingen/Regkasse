@@ -8,12 +8,25 @@
     "refreshedAt": "As of: {{time}}"
   },
   "env": {
-    "bannerProd": "FinanzOnline environment: PROD — live submissions.",
-    "bannerTest": "FinanzOnline environment: TEST — not production submissions.",
-    "bannerUnknown": "FinanzOnline environment: not set — configure `NEXT_PUBLIC_RKSV_ENVIRONMENT` (TEST or PROD) for clear labelling.",
-    "hintProd": "Double-check every resubmit and reversal.",
-    "hintTest": "Use for training and diagnostics; do not rely on it alone for compliance decisions.",
-    "hintUnknown": "Without explicit labelling, the environment may be confused with production API usage."
+    "displayLabel": {
+      "test": "TEST",
+      "prod": "PROD",
+      "unconfigured": "UNCONFIGURED",
+      "invalid": "INVALID"
+    },
+    "banner": {
+      "test": "FinanzOnline environment: TEST — not production submissions.",
+      "prod": "FinanzOnline environment: PROD — live production submissions.",
+      "unconfigured": "FinanzOnline environment: UNCONFIGURED — `{{envVar}}` is not set.",
+      "invalid": "FinanzOnline environment: INVALID — `{{envVar}}` reads \"{{value}}\". Only TEST or PROD are permitted; fix the build configuration."
+    },
+    "buildTimeBadgeTooltip": "Admin build-time label only (TEST/PROD at compile). Not live FinanzOnline or BMF status — check connectivity and reconciliation separately.",
+    "hint": {
+      "test": "Non-production label: use for training and diagnostics; do not rely on it alone for compliance decisions.",
+      "prod": "Production label: double-check every resubmit and reversal against live FinanzOnline rules.",
+      "unconfigured": "Add `{{envVar}}`=TEST or PROD to `frontend-admin/.env.local` next to `package.json` (not the monorepo repository root — Next.js only loads env files from the app directory; see `.env.example`), then restart the dev server or run a new production build — Next.js bakes this in at compile time. Set the same variable in CI or hosting before build for deployed environments.",
+      "invalid": "Set `{{envVar}}` to exactly TEST or PROD (trim spaces; case is normalised), save, then rebuild. Until you rebuild, the client bundle may still show this error. Sanitised value shown: \"{{value}}\"."
+    }
   },
   "nextSteps": {
     "title": "Next steps",
@@ -25,6 +38,8 @@
     "workByTaskIntro": "Choose by task.",
     "workByTaskHint": "Same destinations as the sidebar. Below: status signals and tools.",
     "status": "Status",
+    "statusDerivedBadge": "Derived",
+    "statusDerivedTooltip": "Cards below: API metrics and heuristics — not per-payment row truth. Authoritative FinanzOnline state per payment: reconciliation queue.",
     "workflow": "Recommended flow",
     "workflowHint": "Narrow down first, then check the batch, then Outbox — diagnostics only if needed.",
     "moreTools": "More tools",
@@ -415,11 +430,31 @@
     "linkIncidentCorr": "Incident (correlation)",
     "linkOfflineCoverage": "Offline coverage"
   },
+  "rksvStatusPage": {
+    "sectionDiagnosticsTitle": "Interface & device diagnostics",
+    "tseTagTooltip": "TSE reachability from API — not by itself FinanzOnline or per-payment certainty.",
+    "foTooltipSimulated": "FinanzOnline transports simulated — no live SOAP, not production operation.",
+    "foTooltipNonAuthoritative": "No authoritative SOAP session probe in server cache yet — do not read green \"Connected\" as \"FO works for all payments\". Run connection test on Operations or open reconciliation.",
+    "foTooltipAuthoritative": "Last SOAP session probe in server cache succeeded — still verify each payment in FinanzOnline reconciliation (retry, reference, errors).",
+    "paymentTruthCardTitle": "Payment level (authoritative)",
+    "paymentTruthLineBeforeLink": "For authoritative FinanzOnline state per payment (retry, error text, reference), use the",
+    "paymentTruthLineAfterLink": " is authoritative. \"Reachable\" on this diagnostics page refers to interface/session signals — not that every payment is submitted or reconciled."
+  },
   "finanzOnlineOpsPage": {
+    "nonAuthoritativeBannerTitle": "Not payment-reconciliation truth",
+    "nonAuthoritativeBannerDescription": "This page uses legacy routes under /api/FinanzOnline/*. For FinanzOnline state per payment, use FinanzOnline reconciliation (PaymentDetails) and the admin reconciliation APIs — not this diagnostics view.",
+    "transportDiagnosticsLabel": "Transport configuration (server)",
+    "sessionProbeLabel": "Last SOAP session probe",
+    "errorsTableHint": "Source: FinanzOnlineErrors table (not reconciliation rows).",
+    "enableRealTestSubmissionLabel": "BMF TEST — real rkdb submission enabled (Registrierkassen.EnableRealTestSubmission)",
     "detailedStatusCard": "Detailed status",
     "connectionLabel": "Connection",
     "connected": "Connected",
     "disconnected": "Disconnected",
+    "connectionSimulatedLabel": "Simulated",
+    "connectionPendingLabel": "Probe pending",
+    "authoritativeLabel": "SOAP probe authoritative",
+    "diagnosticWarningLabel": "Diagnostic hint (API)",
     "apiVersionLabel": "API version",
     "lastSyncLabel": "Last sync",
     "pendingInvoicesLabel": "Pending invoices",
@@ -463,7 +498,9 @@
     "colHttp": "HTTP",
     "colError": "Error",
     "yesShort": "Yes",
-    "noShort": "No"
+    "noShort": "No",
+    "headerDiagnosticBadge": "Diagnostic",
+    "headerDiagnosticBadgeTooltip": "Legacy diagnostics (/api/FinanzOnline/*) — not payment-reconciliation truth. Per-payment FO: reconciliation queue."
   },
   "replayBatchDetail": {
     "pageTitle": "Replay batch — detail",

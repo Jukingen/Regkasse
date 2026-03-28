@@ -102,6 +102,7 @@ export * from './exportRiskSummaryDto';
 export * from './finanzOnlineConfigRequest';
 export * from './finanzOnlineConfigResponse';
 export * from './finanzOnlineErrorResponse';
+export * from './finanzOnlineErrorsListResponse';
 export * from './finanzOnlineMetricsResponse';
 export * from './finanzOnlineOutboxItemDto';
 export * from './finanzOnlineOutboxListResponse';

@@ -8,12 +8,25 @@
     "refreshedAt": "Stand: {{time}}"
   },
   "env": {
-    "bannerProd": "FinanzOnline-Umgebung: PROD — Live-Übermittlungen.",
-    "bannerTest": "FinanzOnline-Umgebung: TEST — keine Produktionsübermittlungen.",
-    "bannerUnknown": "FinanzOnline-Umgebung: nicht gesetzt — bitte `NEXT_PUBLIC_RKSV_ENVIRONMENT` (TEST oder PROD) für klare Kennzeichnung setzen.",
-    "hintProd": "Prüfen Sie jede erneute Übermittlung und Storno doppelt.",
-    "hintTest": "Eignet sich für Schulung und Diagnose; nicht für GoBD-relevante Entscheidungen allein nutzen.",
-    "hintUnknown": "Ohne explizite Kennzeichnung kann die Umgebung mit der Produktions-API verwechselt werden."
+    "displayLabel": {
+      "test": "TEST",
+      "prod": "PROD",
+      "unconfigured": "UNCONFIGURED",
+      "invalid": "INVALID"
+    },
+    "banner": {
+      "test": "FinanzOnline-Umgebung: TEST — keine Produktionsübermittlungen.",
+      "prod": "FinanzOnline-Umgebung: PROD — Live-Produktionsübermittlungen.",
+      "unconfigured": "FinanzOnline-Umgebung: UNCONFIGURED — `{{envVar}}` ist nicht gesetzt.",
+      "invalid": "FinanzOnline-Umgebung: INVALID — `{{envVar}}` liefert „{{value}}“. Nur TEST oder PROD sind zulässig; Build-Konfiguration korrigieren."
+    },
+    "buildTimeBadgeTooltip": "Nur Admin-Build-Kennzeichnung (TEST/PROD beim Kompilieren). Kein Live-Status zu FinanzOnline oder BMF — Verbindung und Abgleich separat prüfen.",
+    "hint": {
+      "test": "Nicht-Produktions-Kennzeichnung: für Schulung und Diagnose; nicht allein für GoBD-relevante Entscheidungen nutzen.",
+      "prod": "Produktions-Kennzeichnung: jede erneute Übermittlung und Storno gegenüber Live-FinanzOnline doppelt prüfen.",
+      "unconfigured": "Ergänzen Sie `{{envVar}}`=TEST oder PROD in `frontend-admin/.env.local` neben `package.json` (nicht im Monorepo-Wurzelverzeichnis — Next.js lädt `.env*` nur aus dem App-Ordner; Vorlage: `.env.example`), starten Sie den Dev-Server neu oder führen Sie einen neuen Produktions-Build aus — Next.js übernimmt den Wert beim Kompilieren. Für Deployments: Variable vor dem Build in CI/Hosting setzen.",
+      "invalid": "Setzen Sie `{{envVar}}` exakt auf TEST oder PROD (Leerzeichen entfernt, Groß-/Kleinschreibung normalisiert), speichern und neu bauen. Angezeigter, bereinigter Wert: „{{value}}“."
+    }
   },
   "nextSteps": {
     "title": "Nächste Schritte",
@@ -25,6 +38,8 @@
     "workByTaskIntro": "Nach Aufgabe wählen.",
     "workByTaskHint": "Dieselben Ziele wie in der Seitenleiste. Darunter: Status-Signale und Werkzeuge.",
     "status": "Status",
+    "statusDerivedBadge": "Abgeleitet",
+    "statusDerivedTooltip": "Karten unten: API-Metriken und Heuristiken — keine Zeilenwahrheit je Zahlung. Verbindlicher FinanzOnline-Status je Zahlung: FinanzOnline-Abgleich.",
     "workflow": "Empfohlener Ablauf",
     "workflowHint": "Zuerst eingrenzen, dann Batch prüfen, dann Outbox — danach Diagnose bei Bedarf.",
     "moreTools": "Weitere Werkzeuge",
@@ -415,11 +430,31 @@
     "linkIncidentCorr": "Incident (Correlation)",
     "linkOfflineCoverage": "Offline Coverage"
   },
+  "rksvStatusPage": {
+    "sectionDiagnosticsTitle": "Schnittstellen- & Gerätediagnose",
+    "tseTagTooltip": "TSE-Erreichbarkeit laut API — keine alleinige FinanzOnline- oder Zahlungsgarantie.",
+    "foTooltipSimulated": "FinanzOnline-Transporter simuliert — kein Live-SOAP, kein Produktionsbetrieb.",
+    "foTooltipNonAuthoritative": "Keine maßgebliche SOAP-Session-Probe im Server-Cache — grünes \"Verbunden\" nicht als \"FO läuft überall\" lesen. Verbindungstest auf der Operations-Seite oder Abgleich öffnen.",
+    "foTooltipAuthoritative": "Letzte SOAP-Session-Probe laut Server-Cache ok — trotzdem je Zahlung den FinanzOnline-Abgleich prüfen (Retry, Referenz, Fehler).",
+    "paymentTruthCardTitle": "Zahlungsebene (verbindlich)",
+    "paymentTruthLineBeforeLink": "Für den verbindlichen FinanzOnline-Status je Zahlung (Retry, Fehlertext, Referenz) ist der",
+    "paymentTruthLineAfterLink": " maßgeblich. \"Erreichbar\" auf dieser Diagnoseseite bezieht sich auf Schnittstellen-/Session-Signale — nicht darauf, dass alle Zahlungen übermittelt oder abgeglichen sind."
+  },
   "finanzOnlineOpsPage": {
+    "nonAuthoritativeBannerTitle": "Keine Zahlungs-/Abgleichs-Wahrheit",
+    "nonAuthoritativeBannerDescription": "Diese Seite nutzt Legacy-Pfade unter /api/FinanzOnline/*. Maßgeblich für FinanzOnline je Zahlung bleibt der FinanzOnline-Abgleich (PaymentDetails) und die Admin-Reconciliation-APIs — nicht diese Diagnose.",
+    "transportDiagnosticsLabel": "Transport-Konfiguration (Server)",
+    "sessionProbeLabel": "Letzte SOAP-Session-Probe",
+    "errorsTableHint": "Quelle: Tabelle FinanzOnlineErrors (nicht die Abgleichszeilen).",
+    "enableRealTestSubmissionLabel": "BMF TEST — echte rkdb-Übermittlung erlaubt (Registrierkassen.EnableRealTestSubmission)",
     "detailedStatusCard": "Detaillierter Status",
     "connectionLabel": "Verbindung",
     "connected": "Verbunden",
     "disconnected": "Getrennt",
+    "connectionSimulatedLabel": "Simuliert",
+    "connectionPendingLabel": "Probe ausstehend",
+    "authoritativeLabel": "SOAP-Probe maßgeblich",
+    "diagnosticWarningLabel": "Diagnose-Hinweis (API, EN)",
     "apiVersionLabel": "API-Version",
     "lastSyncLabel": "Letzte Synchronisation",
     "pendingInvoicesLabel": "Ausstehende Rechnungen",
@@ -463,7 +498,9 @@
     "colHttp": "HTTP",
     "colError": "Fehler",
     "yesShort": "Ja",
-    "noShort": "Nein"
+    "noShort": "Nein",
+    "headerDiagnosticBadge": "Diagnose",
+    "headerDiagnosticBadgeTooltip": "Legacy-Diagnose (/api/FinanzOnline/*) — keine Zahlungs-/Abgleichs-Wahrheit. FO je Zahlung: FinanzOnline-Abgleich."
   },
   "replayBatchDetail": {
     "pageTitle": "Replay-Batch — Detail",

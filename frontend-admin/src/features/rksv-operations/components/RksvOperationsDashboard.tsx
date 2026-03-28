@@ -52,7 +52,11 @@ import {
   type RksvHubTranslate,
 } from '../rksvHubHealthCopy';
 import { RKSV_HUB_GROUPS } from '../rksvHubNavigation';
-import { readRksvPublicEnvironment } from '../rksvHubEnv';
+import {
+  RksvFinanzOnlineEnvironmentAlert,
+  RksvFinanzOnlineEnvironmentBadge,
+  useRksvFinanzOnlineEnvironment,
+} from './RksvFinanzOnlineEnvironmentStatus';
 import type { OpsHealthLevel } from '../types';
 import type { GetApiAdminOfflineIntentCoverageParams, GetApiAdminOperationsSummaryParams } from '@/api/generated/model';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -216,7 +220,7 @@ export function RksvOperationsDashboard() {
   const { t, formatLocale } = useI18n();
   const hubT: RksvHubTranslate = (key, options) => t(key, options);
   const queryClient = useQueryClient();
-  const publicEnv = useMemo(() => readRksvPublicEnvironment(), []);
+  const { parsed: rksvEnvParsed, devParseDebug: rksvEnvDevDebug } = useRksvFinanzOnlineEnvironment();
 
   const coverageParams = useMemo<GetApiAdminOfflineIntentCoverageParams>(
     () => ({
@@ -311,13 +315,6 @@ export function RksvOperationsDashboard() {
     [refreshedAt, formatLocale],
   );
 
-  const envBanner =
-    publicEnv === 'PROD'
-      ? { type: 'error' as const, message: t('rksvHub.env.bannerProd'), description: t('rksvHub.env.hintProd') }
-      : publicEnv === 'TEST'
-        ? { type: 'info' as const, message: t('rksvHub.env.bannerTest'), description: t('rksvHub.env.hintTest') }
-        : { type: 'warning' as const, message: t('rksvHub.env.bannerUnknown'), description: t('rksvHub.env.hintUnknown') };
-
   const moreToolLinks = useMemo(
     () => [
       { href: '/rksv/payload-hash-conflicts', title: t('rksvHub.moreTools.payloadHash') },
@@ -338,7 +335,12 @@ export function RksvOperationsDashboard() {
   return (
     <div style={{ paddingBottom: token.marginXL }}>
       <AdminPageHeader
-        title={t('nav.rksvOperationsOverview')}
+        title={
+          <Space align="baseline" wrap>
+            <span>{t('nav.rksvOperationsOverview')}</span>
+            <RksvFinanzOnlineEnvironmentBadge parsed={rksvEnvParsed} />
+          </Space>
+        }
         breadcrumbs={[adminOverviewCrumb(t), { title: t('nav.rksvOperationsOverview') }]}
         actions={
           <Space>
@@ -357,11 +359,9 @@ export function RksvOperationsDashboard() {
         }
       />
 
-      <Alert
-        showIcon
-        type={envBanner.type}
-        message={envBanner.message}
-        description={envBanner.description}
+      <RksvFinanzOnlineEnvironmentAlert
+        parsed={rksvEnvParsed}
+        devParseDebug={rksvEnvDevDebug}
         style={{ marginBottom: token.marginMD }}
       />
 
@@ -505,7 +505,12 @@ export function RksvOperationsDashboard() {
       </Row>
 
       <Typography.Title level={2} style={{ marginBottom: token.marginSM }}>
-        {t('rksvHub.sections.status')}
+        <Space align="center" wrap size="small">
+          <span>{t('rksvHub.sections.status')}</span>
+          <Tooltip title={t('rksvHub.sections.statusDerivedTooltip')}>
+            <Tag>{t('rksvHub.sections.statusDerivedBadge')}</Tag>
+          </Tooltip>
+        </Space>
       </Typography.Title>
       <Row gutter={ROW_GUTTER} style={{ marginBottom: token.marginLG }}>
         <Col xs={24} sm={12} md={12} lg={8} xl={6}>

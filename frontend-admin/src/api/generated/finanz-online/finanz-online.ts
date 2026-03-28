@@ -21,7 +21,7 @@ import type {
 import type {
   FinanzOnlineConfigRequest,
   FinanzOnlineConfigResponse,
-  FinanzOnlineErrorResponse,
+  FinanzOnlineErrorsListResponse,
   FinanzOnlineStatusResponse,
   FinanzOnlineSubmission,
   FinanzOnlineSubmitRequest,
@@ -258,7 +258,7 @@ export const usePostApiFinanzOnlineSubmitInvoice = <TError = unknown,
 ) => {
       
       
-      return customInstance<FinanzOnlineErrorResponse[]>(
+      return customInstance<FinanzOnlineErrorsListResponse>(
       {url: `/api/FinanzOnline/errors`, method: 'GET', signal
     },
       options);

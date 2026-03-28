@@ -9,6 +9,7 @@
 export interface FinanzOnlineErrorResponse {
   /** @nullable */
   code?: string | null;
+  id?: string;
   /** @nullable */
   invoiceNumber?: string | null;
   /** @nullable */

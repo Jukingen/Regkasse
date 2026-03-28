@@ -8,12 +8,25 @@
     "refreshedAt": "Zaman: {{time}}"
   },
   "env": {
-    "bannerProd": "FinanzOnline ortamı: PROD — canlı gönderimler.",
-    "bannerTest": "FinanzOnline ortamı: TEST — üretim gönderimi değil.",
-    "bannerUnknown": "FinanzOnline ortamı: ayarlı değil — net etiket için `NEXT_PUBLIC_RKSV_ENVIRONMENT` (TEST veya PROD) yapılandırın.",
-    "hintProd": "Her yeniden gönderimi ve iptali iki kez kontrol edin.",
-    "hintTest": "Eğitim ve tanı için uygundur; uyumluluk kararı için tek başına kullanmayın.",
-    "hintUnknown": "Açık etiket olmadan ortam, üretim API kullanımı ile karışabilir."
+    "displayLabel": {
+      "test": "TEST",
+      "prod": "PROD",
+      "unconfigured": "UNCONFIGURED",
+      "invalid": "INVALID"
+    },
+    "banner": {
+      "test": "FinanzOnline ortamı: TEST — üretim gönderimi değil.",
+      "prod": "FinanzOnline ortamı: PROD — canlı üretim gönderimleri.",
+      "unconfigured": "FinanzOnline ortamı: UNCONFIGURED — `{{envVar}}` tanımlı değil.",
+      "invalid": "FinanzOnline ortamı: INVALID — `{{envVar}}` şunu okuyor: \"{{value}}\". Yalnızca TEST veya PROD geçerlidir; build yapılandırmasını düzeltin."
+    },
+    "buildTimeBadgeTooltip": "Yalnızca admin derleme etiketi (derlemede TEST/PROD). Canlı FinanzOnline veya BMF durumu değil — bağlantı ve mutabakatı ayrı doğrulayın.",
+    "hint": {
+      "test": "Üretim dışı etiket: eğitim ve tanı için; uyumluluk kararında tek başına kullanmayın.",
+      "prod": "Üretim etiketi: her yeniden gönderim ve iptali canlı FinanzOnline kurallarına göre iki kez kontrol edin.",
+      "unconfigured": "`frontend-admin/.env.local` dosyasına (`package.json` ile aynı klasör; monorepo kökü değil — Next.js yalnızca uygulama klasöründen `.env*` okur; bkz. `.env.example`) `{{envVar}}`=TEST veya PROD ekleyin, ardından geliştirme sunucusunu yeniden başlatın veya üretim için yeni bir build alın — Next.js değeri derleme sırasında gömer. Canlı ortamda: build öncesi CI/barındırma ortamında aynı değişkeni tanımlayın.",
+      "invalid": "`{{envVar}}` değerini tam olarak TEST veya PROD yapın (boşluklar atılır, büyük/küçük harf normalize edilir), kaydedip yeniden derleyin. Gösterilen temizlenmiş değer: \"{{value}}\"."
+    }
   },
   "nextSteps": {
     "title": "Sonraki adımlar",
@@ -25,6 +38,8 @@
     "workByTaskIntro": "Görev seçin.",
     "workByTaskHint": "Kenar çubuğuyla aynı hedefler. Altında: durum sinyalleri ve araçlar.",
     "status": "Durum",
+    "statusDerivedBadge": "Türetilmiş",
+    "statusDerivedTooltip": "Aşağıdaki kartlar: API metrikleri ve sezgisel sinyaller — ödeme satırı doğrusu değil. Ödeme başına bağlayıcı FinanzOnline: mutabakat kuyruğu.",
     "workflow": "Önerilen akış",
     "workflowHint": "Önce daraltın, sonra toplu işi kontrol edin, sonra Outbox — gerekirse tanı.",
     "moreTools": "Diğer araçlar",
@@ -415,11 +430,31 @@
     "linkIncidentCorr": "Olay (korelasyon)",
     "linkOfflineCoverage": "Çevrimdışı kapsam"
   },
+  "rksvStatusPage": {
+    "sectionDiagnosticsTitle": "Arayüz ve cihaz tanısı",
+    "tseTagTooltip": "TSE erişilebilirliği API’ye göre — tek başına FinanzOnline veya ödeme kesinliği değil.",
+    "foTooltipSimulated": "FinanzOnline taşıyıcıları simüle — canlı SOAP yok, üretim işletmesi değil.",
+    "foTooltipNonAuthoritative": "Sunucu önbelleğinde bağlayıcı SOAP oturum probu yok — yeşil \"Bağlı\"yı \"tüm ödemelerde FO çalışıyor\" sanmayın. Operations’ta bağlantı testi veya mutabakatı açın.",
+    "foTooltipAuthoritative": "Sunucu önbelleğinde son SOAP oturum probu başarılı — yine de her ödemeyi FinanzOnline mutabakatında doğrulayın (yeniden deneme, referans, hatalar).",
+    "paymentTruthCardTitle": "Ödeme düzeyi (bağlayıcı)",
+    "paymentTruthLineBeforeLink": "Ödeme başına bağlayıcı FinanzOnline durumu (yeniden deneme, hata metni, referans) için",
+    "paymentTruthLineAfterLink": " kullanılmalıdır. Bu tanı sayfasındaki «Erişilebilir» ifadesi arayüz/oturum sinyallerini kapsar; tüm ödemelerin gönderilip mutabık kılındığı anlamına gelmez."
+  },
   "finanzOnlineOpsPage": {
+    "nonAuthoritativeBannerTitle": "Ödeme / mutabakat doğruluğu değil",
+    "nonAuthoritativeBannerDescription": "Bu sayfa /api/FinanzOnline/* altındaki eski uçları kullanır. Ödeme başına FinanzOnline durumu için FinanzOnline mutabakatı (PaymentDetails) ve admin reconciliation API’leri esas alınır — bu teşhis görünümü değil.",
+    "transportDiagnosticsLabel": "Taşıma yapılandırması (sunucu)",
+    "sessionProbeLabel": "Son SOAP oturum denemesi",
+    "errorsTableHint": "Kaynak: FinanzOnlineErrors tablosu (mutabakat satırları değil).",
+    "enableRealTestSubmissionLabel": "BMF TEST — gerçek rkdb gönderimi açık (Registrierkassen.EnableRealTestSubmission)",
     "detailedStatusCard": "Ayrıntılı durum",
     "connectionLabel": "Bağlantı",
     "connected": "Bağlı",
     "disconnected": "Kesildi",
+    "connectionSimulatedLabel": "Simüle",
+    "connectionPendingLabel": "Prob bekleniyor",
+    "authoritativeLabel": "SOAP probu bağlayıcı",
+    "diagnosticWarningLabel": "Tanı ipucu (API, EN)",
     "apiVersionLabel": "API sürümü",
     "lastSyncLabel": "Son senkron",
     "pendingInvoicesLabel": "Bekleyen faturalar",
@@ -463,7 +498,9 @@
     "colHttp": "HTTP",
     "colError": "Hata",
     "yesShort": "Evet",
-    "noShort": "Hayır"
+    "noShort": "Hayır",
+    "headerDiagnosticBadge": "Tanı",
+    "headerDiagnosticBadgeTooltip": "Eski tanı uçları (/api/FinanzOnline/*) — ödeme/mutabakat doğrusu değil. Ödeme başına FO: mutabakat kuyruğu."
   },
   "replayBatchDetail": {
     "pageTitle": "Replay batch — ayrıntı",

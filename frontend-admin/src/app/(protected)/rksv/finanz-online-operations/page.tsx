@@ -14,6 +14,7 @@ import {
   Statistic,
   Table,
   Tag,
+  Tooltip,
   Typography,
   message,
 } from 'antd';
@@ -37,9 +38,15 @@ import {
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import { OPERATOR_FO_OPERATIONS_PAGE_COPY } from '@/shared/operatorTruthCopy';
 
-function statusColor(isConnected: boolean | undefined): string {
-  if (isConnected === true) return 'green';
-  if (isConnected === false) return 'red';
+function connectionTagColor(
+  data:
+    | { isConnected?: boolean; finanzOnlineTransportsSimulated?: boolean; isAuthoritative?: boolean }
+    | undefined,
+): string {
+  if (data?.finanzOnlineTransportsSimulated) return 'orange';
+  if (data?.isAuthoritative === false) return 'gold';
+  if (data?.isConnected === true) return 'green';
+  if (data?.isConnected === false) return 'red';
   return 'default';
 }
 
@@ -84,7 +91,8 @@ export default function FinanzOnlineOperationsPage() {
       }),
   });
 
-  const errors = errorsQuery.data ?? [];
+  const errorsPayload = errorsQuery.data;
+  const errors = errorsPayload?.items ?? [];
   const history = historyQuery.data ?? [];
   const testResult = testMutation.data;
 
@@ -93,7 +101,14 @@ export default function FinanzOnlineOperationsPage() {
   return (
     <>
       <AdminPageHeader
-        title={OPERATOR_FO_OPERATIONS_PAGE_COPY.pageTitle}
+        title={
+          <Space align="center" wrap size="small">
+            <span>{OPERATOR_FO_OPERATIONS_PAGE_COPY.pageTitle}</span>
+            <Tooltip title={t('rksvHub.finanzOnlineOpsPage.headerDiagnosticBadgeTooltip')}>
+              <Tag>{t('rksvHub.finanzOnlineOpsPage.headerDiagnosticBadge')}</Tag>
+            </Tooltip>
+          </Space>
+        }
         breadcrumbs={[
           adminOverviewCrumb(t),
           { title: t(ADMIN_NAV_GROUP_LABEL_KEYS.rksv), href: '/rksv' },
@@ -108,6 +123,22 @@ export default function FinanzOnlineOperationsPage() {
           </Button>
         }
       />
+
+      <Alert
+        type="warning"
+        showIcon
+        style={{ marginBottom: 12 }}
+        message={t('rksvHub.finanzOnlineOpsPage.nonAuthoritativeBannerTitle')}
+        description={t('rksvHub.finanzOnlineOpsPage.nonAuthoritativeBannerDescription')}
+      />
+      {statusQuery.data?.finanzOnlineTransportsSimulated ? (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={OPERATOR_FO_OPERATIONS_PAGE_COPY.simulatedTransportNote}
+        />
+      ) : null}
 
       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
         {OPERATOR_FO_OPERATIONS_PAGE_COPY.introLead}{' '}
@@ -136,12 +167,23 @@ export default function FinanzOnlineOperationsPage() {
               <Descriptions bordered size="small" column={1}>
                 <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.connectionLabel')}>
                   <Tag
-                    color={statusColor(statusQuery.data?.isConnected)}
-                    icon={statusQuery.data?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+                    color={connectionTagColor(statusQuery.data)}
+                    icon={
+                      statusQuery.data?.finanzOnlineTransportsSimulated ? undefined : statusQuery.data?.isAuthoritative ===
+                        false ? undefined : statusQuery.data?.isConnected ? (
+                        <CheckCircleOutlined />
+                      ) : (
+                        <CloseCircleOutlined />
+                      )
+                    }
                   >
-                    {statusQuery.data?.isConnected
-                      ? t('rksvHub.finanzOnlineOpsPage.connected')
-                      : t('rksvHub.finanzOnlineOpsPage.disconnected')}
+                    {statusQuery.data?.finanzOnlineTransportsSimulated
+                      ? t('rksvHub.finanzOnlineOpsPage.connectionSimulatedLabel')
+                      : statusQuery.data?.isAuthoritative === false
+                        ? t('rksvHub.finanzOnlineOpsPage.connectionPendingLabel')
+                        : statusQuery.data?.isConnected
+                          ? t('rksvHub.finanzOnlineOpsPage.connected')
+                          : t('rksvHub.finanzOnlineOpsPage.disconnected')}
                   </Tag>
                 </Descriptions.Item>
                 <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.apiVersionLabel')}>
@@ -158,6 +200,29 @@ export default function FinanzOnlineOperationsPage() {
                 </Descriptions.Item>
                 <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.errorMessageLabel')}>
                   {statusQuery.data?.errorMessage || '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.authoritativeLabel')}>
+                  {statusQuery.data?.isAuthoritative === true
+                    ? t('rksvHub.finanzOnlineOpsPage.yes')
+                    : statusQuery.data?.isAuthoritative === false
+                      ? t('rksvHub.finanzOnlineOpsPage.no')
+                      : '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.diagnosticWarningLabel')}>
+                  {statusQuery.data?.diagnosticWarning || '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.transportDiagnosticsLabel')}>
+                  <Typography.Text code copyable style={{ fontSize: 12 }}>
+                    {statusQuery.data?.transportDiagnostics || '—'}
+                  </Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.enableRealTestSubmissionLabel')}>
+                  {statusQuery.data?.enableRealTestSubmission ? t('rksvHub.finanzOnlineOpsPage.yes') : t('rksvHub.finanzOnlineOpsPage.no')}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('rksvHub.finanzOnlineOpsPage.sessionProbeLabel')}>
+                  {statusQuery.data?.sessionProbeSucceeded == null
+                    ? '—'
+                    : `${statusQuery.data.sessionProbeSucceeded ? 'OK' : 'fail'} · ${statusQuery.data.sessionProbeIntegrationMode ?? '—'} · ${statusQuery.data.sessionProbeTimestamp ?? '—'}`}
                 </Descriptions.Item>
               </Descriptions>
             )}
@@ -246,6 +311,21 @@ export default function FinanzOnlineOperationsPage() {
                             timestamp: String(testResult.timestamp ?? ''),
                           })}
                         </Typography.Text>
+                        {testResult.probeIntegrationMode ? (
+                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            Mode: {testResult.probeIntegrationMode}
+                          </Typography.Text>
+                        ) : null}
+                        {testResult.transportDiagnostics ? (
+                          <Typography.Text code copyable style={{ fontSize: 11, display: 'block', whiteSpace: 'pre-wrap' }}>
+                            {testResult.transportDiagnostics}
+                          </Typography.Text>
+                        ) : null}
+                        {testResult.diagnosticWarning ? (
+                          <Typography.Text type="warning" style={{ fontSize: 12, display: 'block' }}>
+                            {testResult.diagnosticWarning}
+                          </Typography.Text>
+                        ) : null}
                         <BackendRawTextBlock introKey="common.backend.serverHintIntro" body={testResult.message} />
                       </Space>
                     }
@@ -259,6 +339,12 @@ export default function FinanzOnlineOperationsPage() {
       </Row>
 
       <Card title={t('rksvHub.finanzOnlineOpsPage.recentErrorsTitle', { count: errors.length })} size="small" style={{ marginTop: 16 }}>
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 12, fontSize: 12 }}>
+          {t('rksvHub.finanzOnlineOpsPage.errorsTableHint')}
+        </Typography.Paragraph>
+        {errorsPayload?.diagnosticWarning ? (
+          <Alert type="info" showIcon style={{ marginBottom: 12 }} message={errorsPayload.diagnosticWarning} />
+        ) : null}
         {errorsQuery.isLoading ? (
           <Spin />
         ) : errorsQuery.isError ? (
@@ -280,7 +366,7 @@ export default function FinanzOnlineOperationsPage() {
           <Table
             size="small"
             pagination={{ pageSize: 5 }}
-            rowKey={(r) => `${r.code}-${r.timestamp}-${r.invoiceNumber}`}
+            rowKey={(r) => (r.id ? String(r.id) : `${r.code}-${r.timestamp}-${r.invoiceNumber}`)}
             dataSource={errors}
             columns={[
               { title: t('rksvHub.finanzOnlineOpsPage.colCode'), dataIndex: 'code', key: 'code', width: 120 },

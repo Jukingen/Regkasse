@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, Row, Col, Tag, Spin, Alert, Typography, Button, Space, Divider } from 'antd';
+import { Card, Row, Col, Tag, Spin, Alert, Typography, Button, Space, Divider, Tooltip } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -112,7 +112,7 @@ export default function RksvStatusPage() {
             )}
 
             <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
-                Schnittstellen & Gerätestatus (Diagnose)
+                {t('rksvHub.rksvStatusPage.sectionDiagnosticsTitle')}
             </Typography.Text>
             <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
@@ -120,16 +120,18 @@ export default function RksvStatusPage() {
                         <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
                             {OPERATOR_RKSV_GENERAL_STATUS_COPY.tseStatisticTitle}
                         </Typography.Text>
-                        <Tag
-                            color={tseStatus?.isConnected ? 'success' : 'error'}
-                            icon={
-                                tseStatus?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />
-                            }
-                        >
-                            {tseStatus?.isConnected
-                                ? OPERATOR_RKSV_GENERAL_STATUS_COPY.tseReachableTag
-                                : OPERATOR_RKSV_GENERAL_STATUS_COPY.tseUnreachableTag}
-                        </Tag>
+                        <Tooltip title={t('rksvHub.rksvStatusPage.tseTagTooltip')}>
+                            <Tag
+                                color={tseStatus?.isConnected ? 'success' : 'error'}
+                                icon={
+                                    tseStatus?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />
+                                }
+                            >
+                                {tseStatus?.isConnected
+                                    ? OPERATOR_RKSV_GENERAL_STATUS_COPY.tseReachableTag
+                                    : OPERATOR_RKSV_GENERAL_STATUS_COPY.tseUnreachableTag}
+                            </Tag>
+                        </Tooltip>
                         {tseStatus?.serialNumber && (
                             <p style={{ marginTop: 8 }}>
                                 {OPERATOR_RKSV_GENERAL_STATUS_COPY.tseSerialLabel}: {tseStatus.serialNumber}
@@ -165,16 +167,46 @@ export default function RksvStatusPage() {
                         <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
                             {OPERATOR_RKSV_GENERAL_STATUS_COPY.foStatisticTitle}
                         </Typography.Text>
-                        <Tag
-                            color={foStatus?.isConnected ? 'success' : 'orange'}
-                            icon={
-                                foStatus?.isConnected ? <CheckCircleOutlined /> : <CloseCircleOutlined />
+                        <Tooltip
+                            title={
+                                !foStatus
+                                    ? t('rksvHub.rksvStatusPage.foTooltipNonAuthoritative')
+                                    : foStatus.finanzOnlineTransportsSimulated
+                                      ? t('rksvHub.rksvStatusPage.foTooltipSimulated')
+                                      : foStatus.isAuthoritative === false
+                                        ? t('rksvHub.rksvStatusPage.foTooltipNonAuthoritative')
+                                        : t('rksvHub.rksvStatusPage.foTooltipAuthoritative')
                             }
                         >
-                            {foStatus?.isConnected
-                                ? OPERATOR_RKSV_GENERAL_STATUS_COPY.foReachableTag
-                                : OPERATOR_RKSV_GENERAL_STATUS_COPY.foUnreachableTag}
-                        </Tag>
+                            <Tag
+                                color={
+                                    foStatus?.finanzOnlineTransportsSimulated
+                                        ? 'orange'
+                                        : foStatus?.isAuthoritative === false
+                                          ? 'gold'
+                                          : foStatus?.isConnected
+                                            ? 'success'
+                                            : 'error'
+                                }
+                                icon={
+                                    foStatus?.finanzOnlineTransportsSimulated
+                                        ? undefined
+                                        : foStatus?.isAuthoritative === false
+                                          ? undefined
+                                          : foStatus?.isConnected
+                                            ? <CheckCircleOutlined />
+                                            : <CloseCircleOutlined />
+                                }
+                            >
+                                {foStatus?.finanzOnlineTransportsSimulated
+                                    ? OPERATOR_RKSV_GENERAL_STATUS_COPY.foSimulatedTransportTag
+                                    : foStatus?.isAuthoritative === false
+                                      ? t('rksvHub.finanzOnlineOpsPage.connectionPendingLabel')
+                                      : foStatus?.isConnected
+                                        ? OPERATOR_RKSV_GENERAL_STATUS_COPY.foReachableTag
+                                        : OPERATOR_RKSV_GENERAL_STATUS_COPY.foUnreachableTag}
+                            </Tag>
+                        </Tooltip>
                         {foStatus?.pendingInvoices !== undefined && (
                             <p style={{ marginTop: 8 }}>
                                 {OPERATOR_RKSV_GENERAL_STATUS_COPY.foPendingInvoicesLabel}: {foStatus.pendingInvoices}
@@ -185,6 +217,13 @@ export default function RksvStatusPage() {
                                 {OPERATOR_RKSV_GENERAL_STATUS_COPY.foLastSyncLabel}: {foStatus.lastSync}
                             </p>
                         )}
+                        {foStatus?.transportDiagnostics ? (
+                            <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 4, fontSize: 11 }}>
+                                <Typography.Text code copyable style={{ fontSize: 11 }}>
+                                    {foStatus.transportDiagnostics}
+                                </Typography.Text>
+                            </Typography.Paragraph>
+                        ) : null}
                         <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 4, fontSize: 12 }}>
                             {OPERATOR_FO_SUMMARY_SCREEN_COPY.connectionMetricsNotPaymentRowTruth}
                         </Typography.Paragraph>
@@ -199,15 +238,16 @@ export default function RksvStatusPage() {
 
             <Card
                 size="small"
-                title="Zahlungs-/Zeilenebene (operativ)"
+                title={t('rksvHub.rksvStatusPage.paymentTruthCardTitle')}
                 style={{ marginBottom: 0 }}
             >
                 <Space direction="vertical" size={10} style={{ width: '100%' }}>
                     <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
-                        Für den verbindlichen FinanzOnline-Status je Zahlung (Retry, Fehlertext, Referenz) ist der{' '}
-                        <strong>{OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}</strong> maßgeblich.
-                        „Erreichbar/Connected“ in dieser Diagnose bedeutet nur, dass die Status-API antwortet — nicht,
-                        dass alle Zahlungen übermittelt oder reconciled sind.
+                        {t('rksvHub.rksvStatusPage.paymentTruthLineBeforeLink')}{' '}
+                        <Link href="/rksv/finanz-online-queue">
+                            <strong>{OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}</strong>
+                        </Link>
+                        {t('rksvHub.rksvStatusPage.paymentTruthLineAfterLink')}
                     </Typography.Paragraph>
                     <Space wrap>
                         <Button type="primary" href="/rksv/finanz-online-queue">

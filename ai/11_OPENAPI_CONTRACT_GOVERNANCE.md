@@ -96,7 +96,7 @@ These areas are **explicitly** aligned with documented schemas (DTOs + attribute
 |-------|---------|--------|
 | **Orval drift** | Regenerate client; fail if `frontend-admin/src/api/generated/` differs from git | Workflow **`.github/workflows/api-client-alignment.yml`**; script **`scripts/verify-api-client.mjs`** |
 | **OpenAPI parse** | `backend/swagger.json` must be valid JSON | Same script (before Orval) |
-| **Admin smoke** | `npm run build` after successful drift check | Same workflow |
+| **Admin smoke** | `npm run build` after successful drift check (step sets `NEXT_PUBLIC_RKSV_ENVIRONMENT` / `NEXT_PUBLIC_API_BASE_URL` — build-time inlining) | Same workflow |
 | Local | `cd frontend-admin && npm run verify:api-client` | `frontend-admin/package.json` |
 
 Optional later: Spectral / swagger-cli validation for OpenAPI semantics (beyond JSON parse).

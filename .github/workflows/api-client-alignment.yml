@@ -40,6 +40,10 @@ jobs:
       - name: Verify OpenAPI JSON + Orval output (no drift)
         run: node scripts/verify-api-client.mjs
 
+      # .env.local is gitignored — Next inlines NEXT_PUBLIC_* at build time; next.config.mjs requires TEST|PROD.
       - name: Admin build (TypeScript + Next smoke)
         working-directory: frontend-admin
+        env:
+          NEXT_PUBLIC_RKSV_ENVIRONMENT: TEST
+          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:5183
         run: npm run build

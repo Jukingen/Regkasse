@@ -10,10 +10,24 @@ export interface FinanzOnlineStatusResponse {
   /** @nullable */
   apiVersion?: string | null;
   /** @nullable */
+  diagnosticWarning?: string | null;
+  enableRealTestSubmission?: boolean;
+  /** @nullable */
   errorMessage?: string | null;
+  finanzOnlineTransportsSimulated?: boolean;
+  isAuthoritative?: boolean;
   isConnected?: boolean;
+  isSimulated?: boolean;
   /** @nullable */
   lastSync?: string | null;
   pendingInvoices?: number;
   pendingReports?: number;
+  /** @nullable */
+  sessionProbeIntegrationMode?: string | null;
+  /** @nullable */
+  sessionProbeSucceeded?: boolean | null;
+  /** @nullable */
+  sessionProbeTimestamp?: string | null;
+  /** @nullable */
+  transportDiagnostics?: string | null;
 }

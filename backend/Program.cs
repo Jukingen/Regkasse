@@ -369,6 +369,7 @@ builder.Services.AddScoped<IFinanzOnlineCommandMapper, DefaultFinanzOnlineComman
 builder.Services.AddScoped<IFinanzOnlineSubmissionService, FinanzOnlineSubmissionService>();
 builder.Services.AddScoped<IFinanzOnlineOutboxService, FinanzOnlineOutboxService>();
 builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
+builder.Services.AddScoped<IFinanzOnlineAdminConnectivityService, FinanzOnlineAdminConnectivityService>();
 builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
 builder.Services.AddScoped<IOperationalReportingService, OperationalReportingService>();
 builder.Services.AddScoped<ITagesberichtService, TagesberichtService>();
@@ -441,6 +442,8 @@ builder.Services.AddScoped<IUserUniquenessValidationService, UserUniquenessValid
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+FinanzOnlineTransportStartupDiagnostics.LogTransportModesAtStartup(app.Services);
 
 // Diagnostic: log which database the API actually uses (runtime resolution; env vars can override appsettings)
 var connStr = app.Configuration.GetConnectionString("DefaultConnection");

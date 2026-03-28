@@ -145,6 +145,7 @@ dotnet watch run
 cd frontend-admin
 npm run dev
 ```
+Admin paneli için `.env.local` dosyası **`frontend-admin/`** klasöründe olmalıdır (depo kökündeki `.env` bu uygulama tarafından okunmaz). RKSV hub (`/rksv`) ortam rozeti için `NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST` veya `PROD` tanımlayın; `NEXT_PUBLIC_*` değerleri derleme sırasında istemci paketine gömülür — değişiklikten sonra `npm run dev` sürecini yeniden başlatın veya yeniden build alın. Ayrıntı: `frontend-admin/.env.example` ve `frontend-admin/README.md`.
 
 ### Veritabanı Migration
 ```bash
@@ -174,8 +175,14 @@ cd backend
 dotnet publish -c Release
 ```
 
-### Frontend Deployment
+### Admin panel (`frontend-admin`) deployment
+
+`NEXT_PUBLIC_*` değişkenleri (ör. `NEXT_PUBLIC_RKSV_ENVIRONMENT`, `NEXT_PUBLIC_API_BASE_URL`) **yalnızca `next build` veya `next dev` derlemesi sırasında** istemci paketine gömülür; imajı build etmeden sonra yalnızca `docker run -e` ile vermek rozeti düzeltmez. Ayrıntı ve örnek Dockerfile/Compose parçaları: [frontend-admin/docs/DEPLOYMENT_BUILD_TIME_ENV.md](frontend-admin/docs/DEPLOYMENT_BUILD_TIME_ENV.md).
+
 ```bash
+cd frontend-admin
+npm ci
+# Üretim build: .env.production / ortam değişkeni veya CI adımında NEXT_PUBLIC_* tanımlı olmalı
 npm run build
 ```
 

@@ -266,6 +266,8 @@ export const OPERATOR_RKSV_GENERAL_STATUS_COPY = {
     foStatisticTitle: 'Statusabruf',
     foReachableTag: 'Erreichbar',
     foUnreachableTag: 'Nicht erreichbar',
+    /** FO session layer simulated — no outbound SOAP from integration stack */
+    foSimulatedTransportTag: 'Simuliert (kein SOAP)',
     foPendingInvoicesLabel: 'Ausstehende Rechnungen (laut API)',
     foLastSyncLabel: 'Letzte Synchronisation (laut API)',
     foCardFootnote: 'Keine Abgleichsliste — nur Schnittstellen-Kennzahlen.',
@@ -283,6 +285,9 @@ export const OPERATOR_FO_OPERATIONS_PAGE_COPY = {
     introLead:
         'Unterstützende Oberfläche: Integration, Konfiguration, Verbindungstest, Fehler- und Rechnungsverlauf — nicht die primäre Abgleichsliste. Operative Zahlungswahrheit:',
     introAbgleichLinkLabel: 'FinanzOnline-Abgleich',
+    /** Shown when API returns finanzOnlineTransportsSimulated */
+    simulatedTransportNote:
+        'Backend meldet simulierte FinanzOnline-Transportschichten — keine echte SOAP-Session aus dieser Diagnose.',
 } as const;
 
 // --- FinanzOnline retry row (mirrors button, not server terminality) ---

@@ -39,6 +39,8 @@ The repository consists of three independent applications:
 ## Admin Panel
 - Path: `./frontend-admin` (or `./admin`)
 - Tech: Next.js 14 (App Router), TypeScript, Ant Design
+- **Env files:** `.env.local` / `.env` must live in **`frontend-admin/`** (Next.js project root). Repository root env files are not loaded for this app.
+- **Deploy / `NEXT_PUBLIC_*`:** Must be available **before** `next build` (not only container runtime). See `frontend-admin/docs/DEPLOYMENT_BUILD_TIME_ENV.md`; CI: `.github/workflows/api-client-alignment.yml` (admin build step `env:`).
 - **RKSV operations landing:** `(protected)/rksv` — see `frontend-admin/src/features/rksv-operations/README.md`.
 - **Tagesabschluss UI:** `(protected)/tagesabschluss` — Orval hooks for `/api/Tagesabschluss/*` (permission `tse.sign`). Legacy admin payment listing may still use `src/api/legacy/payment.ts` (`/api/Payment/*`).
 - Server State: React Query
