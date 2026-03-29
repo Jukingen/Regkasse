@@ -3,7 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Security;
+using KasseAPI_Final.Services.Backup;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -15,11 +19,16 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<SettingsController> _logger;
+        private readonly IBackupManualTriggerService _backupManualTrigger;
 
-        public SettingsController(AppDbContext context, ILogger<SettingsController> logger)
+        public SettingsController(
+            AppDbContext context,
+            ILogger<SettingsController> logger,
+            IBackupManualTriggerService backupManualTrigger)
         {
             _context = context;
             _logger = logger;
+            _backupManualTrigger = backupManualTrigger;
         }
 
         [HasPermission(AppPermissions.SettingsView)]
@@ -177,6 +186,7 @@ namespace KasseAPI_Final.Controllers
         }
 
         // GET: api/settings/backup
+        /// <summary>Legacy UI fields. <c>LastBackup</c> is not tied to verified backup completion in Phase 1 (see backup-phase1-runbook).</summary>
         [HasPermission(AppPermissions.SettingsView)]
         [HttpGet("backup")]
         public async Task<IActionResult> GetBackupSettings()
@@ -208,9 +218,10 @@ namespace KasseAPI_Final.Controllers
         }
 
         // POST: api/settings/backup/now
+        // Legacy entry: delegates to backup orchestration (no simulation, no pg_dump on this thread).
         [HttpPost("backup/now")]
         [HasPermission(AppPermissions.SettingsManage)]
-        public async Task<IActionResult> CreateBackupNow()
+        public async Task<IActionResult> CreateBackupNow(CancellationToken cancellationToken)
         {
             try
             {
@@ -220,17 +231,41 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "System settings not found" });
                 }
 
-                // Backup işlemi simülasyonu
-                var backupFileName = $"backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}.sql";
-                
-                settings.LastBackup = DateTime.UtcNow;
-                settings.UpdatedAt = DateTime.UtcNow;
+                var userId = User.GetActorUserId();
+                var role = User.GetActorRole() ?? "Unknown";
+                var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+                var outcome = await _backupManualTrigger.RequestManualBackupAsync(
+                    userId,
+                    role,
+                    idempotencyKey: null,
+                    correlationId,
+                    cancellationToken);
 
-                await _context.SaveChangesAsync();
+                var dto = BackupTriggerResponseFactory.Create(outcome);
 
-                _logger.LogInformation("Manual backup created: {BackupFileName}", backupFileName);
+                if (outcome.Kind is BackupManualTriggerResultKind.DuplicateActiveManualPrevented
+                    or BackupManualTriggerResultKind.IdempotentReplay)
+                {
+                    _logger.LogInformation(
+                        "Legacy backup/now: orchestrationState={State}, runId={RunId}",
+                        dto.OrchestrationState,
+                        outcome.Run.Id);
+                    return Ok(dto);
+                }
 
-                return Ok(new { message = "Backup created successfully", fileName = backupFileName });
+                // Do not touch LastBackup here — it implied "backup completed" under the old simulation.
+                // Phase 2+: sync LastBackup from last Succeeded verified run if product still needs this field.
+
+                _logger.LogInformation(
+                    "Legacy backup/now: enqueued runId={RunId}, orchestrationState={State}",
+                    outcome.Run.Id,
+                    dto.OrchestrationState);
+
+                return AcceptedAtAction(
+                    nameof(AdminBackupController.GetRunById),
+                    nameof(AdminBackupController).Replace("Controller", string.Empty, StringComparison.Ordinal),
+                    new { id = outcome.Run.Id },
+                    dto);
             }
             catch (Exception ex)
             {

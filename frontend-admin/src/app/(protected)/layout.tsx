@@ -32,6 +32,7 @@ import {
     FundOutlined,
     LineChartOutlined,
     TableOutlined,
+    CloudServerOutlined,
 } from '@ant-design/icons';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -229,6 +230,13 @@ export default function DashboardLayout({
                                 icon: <CreditCardOutlined />,
                                 label: (
                                     <Link href="/settings/payment-methods">{t(ADMIN_NAV_LABEL_KEYS.paymentMethods)}</Link>
+                                ),
+                            },
+                            {
+                                key: '/settings/backup-dr',
+                                icon: <CloudServerOutlined />,
+                                label: (
+                                    <Link href="/settings/backup-dr">{t(ADMIN_NAV_LABEL_KEYS.backupDr)}</Link>
                                 ),
                             },
                         ],

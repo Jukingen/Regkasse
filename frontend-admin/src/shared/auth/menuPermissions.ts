@@ -36,6 +36,7 @@ export const MENU_PERMISSION: Record<string, string | string[] | undefined> = {
   '/users': PERMISSIONS.USER_VIEW,
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
   '/rksv': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/status': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/cmc-certificate': PERMISSIONS.SETTINGS_VIEW,

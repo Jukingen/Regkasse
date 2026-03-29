@@ -1,0 +1,23 @@
+{
+  "version": 3,
+  "targets": {
+    "net10.0/win-x64": {
+      "swashbuckle.aspnetcore.cli/9.0.3": {
+        "type": "package",
+        "tools": {
+          "tools/net9.0/any/DotnetToolSettings.xml": {},
+          "tools/net9.0/any/Microsoft.OpenApi.dll": {},
+          "tools/net9.0/any/Swashbuckle.AspNetCore.Swagger.dll": {},
+          "tools/net9.0/any/Swashbuckle.AspNetCore.Swagger.pdb": {},
+          "tools/net9.0/any/Swashbuckle.AspNetCore.Swagger.xml": {},
+          "tools/net9.0/any/dotnet-swagger.deps.json": {},
+          "tools/net9.0/any/dotnet-swagger.dll": {},
+          "tools/net9.0/any/dotnet-swagger.pdb": {},
+          "tools/net9.0/any/dotnet-swagger.runtimeconfig.json": {}
+        }
+      }
+    }
+  },
+  "libraries": {},
+  "projectFileDependencyGroups": {}
+}

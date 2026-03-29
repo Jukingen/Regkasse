@@ -28,6 +28,7 @@
   "companySettings": "Company & fiscal",
   "settings": "Settings",
   "paymentMethods": "Payment methods",
+  "backupDr": "Backup & DR",
   "myProfile": "My profile",
   "logout": "Log out",
   "rksvOperationsOverview": "RKSV overview",

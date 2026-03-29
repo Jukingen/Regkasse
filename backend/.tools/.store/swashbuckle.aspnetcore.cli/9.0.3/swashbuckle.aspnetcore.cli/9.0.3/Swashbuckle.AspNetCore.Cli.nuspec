@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>Swashbuckle.AspNetCore.Cli</id>
+    <version>9.0.3</version>
+    <authors>domaindrivendev</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <readme>package-readme.md</readme>
+    <projectUrl>https://github.com/domaindrivendev/Swashbuckle.AspNetCore</projectUrl>
+    <description>Swashbuckle (Swagger) Command Line Tools</description>
+    <releaseNotes>See https://github.com/domaindrivendev/Swashbuckle.AspNetCore/releases for details.</releaseNotes>
+    <copyright>Copyright (c) 2016-2025 Richard Morris</copyright>
+    <packageTypes>
+      <packageType name="DotnetTool" />
+    </packageTypes>
+    <repository type="git" url="https://github.com/domaindrivendev/Swashbuckle.AspNetCore.git" commit="9eaf90973177483acdd8b008c08f93ab2836af4f" />
+  </metadata>
+</package>

@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Data
@@ -75,6 +77,14 @@ namespace KasseAPI_Final.Data
         public DbSet<SignatureChainState> SignatureChainState { get; set; }
         /// <summary>Sprint 5: Legal hold on audit date ranges; cleanup skips records in active holds.</summary>
         public DbSet<LegalHold> LegalHolds { get; set; }
+
+        /// <summary>Phase 1: backup orchestration metadata (not fiscal domain).</summary>
+        public DbSet<BackupRun> BackupRuns { get; set; }
+        public DbSet<BackupArtifact> BackupArtifacts { get; set; }
+        public DbSet<BackupVerification> BackupVerifications { get; set; }
+
+        /// <summary>Restore drill metadata (pg_restore --list + optional fiscal SQL + integrity); not artifact verification.</summary>
+        public DbSet<RestoreVerificationRun> RestoreVerificationRuns { get; set; }
 
         // Extra Zutaten (Add-on groups and assignments; add-on products in addon_group_products)
         public DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
@@ -1409,6 +1419,53 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ToDate).IsRequired();
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
+            });
+
+            builder.Entity<BackupRun>(entity =>
+            {
+                entity.ToTable("backup_runs");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.RequestedAt);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.IdempotencyKey)
+                    .IsUnique()
+                    .HasFilter("idempotency_key IS NOT NULL");
+                entity.HasMany(e => e.Artifacts)
+                    .WithOne(a => a.BackupRun!)
+                    .HasForeignKey(a => a.BackupRunId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasMany(e => e.Verifications)
+                    .WithOne(v => v.BackupRun!)
+                    .HasForeignKey(v => v.BackupRunId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<BackupArtifact>(entity =>
+            {
+                entity.ToTable("backup_artifacts");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.BackupRunId);
+            });
+
+            builder.Entity<BackupVerification>(entity =>
+            {
+                entity.ToTable("backup_verifications");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.BackupRunId);
+                entity.HasIndex(e => e.StartedAt);
+            });
+
+            builder.Entity<RestoreVerificationRun>(entity =>
+            {
+                entity.ToTable("restore_verification_runs");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.RequestedAt);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.SourceBackupRunId);
+                entity.HasOne(e => e.SourceBackupRun)
+                    .WithMany()
+                    .HasForeignKey(e => e.SourceBackupRunId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             Console.WriteLine("AppDbContext model configuration completed with TableOrder support");

@@ -1,0 +1,256 @@
+{
+  "page": {
+    "title": "Backup & Disaster Recovery",
+    "subtitle": "Steuerung und Transparenz. Ausführung läuft im Hintergrund-Worker — nicht in dieser Oberfläche."
+  },
+  "scope": {
+    "title": "Was diese Seite tut (und was nicht)",
+    "body": "Es wird kein Backup im Browser erzeugt und kein Restore-Befehl von hier ausgeführt. Schaltflächen reihen Aufträge nur in die API-Warteschlange ein; Ausführung und Artefakte laufen auf dem Backend-Worker."
+  },
+  "banner": {
+    "criticalTitle": "Kritische Hinweise",
+    "warningTitle": "Eingeschränkt / abweichend",
+    "backupConfigUnhealthy": "Backup-Konfiguration: Zustand „kritisch“.",
+    "backupConfigDegraded": "Backup-Konfiguration: Zustand „eingeschränkt“.",
+    "restoreReadinessUnhealthy": "Restore-Verifikation: Bereitschaft „kritisch“.",
+    "restoreReadinessDegraded": "Restore-Verifikation: Bereitschaft „eingeschränkt“.",
+    "externalArchiveDegraded": "Externe Artefakt-Kopie: fehlgeschlagen oder uneinheitlich — Backup kann trotzdem technisch erfolgreich gewesen sein."
+  },
+  "summary": {
+    "backupHealth": "Backup-Gesundheit",
+    "backupConfig": "Konfiguration (Backup)",
+    "pipelinePolicy": "Artefakt-Pipeline (Kurz)",
+    "latestBackupRun": "Letzter Backup-Lauf",
+    "restoreReadiness": "Restore-Verifikation Bereitschaft",
+    "configurationShort": "Konfiguration (Kurz)",
+    "externalArchiveCard": "Externes Archiv (letzter Lauf)",
+    "unknown": "Unbekannt / keine Daten"
+  },
+  "pipelineSteps": {
+    "sectionTitle": "Pipeline-Schritte (aus API-Status abgeleitet)",
+    "queued": {
+      "title": "Backup eingereiht",
+      "hint": "Warteschlange beim Worker — noch kein Abschluss."
+    },
+    "workerRunning": {
+      "title": "Ausführung läuft",
+      "hint": "Worker verarbeitet den Lauf (z. B. pg_dump)."
+    },
+    "dumpComplete": {
+      "title": "Logischer Dump abgeschlossen",
+      "hint": "Ausführungsphase beendet; Artefakt-/Verifikation folgt."
+    },
+    "artifactCreated": {
+      "title": "Artefakt erzeugt",
+      "hint": "Dump-Artefakt in Staging erfasst."
+    },
+    "artifactVerification": {
+      "title": "Artefakt-Verifikation",
+      "hint": "Checksum / Staging-Integrität — keine Restore-Garantie."
+    },
+    "manifestCreated": {
+      "title": "Manifest erzeugt",
+      "hint": "Verifikations-Manifest zum Lauf."
+    },
+    "externalCopy": {
+      "title": "Externe Kopie",
+      "hint": "Kopie zum externen Archiv (wenn konfiguriert und ausgeführt)."
+    },
+    "externalChecksum": {
+      "title": "Externe Hash-Prüfung",
+      "hint": "Abgleich nach Kopie am Ziel."
+    },
+    "state": {
+      "pending": "Ausstehend",
+      "running": "Läuft",
+      "success": "OK",
+      "failed": "Fehlgeschlagen",
+      "skipped": "Entfällt",
+      "degraded": "Eingeschränkt"
+    }
+  },
+  "pipeline": {
+    "title": "Artefakt-Pipeline (Richtlinie)",
+    "none": "Keine Pipeline-Metadaten in der letzten Statusantwort.",
+    "externalRequirement": "Anforderung externe Archivierung",
+    "stagingConfigured": "Staging-Ziel konfiguriert",
+    "externalConfigured": "Externes Archiv konfiguriert",
+    "runExternalWhenEligible": "Extern nach Staging-Verifikation (wenn möglich)",
+    "hashReverify": "On-Disk-Hash erneut prüfen (erwartet)",
+    "operatorNotes": "Hinweise für Betrieb",
+    "externalWhenEligible": "Externe Kopie bei Eignung",
+    "policyFromApi": "Siehe Detailabschnitt"
+  },
+  "readiness": {
+    "title": "Restore-Verifikation — Bereitschaft",
+    "restoreWorker": "Restore-Worker",
+    "restoreWorkerDisabled": "Restore-Verifikations-Worker deaktiviert — Drills werden nicht verarbeitet.",
+    "noIssues": "Keine zusätzlichen Hinweise in dieser Antwort."
+  },
+  "lock": {
+    "title": "Verteilte Sperre / Orchestrierung (API-Auszug)",
+    "restoreSide": "Restore-Verifikation",
+    "backupSide": "Backup-Orchestrierung",
+    "backupSideHint": "Backup-Seite: Details stehen in der Konfigurations-Gesundheit; relevante API-Hinweise mit Stichwort „Lock“ werden unten gefiltert.",
+    "restoreDistributedLock": "Verteilte Sperre aktiv",
+    "restoreLockDisabled": "Verteilte Sperre für Restore-Verifikation laut API nicht aktiv — Mehrfachausführung möglich.",
+    "hintsFromApi": "Zugehörige API-Hinweise",
+    "noLockHints": "Keine Hinweise mit Lock-/Advisory-Bezug in der Backup-Antwort."
+  },
+  "knownGaps": {
+    "title": "Bekannte Grenzen (Outbox / TSE / Infra)",
+    "body": "Datenbank-Backup ersetzt keine vollständige RKSV-/TSE-Sicherung; Outbox- und Signatur-Anforderungen können zusätzliche Betriebsprozesse brauchen. Ziele wie RPO/RTO hängen von Infrastruktur ab, nicht von dieser Oberfläche."
+  },
+  "manual": {
+    "title": "Manuelle Aktionen (nur einreihen)",
+    "hint": "Startet Aufträge asynchron über die API — kein sofortiges Ergebnis und kein Download im Browser."
+  },
+  "triState": {
+    "ok": "OK",
+    "fail": "Fehlgeschlagen",
+    "issues": "Abweichungen"
+  },
+  "restoreAttempt": {
+    "notRun": "Nicht ausgeführt"
+  },
+  "health": {
+    "title": "Konfigurations-Gesundheit",
+    "healthy": "OK",
+    "degraded": "Eingeschränkt",
+    "unhealthy": "Kritisch",
+    "workerDisabled": "Worker deaktiviert — wartende Backups werden nicht verarbeitet.",
+    "adapter": "Adapter",
+    "worker": "Worker"
+  },
+  "latestRun": {
+    "title": "Letzter Backup-Lauf",
+    "none": "Noch kein Backup-Lauf erfasst.",
+    "orchestrationHint": "„Neu eingereiht“ bedeutet nur Warteschlange — kein abgeschlossenes Backup.",
+    "id": "Lauf-ID",
+    "adapter": "Adapter",
+    "requested": "Angefordert",
+    "started": "Gestartet",
+    "completed": "Abgeschlossen",
+    "failure": "Fehler",
+    "duration": "Dauer",
+    "durationMs": "{{ms}} ms",
+    "durationSec": "{{s}} s",
+    "durationMin": "{{m}} min {{s}} s",
+    "dumpSize": "Dump-Größe (ca.)",
+    "bytesB": "{{n}} B",
+    "bytesKb": "{{n}} KB",
+    "bytesMb": "{{n}} MB"
+  },
+  "artifactVerification": {
+    "title": "Letzte Artefakt-Verifikation (Phase 2)",
+    "none": "Keine Verifikationszeile gefunden.",
+    "pending": "Ausstehend",
+    "passed": "Bestanden",
+    "failed": "Fehlgeschlagen",
+    "notRestoreProof": "Artefakt-Verifikation bestätigt Dateiintegrität (z. B. Checksummen) — keine vollständige Wiederherstellbarkeit."
+  },
+  "restoreVerification": {
+    "sectionTitle": "Restore-Verifikation (separat vom Backup-Pipeline)",
+    "title": "Letzte Restore-Verifikation (Drill)",
+    "none": "Noch kein Restore-Drill ausgeführt.",
+    "explanation": "Prüft u. a. Dump-Inspektion und optional isolierten Restore-Versuch sowie SQL auf Clone — kein Produktions-Restore über diese UI.",
+    "drillFailed": "Restore-Drill fehlgeschlagen",
+    "fiscalSql": "Fiskal-SQL (Clone)",
+    "skipped": "Übersprungen",
+    "integrity": "Integrität (Scope)",
+    "strongerThanArtifact": "Restore-Verifikation liefert stärkere technische Evidenz als die Artefakt-Verifikation allein — ersetzt aber kein vollständiges Disaster-Recovery-Programm.",
+    "block": {
+      "dumpInspection": "Dump-Inspektion",
+      "restoreAttempt": "Isolierter Restore-Versuch"
+    }
+  },
+  "distinction": {
+    "title": "Artefakt-Verifikation vs. Restore-Verifikation",
+    "body": "Artefakt-Verifikation: Integrität der erzeugten Dateien (z. B. Checksummen / Staging). Restore-Verifikation: zusätzliche technische Drill-Metadaten (Listen-Inspect, optional fiskalische SQL auf Clone) — ersetzt weder vollständigen Restore-Test noch RPO/RTO-Garantien."
+  },
+  "runs": {
+    "title": "Letzte Backup-Läufe"
+  },
+  "restoreHistory": {
+    "title": "Letzte Restore-Drills",
+    "empty": "Noch keine Restore-Drills erfasst."
+  },
+  "alerts": {
+    "title": "Hinweise & Abweichungen",
+    "none": "Keine zusätzlichen Hinweise."
+  },
+  "externalCopy": {
+    "title": "Externe Kopie (Artefakte)",
+    "loading": "Lade Artefakt-Details…",
+    "verified": "Externe Kopie verifiziert (wo zutreffend).",
+    "failed": "Externe Kopie fehlgeschlagen oder Hash-Problem.",
+    "stagingOnly": "Nur Staging / keine externe Kopie für diesen Lauf (Konfiguration oder Adapter).",
+    "mixed": "Gemischter Status zwischen Artefakten — Details prüfen.",
+    "unknown": "Keine Artefakt-Details für den letzten Lauf."
+  },
+  "disclaimer": {
+    "title": "Hinweis aus der API"
+  },
+  "restoreCapability": {
+    "title": "Automatisierte Wiederherstellung",
+    "available": "Als verfügbar gemeldet",
+    "notAvailable": "Nicht als automatisiert verfügbar gemeldet"
+  },
+  "actions": {
+    "enqueueBackup": "Backup einreihen",
+    "enqueueRestoreDrill": "Restore-Drill einreihen",
+    "refresh": "Aktualisieren"
+  },
+  "backupStatus": {
+    "0": "Eingereiht",
+    "1": "Läuft",
+    "2": "Wartet auf Verifikation",
+    "3": "Erfolgreich (mit Verifikation)",
+    "4": "Fehlgeschlagen",
+    "5": "Verifikation fehlgeschlagen",
+    "6": "Abgebrochen"
+  },
+  "verificationStatus": {
+    "0": "Ausstehend",
+    "1": "Bestanden",
+    "2": "Fehlgeschlagen"
+  },
+  "restoreStatus": {
+    "0": "Eingereiht",
+    "1": "Läuft",
+    "2": "Erfolgreich",
+    "3": "Fehlgeschlagen"
+  },
+  "lifecycle": {
+    "0": "Staging",
+    "1": "Staging verifiziert",
+    "2": "Extern verifiziert",
+    "3": "Extern fehlgeschlagen"
+  },
+  "messages": {
+    "backupEnqueued": "Backup wurde in die Warteschlange eingereiht — Ausführung erfolgt asynchron.",
+    "backupDuplicate": "Kein neuer Lauf: bereits aktiver oder doppelter manueller Versuch verhindert.",
+    "restoreDrillEnqueued": "Restore-Drill eingereiht — Ergebnis erscheint nach Worker-Lauf.",
+    "orchestration": "Orchestrierung: {{state}}"
+  },
+  "errors": {
+    "loadFailed": "Daten konnten nicht geladen werden.",
+    "partialTable": "Backup-Verlauf konnte nicht geladen werden — Tabelle kann unvollständig sein.",
+    "partialTableRestore": "Restore-Drill-Verlauf konnte nicht geladen werden.",
+    "runDetailPartial": "Lauf-Details (Artefakte) konnten nicht geladen werden — Pipeline-Schritte können unvollständig sein.",
+    "forbiddenTrigger": "Keine Berechtigung für diese Aktion (API 403)."
+  },
+  "table": {
+    "requestedAt": "Angefordert",
+    "status": "Status",
+    "adapter": "Adapter",
+    "completedAt": "Abgeschlossen",
+    "failure": "Code",
+    "verifier": "Verifier",
+    "dumpInspection": "Dump-Inspektion",
+    "restoreAttempt": "Restore-Versuch (isoliert)"
+  },
+  "permission": {
+    "noManage": "Nur Ansicht — zum Einreihen fehlt die Berechtigung „Einstellungen verwalten“."
+  }
+}

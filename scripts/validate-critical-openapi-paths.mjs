@@ -19,12 +19,18 @@ const CRITICAL_PATHS = [
   { path: '/api/pos/cart/current', methods: ['get'] },
   { path: '/api/admin/payments', methods: ['get'] },
   { path: '/api/admin/payments/{id}', methods: ['get'] },
+  { path: '/api/admin/backup/status/latest', methods: ['get'] },
+  { path: '/api/admin/restore-verification/runs/latest', methods: ['get'] },
+  { path: '/api/admin/restore-verification/readiness', methods: ['get'] },
 ];
 
 const REQUIRED_SCHEMAS = [
   'CreatePaymentRequest',
   'AdminPaymentsListResponse',
   'PaymentMethod',
+  'BackupLatestStatusResponseDto',
+  'RestoreVerificationRunResponseDto',
+  'RestoreVerificationReadinessResponseDto',
 ];
 
 /**

@@ -1,0 +1,256 @@
+{
+  "page": {
+    "title": "Backup & disaster recovery",
+    "subtitle": "Control and visibility only. Execution runs in the background worker — not in this UI."
+  },
+  "scope": {
+    "title": "What this page does (and does not)",
+    "body": "No backup file is produced in the browser and no restore command is executed from here. Buttons only enqueue jobs via the API; execution and artifacts run on the backend worker."
+  },
+  "banner": {
+    "criticalTitle": "Critical issues",
+    "warningTitle": "Degraded / attention",
+    "backupConfigUnhealthy": "Backup configuration is unhealthy.",
+    "backupConfigDegraded": "Backup configuration is degraded.",
+    "restoreReadinessUnhealthy": "Restore verification readiness is unhealthy.",
+    "restoreReadinessDegraded": "Restore verification readiness is degraded.",
+    "externalArchiveDegraded": "External artifact copy failed or is inconsistent — the backup run may still have succeeded technically."
+  },
+  "summary": {
+    "backupHealth": "Backup health",
+    "backupConfig": "Configuration (backup)",
+    "pipelinePolicy": "Artifact pipeline (summary)",
+    "latestBackupRun": "Latest backup run",
+    "restoreReadiness": "Restore verification readiness",
+    "configurationShort": "Configuration (summary)",
+    "externalArchiveCard": "External archive (latest run)",
+    "unknown": "Unknown / no data"
+  },
+  "pipelineSteps": {
+    "sectionTitle": "Pipeline steps (derived from API state)",
+    "queued": {
+      "title": "Backup queued",
+      "hint": "Waiting for the worker — not finished yet."
+    },
+    "workerRunning": {
+      "title": "Execution running",
+      "hint": "Worker is processing the run (e.g. pg_dump)."
+    },
+    "dumpComplete": {
+      "title": "Logical dump finished",
+      "hint": "Execution finished; artifact/verification phase may follow."
+    },
+    "artifactCreated": {
+      "title": "Artifact created",
+      "hint": "Dump artifact recorded in staging."
+    },
+    "artifactVerification": {
+      "title": "Artifact verification",
+      "hint": "Checksum / staging integrity — not a restore guarantee."
+    },
+    "manifestCreated": {
+      "title": "Manifest created",
+      "hint": "Verification manifest for the run."
+    },
+    "externalCopy": {
+      "title": "External copy",
+      "hint": "Copy to external archive (when configured and executed)."
+    },
+    "externalChecksum": {
+      "title": "External hash check",
+      "hint": "Post-copy verification at destination."
+    },
+    "state": {
+      "pending": "Pending",
+      "running": "Running",
+      "success": "OK",
+      "failed": "Failed",
+      "skipped": "N/A",
+      "degraded": "Degraded"
+    }
+  },
+  "pipeline": {
+    "title": "Artifact pipeline (policy)",
+    "none": "No pipeline metadata in the latest status response.",
+    "externalRequirement": "External archive requirement",
+    "stagingConfigured": "Staging target configured",
+    "externalConfigured": "External archive configured",
+    "runExternalWhenEligible": "Run external after staging verification (when eligible)",
+    "hashReverify": "On-disk hash re-check (expected)",
+    "operatorNotes": "Operator notes",
+    "externalWhenEligible": "External copy when eligible",
+    "policyFromApi": "See detail section"
+  },
+  "readiness": {
+    "title": "Restore verification — readiness",
+    "restoreWorker": "Restore worker",
+    "restoreWorkerDisabled": "Restore verification worker is disabled — drills will not be processed.",
+    "noIssues": "No extra notes in this response."
+  },
+  "lock": {
+    "title": "Distributed lock / orchestration (API excerpt)",
+    "restoreSide": "Restore verification",
+    "backupSide": "Backup orchestration",
+    "backupSideHint": "Backup side: see configuration health; API issues mentioning lock/advisory are filtered below.",
+    "restoreDistributedLock": "Distributed lock enabled",
+    "restoreLockDisabled": "Distributed lock for restore verification is not enabled per API — concurrent execution is possible.",
+    "hintsFromApi": "Related API notes",
+    "noLockHints": "No lock/advisory-related notes in the backup response."
+  },
+  "knownGaps": {
+    "title": "Known limits (outbox / TSE / infra)",
+    "body": "Database backup does not replace full RKSV/TSE protection; outbox and signature needs may require separate operations. RPO/RTO targets depend on infrastructure, not this UI."
+  },
+  "manual": {
+    "title": "Manual actions (enqueue only)",
+    "hint": "Jobs are queued asynchronously via the API — no instant result and no browser download."
+  },
+  "triState": {
+    "ok": "OK",
+    "fail": "Failed",
+    "issues": "Issues"
+  },
+  "restoreAttempt": {
+    "notRun": "Not executed"
+  },
+  "health": {
+    "title": "Configuration health",
+    "healthy": "Healthy",
+    "degraded": "Degraded",
+    "unhealthy": "Unhealthy",
+    "workerDisabled": "Worker disabled — queued backups will not be processed.",
+    "adapter": "Adapter",
+    "worker": "Worker"
+  },
+  "latestRun": {
+    "title": "Latest backup run",
+    "none": "No backup run recorded yet.",
+    "orchestrationHint": "“Queued” means only enqueued — not a completed backup.",
+    "id": "Run ID",
+    "adapter": "Adapter",
+    "requested": "Requested",
+    "started": "Started",
+    "completed": "Completed",
+    "failure": "Failure",
+    "duration": "Duration",
+    "durationMs": "{{ms}} ms",
+    "durationSec": "{{s}} s",
+    "durationMin": "{{m}} min {{s}} s",
+    "dumpSize": "Dump size (approx.)",
+    "bytesB": "{{n}} B",
+    "bytesKb": "{{n}} KB",
+    "bytesMb": "{{n}} MB"
+  },
+  "artifactVerification": {
+    "title": "Latest artifact verification (phase 2)",
+    "none": "No verification row found.",
+    "pending": "Pending",
+    "passed": "Passed",
+    "failed": "Failed",
+    "notRestoreProof": "Artifact verification confirms file integrity (e.g. checksums) — not full recoverability."
+  },
+  "restoreVerification": {
+    "sectionTitle": "Restore verification (separate from backup pipeline)",
+    "title": "Latest restore verification (drill)",
+    "none": "No restore drill has run yet.",
+    "explanation": "Covers dump inspection and optionally an isolated restore attempt plus SQL on a clone — no production restore from this UI.",
+    "drillFailed": "Restore drill failed",
+    "fiscalSql": "Fiscal SQL (clone)",
+    "skipped": "Skipped",
+    "integrity": "Integrity (scope)",
+    "strongerThanArtifact": "Restore verification provides stronger technical evidence than artifact verification alone — it is not a complete disaster recovery program.",
+    "block": {
+      "dumpInspection": "Dump inspection",
+      "restoreAttempt": "Isolated restore attempt"
+    }
+  },
+  "distinction": {
+    "title": "Artifact verification vs. restore verification",
+    "body": "Artifact verification: integrity of produced files (e.g. checksums / staging). Restore verification: additional drill metadata (list inspect, optional fiscal SQL on a clone) — it is not a full restore proof and does not guarantee RPO/RTO."
+  },
+  "runs": {
+    "title": "Recent backup runs"
+  },
+  "restoreHistory": {
+    "title": "Recent restore drills",
+    "empty": "No restore drills recorded yet."
+  },
+  "alerts": {
+    "title": "Alerts & degraded signals",
+    "none": "No extra alerts."
+  },
+  "externalCopy": {
+    "title": "External copy (artifacts)",
+    "loading": "Loading artifact details…",
+    "verified": "External copy verified (where applicable).",
+    "failed": "External copy failed or hash mismatch.",
+    "stagingOnly": "Staging only / no external copy for this run (config or adapter).",
+    "mixed": "Mixed artifact states — review details.",
+    "unknown": "No artifact details for the latest run."
+  },
+  "disclaimer": {
+    "title": "Disclaimer from API"
+  },
+  "restoreCapability": {
+    "title": "Automated restore",
+    "available": "Reported as available",
+    "notAvailable": "Not reported as automated"
+  },
+  "actions": {
+    "enqueueBackup": "Enqueue backup",
+    "enqueueRestoreDrill": "Enqueue restore drill",
+    "refresh": "Refresh"
+  },
+  "backupStatus": {
+    "0": "Queued",
+    "1": "Running",
+    "2": "Awaiting verification",
+    "3": "Succeeded (verified)",
+    "4": "Failed",
+    "5": "Verification failed",
+    "6": "Cancelled"
+  },
+  "verificationStatus": {
+    "0": "Pending",
+    "1": "Passed",
+    "2": "Failed"
+  },
+  "restoreStatus": {
+    "0": "Queued",
+    "1": "Running",
+    "2": "Succeeded",
+    "3": "Failed"
+  },
+  "lifecycle": {
+    "0": "Staging",
+    "1": "Staging verified",
+    "2": "External verified",
+    "3": "External failed"
+  },
+  "messages": {
+    "backupEnqueued": "Backup enqueued — execution is asynchronous.",
+    "backupDuplicate": "No new run: duplicate or active manual run prevented.",
+    "restoreDrillEnqueued": "Restore drill enqueued — results appear after the worker runs.",
+    "orchestration": "Orchestration: {{state}}"
+  },
+  "errors": {
+    "loadFailed": "Could not load data.",
+    "partialTable": "Backup history failed to load — table may be incomplete.",
+    "partialTableRestore": "Restore drill history failed to load.",
+    "runDetailPartial": "Run details (artifacts) failed to load — pipeline steps may be incomplete.",
+    "forbiddenTrigger": "You do not have permission for this action (API 403)."
+  },
+  "table": {
+    "requestedAt": "Requested",
+    "status": "Status",
+    "adapter": "Adapter",
+    "completedAt": "Completed",
+    "failure": "Code",
+    "verifier": "Verifier",
+    "dumpInspection": "Dump inspection",
+    "restoreAttempt": "Restore attempt (isolated)"
+  },
+  "permission": {
+    "noManage": "View only — “Settings manage” is required to enqueue jobs."
+  }
+}

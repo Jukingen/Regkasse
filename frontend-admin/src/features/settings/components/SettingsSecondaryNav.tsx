@@ -7,7 +7,7 @@ import { Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShopOutlined, CreditCardOutlined } from '@ant-design/icons';
+import { ShopOutlined, CreditCardOutlined, CloudServerOutlined } from '@ant-design/icons';
 import { useI18n } from '@/i18n/I18nProvider';
 import { ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 
@@ -35,6 +35,15 @@ export function SettingsSecondaryNav() {
           </Link>
         ),
       },
+      {
+        key: '/settings/backup-dr',
+        icon: <CloudServerOutlined />,
+        label: (
+          <Link href="/settings/backup-dr" prefetch={false}>
+            {t(ADMIN_NAV_LABEL_KEYS.backupDr)}
+          </Link>
+        ),
+      },
     ],
     [t],
   );
@@ -42,6 +51,7 @@ export function SettingsSecondaryNav() {
   const selectedKeys = useMemo(() => {
     if (pathname === '/settings' || pathname.startsWith('/settings/')) {
       if (pathname.startsWith('/settings/payment-methods')) return ['/settings/payment-methods'];
+      if (pathname.startsWith('/settings/backup-dr')) return ['/settings/backup-dr'];
       if (pathname === '/settings') return ['/settings'];
     }
     return [pathname];

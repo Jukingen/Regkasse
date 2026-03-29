@@ -1,0 +1,256 @@
+{
+  "page": {
+    "title": "Yedekleme ve felaket kurtarma",
+    "subtitle": "Yalnızca kontrol ve görünürlük. Yürütme arka plan işçisinde — bu arayüzde değil."
+  },
+  "scope": {
+    "title": "Bu sayfa ne yapar (ve yapmaz)",
+    "body": "Tarayıcıda yedek dosyası üretilmez ve buradan geri yükleme komutu çalıştırılmaz. Düğmeler yalnızca API kuyruğuna iş ekler; yürütme ve artefaktlar backend işçisinde çalışır."
+  },
+  "banner": {
+    "criticalTitle": "Kritik uyarılar",
+    "warningTitle": "Kısıtlı / dikkat",
+    "backupConfigUnhealthy": "Yedek yapılandırması kritik.",
+    "backupConfigDegraded": "Yedek yapılandırması kısıtlı.",
+    "restoreReadinessUnhealthy": "Geri yükleme doğrulaması hazırlığı kritik.",
+    "restoreReadinessDegraded": "Geri yükleme doğrulaması hazırlığı kısıtlı.",
+    "externalArchiveDegraded": "Harici artefakt kopyası başarısız veya tutarsız — yedek çalıştırması teknik olarak yine de başarılı olabilir."
+  },
+  "summary": {
+    "backupHealth": "Yedek sağlığı",
+    "backupConfig": "Yapılandırma (yedek)",
+    "pipelinePolicy": "Artefakt hattı (özet)",
+    "latestBackupRun": "Son yedek çalıştırması",
+    "restoreReadiness": "Geri yükleme doğrulaması hazırlığı",
+    "configurationShort": "Yapılandırma (özet)",
+    "externalArchiveCard": "Harici arşiv (son çalıştırma)",
+    "unknown": "Bilinmiyor / veri yok"
+  },
+  "pipelineSteps": {
+    "sectionTitle": "Hat adımları (API durumundan türetilir)",
+    "queued": {
+      "title": "Yedek kuyrukta",
+      "hint": "İşçi bekleniyor — henüz tamamlanmadı."
+    },
+    "workerRunning": {
+      "title": "Yürütme çalışıyor",
+      "hint": "İşçi çalıştırmayı işliyor (ör. pg_dump)."
+    },
+    "dumpComplete": {
+      "title": "Mantıksal dump bitti",
+      "hint": "Yürütme bitti; artefakt/doğrulama aşaması gelebilir."
+    },
+    "artifactCreated": {
+      "title": "Artefakt oluşturuldu",
+      "hint": "Dump artefaktı staging’e yazıldı."
+    },
+    "artifactVerification": {
+      "title": "Artefakt doğrulaması",
+      "hint": "Sağlama / staging bütünlüğü — geri yükleme garantisi değil."
+    },
+    "manifestCreated": {
+      "title": "Manifest oluşturuldu",
+      "hint": "Çalıştırma için doğrulama manifestosu."
+    },
+    "externalCopy": {
+      "title": "Harici kopya",
+      "hint": "Harici arşive kopya (yapılandırıldıysa ve çalıştıysa)."
+    },
+    "externalChecksum": {
+      "title": "Harici hash kontrolü",
+      "hint": "Kopya sonrası hedefte doğrulama."
+    },
+    "state": {
+      "pending": "Beklemede",
+      "running": "Çalışıyor",
+      "success": "Tamam",
+      "failed": "Başarısız",
+      "skipped": "Uygulanamaz",
+      "degraded": "Kısıtlı"
+    }
+  },
+  "pipeline": {
+    "title": "Artefakt hattı (politika)",
+    "none": "Son durum yanıtında hat meta verisi yok.",
+    "externalRequirement": "Harici arşiv gereksinimi",
+    "stagingConfigured": "Staging hedefi yapılandırıldı",
+    "externalConfigured": "Harici arşiv yapılandırıldı",
+    "runExternalWhenEligible": "Staging doğrulamasından sonra harici (uygunsa)",
+    "hashReverify": "Disk üstü hash yeniden kontrolü (beklenen)",
+    "operatorNotes": "Operatör notları",
+    "externalWhenEligible": "Uygunsa harici kopya",
+    "policyFromApi": "Ayrıntı bölümüne bakın"
+  },
+  "readiness": {
+    "title": "Geri yükleme doğrulaması — hazırlık",
+    "restoreWorker": "Geri yükleme işçisi",
+    "restoreWorkerDisabled": "Geri yükleme doğrulama işçisi kapalı — tatbikatlar işlenmez.",
+    "noIssues": "Bu yanıtta ek not yok."
+  },
+  "lock": {
+    "title": "Dağıtık kilit / orkestrasyon (API özeti)",
+    "restoreSide": "Geri yükleme doğrulaması",
+    "backupSide": "Yedek orkestrasyonu",
+    "backupSideHint": "Yedek tarafı: yapılandırma sağlığına bakın; kilit/advisory geçen API notları aşağıda süzülür.",
+    "restoreDistributedLock": "Dağıtık kilit etkin",
+    "restoreLockDisabled": "API’ye göre geri yükleme doğrulaması için dağıtık kilit etkin değil — eşzamanlı çalışma mümkün.",
+    "hintsFromApi": "İlgili API notları",
+    "noLockHints": "Yedek yanıtında kilit/advisory ile ilgili not yok."
+  },
+  "knownGaps": {
+    "title": "Bilinen sınırlar (outbox / TSE / altyapı)",
+    "body": "Veritabanı yedeği tam RKSV/TSE korumasının yerini tutmaz; outbox ve imza ihtiyaçları ayrı süreç gerektirebilir. RPO/RTO hedefleri bu arayüzden değil altyapıdan gelir."
+  },
+  "manual": {
+    "title": "Manuel eylemler (yalnızca kuyruk)",
+    "hint": "İşler API üzerinden asenkron kuyruğa alınır — anında sonuç ve tarayıcı indirmesi yok."
+  },
+  "triState": {
+    "ok": "Tamam",
+    "fail": "Başarısız",
+    "issues": "Sorunlar"
+  },
+  "restoreAttempt": {
+    "notRun": "Çalıştırılmadı"
+  },
+  "health": {
+    "title": "Yapılandırma sağlığı",
+    "healthy": "Sağlıklı",
+    "degraded": "Kısıtlı",
+    "unhealthy": "Kritik",
+    "workerDisabled": "İşçi kapalı — kuyruktaki yedekler işlenmez.",
+    "adapter": "Bağdaştırıcı",
+    "worker": "İşçi"
+  },
+  "latestRun": {
+    "title": "Son yedek çalıştırması",
+    "none": "Henüz yedek çalıştırması yok.",
+    "orchestrationHint": "“Kuyrukta” yalnızca sıraya alındığını gösterir — tamamlanmış yedek değildir.",
+    "id": "Çalıştırma kimliği",
+    "adapter": "Bağdaştırıcı",
+    "requested": "İstendi",
+    "started": "Başladı",
+    "completed": "Bitti",
+    "failure": "Hata",
+    "duration": "Süre",
+    "durationMs": "{{ms}} ms",
+    "durationSec": "{{s}} sn",
+    "durationMin": "{{m}} dk {{s}} sn",
+    "dumpSize": "Dump boyutu (yakl.)",
+    "bytesB": "{{n}} B",
+    "bytesKb": "{{n}} KB",
+    "bytesMb": "{{n}} MB"
+  },
+  "artifactVerification": {
+    "title": "Son artefakt doğrulaması (faz 2)",
+    "none": "Doğrulama kaydı yok.",
+    "pending": "Beklemede",
+    "passed": "Geçti",
+    "failed": "Başarısız",
+    "notRestoreProof": "Artefakt doğrulaması dosya bütünlüğünü (ör. hash) doğrular — tam kurtarılabilirlik değildir."
+  },
+  "restoreVerification": {
+    "sectionTitle": "Geri yükleme doğrulaması (yedek hattından ayrı)",
+    "title": "Son geri yükleme doğrulaması (tatbikat)",
+    "none": "Henüz tatbikat yok.",
+    "explanation": "Dump incelemesi ve isteğe bağlı izole geri yükleme denemesi ile klon üzerinde SQL kapsar — bu arayüzden üretim geri yükleme yok.",
+    "drillFailed": "Geri yükleme tatbikatı başarısız",
+    "fiscalSql": "Mali SQL (klon)",
+    "skipped": "Atlandı",
+    "integrity": "Bütünlük (kapsam)",
+    "strongerThanArtifact": "Geri yükleme doğrulaması, yalnızca artefakt doğrulamasından daha güçlü teknik kanıt sunar — eksiksiz felaket kurtarma programı değildir.",
+    "block": {
+      "dumpInspection": "Dump incelemesi",
+      "restoreAttempt": "İzole geri yükleme denemesi"
+    }
+  },
+  "distinction": {
+    "title": "Artefakt doğrulaması ve geri yükleme doğrulaması",
+    "body": "Artefakt: üretilen dosyaların bütünlüğü (ör. sağlama / staging). Geri yükleme tatbikatı: ek teknik metadatalar — tam geri yükleme kanıtı veya RPO/RTO garantisi değildir."
+  },
+  "runs": {
+    "title": "Son yedek çalıştırmaları"
+  },
+  "restoreHistory": {
+    "title": "Son geri yükleme tatbikatları",
+    "empty": "Henüz geri yükleme tatbikatı yok."
+  },
+  "alerts": {
+    "title": "Uyarılar ve düşük sağlık",
+    "none": "Ek uyarı yok."
+  },
+  "externalCopy": {
+    "title": "Harici kopya (artefaktlar)",
+    "loading": "Artefakt ayrıntıları yükleniyor…",
+    "verified": "Harici kopya doğrulandı (uygunsa).",
+    "failed": "Harici kopya başarısız veya hash uyumsuzluğu.",
+    "stagingOnly": "Yalnızca staging / bu çalıştırma için harici kopya yok.",
+    "mixed": "Karma artefakt durumu — ayrıntıları inceleyin.",
+    "unknown": "Son çalıştırma için artefakt ayrıntısı yok."
+  },
+  "disclaimer": {
+    "title": "API uyarı metni"
+  },
+  "restoreCapability": {
+    "title": "Otomatik geri yükleme",
+    "available": "Kullanılabilir bildirildi",
+    "notAvailable": "Otomatik olarak kullanılabilir bildirilmedi"
+  },
+  "actions": {
+    "enqueueBackup": "Yedeği kuyruğa al",
+    "enqueueRestoreDrill": "Geri yükleme tatbikatını kuyruğa al",
+    "refresh": "Yenile"
+  },
+  "backupStatus": {
+    "0": "Kuyrukta",
+    "1": "Çalışıyor",
+    "2": "Doğrulama bekliyor",
+    "3": "Başarılı (doğrulandı)",
+    "4": "Başarısız",
+    "5": "Doğrulama başarısız",
+    "6": "İptal"
+  },
+  "verificationStatus": {
+    "0": "Beklemede",
+    "1": "Geçti",
+    "2": "Başarısız"
+  },
+  "restoreStatus": {
+    "0": "Kuyrukta",
+    "1": "Çalışıyor",
+    "2": "Başarılı",
+    "3": "Başarısız"
+  },
+  "lifecycle": {
+    "0": "Staging",
+    "1": "Staging doğrulandı",
+    "2": "Harici doğrulandı",
+    "3": "Harici başarısız"
+  },
+  "messages": {
+    "backupEnqueued": "Yedek kuyruğa alındı — yürütme asenkron.",
+    "backupDuplicate": "Yeni çalıştırma yok: mükerrer veya aktif manuel engellendi.",
+    "restoreDrillEnqueued": "Tatbikat kuyruğa alındı — sonuç işçi çalışınca görünür.",
+    "orchestration": "Orkestrasyon: {{state}}"
+  },
+  "errors": {
+    "loadFailed": "Veri yüklenemedi.",
+    "partialTable": "Yedek geçmişi yüklenemedi — tablo eksik olabilir.",
+    "partialTableRestore": "Geri yükleme tatbikat geçmişi yüklenemedi.",
+    "runDetailPartial": "Çalıştırma ayrıntıları (artefaktlar) yüklenemedi — hat adımları eksik olabilir.",
+    "forbiddenTrigger": "Bu işlem için yetkiniz yok (API 403)."
+  },
+  "table": {
+    "requestedAt": "İstendi",
+    "status": "Durum",
+    "adapter": "Bağdaştırıcı",
+    "completedAt": "Bitti",
+    "failure": "Kod",
+    "verifier": "Doğrulayıcı",
+    "dumpInspection": "Dump incelemesi",
+    "restoreAttempt": "Geri yükleme denemesi (izole)"
+  },
+  "permission": {
+    "noManage": "Salt okunur — kuyruğa almak için “ayarları yönet” gerekir."
+  }
+}

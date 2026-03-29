@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Prometheus;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -26,6 +27,9 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Services.LegalExportCompleteness;
+using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.Backup.PgDump;
+using KasseAPI_Final.Services.RestoreVerification;
 
 var builder = WebApplication.CreateBuilder(args);
 var isDevelopment = builder.Environment.IsDevelopment();
@@ -57,6 +61,15 @@ builder.Services.Configure<FinanzOnlineTransmissionQueryOptions>(builder.Configu
 builder.Services.Configure<FinanzOnlineOutboxOptions>(builder.Configuration.GetSection(FinanzOnlineOutboxOptions.SectionName));
 builder.Services.Configure<FinanzOnlineCutoverGuardOptions>(builder.Configuration.GetSection(FinanzOnlineCutoverGuardOptions.SectionName));
 builder.Services.Configure<FinanzOnlineDevTestOptions>(builder.Configuration.GetSection(FinanzOnlineDevTestOptions.SectionName));
+builder.Services.AddSingleton<IValidateOptions<BackupOptions>, BackupOptionsValidator>();
+builder.Services.AddOptions<BackupOptions>()
+    .Bind(builder.Configuration.GetSection(BackupOptions.SectionName))
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<IValidateOptions<RestoreVerificationOptions>, RestoreVerificationOptionsValidator>();
+builder.Services.AddOptions<RestoreVerificationOptions>()
+    .Bind(builder.Configuration.GetSection(RestoreVerificationOptions.SectionName))
+    .ValidateOnStart();
 
 // Local development için explicit host binding; production host binding platform tarafından yönetilmelidir.
 if (isDevelopment)
@@ -419,6 +432,34 @@ builder.Services.AddScoped<CartLifecycleService>();
 
 // Audit log service
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+
+// Phase 1: backup orchestration (execution off HTTP thread; see BackupOrchestratorHostedService)
+builder.Services.AddSingleton<IBackupChecksumService, BackupChecksumService>();
+builder.Services.AddSingleton<IBackupManifestService, BackupManifestService>();
+builder.Services.AddSingleton<IBackupArtifactExternalArchive, FilesystemBackupArtifactExternalArchive>();
+builder.Services.AddSingleton<FakeBackupExecutionAdapter>();
+builder.Services.AddSingleton<PostgreSqlBackupExecutionAdapterStub>();
+builder.Services.AddSingleton<IPgDumpProcessRunner, PgDumpProcessRunner>();
+builder.Services.AddSingleton<PostgreSqlPgDumpBackupExecutionAdapter>();
+builder.Services.AddSingleton<IBackupAlertPublisher, LoggingBackupAlertPublisher>();
+builder.Services.AddScoped<IBackupManualTriggerService, BackupManualTriggerService>();
+builder.Services.AddScoped<IBackupRunQueryService, BackupRunQueryService>();
+builder.Services.AddScoped<IBackupVerificationService, BackupVerificationService>();
+builder.Services.AddSingleton<IRestoreOrchestrationBoundary, DeferredRestoreOrchestrationBoundary>();
+builder.Services.AddSingleton<IBackupOperationalReadiness, BackupOperationalReadinessService>();
+builder.Services.AddSingleton<IBackupOrchestratorMetrics, PrometheusBackupOrchestratorMetrics>();
+builder.Services.AddSingleton<IBackupOrchestratorDistributedLock, BackupOrchestratorPostgreSqlAdvisoryLock>();
+builder.Services.AddHostedService<BackupOrchestratorHostedService>();
+
+builder.Services.AddSingleton<IPgRestoreListInspector, PgRestoreListInspector>();
+builder.Services.AddSingleton<IPgRestoreIsolatedRestoreRunner, PgRestoreIsolatedRestoreRunner>();
+builder.Services.AddSingleton<IFiscalGoLiveValidationRunner, FiscalGoLiveValidationRunner>();
+builder.Services.AddSingleton<IRestoreVerificationOrchestratorMetrics, PrometheusRestoreVerificationOrchestratorMetrics>();
+builder.Services.AddSingleton<IRestoreVerificationOrchestratorDistributedLock, RestoreVerificationOrchestratorPostgreSqlAdvisoryLock>();
+builder.Services.AddSingleton<IRestoreVerificationOperationalReadiness, RestoreVerificationOperationalReadinessService>();
+builder.Services.AddScoped<IRestoreVerificationManualTriggerService, RestoreVerificationManualTriggerService>();
+builder.Services.AddScoped<IRestoreVerificationRunQueryService, RestoreVerificationRunQueryService>();
+builder.Services.AddHostedService<RestoreVerificationOrchestratorHostedService>();
 builder.Services.Configure<KasseAPI_Final.Configuration.OfflineReplayOptions>(
     builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineReplayOptions.SectionName));
 builder.Services.AddScoped<IOfflineTransactionService, OfflineTransactionService>();
@@ -567,6 +608,8 @@ Console.WriteLine("=== LOCALHOST: http://localhost:5183 ===");
 Console.WriteLine("=== NETWORK: http://0.0.0.0:5183 ===");
 Console.WriteLine("=== LOCAL IP: http://192.168.1.2:5183 ===");
 Console.WriteLine("=== SWAGGER: http://localhost:5183/ ===");
+
+BackupStartupDiagnostics.LogAtStartup(app.Services);
 
 app.Run();
 

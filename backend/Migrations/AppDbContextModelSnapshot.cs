@@ -438,6 +438,186 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("auth_sessions", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupArtifact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("ArtifactType")
+                        .HasColumnType("integer")
+                        .HasColumnName("artifact_type");
+
+                    b.Property<Guid>("BackupRunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("backup_run_id");
+
+                    b.Property<long?>("ByteSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("byte_size");
+
+                    b.Property<string>("ContentHashSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("content_hash_sha256");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ExternalRedactedLocator")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("external_redacted_locator");
+
+                    b.Property<int>("LifecycleState")
+                        .HasColumnType("integer")
+                        .HasColumnName("lifecycle_state");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("text")
+                        .HasColumnName("metadata_json");
+
+                    b.Property<string>("StorageDescriptor")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("storage_descriptor");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BackupRunId");
+
+                    b.ToTable("backup_artifacts", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AdapterKind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("adapter_kind");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("failure_code");
+
+                    b.Property<string>("FailureDetail")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("failure_detail");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<DateTime?>("QueuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("queued_at");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<string>("RequestedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("requested_by_user_id");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<int>("TriggerSource")
+                        .HasColumnType("integer")
+                        .HasColumnName("trigger_source");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("idempotency_key IS NOT NULL");
+
+                    b.HasIndex("RequestedAt");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("backup_runs", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupVerification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BackupRunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("backup_run_id");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<bool>("CompletenessFlag")
+                        .HasColumnType("boolean")
+                        .HasColumnName("completeness_flag");
+
+                    b.Property<string>("DetailsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("details_json");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<string>("VerifierSource")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("verifier_source");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BackupRunId");
+
+                    b.HasIndex("StartedAt");
+
+                    b.ToTable("backup_verifications", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.BenefitAssignment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2175,7 +2355,9 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(80)");
 
                     b.Property<bool>("UpstreamReviewRequired")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime>("ViennaYearStart")
                         .HasColumnType("date");
@@ -2433,7 +2615,9 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(80)");
 
                     b.Property<bool>("UpstreamReviewRequired")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime>("ViennaMonthStart")
                         .HasColumnType("date");
@@ -4246,6 +4430,141 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.RestoreVerification.RestoreVerificationRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("correlation_id");
+
+                    b.Property<string>("DetailsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("details_json");
+
+                    b.Property<string>("DumpRelativeDescriptor")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("dump_relative_descriptor");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("failure_code");
+
+                    b.Property<string>("FailureDetail")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("failure_detail");
+
+                    b.Property<int?>("FiscalSqlFailCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("fiscal_sql_fail_count");
+
+                    b.Property<bool?>("FiscalSqlPassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fiscal_sql_passed");
+
+                    b.Property<string>("FiscalSqlSkipReason")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("fiscal_sql_skip_reason");
+
+                    b.Property<bool>("FiscalSqlSkipped")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fiscal_sql_skipped");
+
+                    b.Property<int?>("FiscalSqlWarnCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("fiscal_sql_warn_count");
+
+                    b.Property<bool?>("IntegrityChecksPassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("integrity_checks_passed");
+
+                    b.Property<string>("IntegrityScope")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("integrity_scope");
+
+                    b.Property<int?>("PgRestoreListExitCode")
+                        .HasColumnType("integer")
+                        .HasColumnName("pg_restore_list_exit_code");
+
+                    b.Property<int?>("PgRestoreListLineCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("pg_restore_list_line_count");
+
+                    b.Property<bool?>("PgRestoreListPassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("pg_restore_list_passed");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<string>("RequestedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("requested_by_user_id");
+
+                    b.Property<bool>("RestoreAttemptExecuted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("restore_attempt_executed");
+
+                    b.Property<int?>("RestoreAttemptExitCode")
+                        .HasColumnType("integer")
+                        .HasColumnName("restore_attempt_exit_code");
+
+                    b.Property<bool?>("RestoreAttemptPassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("restore_attempt_passed");
+
+                    b.Property<string>("RestoreAttemptSkipReason")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("restore_attempt_skip_reason");
+
+                    b.Property<string>("RestoreTargetDbRedacted")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("restore_target_db_redacted");
+
+                    b.Property<Guid?>("SourceBackupRunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_backup_run_id");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<int>("TriggerSource")
+                        .HasColumnType("integer")
+                        .HasColumnName("trigger_source");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestedAt");
+
+                    b.HasIndex("SourceBackupRunId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("restore_verification_runs", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.SignatureChainState", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5226,6 +5545,28 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupArtifact", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Backup.BackupRun", "BackupRun")
+                        .WithMany("Artifacts")
+                        .HasForeignKey("BackupRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BackupRun");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupVerification", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Backup.BackupRun", "BackupRun")
+                        .WithMany("Verifications")
+                        .HasForeignKey("BackupRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BackupRun");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.BenefitAssignment", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.BenefitDefinition", "BenefitDefinition")
@@ -5631,6 +5972,16 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Session");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.RestoreVerification.RestoreVerificationRun", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Backup.BackupRun", "SourceBackupRun")
+                        .WithMany()
+                        .HasForeignKey("SourceBackupRunId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("SourceBackupRun");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TableOrder", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Cart", "Cart")
@@ -5782,6 +6133,13 @@ namespace KasseAPI_Final.Migrations
             modelBuilder.Entity("KasseAPI_Final.Models.AuthSession", b =>
                 {
                     b.Navigation("RefreshTokens");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupRun", b =>
+                {
+                    b.Navigation("Artifacts");
+
+                    b.Navigation("Verifications");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.BenefitDefinition", b =>

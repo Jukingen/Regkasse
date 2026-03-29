@@ -5,7 +5,10 @@ using KasseAPI_Final.Services;
 
 namespace KasseAPI_Final.Controllers;
 
-/// <summary>Sprint 5: Internal consistency checks – sequence, orphan refunds, payment without invoice. Read-only.</summary>
+/// <summary>
+/// Sprint 5: Internal consistency checks – sequence, orphan refunds, payment without invoice. Read-only.
+/// Restore drills may call the same <see cref="IIntegrityCheckService"/> checks against the operational DB via <c>RestoreVerificationOrchestratorHostedService</c> (integrity validation step). See <c>AdminRestoreVerificationController</c> and docs/restore-verification-drill-runbook.md — live operational scope vs post-restore clone.
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/admin/integrity")]

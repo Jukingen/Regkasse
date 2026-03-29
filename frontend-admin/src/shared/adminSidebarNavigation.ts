@@ -35,7 +35,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.sortiment]: ['/products', '/modifier-groups', '/categories', '/inventory'],
     [ADMIN_SIDEBAR_GROUP_KEYS.kundenVorteile]: ['/customers', '/benefit-definitions', '/benefit-assignments'],
-    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', '/settings', '/settings/payment-methods'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', '/settings', '/settings/payment-methods', '/settings/backup-dr'],
 };
 
 /**
