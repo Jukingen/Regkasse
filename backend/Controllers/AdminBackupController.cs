@@ -54,7 +54,8 @@ public sealed class AdminBackupController : ControllerBase
             correlationId,
             cancellationToken);
 
-        var dto = BackupTriggerResponseFactory.Create(outcome);
+        var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
+        var dto = BackupTriggerResponseFactory.Create(outcome, artifactPolicy);
 
         if (outcome.Kind is BackupManualTriggerResultKind.DuplicateActiveManualPrevented
             or BackupManualTriggerResultKind.IdempotentReplay)
@@ -70,10 +71,16 @@ public sealed class AdminBackupController : ControllerBase
         var latest = await _query.GetLatestRunAsync(cancellationToken);
         var cap = _restore.DescribeCapabilities();
         var cfg = _readiness.GetConfigurationHealth();
-        var pipeline = _readiness.GetArtifactPipelinePolicy();
+        var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
         return Ok(new BackupLatestStatusResponseDto
         {
-            LatestRun = latest == null ? null : BackupRunMapper.ToDto(latest, includeChildren: false),
+            LatestRun = latest == null
+                ? null
+                : BackupRunMapper.ToDto(
+                    latest,
+                    includeChildren: true,
+                    pipelinePolicy: artifactPolicy,
+                    materializedChildren: true),
             Restore = new RestoreCapabilityDto
             {
                 IsAutomatedRestoreAvailable = cap.IsAutomatedRestoreAvailable,
@@ -87,7 +94,7 @@ public sealed class AdminBackupController : ControllerBase
                 WorkerEnabled = cfg.WorkerEnabled,
                 ArtifactVerificationDisclaimer = cfg.ArtifactVerificationDisclaimer
             },
-            ArtifactPipelinePolicy = BackupArtifactPipelinePolicyMapper.ToDto(pipeline)
+            ArtifactPipelinePolicy = BackupArtifactPipelinePolicyMapper.ToDto(artifactPolicy)
         });
     }
 
@@ -99,9 +106,15 @@ public sealed class AdminBackupController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var (items, total) = await _query.GetHistoryAsync(page, pageSize, cancellationToken);
+        var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
         return Ok(new BackupHistoryResponseDto
         {
-            Items = items.Select(r => BackupRunMapper.ToDto(r, includeChildren: false)).ToList(),
+            Items = items.Select(r => BackupRunMapper.ToDto(
+                    r,
+                    includeChildren: false,
+                    pipelinePolicy: artifactPolicy,
+                    materializedChildren: false))
+                .ToList(),
             Page = page,
             PageSize = pageSize,
             TotalCount = total
@@ -115,7 +128,12 @@ public sealed class AdminBackupController : ControllerBase
         var run = await _query.GetByIdAsync(id, cancellationToken);
         if (run == null)
             return NotFound();
-        return Ok(BackupRunMapper.ToDto(run, includeChildren: true));
+        var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
+        return Ok(BackupRunMapper.ToDto(
+            run,
+            includeChildren: true,
+            pipelinePolicy: artifactPolicy,
+            materializedChildren: true));
     }
 
     [HttpGet("verification/latest")]

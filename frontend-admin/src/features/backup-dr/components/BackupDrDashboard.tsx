@@ -29,11 +29,19 @@ import {
   useGetApiAdminRestoreVerificationRunsLatest,
   usePostApiAdminRestoreVerificationTrigger,
 } from '@/api/generated/admin-restore-verification/admin-restore-verification';
-import type { BackupArtifactResponseDto, BackupRunResponseDto, RestoreVerificationRunResponseDto } from '@/api/generated/model';
-import type { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
+import type { BackupRunResponseDto, RestoreVerificationRunResponseDto } from '@/api/generated/model';
+import {
+  configurationHealthSummaryI18nKey,
+  externalCopyVariantToI18nKey,
+  mapArtifactsToExternalCopyVariant,
+  mapBackupRunStatusAntdColor,
+  mapDumpInspectionTriState,
+  mapRestoreVerificationStatusAntdColor,
+  normalizeHealthLevelString,
+} from '@/features/backup-dr/logic/backupDrMappers';
 import { BackupStatusCard } from '@/features/backup-dr/components/BackupStatusCard';
 import { HealthBanner } from '@/features/backup-dr/components/HealthBanner';
-import { ManualActionsPanel } from '@/features/backup-dr/components/ManualActionsPanel';
+import { ManualActionsPanel, type ManualActionsPanelProps } from '@/features/backup-dr/components/ManualActionsPanel';
 import { RecentRestoreDrillsTable } from '@/features/backup-dr/components/RecentRestoreDrillsTable';
 import { RecentRunsTable } from '@/features/backup-dr/components/RecentRunsTable';
 import { RestoreVerificationCard } from '@/features/backup-dr/components/RestoreVerificationCard';
@@ -47,25 +55,8 @@ function formatDt(iso: string | undefined | null, formatLocale: string): string 
   }
 }
 
-function normLevel(level: string | undefined | null): string {
-  return (level ?? '').trim().toLowerCase();
-}
-
 function levelSummaryLabel(level: string | undefined | null, t: (k: string) => string): string {
-  if (!level?.trim()) return t('backupDr.summary.unknown');
-  const n = normLevel(level);
-  if (n === 'unhealthy') return t('backupDr.health.unhealthy');
-  if (n === 'degraded') return t('backupDr.health.degraded');
-  if (n === 'healthy') return t('backupDr.health.healthy');
-  return t('backupDr.summary.unknown');
-}
-
-function backupStatusTagColor(status: number): string {
-  if (status === 3) return 'success';
-  if (status === 4 || status === 5) return 'error';
-  if (status === 0 || status === 1 || status === 2) return 'processing';
-  if (status === 6) return 'default';
-  return 'default';
+  return t(configurationHealthSummaryI18nKey(level));
 }
 
 function backupStatusLabel(status: number | undefined, t: (k: string) => string): string {
@@ -75,13 +66,6 @@ function backupStatusLabel(status: number | undefined, t: (k: string) => string)
   return label === key ? String(s) : label;
 }
 
-function restoreStatusTagColor(status: number): string {
-  if (status === 2) return 'success';
-  if (status === 3) return 'error';
-  if (status === 0 || status === 1) return 'processing';
-  return 'default';
-}
-
 function restoreStatusLabel(status: number | undefined, t: (k: string) => string): string {
   const s = status ?? 0;
   const key = `backupDr.restoreStatus.${s}`;
@@ -89,28 +73,12 @@ function restoreStatusLabel(status: number | undefined, t: (k: string) => string
   return label === key ? String(s) : label;
 }
 
-function summarizeExternalCopy(artifacts: BackupArtifactResponseDto[] | undefined | null, t: (k: string) => string) {
-  if (!artifacts?.length) return { variant: 'unknown' as const, text: t('backupDr.externalCopy.unknown') };
-  const stateList = artifacts
-    .map((a) => a.lifecycleState)
-    .filter((s): s is BackupArtifactResponseDtoLifecycleState => s !== undefined && s !== null);
-  const states = new Set(stateList);
-  if (states.has(3)) {
-    if (states.size === 1) return { variant: 'failed' as const, text: t('backupDr.externalCopy.failed') };
-    return { variant: 'mixed' as const, text: t('backupDr.externalCopy.mixed') };
-  }
-  if (states.has(2) && stateList.every((s) => s === 2 || s === 1))
-    return { variant: 'verified' as const, text: t('backupDr.externalCopy.verified') };
-  if (stateList.length > 0 && stateList.every((s) => s === 0 || s === 1))
-    return { variant: 'staging' as const, text: t('backupDr.externalCopy.stagingOnly') };
-  return { variant: 'mixed' as const, text: t('backupDr.externalCopy.mixed') };
-}
-
-function dumpInspectionTriState(rr: RestoreVerificationRunResponseDto | undefined | null): boolean | undefined {
-  if (!rr) return undefined;
-  if (rr.dumpInspectionPassed !== undefined && rr.dumpInspectionPassed !== null) return rr.dumpInspectionPassed;
-  if (rr.pgRestoreListPassed !== undefined && rr.pgRestoreListPassed !== null) return rr.pgRestoreListPassed;
-  return undefined;
+function summarizeExternalCopy(
+  artifacts: Parameters<typeof mapArtifactsToExternalCopyVariant>[0],
+  t: (k: string) => string,
+) {
+  const variant = mapArtifactsToExternalCopyVariant(artifacts);
+  return { variant, text: t(externalCopyVariantToI18nKey(variant)) } as const;
 }
 
 function lockHintIssues(issues: string[] | undefined): string[] {
@@ -210,9 +178,9 @@ export function BackupDrDashboard() {
   }, [queryClient]);
 
   const health = statusQuery.data?.configurationHealth;
-  const healthLv = normLevel(health?.level);
+  const healthLv = normalizeHealthLevelString(health?.level);
   const restoreReady = restoreReadinessQuery.data;
-  const restoreLv = normLevel(restoreReady?.level);
+  const restoreLv = normalizeHealthLevelString(restoreReady?.level);
 
   const detailForPipeline = runDetailQuery.data ?? null;
   const external = summarizeExternalCopy(detailForPipeline?.artifacts, t);
@@ -350,7 +318,7 @@ export function BackupDrDashboard() {
         dataIndex: 'status',
         key: 'status',
         render: (s: number | undefined) => (
-          <Tag color={backupStatusTagColor(s ?? -1)}>{backupStatusLabel(s, t)}</Tag>
+          <Tag color={mapBackupRunStatusAntdColor(s)}>{backupStatusLabel(s, t)}</Tag>
         ),
       },
       {
@@ -387,14 +355,14 @@ export function BackupDrDashboard() {
         dataIndex: 'status',
         key: 'status',
         render: (s: number | undefined) => (
-          <Tag color={restoreStatusTagColor(s ?? -1)}>{restoreStatusLabel(s, t)}</Tag>
+          <Tag color={mapRestoreVerificationStatusAntdColor(s)}>{restoreStatusLabel(s, t)}</Tag>
         ),
       },
       {
         title: t('backupDr.table.dumpInspection'),
         key: 'dump',
         render: (_: unknown, row) => {
-          const p = dumpInspectionTriState(row);
+          const p = mapDumpInspectionTriState(row);
           if (p === undefined) return '—';
           return p ? t('backupDr.triState.ok') : t('backupDr.triState.fail');
         },
@@ -500,7 +468,7 @@ export function BackupDrDashboard() {
                 detailError={runDetailQuery.isError}
                 formatDt={formatDt}
                 formatLocale={formatLocale}
-                backupStatusTagColor={backupStatusTagColor}
+                backupStatusTagColor={mapBackupRunStatusAntdColor}
                 backupStatusLabel={backupStatusLabel}
                 t={t}
               />
@@ -554,9 +522,9 @@ export function BackupDrDashboard() {
                 run={rr}
                 formatDt={formatDt}
                 formatLocale={formatLocale}
-                restoreStatusTagColor={restoreStatusTagColor}
+                restoreStatusTagColor={mapRestoreVerificationStatusAntdColor}
                 restoreStatusLabel={restoreStatusLabel}
-                dumpInspectionTriState={dumpInspectionTriState}
+                dumpInspectionTriState={mapDumpInspectionTriState}
                 t={t}
               />
             </Col>
@@ -766,7 +734,12 @@ export function BackupDrDashboard() {
             )}
           </Card>
 
-          <ManualActionsPanel canManage={canManage} backupTrigger={backupTrigger} restoreTrigger={restoreTrigger} t={t} />
+          <ManualActionsPanel
+            canManage={canManage}
+            backupTrigger={backupTrigger as ManualActionsPanelProps['backupTrigger']}
+            restoreTrigger={restoreTrigger as ManualActionsPanelProps['restoreTrigger']}
+            t={t}
+          />
 
           <RecentRunsTable
             title={t('backupDr.runs.title')}

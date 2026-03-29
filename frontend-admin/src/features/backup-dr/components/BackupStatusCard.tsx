@@ -11,6 +11,7 @@ import { BackupPipelineStepper } from '@/features/backup-dr/components/BackupPip
 import {
   deriveBackupPipelineSteps,
   formatRunDurationMs,
+  pipelineSnapshotToDerivedSteps,
   sumLogicalDumpBytes,
 } from '@/features/backup-dr/logic/backupPipelineDerived';
 
@@ -24,10 +25,10 @@ export interface BackupStatusCardProps {
   formatLocale: string;
   backupStatusTagColor: (status: number) => string;
   backupStatusLabel: (status: number | undefined, t: (k: string) => string) => string;
-  t: (k: string) => string;
+  t: (key: string, options?: Record<string, string | number>) => string;
 }
 
-function formatDurationMs(ms: number | undefined, t: (k: string) => string): string {
+function formatDurationMs(ms: number | undefined, t: (key: string, options?: Record<string, string | number>) => string): string {
   if (ms === undefined) return '—';
   if (ms < 1000) return t('backupDr.latestRun.durationMs', { ms: String(Math.round(ms)) });
   const s = Math.round(ms / 1000);
@@ -37,7 +38,7 @@ function formatDurationMs(ms: number | undefined, t: (k: string) => string): str
   return t('backupDr.latestRun.durationMin', { m: String(m), s: String(rs) });
 }
 
-function formatBytes(n: number | undefined, t: (k: string) => string): string {
+function formatBytes(n: number | undefined, t: (key: string, options?: Record<string, string | number>) => string): string {
   if (n === undefined) return '—';
   if (n < 1024) return t('backupDr.latestRun.bytesB', { n: String(n) });
   const kb = n / 1024;
@@ -58,7 +59,10 @@ export function BackupStatusCard({
   backupStatusLabel,
   t,
 }: BackupStatusCardProps) {
-  const steps = useMemo(() => deriveBackupPipelineSteps(latest, detail, policy), [latest, detail, policy]);
+  const steps = useMemo(() => {
+    const snap = detail?.pipeline ?? latest?.pipeline;
+    return pipelineSnapshotToDerivedSteps(snap) ?? deriveBackupPipelineSteps(latest, detail, policy);
+  }, [latest, detail, policy]);
   const durationMs = formatRunDurationMs(latest?.requestedAt, latest?.completedAt);
   const bytes = sumLogicalDumpBytes(detail?.artifacts ?? latest?.artifacts ?? undefined);
 

@@ -24449,6 +24449,9 @@
           "duplicatePrevented": {
             "type": "boolean"
           },
+          "pipeline": {
+            "$ref": "#/components/schemas/BackupPipelineSnapshotDto"
+          },
           "artifacts": {
             "type": "array",
             "nullable": true,
@@ -24461,6 +24464,60 @@
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/BackupVerificationResponseDto"
+            }
+          }
+        }
+      },
+      "BackupPipelineStepDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "applicable": {
+            "type": "boolean"
+          },
+          "startedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "BackupPipelineSnapshotDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "overallPhase": {
+            "type": "string"
+          },
+          "projectionVersion": {
+            "type": "string"
+          },
+          "dataCompleteness": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BackupPipelineStepDto"
             }
           }
         }

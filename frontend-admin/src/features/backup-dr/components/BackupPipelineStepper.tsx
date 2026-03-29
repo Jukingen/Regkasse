@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Yedek pipeline adımları: durumlar deriveBackupPipelineSteps çıktısından gelir (sahte yeşil yok).
+ * Yedek pipeline adımları: öncelik API `pipeline` snapshot; yoksa derive fallback (sahte yeşil yok).
  */
 
 import React from 'react';

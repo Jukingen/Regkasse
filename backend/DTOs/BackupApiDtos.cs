@@ -3,6 +3,56 @@ using KasseAPI_Final.Services.Backup;
 
 namespace KasseAPI_Final.DTOs;
 
+/// <summary>Computed backup pipeline overall phase (restore verification değildir).</summary>
+public static class BackupPipelineOverallPhase
+{
+    public const string Unknown = "unknown";
+
+    public const string Queued = "queued";
+
+    public const string Running = "running";
+
+    public const string AwaitingArtifactVerification = "awaiting_artifact_verification";
+
+    public const string Completed = "completed";
+
+    public const string FailedExecution = "failed_execution";
+
+    public const string VerificationFailed = "verification_failed";
+
+    public const string Cancelled = "cancelled";
+}
+
+public sealed class BackupPipelineStepDto
+{
+    public string Key { get; init; } = string.Empty;
+
+    /// <summary>pending, running, success, failed, skipped, degraded, not_required</summary>
+    public string Status { get; init; } = string.Empty;
+
+    public bool Applicable { get; init; } = true;
+
+    public DateTime? StartedAtUtc { get; init; }
+
+    public DateTime? CompletedAtUtc { get; init; }
+
+    public string? Message { get; init; }
+
+    public string? ErrorCode { get; init; }
+}
+
+public sealed class BackupPipelineSnapshotDto
+{
+    public string OverallPhase { get; init; } = string.Empty;
+
+    public string ProjectionVersion { get; init; } = string.Empty;
+
+    /// <summary>full | partial_run_row_only (çocuk satırlar yüklenmediyse UI yanlış yeşil göstermesin).</summary>
+    public string DataCompleteness { get; init; } = string.Empty;
+
+    public IReadOnlyList<BackupPipelineStepDto> Steps { get; init; } = Array.Empty<BackupPipelineStepDto>();
+}
+
 public sealed class BackupRunResponseDto
 {
     public Guid Id { get; init; }
@@ -18,6 +68,10 @@ public sealed class BackupRunResponseDto
     public string? FailureDetail { get; init; }
     public string? CorrelationId { get; init; }
     public bool DuplicatePrevented { get; init; }
+
+    /// <summary>Resmi pipeline; UI adımları buradan türetilmelidir.</summary>
+    public BackupPipelineSnapshotDto Pipeline { get; init; } = null!;
+
     public IReadOnlyList<BackupArtifactResponseDto>? Artifacts { get; init; }
     public IReadOnlyList<BackupVerificationResponseDto>? Verifications { get; init; }
 }
@@ -150,11 +204,15 @@ public static class BackupArtifactPipelinePolicyMapper
 public static class BackupRunMapper
 {
     /// <param name="duplicateExecutionPreventedOverride">When set (e.g. manual trigger response), overrides DB flag for API clarity.</param>
+    /// <param name="materializedChildren">True when <see cref="BackupRun.Artifacts"/> / Verifications were loaded with the run (Include).</param>
     public static BackupRunResponseDto ToDto(
         BackupRun run,
         bool includeChildren = false,
-        bool? duplicateExecutionPreventedOverride = null)
+        bool? duplicateExecutionPreventedOverride = null,
+        BackupArtifactPipelinePolicySnapshot? pipelinePolicy = null,
+        bool materializedChildren = false)
     {
+        var policy = pipelinePolicy ?? BackupPipelineProjector.DefaultPolicyForProjection;
         return new BackupRunResponseDto
         {
             Id = run.Id,
@@ -170,6 +228,7 @@ public static class BackupRunMapper
             FailureDetail = run.FailureDetail,
             CorrelationId = run.CorrelationId,
             DuplicatePrevented = duplicateExecutionPreventedOverride ?? false,
+            Pipeline = BackupPipelineProjector.Project(run, policy, materializedChildren),
             Artifacts = includeChildren
                 ? run.Artifacts.Select(a => new BackupArtifactResponseDto
                 {

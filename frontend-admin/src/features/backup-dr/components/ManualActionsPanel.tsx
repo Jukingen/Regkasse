@@ -3,12 +3,11 @@
 import React from 'react';
 import { Button, Card, Space, Typography } from 'antd';
 import { CloudUploadOutlined, ExperimentOutlined } from '@ant-design/icons';
-import type { UseMutationResult } from '@tanstack/react-query';
-
 export interface ManualActionsPanelProps {
   canManage: boolean;
-  backupTrigger: UseMutationResult<unknown, unknown, { data: Record<string, never> }, unknown>;
-  restoreTrigger: UseMutationResult<unknown, unknown, void, unknown>;
+  /** Orval mutation — geniş imza ile uyumlu. */
+  backupTrigger: { isPending: boolean; mutate: (...args: unknown[]) => unknown };
+  restoreTrigger: { isPending: boolean; mutate: (...args: unknown[]) => unknown };
   t: (k: string) => string;
 }
 

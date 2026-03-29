@@ -4,7 +4,9 @@ namespace KasseAPI_Final.Services.Backup;
 
 public static class BackupTriggerResponseFactory
 {
-    public static BackupTriggerResponseDto Create(BackupManualTriggerOutcome outcome)
+    public static BackupTriggerResponseDto Create(
+        BackupManualTriggerOutcome outcome,
+        BackupArtifactPipelinePolicySnapshot? pipelinePolicy = null)
     {
         var (state, newQueued, duplicatePrevented) = outcome.Kind switch
         {
@@ -19,7 +21,9 @@ public static class BackupTriggerResponseFactory
             Run = BackupRunMapper.ToDto(
                 outcome.Run,
                 includeChildren: false,
-                duplicateExecutionPreventedOverride: duplicatePrevented ? true : null),
+                duplicateExecutionPreventedOverride: duplicatePrevented ? true : null,
+                pipelinePolicy: pipelinePolicy,
+                materializedChildren: false),
             DuplicateExecutionPrevented = duplicatePrevented,
             NewQueuedRunCreated = newQueued,
             OrchestrationState = state

@@ -5,6 +5,7 @@
 import type {
   BackupArtifactPipelinePolicyResponseDto,
   BackupArtifactResponseDto,
+  BackupPipelineSnapshotDto,
   BackupRunResponseDto,
   BackupVerificationResponseDto,
 } from '@/api/generated/model';
@@ -12,6 +13,58 @@ import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/bac
 import { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
 
 export type DerivedPipelineStepState = 'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'degraded';
+
+const SERVER_PIPELINE_STEP_COUNT = 8;
+
+function isDerivedPipelineStepId(key: string | undefined): key is DerivedPipelineStepId {
+  return (
+    key === 'queued' ||
+    key === 'workerRunning' ||
+    key === 'dumpComplete' ||
+    key === 'artifactCreated' ||
+    key === 'artifactVerification' ||
+    key === 'manifestCreated' ||
+    key === 'externalCopy' ||
+    key === 'externalChecksum'
+  );
+}
+
+/** API `not_required` → stepper’da skipped (policy dışı adım). */
+export function mapServerPipelineStatus(status: string | undefined): DerivedPipelineStepState {
+  if (status === 'not_required') return 'skipped';
+  if (
+    status === 'pending' ||
+    status === 'running' ||
+    status === 'success' ||
+    status === 'failed' ||
+    status === 'skipped' ||
+    status === 'degraded'
+  ) {
+    return status;
+  }
+  return 'pending';
+}
+
+/**
+ * Backend `pipeline` snapshot → mevcut stepper modeli (i18n anahtarları aynı).
+ * Eski API veya eksik adım: null döner, caller `deriveBackupPipelineSteps` kullanır.
+ */
+export function pipelineSnapshotToDerivedSteps(
+  snapshot: BackupPipelineSnapshotDto | undefined | null,
+): DerivedPipelineStep[] | null {
+  if (!snapshot?.steps?.length || snapshot.steps.length !== SERVER_PIPELINE_STEP_COUNT) return null;
+  const out: DerivedPipelineStep[] = [];
+  for (const s of snapshot.steps) {
+    if (!isDerivedPipelineStepId(s.key)) return null;
+    out.push({
+      id: s.key,
+      state: mapServerPipelineStatus(s.status),
+      titleKey: `backupDr.pipelineSteps.${s.key}.title`,
+      hintKey: `backupDr.pipelineSteps.${s.key}.hint`,
+    });
+  }
+  return out;
+}
 
 export type DerivedPipelineStepId =
   | 'queued'
@@ -138,8 +191,11 @@ export function deriveBackupPipelineSteps(
   // 5 — Artefakt doğrulama (checksum / staging doğrulama satırı)
   let av: DerivedPipelineStepState = 'pending';
   if (st === RUN_QUEUED || st === RUN_RUNNING) av = 'pending';
-  else if (!pv) av = st >= RUN_AWAIT_VERIFY ? 'running' : 'pending';
-  else if (pv.status === 0) av = st === RUN_AWAIT_VERIFY ? 'running' : 'pending';
+  else if (!pv) {
+    // Terminal run without verification row: do not show "running" (false activity).
+    if (st === RUN_AWAIT_VERIFY) av = 'running';
+    else av = 'pending';
+  } else if (pv.status === 0) av = st === RUN_AWAIT_VERIFY ? 'running' : 'pending';
   else if (pv.status === 1) av = 'success';
   else if (pv.status === 2) av = 'failed';
   else av = 'pending';

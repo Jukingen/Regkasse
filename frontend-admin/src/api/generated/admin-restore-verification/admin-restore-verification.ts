@@ -244,63 +244,60 @@ export const useGetApiAdminRestoreVerificationRunsId = <TData = Awaited<ReturnTy
   return query;
 }
 
+
+
 export const getApiAdminRestoreVerificationReadiness = (
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
-  return customInstance<RestoreVerificationReadinessResponseDto>(
-    { url: `/api/admin/restore-verification/readiness`, method: 'GET', signal },
-    options,
-  );
-};
+      
+      
+      return customInstance<RestoreVerificationReadinessResponseDto>(
+      {url: `/api/admin/restore-verification/readiness`, method: 'GET', signal
+    },
+      options);
+    }
+  
 
 export const getGetApiAdminRestoreVerificationReadinessQueryKey = () => {
-  return [`/api/admin/restore-verification/readiness`] as const;
-};
+    return [`/api/admin/restore-verification/readiness`] as const;
+    }
 
-export const getGetApiAdminRestoreVerificationReadinessQueryOptions = <
-  TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
+    
+export const getGetApiAdminRestoreVerificationReadinessQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-  const queryKey = getGetApiAdminRestoreVerificationReadinessQueryKey();
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>> = ({
-    signal,
-  }) => getApiAdminRestoreVerificationReadiness(requestOptions, signal);
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
 
-export type GetApiAdminRestoreVerificationReadinessQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>
->;
-export type GetApiAdminRestoreVerificationReadinessQueryError = unknown;
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-export const useGetApiAdminRestoreVerificationReadiness = <
-  TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>,
-  TError = unknown,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-  const queryOptions = getGetApiAdminRestoreVerificationReadinessQueryOptions(options);
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
-  query.queryKey = queryOptions.queryKey;
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRestoreVerificationReadinessQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>> = ({ signal }) => getApiAdminRestoreVerificationReadiness(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminRestoreVerificationReadinessQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>>
+export type GetApiAdminRestoreVerificationReadinessQueryError = unknown
+
+export const useGetApiAdminRestoreVerificationReadiness = <TData = Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreVerificationReadiness>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminRestoreVerificationReadinessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
   return query;
-};
+}
+
 
 

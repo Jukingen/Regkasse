@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { BackupArtifactResponseDto } from './backupArtifactResponseDto';
+import type { BackupPipelineSnapshotDto } from './backupPipelineSnapshotDto';
 import type { BackupRunResponseDtoStatus } from './backupRunResponseDtoStatus';
 import type { BackupRunResponseDtoTriggerSource } from './backupRunResponseDtoTriggerSource';
 import type { BackupVerificationResponseDto } from './backupVerificationResponseDto';
@@ -26,6 +27,7 @@ export interface BackupRunResponseDto {
   id?: string;
   /** @nullable */
   idempotencyKey?: string | null;
+  pipeline?: BackupPipelineSnapshotDto;
   requestedAt?: string;
   /** @nullable */
   requestedByUserId?: string | null;
