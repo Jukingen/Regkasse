@@ -32,6 +32,8 @@ export interface RestoreVerificationRunResponseDto {
   fiscalSqlWarnCount?: number | null;
   id?: string;
   /** @nullable */
+  idempotencyKey?: string | null;
+  /** @nullable */
   integrityChecksPassed?: boolean | null;
   /** @nullable */
   integrityScope?: string | null;

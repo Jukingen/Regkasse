@@ -21,6 +21,22 @@ public sealed class BackupOptionsValidator : IValidateOptions<BackupOptions>
 
     public ValidateOptionsResult Validate(string? name, BackupOptions options)
     {
+        var leaseErr = RunLeaseOptionsValidation.Validate(
+            options.RunLeaseTimeout,
+            options.HeartbeatInterval,
+            options.StaleRecoveryScanInterval);
+        if (leaseErr != null)
+            return ValidateOptionsResult.Fail(leaseErr);
+
+        var multErr = RunLeaseOptionsValidation.ValidateStaleRecoveryNullLeaseGraceMultiplier(
+            options.StaleRecoveryNullLeaseGraceMultiplier);
+        if (multErr != null)
+            return ValidateOptionsResult.Fail(multErr);
+
+        var retentionErr = BackupRetentionOptionsValidation.Validate(options);
+        if (retentionErr != null)
+            return ValidateOptionsResult.Fail(retentionErr);
+
         var snap = BackupConfigurationEvaluation.Evaluate(options, _environment, _configuration);
         if (snap.Level == BackupConfigurationHealthLevel.Unhealthy)
             return ValidateOptionsResult.Fail(string.Join(" ", snap.Issues));

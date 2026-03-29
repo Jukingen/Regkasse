@@ -14,4 +14,9 @@ public interface IBackupRunQueryService
         CancellationToken cancellationToken = default);
 
     Task<BackupVerification?> GetLatestVerificationAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// En yeni <see cref="BackupRunStatus.Succeeded"/> yedek çalıştırmalarının kimlikleri (RequestedAt azalan).
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetRecentSucceededRunIdsAsync(int maxCount, CancellationToken cancellationToken = default);
 }

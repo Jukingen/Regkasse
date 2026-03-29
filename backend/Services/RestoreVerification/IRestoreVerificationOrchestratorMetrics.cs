@@ -6,4 +6,10 @@ public interface IRestoreVerificationOrchestratorMetrics
     void RecordGateOutcome(string outcome);
 
     void ObserveLockHoldSeconds(double seconds);
+
+    void RecordRestoreVerificationRunCompleted(string status, string triggerSource, double durationSeconds);
+
+    void RecordScheduledEnqueueSuppressed(string reason);
+
+    void RecordWorkerTickSuppressed(string reason);
 }

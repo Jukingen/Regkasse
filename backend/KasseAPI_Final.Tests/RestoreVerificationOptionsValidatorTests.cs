@@ -50,4 +50,39 @@ public sealed class RestoreVerificationOptionsValidatorTests
             });
         Assert.False(r.Failed);
     }
+
+    [Fact]
+    public void Validate_fails_when_scheduled_proof_cadence_days_below_one()
+    {
+        var r = Validator.Validate(
+            null,
+            new RestoreVerificationOptions
+            {
+                IsolatedPgRestoreEnabled = false,
+                ScheduledProofCadenceDays = 0
+            });
+        Assert.True(r.Failed);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(101)]
+    public void Validate_fails_when_dump_fallback_depth_out_of_range(int depth)
+    {
+        var r = Validator.Validate(
+            null,
+            new RestoreVerificationOptions
+            {
+                IsolatedPgRestoreEnabled = false,
+                DumpFallbackDepth = depth
+            });
+        Assert.True(r.Failed);
+    }
+
+    [Fact]
+    public void Validate_succeeds_with_default_dump_fallback_depth()
+    {
+        var r = Validator.Validate(null, new RestoreVerificationOptions { IsolatedPgRestoreEnabled = false });
+        Assert.False(r.Failed);
+    }
 }

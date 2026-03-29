@@ -52,6 +52,14 @@ public static class BackupArtifactPipelinePolicyEvaluator
         if (pg && !options.VerifyLogicalDumpFileOnDisk && !dev)
             lines.Add("Non-Development PgDump expects Backup:VerifyLogicalDumpFileOnDisk=true for production-safe verification.");
 
+        if (pg && !dev && extConfigured && options.RequireExternalArchiveImmutableTarget && !options.ExternalArchiveImmutabilityAcknowledged)
+            lines.Add(
+                "DR readiness: Backup:RequireExternalArchiveImmutableTarget is true but ExternalArchiveImmutabilityAcknowledged is false — configuration is Unhealthy until the immutable archive tier is attested.");
+
+        if (options.RetentionPolicyMode != BackupRetentionPolicyMode.Disabled && options.ArtifactRetentionDays.HasValue)
+            lines.Add(
+                $"Retention policy: mode={options.RetentionPolicyMode}, ArtifactRetentionDays={options.ArtifactRetentionDays.Value} (automated deletion is not performed by the API in this version).");
+
         return new BackupArtifactPipelinePolicySnapshot
         {
             ExternalArchiveRequirement = requirement,

@@ -11,4 +11,13 @@ public enum BackupAlertKind
     AdapterUnavailable = 3,
     ScheduleMisconfigured = 4,
     RetentionNotYetEnforced = 5,
+
+    /// <summary>Restore verification drill terminal failure (worker completed with Failed).</summary>
+    RestoreVerificationFailed = 6,
+
+    /// <summary>Lease reaper recovered a stuck backup or restore verification run.</summary>
+    StaleRunRecovered = 7,
+
+    /// <summary>Scheduled restore proof cadence exceeded, unhealthy config, or worker off while scheduling on.</summary>
+    RestoreDrillOperationalRisk = 8,
 }

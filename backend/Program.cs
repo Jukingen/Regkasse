@@ -30,6 +30,7 @@ using KasseAPI_Final.Services.LegalExportCompleteness;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.RestoreVerification;
+using KasseAPI_Final.Services.OperationalRuns;
 
 var builder = WebApplication.CreateBuilder(args);
 var isDevelopment = builder.Environment.IsDevelopment();
@@ -441,15 +442,38 @@ builder.Services.AddSingleton<FakeBackupExecutionAdapter>();
 builder.Services.AddSingleton<PostgreSqlBackupExecutionAdapterStub>();
 builder.Services.AddSingleton<IPgDumpProcessRunner, PgDumpProcessRunner>();
 builder.Services.AddSingleton<PostgreSqlPgDumpBackupExecutionAdapter>();
-builder.Services.AddSingleton<IBackupAlertPublisher, LoggingBackupAlertPublisher>();
+builder.Services.Configure<OperationalDrAlertOptions>(
+    builder.Configuration.GetSection(OperationalDrAlertOptions.SectionName));
+builder.Services.Configure<OperationalDrObservabilityOptions>(
+    builder.Configuration.GetSection(OperationalDrObservabilityOptions.SectionName));
+builder.Services
+    .AddHttpClient(WebhookBackupAlertPublisher.HttpClientName)
+    .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromMinutes(2));
+builder.Services.AddSingleton<LoggingBackupAlertPublisher>();
+builder.Services.AddSingleton<WebhookBackupAlertPublisher>();
+builder.Services.AddSingleton<IBackupAlertPublisher>(sp =>
+    new CompositeBackupAlertPublisher(
+        new IBackupAlertPublisher[]
+        {
+            sp.GetRequiredService<LoggingBackupAlertPublisher>(),
+            sp.GetRequiredService<WebhookBackupAlertPublisher>()
+        }));
+builder.Services.AddSingleton<IDrOperationalObservabilityMetrics, PrometheusDrOperationalObservabilityMetrics>();
+builder.Services.AddSingleton<DrStaleRunRecoveryAlertingObserver>();
+builder.Services.AddSingleton<IDrStaleRunRecoveryObserver>(sp =>
+    sp.GetRequiredService<DrStaleRunRecoveryAlertingObserver>());
+builder.Services.AddHostedService<DrOperationalObservabilityHostedService>();
 builder.Services.AddScoped<IBackupManualTriggerService, BackupManualTriggerService>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IBackupRunQueryService, BackupRunQueryService>();
+builder.Services.AddScoped<IBackupRecoverabilitySummaryService, BackupRecoverabilitySummaryService>();
 builder.Services.AddScoped<IBackupVerificationService, BackupVerificationService>();
 builder.Services.AddSingleton<IRestoreOrchestrationBoundary, DeferredRestoreOrchestrationBoundary>();
 builder.Services.AddSingleton<IBackupOperationalReadiness, BackupOperationalReadinessService>();
 builder.Services.AddSingleton<IBackupOrchestratorMetrics, PrometheusBackupOrchestratorMetrics>();
 builder.Services.AddSingleton<IBackupOrchestratorDistributedLock, BackupOrchestratorPostgreSqlAdvisoryLock>();
 builder.Services.AddHostedService<BackupOrchestratorHostedService>();
+builder.Services.AddHostedService<BackupRetentionPolicyDiagnosticsHostedService>();
 
 builder.Services.AddSingleton<IPgRestoreListInspector, PgRestoreListInspector>();
 builder.Services.AddSingleton<IPgRestoreIsolatedRestoreRunner, PgRestoreIsolatedRestoreRunner>();
@@ -458,8 +482,10 @@ builder.Services.AddSingleton<IRestoreVerificationOrchestratorMetrics, Prometheu
 builder.Services.AddSingleton<IRestoreVerificationOrchestratorDistributedLock, RestoreVerificationOrchestratorPostgreSqlAdvisoryLock>();
 builder.Services.AddSingleton<IRestoreVerificationOperationalReadiness, RestoreVerificationOperationalReadinessService>();
 builder.Services.AddScoped<IRestoreVerificationManualTriggerService, RestoreVerificationManualTriggerService>();
-builder.Services.AddScoped<IRestoreVerificationRunQueryService, RestoreVerificationRunQueryService>();
+        builder.Services.AddScoped<IRestoreVerificationSchedulingQueryService, RestoreVerificationSchedulingQueryService>();
+        builder.Services.AddScoped<IRestoreVerificationRunQueryService, RestoreVerificationRunQueryService>();
 builder.Services.AddHostedService<RestoreVerificationOrchestratorHostedService>();
+builder.Services.AddHostedService<StaleRunReaperHostedService>();
 builder.Services.Configure<KasseAPI_Final.Configuration.OfflineReplayOptions>(
     builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineReplayOptions.SectionName));
 builder.Services.AddScoped<IOfflineTransactionService, OfflineTransactionService>();

@@ -1427,6 +1427,9 @@ namespace KasseAPI_Final.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.RequestedAt);
                 entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.LeaseExpiresAtUtc)
+                    .HasDatabaseName("ix_backup_runs_lease_expires_stale_reaper")
+                    .HasFilter("status IN (1, 2)");
                 entity.HasIndex(e => e.IdempotencyKey)
                     .IsUnique()
                     .HasFilter("idempotency_key IS NOT NULL");
@@ -1461,11 +1464,18 @@ namespace KasseAPI_Final.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.RequestedAt);
                 entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.LeaseExpiresAtUtc)
+                    .HasDatabaseName("ix_restore_verification_runs_lease_expires_stale_reaper")
+                    .HasFilter("status = 1");
                 entity.HasIndex(e => e.SourceBackupRunId);
                 entity.HasOne(e => e.SourceBackupRun)
                     .WithMany()
                     .HasForeignKey(e => e.SourceBackupRunId)
                     .OnDelete(DeleteBehavior.SetNull);
+                entity.HasIndex(e => e.IdempotencyKey)
+                    .IsUnique()
+                    .HasDatabaseName("ux_restore_verification_runs_idempotency_key")
+                    .HasFilter("idempotency_key IS NOT NULL");
             });
 
             Console.WriteLine("AppDbContext model configuration completed with TableOrder support");

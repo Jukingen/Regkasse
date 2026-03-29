@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
@@ -10,6 +11,20 @@ namespace KasseAPI_Final.Services.Backup;
 public static class BackupPipelineProjector
 {
     public const string ProjectionVersion = "2026-03-28";
+
+    /// <summary>Ordered keys for every projected snapshot (including cancelled). Contract: frontend must match.</summary>
+    public static readonly IReadOnlyList<string> PipelineStepKeysOrdered = new[]
+    {
+        "queued", "workerRunning", "dumpComplete", "artifactCreated",
+        "artifactVerification", "manifestCreated", "externalCopy", "externalChecksum"
+    };
+
+    /// <summary>Legal values for <see cref="BackupPipelineStepDto.Status"/>.</summary>
+    public static readonly IReadOnlySet<string> PipelineStepStatuses =
+        new HashSet<string>(StringComparer.Ordinal)
+        {
+            "pending", "running", "success", "failed", "skipped", "degraded", "not_required"
+        };
 
     /// <summary>Policy bilinmiyorsa harici adımlar not_required (tetik yanıtı vb.).</summary>
     public static BackupArtifactPipelinePolicySnapshot DefaultPolicyForProjection { get; } = new()

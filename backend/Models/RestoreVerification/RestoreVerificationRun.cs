@@ -1,14 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using KasseAPI_Final.Models.Backup;
-
 namespace KasseAPI_Final.Models.RestoreVerification;
 
 /// <summary>
 /// Restore drill metadata: distinct from backup artifact verification (checksum / staging). TSE vendor restore deferred.
 /// </summary>
 [Table("restore_verification_runs")]
-public sealed class RestoreVerificationRun
+public sealed class RestoreVerificationRun : KasseAPI_Final.Models.IRunLeaseColumns
 {
     [Key]
     [Column("id")]
@@ -116,4 +115,28 @@ public sealed class RestoreVerificationRun
     [MaxLength(100)]
     [Column("correlation_id")]
     public string? CorrelationId { get; set; }
+
+    /// <summary>İsteğe bağlı manuel tetik idempotency anahtarı; zamanlanmış satırlarda null.</summary>
+    [MaxLength(200)]
+    [Column("idempotency_key")]
+    public string? IdempotencyKey { get; set; }
+
+    [Column("lease_expires_at_utc")]
+    public DateTime? LeaseExpiresAtUtc { get; set; }
+
+    [Column("last_heartbeat_at_utc")]
+    public DateTime? LastHeartbeatAtUtc { get; set; }
+
+    [Column("stale_recovered_at_utc")]
+    public DateTime? StaleRecoveredAtUtc { get; set; }
+
+    [MaxLength(500)]
+    [Column("stale_recovery_reason")]
+    public string? StaleRecoveryReason { get; set; }
+
+    /// <summary>
+    /// Kuyruk / yürütme anındaki güvenli restore drill yapılandırması (JSON; parola/token yok).
+    /// </summary>
+    [Column("config_snapshot_json")]
+    public string? ConfigSnapshotJson { get; set; }
 }

@@ -9,6 +9,8 @@ public sealed class PrometheusBackupOrchestratorMetrics : IBackupOrchestratorMet
 {
     private readonly Counter _gateOutcomes;
     private readonly Histogram _lockHoldSeconds;
+    private readonly Counter _runTotal;
+    private readonly Histogram _runDurationSeconds;
 
     public PrometheusBackupOrchestratorMetrics()
     {
@@ -24,6 +26,20 @@ public sealed class PrometheusBackupOrchestratorMetrics : IBackupOrchestratorMet
             {
                 Buckets = Histogram.ExponentialBuckets(1, 2, 20)
             });
+
+        _runTotal = Metrics.CreateCounter(
+            "backup_run_total",
+            "Terminal backup runs after dequeue (one row processed per counter increment).",
+            new CounterConfiguration { LabelNames = new[] { "status", "trigger_source" } });
+
+        _runDurationSeconds = Metrics.CreateHistogram(
+            "backup_run_duration_seconds",
+            "Wall time from StartedAt to CompletedAt (or now if CompletedAt missing) for terminal backup runs.",
+            new HistogramConfiguration
+            {
+                LabelNames = new[] { "status", "trigger_source" },
+                Buckets = Histogram.ExponentialBuckets(1, 2, 20)
+            });
     }
 
     public void RecordGateOutcome(string outcome) =>
@@ -31,4 +47,10 @@ public sealed class PrometheusBackupOrchestratorMetrics : IBackupOrchestratorMet
 
     public void ObserveLockHoldSeconds(double seconds) =>
         _lockHoldSeconds.Observe(seconds);
+
+    public void RecordBackupRunCompleted(string status, string triggerSource, double durationSeconds)
+    {
+        _runTotal.WithLabels(status, triggerSource).Inc();
+        _runDurationSeconds.WithLabels(status, triggerSource).Observe(durationSeconds);
+    }
 }

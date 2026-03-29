@@ -29,7 +29,7 @@ export function ManualActionsPanel({ canManage, backupTrigger, restoreTrigger, t
           icon={<ExperimentOutlined />}
           disabled={!canManage}
           loading={restoreTrigger.isPending}
-          onClick={() => restoreTrigger.mutate()}
+          onClick={() => restoreTrigger.mutate({ data: {} })}
         >
           {t('backupDr.actions.enqueueRestoreDrill')}
         </Button>

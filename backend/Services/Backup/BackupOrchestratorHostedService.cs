@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Services.OperationalRuns;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -29,6 +30,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
     private readonly IBackupArtifactExternalArchive _externalArchive;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IBackupAlertPublisher _alerts;
+    private readonly IBackupOrchestratorMetrics _orchestratorMetrics;
     private readonly ILogger<BackupOrchestratorHostedService> _logger;
 
     public BackupOrchestratorHostedService(
@@ -41,6 +43,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         IBackupArtifactExternalArchive externalArchive,
         IHostEnvironment hostEnvironment,
         IBackupAlertPublisher alerts,
+        IBackupOrchestratorMetrics orchestratorMetrics,
         ILogger<BackupOrchestratorHostedService> logger)
     {
         _scopeFactory = scopeFactory;
@@ -52,6 +55,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         _externalArchive = externalArchive;
         _hostEnvironment = hostEnvironment;
         _alerts = alerts;
+        _orchestratorMetrics = orchestratorMetrics;
         _logger = logger;
     }
 
@@ -118,32 +122,106 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         }
     }
 
-    private async Task ProcessNextExclusiveBodyAsync(CancellationToken ct)
+    internal async Task ProcessNextExclusiveBodyAsync(CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var verifier = scope.ServiceProvider.GetRequiredService<IBackupVerificationService>();
+
+        var run = await db.BackupRuns
+            .Where(r => r.Status == BackupRunStatus.Queued)
+            .OrderBy(r => r.RequestedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (run == null)
+            return;
+
+        _logger.LogInformation(
+            "Backup dequeue: runId={RunId}, correlationId={CorrelationId}, requestedAt={RequestedAt:o}",
+            run.Id,
+            run.CorrelationId,
+            run.RequestedAt);
+
+        run.Status = BackupRunStatus.Running;
+        run.StartedAt = DateTime.UtcNow;
+        run.ConfigSnapshotJson = OperationalRunConfigSnapshotBuilder.SerializeBackup(
+            _options.CurrentValue,
+            "backup_run_start",
+            DateTime.UtcNow);
+        var leaseOpts = _options.CurrentValue;
+        RunLeaseHeartbeatHelper.StampInitialLease(run, DateTime.UtcNow, leaseOpts.RunLeaseTimeout);
+        await db.SaveChangesAsync(ct);
+
+        var runId = run.Id;
+        var correlationId = run.CorrelationId;
+        try
+        {
+            await RunLeaseHeartbeatHelper.RunWithBackupHeartbeatAsync(
+                _scopeFactory,
+                () => _options.CurrentValue.HeartbeatInterval,
+                () => _options.CurrentValue.RunLeaseTimeout,
+                runId,
+                () => ExecuteBackupRunWorkAsync(db, verifier, run, ct),
+                _logger,
+                ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            await using var finalizeScope = _scopeFactory.CreateAsyncScope();
+            var fdb = finalizeScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await BackupOrchestratorRunFinalizer.TryFinalizeCancelledAsync(fdb, runId, _logger, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Backup orchestrator unhandled exception for run {RunId}", runId);
+            await using var finalizeScope = _scopeFactory.CreateAsyncScope();
+            var fdb = finalizeScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await BackupOrchestratorRunFinalizer.TryFinalizeUnhandledExceptionAsync(fdb, runId, ex, _logger, ct);
+            _alerts.Publish(new BackupAlertEvent(
+                BackupAlertKind.BackupFailed,
+                runId,
+                correlationId,
+                "Unhandled exception in backup orchestrator; run finalized if non-terminal.",
+                new Dictionary<string, string> { ["failureStage"] = "unhandled_orchestrator_exception" }));
+        }
+        finally
+        {
+            await TryRecordBackupRunLifecycleMetricsAsync(runId, ct);
+        }
+    }
+
+    private async Task TryRecordBackupRunLifecycleMetricsAsync(Guid runId, CancellationToken ct)
+    {
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var verifier = scope.ServiceProvider.GetRequiredService<IBackupVerificationService>();
-            var opts = _options.CurrentValue;
-
-            var run = await db.BackupRuns
-                .Where(r => r.Status == BackupRunStatus.Queued)
-                .OrderBy(r => r.RequestedAt)
-                .FirstOrDefaultAsync(ct);
-
-            if (run == null)
+            var run = await db.BackupRuns.AsNoTracking().FirstOrDefaultAsync(r => r.Id == runId, ct);
+            if (run == null || !BackupOrchestratorRunFinalizer.IsTerminal(run.Status))
                 return;
 
-            _logger.LogInformation(
-                "Backup dequeue: runId={RunId}, correlationId={CorrelationId}, requestedAt={RequestedAt:o}",
-                run.Id,
-                run.CorrelationId,
-                run.RequestedAt);
+            var start = run.StartedAt ?? run.RequestedAt;
+            var end = run.CompletedAt ?? DateTime.UtcNow;
+            var seconds = Math.Max(0, (end - start).TotalSeconds);
+            _orchestratorMetrics.RecordBackupRunCompleted(
+                OperationalRunMetricLabels.FormatBackupRunStatus(run.Status),
+                OperationalRunMetricLabels.BackupTrigger(run.TriggerSource),
+                seconds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Backup run lifecycle metrics recording failed for run {RunId}", runId);
+        }
+    }
 
-            run.Status = BackupRunStatus.Running;
-            run.StartedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
-
-            var adapter = SelectAdapter();
+    private async Task ExecuteBackupRunWorkAsync(
+        AppDbContext db,
+        IBackupVerificationService verifier,
+        BackupRun run,
+        CancellationToken ct)
+    {
+        var opts = _options.CurrentValue;
+        var adapter = SelectAdapter();
             var execContext = new BackupExecutionContext(run.Id, run.CorrelationId, adapter.AdapterKind, ct);
 
             BackupExecutionResult result;
@@ -165,7 +243,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 _logger.LogError(ex, "Backup adapter threw for run {RunId}", run.Id);
                 run.Status = BackupRunStatus.Failed;
                 run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "ADAPTER_EXCEPTION";
+                run.FailureCode = "UNHANDLED_EXCEPTION";
                 run.FailureDetail = ex.Message;
                 await db.SaveChangesAsync(ct);
                 _alerts.Publish(new BackupAlertEvent(
@@ -173,7 +251,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     run.Id,
                     run.CorrelationId,
                     "Adapter threw before completion.",
-                    new Dictionary<string, string> { ["failureStage"] = "adapter_exception" }));
+                    new Dictionary<string, string> { ["failureStage"] = "unhandled_exception_adapter" }));
                 return;
             }
 
@@ -232,6 +310,9 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
             }
 
             run.Status = BackupRunStatus.AwaitingVerification;
+            var leaseNow = DateTime.UtcNow;
+            run.LastHeartbeatAtUtc = leaseNow;
+            run.LeaseExpiresAtUtc = leaseNow + opts.RunLeaseTimeout;
             await db.SaveChangesAsync(ct);
 
             var verification = new BackupVerification
@@ -454,9 +535,9 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
             run.FailureDetail = null;
             await db.SaveChangesAsync(ct);
 
-            _logger.LogInformation(
-                "Backup run succeeded after staging + external archive verification: runId={RunId}, adapterKind={AdapterKind}",
-                run.Id,
-                adapter.AdapterKind);
+        _logger.LogInformation(
+            "Backup run succeeded after staging + external archive verification: runId={RunId}, adapterKind={AdapterKind}",
+            run.Id,
+            adapter.AdapterKind);
     }
 }

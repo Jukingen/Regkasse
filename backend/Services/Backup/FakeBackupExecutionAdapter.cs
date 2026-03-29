@@ -23,8 +23,14 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
 
     public string AdapterKind => "Fake";
 
+    /// <summary>Test-only: doluysa <see cref="ExecuteAsync"/> sonuç üretmeden bu exception’ı fırlatır.</summary>
+    public Exception? ThrowOnExecuteForTests { get; set; }
+
     public async Task<BackupExecutionResult> ExecuteAsync(BackupExecutionContext context)
     {
+        if (ThrowOnExecuteForTests != null)
+            throw ThrowOnExecuteForTests;
+
         var configuredRoot = _options.CurrentValue.ArtifactStagingRoot;
         if (string.IsNullOrWhiteSpace(configuredRoot))
         {

@@ -22,8 +22,10 @@ import type {
   GetApiAdminRestoreVerificationRunsLatest200,
   GetApiAdminRestoreVerificationRunsParams,
   RestoreVerificationHistoryResponseDto,
+  RestoreVerificationManualTriggerRequestDto,
   RestoreVerificationReadinessResponseDto,
-  RestoreVerificationRunResponseDto
+  RestoreVerificationRunResponseDto,
+  RestoreVerificationTriggerResponseDto
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -32,30 +34,32 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const postApiAdminRestoreVerificationTrigger = (
-    
+    restoreVerificationManualTriggerRequestDto?: RestoreVerificationManualTriggerRequestDto,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<RestoreVerificationRunResponseDto>(
-      {url: `/api/admin/restore-verification/trigger`, method: 'POST'
+      return customInstance<RestoreVerificationTriggerResponseDto>(
+      {url: `/api/admin/restore-verification/trigger`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: restoreVerificationManualTriggerRequestDto
     },
       options);
     }
   
 
 
-export const getPostApiAdminRestoreVerificationTriggerMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, TError,void, TContext> => {
+export const getPostApiAdminRestoreVerificationTriggerMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, TError,{data: RestoreVerificationManualTriggerRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, TError,{data: RestoreVerificationManualTriggerRequestDto}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, void> = () => {
-          
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, {data: RestoreVerificationManualTriggerRequestDto}> = (props) => {
+          const {data} = props ?? {};
 
-          return  postApiAdminRestoreVerificationTrigger(requestOptions)
+          return  postApiAdminRestoreVerificationTrigger(data,requestOptions)
         }
 
         
@@ -64,15 +68,15 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiAdminRestoreVerificationTriggerMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>>
-    
-    export type PostApiAdminRestoreVerificationTriggerMutationError = unknown
+    export type PostApiAdminRestoreVerificationTriggerMutationBody = RestoreVerificationManualTriggerRequestDto
+    export type PostApiAdminRestoreVerificationTriggerMutationError = void
 
-    export const usePostApiAdminRestoreVerificationTrigger = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const usePostApiAdminRestoreVerificationTrigger = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>, TError,{data: RestoreVerificationManualTriggerRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminRestoreVerificationTrigger>>,
         TError,
-        void,
+        {data: RestoreVerificationManualTriggerRequestDto},
         TContext
       > => {
 

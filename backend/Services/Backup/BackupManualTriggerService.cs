@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.OperationalRuns;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -88,6 +89,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
             };
         }
 
+        var opts = _options.CurrentValue;
         var run = new BackupRun
         {
             Status = BackupRunStatus.Queued,
@@ -97,7 +99,11 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
             RequestedByUserId = requestedByUserId,
             RequestedAt = DateTime.UtcNow,
             QueuedAt = DateTime.UtcNow,
-            CorrelationId = correlationId
+            CorrelationId = correlationId,
+            ConfigSnapshotJson = OperationalRunConfigSnapshotBuilder.SerializeBackup(
+                opts,
+                "backup_manual_enqueue",
+                DateTime.UtcNow)
         };
 
         _db.BackupRuns.Add(run);

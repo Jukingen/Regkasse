@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services.RestoreVerification;
 
@@ -28,6 +29,25 @@ public static class RestoreVerificationReadinessMapper
             OrchestratorDistributedLockEnabled = snap.OrchestratorDistributedLockEnabled,
             ScopeDisclaimer = snap.ScopeDisclaimer
         };
+}
+
+/// <summary>POST /trigger isteği gövdesi (tamamı isteğe bağlı).</summary>
+public sealed class RestoreVerificationManualTriggerRequestDto
+{
+    [StringLength(200)]
+    public string? IdempotencyKey { get; init; }
+}
+
+/// <summary>POST /trigger yanıtı: orkestrasyon bayrakları + tam run DTO.</summary>
+public sealed class RestoreVerificationTriggerResponseDto
+{
+    public Guid RunId { get; init; }
+
+    public RestoreVerificationTriggerOrchestrationState OrchestrationState { get; init; }
+
+    public bool NewQueuedRunCreated { get; init; }
+    public bool ExistingRunReturned { get; init; }
+    public required RestoreVerificationRunResponseDto Run { get; init; }
 }
 
 /// <summary>Restore drill result (dump inspection + optional isolated restore + optional fiscal SQL + optional live integrity). Not artifact checksum verification.</summary>
@@ -72,8 +92,15 @@ public sealed class RestoreVerificationRunResponseDto
     public string? FailureDetail { get; init; }
     public string? RequestedByUserId { get; init; }
     public string? CorrelationId { get; init; }
+
+    /// <summary>Manuel tetiklerde isteğe bağlı idempotency anahtarı.</summary>
+    public string? IdempotencyKey { get; init; }
+
     /// <summary>Structured notes (outbox, TSE deferred, integrity interpretation).</summary>
     public string? DetailsJson { get; init; }
+
+    /// <summary>Enqueue / run-start anındaki güvenli yapılandırma JSON özeti (null: eski satırlar).</summary>
+    public string? ConfigSnapshotJson { get; init; }
 }
 
 public sealed class RestoreVerificationHistoryResponseDto
@@ -114,6 +141,18 @@ public static class RestoreVerificationRunMapper
         FailureDetail = r.FailureDetail,
         RequestedByUserId = r.RequestedByUserId,
         CorrelationId = r.CorrelationId,
-        DetailsJson = r.DetailsJson
+        IdempotencyKey = r.IdempotencyKey,
+        DetailsJson = r.DetailsJson,
+        ConfigSnapshotJson = r.ConfigSnapshotJson
     };
+
+    public static RestoreVerificationTriggerResponseDto ToTriggerResponseDto(RestoreVerificationManualTriggerResult r) =>
+        new()
+        {
+            RunId = r.Run.Id,
+            OrchestrationState = r.OrchestrationState,
+            NewQueuedRunCreated = r.NewQueuedRunCreated,
+            ExistingRunReturned = r.ExistingRunReturned,
+            Run = ToDto(r.Run)
+        };
 }

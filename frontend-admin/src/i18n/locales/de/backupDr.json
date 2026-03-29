@@ -3,6 +3,17 @@
     "title": "Backup & Disaster Recovery",
     "subtitle": "Steuerung und Transparenz. Ausführung läuft im Hintergrund-Worker — nicht in dieser Oberfläche."
   },
+  "recoverability": {
+    "title": "Wiederherstellungsnachweise (letzter bekannter guter Stand)",
+    "subtitle": "Unabhängig vom zuletzt angeforderten Lauf: zeigt die jüngsten erfolgreichen Nachweise, sofern vorhanden.",
+    "lastGoodBackup": "Letztes erfolgreiches Backup",
+    "lastGoodArtifactVerification": "Letzte erfolgreiche Artefakt-Verifikation",
+    "lastGoodRestoreProof": "Letzter erfolgreicher Restore-Drill",
+    "backupProofAge": "Alter des Backup-Nachweises",
+    "restoreProofAge": "Alter des Restore-Drill-Nachweises",
+    "latestBackupRequest": "Letzte Backup-Anforderung (beliebiges Ergebnis)",
+    "latestRestoreRequest": "Letzte Restore-Drill-Anforderung (beliebiges Ergebnis)"
+  },
   "scope": {
     "title": "Was diese Seite tut (und was nicht)",
     "body": "Es wird kein Backup im Browser erzeugt und kein Restore-Befehl von hier ausgeführt. Schaltflächen reihen Aufträge nur in die API-Warteschlange ein; Ausführung und Artefakte laufen auf dem Backend-Worker."
@@ -27,7 +38,18 @@
     "unknown": "Unbekannt / keine Daten"
   },
   "pipelineSteps": {
-    "sectionTitle": "Pipeline-Schritte (aus API-Status abgeleitet)",
+    "sectionTitle": "Pipeline-Schritte",
+    "sourceBadge": {
+      "serverProjection": "Server-Projektion",
+      "clientDerived": "Client-seitig (Legacy)",
+      "noProjection": "Keine Server-Projektion"
+    },
+    "sourceNotice": {
+      "clientDerived": "Pipeline-Schritte werden im Browser geschätzt, weil der serverseitige Projektions-Snapshot fehlt oder unvollständig ist. Bitte API aktualisieren, damit die offizielle Projektion genutzt wird.",
+      "projectionVersionMismatch": "Projektionsversion \"{{version}}\" wird von dieser Admin-Oberfläche nicht unterstützt; es werden stattdessen clientseitig abgeleitete Schritte angezeigt.",
+      "projectionVersionBlocked": "Der Server lieferte eine Pipeline mit nicht unterstützter Projektionsversion. Client-seitige Ableitung ist nicht aktiviert — keine Schritte. NEXT_PUBLIC_BACKUP_PIPELINE_CLIENT_FALLBACK=true nur vorübergehend als Legacy-Workaround, oder Admin-UI aktualisieren.",
+      "fallbackDisabled": "Server-Projektion für diesen Lauf nicht verfügbar. Client-seitige Ableitung ist aus (NEXT_PUBLIC_BACKUP_PIPELINE_CLIENT_FALLBACK=true nur bei Legacy-Schätzung). Keine Schritte angezeigt."
+    },
     "queued": {
       "title": "Backup eingereiht",
       "hint": "Warteschlange beim Worker — noch kein Abschluss."
@@ -231,6 +253,8 @@
     "backupEnqueued": "Backup wurde in die Warteschlange eingereiht — Ausführung erfolgt asynchron.",
     "backupDuplicate": "Kein neuer Lauf: bereits aktiver oder doppelter manueller Versuch verhindert.",
     "restoreDrillEnqueued": "Restore-Drill eingereiht — Ergebnis erscheint nach Worker-Lauf.",
+    "restoreDrillExistingActive": "Kein neuer Lauf: Ein Restore-Drill ist bereits in der Warteschlange oder läuft.",
+    "restoreDrillIdempotent": "Gleicher Idempotenzschlüssel: vorhandener Restore-Verifikationslauf wird zurückgegeben.",
     "orchestration": "Orchestrierung: {{state}}"
   },
   "errors": {

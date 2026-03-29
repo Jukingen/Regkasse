@@ -10,4 +10,5 @@ public sealed record BackupAlertEvent(
     Guid? BackupRunId,
     string? CorrelationId,
     string Message,
-    IReadOnlyDictionary<string, string>? Data = null);
+    IReadOnlyDictionary<string, string>? Data = null,
+    Guid? RestoreVerificationRunId = null);

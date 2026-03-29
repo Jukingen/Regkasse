@@ -35,8 +35,31 @@ public sealed class BackupOptions
     /// <summary>Phase 2+: cron placeholder; not executed in Phase 1.</summary>
     public string? ScheduleCronPlaceholder { get; set; }
 
-    /// <summary>Phase 2+: retention days placeholder.</summary>
+    /// <summary>Phase 2+: legacy placeholder; tercih edilen alan <see cref="ArtifactRetentionDays"/> + <see cref="RetentionPolicyMode"/>.</summary>
     public int? RetentionDaysPlaceholder { get; set; }
+
+    /// <summary>
+    /// DR hizası için saklama modu. <see cref="BackupRetentionPolicyMode.Disabled"/> dışında
+    /// <see cref="ArtifactRetentionDays"/> zorunludur (7–3650 gün). Silme işi varsayılan kapalıdır.
+    /// </summary>
+    public BackupRetentionPolicyMode RetentionPolicyMode { get; set; } = BackupRetentionPolicyMode.Disabled;
+
+    /// <summary>
+    /// <see cref="RetentionPolicyMode"/> Disabled değilken zorunlu: artefakt için asgari saklama penceresi (gün).
+    /// </summary>
+    public int? ArtifactRetentionDays { get; set; }
+
+    /// <summary>
+    /// Development dışı + PgDump + dolu <see cref="ExternalArchiveRoot"/> iken:
+    /// true ise operatör <see cref="ExternalArchiveImmutabilityAcknowledged"/> ile WORM/object-lock katmanını beyan etmeli;
+    /// aksi halde BackupConfigurationEvaluation yapılandırmayı Unhealthy işaretler.
+    /// </summary>
+    public bool RequireExternalArchiveImmutableTarget { get; set; }
+
+    /// <summary>
+    /// Harici arşiv hedefinin (S3 Object Lock, WORM NAS vb.) operatör onayı; kod düzeyinde kilidi doğrulamaz.
+    /// </summary>
+    public bool ExternalArchiveImmutabilityAcknowledged { get; set; }
 
     /// <summary>When true, fake verifier fails (tests only).</summary>
     public bool DevelopmentForceVerificationFailure { get; set; }
@@ -70,6 +93,21 @@ public sealed class BackupOptions
     /// Secondary archive directory (absolute). Required in non-Development when <see cref="ExecutionAdapterKind"/> is <see cref="BackupExecutionAdapterKind.PgDump"/>; copies run after staging verification with post-copy SHA-256 check.
     /// </summary>
     public string? ExternalArchiveRoot { get; set; }
+
+    /// <summary>Worker çalışırken lease süresi; heartbeat bu süreden önce yenilenmelidir.</summary>
+    public TimeSpan RunLeaseTimeout { get; set; } = TimeSpan.FromMinutes(30);
+
+    /// <summary>Lease ve last_heartbeat alanlarını yenileme aralığı.</summary>
+    public TimeSpan HeartbeatInterval { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>Stale run reaper tarama aralığı.</summary>
+    public TimeSpan StaleRecoveryScanInterval { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// <c>lease_expires_at_utc</c> null kalan eski veya bozuk satırlar: <see cref="RunLeaseTimeout"/> × bu çarpan kadar
+    /// süre geçince reaper terminal yapar (canlı iş yükü için heartbeat’in lease yazması gerekir).
+    /// </summary>
+    public double StaleRecoveryNullLeaseGraceMultiplier { get; set; } = 2.0;
 }
 
 /// <summary>Maps to registered <see cref="Services.Backup.IBackupExecutionAdapter"/> implementation.</summary>

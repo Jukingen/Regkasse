@@ -20,17 +20,20 @@ public sealed class AdminBackupController : ControllerBase
 {
     private readonly IBackupManualTriggerService _trigger;
     private readonly IBackupRunQueryService _query;
+    private readonly IBackupRecoverabilitySummaryService _recoverabilitySummary;
     private readonly IRestoreOrchestrationBoundary _restore;
     private readonly IBackupOperationalReadiness _readiness;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
         IBackupRunQueryService query,
+        IBackupRecoverabilitySummaryService recoverabilitySummary,
         IRestoreOrchestrationBoundary restore,
         IBackupOperationalReadiness readiness)
     {
         _trigger = trigger;
         _query = query;
+        _recoverabilitySummary = recoverabilitySummary;
         _restore = restore;
         _readiness = readiness;
     }
@@ -96,6 +99,18 @@ public sealed class AdminBackupController : ControllerBase
             },
             ArtifactPipelinePolicy = BackupArtifactPipelinePolicyMapper.ToDto(artifactPolicy)
         });
+    }
+
+    /// <summary>
+    /// Son istek durumu ile son bilinen iyi yedek / artifact doğrulama / restore drill kanıtını ayırır (operatör özeti).
+    /// </summary>
+    [HttpGet("recoverability-summary")]
+    [HasPermission(AppPermissions.SettingsView)]
+    public async Task<ActionResult<BackupRecoverabilitySummaryResponseDto>> GetRecoverabilitySummary(
+        CancellationToken cancellationToken)
+    {
+        var dto = await _recoverabilitySummary.GetAsync(cancellationToken);
+        return Ok(dto);
     }
 
     [HttpGet("runs")]

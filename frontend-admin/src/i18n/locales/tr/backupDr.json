@@ -3,6 +3,17 @@
     "title": "Yedekleme ve felaket kurtarma",
     "subtitle": "Yalnızca kontrol ve görünürlük. Yürütme arka plan işçisinde — bu arayüzde değil."
   },
+  "recoverability": {
+    "title": "Kurtarılabilirlik kanıtları (son bilinen iyi durum)",
+    "subtitle": "En son istenen çalıştırmadan ayrıdır; varsa en son başarılı kanıtları gösterir.",
+    "lastGoodBackup": "Son başarılı yedek",
+    "lastGoodArtifactVerification": "Son başarılı artefakt doğrulaması",
+    "lastGoodRestoreProof": "Son başarılı restore tatbikatı",
+    "backupProofAge": "Yedek kanıtı yaşı",
+    "restoreProofAge": "Restore tatbikatı kanıtı yaşı",
+    "latestBackupRequest": "Son yedek isteği (herhangi bir sonuç)",
+    "latestRestoreRequest": "Son restore tatbikatı isteği (herhangi bir sonuç)"
+  },
   "scope": {
     "title": "Bu sayfa ne yapar (ve yapmaz)",
     "body": "Tarayıcıda yedek dosyası üretilmez ve buradan geri yükleme komutu çalıştırılmaz. Düğmeler yalnızca API kuyruğuna iş ekler; yürütme ve artefaktlar backend işçisinde çalışır."
@@ -27,7 +38,18 @@
     "unknown": "Bilinmiyor / veri yok"
   },
   "pipelineSteps": {
-    "sectionTitle": "Hat adımları (API durumundan türetilir)",
+    "sectionTitle": "Hat adımları",
+    "sourceBadge": {
+      "serverProjection": "Sunucu projeksiyonu",
+      "clientDerived": "İstemci türetimi (legacy)",
+      "noProjection": "Sunucu projeksiyonu yok"
+    },
+    "sourceNotice": {
+      "clientDerived": "Sunucu projeksiyon anlık görüntüsü eksik veya uyumsuz olduğu için adımlar tarayıcıda tahmin ediliyor. Resmi projektör için API’yi güncellemeniz önerilir.",
+      "projectionVersionMismatch": "Sunucu projeksiyon sürümü \"{{version}}\" bu arayüz tarafından desteklenmiyor; bunun yerine istemci türetimli adımlar gösteriliyor.",
+      "projectionVersionBlocked": "Sunucu desteklenmeyen bir projeksiyon sürümü döndürdü. İstemci türetimi kapalı — adım yok. Geçici legacy için yalnızca NEXT_PUBLIC_BACKUP_PIPELINE_CLIENT_FALLBACK=true veya admin UI güncellemesi.",
+      "fallbackDisabled": "Bu çalıştırma için sunucu projeksiyonu yok. İstemci türetimi kapalı (legacy tahmin için NEXT_PUBLIC_BACKUP_PIPELINE_CLIENT_FALLBACK=true). Adım gösterilmiyor."
+    },
     "queued": {
       "title": "Yedek kuyrukta",
       "hint": "İşçi bekleniyor — henüz tamamlanmadı."
@@ -231,6 +253,8 @@
     "backupEnqueued": "Yedek kuyruğa alındı — yürütme asenkron.",
     "backupDuplicate": "Yeni çalıştırma yok: mükerrer veya aktif manuel engellendi.",
     "restoreDrillEnqueued": "Tatbikat kuyruğa alındı — sonuç işçi çalışınca görünür.",
+    "restoreDrillExistingActive": "Yeni çalışma yok: Bir restore tatbikatı zaten kuyrukta veya çalışıyor.",
+    "restoreDrillIdempotent": "Aynı idempotency anahtarı: mevcut restore doğrulama çalışması döndürülüyor.",
     "orchestration": "Orkestrasyon: {{state}}"
   },
   "errors": {

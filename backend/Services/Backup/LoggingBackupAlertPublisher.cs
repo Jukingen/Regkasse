@@ -16,9 +16,10 @@ public sealed class LoggingBackupAlertPublisher : IBackupAlertPublisher
         if (evt.Data is { Count: > 0 } data)
         {
             _logger.LogWarning(
-                "Backup alert: kind={Kind}, runId={RunId}, correlationId={CorrelationId}, message={Message}, data={@Data}",
+                "Backup alert: kind={Kind}, backupRunId={BackupRunId}, restoreVerificationRunId={RestoreVerificationRunId}, correlationId={CorrelationId}, message={Message}, data={@Data}",
                 evt.Kind,
                 evt.BackupRunId,
+                evt.RestoreVerificationRunId,
                 evt.CorrelationId,
                 evt.Message,
                 data);
@@ -26,9 +27,10 @@ public sealed class LoggingBackupAlertPublisher : IBackupAlertPublisher
         }
 
         _logger.LogWarning(
-            "Backup alert: kind={Kind}, runId={RunId}, correlationId={CorrelationId}, message={Message}",
+            "Backup alert: kind={Kind}, backupRunId={BackupRunId}, restoreVerificationRunId={RestoreVerificationRunId}, correlationId={CorrelationId}, message={Message}",
             evt.Kind,
             evt.BackupRunId,
+            evt.RestoreVerificationRunId,
             evt.CorrelationId,
             evt.Message);
     }

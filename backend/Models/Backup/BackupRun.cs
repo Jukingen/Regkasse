@@ -7,7 +7,7 @@ namespace KasseAPI_Final.Models.Backup;
 /// Operational metadata for one backup attempt. Not a fiscal document — separate from Tier-0 business tables.
 /// </summary>
 [Table("backup_runs")]
-public sealed class BackupRun
+public sealed class BackupRun : KasseAPI_Final.Models.IRunLeaseColumns
 {
     [Key]
     [Column("id")]
@@ -60,6 +60,25 @@ public sealed class BackupRun
     [MaxLength(100)]
     [Column("correlation_id")]
     public string? CorrelationId { get; set; }
+
+    [Column("lease_expires_at_utc")]
+    public DateTime? LeaseExpiresAtUtc { get; set; }
+
+    [Column("last_heartbeat_at_utc")]
+    public DateTime? LastHeartbeatAtUtc { get; set; }
+
+    [Column("stale_recovered_at_utc")]
+    public DateTime? StaleRecoveredAtUtc { get; set; }
+
+    [MaxLength(500)]
+    [Column("stale_recovery_reason")]
+    public string? StaleRecoveryReason { get; set; }
+
+    /// <summary>
+    /// Tetikleme / yürütme anındaki güvenli yapılandırma özeti (JSON; parola/token yok).
+    /// </summary>
+    [Column("config_snapshot_json")]
+    public string? ConfigSnapshotJson { get; set; }
 
     public ICollection<BackupArtifact> Artifacts { get; set; } = new List<BackupArtifact>();
 

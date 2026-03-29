@@ -12,6 +12,8 @@ import {
   formatRunDurationMs,
   mapServerPipelineStatus,
   pipelineSnapshotToDerivedSteps,
+  resolveBackupPipelineStepsForUi,
+  SERVER_PIPELINE_PROJECTION_VERSION,
   sumLogicalDumpBytes,
 } from '@/features/backup-dr/logic/backupPipelineDerived';
 
@@ -293,6 +295,99 @@ describe('pipelineSnapshotToDerivedSteps', () => {
     expect(steps).toHaveLength(8);
     expect(steps![6].state).toBe('skipped');
     expect(steps![7].state).toBe('skipped');
+  });
+
+  it('returns null when step keys are correct set but wrong order', () => {
+    const snap: BackupPipelineSnapshotDto = {
+      steps: [
+        { key: 'workerRunning', status: 'pending' },
+        { key: 'queued', status: 'success' },
+        { key: 'dumpComplete', status: 'success' },
+        { key: 'artifactCreated', status: 'success' },
+        { key: 'artifactVerification', status: 'success' },
+        { key: 'manifestCreated', status: 'success' },
+        { key: 'externalCopy', status: 'not_required' },
+        { key: 'externalChecksum', status: 'not_required' },
+      ],
+    };
+    expect(pipelineSnapshotToDerivedSteps(snap)).toBeNull();
+  });
+});
+
+describe('resolveBackupPipelineStepsForUi', () => {
+  const eightSteps: BackupPipelineSnapshotDto['steps'] = [
+    { key: 'queued', status: 'success' },
+    { key: 'workerRunning', status: 'success' },
+    { key: 'dumpComplete', status: 'success' },
+    { key: 'artifactCreated', status: 'success' },
+    { key: 'artifactVerification', status: 'success' },
+    { key: 'manifestCreated', status: 'success' },
+    { key: 'externalCopy', status: 'not_required' },
+    { key: 'externalChecksum', status: 'not_required' },
+  ];
+
+  it('prefers server projection when snapshot is valid', () => {
+    const run: BackupRunResponseDto = { id: RUN_ID, status: 3 };
+    const detail: BackupRunResponseDto = {
+      id: RUN_ID,
+      status: 3,
+      pipeline: { projectionVersion: SERVER_PIPELINE_PROJECTION_VERSION, steps: eightSteps },
+    };
+    const r = resolveBackupPipelineStepsForUi(run, detail, policyExternalOff(), { allowClientFallback: true });
+    expect(r.source).toBe('server_projection');
+    expect(r.projectionVersionMismatch).toBe(false);
+    expect(r.steps).toHaveLength(8);
+  });
+
+  it('uses client fallback when snapshot missing', () => {
+    const run: BackupRunResponseDto = { id: RUN_ID, status: 0 };
+    const r = resolveBackupPipelineStepsForUi(run, { id: RUN_ID, status: 0 }, policyExternalOff(), {
+      allowClientFallback: true,
+    });
+    expect(r.source).toBe('client_fallback');
+    expect(r.projectionVersionMismatch).toBe(false);
+    expect(r.steps.length).toBeGreaterThan(0);
+  });
+
+  it('marks version mismatch and falls back when projectionVersion unknown', () => {
+    const run: BackupRunResponseDto = { id: RUN_ID, status: 3 };
+    const detail: BackupRunResponseDto = {
+      id: RUN_ID,
+      status: 3,
+      pipeline: { projectionVersion: '2099-01-01', steps: eightSteps },
+    };
+    const r = resolveBackupPipelineStepsForUi(run, detail, policyExternalOff(), { allowClientFallback: true });
+    expect(r.source).toBe('client_fallback');
+    expect(r.projectionVersionMismatch).toBe(true);
+  });
+
+  it('blocks client fallback when disabled and snapshot unusable', () => {
+    const run: BackupRunResponseDto = { id: RUN_ID, status: 0 };
+    const r = resolveBackupPipelineStepsForUi(run, { id: RUN_ID, status: 0 }, policyExternalOff(), {
+      allowClientFallback: false,
+    });
+    expect(r.source).toBe('client_fallback_blocked');
+    expect(r.steps).toEqual([]);
+    expect(r.projectionVersionMismatch).toBe(false);
+  });
+
+  it('blocks when projection version is unsupported and client fallback is off (no silent client switch)', () => {
+    const run: BackupRunResponseDto = { id: RUN_ID, status: 3 };
+    const detail: BackupRunResponseDto = {
+      id: RUN_ID,
+      status: 3,
+      pipeline: { projectionVersion: '2099-01-01', steps: eightSteps },
+    };
+    const r = resolveBackupPipelineStepsForUi(run, detail, policyExternalOff(), { allowClientFallback: false });
+    expect(r.source).toBe('client_fallback_blocked');
+    expect(r.projectionVersionMismatch).toBe(true);
+    expect(r.steps).toEqual([]);
+  });
+});
+
+describe('SERVER_PIPELINE_PROJECTION_VERSION', () => {
+  it('matches BackupPipelineProjector.ProjectionVersion in backend (manual sync)', () => {
+    expect(SERVER_PIPELINE_PROJECTION_VERSION).toBe('2026-03-28');
   });
 });
 

@@ -49,4 +49,15 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
             .OrderByDescending(v => v.StartedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<Guid>> GetRecentSucceededRunIdsAsync(int maxCount, CancellationToken cancellationToken = default)
+    {
+        maxCount = Math.Clamp(maxCount, 1, 100);
+        return await _db.BackupRuns.AsNoTracking()
+            .Where(r => r.Status == BackupRunStatus.Succeeded)
+            .OrderByDescending(r => r.RequestedAt)
+            .Take(maxCount)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken);
+    }
 }

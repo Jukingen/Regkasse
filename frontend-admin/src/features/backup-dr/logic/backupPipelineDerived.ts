@@ -1,5 +1,6 @@
 /**
- * Yedek pipeline adımlarının durumunu API DTO'larından türetir (UI'da uydurma yeşil yok).
+ * Sunucu `pipeline` snapshot’ı geçerliyse tek doğruluk kaynağı odur.
+ * İstemci türetimi yalnızca `isBackupPipelineClientFallbackEnabled()` ile açıkça etkinleştirildiğinde kullanılmalıdır.
  */
 
 import type {
@@ -14,7 +15,41 @@ import { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/b
 
 export type DerivedPipelineStepState = 'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'degraded';
 
+export type DerivedPipelineStepId =
+  | 'queued'
+  | 'workerRunning'
+  | 'dumpComplete'
+  | 'artifactCreated'
+  | 'artifactVerification'
+  | 'manifestCreated'
+  | 'externalCopy'
+  | 'externalChecksum';
+
+export interface DerivedPipelineStep {
+  id: DerivedPipelineStepId;
+  state: DerivedPipelineStepState;
+  /** i18n anahtarı: backupDr.pipelineSteps.<id>.title */
+  titleKey: string;
+  /** i18n anahtarı: backupDr.pipelineSteps.hint.<id> veya state bazlı opsiyonel */
+  hintKey?: string;
+}
+
+/** SYNC: KasseAPI_Final.Services.Backup.BackupPipelineProjector.ProjectionVersion */
+export const SERVER_PIPELINE_PROJECTION_VERSION = '2026-03-28';
+
 const SERVER_PIPELINE_STEP_COUNT = 8;
+
+/** SYNC: BackupPipelineProjector.PipelineStepKeysOrdered (sıra ve anahtarlar birebir). */
+export const SERVER_PIPELINE_STEP_KEYS_ORDERED: readonly DerivedPipelineStepId[] = [
+  'queued',
+  'workerRunning',
+  'dumpComplete',
+  'artifactCreated',
+  'artifactVerification',
+  'manifestCreated',
+  'externalCopy',
+  'externalChecksum',
+];
 
 function isDerivedPipelineStepId(key: string | undefined): key is DerivedPipelineStepId {
   return (
@@ -54,8 +89,10 @@ export function pipelineSnapshotToDerivedSteps(
 ): DerivedPipelineStep[] | null {
   if (!snapshot?.steps?.length || snapshot.steps.length !== SERVER_PIPELINE_STEP_COUNT) return null;
   const out: DerivedPipelineStep[] = [];
-  for (const s of snapshot.steps) {
-    if (!isDerivedPipelineStepId(s.key)) return null;
+  for (let i = 0; i < SERVER_PIPELINE_STEP_COUNT; i++) {
+    const s = snapshot.steps[i];
+    const expectedKey = SERVER_PIPELINE_STEP_KEYS_ORDERED[i];
+    if (!s || s.key !== expectedKey || !isDerivedPipelineStepId(s.key)) return null;
     out.push({
       id: s.key,
       state: mapServerPipelineStatus(s.status),
@@ -64,25 +101,6 @@ export function pipelineSnapshotToDerivedSteps(
     });
   }
   return out;
-}
-
-export type DerivedPipelineStepId =
-  | 'queued'
-  | 'workerRunning'
-  | 'dumpComplete'
-  | 'artifactCreated'
-  | 'artifactVerification'
-  | 'manifestCreated'
-  | 'externalCopy'
-  | 'externalChecksum';
-
-export interface DerivedPipelineStep {
-  id: DerivedPipelineStepId;
-  state: DerivedPipelineStepState;
-  /** i18n anahtarı: backupDr.pipelineSteps.<id>.title */
-  titleKey: string;
-  /** i18n anahtarı: backupDr.pipelineSteps.hint.<id> veya state bazlı opsiyonel */
-  hintKey?: string;
 }
 
 const RUN_QUEUED = 0;
@@ -262,4 +280,46 @@ export function sumLogicalDumpBytes(artifacts: BackupArtifactResponseDto[] | nul
   const n = d?.byteSize;
   if (n === undefined || n === null) return undefined;
   return n;
+}
+
+/** Sunucu snapshot’ı geçerliyse onu; aksi halde (izin varsa) istemci türetmesi. */
+export type BackupPipelineUiSource = 'server_projection' | 'client_fallback' | 'client_fallback_blocked';
+
+export interface ResolvedBackupPipelineUi {
+  steps: DerivedPipelineStep[];
+  source: BackupPipelineUiSource;
+  /** Şekil uygun ama projectionVersion bu UI sürümüyle eşleşmiyor. */
+  projectionVersionMismatch: boolean;
+}
+
+export function resolveBackupPipelineStepsForUi(
+  latest: BackupRunResponseDto | null | undefined,
+  detail: BackupRunResponseDto | null | undefined,
+  policy: BackupArtifactPipelinePolicyResponseDto | undefined,
+  options: { allowClientFallback: boolean },
+): ResolvedBackupPipelineUi {
+  const snap = detail?.pipeline ?? latest?.pipeline;
+  const parsed = pipelineSnapshotToDerivedSteps(snap);
+  const version = snap?.projectionVersion?.trim();
+  const versionOk = !version || version === SERVER_PIPELINE_PROJECTION_VERSION;
+
+  if (parsed && versionOk) {
+    return { steps: parsed, source: 'server_projection', projectionVersionMismatch: false };
+  }
+
+  const projectionVersionMismatch = Boolean(parsed && !versionOk);
+
+  if (options.allowClientFallback) {
+    return {
+      steps: deriveBackupPipelineSteps(latest, detail, policy),
+      source: 'client_fallback',
+      projectionVersionMismatch,
+    };
+  }
+
+  return {
+    steps: [],
+    source: 'client_fallback_blocked',
+    projectionVersionMismatch,
+  };
 }

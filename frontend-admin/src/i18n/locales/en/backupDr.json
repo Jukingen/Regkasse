@@ -3,6 +3,17 @@
     "title": "Backup & disaster recovery",
     "subtitle": "Control and visibility only. Execution runs in the background worker — not in this UI."
   },
+  "recoverability": {
+    "title": "Recoverability evidence (last known good)",
+    "subtitle": "Distinct from the latest requested run: shows the most recent successful proofs where they exist.",
+    "lastGoodBackup": "Last successful backup",
+    "lastGoodArtifactVerification": "Last successful artifact verification",
+    "lastGoodRestoreProof": "Last successful restore drill",
+    "backupProofAge": "Backup proof age",
+    "restoreProofAge": "Restore drill proof age",
+    "latestBackupRequest": "Latest backup request (any outcome)",
+    "latestRestoreRequest": "Latest restore drill request (any outcome)"
+  },
   "scope": {
     "title": "What this page does (and does not)",
     "body": "No backup file is produced in the browser and no restore command is executed from here. Buttons only enqueue jobs via the API; execution and artifacts run on the backend worker."
@@ -27,7 +38,18 @@
     "unknown": "Unknown / no data"
   },
   "pipelineSteps": {
-    "sectionTitle": "Pipeline steps (derived from API state)",
+    "sectionTitle": "Pipeline steps",
+    "sourceBadge": {
+      "serverProjection": "Server projection",
+      "clientDerived": "Client-derived (legacy)",
+      "noProjection": "No server projection"
+    },
+    "sourceNotice": {
+      "clientDerived": "Pipeline steps are estimated in the browser because the server projection snapshot is missing or incomplete. Prefer upgrading the API so the official projector is used.",
+      "projectionVersionMismatch": "Server pipeline projection version \"{{version}}\" is not supported by this UI; showing client-derived steps instead.",
+      "projectionVersionBlocked": "Server returned a pipeline snapshot with an unsupported projection version. Client-side derivation is not enabled — no steps are shown. Set NEXT_PUBLIC_BACKUP_PIPELINE_CLIENT_FALLBACK=true only as a temporary legacy workaround, or upgrade this admin UI.",
+      "fallbackDisabled": "Server pipeline projection is not available for this run. Client-side derivation is off (set NEXT_PUBLIC_BACKUP_PIPELINE_CLIENT_FALLBACK=true only if you must use legacy estimation). No steps are shown."
+    },
     "queued": {
       "title": "Backup queued",
       "hint": "Waiting for the worker — not finished yet."
@@ -231,6 +253,8 @@
     "backupEnqueued": "Backup enqueued — execution is asynchronous.",
     "backupDuplicate": "No new run: duplicate or active manual run prevented.",
     "restoreDrillEnqueued": "Restore drill enqueued — results appear after the worker runs.",
+    "restoreDrillExistingActive": "No new run: a restore drill is already queued or running.",
+    "restoreDrillIdempotent": "Same idempotency key: returning the existing restore verification run.",
     "orchestration": "Orchestration: {{state}}"
   },
   "errors": {

@@ -77,4 +77,39 @@ public sealed class BackupArtifactPipelinePolicyEvaluatorTests
         Assert.True(snap.WillRunExternalArchiveAfterStagingVerificationWhenEligible);
         Assert.True(snap.StagingOnDiskHashReverificationExpected);
     }
+
+    [Fact]
+    public void Evaluate_adds_immutability_operator_note_when_required_and_not_acknowledged()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+        var opts = new BackupOptions
+        {
+            ExecutionAdapterKind = BackupExecutionAdapterKind.PgDump,
+            ExternalArchiveRoot = "/var/archive",
+            VerifyLogicalDumpFileOnDisk = true,
+            ArtifactStagingRoot = "/var/staging",
+            RequireExternalArchiveImmutableTarget = true,
+            ExternalArchiveImmutabilityAcknowledged = false
+        };
+
+        var snap = BackupArtifactPipelinePolicyEvaluator.Evaluate(opts, env.Object);
+        Assert.Contains(snap.OperatorNotes, n => n.Contains("ImmutabilityAcknowledged", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Evaluate_adds_retention_note_when_policy_enabled()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+        var opts = new BackupOptions
+        {
+            ExecutionAdapterKind = BackupExecutionAdapterKind.Fake,
+            RetentionPolicyMode = BackupRetentionPolicyMode.ReportOnly,
+            ArtifactRetentionDays = 14
+        };
+
+        var snap = BackupArtifactPipelinePolicyEvaluator.Evaluate(opts, env.Object);
+        Assert.Contains(snap.OperatorNotes, n => n.Contains("Retention policy", StringComparison.Ordinal));
+    }
 }

@@ -14,6 +14,8 @@ import { useI18n } from '@/i18n';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import {
+  getGetApiAdminBackupRecoverabilitySummaryQueryKey,
+  useGetApiAdminBackupRecoverabilitySummary,
   useGetApiAdminBackupRuns,
   useGetApiAdminBackupStatusLatest,
   useGetApiAdminBackupVerificationLatest,
@@ -30,6 +32,7 @@ import {
   usePostApiAdminRestoreVerificationTrigger,
 } from '@/api/generated/admin-restore-verification/admin-restore-verification';
 import type { BackupRunResponseDto, RestoreVerificationRunResponseDto } from '@/api/generated/model';
+import { RestoreVerificationTriggerOrchestrationState } from '@/api/generated/model';
 import {
   configurationHealthSummaryI18nKey,
   externalCopyVariantToI18nKey,
@@ -45,6 +48,8 @@ import { ManualActionsPanel, type ManualActionsPanelProps } from '@/features/bac
 import { RecentRestoreDrillsTable } from '@/features/backup-dr/components/RecentRestoreDrillsTable';
 import { RecentRunsTable } from '@/features/backup-dr/components/RecentRunsTable';
 import { RestoreVerificationCard } from '@/features/backup-dr/components/RestoreVerificationCard';
+import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
+import { isBackupPipelineClientFallbackEnabled } from '@/features/backup-dr/logic/backupPipelineEnv';
 
 function formatDt(iso: string | undefined | null, formatLocale: string): string {
   if (!iso) return '—';
@@ -96,6 +101,7 @@ export function BackupDrDashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const canManage = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
+  const allowClientPipelineFallback = isBackupPipelineClientFallbackEnabled();
 
   const runsParams = useMemo(() => ({ page: 1, pageSize: 15 }), []);
   const restoreParams = useMemo(() => ({ page: 1, pageSize: 10 }), []);
@@ -121,6 +127,9 @@ export function BackupDrDashboard() {
     query: { refetchInterval: 60_000, refetchOnWindowFocus: true },
   });
   const verificationQuery = useGetApiAdminBackupVerificationLatest({
+    query: { refetchInterval: 60_000, refetchOnWindowFocus: true },
+  });
+  const recoverabilityQuery = useGetApiAdminBackupRecoverabilitySummary({
     query: { refetchInterval: 60_000, refetchOnWindowFocus: true },
   });
   const restoreLatestQuery = useGetApiAdminRestoreVerificationRunsLatest({
@@ -154,6 +163,7 @@ export function BackupDrDashboard() {
         if (res.orchestrationState)
           message.info(t('backupDr.messages.orchestration', { state: res.orchestrationState }));
         await queryClient.invalidateQueries({ queryKey: ['/api/admin/backup'] });
+        await queryClient.invalidateQueries({ queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey() });
         await invalidateReadiness();
       },
       onError: (err) => message.error(triggerErrorMessage(err, t)),
@@ -162,9 +172,18 @@ export function BackupDrDashboard() {
 
   const restoreTrigger = usePostApiAdminRestoreVerificationTrigger({
     mutation: {
-      onSuccess: async () => {
-        message.success(t('backupDr.messages.restoreDrillEnqueued'));
+      onSuccess: async (res) => {
+        if (res.newQueuedRunCreated) {
+          message.success(t('backupDr.messages.restoreDrillEnqueued'));
+        } else if (res.existingRunReturned) {
+          if (res.orchestrationState === RestoreVerificationTriggerOrchestrationState.NUMBER_1) {
+            message.info(t('backupDr.messages.restoreDrillIdempotent'));
+          } else {
+            message.info(t('backupDr.messages.restoreDrillExistingActive'));
+          }
+        }
         await queryClient.invalidateQueries({ queryKey: getGetApiAdminRestoreVerificationRunsLatestQueryKey() });
+        await queryClient.invalidateQueries({ queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey() });
         await queryClient.invalidateQueries({ queryKey: getGetApiAdminRestoreVerificationRunsQueryKey(restoreParams) });
         await invalidateReadiness();
       },
@@ -174,6 +193,7 @@ export function BackupDrDashboard() {
 
   const invalidateAll = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['/api/admin/backup'] });
+    await queryClient.invalidateQueries({ queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey() });
     await queryClient.invalidateQueries({ queryKey: ['/api/admin/restore-verification'] });
   }, [queryClient]);
 
@@ -458,6 +478,16 @@ export function BackupDrDashboard() {
 
           <HealthBanner critical={banner.critical} warn={banner.warn} t={t} onRefresh={() => invalidateAll()} />
 
+          <RecoverabilitySummaryCard
+            summary={recoverabilityQuery.data}
+            loading={recoverabilityQuery.isLoading}
+            formatDt={formatDt}
+            formatLocale={formatLocale}
+            backupStatusLabel={backupStatusLabel}
+            restoreStatusLabel={restoreStatusLabel}
+            t={t}
+          />
+
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={14}>
               <BackupStatusCard
@@ -470,6 +500,7 @@ export function BackupDrDashboard() {
                 formatLocale={formatLocale}
                 backupStatusTagColor={mapBackupRunStatusAntdColor}
                 backupStatusLabel={backupStatusLabel}
+                allowClientPipelineFallback={allowClientPipelineFallback}
                 t={t}
               />
             </Col>

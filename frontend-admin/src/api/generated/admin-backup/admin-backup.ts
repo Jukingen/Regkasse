@@ -21,6 +21,7 @@ import type {
 import type {
   BackupHistoryResponseDto,
   BackupLatestStatusResponseDto,
+  BackupRecoverabilitySummaryResponseDto,
   BackupRunResponseDto,
   BackupTriggerRequestDto,
   BackupTriggerResponseDto,
@@ -78,6 +79,61 @@ export const useGetApiAdminBackupStatusLatest = <TData = Awaited<ReturnType<type
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminBackupStatusLatestQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminBackupRecoverabilitySummary = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupRecoverabilitySummaryResponseDto>(
+      {url: `/api/admin/backup/recoverability-summary`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupRecoverabilitySummaryQueryKey = () => {
+    return [`/api/admin/backup/recoverability-summary`] as const;
+    }
+
+    
+export const getGetApiAdminBackupRecoverabilitySummaryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRecoverabilitySummaryQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>> = ({ signal }) => getApiAdminBackupRecoverabilitySummary(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupRecoverabilitySummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>>
+export type GetApiAdminBackupRecoverabilitySummaryQueryError = unknown
+
+export const useGetApiAdminBackupRecoverabilitySummary = <TData = Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRecoverabilitySummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupRecoverabilitySummaryQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

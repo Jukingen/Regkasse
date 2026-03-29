@@ -94,6 +94,17 @@ public static class BackupConfigurationEvaluation
                 "Backup:ExternalArchiveRoot must be an absolute path when set.");
         }
 
+        // Harici arşiv immutability (DR): Development dışında zorunlu bayrak + operatör beyanı.
+        if (!environment.IsDevelopment()
+            && options.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump
+            && !string.IsNullOrWhiteSpace(options.ExternalArchiveRoot)
+            && options.RequireExternalArchiveImmutableTarget
+            && !options.ExternalArchiveImmutabilityAcknowledged)
+        {
+            Add(BackupConfigurationHealthLevel.Unhealthy,
+                "Backup:RequireExternalArchiveImmutableTarget=true requires Backup:ExternalArchiveImmutabilityAcknowledged=true after configuring an immutable external archive tier (e.g. object lock / WORM). The API cannot verify storage immutability.");
+        }
+
         if (options.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump
             && configuration != null
             && !environment.IsDevelopment())
@@ -134,6 +145,12 @@ public static class BackupConfigurationEvaluation
 
         if (options.DevelopmentForceVerificationFailure && !environment.IsDevelopment())
             Add(BackupConfigurationHealthLevel.Unhealthy, "Backup:DevelopmentForceVerificationFailure=true outside Development.");
+
+        if (options.RetentionPolicyMode == BackupRetentionPolicyMode.ExecutionPlanned)
+        {
+            Add(BackupConfigurationHealthLevel.Degraded,
+                "Backup:RetentionPolicyMode=ExecutionPlanned — automated artifact deletion is not implemented; policy is recorded for future use only. Prefer ReportOnly until a retention job is shipped.");
+        }
 
         return new BackupConfigurationHealthSnapshot
         {

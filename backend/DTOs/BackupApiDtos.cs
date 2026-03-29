@@ -1,4 +1,5 @@
 using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services.Backup;
 
 namespace KasseAPI_Final.DTOs;
@@ -68,6 +69,9 @@ public sealed class BackupRunResponseDto
     public string? FailureDetail { get; init; }
     public string? CorrelationId { get; init; }
     public bool DuplicatePrevented { get; init; }
+
+    /// <summary>Enqueue / run-start anındaki güvenli yapılandırma JSON özeti (null: eski satırlar).</summary>
+    public string? ConfigSnapshotJson { get; init; }
 
     /// <summary>Resmi pipeline; UI adımları buradan türetilmelidir.</summary>
     public BackupPipelineSnapshotDto Pipeline { get; init; } = null!;
@@ -144,6 +148,41 @@ public sealed class BackupLatestStatusResponseDto
 
     /// <summary>Artifact staging / external copy beklentisi; <see cref="BackupConfigurationHealthResponseDto"/> ile birlikte yorumlanmalıdır.</summary>
     public BackupArtifactPipelinePolicyResponseDto ArtifactPipelinePolicy { get; init; } = null!;
+}
+
+/// <summary>
+/// Son istek (latest) ile son bilinen iyi kanıtlar ayrı; operatör panosu için.
+/// </summary>
+public sealed class BackupRecoverabilitySummaryResponseDto
+{
+    /// <summary>Terminal başarılı yedek: <c>CompletedAt</c> (veya eksikse <c>RequestedAt</c>) sıralaması.</summary>
+    public DateTime? LastSuccessfulBackupAt { get; init; }
+
+    public Guid? LastSuccessfulBackupRunId { get; init; }
+
+    /// <summary>Son geçen artifact (checksum/staging) doğrulaması zamanı.</summary>
+    public DateTime? LastSuccessfulArtifactVerificationAt { get; init; }
+
+    /// <summary>Restore drill terminal başarı <c>CompletedAt</c>.</summary>
+    public DateTime? LastSuccessfulRestoreProofAt { get; init; }
+
+    public Guid? LastSuccessfulRestoreProofRunId { get; init; }
+
+    /// <summary><see cref="LastSuccessfulBackupAt"/> yaşı; UTC şimdi − kanıt.</summary>
+    public long? BackupProofAgeSeconds { get; init; }
+
+    /// <summary><see cref="LastSuccessfulRestoreProofAt"/> yaşı.</summary>
+    public long? RestoreProofAgeSeconds { get; init; }
+
+    /// <summary>En son kuyruğa alınan yedek isteği (<c>RequestedAt</c>).</summary>
+    public DateTime? LatestRunAt { get; init; }
+
+    public BackupRunStatus? LatestRunStatus { get; init; }
+
+    /// <summary>En son restore verification isteği.</summary>
+    public DateTime? LatestRestoreRunAt { get; init; }
+
+    public RestoreVerificationStatus? LatestRestoreRunStatus { get; init; }
 }
 
 /// <summary>Path içermez; yalnızca operatör özeti (restore verification değildir).</summary>
@@ -228,6 +267,7 @@ public static class BackupRunMapper
             FailureDetail = run.FailureDetail,
             CorrelationId = run.CorrelationId,
             DuplicatePrevented = duplicateExecutionPreventedOverride ?? false,
+            ConfigSnapshotJson = run.ConfigSnapshotJson,
             Pipeline = BackupPipelineProjector.Project(run, policy, materializedChildren),
             Artifacts = includeChildren
                 ? run.Artifacts.Select(a => new BackupArtifactResponseDto

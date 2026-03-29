@@ -509,6 +509,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
 
+                    b.Property<string>("ConfigSnapshotJson")
+                        .HasColumnType("text")
+                        .HasColumnName("config_snapshot_json");
+
                     b.Property<string>("CorrelationId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -529,6 +533,14 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("idempotency_key");
 
+                    b.Property<DateTime?>("LastHeartbeatAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_heartbeat_at_utc");
+
+                    b.Property<DateTime?>("LeaseExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_expires_at_utc");
+
                     b.Property<DateTime?>("QueuedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("queued_at");
@@ -541,6 +553,15 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)")
                         .HasColumnName("requested_by_user_id");
+
+                    b.Property<DateTime?>("StaleRecoveredAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("stale_recovered_at_utc");
+
+                    b.Property<string>("StaleRecoveryReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("stale_recovery_reason");
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone")
@@ -559,6 +580,10 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("IdempotencyKey")
                         .IsUnique()
                         .HasFilter("idempotency_key IS NOT NULL");
+
+                    b.HasIndex("LeaseExpiresAtUtc")
+                        .HasDatabaseName("ix_backup_runs_lease_expires_stale_reaper")
+                        .HasFilter("status IN (1, 2)");
 
                     b.HasIndex("RequestedAt");
 
@@ -4441,6 +4466,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
 
+                    b.Property<string>("ConfigSnapshotJson")
+                        .HasColumnType("text")
+                        .HasColumnName("config_snapshot_json");
+
                     b.Property<string>("CorrelationId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -4486,6 +4515,11 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("fiscal_sql_warn_count");
 
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("idempotency_key");
+
                     b.Property<bool?>("IntegrityChecksPassed")
                         .HasColumnType("boolean")
                         .HasColumnName("integrity_checks_passed");
@@ -4494,6 +4528,14 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("integrity_scope");
+
+                    b.Property<DateTime?>("LastHeartbeatAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_heartbeat_at_utc");
+
+                    b.Property<DateTime?>("LeaseExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lease_expires_at_utc");
 
                     b.Property<int?>("PgRestoreListExitCode")
                         .HasColumnType("integer")
@@ -4542,6 +4584,15 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("source_backup_run_id");
 
+                    b.Property<DateTime?>("StaleRecoveredAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("stale_recovered_at_utc");
+
+                    b.Property<string>("StaleRecoveryReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("stale_recovery_reason");
+
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("started_at");
@@ -4555,6 +4606,15 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("trigger_source");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ux_restore_verification_runs_idempotency_key")
+                        .HasFilter("idempotency_key IS NOT NULL");
+
+                    b.HasIndex("LeaseExpiresAtUtc")
+                        .HasDatabaseName("ix_restore_verification_runs_lease_expires_stale_reaper")
+                        .HasFilter("status = 1");
 
                     b.HasIndex("RequestedAt");
 

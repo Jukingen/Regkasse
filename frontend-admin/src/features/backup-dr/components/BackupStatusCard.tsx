@@ -5,13 +5,12 @@
  */
 
 import React, { useMemo } from 'react';
-import { Alert, Card, Descriptions, Spin, Tag, Typography } from 'antd';
+import { Alert, Card, Descriptions, Space, Spin, Tag, Typography } from 'antd';
 import type { BackupArtifactPipelinePolicyResponseDto, BackupRunResponseDto } from '@/api/generated/model';
 import { BackupPipelineStepper } from '@/features/backup-dr/components/BackupPipelineStepper';
 import {
-  deriveBackupPipelineSteps,
   formatRunDurationMs,
-  pipelineSnapshotToDerivedSteps,
+  resolveBackupPipelineStepsForUi,
   sumLogicalDumpBytes,
 } from '@/features/backup-dr/logic/backupPipelineDerived';
 
@@ -26,6 +25,11 @@ export interface BackupStatusCardProps {
   backupStatusTagColor: (status: number) => string;
   backupStatusLabel: (status: number | undefined, t: (k: string) => string) => string;
   t: (key: string, options?: Record<string, string | number>) => string;
+  /**
+   * false: istemci türetimi kapalı (NEXT_PUBLIC_BACKUP_PIPELINE_CLIENT_FALLBACK !== "true").
+   * Sunucu projeksiyonu geçerliyse her zaman kullanılır.
+   */
+  allowClientPipelineFallback?: boolean;
 }
 
 function formatDurationMs(ms: number | undefined, t: (key: string, options?: Record<string, string | number>) => string): string {
@@ -58,11 +62,17 @@ export function BackupStatusCard({
   backupStatusTagColor,
   backupStatusLabel,
   t,
+  allowClientPipelineFallback = false,
 }: BackupStatusCardProps) {
-  const steps = useMemo(() => {
-    const snap = detail?.pipeline ?? latest?.pipeline;
-    return pipelineSnapshotToDerivedSteps(snap) ?? deriveBackupPipelineSteps(latest, detail, policy);
-  }, [latest, detail, policy]);
+  const allowFb = allowClientPipelineFallback === true;
+  const resolved = useMemo(
+    () =>
+      resolveBackupPipelineStepsForUi(latest, detail, policy, {
+        allowClientFallback: allowFb,
+      }),
+    [latest, detail, policy, allowFb],
+  );
+  const { steps, source, projectionVersionMismatch } = resolved;
   const durationMs = formatRunDurationMs(latest?.requestedAt, latest?.completedAt);
   const bytes = sumLogicalDumpBytes(detail?.artifacts ?? latest?.artifacts ?? undefined);
 
@@ -91,7 +101,46 @@ export function BackupStatusCard({
               {formatDt(latest.completedAt, formatLocale)}
             </Descriptions.Item>
           </Descriptions>
-          <Typography.Title level={5}>{t('backupDr.pipelineSteps.sectionTitle')}</Typography.Title>
+          <Space align="center" wrap style={{ marginBottom: 8 }} size="middle">
+            <Typography.Title level={5} style={{ margin: 0 }}>
+              {t('backupDr.pipelineSteps.sectionTitle')}
+            </Typography.Title>
+            {source === 'server_projection' && (
+              <Tag color="success">{t('backupDr.pipelineSteps.sourceBadge.serverProjection')}</Tag>
+            )}
+            {source === 'client_fallback' && (
+              <Tag color="warning">{t('backupDr.pipelineSteps.sourceBadge.clientDerived')}</Tag>
+            )}
+            {source === 'client_fallback_blocked' && (
+              <Tag color="default">{t('backupDr.pipelineSteps.sourceBadge.noProjection')}</Tag>
+            )}
+          </Space>
+          {source === 'client_fallback' && (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={
+                projectionVersionMismatch
+                  ? t('backupDr.pipelineSteps.sourceNotice.projectionVersionMismatch', {
+                      version: (detail?.pipeline ?? latest?.pipeline)?.projectionVersion ?? '—',
+                    })
+                  : t('backupDr.pipelineSteps.sourceNotice.clientDerived')
+              }
+            />
+          )}
+          {source === 'client_fallback_blocked' && (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={
+                projectionVersionMismatch
+                  ? t('backupDr.pipelineSteps.sourceNotice.projectionVersionBlocked')
+                  : t('backupDr.pipelineSteps.sourceNotice.fallbackDisabled')
+              }
+            />
+          )}
           {detailError && (
             <Alert type="warning" showIcon style={{ marginBottom: 12 }} message={t('backupDr.errors.runDetailPartial')} />
           )}

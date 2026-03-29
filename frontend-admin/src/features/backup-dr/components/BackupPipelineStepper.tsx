@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Yedek pipeline adımları: öncelik API `pipeline` snapshot; yoksa derive fallback (sahte yeşil yok).
+ * Yedek pipeline adımları: kaynak `BackupStatusCard` içinde çözülür; sunucu projeksiyonu öncelikli, istemci türetimi yalnızca env ile açıkken.
  */
 
 import React from 'react';

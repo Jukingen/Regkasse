@@ -1,9 +1,13 @@
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Models.Backup;
+using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +36,9 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
     private readonly IPgRestoreListInspector _pgRestoreList;
     private readonly IPgRestoreIsolatedRestoreRunner _isolatedRestore;
     private readonly IFiscalGoLiveValidationRunner _fiscalRunner;
+    private readonly IRestoreVerificationOperationalReadiness _restoreReadiness;
+    private readonly IRestoreVerificationOrchestratorMetrics _orchestratorMetrics;
+    private readonly IBackupAlertPublisher _alerts;
     private readonly ILogger<RestoreVerificationOrchestratorHostedService> _logger;
 
     public RestoreVerificationOrchestratorHostedService(
@@ -44,6 +51,9 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
         IPgRestoreListInspector pgRestoreList,
         IPgRestoreIsolatedRestoreRunner isolatedRestore,
         IFiscalGoLiveValidationRunner fiscalRunner,
+        IRestoreVerificationOperationalReadiness restoreReadiness,
+        IRestoreVerificationOrchestratorMetrics orchestratorMetrics,
+        IBackupAlertPublisher alerts,
         ILogger<RestoreVerificationOrchestratorHostedService> logger)
     {
         _scopeFactory = scopeFactory;
@@ -55,6 +65,9 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
         _pgRestoreList = pgRestoreList;
         _isolatedRestore = isolatedRestore;
         _fiscalRunner = fiscalRunner;
+        _restoreReadiness = restoreReadiness;
+        _orchestratorMetrics = orchestratorMetrics;
+        _alerts = alerts;
         _logger = logger;
     }
 
@@ -98,6 +111,7 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
 
             if (attempt == RestoreVerificationOrchestratorGateAttempt.ConnectionFailed)
             {
+                _orchestratorMetrics.RecordWorkerTickSuppressed("distributed_gate_connection_failed");
                 _logger.LogWarning(
                     "Restore verification orchestrator: distributed gate did not acquire lock (DB/config); tick skipped — queued drills remain pending.");
                 return;
@@ -113,57 +127,175 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
         }
     }
 
-    private async Task TryEnqueueWeeklyIfDueExclusiveBodyAsync(CancellationToken ct)
+    /// <summary>
+    /// Zamanlanmış drill: son başarılı <em>zamanlanmış</em> kanıt (CompletedAt) ve aktif zamanlanmış Queued/Running durumuna göre sıraya alınır.
+    /// </summary>
+    internal async Task TryEnqueueWeeklyIfDueExclusiveBodyAsync(CancellationToken ct)
     {
         var ro = _restoreOpts.CurrentValue;
         if (!ro.ScheduledWeeklyDrillEnabled)
             return;
 
+        var health = _restoreReadiness.GetConfigurationHealth();
+        if (health.Level == RestoreVerificationConfigurationHealthLevel.Unhealthy)
+        {
+            _orchestratorMetrics.RecordScheduledEnqueueSuppressed("unhealthy_configuration");
+            _logger.LogWarning(
+                "Scheduled weekly restore verification enqueue skipped: configuration health is Unhealthy.");
+            return;
+        }
+
         using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var sp = scope.ServiceProvider;
+        var queries = sp.GetRequiredService<IRestoreVerificationSchedulingQueryService>();
 
-        if (await db.RestoreVerificationRuns.AnyAsync(
-                r => r.Status == RestoreVerificationStatus.Queued || r.Status == RestoreVerificationStatus.Running,
-                ct))
+        if (await queries.HasActiveScheduledQueuedOrRunningAsync(ct))
             return;
 
-        var lastScheduled = await db.RestoreVerificationRuns.AsNoTracking()
-            .Where(r => r.TriggerSource == RestoreVerificationTriggerSource.Scheduled)
-            .OrderByDescending(r => r.RequestedAt)
-            .Select(r => r.RequestedAt)
-            .FirstOrDefaultAsync(ct);
+        var lastProofUtc = ro.ManualSuccessSatisfiesScheduledProofCadence
+            ? await queries.GetLastSuccessfulAnyTriggerProofCompletedAtUtcAsync(ct)
+            : await queries.GetLastSuccessfulScheduledProofCompletedAtUtcAsync(ct);
 
-        if (lastScheduled != default && lastScheduled > DateTime.UtcNow.AddDays(-7))
+        var windowStart = DateTime.UtcNow.AddDays(-ro.ScheduledProofCadenceDays);
+        if (lastProofUtc.HasValue && lastProofUtc.Value > windowStart)
             return;
 
+        var db = sp.GetRequiredService<AppDbContext>();
+        var capturedAt = DateTime.UtcNow;
         db.RestoreVerificationRuns.Add(new RestoreVerificationRun
         {
             Status = RestoreVerificationStatus.Queued,
             TriggerSource = RestoreVerificationTriggerSource.Scheduled,
-            RequestedAt = DateTime.UtcNow
+            RequestedAt = capturedAt,
+            ConfigSnapshotJson = OperationalRunConfigSnapshotBuilder.SerializeRestore(
+                ro,
+                "restore_scheduled_enqueue",
+                capturedAt)
         });
         await db.SaveChangesAsync(ct);
         _logger.LogInformation("Enqueued scheduled weekly restore verification drill.");
     }
 
-    private async Task ProcessNextExclusiveBodyAsync(CancellationToken ct)
+    internal async Task ProcessNextExclusiveBodyAsync(CancellationToken ct)
     {
         using var scope = _scopeFactory.CreateScope();
-            var sp = scope.ServiceProvider;
-            var db = sp.GetRequiredService<AppDbContext>();
-            var run = await db.RestoreVerificationRuns
-                .Where(r => r.Status == RestoreVerificationStatus.Queued)
-                .OrderBy(r => r.RequestedAt)
-                .FirstOrDefaultAsync(ct);
+        var sp = scope.ServiceProvider;
+        var db = sp.GetRequiredService<AppDbContext>();
+        var run = await db.RestoreVerificationRuns
+            .Where(r => r.Status == RestoreVerificationStatus.Queued)
+            .OrderBy(r => r.RequestedAt)
+            .FirstOrDefaultAsync(ct);
 
-            if (run == null)
+        if (run == null)
+            return;
+
+        run.Status = RestoreVerificationStatus.Running;
+        run.StartedAt = DateTime.UtcNow;
+        var rvLease = _restoreOpts.CurrentValue;
+        run.ConfigSnapshotJson = OperationalRunConfigSnapshotBuilder.SerializeRestore(
+            rvLease,
+            "restore_run_start",
+            DateTime.UtcNow);
+        RunLeaseHeartbeatHelper.StampInitialLease(run, DateTime.UtcNow, rvLease.RunLeaseTimeout);
+        await db.SaveChangesAsync(ct);
+
+        var runId = run.Id;
+        try
+        {
+            await RunLeaseHeartbeatHelper.RunWithRestoreHeartbeatAsync(
+                _scopeFactory,
+                () => _restoreOpts.CurrentValue.HeartbeatInterval,
+                () => _restoreOpts.CurrentValue.RunLeaseTimeout,
+                runId,
+                () => ExecuteRestoreVerificationRunWorkAsync(sp, db, run, ct),
+                _logger,
+                ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            await using var finalizeScope = _scopeFactory.CreateAsyncScope();
+            var fdb = finalizeScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await RestoreVerificationOrchestratorRunFinalizer.TryFinalizeCancelledAsync(fdb, runId, _logger, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Restore verification orchestrator unhandled exception for run {RunId}", runId);
+            await using var finalizeScope = _scopeFactory.CreateAsyncScope();
+            var fdb = finalizeScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await RestoreVerificationOrchestratorRunFinalizer.TryFinalizeUnhandledExceptionAsync(fdb, runId, ex, _logger, ct);
+        }
+        finally
+        {
+            await TryRecordRestoreVerificationRunMetricsAsync(runId, ct);
+            await TryPublishRestoreVerificationFailureAlertAsync(runId, ct);
+        }
+    }
+
+    private async Task TryRecordRestoreVerificationRunMetricsAsync(Guid runId, CancellationToken ct)
+    {
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var run = await db.RestoreVerificationRuns.AsNoTracking().FirstOrDefaultAsync(r => r.Id == runId, ct);
+            if (run == null || !RestoreVerificationOrchestratorRunFinalizer.IsTerminal(run.Status))
                 return;
 
-            run.Status = RestoreVerificationStatus.Running;
-            run.StartedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync(ct);
+            var start = run.StartedAt ?? run.RequestedAt;
+            var end = run.CompletedAt ?? DateTime.UtcNow;
+            var seconds = Math.Max(0, (end - start).TotalSeconds);
+            _orchestratorMetrics.RecordRestoreVerificationRunCompleted(
+                OperationalRunMetricLabels.FormatRestoreVerificationStatus(run.Status),
+                OperationalRunMetricLabels.RestoreTrigger(run.TriggerSource),
+                seconds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Restore verification lifecycle metrics recording failed for run {RunId}", runId);
+        }
+    }
 
-            var backupOpts = _backupOpts.CurrentValue;
+    private async Task TryPublishRestoreVerificationFailureAlertAsync(Guid runId, CancellationToken ct)
+    {
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var run = await db.RestoreVerificationRuns.AsNoTracking().FirstOrDefaultAsync(r => r.Id == runId, ct);
+            if (run == null
+                || run.Status != RestoreVerificationStatus.Failed
+                || run.StaleRecoveredAtUtc != null)
+                return;
+
+            var data = new Dictionary<string, string>
+            {
+                ["failureCode"] = run.FailureCode ?? "",
+                ["triggerSource"] = OperationalRunMetricLabels.RestoreTrigger(run.TriggerSource)
+            };
+            if (string.Equals(run.FailureCode, "UNHANDLED_EXCEPTION", StringComparison.Ordinal))
+                data["failureStage"] = "unhandled_orchestrator_exception";
+
+            _alerts.Publish(new BackupAlertEvent(
+                BackupAlertKind.RestoreVerificationFailed,
+                run.SourceBackupRunId,
+                run.CorrelationId,
+                run.FailureDetail ?? "Restore verification drill failed.",
+                data,
+                run.Id));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Restore verification failure alert hook failed for run {RunId}", runId);
+        }
+    }
+
+    private async Task ExecuteRestoreVerificationRunWorkAsync(
+        IServiceProvider sp,
+        AppDbContext db,
+        RestoreVerificationRun run,
+        CancellationToken ct)
+    {
+        var backupOpts = _backupOpts.CurrentValue;
             var restoreOpts = _restoreOpts.CurrentValue;
             var details = new JsonObject
             {
@@ -175,17 +307,29 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
                     "When IncludeLiveIntegrityChecks runs against DefaultConnection, it validates current operational data only; post-restore fiscal/schema checks require fiscal script on a restored clone connection."
             };
 
-            var dump = await RestoreVerificationDumpPathResolver.TryResolveLatestSucceededLogicalDumpAsync(
+            var fallbackDepth = restoreOpts.DumpFallbackDepth;
+            var backupRunQuery = sp.GetRequiredService<IBackupRunQueryService>();
+            var candidateRunIds = await backupRunQuery.GetRecentSucceededRunIdsAsync(fallbackDepth, ct);
+            var dump = await RestoreVerificationDumpPathResolver.TryResolveAmongSucceededCandidatesAsync(
                 db,
                 backupOpts,
+                candidateRunIds,
+                _logger,
                 ct);
 
             if (dump == null)
             {
+                details["dumpResolution"] = JsonSerializer.SerializeToNode(new
+                {
+                    outcome = "no_dump_available",
+                    fallbackDepth,
+                    candidateRunCount = candidateRunIds.Count
+                });
                 run.Status = RestoreVerificationStatus.Failed;
                 run.CompletedAt = DateTime.UtcNow;
                 run.FailureCode = "NO_DUMP_AVAILABLE";
-                run.FailureDetail = "No succeeded backup logical dump found on disk (staging or external archive).";
+                run.FailureDetail =
+                    $"No logical dump file found on disk for the {fallbackDepth} most recent successful backup run(s) (checked staging, then external archive per run).";
                 run.DetailsJson = details.ToJsonString();
                 await db.SaveChangesAsync(ct);
                 return;

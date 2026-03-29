@@ -13605,6 +13605,25 @@
         }
       }
     },
+    "/api/admin/backup/recoverability-summary": {
+      "get": {
+        "tags": [
+          "AdminBackup"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupRecoverabilitySummaryResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/backup/trigger": {
       "post": {
         "tags": [
@@ -13745,16 +13764,29 @@
         "tags": [
           "AdminRestoreVerification"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreVerificationManualTriggerRequestDto"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "202": {
             "description": "Accepted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RestoreVerificationRunResponseDto"
+                  "$ref": "#/components/schemas/RestoreVerificationTriggerResponseDto"
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request"
           }
         }
       }
@@ -24465,6 +24497,10 @@
             "items": {
               "$ref": "#/components/schemas/BackupVerificationResponseDto"
             }
+          },
+          "configSnapshotJson": {
+            "type": "string",
+            "nullable": true
           }
         }
       },
@@ -24700,6 +24736,82 @@
           }
         }
       },
+      "BackupRecoverabilitySummaryResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "lastSuccessfulBackupAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastSuccessfulBackupRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "lastSuccessfulArtifactVerificationAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastSuccessfulRestoreProofAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastSuccessfulRestoreProofRunId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "backupProofAgeSeconds": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "restoreProofAgeSeconds": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "latestRunAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "latestRunStatus": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "enum": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "latestRestoreRunAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "latestRestoreRunStatus": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      },
       "BackupLatestStatusResponseDto": {
         "type": "object",
         "additionalProperties": false,
@@ -24720,6 +24832,48 @@
           },
           "artifactPipelinePolicy": {
             "$ref": "#/components/schemas/BackupArtifactPipelinePolicyResponseDto"
+          }
+        }
+      },
+      "RestoreVerificationManualTriggerRequestDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "idempotencyKey": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 200
+          }
+        }
+      },
+      "RestoreVerificationTriggerOrchestrationState": {
+        "type": "integer",
+        "format": "int32",
+        "enum": [
+          0,
+          1,
+          2
+        ]
+      },
+      "RestoreVerificationTriggerResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orchestrationState": {
+            "$ref": "#/components/schemas/RestoreVerificationTriggerOrchestrationState"
+          },
+          "newQueuedRunCreated": {
+            "type": "boolean"
+          },
+          "existingRunReturned": {
+            "type": "boolean"
+          },
+          "run": {
+            "$ref": "#/components/schemas/RestoreVerificationRunResponseDto"
           }
         }
       },
@@ -24847,7 +25001,15 @@
             "type": "string",
             "nullable": true
           },
+          "idempotencyKey": {
+            "type": "string",
+            "nullable": true
+          },
           "detailsJson": {
+            "type": "string",
+            "nullable": true
+          },
+          "configSnapshotJson": {
             "type": "string",
             "nullable": true
           }

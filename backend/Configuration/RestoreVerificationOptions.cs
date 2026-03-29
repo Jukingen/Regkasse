@@ -23,8 +23,20 @@ public sealed class RestoreVerificationOptions
     /// <summary>İkinci advisory key (çiftin tamamı Backup ile çakışmamalı).</summary>
     public int OrchestratorAdvisoryLockKey2 { get; set; } = 1;
 
-    /// <summary>When true, enqueue a drill if no successful scheduled run in the last 7 days (worker tick).</summary>
+    /// <summary>When true, enqueue a scheduled drill when cadence is not satisfied (worker tick, advisory lock body).</summary>
     public bool ScheduledWeeklyDrillEnabled { get; set; }
+
+    /// <summary>
+    /// Minimum time after a successful proof before another scheduled drill is enqueued.
+    /// Proof timestamp is <c>CompletedAt</c> for terminal success, not <c>RequestedAt</c>.
+    /// </summary>
+    public int ScheduledProofCadenceDays { get; set; } = 7;
+
+    /// <summary>
+    /// When false (default), only scheduled trigger successes count toward cadence.
+    /// When true, manual successes also satisfy the scheduled proof requirement.
+    /// </summary>
+    public bool ManualSuccessSatisfiesScheduledProofCadence { get; set; }
 
     /// <summary>Optional connection string name for <c>fiscal_go_live_validation.sql</c>. Must not be DefaultConnection in Production.</summary>
     public string? FiscalValidationConnectionStringName { get; set; }
@@ -51,4 +63,23 @@ public sealed class RestoreVerificationOptions
     public bool IncludeLiveIntegrityChecks { get; set; } = true;
 
     public int IntegrityLookbackDays { get; set; } = 30;
+
+    /// <summary>Restore drill worker lease süresi.</summary>
+    public TimeSpan RunLeaseTimeout { get; set; } = TimeSpan.FromMinutes(30);
+
+    /// <summary>Lease / heartbeat yenileme aralığı.</summary>
+    public TimeSpan HeartbeatInterval { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>Stale run reaper tarama aralığı.</summary>
+    public TimeSpan StaleRecoveryScanInterval { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// Restore drill satırında lease kolonu null ise <see cref="RunLeaseTimeout"/> × çarpan sonrası reaper terminal yapar.
+    /// </summary>
+    public double StaleRecoveryNullLeaseGraceMultiplier { get; set; } = 2.0;
+
+    /// <summary>
+    /// Restore drill dump seçimi: en yeni başarılı yedekten geriye doğru en fazla bu kadar çalıştırma disk üzerinde aranır (staging, sonra harici arşiv).
+    /// </summary>
+    public int DumpFallbackDepth { get; set; } = 5;
 }

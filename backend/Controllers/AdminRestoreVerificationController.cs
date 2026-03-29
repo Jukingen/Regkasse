@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
@@ -44,15 +45,23 @@ public sealed class AdminRestoreVerificationController : ControllerBase
     /// <summary>Enqueue a restore drill (logical dump pg_restore --list + optional fiscal SQL + optional live integrity).</summary>
     [HttpPost("trigger")]
     [HasPermission(AppPermissions.SettingsManage)]
-    [ProducesResponseType(typeof(RestoreVerificationRunResponseDto), 202)]
-    public async Task<ActionResult<RestoreVerificationRunResponseDto>> Trigger(
+    [ProducesResponseType(typeof(RestoreVerificationTriggerResponseDto), 202)]
+    public async Task<ActionResult<RestoreVerificationTriggerResponseDto>> Trigger(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RestoreVerificationManualTriggerRequestDto? body,
         CancellationToken cancellationToken)
     {
         var userId = User.GetActorUserId();
         var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
-        var run = await _trigger.EnqueueManualAsync(userId, correlationId, cancellationToken);
-        var dto = RestoreVerificationRunMapper.ToDto(run);
-        return AcceptedAtAction(nameof(GetById), new { id = run.Id }, dto);
+        try
+        {
+            var result = await _trigger.EnqueueManualAsync(userId, correlationId, body?.IdempotencyKey, cancellationToken);
+            var dto = RestoreVerificationRunMapper.ToTriggerResponseDto(result);
+            return AcceptedAtAction(nameof(GetById), new { id = result.Run.Id }, dto);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpGet("runs/latest")]
