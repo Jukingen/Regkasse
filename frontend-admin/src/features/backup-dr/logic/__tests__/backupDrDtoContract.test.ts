@@ -3,6 +3,7 @@ import type {
   BackupArtifactPipelinePolicyResponseDto,
   BackupArtifactResponseDto,
   BackupRunResponseDto,
+  BackupTriggerResponseDto,
   BackupVerificationResponseDto,
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
@@ -48,6 +49,15 @@ describe('backup-dr Orval DTO field allowlist', () => {
       completedAt: true,
     };
     expect(Object.keys(_).length).toBe(4);
+  });
+
+  it('backup trigger outcome reads only BackupTriggerResponseDto keys (plus Run when needed elsewhere)', () => {
+    const _: Partial<Record<keyof BackupTriggerResponseDto, true>> = {
+      duplicateExecutionPrevented: true,
+      newQueuedRunCreated: true,
+      orchestrationState: true,
+    };
+    expect(Object.keys(_).length).toBe(3);
   });
 
   it('restore drill mappers use only RestoreVerificationRunResponseDto keys', () => {

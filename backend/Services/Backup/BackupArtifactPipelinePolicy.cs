@@ -22,8 +22,14 @@ public static class BackupArtifactPipelinePolicyEvaluator
     /// <summary>
     /// Admin / operasyon yüzeyi: config ile artifact pipeline beklentisini özetler (son run sonucu değil).
     /// </summary>
-    public static BackupArtifactPipelinePolicySnapshot Evaluate(BackupOptions options, IHostEnvironment environment)
+    /// <param name="externalArchiveBackend">Kayıtlı arşiv arka ucu; null ise filesystem varsayımı.</param>
+    public static BackupArtifactPipelinePolicySnapshot Evaluate(
+        BackupOptions options,
+        IHostEnvironment environment,
+        BackupExternalArchiveBackendDescriptor? externalArchiveBackend = null)
     {
+        var backend = externalArchiveBackend ?? BackupExternalArchiveBackendDescriptors.AssumedWhenCallerOmitsRegistration;
+
         var dev = environment.IsDevelopment();
         var pg = options.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump;
         var extConfigured = !string.IsNullOrWhiteSpace(options.ExternalArchiveRoot);
@@ -70,6 +76,15 @@ public static class BackupArtifactPipelinePolicyEvaluator
                 $"Retention policy: mode={options.RetentionPolicyMode}, ArtifactRetentionDays={options.ArtifactRetentionDays.Value}, executableStatus={readiness.ExecutableStatus} (API does not delete artifacts; Backup:RetentionArtifactDeletionEnabled must remain false).");
         }
 
+        if (pg && extConfigured)
+        {
+            lines.Add(
+                $"External archive backend registration: {backend.BackendKind}; applicationEnforcesStorageImmutability={backend.ApplicationEnforcesStorageImmutability}; objectStorageImmutabilityImplemented={backend.ObjectStorageImmutabilityBackendImplemented}.");
+            if (!backend.ObjectStorageImmutabilityBackendImplemented)
+                lines.Add(
+                    "Archive limitation: no first-class object-storage/WORM archive provider is registered — configuration immutability flags remain operator attestation relative to storage reality.");
+        }
+
         return new BackupArtifactPipelinePolicySnapshot
         {
             ExternalArchiveRequirement = requirement,
@@ -78,7 +93,11 @@ public static class BackupArtifactPipelinePolicyEvaluator
             WillRunExternalArchiveAfterStagingVerificationWhenEligible = willRunExternal,
             StagingOnDiskHashReverificationExpected = stagingVerifyExpected,
             EffectiveAdapterKind = options.ExecutionAdapterKind,
-            OperatorNotes = lines
+            OperatorNotes = lines,
+            RegisteredExternalArchiveBackendKind = backend.BackendKind,
+            ExternalArchiveImmutabilityEnforcement = backend.ImmutabilityEnforcement.ToString(),
+            ApplicationEnforcesExternalArchiveImmutability = backend.ApplicationEnforcesStorageImmutability,
+            ObjectStorageImmutabilityBackendImplemented = backend.ObjectStorageImmutabilityBackendImplemented
         };
     }
 }
@@ -113,4 +132,14 @@ public sealed class BackupArtifactPipelinePolicySnapshot
     public BackupExecutionAdapterKind EffectiveAdapterKind { get; init; }
 
     public IReadOnlyList<string> OperatorNotes { get; init; } = Array.Empty<string>();
+
+    /// <summary>Kayıtlı <see cref="IBackupArtifactExternalArchive"/> türü (ör. Filesystem).</summary>
+    public string RegisteredExternalArchiveBackendKind { get; init; } = string.Empty;
+
+    /// <summary><see cref="BackupExternalArchiveImmutabilityEnforcementKind"/> adı.</summary>
+    public string ExternalArchiveImmutabilityEnforcement { get; init; } = string.Empty;
+
+    public bool ApplicationEnforcesExternalArchiveImmutability { get; init; }
+
+    public bool ObjectStorageImmutabilityBackendImplemented { get; init; }
 }

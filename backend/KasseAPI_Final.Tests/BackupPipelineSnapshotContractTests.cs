@@ -126,7 +126,12 @@ public sealed class BackupPipelineSnapshotContractTests
             WillRunExternalArchiveAfterStagingVerificationWhenEligible = true,
             StagingOnDiskHashReverificationExpected = false,
             EffectiveAdapterKind = BackupExecutionAdapterKind.PgDump,
-            OperatorNotes = Array.Empty<string>()
+            OperatorNotes = Array.Empty<string>(),
+            RegisteredExternalArchiveBackendKind = "Filesystem",
+            ExternalArchiveImmutabilityEnforcement =
+                BackupExternalArchiveImmutabilityEnforcementKind.NotEnforcedByApplication.ToString(),
+            ApplicationEnforcesExternalArchiveImmutability = false,
+            ObjectStorageImmutabilityBackendImplemented = false
         };
 
         var p = BackupPipelineProjector.Project(run, policy, true);

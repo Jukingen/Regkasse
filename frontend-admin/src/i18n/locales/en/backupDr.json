@@ -130,7 +130,11 @@
   },
   "manual": {
     "title": "Manual actions (enqueue only)",
-    "hint": "Jobs are queued asynchronously via the API — no instant result and no browser download."
+    "hint": "Jobs are queued asynchronously via the API — no instant result and no browser download.",
+    "confirmBackupTitle": "Enqueue backup?",
+    "confirmBackupDescription": "This calls the admin backup API to queue a new run on the server worker. It is not a download and does not prove restore.",
+    "confirmBackupOk": "Enqueue",
+    "confirmBackupCancel": "Cancel"
   },
   "triState": {
     "ok": "OK",
@@ -155,6 +159,7 @@
     "title": "Latest backup run",
     "none": "No backup run recorded yet.",
     "orchestrationHint": "“Queued” means only enqueued — not a completed backup.",
+    "distinctFromRecoverability": "This section shows the latest backup run state from the API. It is not the same as “last known good” recoverability evidence in the card above.",
     "id": "Run ID",
     "adapter": "Adapter",
     "requested": "Requested",
@@ -257,8 +262,11 @@
     "3": "External failed"
   },
   "messages": {
-    "backupEnqueued": "Backup enqueued — execution is asynchronous.",
-    "backupDuplicate": "No new run: duplicate or active manual run prevented.",
+    "backupNewQueued": "A new backup run was queued — the worker will execute it asynchronously.",
+    "backupDuplicateActive": "No new run was created: an active manual backup is already in progress or a duplicate was prevented.",
+    "backupIdempotentReplay": "Existing backup run returned (idempotent replay — same logical request).",
+    "backupTriggerAmbiguous": "Unexpected trigger response from the server; refresh the page and check recent runs.",
+    "orchestrationStateSuffix": "({{state}})",
     "restoreDrillEnqueued": "Restore drill enqueued — results appear after the worker runs.",
     "restoreDrillExistingActive": "No new run: a restore drill is already queued or running.",
     "restoreDrillIdempotent": "Same idempotency key: returning the existing restore verification run.",
@@ -266,10 +274,16 @@
   },
   "errors": {
     "loadFailed": "Could not load data.",
+    "recoverabilityLoadFailed": "Recoverability summary could not be loaded.",
     "partialTable": "Backup history failed to load — table may be incomplete.",
     "partialTableRestore": "Restore drill history failed to load.",
     "runDetailPartial": "Run details (artifacts) failed to load — pipeline steps may be incomplete.",
-    "forbiddenTrigger": "You do not have permission for this action (API 403)."
+    "forbiddenTrigger": "You do not have permission for this action (API 403).",
+    "unauthorizedTrigger": "Not authenticated for this action (API 401).",
+    "conflictTrigger": "Request conflict — the server rejected the trigger (API 409).",
+    "validationTrigger": "Invalid trigger request (API 422).",
+    "serverTrigger": "Server error while enqueueing backup (5xx). Try again later.",
+    "triggerFailed": "Could not enqueue backup. Check your connection and permissions."
   },
   "table": {
     "requestedAt": "Requested",

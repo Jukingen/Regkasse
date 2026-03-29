@@ -135,4 +135,29 @@ public sealed class BackupArtifactPipelinePolicyEvaluatorTests
         var snap = BackupArtifactPipelinePolicyEvaluator.Evaluate(opts, env.Object);
         Assert.Contains(snap.OperatorNotes, n => n.Contains("disposition", StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact]
+    public void Evaluate_pgDump_with_external_root_exposes_registered_backend_metadata()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+        var opts = new BackupOptions
+        {
+            ExecutionAdapterKind = BackupExecutionAdapterKind.PgDump,
+            ExternalArchiveRoot = "/var/archive",
+            VerifyLogicalDumpFileOnDisk = true,
+            ArtifactStagingRoot = "/var/staging"
+        };
+
+        var snap = BackupArtifactPipelinePolicyEvaluator.Evaluate(
+            opts,
+            env.Object,
+            BackupExternalArchiveBackendDescriptors.Filesystem);
+
+        Assert.Equal("Filesystem", snap.RegisteredExternalArchiveBackendKind);
+        Assert.False(snap.ApplicationEnforcesExternalArchiveImmutability);
+        Assert.False(snap.ObjectStorageImmutabilityBackendImplemented);
+        Assert.Contains(snap.OperatorNotes, n => n.Contains("External archive backend registration", StringComparison.Ordinal));
+        Assert.Contains(snap.OperatorNotes, n => n.Contains("object-storage", StringComparison.OrdinalIgnoreCase));
+    }
 }

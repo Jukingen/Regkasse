@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Card, Descriptions, Spin, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Descriptions, Spin, Tag, Typography } from 'antd';
 import type { BackupRecoverabilitySummaryResponseDto } from '@/api/generated/model';
 import {
   mapBackupRunStatusAntdColor,
@@ -15,6 +15,8 @@ import {
 export interface RecoverabilitySummaryCardProps {
   summary: BackupRecoverabilitySummaryResponseDto | undefined;
   loading: boolean;
+  queryError?: boolean;
+  onRetry?: () => void;
   formatDt: (iso: string | undefined | null, locale: string) => string;
   formatLocale: string;
   backupStatusLabel: (status: number | undefined, t: (k: string) => string) => string;
@@ -30,6 +32,8 @@ function formatAgeSeconds(sec: number | null | undefined): string {
 export function RecoverabilitySummaryCard({
   summary,
   loading,
+  queryError = false,
+  onRetry,
   formatDt,
   formatLocale,
   backupStatusLabel,
@@ -41,6 +45,21 @@ export function RecoverabilitySummaryCard({
       <Typography.Paragraph type="secondary" style={{ marginTop: 0, marginBottom: 12 }}>
         {t('backupDr.recoverability.subtitle')}
       </Typography.Paragraph>
+      {queryError ? (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={t('backupDr.errors.recoverabilityLoadFailed')}
+          action={
+            onRetry ? (
+              <Button size="small" onClick={onRetry}>
+                {t('backupDr.actions.refresh')}
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : null}
       {loading && !summary ? (
         <Spin />
       ) : !summary ? (

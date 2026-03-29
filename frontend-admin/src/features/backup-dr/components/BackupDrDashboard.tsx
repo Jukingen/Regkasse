@@ -42,6 +42,7 @@ import {
   mapRestoreVerificationStatusAntdColor,
   normalizeHealthLevelString,
 } from '@/features/backup-dr/logic/backupDrMappers';
+import { describeBackupTriggerOutcome } from '@/features/backup-dr/logic/backupTriggerOutcome';
 import { BackupStatusCard } from '@/features/backup-dr/components/BackupStatusCard';
 import { HealthBanner } from '@/features/backup-dr/components/HealthBanner';
 import { ManualActionsPanel, type ManualActionsPanelProps } from '@/features/backup-dr/components/ManualActionsPanel';
@@ -92,8 +93,15 @@ function lockHintIssues(issues: string[] | undefined): string[] {
 }
 
 function triggerErrorMessage(err: unknown, t: (k: string) => string): string {
-  if (axios.isAxiosError(err) && err.response?.status === 403) return t('backupDr.errors.forbiddenTrigger');
-  return t('backupDr.errors.loadFailed');
+  if (axios.isAxiosError(err)) {
+    const s = err.response?.status;
+    if (s === 403) return t('backupDr.errors.forbiddenTrigger');
+    if (s === 401) return t('backupDr.errors.unauthorizedTrigger');
+    if (s === 409) return t('backupDr.errors.conflictTrigger');
+    if (s === 422) return t('backupDr.errors.validationTrigger');
+    if (s !== undefined && s >= 500) return t('backupDr.errors.serverTrigger');
+  }
+  return t('backupDr.errors.triggerFailed');
 }
 
 export function BackupDrDashboard() {
@@ -158,10 +166,13 @@ export function BackupDrDashboard() {
   const backupTrigger = usePostApiAdminBackupTrigger({
     mutation: {
       onSuccess: async (res) => {
-        if (res.duplicateExecutionPrevented) message.info(t('backupDr.messages.backupDuplicate'));
-        else message.success(t('backupDr.messages.backupEnqueued'));
-        if (res.orchestrationState)
-          message.info(t('backupDr.messages.orchestration', { state: res.orchestrationState }));
+        const fb = describeBackupTriggerOutcome(res);
+        const suffix = res.orchestrationState?.trim()
+          ? ` ${t('backupDr.messages.orchestrationStateSuffix', { state: res.orchestrationState })}`
+          : '';
+        const text = `${t(fb.messageKey)}${suffix}`;
+        if (fb.level === 'success') message.success(text);
+        else message.info(text);
         await queryClient.invalidateQueries({ queryKey: ['/api/admin/backup'] });
         await queryClient.invalidateQueries({ queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey() });
         await invalidateReadiness();
@@ -501,6 +512,8 @@ export function BackupDrDashboard() {
           <RecoverabilitySummaryCard
             summary={recoverabilityQuery.data}
             loading={recoverabilityQuery.isLoading}
+            queryError={recoverabilityQuery.isError}
+            onRetry={() => void recoverabilityQuery.refetch()}
             formatDt={formatDt}
             formatLocale={formatLocale}
             backupStatusLabel={backupStatusLabel}
@@ -521,6 +534,7 @@ export function BackupDrDashboard() {
                 backupStatusTagColor={mapBackupRunStatusAntdColor}
                 backupStatusLabel={backupStatusLabel}
                 allowClientPipelineFallback={allowClientPipelineFallback}
+                showLatestRunVsRecoverabilityHint
                 t={t}
               />
             </Col>

@@ -93,6 +93,17 @@ public sealed class BackupRun : KasseAPI_Final.Models.IRunLeaseColumns
     [Column("last_recorded_terminal_failure_code")]
     public string? LastRecordedTerminalFailureCode { get; set; }
 
+    /// <summary>
+    /// Bekleyen otomatik requeue için sınıflandırılmış neden (İngilizce sabit; BackupFailureRetryClassifier).
+    /// </summary>
+    [MaxLength(80)]
+    [Column("automatic_retry_pending_classified_reason")]
+    public string? AutomaticRetryPendingClassifiedReason { get; set; }
+
+    /// <summary><see cref="NextRetryAtUtc"/> son ayarlandığında UTC (operatör gözlemi).</summary>
+    [Column("automatic_retry_last_scheduled_at_utc")]
+    public DateTime? AutomaticRetryLastScheduledAtUtc { get; set; }
+
     public ICollection<BackupArtifact> Artifacts { get; set; } = new List<BackupArtifact>();
 
     public ICollection<BackupVerification> Verifications { get; set; } = new List<BackupVerification>();

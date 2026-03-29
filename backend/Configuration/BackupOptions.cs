@@ -79,7 +79,8 @@ public sealed class BackupOptions
     public bool RequireExternalArchiveImmutableTarget { get; set; }
 
     /// <summary>
-    /// Harici arşiv hedefinin (S3 Object Lock, WORM NAS vb.) operatör onayı; kod düzeyinde kilidi doğrulamaz.
+    /// Harici arşiv hedefinin (S3 Object Lock, WORM NAS vb.) operatör onayı.
+    /// Kayıtlı harici arşiv arka ucu (şimdilik filesystem tabanlı) WORM/object-lock’u uygulama içinde doğrulamaz; admin readiness yanıtları beyan ile depolama gerçekliğini ayırır.
     /// </summary>
     public bool ExternalArchiveImmutabilityAcknowledged { get; set; }
 
@@ -149,14 +150,19 @@ public sealed class BackupOptions
     /// </summary>
     public double StaleRecoveryNullLeaseGraceMultiplier { get; set; } = 2.0;
 
-    /// <summary>0 = otomatik yeniden kuyruk kapalı. Her artış, başarısız denemeden sonra bir otomatik requeue hakkı.</summary>
-    public int AutomaticRetryMaxAttempts { get; set; }
+    /// <summary>
+    /// Otomatik requeue üst sınırı (başarısızlık başına planlanabilir tur sayısı; 0 = kapalı).
+    /// Varsayılan 3 — gözetimsiz işletim için geçici hatalarda sınırlı yeniden deneme.
+    /// </summary>
+    public int AutomaticRetryMaxAttempts { get; set; } = 3;
 
     /// <summary>İlk yeniden deneme için taban gecikme; sonrakiler için üstel çarpan (üst sınır 24 saat).</summary>
     public TimeSpan AutomaticRetryInitialDelay { get; set; } = TimeSpan.FromMinutes(1);
 
     /// <summary>
-    /// false iken <c>VERIFICATION_FAILED</c> otomatik tekrarlanmaz (bütünlük uyuşmazlığı). true iken requeue öncesi artefakt/doğrulama satırları silinir.
+    /// false iken yalnızca <c>FailureCode=VERIFICATION_FAILED</c> (metadata/bütünlük) otomatik tekrarlanmaz.
+    /// <c>VERIFICATION_WORKER_LOST</c> (stale reaper) bu bayrağa bağlı değildir — altyapı kaybı ayrı sınıftır.
+    /// true iken requeue öncesi artefakt/doğrulama satırları silinir.
     /// </summary>
     public bool AllowAutomaticRetryAfterVerificationIntegrityFailure { get; set; }
 }

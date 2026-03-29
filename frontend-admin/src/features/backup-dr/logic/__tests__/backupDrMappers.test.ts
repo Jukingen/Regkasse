@@ -39,15 +39,15 @@ describe('mapConfigurationHealthLevel / configurationHealthSummaryI18nKey', () =
 });
 
 describe('mapBackupRunStatusAntdColor (recent runs)', () => {
-  it('maps queued/running/await/success/fail/verify-fail/cancelled', () => {
-    expect(mapBackupRunStatusAntdColor(0)).toBe('processing');
+  it('maps queued/running/await/success/fail/verify-fail/cancelled distinctly', () => {
+    expect(mapBackupRunStatusAntdColor(0)).toBe('default');
     expect(mapBackupRunStatusAntdColor(1)).toBe('processing');
-    expect(mapBackupRunStatusAntdColor(2)).toBe('processing');
+    expect(mapBackupRunStatusAntdColor(2)).toBe('warning');
     expect(mapBackupRunStatusAntdColor(3)).toBe('success');
     expect(mapBackupRunStatusAntdColor(4)).toBe('error');
     expect(mapBackupRunStatusAntdColor(5)).toBe('error');
     expect(mapBackupRunStatusAntdColor(6)).toBe('default');
-    expect(mapBackupRunStatusAntdColor(undefined)).toBe('processing');
+    expect(mapBackupRunStatusAntdColor(undefined)).toBe('default');
   });
 });
 

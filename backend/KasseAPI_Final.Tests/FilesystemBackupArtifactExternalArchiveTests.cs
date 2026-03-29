@@ -8,6 +8,22 @@ namespace KasseAPI_Final.Tests;
 public sealed class FilesystemBackupArtifactExternalArchiveTests
 {
     [Fact]
+    public void BackendDescriptor_documents_filesystem_limits_and_no_app_enforced_immutability()
+    {
+        var checksum = new BackupChecksumService();
+        var archiveSvc = new FilesystemBackupArtifactExternalArchive(
+            checksum,
+            NullLogger<FilesystemBackupArtifactExternalArchive>.Instance);
+
+        var d = archiveSvc.BackendDescriptor;
+        Assert.Equal("Filesystem", d.BackendKind);
+        Assert.False(d.ApplicationEnforcesStorageImmutability);
+        Assert.False(d.ObjectStorageImmutabilityBackendImplemented);
+        Assert.Equal(BackupExternalArchiveImmutabilityEnforcementKind.NotEnforcedByApplication, d.ImmutabilityEnforcement);
+        Assert.Contains("SHA-256", d.CapabilitySummaryEnglish, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task CopyStagingArtifactsAsync_copies_and_post_copy_hash_matches()
     {
         var staging = Path.Combine(Path.GetTempPath(), "regkasse_staging_" + Guid.NewGuid().ToString("N"));

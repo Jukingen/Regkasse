@@ -6,7 +6,8 @@ public static class BackupTriggerResponseFactory
 {
     public static BackupTriggerResponseDto Create(
         BackupManualTriggerOutcome outcome,
-        BackupArtifactPipelinePolicySnapshot? pipelinePolicy = null)
+        BackupArtifactPipelinePolicySnapshot? pipelinePolicy = null,
+        int? automaticRetryMaxAttemptsBudget = null)
     {
         var (state, newQueued, duplicatePrevented) = outcome.Kind switch
         {
@@ -23,7 +24,8 @@ public static class BackupTriggerResponseFactory
                 includeChildren: false,
                 duplicateExecutionPreventedOverride: duplicatePrevented ? true : null,
                 pipelinePolicy: pipelinePolicy,
-                materializedChildren: false),
+                materializedChildren: false,
+                automaticRetryMaxAttemptsBudget: automaticRetryMaxAttemptsBudget),
             DuplicateExecutionPrevented = duplicatePrevented,
             NewQueuedRunCreated = newQueued,
             OrchestrationState = state

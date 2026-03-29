@@ -39,7 +39,7 @@ public sealed class StaleRunReaperTests
         db.BackupRuns.Add(run);
         await db.SaveChangesAsync();
 
-        await StaleRunReaper.RecoverStaleRunsAsync(
+        var recovered = await StaleRunReaper.RecoverStaleRunsAsync(
             db,
             DateTime.UtcNow,
             DefaultLeaseOpts(),
@@ -48,8 +48,11 @@ public sealed class StaleRunReaperTests
         await db.Entry(run).ReloadAsync();
         Assert.Equal(BackupRunStatus.Failed, run.Status);
         Assert.Equal(StaleRunRecoveryCodes.WorkerLost, run.FailureCode);
+        Assert.Equal(StaleRunRecoveryCodes.WorkerLost, run.LastRecordedTerminalFailureCode);
         Assert.NotNull(run.StaleRecoveredAtUtc);
         Assert.Equal(StaleRunRecoveryCodes.StaleRecoveryReasonRunning, run.StaleRecoveryReason);
+        Assert.Single(recovered);
+        Assert.Equal(run.Id, recovered[0]);
     }
 
     [Fact]
@@ -79,6 +82,7 @@ public sealed class StaleRunReaperTests
 
         await db.Entry(run).ReloadAsync();
         Assert.Equal(BackupRunStatus.Failed, run.Status);
+        Assert.Equal(StaleRunRecoveryCodes.WorkerLost, run.LastRecordedTerminalFailureCode);
         Assert.Equal(StaleRunRecoveryCodes.StaleRecoveryReasonNullLeaseRunning, run.StaleRecoveryReason);
     }
 
@@ -147,6 +151,7 @@ public sealed class StaleRunReaperTests
         await db.Entry(v).ReloadAsync();
         Assert.Equal(BackupRunStatus.VerificationFailed, run.Status);
         Assert.Equal(StaleRunRecoveryCodes.VerificationWorkerLost, run.FailureCode);
+        Assert.Equal(StaleRunRecoveryCodes.VerificationWorkerLost, run.LastRecordedTerminalFailureCode);
         Assert.Equal(BackupVerificationStatus.Failed, v.Status);
         Assert.NotNull(v.CompletedAt);
     }

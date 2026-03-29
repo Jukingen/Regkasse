@@ -2,6 +2,7 @@ using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
+using KasseAPI_Final.Services.Backup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +13,8 @@ namespace KasseAPI_Final.Services.OperationalRuns;
 /// </summary>
 public static class StaleRunReaper
 {
-    public static async Task RecoverStaleRunsAsync(
+    /// <summary>Stale sonrası otomatik retry planlaması için kurtarılan backup run kimlikleri.</summary>
+    public static async Task<IReadOnlyList<Guid>> RecoverStaleRunsAsync(
         AppDbContext db,
         DateTime utcNow,
         StaleRunReaperLeaseOptions leaseOptions,
@@ -27,12 +29,16 @@ public static class StaleRunReaper
             leaseOptions.RestoreRunLeaseTimeout,
             leaseOptions.RestoreNullLeaseGraceMultiplier);
 
-        await RecoverStaleBackupRunsRunningAsync(db, utcNow, backupGrace, logger, observer, cancellationToken)
-            .ConfigureAwait(false);
-        await RecoverStaleBackupRunsAwaitingVerificationAsync(db, utcNow, backupGrace, logger, observer, cancellationToken)
-            .ConfigureAwait(false);
+        var recoveredBackupIds = new List<Guid>();
+        recoveredBackupIds.AddRange(
+            await RecoverStaleBackupRunsRunningAsync(db, utcNow, backupGrace, logger, observer, cancellationToken)
+                .ConfigureAwait(false));
+        recoveredBackupIds.AddRange(
+            await RecoverStaleBackupRunsAwaitingVerificationAsync(db, utcNow, backupGrace, logger, observer, cancellationToken)
+                .ConfigureAwait(false));
         await RecoverStaleRestoreRunsAsync(db, utcNow, restoreGrace, logger, observer, cancellationToken)
             .ConfigureAwait(false);
+        return recoveredBackupIds;
     }
 
     private static TimeSpan ScaleLeaseGrace(TimeSpan runLeaseTimeout, double multiplier)
@@ -43,7 +49,7 @@ public static class StaleRunReaper
         return TimeSpan.FromMilliseconds(ms);
     }
 
-    private static async Task RecoverStaleBackupRunsRunningAsync(
+    private static async Task<List<Guid>> RecoverStaleBackupRunsRunningAsync(
         AppDbContext db,
         DateTime utcNow,
         TimeSpan nullLeaseGrace,
@@ -64,7 +70,7 @@ public static class StaleRunReaper
             .ConfigureAwait(false);
 
         if (rows.Count == 0)
-            return;
+            return [];
 
         foreach (var r in rows)
         {
@@ -79,6 +85,7 @@ public static class StaleRunReaper
             r.StaleRecoveryReason = nullLease
                 ? StaleRunRecoveryCodes.StaleRecoveryReasonNullLeaseRunning
                 : StaleRunRecoveryCodes.StaleRecoveryReasonRunning;
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(r);
         }
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -90,9 +97,11 @@ public static class StaleRunReaper
             foreach (var r in rows)
                 observer.OnStaleBackupRunRecovered(r.Id, "running");
         }
+
+        return rows.Select(r => r.Id).ToList();
     }
 
-    private static async Task RecoverStaleBackupRunsAwaitingVerificationAsync(
+    private static async Task<List<Guid>> RecoverStaleBackupRunsAwaitingVerificationAsync(
         AppDbContext db,
         DateTime utcNow,
         TimeSpan nullLeaseGrace,
@@ -113,7 +122,7 @@ public static class StaleRunReaper
             .ConfigureAwait(false);
 
         if (runs.Count == 0)
-            return;
+            return [];
 
         var ids = runs.Select(r => r.Id).ToList();
         var pendingJson = JsonSerializer.Serialize(new { error = "stale_lease_awaiting_verification" });
@@ -146,6 +155,7 @@ public static class StaleRunReaper
             r.StaleRecoveryReason = nullLease
                 ? StaleRunRecoveryCodes.StaleRecoveryReasonNullLeaseAwaitingVerification
                 : StaleRunRecoveryCodes.StaleRecoveryReasonAwaitingVerification;
+            BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(r);
         }
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -157,6 +167,8 @@ public static class StaleRunReaper
             foreach (var r in runs)
                 observer.OnStaleBackupRunRecovered(r.Id, "awaiting_verification");
         }
+
+        return ids;
     }
 
     private static async Task RecoverStaleRestoreRunsAsync(

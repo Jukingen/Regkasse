@@ -1,10 +1,12 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.Backup;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -23,19 +25,22 @@ public sealed class AdminBackupController : ControllerBase
     private readonly IBackupRecoverabilitySummaryService _recoverabilitySummary;
     private readonly IRestoreOrchestrationBoundary _restore;
     private readonly IBackupOperationalReadiness _readiness;
+    private readonly IOptionsMonitor<BackupOptions> _backupOptions;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
         IBackupRunQueryService query,
         IBackupRecoverabilitySummaryService recoverabilitySummary,
         IRestoreOrchestrationBoundary restore,
-        IBackupOperationalReadiness readiness)
+        IBackupOperationalReadiness readiness,
+        IOptionsMonitor<BackupOptions> backupOptions)
     {
         _trigger = trigger;
         _query = query;
         _recoverabilitySummary = recoverabilitySummary;
         _restore = restore;
         _readiness = readiness;
+        _backupOptions = backupOptions;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -58,7 +63,10 @@ public sealed class AdminBackupController : ControllerBase
             cancellationToken);
 
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
-        var dto = BackupTriggerResponseFactory.Create(outcome, artifactPolicy);
+        var dto = BackupTriggerResponseFactory.Create(
+            outcome,
+            artifactPolicy,
+            _backupOptions.CurrentValue.AutomaticRetryMaxAttempts);
 
         if (outcome.Kind is BackupManualTriggerResultKind.DuplicateActiveManualPrevented
             or BackupManualTriggerResultKind.IdempotentReplay)
@@ -83,7 +91,8 @@ public sealed class AdminBackupController : ControllerBase
                     latest,
                     includeChildren: true,
                     pipelinePolicy: artifactPolicy,
-                    materializedChildren: true),
+                    materializedChildren: true,
+                    automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts),
             Restore = new RestoreCapabilityDto
             {
                 IsAutomatedRestoreAvailable = cap.IsAutomatedRestoreAvailable,
@@ -123,7 +132,8 @@ public sealed class AdminBackupController : ControllerBase
                     r,
                     includeChildren: false,
                     pipelinePolicy: artifactPolicy,
-                    materializedChildren: false))
+                    materializedChildren: false,
+                    automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts))
                 .ToList(),
             Page = page,
             PageSize = pageSize,
@@ -143,7 +153,8 @@ public sealed class AdminBackupController : ControllerBase
             run,
             includeChildren: true,
             pipelinePolicy: artifactPolicy,
-            materializedChildren: true));
+            materializedChildren: true,
+            automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts));
     }
 
     [HttpGet("verification/latest")]

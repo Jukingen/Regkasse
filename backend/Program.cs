@@ -437,6 +437,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 // Phase 1: backup orchestration (execution off HTTP thread; see BackupOrchestratorHostedService)
 builder.Services.AddSingleton<IBackupChecksumService, BackupChecksumService>();
 builder.Services.AddSingleton<IBackupManifestService, BackupManifestService>();
+// External archive: filesystem copy + post-copy SHA-256 only. WORM/object-lock is not API-enforced; see BackupExternalArchiveBackendDescriptors / admin readiness DTOs.
 builder.Services.AddSingleton<IBackupArtifactExternalArchive, FilesystemBackupArtifactExternalArchive>();
 builder.Services.AddSingleton<FakeBackupExecutionAdapter>();
 builder.Services.AddSingleton<PostgreSqlBackupExecutionAdapterStub>();

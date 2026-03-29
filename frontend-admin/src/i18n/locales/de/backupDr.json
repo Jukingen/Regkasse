@@ -130,7 +130,11 @@
   },
   "manual": {
     "title": "Manuelle Aktionen (nur einreihen)",
-    "hint": "Startet Aufträge asynchron über die API — kein sofortiges Ergebnis und kein Download im Browser."
+    "hint": "Startet Aufträge asynchron über die API — kein sofortiges Ergebnis und kein Download im Browser.",
+    "confirmBackupTitle": "Backup einreihen?",
+    "confirmBackupDescription": "Ruft die Admin-Backup-API auf und reiht einen Lauf auf dem Server-Worker ein. Kein Download und kein Restore-Nachweis.",
+    "confirmBackupOk": "Einreihen",
+    "confirmBackupCancel": "Abbrechen"
   },
   "triState": {
     "ok": "OK",
@@ -155,6 +159,7 @@
     "title": "Letzter Backup-Lauf",
     "none": "Noch kein Backup-Lauf erfasst.",
     "orchestrationHint": "„Neu eingereiht“ bedeutet nur Warteschlange — kein abgeschlossenes Backup.",
+    "distinctFromRecoverability": "Dieser Abschnitt zeigt den letzten Backup-Laufstatus aus der API — nicht dasselbe wie die „letzte bekannte gute“ Wiederherstellbarkeit in der Karte darüber.",
     "id": "Lauf-ID",
     "adapter": "Adapter",
     "requested": "Angefordert",
@@ -257,8 +262,11 @@
     "3": "Extern fehlgeschlagen"
   },
   "messages": {
-    "backupEnqueued": "Backup wurde in die Warteschlange eingereiht — Ausführung erfolgt asynchron.",
-    "backupDuplicate": "Kein neuer Lauf: bereits aktiver oder doppelter manueller Versuch verhindert.",
+    "backupNewQueued": "Neuer Backup-Lauf wurde eingereiht — der Worker führt ihn asynchron aus.",
+    "backupDuplicateActive": "Kein neuer Lauf: ein aktives manuelles Backup läuft bereits oder ein Duplikat wurde verhindert.",
+    "backupIdempotentReplay": "Vorhandener Backup-Lauf zurückgegeben (idempotenter Replay — gleiche logische Anfrage).",
+    "backupTriggerAmbiguous": "Unerwartete Trigger-Antwort vom Server; Seite aktualisieren und letzte Läufe prüfen.",
+    "orchestrationStateSuffix": "({{state}})",
     "restoreDrillEnqueued": "Restore-Drill eingereiht — Ergebnis erscheint nach Worker-Lauf.",
     "restoreDrillExistingActive": "Kein neuer Lauf: Ein Restore-Drill ist bereits in der Warteschlange oder läuft.",
     "restoreDrillIdempotent": "Gleicher Idempotenzschlüssel: vorhandener Restore-Verifikationslauf wird zurückgegeben.",
@@ -266,10 +274,16 @@
   },
   "errors": {
     "loadFailed": "Daten konnten nicht geladen werden.",
+    "recoverabilityLoadFailed": "Wiederherstellbarkeits-Zusammenfassung konnte nicht geladen werden.",
     "partialTable": "Backup-Verlauf konnte nicht geladen werden — Tabelle kann unvollständig sein.",
     "partialTableRestore": "Restore-Drill-Verlauf konnte nicht geladen werden.",
     "runDetailPartial": "Lauf-Details (Artefakte) konnten nicht geladen werden — Pipeline-Schritte können unvollständig sein.",
-    "forbiddenTrigger": "Keine Berechtigung für diese Aktion (API 403)."
+    "forbiddenTrigger": "Keine Berechtigung für diese Aktion (API 403).",
+    "unauthorizedTrigger": "Nicht authentifiziert für diese Aktion (API 401).",
+    "conflictTrigger": "Konflikt — der Server hat den Trigger abgelehnt (API 409).",
+    "validationTrigger": "Ungültige Trigger-Anfrage (API 422).",
+    "serverTrigger": "Serverfehler beim Einreihen des Backups (5xx). Bitte später erneut versuchen.",
+    "triggerFailed": "Backup konnte nicht eingereiht werden. Verbindung und Berechtigungen prüfen."
   },
   "table": {
     "requestedAt": "Angefordert",

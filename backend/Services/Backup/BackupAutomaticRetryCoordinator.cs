@@ -7,16 +7,35 @@ using Microsoft.Extensions.Logging;
 namespace KasseAPI_Final.Services.Backup;
 
 /// <summary>
-/// Başarısız yedek satırları için sınırlı otomatik yeniden kuyruğa alma: allowlist kodlar, üstel gecikme, gözlemlenebilirlik alanları.
+/// Başarısız yedek satırları için sınırlı otomatik yeniden kuyruğa alma: allowlist kodlar, deterministik üstel gecikme, gözlemlenebilirlik alanları.
 /// </summary>
 public static class BackupAutomaticRetryCoordinator
 {
+    private const int MaxBackoffExponentClamp = 10;
+
+    private static readonly TimeSpan MaxRetryDelayWall = TimeSpan.FromHours(24);
+
     private static string? TruncateCode(string? code)
     {
         if (string.IsNullOrWhiteSpace(code))
             return null;
         var t = code.Trim();
         return t.Length <= 100 ? t : t[..100];
+    }
+
+    /// <summary>
+    /// Deterministik gecikme: <c>min(24h, baseDelay × 2^min(automaticRetryCountBeforeSchedule, 10))</c>; <paramref name="options"/> içindeki taban en az 5 sn.
+    /// </summary>
+    public static TimeSpan ComputeDeterministicRetryDelay(BackupOptions options, int automaticRetryCountBeforeSchedule)
+    {
+        var baseDelay = options.AutomaticRetryInitialDelay < TimeSpan.FromSeconds(5)
+            ? TimeSpan.FromSeconds(5)
+            : options.AutomaticRetryInitialDelay;
+
+        var shift = Math.Min(automaticRetryCountBeforeSchedule, MaxBackoffExponentClamp);
+        var scaledTicks = baseDelay.Ticks * (1L << shift);
+        var cappedTicks = Math.Min(MaxRetryDelayWall.Ticks, scaledTicks);
+        return TimeSpan.FromTicks(cappedTicks);
     }
 
     /// <summary>Terminal başarısızlık / iptal sonrası <see cref="BackupRun.LastRecordedTerminalFailureCode"/> güncellenir.</summary>
@@ -30,6 +49,8 @@ public static class BackupAutomaticRetryCoordinator
     {
         run.NextRetryAtUtc = null;
         run.LastRecordedTerminalFailureCode = null;
+        run.AutomaticRetryPendingClassifiedReason = null;
+        run.AutomaticRetryLastScheduledAtUtc = null;
     }
 
     public static async Task TrySchedulePendingRetryAfterTerminalSaveAsync(
@@ -47,35 +68,49 @@ public static class BackupAutomaticRetryCoordinator
             return;
 
         if (run.AutomaticRetryCount >= options.AutomaticRetryMaxAttempts)
+        {
+            logger.LogWarning(
+                "Backup automatic retry not scheduled (budget already exhausted): runId={RunId}, automaticRetryCount={Count}, maxAttempts={Max}, failureCode={Code}",
+                run.Id,
+                run.AutomaticRetryCount,
+                options.AutomaticRetryMaxAttempts,
+                run.FailureCode);
             return;
+        }
 
         if (run.NextRetryAtUtc != null)
             return;
 
-        if (!BackupFailureRetryClassifier.IsEligibleForAutomaticRetrySchedule(
+        if (!BackupFailureRetryClassifier.TryGetEligibleClassification(
                 run.Status,
                 run.FailureCode,
-                options.AllowAutomaticRetryAfterVerificationIntegrityFailure))
+                options.AllowAutomaticRetryAfterVerificationIntegrityFailure,
+                out var classifiedReason))
+        {
+            logger.LogDebug(
+                "Backup automatic retry not scheduled (failure not retryable): runId={RunId}, status={Status}, failureCode={Code}",
+                run.Id,
+                run.Status,
+                run.FailureCode);
             return;
+        }
 
-        var baseDelay = options.AutomaticRetryInitialDelay < TimeSpan.FromSeconds(5)
-            ? TimeSpan.FromSeconds(5)
-            : options.AutomaticRetryInitialDelay;
-
-        var shift = Math.Min(run.AutomaticRetryCount, 10);
-        var scaledTicks = baseDelay.Ticks * (1L << shift);
-        var cappedTicks = Math.Min(TimeSpan.FromHours(24).Ticks, scaledTicks);
-        var delay = TimeSpan.FromTicks(cappedTicks);
-
+        var delay = ComputeDeterministicRetryDelay(options, run.AutomaticRetryCount);
         run.NextRetryAtUtc = utcNow.Add(delay);
+        run.AutomaticRetryPendingClassifiedReason = classifiedReason;
+        run.AutomaticRetryLastScheduledAtUtc = utcNow;
+
         await db.SaveChangesAsync(ct);
 
         logger.LogInformation(
-            "Backup automatic retry scheduled: runId={RunId}, automaticRetryCountBeforeRequeue={Count}, nextRetryAtUtc={Next:o}, failureCode={Code}",
+            "Backup automatic retry scheduled: runId={RunId}, automaticRetryCountBeforeRequeue={Count}, maxAttempts={Max}, nextRetryAtUtc={Next:o}, failureCode={Code}, classifiedReason={Reason}, delay={Delay}",
             run.Id,
             run.AutomaticRetryCount,
+            options.AutomaticRetryMaxAttempts,
             run.NextRetryAtUtc,
-            run.FailureCode);
+            run.FailureCode,
+            classifiedReason,
+            delay);
     }
 
     /// <summary>Vadesi gelen tek bir otomatik requeue işler; işlendiyse true.</summary>
@@ -102,11 +137,14 @@ public static class BackupAutomaticRetryCoordinator
         if (run.AutomaticRetryCount >= options.AutomaticRetryMaxAttempts)
         {
             run.NextRetryAtUtc = null;
+            run.AutomaticRetryPendingClassifiedReason = null;
             await db.SaveChangesAsync(ct);
             logger.LogWarning(
-                "Backup automatic retry dropped (budget exhausted at schedule time): runId={RunId}, automaticRetryCount={Count}",
+                "Backup automatic retry dropped (budget exhausted at schedule time): runId={RunId}, automaticRetryCount={Count}, maxAttempts={Max}, lastFailureCode={Code}",
                 run.Id,
-                run.AutomaticRetryCount);
+                run.AutomaticRetryCount,
+                options.AutomaticRetryMaxAttempts,
+                run.FailureCode);
             return false;
         }
 
@@ -115,10 +153,15 @@ public static class BackupAutomaticRetryCoordinator
         db.BackupVerifications.RemoveRange(verifications);
         db.BackupArtifacts.RemoveRange(artifacts);
 
+        var priorClassified = run.AutomaticRetryPendingClassifiedReason;
+        var priorFailureCode = run.FailureCode;
+
         run.AutomaticRetryCount++;
         run.Status = BackupRunStatus.Queued;
         run.QueuedAt = utcNow;
         run.NextRetryAtUtc = null;
+        run.AutomaticRetryPendingClassifiedReason = null;
+        run.AutomaticRetryLastScheduledAtUtc = null;
         run.StartedAt = null;
         run.CompletedAt = null;
         run.FailureCode = null;
@@ -131,9 +174,11 @@ public static class BackupAutomaticRetryCoordinator
         await db.SaveChangesAsync(ct);
 
         logger.LogInformation(
-            "Backup automatic retry re-queued: runId={RunId}, automaticRetryCount={Count}",
+            "Backup automatic retry re-queued: runId={RunId}, automaticRetryCount={Count}, priorFailureCode={PriorCode}, priorClassifiedReason={PriorReason}",
             run.Id,
-            run.AutomaticRetryCount);
+            run.AutomaticRetryCount,
+            priorFailureCode,
+            priorClassified);
 
         return true;
     }

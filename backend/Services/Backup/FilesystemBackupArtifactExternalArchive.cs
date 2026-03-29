@@ -3,7 +3,8 @@ using KasseAPI_Final.Models.Backup;
 namespace KasseAPI_Final.Services.Backup;
 
 /// <summary>
-/// Copies files from staging into ExternalArchiveRoot/{runId:N}/ with post-copy SHA-256 verification.
+/// Staging dosyalarını <c>ExternalArchiveRoot/{runId:N}/</c> altına kopyalar; kopya sonrası SHA-256 doğrular.
+/// WORM/object-lock yoktur — immutability yalnızca altta kalan depolama ile mümkündür.
 /// </summary>
 public sealed class FilesystemBackupArtifactExternalArchive : IBackupArtifactExternalArchive
 {
@@ -17,6 +18,9 @@ public sealed class FilesystemBackupArtifactExternalArchive : IBackupArtifactExt
         _checksum = checksum;
         _logger = logger;
     }
+
+    /// <inheritdoc />
+    public BackupExternalArchiveBackendDescriptor BackendDescriptor => BackupExternalArchiveBackendDescriptors.Filesystem;
 
     public async Task<BackupExternalArchiveOutcome> CopyStagingArtifactsAsync(
         Guid backupRunId,

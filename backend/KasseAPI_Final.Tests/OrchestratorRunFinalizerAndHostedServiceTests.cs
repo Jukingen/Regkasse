@@ -66,6 +66,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
             NullLogger<PostgreSqlPgDumpBackupExecutionAdapter>.Instance);
 
         var ext = new Mock<IBackupArtifactExternalArchive>();
+        ext.SetupGet(x => x.BackendDescriptor).Returns(BackupExternalArchiveBackendDescriptors.Filesystem);
         ext.Setup(x => x.CopyStagingArtifactsAsync(
                 It.IsAny<Guid>(),
                 It.IsAny<string>(),

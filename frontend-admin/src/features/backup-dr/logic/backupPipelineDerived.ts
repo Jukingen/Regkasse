@@ -303,6 +303,7 @@ export function resolveBackupPipelineStepsForUi(
   const version = snap?.projectionVersion?.trim();
   const versionOk = !version || version === SERVER_PIPELINE_PROJECTION_VERSION;
 
+  /** Geçerli tam adım sayısı ve sürüm: istemci türetimi devreye girmez (sessiz üstü yazma yok). */
   if (parsed && versionOk) {
     return { steps: parsed, source: 'server_projection', projectionVersionMismatch: false };
   }

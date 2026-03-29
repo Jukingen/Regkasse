@@ -10,7 +10,7 @@ export type ConfigurationHealthUiKind = 'unknown' | 'healthy' | 'degraded' | 'un
 export type ExternalCopyVariant = 'unknown' | 'verified' | 'failed' | 'staging' | 'mixed';
 
 /** Ant Design Tag `color` prop değerleri (RecentRunsTable / kartlar). */
-export type BackupRunAntdTagColor = 'success' | 'error' | 'processing' | 'default';
+export type BackupRunAntdTagColor = 'success' | 'error' | 'processing' | 'default' | 'warning';
 
 export function normalizeHealthLevelString(level: string | undefined | null): string {
   return (level ?? '').trim().toLowerCase();
@@ -35,10 +35,13 @@ export function configurationHealthSummaryI18nKey(level: string | undefined | nu
 }
 
 export function mapBackupRunStatusAntdColor(status: number | undefined): BackupRunAntdTagColor {
-  const s = status ?? 0;
-  if (s === 3) return 'success';
-  if (s === 4 || s === 5) return 'error';
-  if (s === 0 || s === 1 || s === 2) return 'processing';
+  if (status === undefined || status === null) return 'default';
+  if (status === 3) return 'success';
+  if (status === 4 || status === 5) return 'error';
+  if (status === 0) return 'default';
+  if (status === 1) return 'processing';
+  if (status === 2) return 'warning';
+  if (status === 6) return 'default';
   return 'default';
 }
 

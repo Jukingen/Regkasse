@@ -130,7 +130,11 @@
   },
   "manual": {
     "title": "Manuel eylemler (yalnızca kuyruk)",
-    "hint": "İşler API üzerinden asenkron kuyruğa alınır — anında sonuç ve tarayıcı indirmesi yok."
+    "hint": "İşler API üzerinden asenkron kuyruğa alınır — anında sonuç ve tarayıcı indirmesi yok.",
+    "confirmBackupTitle": "Yedek kuyruğa alınsın mı?",
+    "confirmBackupDescription": "Sunucu işçisinde yeni bir çalıştırma kuyruğa almak için admin yedek API’sini çağırır. İndirme değildir ve geri yükleme kanıtı değildir.",
+    "confirmBackupOk": "Kuyruğa al",
+    "confirmBackupCancel": "Vazgeç"
   },
   "triState": {
     "ok": "Tamam",
@@ -155,6 +159,7 @@
     "title": "Son yedek çalıştırması",
     "none": "Henüz yedek çalıştırması yok.",
     "orchestrationHint": "“Kuyrukta” yalnızca sıraya alındığını gösterir — tamamlanmış yedek değildir.",
+    "distinctFromRecoverability": "Bu bölüm API’den gelen son yedek çalıştırma durumunu gösterir; üstteki “son bilinen iyi” kurtarılabilirlik özeti ile aynı şey değildir.",
     "id": "Çalıştırma kimliği",
     "adapter": "Bağdaştırıcı",
     "requested": "İstendi",
@@ -257,8 +262,11 @@
     "3": "Harici başarısız"
   },
   "messages": {
-    "backupEnqueued": "Yedek kuyruğa alındı — yürütme asenkron.",
-    "backupDuplicate": "Yeni çalıştırma yok: mükerrer veya aktif manuel engellendi.",
+    "backupNewQueued": "Yeni yedek çalıştırması kuyruğa alındı — işçi asenkron yürütecek.",
+    "backupDuplicateActive": "Yeni çalıştırma oluşturulmadı: aktif manuel yedek sürüyor veya mükerrer engellendi.",
+    "backupIdempotentReplay": "Mevcut yedek çalıştırması döndürüldü (idempotent tekrar — aynı mantıksal istek).",
+    "backupTriggerAmbiguous": "Sunucudan beklenmeyen tetik yanıtı; sayfayı yenileyip son çalıştırmaları kontrol edin.",
+    "orchestrationStateSuffix": "({{state}})",
     "restoreDrillEnqueued": "Tatbikat kuyruğa alındı — sonuç işçi çalışınca görünür.",
     "restoreDrillExistingActive": "Yeni çalışma yok: Bir restore tatbikatı zaten kuyrukta veya çalışıyor.",
     "restoreDrillIdempotent": "Aynı idempotency anahtarı: mevcut restore doğrulama çalışması döndürülüyor.",
@@ -266,10 +274,16 @@
   },
   "errors": {
     "loadFailed": "Veri yüklenemedi.",
+    "recoverabilityLoadFailed": "Kurtarılabilirlik özeti yüklenemedi.",
     "partialTable": "Yedek geçmişi yüklenemedi — tablo eksik olabilir.",
     "partialTableRestore": "Geri yükleme tatbikat geçmişi yüklenemedi.",
     "runDetailPartial": "Çalıştırma ayrıntıları (artefaktlar) yüklenemedi — hat adımları eksik olabilir.",
-    "forbiddenTrigger": "Bu işlem için yetkiniz yok (API 403)."
+    "forbiddenTrigger": "Bu işlem için yetkiniz yok (API 403).",
+    "unauthorizedTrigger": "Bu işlem için oturum yok (API 401).",
+    "conflictTrigger": "Çakışma — sunucu tetiklemeyi reddetti (API 409).",
+    "validationTrigger": "Geçersiz tetik isteği (API 422).",
+    "serverTrigger": "Yedek kuyruğa alınırken sunucu hatası (5xx). Sonra tekrar deneyin.",
+    "triggerFailed": "Yedek kuyruğa alınamadı. Bağlantı ve yetkileri kontrol edin."
   },
   "table": {
     "requestedAt": "İstendi",

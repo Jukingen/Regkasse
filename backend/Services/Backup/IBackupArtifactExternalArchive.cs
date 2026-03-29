@@ -3,10 +3,13 @@ using KasseAPI_Final.Models.Backup;
 namespace KasseAPI_Final.Services.Backup;
 
 /// <summary>
-/// Boundary for copying verified staging artifacts to an external target (filesystem in this implementation).
+/// Doğrulanmış staging artefaktlarını harici hedefe taşıyan sınır; kayıtlı uygulama <see cref="BackendDescriptor"/> ile yeteneklerini beyan eder.
 /// </summary>
 public interface IBackupArtifactExternalArchive
 {
+    /// <summary>Politika bayraklarından bağımsız, çalışan arka uç türü ve immutability sınırları.</summary>
+    BackupExternalArchiveBackendDescriptor BackendDescriptor { get; }
+
     Task<BackupExternalArchiveOutcome> CopyStagingArtifactsAsync(
         Guid backupRunId,
         string stagingRootFull,

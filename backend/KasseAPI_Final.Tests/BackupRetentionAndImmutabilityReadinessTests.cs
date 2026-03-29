@@ -45,7 +45,7 @@ public sealed class BackupRetentionAndImmutabilityReadinessTests
     }
 
     [Fact]
-    public void Evaluate_ProductionPgDump_immutable_required_with_ack_is_not_blocked_by_immutability()
+    public void Evaluate_ProductionPgDump_immutable_required_with_ack_is_Degraded_when_filesystem_cannot_enforce()
     {
         var env = new Mock<IHostEnvironment>();
         env.Setup(e => e.EnvironmentName).Returns(Environments.Production);
@@ -56,9 +56,35 @@ public sealed class BackupRetentionAndImmutabilityReadinessTests
 
         var snap = BackupConfigurationEvaluation.Evaluate(opts, env.Object, ConfigWithConnectionString("Host=h;Username=u;Password=p;Database=d"));
 
-        Assert.DoesNotContain(snap.Issues, i => i.Contains("ExternalArchiveImmutabilityAcknowledged", StringComparison.Ordinal));
-        Assert.DoesNotContain(snap.Issues,
-            i => i.Contains("ExternalArchiveMutableTargetAccepted", StringComparison.Ordinal));
+        Assert.Equal(BackupConfigurationHealthLevel.Degraded, snap.Level);
+        Assert.Contains(snap.Issues, i => i.Contains("filesystem copy", StringComparison.OrdinalIgnoreCase));
+        Assert.False(snap.ExternalArchiveReadiness.ApplicationEnforcesStorageImmutability);
+        Assert.Equal("Filesystem", snap.ExternalArchiveReadiness.RegisteredBackendKind);
+        Assert.Contains(
+            snap.ExternalArchiveReadiness.CapabilityOperatorNotes,
+            n => n.Contains("attestation", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Evaluate_ProductionPgDump_immutable_required_with_ack_Healthy_when_backend_reports_application_enforced()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+
+        var opts = PgDumpProductionBase();
+        opts.RequireExternalArchiveImmutableTarget = true;
+        opts.ExternalArchiveImmutabilityAcknowledged = true;
+
+        var snap = BackupConfigurationEvaluation.Evaluate(
+            opts,
+            env.Object,
+            ConfigWithConnectionString("Host=h;Username=u;Password=p;Database=d"),
+            BackupExternalArchiveBackendDescriptors.SimulatedApplicationEnforcedForTests);
+
+        Assert.Equal(BackupConfigurationHealthLevel.Healthy, snap.Level);
+        Assert.DoesNotContain(snap.Issues, i => i.Contains("filesystem copy", StringComparison.OrdinalIgnoreCase));
+        Assert.True(snap.ExternalArchiveReadiness.ApplicationEnforcesStorageImmutability);
+        Assert.True(snap.ExternalArchiveReadiness.ObjectStorageImmutabilityBackendImplemented);
     }
 
     [Fact]
@@ -109,6 +135,10 @@ public sealed class BackupRetentionAndImmutabilityReadinessTests
 
         Assert.Equal(BackupConfigurationHealthLevel.Healthy, snap.Level);
         Assert.DoesNotContain(snap.Issues, i => i.Contains("disposition", StringComparison.OrdinalIgnoreCase));
+        Assert.False(snap.ExternalArchiveReadiness.ApplicationEnforcesStorageImmutability);
+        Assert.Contains(
+            snap.ExternalArchiveReadiness.CapabilityOperatorNotes,
+            n => n.Contains("Registered external archive backend", StringComparison.Ordinal));
     }
 
     [Fact]

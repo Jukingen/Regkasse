@@ -1,5 +1,7 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Services.Backup;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -54,9 +56,30 @@ public sealed class StaleRunReaperHostedService : BackgroundService
                     backupOpts.StaleRecoveryNullLeaseGraceMultiplier,
                     restoreOpts.RunLeaseTimeout,
                     restoreOpts.StaleRecoveryNullLeaseGraceMultiplier);
-                await StaleRunReaper
+                var recoveredBackupIds = await StaleRunReaper
                     .RecoverStaleRunsAsync(db, DateTime.UtcNow, leaseOpts, _logger, _staleObserver, stoppingToken)
                     .ConfigureAwait(false);
+
+                if (recoveredBackupIds.Count > 0 && backupOpts.AutomaticRetryMaxAttempts > 0)
+                {
+                    var utcNow = DateTime.UtcNow;
+                    foreach (var runId in recoveredBackupIds)
+                    {
+                        var run = await db.BackupRuns.FirstOrDefaultAsync(r => r.Id == runId, stoppingToken)
+                            .ConfigureAwait(false);
+                        if (run == null)
+                            continue;
+                        await BackupAutomaticRetryCoordinator
+                            .TrySchedulePendingRetryAfterTerminalSaveAsync(
+                                db,
+                                run,
+                                backupOpts,
+                                utcNow,
+                                _logger,
+                                stoppingToken)
+                            .ConfigureAwait(false);
+                    }
+                }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

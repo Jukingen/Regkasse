@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Button, Card, Space, Typography } from 'antd';
+import { Button, Card, Popconfirm, Space, Typography } from 'antd';
 import { CloudUploadOutlined, ExperimentOutlined } from '@ant-design/icons';
 export interface ManualActionsPanelProps {
   canManage: boolean;
@@ -16,15 +16,23 @@ export function ManualActionsPanel({ canManage, backupTrigger, restoreTrigger, t
     <Card title={t('backupDr.manual.title')} size="small">
       <Typography.Paragraph type="secondary">{t('backupDr.manual.hint')}</Typography.Paragraph>
       <Space wrap>
-        <Button
-          type="primary"
-          icon={<CloudUploadOutlined />}
-          disabled={!canManage}
-          loading={backupTrigger.isPending}
-          onClick={() => backupTrigger.mutate({ data: {} })}
+        <Popconfirm
+          title={t('backupDr.manual.confirmBackupTitle')}
+          description={t('backupDr.manual.confirmBackupDescription')}
+          okText={t('backupDr.manual.confirmBackupOk')}
+          cancelText={t('backupDr.manual.confirmBackupCancel')}
+          disabled={!canManage || backupTrigger.isPending}
+          onConfirm={() => backupTrigger.mutate({ data: {} })}
         >
-          {t('backupDr.actions.enqueueBackup')}
-        </Button>
+          <Button
+            type="primary"
+            icon={<CloudUploadOutlined />}
+            disabled={!canManage}
+            loading={backupTrigger.isPending}
+          >
+            {t('backupDr.actions.enqueueBackup')}
+          </Button>
+        </Popconfirm>
         <Button
           icon={<ExperimentOutlined />}
           disabled={!canManage}

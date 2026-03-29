@@ -79,6 +79,15 @@ public sealed class BackupRunResponseDto
     /// <summary>Son kayıtlı terminal hata kodu (Succeeded sonrası temizlenir).</summary>
     public string? LastRecordedTerminalFailureCode { get; init; }
 
+    /// <summary>Bekleyen otomatik requeue sınıfı (İngilizce sabit; null: plan yok).</summary>
+    public string? AutomaticRetryPendingClassifiedReason { get; init; }
+
+    /// <summary>Son otomatik requeue planlamasının UTC zamanı.</summary>
+    public DateTime? AutomaticRetryLastScheduledAtUtc { get; init; }
+
+    /// <summary>Sunucudaki etkin <c>Backup:AutomaticRetryMaxAttempts</c> (bilgilendirme; 0 ise otomatik requeue kapalı).</summary>
+    public int? AutomaticRetryMaxAttemptsBudget { get; init; }
+
     /// <summary>Enqueue / run-start anındaki güvenli yapılandırma JSON özeti (null: eski satırlar).</summary>
     public string? ConfigSnapshotJson { get; init; }
 
@@ -238,6 +247,17 @@ public sealed class BackupArtifactPipelinePolicyResponseDto
     public string EffectiveAdapterKind { get; init; } = string.Empty;
 
     public IReadOnlyList<string> OperatorNotes { get; init; } = Array.Empty<string>();
+
+    /// <summary>Örn. Filesystem — DI’daki <c>IBackupArtifactExternalArchive</c> ile uyumlu.</summary>
+    public string RegisteredExternalArchiveBackendKind { get; init; } = string.Empty;
+
+    /// <summary>NotEnforcedByApplication veya ApplicationEnforced (gelecek arka uç).</summary>
+    public string ExternalArchiveImmutabilityEnforcement { get; init; } = string.Empty;
+
+    public bool ApplicationEnforcesExternalArchiveImmutability { get; init; }
+
+    /// <summary>İlk sınıf nesne depolama + immutability arka ucu bu sürümde yok (Filesystem dışı yol).</summary>
+    public bool ObjectStorageImmutabilityBackendImplemented { get; init; }
 }
 
 public sealed class BackupRetentionReadinessResponseDto
@@ -285,6 +305,23 @@ public sealed class BackupConfigurationHealthResponseDto
 
     /// <summary>Saklama politikasının yürütülebilirlik durumu; silme varsayılan kapalıdır.</summary>
     public BackupRetentionReadinessResponseDto RetentionReadiness { get; init; } = null!;
+
+    /// <summary>Kayıtlı harici arşiv arka ucu ve immutability gerçekliği (yapılandırma onayından ayrı).</summary>
+    public BackupExternalArchiveReadinessResponseDto ExternalArchiveReadiness { get; init; } = null!;
+}
+
+/// <summary>Harici arşiv: arka uç türü, zorlama düzeyi, sınırlamalar (İngilizce notlar).</summary>
+public sealed class BackupExternalArchiveReadinessResponseDto
+{
+    public string RegisteredBackendKind { get; init; } = string.Empty;
+
+    public string ImmutabilityEnforcement { get; init; } = string.Empty;
+
+    public bool ApplicationEnforcesStorageImmutability { get; init; }
+
+    public bool ObjectStorageImmutabilityBackendImplemented { get; init; }
+
+    public IReadOnlyList<string> CapabilityOperatorNotes { get; init; } = Array.Empty<string>();
 }
 
 public static class BackupConfigurationHealthResponseMapper
@@ -301,7 +338,19 @@ public static class BackupConfigurationHealthResponseMapper
             NonRealBackupAdapterAcknowledgmentConfigurationKey = snapshot.NonRealBackupAdapterAcknowledgmentConfigurationKey,
             ReadinessNarrative = snapshot.ReadinessNarrative,
             ArtifactVerificationDisclaimer = snapshot.ArtifactVerificationDisclaimer,
-            RetentionReadiness = RetentionFromSnapshot(snapshot.RetentionReadiness)
+            RetentionReadiness = RetentionFromSnapshot(snapshot.RetentionReadiness),
+            ExternalArchiveReadiness = ExternalArchiveFromSnapshot(snapshot.ExternalArchiveReadiness)
+        };
+
+    private static BackupExternalArchiveReadinessResponseDto ExternalArchiveFromSnapshot(
+        BackupExternalArchiveReadinessSnapshot snap) =>
+        new()
+        {
+            RegisteredBackendKind = snap.RegisteredBackendKind,
+            ImmutabilityEnforcement = snap.ImmutabilityEnforcement.ToString(),
+            ApplicationEnforcesStorageImmutability = snap.ApplicationEnforcesStorageImmutability,
+            ObjectStorageImmutabilityBackendImplemented = snap.ObjectStorageImmutabilityBackendImplemented,
+            CapabilityOperatorNotes = snap.CapabilityOperatorNotes
         };
 
     private static BackupRetentionReadinessResponseDto RetentionFromSnapshot(BackupRetentionReadinessSnapshot snap) =>
@@ -334,7 +383,11 @@ public static class BackupArtifactPipelinePolicyMapper
                 snap.WillRunExternalArchiveAfterStagingVerificationWhenEligible,
             StagingOnDiskHashReverificationExpected = snap.StagingOnDiskHashReverificationExpected,
             EffectiveAdapterKind = snap.EffectiveAdapterKind.ToString(),
-            OperatorNotes = snap.OperatorNotes
+            OperatorNotes = snap.OperatorNotes,
+            RegisteredExternalArchiveBackendKind = snap.RegisteredExternalArchiveBackendKind,
+            ExternalArchiveImmutabilityEnforcement = snap.ExternalArchiveImmutabilityEnforcement,
+            ApplicationEnforcesExternalArchiveImmutability = snap.ApplicationEnforcesExternalArchiveImmutability,
+            ObjectStorageImmutabilityBackendImplemented = snap.ObjectStorageImmutabilityBackendImplemented
         };
 }
 
@@ -347,7 +400,8 @@ public static class BackupRunMapper
         bool includeChildren = false,
         bool? duplicateExecutionPreventedOverride = null,
         BackupArtifactPipelinePolicySnapshot? pipelinePolicy = null,
-        bool materializedChildren = false)
+        bool materializedChildren = false,
+        int? automaticRetryMaxAttemptsBudget = null)
     {
         var policy = pipelinePolicy ?? BackupPipelineProjector.DefaultPolicyForProjection;
         var completenessRequired = BackupCompletenessSuccessPolicy.TryParseAdapterKind(run.AdapterKind, out var adapterKind)
@@ -370,6 +424,9 @@ public static class BackupRunMapper
             AutomaticRetryCount = run.AutomaticRetryCount,
             NextRetryAtUtc = run.NextRetryAtUtc,
             LastRecordedTerminalFailureCode = run.LastRecordedTerminalFailureCode,
+            AutomaticRetryPendingClassifiedReason = run.AutomaticRetryPendingClassifiedReason,
+            AutomaticRetryLastScheduledAtUtc = run.AutomaticRetryLastScheduledAtUtc,
+            AutomaticRetryMaxAttemptsBudget = automaticRetryMaxAttemptsBudget,
             ConfigSnapshotJson = run.ConfigSnapshotJson,
             ArtifactCompletenessPolicyNote = BackupCompletenessSuccessPolicy.FormatCompletenessPolicyNote(run.AdapterKind),
             Pipeline = BackupPipelineProjector.Project(run, policy, materializedChildren),

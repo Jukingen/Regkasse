@@ -34,14 +34,24 @@ public static class BackupConfigurationEvaluation
 
     /// <summary>Evaluates backup options without connection-string checks (tests / callers without <see cref="IConfiguration"/>).</summary>
     public static BackupConfigurationHealthSnapshot Evaluate(BackupOptions options, IHostEnvironment environment) =>
-        Evaluate(options, environment, configuration: null);
+        Evaluate(options, environment, configuration: null, externalArchiveBackend: null);
 
     /// <param name="configuration">When non-null, <see cref="BackupExecutionAdapterKind.PgDump"/> triggers connection-string presence/parsing checks.</param>
     public static BackupConfigurationHealthSnapshot Evaluate(
         BackupOptions options,
         IHostEnvironment environment,
-        IConfiguration? configuration)
+        IConfiguration? configuration) =>
+        Evaluate(options, environment, configuration, externalArchiveBackend: null);
+
+    /// <param name="externalArchiveBackend">Kayıtlı <see cref="IBackupArtifactExternalArchive"/> tanımlayıcısı; null ise <see cref="BackupExternalArchiveBackendDescriptors.AssumedWhenCallerOmitsRegistration"/>.</param>
+    public static BackupConfigurationHealthSnapshot Evaluate(
+        BackupOptions options,
+        IHostEnvironment environment,
+        IConfiguration? configuration,
+        BackupExternalArchiveBackendDescriptor? externalArchiveBackend)
     {
+        var archiveBackend = externalArchiveBackend ?? BackupExternalArchiveBackendDescriptors.AssumedWhenCallerOmitsRegistration;
+
         var issues = new List<string>();
         var level = BackupConfigurationHealthLevel.Healthy;
 
@@ -153,6 +163,17 @@ public static class BackupConfigurationEvaluation
                 "Backup: ExternalArchiveRoot is set for PgDump in a production-like environment, but operator disposition is missing — set Backup:ExternalArchiveImmutabilityAcknowledged=true after configuring an immutable tier, or set Backup:ExternalArchiveMutableTargetAccepted=true to explicitly accept a mutable external target, or enable Backup:RequireExternalArchiveImmutableTarget with acknowledgment for WORM/object-lock posture.");
         }
 
+        if (!environment.IsDevelopment()
+            && options.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump
+            && !string.IsNullOrWhiteSpace(options.ExternalArchiveRoot)
+            && options.RequireExternalArchiveImmutableTarget
+            && options.ExternalArchiveImmutabilityAcknowledged
+            && !archiveBackend.ApplicationEnforcesStorageImmutability)
+        {
+            Add(BackupConfigurationHealthLevel.Degraded,
+                "Backup:RequireExternalArchiveImmutableTarget with ExternalArchiveImmutabilityAcknowledged is configuration attestation only for the current registered external archive backend (filesystem copy + post-copy SHA-256). The API does not verify WORM/object-lock. Ensure destination storage enforces immutability below this layer, or adopt a future object-lock-capable archive backend when available.");
+        }
+
         if (options.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump
             && configuration != null
             && !environment.IsDevelopment())
@@ -230,6 +251,8 @@ public static class BackupConfigurationEvaluation
             };
         }
 
+        var externalReadiness = BuildExternalArchiveReadiness(options, archiveBackend);
+
         return new BackupConfigurationHealthSnapshot
         {
             Level = level,
@@ -240,7 +263,53 @@ public static class BackupConfigurationEvaluation
             BackupExecutionReality = reality,
             NonRealBackupAdapterAcknowledgmentConfigurationKey = nonRealAckKey,
             ReadinessNarrative = BuildReadinessNarrative(level, realPg, options, environment, nonRealAckKey),
-            RetentionReadiness = BackupRetentionReadinessEvaluator.Build(options)
+            RetentionReadiness = BackupRetentionReadinessEvaluator.Build(options),
+            ExternalArchiveReadiness = externalReadiness
+        };
+    }
+
+    private static BackupExternalArchiveReadinessSnapshot BuildExternalArchiveReadiness(
+        BackupOptions options,
+        BackupExternalArchiveBackendDescriptor backend)
+    {
+        var pg = options.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump;
+        var ext = !string.IsNullOrWhiteSpace(options.ExternalArchiveRoot);
+        if (!pg || !ext)
+        {
+            return new BackupExternalArchiveReadinessSnapshot
+            {
+                RegisteredBackendKind = backend.BackendKind,
+                ImmutabilityEnforcement = backend.ImmutabilityEnforcement,
+                ApplicationEnforcesStorageImmutability = backend.ApplicationEnforcesStorageImmutability,
+                ObjectStorageImmutabilityBackendImplemented = backend.ObjectStorageImmutabilityBackendImplemented,
+                CapabilityOperatorNotes = Array.Empty<string>()
+            };
+        }
+
+        var notes = new List<string>
+        {
+            $"Registered external archive backend: {backend.BackendKind}. {backend.CapabilitySummaryEnglish}"
+        };
+
+        if (!backend.ObjectStorageImmutabilityBackendImplemented)
+        {
+            notes.Add(
+                "Native object-storage immutability integration (e.g. S3 Object Lock as the archive implementation) is not shipped in this API version; the active integration remains filesystem-oriented.");
+        }
+
+        if (options.ExternalArchiveImmutabilityAcknowledged && !backend.ApplicationEnforcesStorageImmutability)
+        {
+            notes.Add(
+                "Backup:ExternalArchiveImmutabilityAcknowledged=true is operator attestation — the registered archive backend does not programmatically prove WORM/object-lock.");
+        }
+
+        return new BackupExternalArchiveReadinessSnapshot
+        {
+            RegisteredBackendKind = backend.BackendKind,
+            ImmutabilityEnforcement = backend.ImmutabilityEnforcement,
+            ApplicationEnforcesStorageImmutability = backend.ApplicationEnforcesStorageImmutability,
+            ObjectStorageImmutabilityBackendImplemented = backend.ObjectStorageImmutabilityBackendImplemented,
+            CapabilityOperatorNotes = notes
         };
     }
 

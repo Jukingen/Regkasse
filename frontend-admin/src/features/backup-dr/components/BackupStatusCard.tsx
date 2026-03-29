@@ -30,6 +30,8 @@ export interface BackupStatusCardProps {
    * Sunucu projeksiyonu geçerliyse her zaman kullanılır.
    */
   allowClientPipelineFallback?: boolean;
+  /** recoverability-summary kartından bu kartın ayrı olduğunu vurgular (yanıltıcı birleşimi önler). */
+  showLatestRunVsRecoverabilityHint?: boolean;
 }
 
 function formatDurationMs(ms: number | undefined, t: (key: string, options?: Record<string, string | number>) => string): string {
@@ -63,6 +65,7 @@ export function BackupStatusCard({
   backupStatusLabel,
   t,
   allowClientPipelineFallback = false,
+  showLatestRunVsRecoverabilityHint = false,
 }: BackupStatusCardProps) {
   const allowFb = allowClientPipelineFallback === true;
   const resolved = useMemo(
@@ -82,6 +85,11 @@ export function BackupStatusCard({
         <Typography.Text type="secondary">{t('backupDr.latestRun.none')}</Typography.Text>
       ) : (
         <>
+          {showLatestRunVsRecoverabilityHint ? (
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+              {t('backupDr.latestRun.distinctFromRecoverability')}
+            </Typography.Paragraph>
+          ) : null}
           <Alert type="info" showIcon message={t('backupDr.latestRun.orchestrationHint')} style={{ marginBottom: 12 }} />
           <Descriptions column={1} size="small" bordered style={{ marginBottom: 16 }}>
             <Descriptions.Item label={t('backupDr.latestRun.id')}>{latest.id}</Descriptions.Item>

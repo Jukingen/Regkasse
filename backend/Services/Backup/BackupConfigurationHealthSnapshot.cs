@@ -2,6 +2,30 @@ using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Services.Backup;
 
+/// <summary>Kayıtlı harici arşiv arka ucu + immutability gerçekliği (politika onayından ayrı).</summary>
+public sealed class BackupExternalArchiveReadinessSnapshot
+{
+    public static BackupExternalArchiveReadinessSnapshot Inactive { get; } = new()
+    {
+        RegisteredBackendKind = string.Empty,
+        ImmutabilityEnforcement = BackupExternalArchiveImmutabilityEnforcementKind.NotEnforcedByApplication,
+        ApplicationEnforcesStorageImmutability = false,
+        ObjectStorageImmutabilityBackendImplemented = false,
+        CapabilityOperatorNotes = Array.Empty<string>()
+    };
+
+    public string RegisteredBackendKind { get; init; } = string.Empty;
+
+    public BackupExternalArchiveImmutabilityEnforcementKind ImmutabilityEnforcement { get; init; }
+
+    public bool ApplicationEnforcesStorageImmutability { get; init; }
+
+    /// <summary>S3 Object Lock benzeri yerel API entegrasyonu bu sürümde yok (Filesystem arka uç).</summary>
+    public bool ObjectStorageImmutabilityBackendImplemented { get; init; }
+
+    public IReadOnlyList<string> CapabilityOperatorNotes { get; init; } = Array.Empty<string>();
+}
+
 public sealed class BackupConfigurationHealthSnapshot
 {
     public BackupConfigurationHealthLevel Level { get; init; }
@@ -34,4 +58,8 @@ public sealed class BackupConfigurationHealthSnapshot
     /// <summary>Saklama politikasının yürütülebilirlik özeti; silme varsayılan kapalıdır.</summary>
     public BackupRetentionReadinessSnapshot RetentionReadiness { get; init; } =
         BackupRetentionReadinessEvaluator.Build(new BackupOptions());
+
+    /// <summary>Kayıtlı harici arşiv arka ucu; PgDump + ExternalArchiveRoot dışında çoğunlukla pasif.</summary>
+    public BackupExternalArchiveReadinessSnapshot ExternalArchiveReadiness { get; init; } =
+        BackupExternalArchiveReadinessSnapshot.Inactive;
 }
