@@ -304,6 +304,8 @@ public sealed class BackupRecoverabilitySummaryServiceTests
         var expected = new[]
         {
             nameof(BackupLatestStatusResponseDto.ArtifactPipelinePolicy),
+            nameof(BackupLatestStatusResponseDto.AverageSucceededBackupDurationSampleCount),
+            nameof(BackupLatestStatusResponseDto.AverageSucceededBackupDurationSeconds),
             nameof(BackupLatestStatusResponseDto.ConfigurationHealth),
             nameof(BackupLatestStatusResponseDto.LatestRun),
             nameof(BackupLatestStatusResponseDto.Restore)

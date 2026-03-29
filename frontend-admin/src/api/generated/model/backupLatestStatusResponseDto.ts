@@ -12,6 +12,9 @@ import type { RestoreCapabilityDto } from './restoreCapabilityDto';
 
 export interface BackupLatestStatusResponseDto {
   artifactPipelinePolicy?: BackupArtifactPipelinePolicyResponseDto;
+  averageSucceededBackupDurationSampleCount?: number;
+  /** @nullable */
+  averageSucceededBackupDurationSeconds?: number | null;
   configurationHealth?: BackupConfigurationHealthResponseDto;
   /** @nullable */
   latestRun?: BackupLatestStatusResponseDtoLatestRun;

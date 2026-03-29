@@ -467,6 +467,7 @@ builder.Services.AddHostedService<DrOperationalObservabilityHostedService>();
 builder.Services.AddScoped<IBackupManualTriggerService, BackupManualTriggerService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IBackupRunQueryService, BackupRunQueryService>();
+builder.Services.AddScoped<IBackupArtifactDownloadService, BackupArtifactDownloadService>();
 builder.Services.AddScoped<IBackupRecoverabilitySummaryService, BackupRecoverabilitySummaryService>();
 builder.Services.AddScoped<IBackupVerificationService, BackupVerificationService>();
 builder.Services.AddSingleton<IRestoreOrchestrationBoundary, DeferredRestoreOrchestrationBoundary>();

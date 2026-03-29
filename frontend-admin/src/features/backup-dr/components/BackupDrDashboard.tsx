@@ -31,8 +31,12 @@ import {
   useGetApiAdminRestoreVerificationRunsLatest,
   usePostApiAdminRestoreVerificationTrigger,
 } from '@/api/generated/admin-restore-verification/admin-restore-verification';
-import type { BackupRunResponseDto, RestoreVerificationRunResponseDto } from '@/api/generated/model';
-import { RestoreVerificationTriggerOrchestrationState } from '@/api/generated/model';
+import {
+  BackupRunResponseDtoStatus,
+  RestoreVerificationTriggerOrchestrationState,
+  type BackupRunResponseDto,
+  type RestoreVerificationRunResponseDto,
+} from '@/api/generated/model';
 import {
   configurationHealthSummaryI18nKey,
   externalCopyVariantToI18nKey,
@@ -43,6 +47,8 @@ import {
   normalizeHealthLevelString,
 } from '@/features/backup-dr/logic/backupDrMappers';
 import { describeBackupTriggerOutcome } from '@/features/backup-dr/logic/backupTriggerOutcome';
+import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
+import { BackupRunProgressBanner } from '@/features/backup-dr/components/BackupRunProgressBanner';
 import { BackupStatusCard } from '@/features/backup-dr/components/BackupStatusCard';
 import { HealthBanner } from '@/features/backup-dr/components/HealthBanner';
 import { ManualActionsPanel, type ManualActionsPanelProps } from '@/features/backup-dr/components/ManualActionsPanel';
@@ -523,6 +529,14 @@ export function BackupDrDashboard() {
 
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={14}>
+              <BackupRunProgressBanner
+                latest={latest}
+                averageSucceededDurationSeconds={statusQuery.data?.averageSucceededBackupDurationSeconds ?? undefined}
+                averageSucceededDurationSampleCount={statusQuery.data?.averageSucceededBackupDurationSampleCount}
+                formatDt={formatDt}
+                formatLocale={formatLocale}
+                t={t}
+              />
               <BackupStatusCard
                 latest={latest}
                 detail={detailForPipeline}
@@ -537,6 +551,17 @@ export function BackupDrDashboard() {
                 showLatestRunVsRecoverabilityHint
                 t={t}
               />
+              {latest?.id &&
+              latest.status === BackupRunResponseDtoStatus.NUMBER_3 &&
+              detailForPipeline?.artifacts &&
+              detailForPipeline.artifacts.length > 0 ? (
+                <BackupArtifactsDownloadCard
+                  runId={latest.id}
+                  artifacts={detailForPipeline.artifacts}
+                  canManage={canManage}
+                  t={t}
+                />
+              ) : null}
             </Col>
             <Col xs={24} lg={10}>
               <Card title={t('backupDr.externalCopy.title')} size="small">

@@ -61,4 +61,29 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
             .Select(r => r.Id)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<BackupSucceededDurationStatistics> GetAverageSucceededDurationAsync(
+        int maxSamples,
+        CancellationToken cancellationToken = default)
+    {
+        maxSamples = Math.Clamp(maxSamples, 1, 50);
+        var rows = await _db.BackupRuns.AsNoTracking()
+            .Where(r => r.Status == BackupRunStatus.Succeeded
+                        && r.StartedAt != null
+                        && r.CompletedAt != null)
+            .OrderByDescending(r => r.CompletedAt)
+            .Take(maxSamples)
+            .Select(r => new { r.StartedAt, r.CompletedAt })
+            .ToListAsync(cancellationToken);
+
+        if (rows.Count == 0)
+            return new BackupSucceededDurationStatistics { AverageDurationSeconds = null, SampleCount = 0 };
+
+        var sum = rows.Sum(r => (r.CompletedAt!.Value - r.StartedAt!.Value).TotalSeconds);
+        return new BackupSucceededDurationStatistics
+        {
+            AverageDurationSeconds = sum / rows.Count,
+            SampleCount = rows.Count
+        };
+    }
 }

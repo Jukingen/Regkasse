@@ -130,11 +130,45 @@
   },
   "manual": {
     "title": "Manuelle Aktionen (nur einreihen)",
-    "hint": "Startet Aufträge asynchron über die API — kein sofortiges Ergebnis und kein Download im Browser.",
+    "hint": "Startet Aufträge asynchron über die API — kein sofortiges Ergebnis. Nach erfolgreichem Lauf können berechtigte Benutzer Artefakte über „Herunterladen“ beziehen.",
     "confirmBackupTitle": "Backup einreihen?",
-    "confirmBackupDescription": "Ruft die Admin-Backup-API auf und reiht einen Lauf auf dem Server-Worker ein. Kein Download und kein Restore-Nachweis.",
+    "confirmBackupDescription": "Ruft die Admin-Backup-API auf und reiht einen Lauf auf dem Server-Worker ein. Kein sofortiger Download; kein Restore-Nachweis.",
     "confirmBackupOk": "Einreihen",
     "confirmBackupCancel": "Abbrechen"
+  },
+  "progress": {
+    "titleQueued": "Backup eingereiht — läuft noch nicht",
+    "titleRunning": "Backup wird ausgeführt",
+    "titleAwaiting": "Backup fast fertig — Verifikation / Kopie",
+    "bodyQueued": "Der Lauf wartet in der Worker-Warteschlange oder startet gleich.",
+    "bodyRunning": "Ausführung auf dem Server (z. B. pg_dump, Artefakte, Prüfschritte).",
+    "bodyAwaiting": "Ausführungsphase abgeschlossen; Artefakt-Verifikation oder externe Kopie kann noch laufen.",
+    "finishedOk": "Letzter Backup-Lauf: erfolgreich abgeschlossen.",
+    "finishedFailed": "Letzter Backup-Lauf: fehlgeschlagen — Details in der Tabelle.",
+    "finishedVerificationFailed": "Letzter Backup-Lauf: Artefakt-Verifikation fehlgeschlagen.",
+    "finishedCancelled": "Letzter Backup-Lauf: abgebrochen.",
+    "etaFromStart": "Richtwert Fertigstellung (nach Ø früherer erfolgreicher Läufe, n={{n}}): {{time}}",
+    "etaQueued": "Grober Richtwert Fertigstellung (Warteschlange + Ø Dauer, n={{n}}): {{time}}",
+    "noEta": "Kein Zeit-Richtwert: noch keine erfolgreichen Läufe mit messbarer Dauer."
+  },
+  "download": {
+    "title": "Artefakte herunterladen (letzter Lauf)",
+    "hint": "Nur bei erfolgreichem Lauf. Download erfordert „Einstellungen verwalten“ und wird auditierbar protokolliert.",
+    "button": "Herunterladen",
+    "typeLabel": "Typ",
+    "locatorLabel": "Staging-Kennung",
+    "externalLabel": "Archiv-Kennung",
+    "error": "Download fehlgeschlagen.",
+    "needManage": "Zum Herunterladen fehlt die Berechtigung „Einstellungen verwalten“.",
+    "types": {
+      "0": "Logischer Dump",
+      "1": "Physisches Basis-Backup",
+      "2": "WAL-Fenster",
+      "3": "Globals-Dump",
+      "4": "Verifikations-Manifest",
+      "5": "Backup-Log",
+      "unknown": "Artefakt"
+    }
   },
   "triState": {
     "ok": "OK",

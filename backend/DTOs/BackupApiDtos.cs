@@ -181,6 +181,12 @@ public sealed class BackupLatestStatusResponseDto
 
     /// <summary>Artifact staging / external copy beklentisi; <see cref="BackupConfigurationHealthResponseDto"/> ile birlikte yorumlanmalıdır.</summary>
     public BackupArtifactPipelinePolicyResponseDto ArtifactPipelinePolicy { get; init; } = null!;
+
+    /// <summary>Son başarılı yedeklerin ortalama süresi (saniye); örnek yoksa null.</summary>
+    public double? AverageSucceededBackupDurationSeconds { get; init; }
+
+    /// <summary><see cref="AverageSucceededBackupDurationSeconds"/> için kullanılan başarılı çalıştırma sayısı.</summary>
+    public int AverageSucceededBackupDurationSampleCount { get; init; }
 }
 
 /// <summary>

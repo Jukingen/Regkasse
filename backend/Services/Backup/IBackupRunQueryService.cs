@@ -19,4 +19,11 @@ public interface IBackupRunQueryService
     /// En yeni <see cref="BackupRunStatus.Succeeded"/> yedek çalıştırmalarının kimlikleri (RequestedAt azalan).
     /// </summary>
     Task<IReadOnlyList<Guid>> GetRecentSucceededRunIdsAsync(int maxCount, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Son tamamlanmış başarılı yedeklerin ortalama süresi (StartedAt → CompletedAt); UI tahmini için.
+    /// </summary>
+    Task<BackupSucceededDurationStatistics> GetAverageSucceededDurationAsync(
+        int maxSamples,
+        CancellationToken cancellationToken = default);
 }

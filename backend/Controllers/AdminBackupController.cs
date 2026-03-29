@@ -2,7 +2,9 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +28,8 @@ public sealed class AdminBackupController : ControllerBase
     private readonly IRestoreOrchestrationBoundary _restore;
     private readonly IBackupOperationalReadiness _readiness;
     private readonly IOptionsMonitor<BackupOptions> _backupOptions;
+    private readonly IBackupArtifactDownloadService _artifactDownload;
+    private readonly IAuditLogService _audit;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
@@ -33,7 +37,9 @@ public sealed class AdminBackupController : ControllerBase
         IBackupRecoverabilitySummaryService recoverabilitySummary,
         IRestoreOrchestrationBoundary restore,
         IBackupOperationalReadiness readiness,
-        IOptionsMonitor<BackupOptions> backupOptions)
+        IOptionsMonitor<BackupOptions> backupOptions,
+        IBackupArtifactDownloadService artifactDownload,
+        IAuditLogService audit)
     {
         _trigger = trigger;
         _query = query;
@@ -41,6 +47,8 @@ public sealed class AdminBackupController : ControllerBase
         _restore = restore;
         _readiness = readiness;
         _backupOptions = backupOptions;
+        _artifactDownload = artifactDownload;
+        _audit = audit;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -80,6 +88,7 @@ public sealed class AdminBackupController : ControllerBase
     public async Task<ActionResult<BackupLatestStatusResponseDto>> GetLatestStatus(CancellationToken cancellationToken)
     {
         var latest = await _query.GetLatestRunAsync(cancellationToken);
+        var durationStats = await _query.GetAverageSucceededDurationAsync(15, cancellationToken);
         var cap = _restore.DescribeCapabilities();
         var cfg = _readiness.GetConfigurationHealth();
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
@@ -99,8 +108,67 @@ public sealed class AdminBackupController : ControllerBase
                 Notes = cap.Notes
             },
             ConfigurationHealth = BackupConfigurationHealthResponseMapper.FromSnapshot(cfg),
-            ArtifactPipelinePolicy = BackupArtifactPipelinePolicyMapper.ToDto(artifactPolicy)
+            ArtifactPipelinePolicy = BackupArtifactPipelinePolicyMapper.ToDto(artifactPolicy),
+            AverageSucceededBackupDurationSeconds = durationStats.AverageDurationSeconds,
+            AverageSucceededBackupDurationSampleCount = durationStats.SampleCount
         });
+    }
+
+    /// <summary>
+    /// Başarılı yedek çalıştırmasına ait artefakt dosyasını indirir (staging veya harici arşiv); yalnızca tamamlanmış başarılı koşular.
+    /// </summary>
+    [HttpGet("runs/{runId:guid}/artifacts/{artifactId:guid}/download")]
+    [HasPermission(AppPermissions.SettingsManage)]
+    [Produces("application/octet-stream", "application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DownloadArtifact(
+        Guid runId,
+        Guid artifactId,
+        CancellationToken cancellationToken)
+    {
+        var prepare = await _artifactDownload.PrepareDownloadAsync(runId, artifactId, cancellationToken);
+        switch (prepare.Status)
+        {
+            case BackupArtifactDownloadPrepareStatus.Ok:
+                break;
+            case BackupArtifactDownloadPrepareStatus.RunNotFound:
+            case BackupArtifactDownloadPrepareStatus.ArtifactNotFound:
+                return NotFound();
+            case BackupArtifactDownloadPrepareStatus.RunNotSucceeded:
+                return Conflict(new { code = "BACKUP_RUN_NOT_SUCCEEDED", message = "Backup run is not in Succeeded state." });
+            case BackupArtifactDownloadPrepareStatus.FileNotOnDisk:
+                return NotFound(new { code = "BACKUP_ARTIFACT_FILE_MISSING", message = "Artifact file is not available on the server." });
+            case BackupArtifactDownloadPrepareStatus.InvalidConfiguration:
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { code = "BACKUP_STORAGE_NOT_CONFIGURED", message = "Backup staging/archive paths are not configured." });
+            default:
+                return NotFound();
+        }
+
+        var userId = User.GetActorUserId() ?? "unknown";
+        var role = User.GetActorRole() ?? "Unknown";
+        var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+        await _audit.LogSystemOperationAsync(
+            action: "BACKUP_ARTIFACT_DOWNLOAD",
+            entityType: "BackupArtifact",
+            userId: userId,
+            userRole: role,
+            description: $"Backup artifact download (run={runId}, artifact={artifactId}).",
+            notes: null,
+            status: AuditLogStatus.Success,
+            errorDetails: null,
+            requestData: new { backupRunId = runId, artifactId },
+            responseData: new { downloadFileName = prepare.DownloadFileName },
+            correlationIdOverride: correlationId);
+
+        var file = new PhysicalFileResult(prepare.AbsolutePath!, "application/octet-stream")
+        {
+            FileDownloadName = prepare.DownloadFileName,
+            EnableRangeProcessing = true
+        };
+        return file;
     }
 
     /// <summary>

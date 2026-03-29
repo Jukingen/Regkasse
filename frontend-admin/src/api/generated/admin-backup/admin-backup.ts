@@ -306,6 +306,66 @@ export const useGetApiAdminBackupRunsId = <TData = Awaited<ReturnType<typeof get
 
 
 
+export const getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload = (
+    runId: string,
+    artifactId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Blob>(
+      {url: `/api/admin/backup/runs/${runId}/artifacts/${artifactId}/download`, method: 'GET',
+        responseType: 'blob', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryKey = (runId: string,
+    artifactId: string,) => {
+    return [`/api/admin/backup/runs/${runId}/artifacts/${artifactId}/download`] as const;
+    }
+
+    
+export const getGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>, TError = void>(runId: string,
+    artifactId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryKey(runId,artifactId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>> = ({ signal }) => getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload(runId,artifactId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(runId && artifactId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>>
+export type GetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryError = void
+
+export const useGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownload = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>, TError = void>(
+ runId: string,
+    artifactId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsRunIdArtifactsArtifactIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownloadQueryOptions(runId,artifactId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
 export const getApiAdminBackupVerificationLatest = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal

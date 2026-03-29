@@ -130,11 +130,45 @@
   },
   "manual": {
     "title": "Manuel eylemler (yalnızca kuyruk)",
-    "hint": "İşler API üzerinden asenkron kuyruğa alınır — anında sonuç ve tarayıcı indirmesi yok.",
+    "hint": "İşler API üzerinden asenkron kuyruğa alınır — anında sonuç yok. Başarılı çalıştırmadan sonra yetkili kullanıcılar artefaktı aşağıdan indirebilir.",
     "confirmBackupTitle": "Yedek kuyruğa alınsın mı?",
-    "confirmBackupDescription": "Sunucu işçisinde yeni bir çalıştırma kuyruğa almak için admin yedek API’sini çağırır. İndirme değildir ve geri yükleme kanıtı değildir.",
+    "confirmBackupDescription": "Sunucu işçisinde yeni çalıştırma kuyruğa almak için admin yedek API’sini çağırır. Anında indirme değildir; geri yükleme kanıtı da değildir.",
     "confirmBackupOk": "Kuyruğa al",
     "confirmBackupCancel": "Vazgeç"
+  },
+  "progress": {
+    "titleQueued": "Yedek kuyrukta — henüz bitmedi",
+    "titleRunning": "Yedek çalışıyor",
+    "titleAwaiting": "Yedek neredeyse bitti — doğrulama / kopya",
+    "bodyQueued": "Çalıştırma worker kuyruğunda bekliyor veya hemen başlayacak.",
+    "bodyRunning": "Sunucuda yürütülüyor (ör. pg_dump, artefakt, kontroller).",
+    "bodyAwaiting": "Yürütme bitti; artefakt doğrulaması veya harici kopya sürebilir.",
+    "finishedOk": "Son yedek çalıştırması: başarıyla tamamlandı.",
+    "finishedFailed": "Son yedek çalıştırması: başarısız — ayrıntılar tabloda.",
+    "finishedVerificationFailed": "Son yedek çalıştırması: artefakt doğrulaması başarısız.",
+    "finishedCancelled": "Son yedek çalıştırması: iptal edildi.",
+    "etaFromStart": "Tahmini bitiş (önceki başarılı çalıştırmaların ortalaması, n={{n}}): {{time}}",
+    "etaQueued": "Kabaca tahmini bitiş (kuyruk + ortalama süre, n={{n}}): {{time}}",
+    "noEta": "Süre tahmini yok: henüz ölçülebilir süreli başarılı çalıştırma yok."
+  },
+  "download": {
+    "title": "Artefakt indir (son çalıştırma)",
+    "hint": "Yalnızca son çalıştırma başarılıysa. İndirme „Ayarları yönet“ yetkisi gerektirir ve denetim kaydına yazılır.",
+    "button": "İndir",
+    "typeLabel": "Tür",
+    "locatorLabel": "Staging konumu",
+    "externalLabel": "Arşiv konumu",
+    "error": "İndirme başarısız.",
+    "needManage": "İndirmek için „Ayarları yönet“ yetkisi gerekir.",
+    "types": {
+      "0": "Mantıksal döküm",
+      "1": "Fiziksel temel yedek",
+      "2": "WAL penceresi",
+      "3": "Globals dökümü",
+      "4": "Doğrulama manifestosu",
+      "5": "Yedek günlüğü",
+      "unknown": "Artefakt"
+    }
   },
   "triState": {
     "ok": "Tamam",

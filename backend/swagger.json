@@ -13735,6 +13735,55 @@
         }
       }
     },
+    "/api/admin/backup/runs/{runId}/artifacts/{artifactId}/download": {
+      "get": {
+        "tags": [
+          "AdminBackup"
+        ],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "artifactId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Backup run has not completed successfully"
+          },
+          "503": {
+            "description": "Backup storage paths not configured"
+          }
+        }
+      }
+    },
     "/api/admin/backup/verification/latest": {
       "get": {
         "tags": [
@@ -24908,6 +24957,15 @@
           },
           "artifactPipelinePolicy": {
             "$ref": "#/components/schemas/BackupArtifactPipelinePolicyResponseDto"
+          },
+          "averageSucceededBackupDurationSeconds": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "averageSucceededBackupDurationSampleCount": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

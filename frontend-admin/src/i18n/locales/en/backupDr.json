@@ -130,11 +130,45 @@
   },
   "manual": {
     "title": "Manual actions (enqueue only)",
-    "hint": "Jobs are queued asynchronously via the API — no instant result and no browser download.",
+    "hint": "Jobs are queued asynchronously via the API — no instant result. After a successful run, authorized users can download artifacts below.",
     "confirmBackupTitle": "Enqueue backup?",
-    "confirmBackupDescription": "This calls the admin backup API to queue a new run on the server worker. It is not a download and does not prove restore.",
+    "confirmBackupDescription": "Calls the admin backup API to queue a run on the server worker. Not an instant download and does not prove restore.",
     "confirmBackupOk": "Enqueue",
     "confirmBackupCancel": "Cancel"
+  },
+  "progress": {
+    "titleQueued": "Backup queued — not finished yet",
+    "titleRunning": "Backup in progress",
+    "titleAwaiting": "Backup almost done — verification / copy",
+    "bodyQueued": "The run is waiting in the worker queue or is about to start.",
+    "bodyRunning": "Execution on the server (e.g. pg_dump, artifacts, checks).",
+    "bodyAwaiting": "Execution finished; artifact verification or external copy may still run.",
+    "finishedOk": "Latest backup run: completed successfully.",
+    "finishedFailed": "Latest backup run: failed — see table for details.",
+    "finishedVerificationFailed": "Latest backup run: artifact verification failed.",
+    "finishedCancelled": "Latest backup run: cancelled.",
+    "etaFromStart": "Estimated completion (from average of prior successful runs, n={{n}}): {{time}}",
+    "etaQueued": "Rough estimated completion (queue + average duration, n={{n}}): {{time}}",
+    "noEta": "No time estimate: no successful runs with measurable duration yet."
+  },
+  "download": {
+    "title": "Download artifacts (latest run)",
+    "hint": "Only when the latest run succeeded. Download requires “Manage settings” and is audit-logged.",
+    "button": "Download",
+    "typeLabel": "Type",
+    "locatorLabel": "Staging locator",
+    "externalLabel": "Archive locator",
+    "error": "Download failed.",
+    "needManage": "You need “Manage settings” permission to download.",
+    "types": {
+      "0": "Logical dump",
+      "1": "Physical base backup",
+      "2": "WAL archive window",
+      "3": "Globals dump",
+      "4": "Verification manifest",
+      "5": "Backup log",
+      "unknown": "Artifact"
+    }
   },
   "triState": {
     "ok": "OK",
