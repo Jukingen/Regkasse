@@ -6,15 +6,23 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Backup;
 
+/// <summary>
+/// <see cref="IBackupRecoverabilitySummaryService"/> — tek kaynak sorgular; restore proof yalnızca Scheduled+Succeeded.
+/// </summary>
 public sealed class BackupRecoverabilitySummaryService : IBackupRecoverabilitySummaryService
 {
     private readonly AppDbContext _db;
     private readonly TimeProvider _timeProvider;
+    private readonly IBackupOperationalReadiness _backupReadiness;
 
-    public BackupRecoverabilitySummaryService(AppDbContext db, TimeProvider timeProvider)
+    public BackupRecoverabilitySummaryService(
+        AppDbContext db,
+        TimeProvider timeProvider,
+        IBackupOperationalReadiness backupReadiness)
     {
         _db = db;
         _timeProvider = timeProvider;
+        _backupReadiness = backupReadiness;
     }
 
     /// <inheritdoc />
@@ -39,8 +47,11 @@ public sealed class BackupRecoverabilitySummaryService : IBackupRecoverabilitySu
             .Select(v => new { At = v.CompletedAt ?? v.StartedAt })
             .FirstOrDefaultAsync(cancellationToken);
 
+        // Zamanlanmış drill cadence / DR gözlemi ile hizalı: yalnızca Scheduled başarılı kanıt (manuel başarılar özet yaşını düşürmez).
         var lastRestoreProof = await _db.RestoreVerificationRuns.AsNoTracking()
-            .Where(r => r.Status == RestoreVerificationStatus.Succeeded && r.CompletedAt != null)
+            .Where(r => r.TriggerSource == RestoreVerificationTriggerSource.Scheduled
+                        && r.Status == RestoreVerificationStatus.Succeeded
+                        && r.CompletedAt != null)
             .OrderByDescending(r => r.CompletedAt)
             .Select(r => new { r.Id, r.CompletedAt })
             .FirstOrDefaultAsync(cancellationToken);
@@ -49,6 +60,8 @@ public sealed class BackupRecoverabilitySummaryService : IBackupRecoverabilitySu
             .OrderByDescending(r => r.RequestedAt)
             .Select(r => new { r.RequestedAt, r.Status })
             .FirstOrDefaultAsync(cancellationToken);
+
+        var cfg = _backupReadiness.GetConfigurationHealth();
 
         return new BackupRecoverabilitySummaryResponseDto
         {
@@ -62,7 +75,11 @@ public sealed class BackupRecoverabilitySummaryService : IBackupRecoverabilitySu
             LatestRunAt = latestBackup?.RequestedAt,
             LatestRunStatus = latestBackup?.Status,
             LatestRestoreRunAt = latestRestore?.RequestedAt,
-            LatestRestoreRunStatus = latestRestore?.Status
+            LatestRestoreRunStatus = latestRestore?.Status,
+            BackupExecutionReality = cfg.BackupExecutionReality,
+            RealPostgreSqlLogicalDumpConfigured = cfg.RealPostgreSqlLogicalDumpConfigured,
+            BackupReadinessLevel = cfg.Level.ToString(),
+            BackupReadinessNarrative = cfg.ReadinessNarrative
         };
     }
 

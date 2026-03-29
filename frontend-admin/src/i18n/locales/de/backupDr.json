@@ -12,7 +12,11 @@
     "backupProofAge": "Alter des Backup-Nachweises",
     "restoreProofAge": "Alter des Restore-Drill-Nachweises",
     "latestBackupRequest": "Letzte Backup-Anforderung (beliebiges Ergebnis)",
-    "latestRestoreRequest": "Letzte Restore-Drill-Anforderung (beliebiges Ergebnis)"
+    "latestRestoreRequest": "Letzte Restore-Drill-Anforderung (beliebiges Ergebnis)",
+    "executionProfile": "Ausführungsprofil (Server)",
+    "realPgDumpConfigured": "Echter PostgreSQL-Logikdump (pg_dump)",
+    "readinessLevel": "Backup-Bereitschaft (Server)",
+    "serverNarrative": "Hinweis (Server, EN)"
   },
   "scope": {
     "title": "Was diese Seite tut (und was nicht)",
@@ -25,7 +29,8 @@
     "backupConfigDegraded": "Backup-Konfiguration: Zustand „eingeschränkt“.",
     "restoreReadinessUnhealthy": "Restore-Verifikation: Bereitschaft „kritisch“.",
     "restoreReadinessDegraded": "Restore-Verifikation: Bereitschaft „eingeschränkt“.",
-    "externalArchiveDegraded": "Externe Artefakt-Kopie: fehlgeschlagen oder uneinheitlich — Backup kann trotzdem technisch erfolgreich gewesen sein."
+    "externalArchiveDegraded": "Externe Artefakt-Kopie: fehlgeschlagen oder uneinheitlich — Backup kann trotzdem technisch erfolgreich gewesen sein.",
+    "noRealPostgreSqlBackup": "Kein konfigurierter echter PostgreSQL-Logikdump (pg_dump)"
   },
   "summary": {
     "backupHealth": "Backup-Gesundheit",
@@ -142,7 +147,9 @@
     "unhealthy": "Kritisch",
     "workerDisabled": "Worker deaktiviert — wartende Backups werden nicht verarbeitet.",
     "adapter": "Adapter",
-    "worker": "Worker"
+    "worker": "Worker",
+    "realPgDumpYes": "pg_dump: ja",
+    "realPgDumpNo": "pg_dump: nein"
   },
   "latestRun": {
     "title": "Letzter Backup-Lauf",

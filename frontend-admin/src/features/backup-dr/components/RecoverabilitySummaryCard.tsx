@@ -47,6 +47,20 @@ export function RecoverabilitySummaryCard({
         <Typography.Text type="secondary">{t('backupDr.summary.unknown')}</Typography.Text>
       ) : (
         <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
+          <Descriptions.Item label={t('backupDr.recoverability.executionProfile')} span={2}>
+            <Typography.Text code>{summary.backupExecutionReality ?? '—'}</Typography.Text>
+          </Descriptions.Item>
+          <Descriptions.Item label={t('backupDr.recoverability.realPgDumpConfigured')} span={2}>
+            {summary.realPostgreSqlLogicalDumpConfigured ? t('common.buttons.yes') : t('common.buttons.no')}
+          </Descriptions.Item>
+          <Descriptions.Item label={t('backupDr.recoverability.readinessLevel')} span={2}>
+            {summary.backupReadinessLevel ?? '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label={t('backupDr.recoverability.serverNarrative')} span={2}>
+            <Typography.Text type="secondary" style={{ whiteSpace: 'pre-wrap' }}>
+              {summary.backupReadinessNarrative?.trim() || '—'}
+            </Typography.Text>
+          </Descriptions.Item>
           <Descriptions.Item label={t('backupDr.recoverability.lastGoodBackup')} span={2}>
             {formatDt(summary.lastSuccessfulBackupAt, formatLocale)}
             {summary.lastSuccessfulBackupRunId ? (

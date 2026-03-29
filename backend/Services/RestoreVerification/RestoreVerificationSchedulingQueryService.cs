@@ -26,16 +26,6 @@ public sealed class RestoreVerificationSchedulingQueryService : IRestoreVerifica
     }
 
     /// <inheritdoc />
-    public Task<DateTime?> GetLastSuccessfulAnyTriggerProofCompletedAtUtcAsync(CancellationToken cancellationToken = default)
-    {
-        return _db.RestoreVerificationRuns.AsNoTracking()
-            .Where(r => r.Status == RestoreVerificationStatus.Succeeded && r.CompletedAt != null)
-            .OrderByDescending(r => r.CompletedAt)
-            .Select(r => r.CompletedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-    }
-
-    /// <inheritdoc />
     public Task<bool> HasActiveScheduledQueuedOrRunningAsync(CancellationToken cancellationToken = default)
     {
         return _db.RestoreVerificationRuns.AsNoTracking()

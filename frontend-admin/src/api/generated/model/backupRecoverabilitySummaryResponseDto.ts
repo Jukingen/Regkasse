@@ -9,8 +9,11 @@ import type { BackupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus } fro
 import type { BackupRecoverabilitySummaryResponseDtoLatestRunStatus } from './backupRecoverabilitySummaryResponseDtoLatestRunStatus';
 
 export interface BackupRecoverabilitySummaryResponseDto {
+  backupExecutionReality?: string;
   /** @nullable */
   backupProofAgeSeconds?: number | null;
+  backupReadinessLevel?: string;
+  backupReadinessNarrative?: string;
   /** @nullable */
   lastSuccessfulArtifactVerificationAt?: string | null;
   /** @nullable */
@@ -29,6 +32,7 @@ export interface BackupRecoverabilitySummaryResponseDto {
   latestRunAt?: string | null;
   /** @nullable */
   latestRunStatus?: BackupRecoverabilitySummaryResponseDtoLatestRunStatus;
+  realPostgreSqlLogicalDumpConfigured?: boolean;
   /** @nullable */
   restoreProofAgeSeconds?: number | null;
 }

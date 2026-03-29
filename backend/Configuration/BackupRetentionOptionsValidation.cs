@@ -11,6 +11,9 @@ public static class BackupRetentionOptionsValidation
     /// <summary>Hata mesajı veya null = geçerli.</summary>
     public static string? Validate(BackupOptions options)
     {
+        if (options.RetentionArtifactDeletionEnabled)
+            return "Backup:RetentionArtifactDeletionEnabled must remain false; automated backup artifact retention deletion is not implemented in the API.";
+
         if (options.RetentionPolicyMode == BackupRetentionPolicyMode.Disabled)
         {
             if (options.ArtifactRetentionDays.HasValue)

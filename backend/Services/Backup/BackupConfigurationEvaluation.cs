@@ -1,3 +1,4 @@
+using Cronos;
 using KasseAPI_Final.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -10,6 +11,27 @@ namespace KasseAPI_Final.Services.Backup;
 /// </summary>
 public static class BackupConfigurationEvaluation
 {
+    public const string BackupExecutionRealityPostgreSqlLogicalDump = "PostgreSqlLogicalDump";
+
+    public const string BackupExecutionRealitySimulatedFake = "SimulatedFake";
+
+    public const string BackupExecutionRealityProductionStubNoPostgreSql = "ProductionStubNoPostgreSqlBackup";
+
+    public const string BackupExecutionRealityUnknown = "Unknown";
+
+    /// <summary>Production, Staging, and any non-Development host profile.</summary>
+    public static bool IsProductionLikeEnvironment(IHostEnvironment environment) =>
+        !environment.IsDevelopment();
+
+    public static string MapBackupExecutionReality(BackupExecutionAdapterKind kind) =>
+        kind switch
+        {
+            BackupExecutionAdapterKind.PgDump => BackupExecutionRealityPostgreSqlLogicalDump,
+            BackupExecutionAdapterKind.Fake => BackupExecutionRealitySimulatedFake,
+            BackupExecutionAdapterKind.ProductionStub => BackupExecutionRealityProductionStubNoPostgreSql,
+            _ => BackupExecutionRealityUnknown
+        };
+
     /// <summary>Evaluates backup options without connection-string checks (tests / callers without <see cref="IConfiguration"/>).</summary>
     public static BackupConfigurationHealthSnapshot Evaluate(BackupOptions options, IHostEnvironment environment) =>
         Evaluate(options, environment, configuration: null);
@@ -36,20 +58,34 @@ public static class BackupConfigurationEvaluation
         if (options.OrchestratorPollingInterval > TimeSpan.FromHours(24))
             Add(BackupConfigurationHealthLevel.Unhealthy, "Backup:OrchestratorPollingInterval exceeds 24 hours (misconfiguration).");
 
-        if (!environment.IsDevelopment())
+        if (IsProductionLikeEnvironment(environment))
         {
             if (options.ExecutionAdapterKind == BackupExecutionAdapterKind.Fake)
-                Add(BackupConfigurationHealthLevel.Unhealthy,
-                    "Backup:ExecutionAdapterKind=Fake is not allowed outside Development (simulated artifacts only).");
+            {
+                if (!options.AcknowledgeFakeBackupAdapterOutsideDevelopment)
+                {
+                    Add(BackupConfigurationHealthLevel.Unhealthy,
+                        "Backup:ExecutionAdapterKind=Fake is not allowed in production-like environments without Backup:AcknowledgeFakeBackupAdapterOutsideDevelopment=true (simulated artifacts only; no PostgreSQL logical backup).");
+                }
+                else
+                {
+                    Add(BackupConfigurationHealthLevel.Degraded,
+                        "Backup:ExecutionAdapterKind=Fake in production-like environment — simulated artifacts only; operator set Backup:AcknowledgeFakeBackupAdapterOutsideDevelopment=true (no PostgreSQL logical backup).");
+                }
+            }
 
             if (options.ExecutionAdapterKind == BackupExecutionAdapterKind.ProductionStub)
             {
                 if (!options.AcknowledgePhase1NoRealBackup)
+                {
                     Add(BackupConfigurationHealthLevel.Unhealthy,
-                        "Backup:ExecutionAdapterKind=ProductionStub in non-Development requires Backup:AcknowledgePhase1NoRealBackup=true (no real PostgreSQL backup is performed).");
+                        "Backup:ExecutionAdapterKind=ProductionStub requires Backup:AcknowledgePhase1NoRealBackup=true in production-like environments — ProductionStub does not run pg_dump or produce a real PostgreSQL logical backup.");
+                }
                 else
+                {
                     Add(BackupConfigurationHealthLevel.Degraded,
-                        "Backup:ExecutionAdapterKind=ProductionStub — no pg_dump execution; switch to PgDump when ready.");
+                        "Backup:ExecutionAdapterKind=ProductionStub — no pg_dump / real PostgreSQL logical backup; operator set Backup:AcknowledgePhase1NoRealBackup=true; switch to PgDump for real dumps.");
+                }
             }
         }
 
@@ -105,6 +141,18 @@ public static class BackupConfigurationEvaluation
                 "Backup:RequireExternalArchiveImmutableTarget=true requires Backup:ExternalArchiveImmutabilityAcknowledged=true after configuring an immutable external archive tier (e.g. object lock / WORM). The API cannot verify storage immutability.");
         }
 
+        // Harici arşiv yolu var; immutable zorunluluğu kapalıysa operatör ya WORM beyanı ya da mutable kabulü vermeli.
+        if (!environment.IsDevelopment()
+            && options.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump
+            && !string.IsNullOrWhiteSpace(options.ExternalArchiveRoot)
+            && !options.RequireExternalArchiveImmutableTarget
+            && !options.ExternalArchiveImmutabilityAcknowledged
+            && !options.ExternalArchiveMutableTargetAccepted)
+        {
+            Add(BackupConfigurationHealthLevel.Degraded,
+                "Backup: ExternalArchiveRoot is set for PgDump in a production-like environment, but operator disposition is missing — set Backup:ExternalArchiveImmutabilityAcknowledged=true after configuring an immutable tier, or set Backup:ExternalArchiveMutableTargetAccepted=true to explicitly accept a mutable external target, or enable Backup:RequireExternalArchiveImmutableTarget with acknowledgment for WORM/object-lock posture.");
+        }
+
         if (options.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump
             && configuration != null
             && !environment.IsDevelopment())
@@ -149,7 +197,37 @@ public static class BackupConfigurationEvaluation
         if (options.RetentionPolicyMode == BackupRetentionPolicyMode.ExecutionPlanned)
         {
             Add(BackupConfigurationHealthLevel.Degraded,
-                "Backup:RetentionPolicyMode=ExecutionPlanned — automated artifact deletion is not implemented; policy is recorded for future use only. Prefer ReportOnly until a retention job is shipped.");
+                "Backup:RetentionPolicyMode=ExecutionPlanned — automated artifact deletion is not implemented; Backup:RetentionArtifactDeletionEnabled must remain false until a retention job ships. Policy is recorded for operator planning only.");
+        }
+
+        if (options.ScheduledBackupEnabled)
+        {
+            var cron = options.GetEffectiveScheduledBackupCronExpression();
+            if (string.IsNullOrWhiteSpace(cron))
+            {
+                Add(BackupConfigurationHealthLevel.Unhealthy,
+                    "Backup:ScheduledBackupEnabled=true requires Backup:ScheduledBackupCron or legacy Backup:ScheduleCronPlaceholder.");
+            }
+            else if (!CronExpression.TryParse(cron, CronFormat.Standard, out _))
+            {
+                Add(BackupConfigurationHealthLevel.Unhealthy,
+                    "Backup scheduled cron expression is invalid (CronFormat.Standard, five fields).");
+            }
+        }
+
+        var reality = MapBackupExecutionReality(options.ExecutionAdapterKind);
+        var realPg = options.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump;
+        string? nonRealAckKey = null;
+        if (IsProductionLikeEnvironment(environment))
+        {
+            nonRealAckKey = options.ExecutionAdapterKind switch
+            {
+                BackupExecutionAdapterKind.Fake when options.AcknowledgeFakeBackupAdapterOutsideDevelopment =>
+                    "Backup:AcknowledgeFakeBackupAdapterOutsideDevelopment",
+                BackupExecutionAdapterKind.ProductionStub when options.AcknowledgePhase1NoRealBackup =>
+                    "Backup:AcknowledgePhase1NoRealBackup",
+                _ => null
+            };
         }
 
         return new BackupConfigurationHealthSnapshot
@@ -157,7 +235,41 @@ public static class BackupConfigurationEvaluation
             Level = level,
             Issues = issues,
             EffectiveAdapterKind = options.ExecutionAdapterKind,
-            WorkerEnabled = options.WorkerEnabled
+            WorkerEnabled = options.WorkerEnabled,
+            RealPostgreSqlLogicalDumpConfigured = realPg,
+            BackupExecutionReality = reality,
+            NonRealBackupAdapterAcknowledgmentConfigurationKey = nonRealAckKey,
+            ReadinessNarrative = BuildReadinessNarrative(level, realPg, options, environment, nonRealAckKey),
+            RetentionReadiness = BackupRetentionReadinessEvaluator.Build(options)
         };
+    }
+
+    private static string BuildReadinessNarrative(
+        BackupConfigurationHealthLevel level,
+        bool realPostgreSqlLogicalDumpConfigured,
+        BackupOptions options,
+        IHostEnvironment environment,
+        string? nonRealAckKey)
+    {
+        var restricted = IsProductionLikeEnvironment(environment);
+        if (realPostgreSqlLogicalDumpConfigured && level == BackupConfigurationHealthLevel.Healthy)
+            return "Real PostgreSQL logical backup is configured (pg_dump -Fc); required paths and connection checks passed.";
+
+        if (realPostgreSqlLogicalDumpConfigured)
+            return "PostgreSQL logical dump adapter is selected but configuration is not fully healthy; review issues.";
+
+        if (!restricted)
+            return $"Development: backup adapter {options.ExecutionAdapterKind} does not perform production PostgreSQL logical dumps.";
+
+        if (level == BackupConfigurationHealthLevel.Unhealthy
+            && options.ExecutionAdapterKind is BackupExecutionAdapterKind.Fake or BackupExecutionAdapterKind.ProductionStub)
+        {
+            return "Unhealthy: non-real backup adapter in a production-like environment or missing explicit operator acknowledgment — correct configuration before relying on backups.";
+        }
+
+        if (nonRealAckKey != null)
+            return $"No real PostgreSQL logical backup: adapter is {options.ExecutionAdapterKind}; explicit acknowledgment is set ({nonRealAckKey}).";
+
+        return $"No real PostgreSQL logical backup: adapter is {options.ExecutionAdapterKind}.";
     }
 }

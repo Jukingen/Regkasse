@@ -100,6 +100,30 @@ public sealed class RestoreVerificationManualTriggerServiceTests
     }
 
     [Fact]
+    public async Task Active_scheduled_queued_deduplicates_manual_trigger_even_with_new_idempotency_key()
+    {
+        var dbName = $"rv_sched_block_{Guid.NewGuid():N}";
+        var (svc, db) = CreateSut(dbName);
+        var scheduledId = Guid.NewGuid();
+        db.RestoreVerificationRuns.Add(new RestoreVerificationRun
+        {
+            Id = scheduledId,
+            Status = RestoreVerificationStatus.Queued,
+            TriggerSource = RestoreVerificationTriggerSource.Scheduled,
+            RequestedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        var result = await svc.EnqueueManualAsync("u1", "c1", "client-unique-key");
+
+        Assert.Equal(RestoreVerificationTriggerOrchestrationState.ExistingActiveRunReturned, result.OrchestrationState);
+        Assert.True(result.ExistingRunReturned);
+        Assert.False(result.NewQueuedRunCreated);
+        Assert.Equal(scheduledId, result.Run.Id);
+        Assert.Equal(1, await db.RestoreVerificationRuns.CountAsync());
+    }
+
+    [Fact]
     public async Task Completed_run_with_key_A_does_not_block_new_request_with_key_B()
     {
         var dbName = $"rv_ab_{Guid.NewGuid():N}";

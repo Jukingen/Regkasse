@@ -41,11 +41,20 @@ public static class OperationalRunConfigSnapshotBuilder
             PgDumpExecutablePathConfigured: !string.IsNullOrWhiteSpace(options.PgDumpExecutablePath),
             DevelopmentForceVerificationFailure: options.DevelopmentForceVerificationFailure,
             AcknowledgePhase1NoRealBackup: options.AcknowledgePhase1NoRealBackup,
+            AcknowledgeFakeBackupAdapterOutsideDevelopment: options.AcknowledgeFakeBackupAdapterOutsideDevelopment,
+            ScheduledBackupEnabled: options.ScheduledBackupEnabled,
+            ScheduledBackupCronConfigured: !string.IsNullOrWhiteSpace(options.GetEffectiveScheduledBackupCronExpression()),
             ScheduleCronPlaceholderConfigured: !string.IsNullOrWhiteSpace(options.ScheduleCronPlaceholder),
             RetentionDaysPlaceholder: options.RetentionDaysPlaceholder,
             RunLeaseTimeoutSeconds: (int)Math.Clamp(options.RunLeaseTimeout.TotalSeconds, 0, int.MaxValue),
             HeartbeatIntervalSeconds: (int)Math.Clamp(options.HeartbeatInterval.TotalSeconds, 0, int.MaxValue),
-            StaleRecoveryScanIntervalSeconds: (int)Math.Clamp(options.StaleRecoveryScanInterval.TotalSeconds, 0, int.MaxValue));
+            StaleRecoveryScanIntervalSeconds: (int)Math.Clamp(options.StaleRecoveryScanInterval.TotalSeconds, 0, int.MaxValue),
+            RetentionPolicyMode: options.RetentionPolicyMode.ToString(),
+            ArtifactRetentionDays: options.ArtifactRetentionDays,
+            RetentionArtifactDeletionEnabled: options.RetentionArtifactDeletionEnabled,
+            RequireExternalArchiveImmutableTarget: options.RequireExternalArchiveImmutableTarget,
+            ExternalArchiveImmutabilityAcknowledged: options.ExternalArchiveImmutabilityAcknowledged,
+            ExternalArchiveMutableTargetAccepted: options.ExternalArchiveMutableTargetAccepted);
 
         return JsonSerializer.Serialize(payload, JsonOptions);
     }
@@ -66,7 +75,6 @@ public static class OperationalRunConfigSnapshotBuilder
             OrchestratorAdvisoryLockKey2: options.OrchestratorAdvisoryLockKey2,
             ScheduledWeeklyDrillEnabled: options.ScheduledWeeklyDrillEnabled,
             ScheduledProofCadenceDays: options.ScheduledProofCadenceDays,
-            ManualSuccessSatisfiesScheduledProofCadence: options.ManualSuccessSatisfiesScheduledProofCadence,
             IsolatedPgRestoreEnabled: options.IsolatedPgRestoreEnabled,
             IsolatedRestoreAdminConnectionStringName: NullIfWhiteSpace(options.IsolatedRestoreAdminConnectionStringName),
             IsolatedPgRestoreTimeoutSeconds: options.IsolatedPgRestoreTimeoutSeconds,
@@ -107,11 +115,20 @@ public static class OperationalRunConfigSnapshotBuilder
         bool PgDumpExecutablePathConfigured,
         bool DevelopmentForceVerificationFailure,
         bool AcknowledgePhase1NoRealBackup,
+        bool AcknowledgeFakeBackupAdapterOutsideDevelopment,
+        bool ScheduledBackupEnabled,
+        bool ScheduledBackupCronConfigured,
         bool ScheduleCronPlaceholderConfigured,
         int? RetentionDaysPlaceholder,
         int RunLeaseTimeoutSeconds,
         int HeartbeatIntervalSeconds,
-        int StaleRecoveryScanIntervalSeconds);
+        int StaleRecoveryScanIntervalSeconds,
+        string RetentionPolicyMode,
+        int? ArtifactRetentionDays,
+        bool RetentionArtifactDeletionEnabled,
+        bool RequireExternalArchiveImmutableTarget,
+        bool ExternalArchiveImmutabilityAcknowledged,
+        bool ExternalArchiveMutableTargetAccepted);
 
     private sealed record RestoreVerificationRunConfigSnapshotV1(
         int SchemaVersion,
@@ -125,7 +142,6 @@ public static class OperationalRunConfigSnapshotBuilder
         int OrchestratorAdvisoryLockKey2,
         bool ScheduledWeeklyDrillEnabled,
         int ScheduledProofCadenceDays,
-        bool ManualSuccessSatisfiesScheduledProofCadence,
         bool IsolatedPgRestoreEnabled,
         string? IsolatedRestoreAdminConnectionStringName,
         int IsolatedPgRestoreTimeoutSeconds,

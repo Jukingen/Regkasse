@@ -152,9 +152,8 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
         if (await queries.HasActiveScheduledQueuedOrRunningAsync(ct))
             return;
 
-        var lastProofUtc = ro.ManualSuccessSatisfiesScheduledProofCadence
-            ? await queries.GetLastSuccessfulAnyTriggerProofCompletedAtUtcAsync(ct)
-            : await queries.GetLastSuccessfulScheduledProofCompletedAtUtcAsync(ct);
+        // Cadence: yalnızca zamanlanmış (Scheduled) ve terminal başarılı kanıtın CompletedAt değeri; RequestedAt veya manuel başarılar dikkate alınmaz.
+        var lastProofUtc = await queries.GetLastSuccessfulScheduledProofCompletedAtUtcAsync(ct);
 
         var windowStart = DateTime.UtcNow.AddDays(-ro.ScheduledProofCadenceDays);
         if (lastProofUtc.HasValue && lastProofUtc.Value > windowStart)

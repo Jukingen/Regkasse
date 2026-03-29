@@ -55,6 +55,7 @@ export * from './backupPipelineStepDto';
 export * from './backupRecoverabilitySummaryResponseDto';
 export * from './backupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus';
 export * from './backupRecoverabilitySummaryResponseDtoLatestRunStatus';
+export * from './backupRetentionReadinessResponseDto';
 export * from './backupRunResponseDto';
 export * from './backupRunResponseDtoStatus';
 export * from './backupRunResponseDtoTriggerSource';

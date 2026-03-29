@@ -5,11 +5,18 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { BackupRetentionReadinessResponseDto } from './backupRetentionReadinessResponseDto';
 
 export interface BackupConfigurationHealthResponseDto {
   artifactVerificationDisclaimer?: string;
+  backupExecutionReality?: string;
   effectiveAdapterKind?: string;
   issues?: string[];
   level?: string;
+  /** @nullable */
+  nonRealBackupAdapterAcknowledgmentConfigurationKey?: string | null;
+  readinessNarrative?: string;
+  realPostgreSqlLogicalDumpConfigured?: boolean;
+  retentionReadiness?: BackupRetentionReadinessResponseDto;
   workerEnabled?: boolean;
 }

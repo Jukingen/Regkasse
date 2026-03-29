@@ -12,7 +12,11 @@
     "backupProofAge": "Backup proof age",
     "restoreProofAge": "Restore drill proof age",
     "latestBackupRequest": "Latest backup request (any outcome)",
-    "latestRestoreRequest": "Latest restore drill request (any outcome)"
+    "latestRestoreRequest": "Latest restore drill request (any outcome)",
+    "executionProfile": "Execution profile (server)",
+    "realPgDumpConfigured": "Real PostgreSQL logical dump (pg_dump)",
+    "readinessLevel": "Backup readiness (server)",
+    "serverNarrative": "Operator note (server, English)"
   },
   "scope": {
     "title": "What this page does (and does not)",
@@ -25,7 +29,8 @@
     "backupConfigDegraded": "Backup configuration is degraded.",
     "restoreReadinessUnhealthy": "Restore verification readiness is unhealthy.",
     "restoreReadinessDegraded": "Restore verification readiness is degraded.",
-    "externalArchiveDegraded": "External artifact copy failed or is inconsistent — the backup run may still have succeeded technically."
+    "externalArchiveDegraded": "External artifact copy failed or is inconsistent — the backup run may still have succeeded technically.",
+    "noRealPostgreSqlBackup": "No real PostgreSQL logical dump (pg_dump) configured"
   },
   "summary": {
     "backupHealth": "Backup health",
@@ -142,7 +147,9 @@
     "unhealthy": "Unhealthy",
     "workerDisabled": "Worker disabled — queued backups will not be processed.",
     "adapter": "Adapter",
-    "worker": "Worker"
+    "worker": "Worker",
+    "realPgDumpYes": "pg_dump: yes",
+    "realPgDumpNo": "pg_dump: no"
   },
   "latestRun": {
     "title": "Latest backup run",

@@ -7,6 +7,8 @@ namespace KasseAPI_Final.Services.Backup;
 
 /// <summary>
 /// Phase 1–3: artifact verification (metadata + optional on-disk SHA-256). Never restore verification / pg_verifybackup.
+/// <see cref="BackupVerificationOutcome.CompletenessFlag"/> = verified set includes <see cref="BackupArtifactType.LogicalDump"/>.
+/// Terminal <c>Succeeded</c> for PgDump additionally requires that flag (orchestrator completeness gate).
 /// </summary>
 public sealed class BackupVerificationService : IBackupVerificationService
 {
@@ -128,6 +130,7 @@ public sealed class BackupVerificationService : IBackupVerificationService
                 backupRunId,
                 artifactCount = artifacts.Count,
                 completeness,
+                completenessIndicatesLogicalDumpInVerifiedSet = completeness,
                 artifactVerificationKind = kind,
                 scope = "not_restore_verification",
                 onDiskVerificationUsed = usedOnDisk

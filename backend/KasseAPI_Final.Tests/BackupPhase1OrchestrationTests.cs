@@ -5,6 +5,7 @@ using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -18,6 +19,7 @@ public sealed class BackupPhase1OrchestrationTests
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"backup_phase1_{Guid.NewGuid():N}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         return new AppDbContext(options);
     }
@@ -148,6 +150,29 @@ public sealed class BackupPhase1OrchestrationTests
         var verifier = new BackupVerificationService(OptionsMonitor(new BackupOptions()), checksum);
         var v = await verifier.VerifyArtifactsAsync(ctx.BackupRunId, exec.Artifacts, default);
         Assert.True(v.Passed);
+    }
+
+    [Fact]
+    public async Task Verifier_passed_with_manifest_only_has_completeness_false()
+    {
+        const string hash64 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        var artifacts = new[]
+        {
+            new BackupArtifactDescriptor
+            {
+                ArtifactType = BackupArtifactType.VerificationManifest,
+                StorageDescriptor = "manifest-only.json",
+                ByteSize = 1,
+                ContentHashSha256 = hash64,
+                MetadataJson = "{}",
+                RequireOnDiskHashVerification = false
+            }
+        };
+
+        var verifier = new BackupVerificationService(OptionsMonitor(new BackupOptions()), new BackupChecksumService());
+        var v = await verifier.VerifyArtifactsAsync(Guid.NewGuid(), artifacts, default);
+        Assert.True(v.Passed);
+        Assert.False(v.CompletenessFlag);
     }
 
     [Fact]

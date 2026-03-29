@@ -15,7 +15,10 @@ public sealed class BackupRecoverabilitySummaryResponseDtoContractTests
     {
         var expected = new[]
         {
+            "backupExecutionReality",
             "backupProofAgeSeconds",
+            "backupReadinessLevel",
+            "backupReadinessNarrative",
             "lastSuccessfulArtifactVerificationAt",
             "lastSuccessfulBackupAt",
             "lastSuccessfulBackupRunId",
@@ -25,6 +28,7 @@ public sealed class BackupRecoverabilitySummaryResponseDtoContractTests
             "latestRestoreRunStatus",
             "latestRunAt",
             "latestRunStatus",
+            "realPostgreSqlLogicalDumpConfigured",
             "restoreProofAgeSeconds"
         };
 

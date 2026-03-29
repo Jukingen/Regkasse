@@ -1427,6 +1427,9 @@ namespace KasseAPI_Final.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.RequestedAt);
                 entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.NextRetryAtUtc)
+                    .HasDatabaseName("ix_backup_runs_next_retry_at")
+                    .HasFilter("next_retry_at_utc IS NOT NULL");
                 entity.HasIndex(e => e.LeaseExpiresAtUtc)
                     .HasDatabaseName("ix_backup_runs_lease_expires_stale_reaper")
                     .HasFilter("status IN (1, 2)");
@@ -1462,6 +1465,7 @@ namespace KasseAPI_Final.Data
             {
                 entity.ToTable("restore_verification_runs");
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.IdempotencyKey).HasMaxLength(200);
                 entity.HasIndex(e => e.RequestedAt);
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.LeaseExpiresAtUtc)

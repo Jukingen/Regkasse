@@ -37,6 +37,15 @@ public sealed class BackupOptionsValidator : IValidateOptions<BackupOptions>
         if (retentionErr != null)
             return ValidateOptionsResult.Fail(retentionErr);
 
+        if (options.AutomaticRetryMaxAttempts < 0 || options.AutomaticRetryMaxAttempts > 50)
+            return ValidateOptionsResult.Fail("Backup:AutomaticRetryMaxAttempts must be between 0 and 50.");
+
+        if (options.AutomaticRetryInitialDelay < TimeSpan.FromSeconds(5))
+            return ValidateOptionsResult.Fail("Backup:AutomaticRetryInitialDelay must be at least 00:00:05.");
+
+        if (options.AutomaticRetryInitialDelay > TimeSpan.FromHours(24))
+            return ValidateOptionsResult.Fail("Backup:AutomaticRetryInitialDelay must not exceed 24 hours.");
+
         var snap = BackupConfigurationEvaluation.Evaluate(options, _environment, _configuration);
         if (snap.Level == BackupConfigurationHealthLevel.Unhealthy)
             return ValidateOptionsResult.Fail(string.Join(" ", snap.Issues));

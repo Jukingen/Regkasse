@@ -111,5 +111,28 @@ public sealed class BackupArtifactPipelinePolicyEvaluatorTests
 
         var snap = BackupArtifactPipelinePolicyEvaluator.Evaluate(opts, env.Object);
         Assert.Contains(snap.OperatorNotes, n => n.Contains("Retention policy", StringComparison.Ordinal));
+        Assert.Contains(snap.OperatorNotes,
+            n => n.Contains("executableStatus", StringComparison.Ordinal)
+                 && n.Contains(BackupRetentionReadinessEvaluator.ExecutableStatusReportOnly, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Evaluate_adds_external_archive_disposition_note_when_missing_in_production()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Production);
+        var opts = new BackupOptions
+        {
+            ExecutionAdapterKind = BackupExecutionAdapterKind.PgDump,
+            ExternalArchiveRoot = "/var/archive",
+            VerifyLogicalDumpFileOnDisk = true,
+            ArtifactStagingRoot = "/var/staging",
+            RequireExternalArchiveImmutableTarget = false,
+            ExternalArchiveImmutabilityAcknowledged = false,
+            ExternalArchiveMutableTargetAccepted = false
+        };
+
+        var snap = BackupArtifactPipelinePolicyEvaluator.Evaluate(opts, env.Object);
+        Assert.Contains(snap.OperatorNotes, n => n.Contains("disposition", StringComparison.OrdinalIgnoreCase));
     }
 }

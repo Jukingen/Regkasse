@@ -38,15 +38,20 @@ public sealed class RestoreVerificationManualTriggerRequestDto
     public string? IdempotencyKey { get; init; }
 }
 
-/// <summary>POST /trigger yanıtı: orkestrasyon bayrakları + tam run DTO.</summary>
+/// <summary>
+/// POST /trigger yanıtı (JSON camelCase: <c>runId</c>, <c>orchestrationState</c>, <c>newQueuedRunCreated</c>, <c>existingRunReturned</c>, <c>run</c>).
+/// </summary>
 public sealed class RestoreVerificationTriggerResponseDto
 {
     public Guid RunId { get; init; }
 
+    /// <summary><see cref="RestoreVerificationTriggerOrchestrationState"/> — API’de sayısal enum (varsayılan JSON).</summary>
     public RestoreVerificationTriggerOrchestrationState OrchestrationState { get; init; }
 
     public bool NewQueuedRunCreated { get; init; }
+
     public bool ExistingRunReturned { get; init; }
+
     public required RestoreVerificationRunResponseDto Run { get; init; }
 }
 

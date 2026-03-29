@@ -36,6 +36,10 @@ public sealed class BackupVerification
     [Column("verifier_source")]
     public string VerifierSource { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Doğrulanan artefakt listesinde <see cref="BackupArtifactType.LogicalDump"/> bulundu.
+    /// PgDump için orchestrator terminal <c>Succeeded</c> öncesi bu bayrak zorunlu; Fake vb. için yalnızca bilgilendirme.
+    /// </summary>
     [Column("completeness_flag")]
     public bool CompletenessFlag { get; set; }
 

@@ -113,6 +113,8 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 return;
             }
 
+            await TryEnqueueScheduledBackupIfDueUnderLockAsync(ct);
+            await TryProcessAutomaticRetriesUnderLockAsync(ct);
             await ProcessNextExclusiveBodyAsync(ct);
         }
         finally
@@ -120,6 +122,26 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
             if (lease != null)
                 await lease.DisposeAsync();
         }
+    }
+
+    private async Task TryEnqueueScheduledBackupIfDueUnderLockAsync(CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var enqueue = scope.ServiceProvider.GetRequiredService<IBackupScheduledEnqueueService>();
+        await enqueue.TryEnqueueIfDueAsync(db, ct);
+    }
+
+    private async Task TryProcessAutomaticRetriesUnderLockAsync(CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await BackupAutomaticRetryCoordinator.TryProcessOneDueAutomaticRetryAsync(
+            db,
+            _options.CurrentValue,
+            DateTime.UtcNow,
+            _logger,
+            ct);
     }
 
     internal async Task ProcessNextExclusiveBodyAsync(CancellationToken ct)
@@ -235,6 +257,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 run.CompletedAt = DateTime.UtcNow;
                 run.FailureCode = "CANCELLED";
                 run.FailureDetail = "Backup run cancelled before adapter completed.";
+                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
                 return;
             }
@@ -245,7 +268,10 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 run.CompletedAt = DateTime.UtcNow;
                 run.FailureCode = "UNHANDLED_EXCEPTION";
                 run.FailureDetail = ex.Message;
+                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
+                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                    db, run, opts, DateTime.UtcNow, _logger, ct);
                 _alerts.Publish(new BackupAlertEvent(
                     BackupAlertKind.BackupFailed,
                     run.Id,
@@ -263,6 +289,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     run.CompletedAt = DateTime.UtcNow;
                     run.FailureCode = result.ErrorCode;
                     run.FailureDetail = result.ErrorDetail;
+                    BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                     await db.SaveChangesAsync(ct);
                     return;
                 }
@@ -271,7 +298,10 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 run.CompletedAt = DateTime.UtcNow;
                 run.FailureCode = result.ErrorCode ?? "EXECUTION_FAILED";
                 run.FailureDetail = result.ErrorDetail;
+                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
+                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                    db, run, opts, DateTime.UtcNow, _logger, ct);
                 _logger.LogWarning(
                     "Backup execution failed: runId={RunId}, adapterKind={AdapterKind}, code={Code}, detail={Detail}",
                     run.Id,
@@ -341,6 +371,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 verification.CompletedAt = DateTime.UtcNow;
                 verification.FailureReason = run.FailureDetail;
                 verification.DetailsJson = JsonSerializer.Serialize(new { error = "cancelled_during_verification" });
+                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
                 return;
             }
@@ -355,7 +386,10 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 run.CompletedAt = DateTime.UtcNow;
                 run.FailureCode = "VERIFIER_EXCEPTION";
                 run.FailureDetail = ex.Message;
+                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
+                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                    db, run, opts, DateTime.UtcNow, _logger, ct);
                 _alerts.Publish(new BackupAlertEvent(
                     BackupAlertKind.VerificationFailed,
                     run.Id,
@@ -387,7 +421,49 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                     run.CorrelationId,
                     vOutcome.FailureReason ?? "Artifact metadata verification failed.",
                     new Dictionary<string, string> { ["failureStage"] = "artifact_metadata_verification" }));
+                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
+                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                    db, run, opts, DateTime.UtcNow, _logger, ct);
+                return;
+            }
+
+            var completenessFailure = BackupCompletenessSuccessPolicy.GetIncompleteVerifiedArtifactSetFailureReason(
+                opts.ExecutionAdapterKind,
+                vOutcome);
+            if (completenessFailure != null)
+            {
+                var gateDetails = string.IsNullOrWhiteSpace(vOutcome.DetailsJson)
+                    ? new JsonObject()
+                    : JsonNode.Parse(vOutcome.DetailsJson)!.AsObject();
+                gateDetails["completenessGate"] = JsonSerializer.SerializeToNode(new
+                {
+                    failed = true,
+                    requiredLogicalDumpInVerifiedSet = true,
+                    executionAdapterKind = opts.ExecutionAdapterKind.ToString()
+                });
+                verification.Status = BackupVerificationStatus.Failed;
+                verification.FailureReason = completenessFailure;
+                verification.DetailsJson = gateDetails.ToJsonString();
+                run.Status = BackupRunStatus.VerificationFailed;
+                run.CompletedAt = DateTime.UtcNow;
+                run.FailureCode = "INCOMPLETE_VERIFIED_ARTIFACT_SET";
+                run.FailureDetail = completenessFailure;
+                _logger.LogWarning(
+                    "Backup completeness gate failed: runId={RunId}, adapterKind={AdapterKind}, reason={Reason}",
+                    run.Id,
+                    opts.ExecutionAdapterKind,
+                    completenessFailure);
+                _alerts.Publish(new BackupAlertEvent(
+                    BackupAlertKind.VerificationFailed,
+                    run.Id,
+                    run.CorrelationId,
+                    completenessFailure,
+                    new Dictionary<string, string> { ["failureStage"] = "incomplete_verified_artifact_set" }));
+                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
+                await db.SaveChangesAsync(ct);
+                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                    db, run, opts, DateTime.UtcNow, _logger, ct);
                 return;
             }
 
@@ -421,6 +497,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 run.CompletedAt = DateTime.UtcNow;
                 run.FailureCode = null;
                 run.FailureDetail = null;
+                BackupAutomaticRetryCoordinator.ClearAutomaticRetryPlanningFieldsOnSuccess(run);
                 await db.SaveChangesAsync(ct);
                 _logger.LogInformation(
                     "Backup run succeeded (staging verification; external archive skipped): runId={RunId}, adapterKind={AdapterKind}",
@@ -450,7 +527,10 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 run.CompletedAt = DateTime.UtcNow;
                 run.FailureCode = "EXTERNAL_ARCHIVE_FAILED";
                 run.FailureDetail = verification.FailureReason;
+                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
+                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                    db, run, opts, DateTime.UtcNow, _logger, ct);
                 _alerts.Publish(new BackupAlertEvent(
                     BackupAlertKind.VerificationFailed,
                     run.Id,
@@ -490,7 +570,10 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 run.CompletedAt = DateTime.UtcNow;
                 run.FailureCode = "EXTERNAL_ARCHIVE_FAILED";
                 run.FailureDetail = extOutcome.ErrorDetail;
+                BackupAutomaticRetryCoordinator.RecordTerminalFailureObservability(run);
                 await db.SaveChangesAsync(ct);
+                await BackupAutomaticRetryCoordinator.TrySchedulePendingRetryAfterTerminalSaveAsync(
+                    db, run, opts, DateTime.UtcNow, _logger, ct);
                 _logger.LogWarning(
                     "Backup external archive failed: runId={RunId}, code={Code}, detail={Detail}",
                     run.Id,
@@ -533,6 +616,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
             run.CompletedAt = DateTime.UtcNow;
             run.FailureCode = null;
             run.FailureDetail = null;
+            BackupAutomaticRetryCoordinator.ClearAutomaticRetryPlanningFieldsOnSuccess(run);
             await db.SaveChangesAsync(ct);
 
         _logger.LogInformation(

@@ -80,6 +80,19 @@ public sealed class BackupRun : KasseAPI_Final.Models.IRunLeaseColumns
     [Column("config_snapshot_json")]
     public string? ConfigSnapshotJson { get; set; }
 
+    /// <summary>Otomatik yeniden kuyruğa alma tur sayısı (ilk deneme 0; her başarılı requeue sonrası artar).</summary>
+    [Column("automatic_retry_count")]
+    public int AutomaticRetryCount { get; set; }
+
+    /// <summary>Worker bu zaman UTC’de veya sonrasında <see cref="BackupRunStatus.Queued"/> yapabilir; null ise plan yok.</summary>
+    [Column("next_retry_at_utc")]
+    public DateTime? NextRetryAtUtc { get; set; }
+
+    /// <summary>Son terminal başarısızlık kodu (Succeeded sonrası temizlenir); gözlemlenebilirlik.</summary>
+    [MaxLength(100)]
+    [Column("last_recorded_terminal_failure_code")]
+    public string? LastRecordedTerminalFailureCode { get; set; }
+
     public ICollection<BackupArtifact> Artifacts { get; set; } = new List<BackupArtifact>();
 
     public ICollection<BackupVerification> Verifications { get; set; } = new List<BackupVerification>();

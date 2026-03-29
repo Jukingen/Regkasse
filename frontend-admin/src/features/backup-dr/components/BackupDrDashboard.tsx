@@ -224,6 +224,13 @@ export function BackupDrDashboard() {
 
     if (health && !health.workerEnabled) critical.push(t('backupDr.health.workerDisabled'));
 
+    if (health && health.realPostgreSqlLogicalDumpConfigured === false) {
+      const n = health.readinessNarrative?.trim();
+      warn.push(
+        n ? `${t('backupDr.banner.noRealPostgreSqlBackup')}: ${n}` : t('backupDr.banner.noRealPostgreSqlBackup'),
+      );
+    }
+
     if (restoreReady && !restoreReady.workerEnabled) warn.push(t('backupDr.readiness.restoreWorkerDisabled'));
 
     if (restoreReady?.orchestratorDistributedLockEnabled === false) warn.push(t('backupDr.lock.restoreLockDisabled'));
@@ -289,6 +296,15 @@ export function BackupDrDashboard() {
     }
     if (health && !health.workerEnabled) {
       items.push({ severity: 'error', text: t('backupDr.health.workerDisabled') });
+    }
+    if (health && health.realPostgreSqlLogicalDumpConfigured === false) {
+      const n = health.readinessNarrative?.trim();
+      items.push({
+        severity: 'warning',
+        text: n
+          ? `${t('backupDr.banner.noRealPostgreSqlBackup')}: ${n}`
+          : t('backupDr.banner.noRealPostgreSqlBackup'),
+      });
     }
     const lr = latest;
     if (lr?.status === 4 || lr?.status === 5) {
@@ -425,6 +441,10 @@ export function BackupDrDashboard() {
   const summaryRestoreHealth = levelSummaryLabel(restoreReady?.level, t);
   const summaryConfigShort = `${t('backupDr.health.adapter')}: ${health?.effectiveAdapterKind ?? '—'} · ${t('backupDr.health.worker')}: ${
     health?.workerEnabled ? t('common.buttons.yes') : t('common.buttons.no')
+  } · ${
+    health?.realPostgreSqlLogicalDumpConfigured
+      ? t('backupDr.health.realPgDumpYes')
+      : t('backupDr.health.realPgDumpNo')
   }`;
 
   return (

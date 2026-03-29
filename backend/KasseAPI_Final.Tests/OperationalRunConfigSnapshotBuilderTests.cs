@@ -96,5 +96,7 @@ public sealed class OperationalRunConfigSnapshotBuilderTests
         Assert.Equal(JsonValueKind.Number, doc.RootElement.GetProperty("schemaVersion").ValueKind);
         Assert.Equal(1, doc.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("backup_run", doc.RootElement.GetProperty("scope").GetString());
+        Assert.Equal("Disabled", doc.RootElement.GetProperty("retentionPolicyMode").GetString());
+        Assert.False(doc.RootElement.GetProperty("retentionArtifactDeletionEnabled").GetBoolean());
     }
 }

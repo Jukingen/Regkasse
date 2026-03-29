@@ -12,6 +12,8 @@ export interface RestoreVerificationRunResponseDto {
   /** @nullable */
   completedAt?: string | null;
   /** @nullable */
+  configSnapshotJson?: string | null;
+  /** @nullable */
   correlationId?: string | null;
   /** @nullable */
   detailsJson?: string | null;

@@ -13,10 +13,14 @@ import type { BackupVerificationResponseDto } from './backupVerificationResponse
 
 export interface BackupRunResponseDto {
   adapterKind?: string;
+  artifactCompletenessPolicyNote?: string;
   /** @nullable */
   artifacts?: BackupArtifactResponseDto[] | null;
+  automaticRetryCount?: number;
   /** @nullable */
   completedAt?: string | null;
+  /** @nullable */
+  configSnapshotJson?: string | null;
   /** @nullable */
   correlationId?: string | null;
   duplicatePrevented?: boolean;
@@ -27,6 +31,10 @@ export interface BackupRunResponseDto {
   id?: string;
   /** @nullable */
   idempotencyKey?: string | null;
+  /** @nullable */
+  lastRecordedTerminalFailureCode?: string | null;
+  /** @nullable */
+  nextRetryAtUtc?: string | null;
   pipeline?: BackupPipelineSnapshotDto;
   requestedAt?: string;
   /** @nullable */

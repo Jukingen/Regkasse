@@ -89,23 +89,18 @@ public sealed class AdminBackupController : ControllerBase
                 IsAutomatedRestoreAvailable = cap.IsAutomatedRestoreAvailable,
                 Notes = cap.Notes
             },
-            ConfigurationHealth = new BackupConfigurationHealthResponseDto
-            {
-                Level = cfg.Level.ToString(),
-                Issues = cfg.Issues,
-                EffectiveAdapterKind = cfg.EffectiveAdapterKind.ToString(),
-                WorkerEnabled = cfg.WorkerEnabled,
-                ArtifactVerificationDisclaimer = cfg.ArtifactVerificationDisclaimer
-            },
+            ConfigurationHealth = BackupConfigurationHealthResponseMapper.FromSnapshot(cfg),
             ArtifactPipelinePolicy = BackupArtifactPipelinePolicyMapper.ToDto(artifactPolicy)
         });
     }
 
     /// <summary>
-    /// Son istek durumu ile son bilinen iyi yedek / artifact doğrulama / restore drill kanıtını ayırır (operatör özeti).
+    /// Recoverability proof özeti (first-class): en son backup isteği, son başarılı yedek, son geçen artifact doğrulama,
+    /// son başarılı <em>zamanlanmış</em> restore drill kanıtı ve UTC yaşı (kanıt yoksa null).
     /// </summary>
     [HttpGet("recoverability-summary")]
     [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupRecoverabilitySummaryResponseDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<BackupRecoverabilitySummaryResponseDto>> GetRecoverabilitySummary(
         CancellationToken cancellationToken)
     {
@@ -159,6 +154,9 @@ public sealed class AdminBackupController : ControllerBase
         var v = await _query.GetLatestVerificationAsync(cancellationToken);
         if (v == null)
             return Ok(null);
+        var completenessRequired = v.BackupRun != null
+            && BackupCompletenessSuccessPolicy.TryParseAdapterKind(v.BackupRun.AdapterKind, out var ak)
+            && BackupCompletenessSuccessPolicy.CompletenessRequiredForSucceededRun(ak);
         return Ok(new BackupVerificationResponseDto
         {
             Id = v.Id,
@@ -168,6 +166,7 @@ public sealed class AdminBackupController : ControllerBase
             CompletedAt = v.CompletedAt,
             VerifierSource = v.VerifierSource,
             CompletenessFlag = v.CompletenessFlag,
+            CompletenessRequiredForTerminalSuccess = completenessRequired,
             FailureReason = v.FailureReason
         });
     }

@@ -12,6 +12,7 @@ export interface BackupVerificationResponseDto {
   /** @nullable */
   completedAt?: string | null;
   completenessFlag?: boolean;
+  completenessRequiredForTerminalSuccess?: boolean;
   /** @nullable */
   failureReason?: string | null;
   id?: string;

@@ -32,8 +32,28 @@ public sealed class BackupOptions
     /// <summary>Staging/root path for artifacts (adapter interprets; may be no-op for Fake).</summary>
     public string? ArtifactStagingRoot { get; set; }
 
-    /// <summary>Phase 2+: cron placeholder; not executed in Phase 1.</summary>
+    /// <summary>
+    /// Legacy five-field UTC cron expression (CronFormat.Standard).
+    /// Prefer <see cref="ScheduledBackupCron"/>; when <see cref="ScheduledBackupEnabled"/> is true, the effective expression is
+    /// <see cref="ScheduledBackupCron"/> if set, otherwise this property.
+    /// </summary>
     public string? ScheduleCronPlaceholder { get; set; }
+
+    /// <summary>When true, the backup worker may enqueue scheduled backup runs on the UTC cron schedule (same gate as dequeue: <see cref="WorkerEnabled"/>).</summary>
+    public bool ScheduledBackupEnabled { get; set; }
+
+    /// <summary>UTC cron schedule (CronFormat.Standard). Falls back to <see cref="ScheduleCronPlaceholder"/> when null/whitespace.</summary>
+    public string? ScheduledBackupCron { get; set; }
+
+    /// <summary>Zamanlanmış yedek için etkin cron ifadesi (önce ScheduledBackupCron, yoksa ScheduleCronPlaceholder).</summary>
+    public string? GetEffectiveScheduledBackupCronExpression()
+    {
+        if (!string.IsNullOrWhiteSpace(ScheduledBackupCron))
+            return ScheduledBackupCron.Trim();
+        if (!string.IsNullOrWhiteSpace(ScheduleCronPlaceholder))
+            return ScheduleCronPlaceholder.Trim();
+        return null;
+    }
 
     /// <summary>Phase 2+: legacy placeholder; tercih edilen alan <see cref="ArtifactRetentionDays"/> + <see cref="RetentionPolicyMode"/>.</summary>
     public int? RetentionDaysPlaceholder { get; set; }
@@ -53,6 +73,8 @@ public sealed class BackupOptions
     /// Development dışı + PgDump + dolu <see cref="ExternalArchiveRoot"/> iken:
     /// true ise operatör <see cref="ExternalArchiveImmutabilityAcknowledged"/> ile WORM/object-lock katmanını beyan etmeli;
     /// aksi halde BackupConfigurationEvaluation yapılandırmayı Unhealthy işaretler.
+    /// false iken en az <see cref="ExternalArchiveImmutabilityAcknowledged"/> veya <see cref="ExternalArchiveMutableTargetAccepted"/>
+    /// beklenir; aksi halde readiness Degraded olur (operatör beyanı zorunluluğu).
     /// </summary>
     public bool RequireExternalArchiveImmutableTarget { get; set; }
 
@@ -61,6 +83,18 @@ public sealed class BackupOptions
     /// </summary>
     public bool ExternalArchiveImmutabilityAcknowledged { get; set; }
 
+    /// <summary>
+    /// Production-benzeri ortamda PgDump + <see cref="ExternalArchiveRoot"/> iken, harici hedefin WORM/object-lock
+    /// katmanı olmadığını operatör açıkça kabul eder. <see cref="RequireExternalArchiveImmutableTarget"/> false iken
+    /// readiness, <see cref="ExternalArchiveImmutabilityAcknowledged"/> veya bu bayrak ile açık operatör beyanı ister.
+    /// </summary>
+    public bool ExternalArchiveMutableTargetAccepted { get; set; }
+
+    /// <summary>
+    /// Gelecekteki otomatik saklama silme işi için rezerve bayrak; şu an uygulama silme yapmaz ve doğrulama false dışında değeri reddeder.
+    /// </summary>
+    public bool RetentionArtifactDeletionEnabled { get; set; }
+
     /// <summary>When true, fake verifier fails (tests only).</summary>
     public bool DevelopmentForceVerificationFailure { get; set; }
 
@@ -68,10 +102,16 @@ public sealed class BackupOptions
     public string? AlertingChannelPlaceholder { get; set; }
 
     /// <summary>
-    /// Non-Development only: when <see cref="ExecutionAdapterKind"/> is <see cref="BackupExecutionAdapterKind.ProductionStub"/>,
-    /// must be true or startup validation fails. Documents operator acceptance that no real PostgreSQL backup runs yet.
+    /// Production-like ortamda (Development dışı): <see cref="ExecutionAdapterKind"/> <see cref="BackupExecutionAdapterKind.ProductionStub"/> iken
+    /// zorunlu. <c>pg_dump</c> / gerçek PostgreSQL mantıksal yedek çalıştırılmadığını operatör beyan eder.
     /// </summary>
     public bool AcknowledgePhase1NoRealBackup { get; set; }
+
+    /// <summary>
+    /// Production-like ortamda <see cref="ExecutionAdapterKind"/> <see cref="BackupExecutionAdapterKind.Fake"/> kullanımı için zorunlu açık onay.
+    /// Sahte artefakt üretir; PostgreSQL yedekleme yoktur.
+    /// </summary>
+    public bool AcknowledgeFakeBackupAdapterOutsideDevelopment { get; set; }
 
     /// <summary>Path to pg_dump binary; default assumes PATH.</summary>
     public string? PgDumpExecutablePath { get; set; }
@@ -108,6 +148,17 @@ public sealed class BackupOptions
     /// süre geçince reaper terminal yapar (canlı iş yükü için heartbeat’in lease yazması gerekir).
     /// </summary>
     public double StaleRecoveryNullLeaseGraceMultiplier { get; set; } = 2.0;
+
+    /// <summary>0 = otomatik yeniden kuyruk kapalı. Her artış, başarısız denemeden sonra bir otomatik requeue hakkı.</summary>
+    public int AutomaticRetryMaxAttempts { get; set; }
+
+    /// <summary>İlk yeniden deneme için taban gecikme; sonrakiler için üstel çarpan (üst sınır 24 saat).</summary>
+    public TimeSpan AutomaticRetryInitialDelay { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// false iken <c>VERIFICATION_FAILED</c> otomatik tekrarlanmaz (bütünlük uyuşmazlığı). true iken requeue öncesi artefakt/doğrulama satırları silinir.
+    /// </summary>
+    public bool AllowAutomaticRetryAfterVerificationIntegrityFailure { get; set; }
 }
 
 /// <summary>Maps to registered <see cref="Services.Backup.IBackupExecutionAdapter"/> implementation.</summary>

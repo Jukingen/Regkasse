@@ -12,7 +12,11 @@
     "backupProofAge": "Yedek kanıtı yaşı",
     "restoreProofAge": "Restore tatbikatı kanıtı yaşı",
     "latestBackupRequest": "Son yedek isteği (herhangi bir sonuç)",
-    "latestRestoreRequest": "Son restore tatbikatı isteği (herhangi bir sonuç)"
+    "latestRestoreRequest": "Son restore tatbikatı isteği (herhangi bir sonuç)",
+    "executionProfile": "Çalıştırma profili (sunucu)",
+    "realPgDumpConfigured": "Gerçek PostgreSQL mantıksal dökümü (pg_dump)",
+    "readinessLevel": "Yedek hazırlığı (sunucu)",
+    "serverNarrative": "Sunucu notu (İngilizce)"
   },
   "scope": {
     "title": "Bu sayfa ne yapar (ve yapmaz)",
@@ -25,7 +29,8 @@
     "backupConfigDegraded": "Yedek yapılandırması kısıtlı.",
     "restoreReadinessUnhealthy": "Geri yükleme doğrulaması hazırlığı kritik.",
     "restoreReadinessDegraded": "Geri yükleme doğrulaması hazırlığı kısıtlı.",
-    "externalArchiveDegraded": "Harici artefakt kopyası başarısız veya tutarsız — yedek çalıştırması teknik olarak yine de başarılı olabilir."
+    "externalArchiveDegraded": "Harici artefakt kopyası başarısız veya tutarsız — yedek çalıştırması teknik olarak yine de başarılı olabilir.",
+    "noRealPostgreSqlBackup": "Yapılandırılmış gerçek PostgreSQL pg_dump yok"
   },
   "summary": {
     "backupHealth": "Yedek sağlığı",
@@ -142,7 +147,9 @@
     "unhealthy": "Kritik",
     "workerDisabled": "İşçi kapalı — kuyruktaki yedekler işlenmez.",
     "adapter": "Bağdaştırıcı",
-    "worker": "İşçi"
+    "worker": "İşçi",
+    "realPgDumpYes": "pg_dump: evet",
+    "realPgDumpNo": "pg_dump: hayır"
   },
   "latestRun": {
     "title": "Son yedek çalıştırması",

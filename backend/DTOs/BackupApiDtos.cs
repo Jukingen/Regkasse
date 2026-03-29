@@ -70,8 +70,22 @@ public sealed class BackupRunResponseDto
     public string? CorrelationId { get; init; }
     public bool DuplicatePrevented { get; init; }
 
+    /// <summary>Otomatik requeue tur sayısı (başarılı otomatik yeniden kuyruğa alma sonrası artar).</summary>
+    public int AutomaticRetryCount { get; init; }
+
+    /// <summary>Planlanan otomatik requeue UTC zamanı; null ise bekleyen otomatik requeue yok.</summary>
+    public DateTime? NextRetryAtUtc { get; init; }
+
+    /// <summary>Son kayıtlı terminal hata kodu (Succeeded sonrası temizlenir).</summary>
+    public string? LastRecordedTerminalFailureCode { get; init; }
+
     /// <summary>Enqueue / run-start anındaki güvenli yapılandırma JSON özeti (null: eski satırlar).</summary>
     public string? ConfigSnapshotJson { get; init; }
+
+    /// <summary>
+    /// İngilizce: <see cref="CompletenessFlag"/> ve terminal <c>Succeeded</c> ilişkisi (adapter’a göre; restore kanıtı değil).
+    /// </summary>
+    public string ArtifactCompletenessPolicyNote { get; init; } = string.Empty;
 
     /// <summary>Resmi pipeline; UI adımları buradan türetilmelidir.</summary>
     public BackupPipelineSnapshotDto Pipeline { get; init; } = null!;
@@ -104,7 +118,17 @@ public sealed class BackupVerificationResponseDto
     public DateTime StartedAt { get; init; }
     public DateTime? CompletedAt { get; init; }
     public string VerifierSource { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Doğrulanan listede mantıksal dump artefaktı var mı (restore doğrulaması değil).
+    /// </summary>
     public bool CompletenessFlag { get; init; }
+
+    /// <summary>
+    /// Bu run adapter’ı için terminal başarı öncesi bu bayrağın zorunlu olup olmadığı (PgDump: true).
+    /// </summary>
+    public bool CompletenessRequiredForTerminalSuccess { get; init; }
+
     public string? FailureReason { get; init; }
 }
 
@@ -143,7 +167,7 @@ public sealed class BackupLatestStatusResponseDto
     public BackupRunResponseDto? LatestRun { get; init; }
     public RestoreCapabilityDto Restore { get; init; } = null!;
 
-    /// <summary>Engine/config readiness for admin dashboards (red when Unhealthy).</summary>
+    /// <summary>Engine/config readiness for admin dashboards (Unhealthy blocks unsafe posture; Degraded warns).</summary>
     public BackupConfigurationHealthResponseDto ConfigurationHealth { get; init; } = null!;
 
     /// <summary>Artifact staging / external copy beklentisi; <see cref="BackupConfigurationHealthResponseDto"/> ile birlikte yorumlanmalıdır.</summary>
@@ -151,7 +175,8 @@ public sealed class BackupLatestStatusResponseDto
 }
 
 /// <summary>
-/// Son istek (latest) ile son bilinen iyi kanıtlar ayrı; operatör panosu için.
+/// DR / recoverability proof özeti: en son yedek <em>istemi</em> ile son <em>başarılı kanıt</em> yüzeyleri ayrı.
+/// REST: <c>GET /api/admin/backup/recoverability-summary</c> (camelCase JSON).
 /// </summary>
 public sealed class BackupRecoverabilitySummaryResponseDto
 {
@@ -163,7 +188,7 @@ public sealed class BackupRecoverabilitySummaryResponseDto
     /// <summary>Son geçen artifact (checksum/staging) doğrulaması zamanı.</summary>
     public DateTime? LastSuccessfulArtifactVerificationAt { get; init; }
 
-    /// <summary>Restore drill terminal başarı <c>CompletedAt</c>.</summary>
+    /// <summary>Zamanlanmış restore drill terminal başarısı <c>CompletedAt</c> (manuel tetiklenen başarılar dahil değil).</summary>
     public DateTime? LastSuccessfulRestoreProofAt { get; init; }
 
     public Guid? LastSuccessfulRestoreProofRunId { get; init; }
@@ -171,7 +196,7 @@ public sealed class BackupRecoverabilitySummaryResponseDto
     /// <summary><see cref="LastSuccessfulBackupAt"/> yaşı; UTC şimdi − kanıt.</summary>
     public long? BackupProofAgeSeconds { get; init; }
 
-    /// <summary><see cref="LastSuccessfulRestoreProofAt"/> yaşı.</summary>
+    /// <summary><see cref="LastSuccessfulRestoreProofAt"/> yaşı (yalnızca zamanlanmış başarılı kanıt).</summary>
     public long? RestoreProofAgeSeconds { get; init; }
 
     /// <summary>En son kuyruğa alınan yedek isteği (<c>RequestedAt</c>).</summary>
@@ -183,6 +208,18 @@ public sealed class BackupRecoverabilitySummaryResponseDto
     public DateTime? LatestRestoreRunAt { get; init; }
 
     public RestoreVerificationStatus? LatestRestoreRunStatus { get; init; }
+
+    /// <summary>Same values as latest status <see cref="BackupConfigurationHealthResponseDto.BackupExecutionReality"/> for DR dashboard context.</summary>
+    public string BackupExecutionReality { get; init; } = string.Empty;
+
+    /// <summary>True when worker is configured for real <c>pg_dump -Fc</c> logical backups.</summary>
+    public bool RealPostgreSqlLogicalDumpConfigured { get; init; }
+
+    /// <summary>Healthy / Degraded / Unhealthy — mirrors backup engine readiness.</summary>
+    public string BackupReadinessLevel { get; init; } = string.Empty;
+
+    /// <summary>English operator narrative (complements admin issues list).</summary>
+    public string BackupReadinessNarrative { get; init; } = string.Empty;
 }
 
 /// <summary>Path içermez; yalnızca operatör özeti (restore verification değildir).</summary>
@@ -203,6 +240,23 @@ public sealed class BackupArtifactPipelinePolicyResponseDto
     public IReadOnlyList<string> OperatorNotes { get; init; } = Array.Empty<string>();
 }
 
+public sealed class BackupRetentionReadinessResponseDto
+{
+    /// <summary>Disabled, ReportOnly, or ExecutionPlanned.</summary>
+    public string Mode { get; init; } = string.Empty;
+
+    public int? ArtifactRetentionDays { get; init; }
+
+    public bool DeletionRequestedByConfiguration { get; init; }
+
+    public bool AutomatedDeletionImplemented { get; init; }
+
+    /// <summary>Örn. disabled, report_only_no_automated_enforcement, execution_planned_pending_implementation.</summary>
+    public string ExecutableStatus { get; init; } = string.Empty;
+
+    public IReadOnlyList<string> OperatorNotes { get; init; } = Array.Empty<string>();
+}
+
 public sealed class BackupConfigurationHealthResponseDto
 {
     /// <summary>Healthy, Degraded, or Unhealthy.</summary>
@@ -214,8 +268,52 @@ public sealed class BackupConfigurationHealthResponseDto
 
     public bool WorkerEnabled { get; init; }
 
+    /// <summary>True when <c>ExecutionAdapterKind=PgDump</c>.</summary>
+    public bool RealPostgreSqlLogicalDumpConfigured { get; init; }
+
+    /// <summary>Stable token: PostgreSqlLogicalDump, SimulatedFake, ProductionStubNoPostgreSqlBackup, …</summary>
+    public string BackupExecutionReality { get; init; } = string.Empty;
+
+    /// <summary>Set when Fake or ProductionStub runs in a production-like environment with matching acknowledgment (configuration key for operators).</summary>
+    public string? NonRealBackupAdapterAcknowledgmentConfigurationKey { get; init; }
+
+    /// <summary>One-line English summary for dashboards.</summary>
+    public string ReadinessNarrative { get; init; } = string.Empty;
+
     /// <summary>Explicitly states Phase 1 verification is not restore proof.</summary>
     public string ArtifactVerificationDisclaimer { get; init; } = string.Empty;
+
+    /// <summary>Saklama politikasının yürütülebilirlik durumu; silme varsayılan kapalıdır.</summary>
+    public BackupRetentionReadinessResponseDto RetentionReadiness { get; init; } = null!;
+}
+
+public static class BackupConfigurationHealthResponseMapper
+{
+    public static BackupConfigurationHealthResponseDto FromSnapshot(BackupConfigurationHealthSnapshot snapshot) =>
+        new()
+        {
+            Level = snapshot.Level.ToString(),
+            Issues = snapshot.Issues,
+            EffectiveAdapterKind = snapshot.EffectiveAdapterKind.ToString(),
+            WorkerEnabled = snapshot.WorkerEnabled,
+            RealPostgreSqlLogicalDumpConfigured = snapshot.RealPostgreSqlLogicalDumpConfigured,
+            BackupExecutionReality = snapshot.BackupExecutionReality,
+            NonRealBackupAdapterAcknowledgmentConfigurationKey = snapshot.NonRealBackupAdapterAcknowledgmentConfigurationKey,
+            ReadinessNarrative = snapshot.ReadinessNarrative,
+            ArtifactVerificationDisclaimer = snapshot.ArtifactVerificationDisclaimer,
+            RetentionReadiness = RetentionFromSnapshot(snapshot.RetentionReadiness)
+        };
+
+    private static BackupRetentionReadinessResponseDto RetentionFromSnapshot(BackupRetentionReadinessSnapshot snap) =>
+        new()
+        {
+            Mode = snap.Mode.ToString(),
+            ArtifactRetentionDays = snap.ArtifactRetentionDays,
+            DeletionRequestedByConfiguration = snap.DeletionRequestedByConfiguration,
+            AutomatedDeletionImplemented = snap.AutomatedDeletionImplemented,
+            ExecutableStatus = snap.ExecutableStatus,
+            OperatorNotes = snap.OperatorNotes
+        };
 }
 
 public sealed class RestoreCapabilityDto
@@ -252,6 +350,8 @@ public static class BackupRunMapper
         bool materializedChildren = false)
     {
         var policy = pipelinePolicy ?? BackupPipelineProjector.DefaultPolicyForProjection;
+        var completenessRequired = BackupCompletenessSuccessPolicy.TryParseAdapterKind(run.AdapterKind, out var adapterKind)
+            && BackupCompletenessSuccessPolicy.CompletenessRequiredForSucceededRun(adapterKind);
         return new BackupRunResponseDto
         {
             Id = run.Id,
@@ -267,7 +367,11 @@ public static class BackupRunMapper
             FailureDetail = run.FailureDetail,
             CorrelationId = run.CorrelationId,
             DuplicatePrevented = duplicateExecutionPreventedOverride ?? false,
+            AutomaticRetryCount = run.AutomaticRetryCount,
+            NextRetryAtUtc = run.NextRetryAtUtc,
+            LastRecordedTerminalFailureCode = run.LastRecordedTerminalFailureCode,
             ConfigSnapshotJson = run.ConfigSnapshotJson,
+            ArtifactCompletenessPolicyNote = BackupCompletenessSuccessPolicy.FormatCompletenessPolicyNote(run.AdapterKind),
             Pipeline = BackupPipelineProjector.Project(run, policy, materializedChildren),
             Artifacts = includeChildren
                 ? run.Artifacts.Select(a => new BackupArtifactResponseDto
@@ -293,6 +397,7 @@ public static class BackupRunMapper
                     CompletedAt = v.CompletedAt,
                     VerifierSource = v.VerifierSource,
                     CompletenessFlag = v.CompletenessFlag,
+                    CompletenessRequiredForTerminalSuccess = completenessRequired,
                     FailureReason = v.FailureReason
                 }).ToList()
                 : null

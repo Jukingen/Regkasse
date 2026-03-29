@@ -27,16 +27,10 @@ public sealed class RestoreVerificationOptions
     public bool ScheduledWeeklyDrillEnabled { get; set; }
 
     /// <summary>
-    /// Minimum time after a successful proof before another scheduled drill is enqueued.
-    /// Proof timestamp is <c>CompletedAt</c> for terminal success, not <c>RequestedAt</c>.
+    /// Zamanlanmış sıra için: son başarılı <em>Scheduled</em> drill kanıtının <c>CompletedAt</c> değerinden bu kadar gün
+    /// geçmedikçe yeni Scheduled satırı eklenmez. Manuel başarılar cadence sayılmaz.
     /// </summary>
     public int ScheduledProofCadenceDays { get; set; } = 7;
-
-    /// <summary>
-    /// When false (default), only scheduled trigger successes count toward cadence.
-    /// When true, manual successes also satisfy the scheduled proof requirement.
-    /// </summary>
-    public bool ManualSuccessSatisfiesScheduledProofCadence { get; set; }
 
     /// <summary>Optional connection string name for <c>fiscal_go_live_validation.sql</c>. Must not be DefaultConnection in Production.</summary>
     public string? FiscalValidationConnectionStringName { get; set; }

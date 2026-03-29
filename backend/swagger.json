@@ -24481,6 +24481,22 @@
           "duplicatePrevented": {
             "type": "boolean"
           },
+          "automaticRetryCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextRetryAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastRecordedTerminalFailureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "artifactCompletenessPolicyNote": {
+            "type": "string"
+          },
           "pipeline": {
             "$ref": "#/components/schemas/BackupPipelineSnapshotDto"
           },
@@ -24642,6 +24658,9 @@
           "completenessFlag": {
             "type": "boolean"
           },
+          "completenessRequiredForTerminalSuccess": {
+            "type": "boolean"
+          },
           "failureReason": {
             "type": "string",
             "nullable": true
@@ -24712,6 +24731,35 @@
           }
         }
       },
+      "BackupRetentionReadinessResponseDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "artifactRetentionDays": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "deletionRequestedByConfiguration": {
+            "type": "boolean"
+          },
+          "automatedDeletionImplemented": {
+            "type": "boolean"
+          },
+          "executableStatus": {
+            "type": "string"
+          },
+          "operatorNotes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "BackupConfigurationHealthResponseDto": {
         "type": "object",
         "additionalProperties": false,
@@ -24731,8 +24779,24 @@
           "workerEnabled": {
             "type": "boolean"
           },
+          "realPostgreSqlLogicalDumpConfigured": {
+            "type": "boolean"
+          },
+          "backupExecutionReality": {
+            "type": "string"
+          },
+          "nonRealBackupAdapterAcknowledgmentConfigurationKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "readinessNarrative": {
+            "type": "string"
+          },
           "artifactVerificationDisclaimer": {
             "type": "string"
+          },
+          "retentionReadiness": {
+            "$ref": "#/components/schemas/BackupRetentionReadinessResponseDto"
           }
         }
       },
@@ -24809,6 +24873,18 @@
               2,
               3
             ]
+          },
+          "backupExecutionReality": {
+            "type": "string"
+          },
+          "realPostgreSqlLogicalDumpConfigured": {
+            "type": "boolean"
+          },
+          "backupReadinessLevel": {
+            "type": "string"
+          },
+          "backupReadinessNarrative": {
+            "type": "string"
           }
         }
       },

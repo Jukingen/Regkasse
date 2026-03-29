@@ -21,18 +21,23 @@ public static class BackupStartupDiagnostics
         if (snap.Level == BackupConfigurationHealthLevel.Healthy)
         {
             logger.LogInformation(
-                "Backup orchestration: health={Level}, adapterKind={Adapter}, workerEnabled={Worker}",
+                "Backup orchestration: health={Level}, adapterKind={Adapter}, executionReality={Reality}, realPostgreSqlLogicalDump={RealPg}, workerEnabled={Worker}",
                 snap.Level,
                 snap.EffectiveAdapterKind,
+                snap.BackupExecutionReality,
+                snap.RealPostgreSqlLogicalDumpConfigured,
                 snap.WorkerEnabled);
             return;
         }
 
         logger.LogWarning(
-            "Backup orchestration: health={Level}, adapterKind={Adapter}, workerEnabled={Worker}, issues={@Issues}",
+            "Backup orchestration: health={Level}, adapterKind={Adapter}, executionReality={Reality}, realPostgreSqlLogicalDump={RealPg}, workerEnabled={Worker}, narrative={Narrative}, issues={@Issues}",
             snap.Level,
             snap.EffectiveAdapterKind,
+            snap.BackupExecutionReality,
+            snap.RealPostgreSqlLogicalDumpConfigured,
             snap.WorkerEnabled,
+            snap.ReadinessNarrative,
             snap.Issues);
     }
 }

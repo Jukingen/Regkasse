@@ -56,9 +56,19 @@ public static class BackupArtifactPipelinePolicyEvaluator
             lines.Add(
                 "DR readiness: Backup:RequireExternalArchiveImmutableTarget is true but ExternalArchiveImmutabilityAcknowledged is false — configuration is Unhealthy until the immutable archive tier is attested.");
 
-        if (options.RetentionPolicyMode != BackupRetentionPolicyMode.Disabled && options.ArtifactRetentionDays.HasValue)
+        if (pg && !dev && extConfigured
+            && !options.RequireExternalArchiveImmutableTarget
+            && !options.ExternalArchiveImmutabilityAcknowledged
+            && !options.ExternalArchiveMutableTargetAccepted)
             lines.Add(
-                $"Retention policy: mode={options.RetentionPolicyMode}, ArtifactRetentionDays={options.ArtifactRetentionDays.Value} (automated deletion is not performed by the API in this version).");
+                "DR readiness: external archive path is configured but operator disposition is missing — acknowledge immutable tier (Backup:ExternalArchiveImmutabilityAcknowledged), accept mutable target (Backup:ExternalArchiveMutableTargetAccepted), or require immutable posture (Backup:RequireExternalArchiveImmutableTarget + acknowledgment).");
+
+        if (options.RetentionPolicyMode != BackupRetentionPolicyMode.Disabled && options.ArtifactRetentionDays.HasValue)
+        {
+            var readiness = BackupRetentionReadinessEvaluator.Build(options);
+            lines.Add(
+                $"Retention policy: mode={options.RetentionPolicyMode}, ArtifactRetentionDays={options.ArtifactRetentionDays.Value}, executableStatus={readiness.ExecutableStatus} (API does not delete artifacts; Backup:RetentionArtifactDeletionEnabled must remain false).");
+        }
 
         return new BackupArtifactPipelinePolicySnapshot
         {

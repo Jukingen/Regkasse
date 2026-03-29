@@ -46,6 +46,7 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
     public async Task<BackupVerification?> GetLatestVerificationAsync(CancellationToken cancellationToken = default)
     {
         return await _db.BackupVerifications.AsNoTracking()
+            .Include(v => v.BackupRun)
             .OrderByDescending(v => v.StartedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }

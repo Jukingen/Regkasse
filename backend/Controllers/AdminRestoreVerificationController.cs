@@ -42,7 +42,11 @@ public sealed class AdminRestoreVerificationController : ControllerBase
         return Ok(RestoreVerificationReadinessMapper.ToDto(snap));
     }
 
-    /// <summary>Enqueue a restore drill (logical dump pg_restore --list + optional fiscal SQL + optional live integrity).</summary>
+    /// <summary>
+    /// Restore drill sıraya alır (pg_restore --list + isteğe bağlı fiscal SQL + isteğe bağlı live integrity).
+    /// Gövdede isteğe bağlı <c>idempotencyKey</c>: aynı anahtar mevcut satırı döndürür. Aktif Queued/Running satırı varsa yeni sıra oluşturulmaz.
+    /// Yanıtta <c>runId</c>, <c>orchestrationState</c>, <c>newQueuedRunCreated</c>, <c>existingRunReturned</c> ve tam <c>run</c> bulunur.
+    /// </summary>
     [HttpPost("trigger")]
     [HasPermission(AppPermissions.SettingsManage)]
     [ProducesResponseType(typeof(RestoreVerificationTriggerResponseDto), 202)]
