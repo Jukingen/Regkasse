@@ -8,6 +8,8 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers;
@@ -30,6 +32,8 @@ public sealed class AdminBackupController : ControllerBase
     private readonly IOptionsMonitor<BackupOptions> _backupOptions;
     private readonly IBackupArtifactDownloadService _artifactDownload;
     private readonly IAuditLogService _audit;
+    private readonly ILogger<AdminBackupController> _logger;
+    private readonly IHostEnvironment _hostEnvironment;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
@@ -39,7 +43,9 @@ public sealed class AdminBackupController : ControllerBase
         IBackupOperationalReadiness readiness,
         IOptionsMonitor<BackupOptions> backupOptions,
         IBackupArtifactDownloadService artifactDownload,
-        IAuditLogService audit)
+        IAuditLogService audit,
+        ILogger<AdminBackupController> logger,
+        IHostEnvironment hostEnvironment)
     {
         _trigger = trigger;
         _query = query;
@@ -49,6 +55,8 @@ public sealed class AdminBackupController : ControllerBase
         _backupOptions = backupOptions;
         _artifactDownload = artifactDownload;
         _audit = audit;
+        _logger = logger;
+        _hostEnvironment = hostEnvironment;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -92,6 +100,10 @@ public sealed class AdminBackupController : ControllerBase
         var cap = _restore.DescribeCapabilities();
         var cfg = _readiness.GetConfigurationHealth();
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
+        var downloadEnrichment = new BackupDownloadEnrichment(
+            _backupOptions.CurrentValue,
+            _hostEnvironment,
+            _logger);
         return Ok(new BackupLatestStatusResponseDto
         {
             LatestRun = latest == null
@@ -101,7 +113,8 @@ public sealed class AdminBackupController : ControllerBase
                     includeChildren: true,
                     pipelinePolicy: artifactPolicy,
                     materializedChildren: true,
-                    automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts),
+                    automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts,
+                    downloadEnrichment: downloadEnrichment),
             Restore = new RestoreCapabilityDto
             {
                 IsAutomatedRestoreAvailable = cap.IsAutomatedRestoreAvailable,
@@ -122,6 +135,7 @@ public sealed class AdminBackupController : ControllerBase
     [Produces("application/octet-stream", "application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DownloadArtifact(
         Guid runId,
@@ -134,8 +148,17 @@ public sealed class AdminBackupController : ControllerBase
             case BackupArtifactDownloadPrepareStatus.Ok:
                 break;
             case BackupArtifactDownloadPrepareStatus.RunNotFound:
+                return NotFound(new
+                {
+                    code = "BACKUP_RUN_NOT_FOUND",
+                    message = "Backup run does not exist."
+                });
             case BackupArtifactDownloadPrepareStatus.ArtifactNotFound:
-                return NotFound();
+                return NotFound(new
+                {
+                    code = "BACKUP_ARTIFACT_NOT_FOUND",
+                    message = "Artifact does not exist for this backup run."
+                });
             case BackupArtifactDownloadPrepareStatus.RunNotSucceeded:
                 return Conflict(new { code = "BACKUP_RUN_NOT_SUCCEEDED", message = "Backup run is not in Succeeded state." });
             case BackupArtifactDownloadPrepareStatus.FileNotOnDisk:
@@ -143,25 +166,40 @@ public sealed class AdminBackupController : ControllerBase
             case BackupArtifactDownloadPrepareStatus.InvalidConfiguration:
                 return StatusCode(StatusCodes.Status503ServiceUnavailable,
                     new { code = "BACKUP_STORAGE_NOT_CONFIGURED", message = "Backup staging/archive paths are not configured." });
+            case BackupArtifactDownloadPrepareStatus.SimulatedExecutionNotDownloadable:
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    code = "BACKUP_ARTIFACT_NOT_DOWNLOADABLE_SIMULATED",
+                    message = "Download blocked as simulated (legacy path). Prefer current API: Fake/ProductionStub files download when present on disk."
+                });
             default:
-                return NotFound();
+                return NotFound(new { code = "BACKUP_DOWNLOAD_UNKNOWN", message = "Download could not be prepared." });
         }
 
         var userId = User.GetActorUserId() ?? "unknown";
         var role = User.GetActorRole() ?? "Unknown";
         var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
-        await _audit.LogSystemOperationAsync(
-            action: "BACKUP_ARTIFACT_DOWNLOAD",
-            entityType: "BackupArtifact",
-            userId: userId,
-            userRole: role,
-            description: $"Backup artifact download (run={runId}, artifact={artifactId}).",
-            notes: null,
-            status: AuditLogStatus.Success,
-            errorDetails: null,
-            requestData: new { backupRunId = runId, artifactId },
-            responseData: new { downloadFileName = prepare.DownloadFileName },
-            correlationIdOverride: correlationId);
+        try
+        {
+            await _audit.LogSystemOperationAsync(
+                action: "BACKUP_ARTIFACT_DOWNLOAD",
+                entityType: "BackupArtifact",
+                userId: userId,
+                userRole: role,
+                description: $"Backup artifact download (run={runId}, artifact={artifactId}).",
+                notes: null,
+                status: AuditLogStatus.Success,
+                errorDetails: null,
+                requestData: new { backupRunId = runId, artifactId },
+                responseData: new { downloadFileName = prepare.DownloadFileName },
+                correlationIdOverride: correlationId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Audit log failed after backup artifact download was prepared; returning file response anyway. runId={RunId}, artifactId={ArtifactId}",
+                runId, artifactId);
+        }
 
         var file = new PhysicalFileResult(prepare.AbsolutePath!, "application/octet-stream")
         {
@@ -217,12 +255,17 @@ public sealed class AdminBackupController : ControllerBase
         if (run == null)
             return NotFound();
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
+        var downloadEnrichment = new BackupDownloadEnrichment(
+            _backupOptions.CurrentValue,
+            _hostEnvironment,
+            _logger);
         return Ok(BackupRunMapper.ToDto(
             run,
             includeChildren: true,
             pipelinePolicy: artifactPolicy,
             materializedChildren: true,
-            automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts));
+            automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts,
+            downloadEnrichment: downloadEnrichment));
     }
 
     [HttpGet("verification/latest")]

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Card, Descriptions, Tag, Typography } from 'antd';
+import { Alert, Card, Descriptions, Tag, Typography } from 'antd';
 import type { RestoreVerificationRunResponseDto } from '@/api/generated/model';
 
 export interface RestoreVerificationCardProps {
@@ -33,10 +33,36 @@ export function RestoreVerificationCard({
       {!run ? (
         <Typography.Text type="secondary">{t('backupDr.restoreVerification.none')}</Typography.Text>
       ) : (
-        <Descriptions column={1} size="small" bordered>
+        <>
+          {run.status === 3 ? (
+            <Alert
+              type="error"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={t('backupDr.restoreVerification.drillFailedProminent')}
+              description={
+                <Typography.Text type="danger" style={{ whiteSpace: 'pre-wrap' }}>
+                  {[run.failureCode, (run.failureDetail ?? '').trim()].filter(Boolean).join(' — ') || '—'}
+                </Typography.Text>
+              }
+            />
+          ) : null}
+          <Descriptions column={1} size="small" bordered>
           <Descriptions.Item label={t('backupDr.table.status')}>
             <Tag color={restoreStatusTagColor(run.status ?? -1)}>{restoreStatusLabel(run.status, t)}</Tag>
           </Descriptions.Item>
+          {run.failureCode || run.failureDetail ? (
+            <>
+              <Descriptions.Item label={t('backupDr.restoreVerification.failureCode')}>
+                {run.failureCode ?? '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('backupDr.restoreVerification.failureDetail')} span={1}>
+                <Typography.Text type="danger" style={{ whiteSpace: 'pre-wrap' }}>
+                  {(run.failureDetail ?? '').trim() || '—'}
+                </Typography.Text>
+              </Descriptions.Item>
+            </>
+          ) : null}
           <Descriptions.Item label={t('backupDr.restoreVerification.block.dumpInspection')}>
             {dumpInspectionTriState(run) === undefined
               ? '—'
@@ -71,6 +97,7 @@ export function RestoreVerificationCard({
             {formatDt(run.completedAt, formatLocale)}
           </Descriptions.Item>
         </Descriptions>
+        </>
       )}
       <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
         {t('backupDr.restoreVerification.strongerThanArtifact')}

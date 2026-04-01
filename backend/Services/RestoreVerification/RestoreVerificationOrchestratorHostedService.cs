@@ -314,6 +314,7 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
                 backupOpts,
                 candidateRunIds,
                 _logger,
+                _hostEnvironment,
                 ct);
 
             if (dump == null)
@@ -341,15 +342,17 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
             run.PgRestoreListExitCode = listResult.ExitCode;
             run.PgRestoreListLineCount = listResult.NonEmptyLineCount;
             run.PgRestoreListPassed = listResult.Success;
-            var inspectionNode = JsonSerializer.SerializeToNode(new
+            // Two separate JsonNode graphs — never reuse one JsonNode under two JsonObject keys (InvalidOperationException:
+            // "The node already has a parent."). DeepClone works too; double SerializeToNode is maximally explicit.
+            var inspectionPayload = new
             {
                 passed = listResult.Success,
                 exitCode = listResult.ExitCode,
                 lineCount = listResult.NonEmptyLineCount,
                 kind = "pg_restore_list_toc_inspection_not_checksum"
-            });
-            details["pgRestoreList"] = inspectionNode;
-            details["dumpInspection"] = inspectionNode;
+            };
+            details["pgRestoreList"] = JsonSerializer.SerializeToNode(inspectionPayload);
+            details["dumpInspection"] = JsonSerializer.SerializeToNode(inspectionPayload);
 
             if (!listResult.Success)
             {

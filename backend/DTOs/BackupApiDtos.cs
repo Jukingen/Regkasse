@@ -1,6 +1,9 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
 using KasseAPI_Final.Services.Backup;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.DTOs;
 
@@ -54,6 +57,9 @@ public sealed class BackupPipelineSnapshotDto
     public IReadOnlyList<BackupPipelineStepDto> Steps { get; init; } = Array.Empty<BackupPipelineStepDto>();
 }
 
+/// <summary>İsteğe bağlı: admin detay uçlarında artefakt dosyası diskte mi (indirme ile aynı çözümleyici).</summary>
+public sealed record BackupDownloadEnrichment(BackupOptions Options, IHostEnvironment HostEnvironment, ILogger Logger);
+
 public sealed class BackupRunResponseDto
 {
     public Guid Id { get; init; }
@@ -99,6 +105,16 @@ public sealed class BackupRunResponseDto
     /// <summary>Resmi pipeline; UI adımları buradan türetilmelidir.</summary>
     public BackupPipelineSnapshotDto Pipeline { get; init; } = null!;
 
+    /// <summary>
+    /// True when <see cref="AdapterKind"/> is Fake or ProductionStub (no pg_dump; stub or placeholder execution).
+    /// </summary>
+    public bool IsSimulatedExecution { get; init; }
+
+    /// <summary>
+    /// True when materialized artifacts include a LogicalDump row (metadata); does not assert production pg_dump format.
+    /// </summary>
+    public bool HasLogicalDumpArtifact { get; init; }
+
     public IReadOnlyList<BackupArtifactResponseDto>? Artifacts { get; init; }
     public IReadOnlyList<BackupVerificationResponseDto>? Verifications { get; init; }
 }
@@ -117,6 +133,12 @@ public sealed class BackupArtifactResponseDto
 
     /// <summary>Redacted external key after successful archive copy (e.g. archive/runId/file).</summary>
     public string? ExternalRedactedLocator { get; init; }
+
+    /// <summary>
+    /// When <see cref="BackupDownloadEnrichment"/> was applied for this response: true if a file exists at the resolved path (same check as download).
+    /// Otherwise false (unknown / not computed — e.g. history list without enrichment).
+    /// </summary>
+    public bool IsFilePresentForDownload { get; init; }
 }
 
 public sealed class BackupVerificationResponseDto
@@ -199,6 +221,11 @@ public sealed class BackupRecoverabilitySummaryResponseDto
     public DateTime? LastSuccessfulBackupAt { get; init; }
 
     public Guid? LastSuccessfulBackupRunId { get; init; }
+
+    /// <summary>
+    /// Son başarılı yedek çalıştırması Fake/ProductionStub ise true; başarılı yedek yoksa null. Üretim pg_dump DR kanıtı sayılmaz.
+    /// </summary>
+    public bool? LastSuccessfulBackupRunIsSimulatedExecution { get; init; }
 
     /// <summary>Son geçen artifact (checksum/staging) doğrulaması zamanı.</summary>
     public DateTime? LastSuccessfulArtifactVerificationAt { get; init; }
@@ -401,13 +428,15 @@ public static class BackupRunMapper
 {
     /// <param name="duplicateExecutionPreventedOverride">When set (e.g. manual trigger response), overrides DB flag for API clarity.</param>
     /// <param name="materializedChildren">True when <see cref="BackupRun.Artifacts"/> / Verifications were loaded with the run (Include).</param>
+    /// <param name="downloadEnrichment">When set with succeeded materialized run, populates <see cref="BackupArtifactResponseDto.IsFilePresentForDownload"/>.</param>
     public static BackupRunResponseDto ToDto(
         BackupRun run,
         bool includeChildren = false,
         bool? duplicateExecutionPreventedOverride = null,
         BackupArtifactPipelinePolicySnapshot? pipelinePolicy = null,
         bool materializedChildren = false,
-        int? automaticRetryMaxAttemptsBudget = null)
+        int? automaticRetryMaxAttemptsBudget = null,
+        BackupDownloadEnrichment? downloadEnrichment = null)
     {
         var policy = pipelinePolicy ?? BackupPipelineProjector.DefaultPolicyForProjection;
         var completenessRequired = BackupCompletenessSuccessPolicy.TryParseAdapterKind(run.AdapterKind, out var adapterKind)
@@ -436,6 +465,8 @@ public static class BackupRunMapper
             ConfigSnapshotJson = run.ConfigSnapshotJson,
             ArtifactCompletenessPolicyNote = BackupCompletenessSuccessPolicy.FormatCompletenessPolicyNote(run.AdapterKind),
             Pipeline = BackupPipelineProjector.Project(run, policy, materializedChildren),
+            IsSimulatedExecution = ComputeIsSimulatedExecution(run.AdapterKind),
+            HasLogicalDumpArtifact = ComputeHasLogicalDumpArtifact(includeChildren, run),
             Artifacts = includeChildren
                 ? run.Artifacts.Select(a => new BackupArtifactResponseDto
                 {
@@ -447,7 +478,12 @@ public static class BackupRunMapper
                     ByteSize = a.ByteSize,
                     ContentHashSha256 = a.ContentHashSha256,
                     LifecycleState = a.LifecycleState,
-                    ExternalRedactedLocator = a.ExternalRedactedLocator
+                    ExternalRedactedLocator = a.ExternalRedactedLocator,
+                    IsFilePresentForDownload = ComputeArtifactFilePresentForDownload(
+                        run,
+                        a,
+                        materializedChildren,
+                        downloadEnrichment)
                 }).ToList()
                 : null,
             Verifications = includeChildren
@@ -465,5 +501,31 @@ public static class BackupRunMapper
                 }).ToList()
                 : null
         };
+    }
+
+    private static bool ComputeIsSimulatedExecution(string? adapterKind) =>
+        BackupCompletenessSuccessPolicy.TryParseAdapterKind(adapterKind, out var k)
+        && (k == BackupExecutionAdapterKind.Fake || k == BackupExecutionAdapterKind.ProductionStub);
+
+    private static bool ComputeHasLogicalDumpArtifact(bool includeChildren, BackupRun run) =>
+        includeChildren && run.Artifacts.Any(a => a.ArtifactType == BackupArtifactType.LogicalDump);
+
+    private static bool ComputeArtifactFilePresentForDownload(
+        BackupRun run,
+        BackupArtifact artifact,
+        bool materializedChildren,
+        BackupDownloadEnrichment? enrichment)
+    {
+        if (!materializedChildren || enrichment == null || run.Status != BackupRunStatus.Succeeded)
+            return false;
+
+        return BackupArtifactOnDiskResolver.TryResolveForSingleRun(
+            run.Id,
+            artifact,
+            enrichment.Options,
+            enrichment.Logger,
+            enrichment.HostEnvironment,
+            "Backup run DTO: download availability",
+            out _);
     }
 }

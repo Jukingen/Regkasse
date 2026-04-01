@@ -63,13 +63,16 @@ public static class RestoreVerificationOrchestratorRunFinalizer
             var now = DateTime.UtcNow;
             run.Status = RestoreVerificationStatus.Failed;
             run.CompletedAt = now;
-            run.FailureCode = "UNHANDLED_EXCEPTION";
-            run.FailureDetail = exception.Message;
+            var (failureCode, failureDetail) = ClassifyUnhandledOrchestratorException(exception);
+            run.FailureCode = failureCode;
+            run.FailureDetail = failureDetail;
             MergeUnhandledDetails(run, new
             {
                 unhandledOrchestratorException = true,
                 exceptionType = exception.GetType().Name,
-                message = exception.Message
+                message = exception.Message,
+                innerException = exception.InnerException?.Message,
+                classifiedFailureCode = failureCode
             });
             await db.SaveChangesAsync(cancellationToken);
         }
@@ -77,6 +80,22 @@ public static class RestoreVerificationOrchestratorRunFinalizer
         {
             logger.LogError(ex, "Restore verification finalizer (unhandled) failed for runId={RunId}", runId);
         }
+    }
+
+    /// <summary>
+    /// Maps known infrastructure exceptions to stable codes so operators are not stuck on generic UNHANDLED_EXCEPTION only.
+    /// </summary>
+    public static (string Code, string Detail) ClassifyUnhandledOrchestratorException(Exception exception)
+    {
+        if (exception is InvalidOperationException io
+            && io.Message.Contains("already has a parent", StringComparison.OrdinalIgnoreCase))
+        {
+            return (
+                "RESTORE_DRILL_JSON_NODE_PARENT_CONFLICT",
+                "Restore drill details JSON: a System.Text.Json.Nodes.JsonNode was reused under two parent keys (invalid graph).");
+        }
+
+        return ("UNHANDLED_EXCEPTION", exception.Message);
     }
 
     private static void MergeUnhandledDetails(RestoreVerificationRun run, object fragment)

@@ -17,6 +17,7 @@ export interface BackupArtifactResponseDto {
   /** @nullable */
   externalRedactedLocator?: string | null;
   id?: string;
+  isFilePresentForDownload?: boolean;
   lifecycleState?: BackupArtifactResponseDtoLifecycleState;
   storageLocator?: string;
 }

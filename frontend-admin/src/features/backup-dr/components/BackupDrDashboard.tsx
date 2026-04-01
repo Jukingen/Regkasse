@@ -38,10 +38,14 @@ import {
   type RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
 import {
+  computeEffectiveRestoreReadinessLevel,
   configurationHealthSummaryI18nKey,
   externalCopyVariantToI18nKey,
+  healthStatisticValueStyle,
+  isSimulatedBackupAdapterKind,
   mapArtifactsToExternalCopyVariant,
   mapBackupRunStatusAntdColor,
+  mapConfigurationHealthLevel,
   mapDumpInspectionTriState,
   mapRestoreVerificationStatusAntdColor,
   normalizeHealthLevelString,
@@ -131,7 +135,7 @@ export function BackupDrDashboard() {
     const row = q.state.data as { status?: number } | null | undefined;
     const s = row?.status;
     if (s === 0 || s === 1) return 8_000;
-    return 60_000;
+    return 15_000;
   }, []);
 
   const statusQuery = useGetApiAdminBackupStatusLatest({
@@ -150,7 +154,7 @@ export function BackupDrDashboard() {
     query: { refetchInterval: pollRestore, refetchOnWindowFocus: true },
   });
   const restoreHistoryQuery = useGetApiAdminRestoreVerificationRuns(restoreParams, {
-    query: { refetchInterval: 60_000, refetchOnWindowFocus: true },
+    query: { refetchInterval: pollRestore, refetchOnWindowFocus: true },
   });
   const restoreReadinessQuery = useGetApiAdminRestoreVerificationReadiness({
     query: { refetchInterval: 60_000, refetchOnWindowFocus: true },
@@ -199,6 +203,8 @@ export function BackupDrDashboard() {
             message.info(t('backupDr.messages.restoreDrillExistingActive'));
           }
         }
+        await restoreLatestQuery.refetch();
+        await restoreHistoryQuery.refetch();
         await queryClient.invalidateQueries({ queryKey: getGetApiAdminRestoreVerificationRunsLatestQueryKey() });
         await queryClient.invalidateQueries({ queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey() });
         await queryClient.invalidateQueries({ queryKey: getGetApiAdminRestoreVerificationRunsQueryKey(restoreParams) });
@@ -268,6 +274,13 @@ export function BackupDrDashboard() {
       warn.push(t('backupDr.banner.externalArchiveDegraded'));
     }
 
+    const latestSucceededSimulated =
+      lr?.status === BackupRunResponseDtoStatus.NUMBER_3 &&
+      (detailForPipeline?.isSimulatedExecution === true || isSimulatedBackupAdapterKind(lr?.adapterKind));
+    if (latestSucceededSimulated) {
+      warn.push(t('backupDr.banner.latestRunSimulatedNotProduction'));
+    }
+
     const rr = restoreLatestQuery.data;
     if (rr && rr.status === 3) {
       critical.push(
@@ -292,6 +305,7 @@ export function BackupDrDashboard() {
 
     return { critical, warn };
   }, [
+    detailForPipeline?.isSimulatedExecution,
     external.variant,
     health,
     healthLv,
@@ -341,7 +355,7 @@ export function BackupDrDashboard() {
     if (rr && rr.status === 3) {
       items.push({
         severity: 'error',
-        text: `Restore drill: ${rr.failureCode ?? ''} ${rr.failureDetail ?? ''}`.trim(),
+        text: `${t('backupDr.restoreVerification.drillFailedAlert')}: ${rr.failureCode ?? '—'} — ${(rr.failureDetail ?? '').trim() || '—'}`.trim(),
       });
     }
     for (const issue of restoreReady?.issues ?? []) {
@@ -454,8 +468,31 @@ export function BackupDrDashboard() {
   const v = verificationQuery.data;
   const rr = restoreLatestQuery.data;
 
+  const effectiveRestoreReadinessLevel = useMemo(
+    () =>
+      computeEffectiveRestoreReadinessLevel({
+        apiLevel: restoreReady?.level,
+        realPostgreSqlLogicalDumpConfiguredHealth: health?.realPostgreSqlLogicalDumpConfigured,
+        realPostgreSqlLogicalDumpConfiguredRecoverability: recoverabilityQuery.data?.realPostgreSqlLogicalDumpConfigured,
+        latestBackupStatus: latest?.status,
+        isLatestRunSimulatedExecution: detailForPipeline?.isSimulatedExecution ?? latest?.isSimulatedExecution,
+        latestAdapterKind: latest?.adapterKind,
+      }),
+    [
+      restoreReady?.level,
+      health?.realPostgreSqlLogicalDumpConfigured,
+      recoverabilityQuery.data?.realPostgreSqlLogicalDumpConfigured,
+      latest?.status,
+      detailForPipeline?.isSimulatedExecution,
+      latest?.isSimulatedExecution,
+      latest?.adapterKind,
+    ],
+  );
+
   const summaryBackupHealth = levelSummaryLabel(health?.level, t);
-  const summaryRestoreHealth = levelSummaryLabel(restoreReady?.level, t);
+  const summaryRestoreHealth = levelSummaryLabel(effectiveRestoreReadinessLevel, t);
+  const backupHealthUiKind = mapConfigurationHealthLevel(health?.level);
+  const restoreReadinessUiKind = mapConfigurationHealthLevel(effectiveRestoreReadinessLevel);
   const summaryConfigShort = `${t('backupDr.health.adapter')}: ${health?.effectiveAdapterKind ?? '—'} · ${t('backupDr.health.worker')}: ${
     health?.workerEnabled ? t('common.buttons.yes') : t('common.buttons.no')
   } · ${
@@ -493,12 +530,20 @@ export function BackupDrDashboard() {
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12} lg={6}>
               <Card size="small">
-                <Statistic title={t('backupDr.summary.backupHealth')} value={summaryBackupHealth} />
+                <Statistic
+                  title={t('backupDr.summary.backupHealth')}
+                  value={summaryBackupHealth}
+                  valueStyle={healthStatisticValueStyle(backupHealthUiKind)}
+                />
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Card size="small">
-                <Statistic title={t('backupDr.summary.restoreReadiness')} value={summaryRestoreHealth} />
+                <Statistic
+                  title={t('backupDr.summary.restoreReadiness')}
+                  value={summaryRestoreHealth}
+                  valueStyle={healthStatisticValueStyle(restoreReadinessUiKind)}
+                />
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
@@ -531,6 +576,11 @@ export function BackupDrDashboard() {
             <Col xs={24} lg={14}>
               <BackupRunProgressBanner
                 latest={latest}
+                isSimulatedExecution={
+                  detailForPipeline?.isSimulatedExecution === true ||
+                  (latest?.status === BackupRunResponseDtoStatus.NUMBER_3 &&
+                    isSimulatedBackupAdapterKind(latest?.adapterKind))
+                }
                 averageSucceededDurationSeconds={statusQuery.data?.averageSucceededBackupDurationSeconds ?? undefined}
                 averageSucceededDurationSampleCount={statusQuery.data?.averageSucceededBackupDurationSampleCount}
                 formatDt={formatDt}
@@ -551,20 +601,22 @@ export function BackupDrDashboard() {
                 showLatestRunVsRecoverabilityHint
                 t={t}
               />
-              {latest?.id &&
-              latest.status === BackupRunResponseDtoStatus.NUMBER_3 &&
-              detailForPipeline?.artifacts &&
-              detailForPipeline.artifacts.length > 0 ? (
+              {latest?.id && latest.status === BackupRunResponseDtoStatus.NUMBER_3 ? (
                 <BackupArtifactsDownloadCard
                   runId={latest.id}
-                  artifacts={detailForPipeline.artifacts}
+                  artifacts={detailForPipeline?.artifacts ?? []}
                   canManage={canManage}
+                  isSimulatedExecution={detailForPipeline?.isSimulatedExecution}
+                  runAdapterKind={detailForPipeline?.adapterKind ?? undefined}
                   t={t}
                 />
               ) : null}
             </Col>
             <Col xs={24} lg={10}>
               <Card title={t('backupDr.externalCopy.title')} size="small">
+                <Typography.Paragraph type="secondary" style={{ marginTop: 0, marginBottom: 12 }}>
+                  {t('backupDr.externalCopy.scopeFromLatestRun')}
+                </Typography.Paragraph>
                 {runDetailQuery.isLoading && latest?.id ? (
                   <Spin tip={t('backupDr.externalCopy.loading')} />
                 ) : (
@@ -624,9 +676,25 @@ export function BackupDrDashboard() {
                   <Typography.Text type="secondary">{t('backupDr.summary.unknown')}</Typography.Text>
                 ) : (
                   <>
+                    {normalizeHealthLevelString(restoreReady.level) !==
+                    normalizeHealthLevelString(effectiveRestoreReadinessLevel ?? '') ? (
+                      <Typography.Paragraph type="warning" style={{ marginBottom: 12 }}>
+                        {t('backupDr.readiness.levelCappedForOperatorTruth')}
+                      </Typography.Paragraph>
+                    ) : null}
                     <Space wrap style={{ marginBottom: 12 }}>
-                      <Tag color={restoreLv === 'unhealthy' ? 'red' : restoreLv === 'degraded' ? 'orange' : 'green'}>
-                        {levelSummaryLabel(restoreReady.level, t)}
+                      <Tag
+                        color={
+                          restoreReadinessUiKind === 'unhealthy'
+                            ? 'red'
+                            : restoreReadinessUiKind === 'degraded'
+                              ? 'orange'
+                              : restoreReadinessUiKind === 'healthy'
+                                ? 'green'
+                                : 'default'
+                        }
+                      >
+                        {levelSummaryLabel(effectiveRestoreReadinessLevel, t)}
                       </Tag>
                       <Tag color={restoreReady.workerEnabled ? 'green' : 'orange'}>
                         {t('backupDr.readiness.restoreWorker')}: {restoreReady.workerEnabled ? t('common.buttons.yes') : t('common.buttons.no')}

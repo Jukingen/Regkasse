@@ -13,6 +13,7 @@ import {
   resolveBackupPipelineStepsForUi,
   sumLogicalDumpBytes,
 } from '@/features/backup-dr/logic/backupPipelineDerived';
+import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
 
 export interface BackupStatusCardProps {
   latest: BackupRunResponseDto | undefined | null;
@@ -79,6 +80,15 @@ export function BackupStatusCard({
   const durationMs = formatRunDurationMs(latest?.requestedAt, latest?.completedAt);
   const bytes = sumLogicalDumpBytes(detail?.artifacts ?? latest?.artifacts ?? undefined);
 
+  const succeededSimulated =
+    latest?.status === 3 &&
+    (detail?.isSimulatedExecution === true || isSimulatedBackupAdapterKind(latest?.adapterKind));
+  const statusTagColor = succeededSimulated ? 'warning' : backupStatusTagColor(latest?.status ?? -1);
+  const statusLabelText =
+    succeededSimulated && latest
+      ? t('backupDr.backupStatus.simulatedSuccess')
+      : backupStatusLabel(latest?.status, t);
+
   return (
     <Card title={t('backupDr.latestRun.title')} size="small">
       {!latest ? (
@@ -91,10 +101,23 @@ export function BackupStatusCard({
             </Typography.Paragraph>
           ) : null}
           <Alert type="info" showIcon message={t('backupDr.latestRun.orchestrationHint')} style={{ marginBottom: 12 }} />
+          {succeededSimulated ? (
+            <Alert
+              type="warning"
+              showIcon
+              message={t('backupDr.latestRun.notRealPgDump')}
+              style={{ marginBottom: 12 }}
+            />
+          ) : null}
           <Descriptions column={1} size="small" bordered style={{ marginBottom: 16 }}>
             <Descriptions.Item label={t('backupDr.latestRun.id')}>{latest.id}</Descriptions.Item>
             <Descriptions.Item label={t('backupDr.table.status')}>
-              <Tag color={backupStatusTagColor(latest.status ?? -1)}>{backupStatusLabel(latest.status, t)}</Tag>
+              <Space wrap>
+                <Tag color={statusTagColor}>{statusLabelText}</Tag>
+                {succeededSimulated ? (
+                  <Tag color="warning">{t('backupDr.latestRun.simulatedBadge')}</Tag>
+                ) : null}
+              </Space>
             </Descriptions.Item>
             <Descriptions.Item label={t('backupDr.latestRun.adapter')}>{latest.adapterKind}</Descriptions.Item>
             <Descriptions.Item label={t('backupDr.latestRun.duration')}>{formatDurationMs(durationMs, t)}</Descriptions.Item>

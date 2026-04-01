@@ -10,6 +10,8 @@ import type { BackupRunResponseDto } from '@/api/generated/model';
 
 export interface BackupRunProgressBannerProps {
   latest: BackupRunResponseDto | undefined | null;
+  /** Latest run detail: when true, terminal success is Fake/Stub — must not use production-success styling. */
+  isSimulatedExecution?: boolean;
   averageSucceededDurationSeconds: number | undefined | null;
   averageSucceededDurationSampleCount: number | undefined | null;
   formatDt: (iso: string | undefined | null, locale: string) => string;
@@ -50,6 +52,7 @@ function buildEtaDescription(
 
 export function BackupRunProgressBanner({
   latest,
+  isSimulatedExecution = false,
   averageSucceededDurationSeconds,
   averageSucceededDurationSampleCount,
   formatDt,
@@ -70,12 +73,13 @@ export function BackupRunProgressBanner({
     if (s === 0) return t('backupDr.progress.titleQueued');
     if (s === 1) return t('backupDr.progress.titleRunning');
     if (s === 2) return t('backupDr.progress.titleAwaiting');
-    if (s === 3) return t('backupDr.progress.finishedOk');
+    if (s === 3)
+      return isSimulatedExecution ? t('backupDr.progress.finishedSimulatedOk') : t('backupDr.progress.finishedOk');
     if (s === 4) return t('backupDr.progress.finishedFailed');
     if (s === 5) return t('backupDr.progress.finishedVerificationFailed');
     if (s === 6) return t('backupDr.progress.finishedCancelled');
     return null;
-  }, [s, t]);
+  }, [s, isSimulatedExecution, t]);
 
   const etaLine = useMemo(() => {
     if (s === undefined || s === null) return undefined;
@@ -120,12 +124,18 @@ export function BackupRunProgressBanner({
     );
   }
 
-  const alertType = s === 3 ? 'success' : s === 6 ? 'info' : 'error';
+  const alertType =
+    s === 3 ? (isSimulatedExecution ? 'warning' : 'success') : s === 6 ? 'info' : 'error';
+  const description =
+    s === 3 && isSimulatedExecution ? (
+      <Typography.Text type="secondary">{t('backupDr.progress.finishedSimulatedOkDetail')}</Typography.Text>
+    ) : undefined;
   return (
     <Alert
       type={alertType}
       showIcon
       message={title}
+      description={description}
       style={{ marginBottom: 12 }}
     />
   );

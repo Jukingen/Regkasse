@@ -1,7 +1,9 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
+using KasseAPI_Final.Services.Backup;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.Backup;
@@ -38,7 +40,7 @@ public sealed class BackupRecoverabilitySummaryService : IBackupRecoverabilitySu
         var lastSucceededBackup = await _db.BackupRuns.AsNoTracking()
             .Where(r => r.Status == BackupRunStatus.Succeeded)
             .OrderByDescending(r => r.CompletedAt ?? r.RequestedAt)
-            .Select(r => new { r.Id, ProofAt = r.CompletedAt ?? r.RequestedAt })
+            .Select(r => new { r.Id, ProofAt = r.CompletedAt ?? r.RequestedAt, r.AdapterKind })
             .FirstOrDefaultAsync(cancellationToken);
 
         var lastPassedVerification = await _db.BackupVerifications.AsNoTracking()
@@ -63,10 +65,20 @@ public sealed class BackupRecoverabilitySummaryService : IBackupRecoverabilitySu
 
         var cfg = _backupReadiness.GetConfigurationHealth();
 
+        bool? lastSuccessSimulated = null;
+        if (lastSucceededBackup != null)
+        {
+            lastSuccessSimulated = BackupCompletenessSuccessPolicy.TryParseAdapterKind(
+                    lastSucceededBackup.AdapterKind,
+                    out var ak)
+                && (ak == BackupExecutionAdapterKind.Fake || ak == BackupExecutionAdapterKind.ProductionStub);
+        }
+
         return new BackupRecoverabilitySummaryResponseDto
         {
             LastSuccessfulBackupAt = lastSucceededBackup?.ProofAt,
             LastSuccessfulBackupRunId = lastSucceededBackup?.Id,
+            LastSuccessfulBackupRunIsSimulatedExecution = lastSuccessSimulated,
             LastSuccessfulArtifactVerificationAt = lastPassedVerification?.At,
             LastSuccessfulRestoreProofAt = lastRestoreProof?.CompletedAt,
             LastSuccessfulRestoreProofRunId = lastRestoreProof?.Id,

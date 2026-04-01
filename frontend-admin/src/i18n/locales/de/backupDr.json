@@ -7,6 +7,7 @@
     "title": "Wiederherstellungsnachweise (letzter bekannter guter Stand)",
     "subtitle": "Unabhängig vom zuletzt angeforderten Lauf: zeigt die jüngsten erfolgreichen Nachweise, sofern vorhanden.",
     "lastGoodBackup": "Letztes erfolgreiches Backup",
+    "lastGoodBackupSimulatedWarning": "Der letzte erfolgreiche Backup-Lauf war simuliert (Fake/Stub) — kein Produktions-pg_dump-Nachweis. Das ist keine DR-Bereitschaft.",
     "lastGoodArtifactVerification": "Letzte erfolgreiche Artefakt-Verifikation",
     "lastGoodRestoreProof": "Letzter erfolgreicher Restore-Drill",
     "backupProofAge": "Alter des Backup-Nachweises",
@@ -15,7 +16,7 @@
     "latestRestoreRequest": "Letzte Restore-Drill-Anforderung (beliebiges Ergebnis)",
     "executionProfile": "Ausführungsprofil (Server)",
     "realPgDumpConfigured": "Echter PostgreSQL-Logikdump (pg_dump)",
-    "readinessLevel": "Backup-Bereitschaft (Server)",
+    "readinessLevel": "Backup-Bereitschaft (Server-Konfiguration)",
     "serverNarrative": "Hinweis (Server, EN)"
   },
   "scope": {
@@ -30,16 +31,17 @@
     "restoreReadinessUnhealthy": "Restore-Verifikation: Bereitschaft „kritisch“.",
     "restoreReadinessDegraded": "Restore-Verifikation: Bereitschaft „eingeschränkt“.",
     "externalArchiveDegraded": "Externe Artefakt-Kopie: fehlgeschlagen oder uneinheitlich — Backup kann trotzdem technisch erfolgreich gewesen sein.",
-    "noRealPostgreSqlBackup": "Kein konfigurierter echter PostgreSQL-Logikdump (pg_dump)"
+    "noRealPostgreSqlBackup": "Kein konfigurierter echter PostgreSQL-Logikdump (pg_dump)",
+    "latestRunSimulatedNotProduction": "Letzter Backup-Lauf war simuliert/stub — kein produktiver pg_dump-Artefakt."
   },
   "summary": {
     "backupHealth": "Backup-Gesundheit",
     "backupConfig": "Konfiguration (Backup)",
     "pipelinePolicy": "Artefakt-Pipeline (Kurz)",
     "latestBackupRun": "Letzter Backup-Lauf",
-    "restoreReadiness": "Restore-Verifikation Bereitschaft",
+    "restoreReadiness": "Restore-Verifikation Bereitschaft (Operator-Wahrheit)",
     "configurationShort": "Konfiguration (Kurz)",
-    "externalArchiveCard": "Externes Archiv (letzter Lauf)",
+    "externalArchiveCard": "Externes Archiv (letzter Lauf — Artefakte)",
     "unknown": "Unbekannt / keine Daten"
   },
   "pipelineSteps": {
@@ -112,7 +114,8 @@
     "title": "Restore-Verifikation — Bereitschaft",
     "restoreWorker": "Restore-Worker",
     "restoreWorkerDisabled": "Restore-Verifikations-Worker deaktiviert — Drills werden nicht verarbeitet.",
-    "noIssues": "Keine zusätzlichen Hinweise in dieser Antwort."
+    "noIssues": "Keine zusätzlichen Hinweise in dieser Antwort.",
+    "levelCappedForOperatorTruth": "Der unten gezeigte Level ist begrenzt (z. B. kein echter pg_dump-Pfad oder letzter Erfolg simuliert) und wird nicht als voll „gesund“ dargestellt."
   },
   "lock": {
     "title": "Verteilte Sperre / Orchestrierung (API-Auszug)",
@@ -130,7 +133,7 @@
   },
   "manual": {
     "title": "Manuelle Aktionen (nur einreihen)",
-    "hint": "Startet Aufträge asynchron über die API — kein sofortiges Ergebnis. Nach erfolgreichem Lauf können berechtigte Benutzer Artefakte über „Herunterladen“ beziehen.",
+    "hint": "Startet Aufträge asynchron über die API — kein sofortiges Ergebnis. Nach Erfolg: Artefakte unten herunterladbar (auch Fake/ProductionStub-Stubs auf dem Server — kein Produktions-pg_dump). „Einstellungen verwalten“; Audit.",
     "confirmBackupTitle": "Backup einreihen?",
     "confirmBackupDescription": "Ruft die Admin-Backup-API auf und reiht einen Lauf auf dem Server-Worker ein. Kein sofortiger Download; kein Restore-Nachweis.",
     "confirmBackupOk": "Einreihen",
@@ -143,7 +146,9 @@
     "bodyQueued": "Der Lauf wartet in der Worker-Warteschlange oder startet gleich.",
     "bodyRunning": "Ausführung auf dem Server (z. B. pg_dump, Artefakte, Prüfschritte).",
     "bodyAwaiting": "Ausführungsphase abgeschlossen; Artefakt-Verifikation oder externe Kopie kann noch laufen.",
-    "finishedOk": "Letzter Backup-Lauf: erfolgreich abgeschlossen.",
+    "finishedOk": "Letzter Backup-Lauf: erfolgreich abgeschlossen (Produktions-Pipeline).",
+    "finishedSimulatedOk": "Letzter Backup-Lauf: abgeschlossen (simuliert / kein produktiver pg_dump).",
+    "finishedSimulatedOkDetail": "Kein Nachweis für einen herunterladbaren produktiven Logikdump. Für DR: PgDump-Adapter und Recoverability-Nachweise.",
     "finishedFailed": "Letzter Backup-Lauf: fehlgeschlagen — Details in der Tabelle.",
     "finishedVerificationFailed": "Letzter Backup-Lauf: Artefakt-Verifikation fehlgeschlagen.",
     "finishedCancelled": "Letzter Backup-Lauf: abgebrochen.",
@@ -153,8 +158,23 @@
   },
   "download": {
     "title": "Artefakte herunterladen (letzter Lauf)",
-    "hint": "Nur bei erfolgreichem Lauf. Download erfordert „Einstellungen verwalten“ und wird auditierbar protokolliert.",
+    "hint": "Bei erfolgreichem Lauf, wenn die Datei auf dem Server liegt. Fake/ProductionStub-Dateien sind für Entwicklung/Tests herunterladbar, aber kein Produktions-pg_dump-Nachweis. „Einstellungen verwalten“; Audit.",
+    "simulatedWarning": "Dieser Lauf nutzte den Adapter „{{adapter}}“ — kein produktiver PostgreSQL-Logikdump (pg_dump).",
+    "simulatedDownloadDisclaimer": "Stub-/Platzhalterdateien können dennoch heruntergeladen werden, falls vorhanden. Nicht als produktiven Disaster-Recovery-Nachweis werten.",
+    "stubHint": "Stub-Dateien können zu Pipeline-Tests und Integritätschecks dienen; für DR ist ein echter pg_dump-Lauf (Adapter PgDump) erforderlich.",
+    "errorRunNotFound": "Backup-Lauf existiert nicht (404).",
+    "errorArtifactNotFound": "Artefakt gehört nicht zu diesem Lauf oder existiert nicht (404).",
+    "errorFileMissing": "Artefakt-Metadaten vorhanden, aber die Datei fehlt auf dem Server (404).",
+    "errorUnauthorized": "Nicht angemeldet oder Sitzung abgelaufen — bitte erneut anmelden (401).",
+    "errorNotFound": "Download nicht gefunden (404).",
+    "errorConflict": "Backup-Lauf ist nicht im Erfolgszustand — Download nicht möglich (409).",
+    "errorStorage": "Backup-Staging/Archiv ist nicht konfiguriert oder nicht verfügbar (503).",
+    "errorForbidden": "Keine Berechtigung zum Herunterladen (403).",
+    "errorSimulated": "Download als simuliert/Stub abgelehnt (Legacy oder Richtlinie). Kein produktiver PostgreSQL-Logikdump (403).",
     "button": "Herunterladen",
+    "buttonStub": "Stub-Datei herunterladen",
+    "noArtifactsInLatestRun": "Beim letzten erfolgreichen Lauf sind aktuell noch keine Artefaktzeilen materialisiert. Bitte gleich erneut aktualisieren.",
+    "fileUnavailableOnServer": "Mindestens ein Artefakt ist auf dem Server aktuell nicht als Datei auffindbar — Download ist deaktiviert (Metadaten können älter sein).",
     "typeLabel": "Typ",
     "locatorLabel": "Staging-Kennung",
     "externalLabel": "Archiv-Kennung",
@@ -194,6 +214,8 @@
     "none": "Noch kein Backup-Lauf erfasst.",
     "orchestrationHint": "„Neu eingereiht“ bedeutet nur Warteschlange — kein abgeschlossenes Backup.",
     "distinctFromRecoverability": "Dieser Abschnitt zeigt den letzten Backup-Laufstatus aus der API — nicht dasselbe wie die „letzte bekannte gute“ Wiederherstellbarkeit in der Karte darüber.",
+    "simulatedBadge": "Simuliert / kein pg_dump",
+    "notRealPgDump": "Dieser Lauf ist kein echter PostgreSQL-Logikdump (pg_dump). Nicht als produktiver DR-Nachweis werten.",
     "id": "Lauf-ID",
     "adapter": "Adapter",
     "requested": "Angefordert",
@@ -223,6 +245,8 @@
     "none": "Noch kein Restore-Drill ausgeführt.",
     "explanation": "Prüft u. a. Dump-Inspektion und optional isolierten Restore-Versuch sowie SQL auf Clone — kein Produktions-Restore über diese UI.",
     "drillFailed": "Restore-Drill fehlgeschlagen",
+    "drillFailedAlert": "Restore-Drill fehlgeschlagen",
+    "drillFailedProminent": "Restore-Drill fehlgeschlagen — Handlung erforderlich",
     "fiscalSql": "Fiskal-SQL (Clone)",
     "skipped": "Übersprungen",
     "integrity": "Integrität (Scope)",
@@ -230,7 +254,9 @@
     "block": {
       "dumpInspection": "Dump-Inspektion",
       "restoreAttempt": "Isolierter Restore-Versuch"
-    }
+    },
+    "failureCode": "Fehlercode",
+    "failureDetail": "Fehlerdetail"
   },
   "distinction": {
     "title": "Artefakt-Verifikation vs. Restore-Verifikation",
@@ -254,7 +280,8 @@
     "failed": "Externe Kopie fehlgeschlagen oder Hash-Problem.",
     "stagingOnly": "Nur Staging / keine externe Kopie für diesen Lauf (Konfiguration oder Adapter).",
     "mixed": "Gemischter Status zwischen Artefakten — Details prüfen.",
-    "unknown": "Keine Artefakt-Details für den letzten Lauf."
+    "unknown": "Keine Artefakt-Details für den letzten Lauf.",
+    "scopeFromLatestRun": "Artefakt-Lebenszyklus unten stammt vom letzten Backup-Lauf-Detail — nicht von der Recoverability-Karte."
   },
   "disclaimer": {
     "title": "Hinweis aus der API"
@@ -274,6 +301,7 @@
     "1": "Läuft",
     "2": "Wartet auf Verifikation",
     "3": "Erfolgreich (mit Verifikation)",
+    "simulatedSuccess": "Erfolgreich (simuliert — kein produktiver pg_dump)",
     "4": "Fehlgeschlagen",
     "5": "Verifikation fehlgeschlagen",
     "6": "Abgebrochen"

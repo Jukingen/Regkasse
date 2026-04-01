@@ -22,6 +22,7 @@ public sealed class BackupRecoverabilitySummaryResponseDtoContractTests
             "lastSuccessfulArtifactVerificationAt",
             "lastSuccessfulBackupAt",
             "lastSuccessfulBackupRunId",
+            "lastSuccessfulBackupRunIsSimulatedExecution",
             "lastSuccessfulRestoreProofAt",
             "lastSuccessfulRestoreProofRunId",
             "latestRestoreRunAt",

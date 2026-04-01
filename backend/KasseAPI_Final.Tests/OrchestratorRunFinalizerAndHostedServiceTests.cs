@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
@@ -299,6 +301,120 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
                     && e.Data != null
                     && e.Data["failureStage"] == "unhandled_orchestrator_exception")),
                 Times.Once);
+        }
+        finally
+        {
+            try
+            {
+                temp.Delete(recursive: true);
+            }
+            catch
+            {
+                // ignore test cleanup failures
+            }
+        }
+    }
+
+    /// <summary>
+    /// Regresyon: Aynı <see cref="JsonNode"/> iki anahtara eklenemez (InvalidOperationException: parent zaten var).
+    /// pg_restore --list başarısından sonra detaylar yazılmalı — çalıştırma Succeeded ile biter.
+    /// </summary>
+    [Fact]
+    public async Task Restore_drill_pg_restore_list_success_succeeds_and_details_has_two_independent_inspection_nodes()
+    {
+        var dbName = $"orch_rv_ok_{Guid.NewGuid():N}";
+        var temp = Directory.CreateTempSubdirectory($"rv_ok_{Guid.NewGuid():N}");
+        try
+        {
+            var dumpFile = Path.Combine(temp.FullName, "logical.dump");
+            await File.WriteAllTextAsync(dumpFile, "x");
+
+            var backupRunId = Guid.NewGuid();
+            await using (var scope = CreateScopeFactory(dbName).CreateAsyncScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.BackupRuns.Add(new BackupRun
+                {
+                    Id = backupRunId,
+                    Status = BackupRunStatus.Succeeded,
+                    TriggerSource = BackupTriggerSource.Manual,
+                    AdapterKind = "Fake",
+                    RequestedAt = DateTime.UtcNow,
+                    CompletedAt = DateTime.UtcNow
+                });
+                db.BackupArtifacts.Add(new BackupArtifact
+                {
+                    BackupRunId = backupRunId,
+                    ArtifactType = BackupArtifactType.LogicalDump,
+                    StorageDescriptor = "logical.dump",
+                    LifecycleState = BackupArtifactLifecycleState.ExternalCopyVerified,
+                    CreatedAt = DateTime.UtcNow
+                });
+                db.RestoreVerificationRuns.Add(new RestoreVerificationRun
+                {
+                    Status = RestoreVerificationStatus.Queued,
+                    TriggerSource = RestoreVerificationTriggerSource.Manual,
+                    RequestedAt = DateTime.UtcNow
+                });
+                await db.SaveChangesAsync();
+            }
+
+            var listMock = new Mock<IPgRestoreListInspector>();
+            listMock
+                .Setup(x => x.InspectDumpFileAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new PgRestoreListInspectResult
+                {
+                    Success = true,
+                    ExitCode = 0,
+                    NonEmptyLineCount = 7,
+                    StdErrSnippet = null
+                });
+
+            var hostEnv = new Mock<IHostEnvironment>();
+            hostEnv.Setup(h => h.EnvironmentName).Returns(Environments.Development);
+
+            var backupOpts = new BackupOptions { ArtifactStagingRoot = temp.FullName };
+            var scopeFactory = CreateScopeFactory(dbName);
+            var restoreOpts = new RestoreVerificationOptions
+            {
+                IncludeLiveIntegrityChecks = false,
+                IsolatedPgRestoreEnabled = false
+            };
+            var restoreReadiness = new RestoreVerificationOperationalReadinessService(
+                OptionsMonitorOf(restoreOpts),
+                hostEnv.Object);
+            var orchestrator = new RestoreVerificationOrchestratorHostedService(
+                scopeFactory,
+                OptionsMonitorOf(restoreOpts),
+                OptionsMonitorOf(backupOpts),
+                hostEnv.Object,
+                new ConfigurationBuilder().Build(),
+                Mock.Of<IRestoreVerificationOrchestratorDistributedLock>(),
+                listMock.Object,
+                Mock.Of<IPgRestoreIsolatedRestoreRunner>(),
+                Mock.Of<IFiscalGoLiveValidationRunner>(),
+                restoreReadiness,
+                Mock.Of<IRestoreVerificationOrchestratorMetrics>(),
+                Mock.Of<IBackupAlertPublisher>(),
+                NullLogger<RestoreVerificationOrchestratorHostedService>.Instance);
+
+            await orchestrator.ProcessNextExclusiveBodyAsync(CancellationToken.None);
+
+            await using var assertScope = scopeFactory.CreateAsyncScope();
+            var dbOut = assertScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var run = await dbOut.RestoreVerificationRuns.AsNoTracking().SingleAsync();
+            Assert.Equal(RestoreVerificationStatus.Succeeded, run.Status);
+            Assert.Null(run.FailureCode);
+            Assert.False(string.IsNullOrWhiteSpace(run.DetailsJson));
+
+            var root = JsonNode.Parse(run.DetailsJson!) as JsonObject;
+            Assert.NotNull(root);
+            var pg = root!["pgRestoreList"];
+            var di = root["dumpInspection"];
+            Assert.NotNull(pg);
+            Assert.NotNull(di);
+            // İki ayrı anahtar aynı içeriği taşımalı (SerializeToNode iki kez); tek JsonNode iki kez eklenemezdi.
+            Assert.Equal(pg!.ToJsonString(), di!.ToJsonString());
         }
         finally
         {

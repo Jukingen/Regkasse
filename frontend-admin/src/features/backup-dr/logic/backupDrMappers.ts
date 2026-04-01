@@ -25,6 +25,61 @@ export function mapConfigurationHealthLevel(level: string | undefined | null): C
   return 'unknown';
 }
 
+/** Summary Statistic value color — avoid implying “all green” when readiness is capped in UI. */
+export function healthStatisticValueStyle(kind: ConfigurationHealthUiKind): { color: string } | undefined {
+  if (kind === 'healthy') return { color: '#52c41a' };
+  if (kind === 'degraded') return { color: '#faad14' };
+  if (kind === 'unhealthy') return { color: '#ff4d4f' };
+  return undefined;
+}
+
+/** BackupRunResponseDtoStatus.NUMBER_3 — Succeeded; keep literal to avoid coupling tests to Orval enums. */
+const BackupRunSucceededStatus = 3;
+
+/** Matches backend Fake / ProductionStub — fallback when isSimulatedExecution is missing on DTO. */
+export function isSimulatedBackupAdapterKind(adapterKind: string | null | undefined): boolean {
+  const k = (adapterKind ?? '').trim();
+  return k === 'Fake' || k === 'ProductionStub';
+}
+
+/**
+ * Caps restore readiness API level so the summary is not “healthy” (green) when there is no real pg_dump path
+ * or the latest backup success was simulated — mirrors BackupDrDashboard useMemo.
+ */
+export function computeEffectiveRestoreReadinessLevel(params: {
+  apiLevel: string | undefined | null;
+  realPostgreSqlLogicalDumpConfiguredHealth: boolean | undefined;
+  realPostgreSqlLogicalDumpConfiguredRecoverability: boolean | undefined;
+  latestBackupStatus: number | undefined;
+  isLatestRunSimulatedExecution: boolean | undefined;
+  /** From latest run DTO; used when simulated flag is undefined but adapter_kind is Fake/ProductionStub. */
+  latestAdapterKind: string | null | undefined;
+}): string | undefined | null {
+  const {
+    apiLevel,
+    realPostgreSqlLogicalDumpConfiguredHealth,
+    realPostgreSqlLogicalDumpConfiguredRecoverability,
+    latestBackupStatus,
+    isLatestRunSimulatedExecution,
+    latestAdapterKind,
+  } = params;
+
+  const latestSucceededIsSimulated =
+    latestBackupStatus === BackupRunSucceededStatus &&
+    (isLatestRunSimulatedExecution === true || isSimulatedBackupAdapterKind(latestAdapterKind));
+
+  const noRealProductionDump =
+    realPostgreSqlLogicalDumpConfiguredHealth === false ||
+    realPostgreSqlLogicalDumpConfiguredRecoverability === false ||
+    latestSucceededIsSimulated;
+
+  if (!noRealProductionDump) return apiLevel;
+
+  const k = mapConfigurationHealthLevel(apiLevel);
+  if (k === 'healthy') return 'degraded';
+  return apiLevel;
+}
+
 /** Özet kart / etiket için i18n kökü: backupDr.health.* veya backupDr.summary.unknown */
 export function configurationHealthSummaryI18nKey(level: string | undefined | null): string {
   const k = mapConfigurationHealthLevel(level);

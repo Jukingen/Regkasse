@@ -116,6 +116,29 @@ public sealed class BackupRecoverabilitySummaryServiceTests
         Assert.Equal(okId, summary.LastSuccessfulBackupRunId);
         Assert.Equal(now.AddHours(-2), summary.LastSuccessfulBackupAt);
         Assert.Equal(7200L, summary.BackupProofAgeSeconds);
+        Assert.True(summary.LastSuccessfulBackupRunIsSimulatedExecution);
+    }
+
+    [Fact]
+    public async Task GetAsync_last_successful_backup_simulated_flag_false_for_pg_dump_adapter()
+    {
+        var now = new DateTime(2026, 3, 29, 12, 0, 0, DateTimeKind.Utc);
+        var dbName = $"recv_pg_{Guid.NewGuid():N}";
+        var (svc, db) = CreateSut(dbName, now);
+        db.BackupRuns.Add(new BackupRun
+        {
+            Id = Guid.NewGuid(),
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Manual,
+            AdapterKind = nameof(BackupExecutionAdapterKind.PgDump),
+            RequestedAt = now.AddHours(-1),
+            CompletedAt = now.AddHours(-1)
+        });
+        await db.SaveChangesAsync();
+
+        var summary = await svc.GetAsync();
+
+        Assert.False(summary.LastSuccessfulBackupRunIsSimulatedExecution);
     }
 
     [Fact]
@@ -321,6 +344,7 @@ public sealed class BackupRecoverabilitySummaryServiceTests
         {
             LastSuccessfulBackupAt = DateTime.UtcNow,
             LastSuccessfulBackupRunId = Guid.NewGuid(),
+            LastSuccessfulBackupRunIsSimulatedExecution = true,
             LastSuccessfulArtifactVerificationAt = DateTime.UtcNow,
             LastSuccessfulRestoreProofAt = null,
             LastSuccessfulRestoreProofRunId = null,
@@ -340,6 +364,7 @@ public sealed class BackupRecoverabilitySummaryServiceTests
         var root = doc.RootElement;
         Assert.True(root.TryGetProperty("lastSuccessfulBackupAt", out _));
         Assert.True(root.TryGetProperty("lastSuccessfulBackupRunId", out _));
+        Assert.True(root.TryGetProperty("lastSuccessfulBackupRunIsSimulatedExecution", out _));
         Assert.True(root.TryGetProperty("lastSuccessfulArtifactVerificationAt", out _));
         Assert.True(root.TryGetProperty("lastSuccessfulRestoreProofAt", out _));
         Assert.True(root.TryGetProperty("lastSuccessfulRestoreProofRunId", out _));

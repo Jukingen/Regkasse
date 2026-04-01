@@ -34,10 +34,23 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
         var configuredRoot = _options.CurrentValue.ArtifactStagingRoot;
         if (string.IsNullOrWhiteSpace(configuredRoot))
         {
-            var descriptor = $"/tmp/regkasse-backup-stub/fake_logical_{context.BackupRunId:N}.dump";
-            var meta = JsonSerializer.Serialize(new { phase = 1, note = "no real pg_dump", noStagingRoot = true });
-            var hashInput = Encoding.UTF8.GetBytes(context.BackupRunId + descriptor + meta);
-            var hash = Convert.ToHexString(SHA256.HashData(hashInput)).ToLowerInvariant();
+            // Staging kökü yok: OS temp altında gerçek dosya üret (indirme / doğrulama ile uyumlu).
+            var stubDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "regkasse-backup-stub"));
+            Directory.CreateDirectory(stubDir);
+
+            var stubLogicalName = $"fake_logical_{context.BackupRunId:N}.dump";
+            var stubManifestName = $"fake_manifest_{context.BackupRunId:N}.json";
+            var stubLogicalPath = Path.Combine(stubDir, stubLogicalName);
+            var stubManifestPath = Path.Combine(stubDir, stubManifestName);
+
+            var stubPayload = Encoding.UTF8.GetBytes($"fake-bytes-{context.BackupRunId:N}");
+            await File.WriteAllBytesAsync(stubLogicalPath, stubPayload, context.CancellationToken);
+
+            var stubMeta = JsonSerializer.Serialize(new { phase = 1, note = "no real pg_dump", noStagingRoot = true });
+            await File.WriteAllTextAsync(stubManifestPath, stubMeta, context.CancellationToken);
+
+            var stubLogicalHash = await _checksum.ComputeFileSha256HexAsync(stubLogicalPath, context.CancellationToken);
+            var stubManifestHash = await _checksum.ComputeFileSha256HexAsync(stubManifestPath, context.CancellationToken);
 
             return new BackupExecutionResult
             {
@@ -47,18 +60,19 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
                     new BackupArtifactDescriptor
                     {
                         ArtifactType = BackupArtifactType.LogicalDump,
-                        StorageDescriptor = descriptor,
-                        ByteSize = hashInput.Length,
-                        ContentHashSha256 = hash,
-                        MetadataJson = meta,
+                        StorageDescriptor = stubLogicalPath,
+                        ByteSize = stubPayload.Length,
+                        ContentHashSha256 = stubLogicalHash,
+                        MetadataJson = stubMeta,
+                        // Staging kökü yapılandırılmadığında doğrulama yalnızca metadata; dosya yine diskte (indirme için).
                         RequireOnDiskHashVerification = false
                     },
                     new BackupArtifactDescriptor
                     {
                         ArtifactType = BackupArtifactType.VerificationManifest,
-                        StorageDescriptor = $"/tmp/regkasse-backup-stub/fake_manifest_{context.BackupRunId:N}.json",
-                        ByteSize = meta.Length,
-                        ContentHashSha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(meta))).ToLowerInvariant(),
+                        StorageDescriptor = stubManifestPath,
+                        ByteSize = stubMeta.Length,
+                        ContentHashSha256 = stubManifestHash,
                         MetadataJson = "{\"kind\":\"fake-manifest\"}",
                         RequireOnDiskHashVerification = false
                     }

@@ -18,7 +18,7 @@ namespace KasseAPI_Final.Models
         public string SessionId { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(100)]
+        [MaxLength(450)]
         public string UserId { get; set; } = string.Empty;
 
         [Required]

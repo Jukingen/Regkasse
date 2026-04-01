@@ -7,6 +7,7 @@
     "title": "Recoverability evidence (last known good)",
     "subtitle": "Distinct from the latest requested run: shows the most recent successful proofs where they exist.",
     "lastGoodBackup": "Last successful backup",
+    "lastGoodBackupSimulatedWarning": "The last successful backup run was simulated (Fake/Stub) — not production pg_dump evidence. This is not DR readiness.",
     "lastGoodArtifactVerification": "Last successful artifact verification",
     "lastGoodRestoreProof": "Last successful restore drill",
     "backupProofAge": "Backup proof age",
@@ -15,7 +16,7 @@
     "latestRestoreRequest": "Latest restore drill request (any outcome)",
     "executionProfile": "Execution profile (server)",
     "realPgDumpConfigured": "Real PostgreSQL logical dump (pg_dump)",
-    "readinessLevel": "Backup readiness (server)",
+    "readinessLevel": "Backup readiness (server config)",
     "serverNarrative": "Operator note (server, English)"
   },
   "scope": {
@@ -30,16 +31,17 @@
     "restoreReadinessUnhealthy": "Restore verification readiness is unhealthy.",
     "restoreReadinessDegraded": "Restore verification readiness is degraded.",
     "externalArchiveDegraded": "External artifact copy failed or is inconsistent — the backup run may still have succeeded technically.",
-    "noRealPostgreSqlBackup": "No real PostgreSQL logical dump (pg_dump) configured"
+    "noRealPostgreSqlBackup": "No real PostgreSQL logical dump (pg_dump) configured",
+    "latestRunSimulatedNotProduction": "Latest backup run succeeded in a simulated/stub mode — not a production pg_dump artifact."
   },
   "summary": {
     "backupHealth": "Backup health",
     "backupConfig": "Configuration (backup)",
     "pipelinePolicy": "Artifact pipeline (summary)",
     "latestBackupRun": "Latest backup run",
-    "restoreReadiness": "Restore verification readiness",
+    "restoreReadiness": "Restore verification readiness (operator-truth)",
     "configurationShort": "Configuration (summary)",
-    "externalArchiveCard": "External archive (latest run)",
+    "externalArchiveCard": "External archive (latest run artifacts)",
     "unknown": "Unknown / no data"
   },
   "pipelineSteps": {
@@ -130,7 +132,7 @@
   },
   "manual": {
     "title": "Manual actions (enqueue only)",
-    "hint": "Jobs are queued asynchronously via the API — no instant result. After a successful run, authorized users can download artifacts below.",
+    "hint": "Jobs are queued asynchronously via the API — no instant result. After a successful run, authorized users can download artifacts below (including Fake/ProductionStub stub files when on disk — not production pg_dump proof). “Manage settings”; audit-logged.",
     "confirmBackupTitle": "Enqueue backup?",
     "confirmBackupDescription": "Calls the admin backup API to queue a run on the server worker. Not an instant download and does not prove restore.",
     "confirmBackupOk": "Enqueue",
@@ -143,7 +145,9 @@
     "bodyQueued": "The run is waiting in the worker queue or is about to start.",
     "bodyRunning": "Execution on the server (e.g. pg_dump, artifacts, checks).",
     "bodyAwaiting": "Execution finished; artifact verification or external copy may still run.",
-    "finishedOk": "Latest backup run: completed successfully.",
+    "finishedOk": "Latest backup run: completed successfully (production pipeline).",
+    "finishedSimulatedOk": "Latest backup run: completed (simulated / not production pg_dump).",
+    "finishedSimulatedOkDetail": "This outcome does not prove a downloadable production logical dump. Use PgDump adapter and recoverability evidence for DR confidence.",
     "finishedFailed": "Latest backup run: failed — see table for details.",
     "finishedVerificationFailed": "Latest backup run: artifact verification failed.",
     "finishedCancelled": "Latest backup run: cancelled.",
@@ -153,8 +157,23 @@
   },
   "download": {
     "title": "Download artifacts (latest run)",
-    "hint": "Only when the latest run succeeded. Download requires “Manage settings” and is audit-logged.",
+    "hint": "When the latest run succeeded and the file exists on the server. Fake/ProductionStub files are downloadable for dev/tests but are not production pg_dump proof. Requires “Manage settings”; audit-logged.",
+    "simulatedWarning": "This run used adapter “{{adapter}}” — not a production PostgreSQL logical dump (pg_dump).",
+    "simulatedDownloadDisclaimer": "You can still download stub/placeholder files if the server has them. Do not treat them as production disaster-recovery evidence.",
+    "stubHint": "Stub files may support pipeline tests and integrity checks; for DR you need a real pg_dump run (PgDump adapter).",
+    "errorRunNotFound": "Backup run does not exist (404).",
+    "errorArtifactNotFound": "Artifact does not belong to this run or does not exist (404).",
+    "errorFileMissing": "Artifact metadata exists but the file is missing on the server (404).",
+    "errorUnauthorized": "Not signed in or session expired — sign in again (401).",
+    "errorNotFound": "Download not found (404).",
+    "errorConflict": "Backup run is not in a success state — download unavailable (409).",
+    "errorStorage": "Backup staging/archive is not configured or unavailable (503).",
+    "errorForbidden": "No permission to download (403).",
+    "errorSimulated": "Download was rejected as simulated/stub (legacy or policy). Not a production PostgreSQL logical dump (403).",
     "button": "Download",
+    "buttonStub": "Download stub file",
+    "noArtifactsInLatestRun": "Latest successful run currently has no materialized artifact rows yet. Refresh shortly.",
+    "fileUnavailableOnServer": "At least one artifact file is not currently found on the server — download is disabled (metadata may be stale).",
     "typeLabel": "Type",
     "locatorLabel": "Staging locator",
     "externalLabel": "Archive locator",
@@ -194,6 +213,8 @@
     "none": "No backup run recorded yet.",
     "orchestrationHint": "“Queued” means only enqueued — not a completed backup.",
     "distinctFromRecoverability": "This section shows the latest backup run state from the API. It is not the same as “last known good” recoverability evidence in the card above.",
+    "simulatedBadge": "Simulated / not pg_dump",
+    "notRealPgDump": "This run is not a real PostgreSQL logical dump (pg_dump). Do not treat it as production DR evidence.",
     "id": "Run ID",
     "adapter": "Adapter",
     "requested": "Requested",
@@ -223,6 +244,8 @@
     "none": "No restore drill has run yet.",
     "explanation": "Covers dump inspection and optionally an isolated restore attempt plus SQL on a clone — no production restore from this UI.",
     "drillFailed": "Restore drill failed",
+    "drillFailedAlert": "Restore drill failed",
+    "drillFailedProminent": "Restore drill failed — action required",
     "fiscalSql": "Fiscal SQL (clone)",
     "skipped": "Skipped",
     "integrity": "Integrity (scope)",
@@ -230,7 +253,9 @@
     "block": {
       "dumpInspection": "Dump inspection",
       "restoreAttempt": "Isolated restore attempt"
-    }
+    },
+    "failureCode": "Failure code",
+    "failureDetail": "Failure detail"
   },
   "distinction": {
     "title": "Artifact verification vs. restore verification",
@@ -254,7 +279,8 @@
     "failed": "External copy failed or hash mismatch.",
     "stagingOnly": "Staging only / no external copy for this run (config or adapter).",
     "mixed": "Mixed artifact states — review details.",
-    "unknown": "No artifact details for the latest run."
+    "unknown": "No artifact details for the latest run.",
+    "scopeFromLatestRun": "Artifact lifecycle below is from the latest backup run detail — not the recoverability-summary card."
   },
   "disclaimer": {
     "title": "Disclaimer from API"
@@ -274,6 +300,7 @@
     "1": "Running",
     "2": "Awaiting verification",
     "3": "Succeeded (verified)",
+    "simulatedSuccess": "Succeeded (simulated — not production pg_dump)",
     "4": "Failed",
     "5": "Verification failed",
     "6": "Cancelled"

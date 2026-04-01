@@ -2,6 +2,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Backup;
@@ -10,15 +11,18 @@ public sealed class BackupArtifactDownloadService : IBackupArtifactDownloadServi
 {
     private readonly AppDbContext _db;
     private readonly IOptionsMonitor<BackupOptions> _options;
+    private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<BackupArtifactDownloadService> _logger;
 
     public BackupArtifactDownloadService(
         AppDbContext db,
         IOptionsMonitor<BackupOptions> options,
+        IHostEnvironment hostEnvironment,
         ILogger<BackupArtifactDownloadService> logger)
     {
         _db = db;
         _options = options;
+        _hostEnvironment = hostEnvironment;
         _logger = logger;
     }
 
@@ -43,15 +47,12 @@ public sealed class BackupArtifactDownloadService : IBackupArtifactDownloadServi
             return BackupArtifactDownloadPrepareResult.Fail(BackupArtifactDownloadPrepareStatus.ArtifactNotFound);
 
         var opts = _options.CurrentValue;
-        if (string.IsNullOrWhiteSpace(opts.ArtifactStagingRoot)
-            && string.IsNullOrWhiteSpace(opts.ExternalArchiveRoot))
-            return BackupArtifactDownloadPrepareResult.Fail(BackupArtifactDownloadPrepareStatus.InvalidConfiguration);
-
         if (!BackupArtifactOnDiskResolver.TryResolveForSingleRun(
                 backupRunId,
                 artifact,
                 opts,
                 _logger,
+                _hostEnvironment,
                 "Backup artifact download",
                 out var absolutePath))
             return BackupArtifactDownloadPrepareResult.Fail(BackupArtifactDownloadPrepareStatus.FileNotOnDisk);

@@ -7,7 +7,9 @@ public enum BackupArtifactDownloadPrepareStatus
     ArtifactNotFound,
     RunNotSucceeded,
     FileNotOnDisk,
-    InvalidConfiguration
+    InvalidConfiguration,
+    /// <summary>Reserved; download path no longer blocks Fake/ProductionStub when a file exists on disk.</summary>
+    SimulatedExecutionNotDownloadable
 }
 
 /// <summary>

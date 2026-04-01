@@ -21,6 +21,8 @@ export interface BackupRecoverabilitySummaryResponseDto {
   /** @nullable */
   lastSuccessfulBackupRunId?: string | null;
   /** @nullable */
+  lastSuccessfulBackupRunIsSimulatedExecution?: boolean | null;
+  /** @nullable */
   lastSuccessfulRestoreProofAt?: string | null;
   /** @nullable */
   lastSuccessfulRestoreProofRunId?: string | null;

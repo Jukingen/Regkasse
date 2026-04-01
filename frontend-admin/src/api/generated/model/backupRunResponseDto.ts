@@ -28,9 +28,11 @@ export interface BackupRunResponseDto {
   failureCode?: string | null;
   /** @nullable */
   failureDetail?: string | null;
+  hasLogicalDumpArtifact?: boolean;
   id?: string;
   /** @nullable */
   idempotencyKey?: string | null;
+  isSimulatedExecution?: boolean;
   /** @nullable */
   lastRecordedTerminalFailureCode?: string | null;
   /** @nullable */

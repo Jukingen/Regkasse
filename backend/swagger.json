@@ -13772,6 +13772,9 @@
               }
             }
           },
+          "403": {
+            "description": "Simulated/stub adapter — artifact download not allowed (code BACKUP_ARTIFACT_NOT_DOWNLOADABLE_SIMULATED)"
+          },
           "404": {
             "description": "Not Found"
           },
@@ -24493,6 +24496,12 @@
           "adapterKind": {
             "type": "string"
           },
+          "isSimulatedExecution": {
+            "type": "boolean"
+          },
+          "hasLogicalDumpArtifact": {
+            "type": "boolean"
+          },
           "idempotencyKey": {
             "type": "string",
             "nullable": true
@@ -24668,6 +24677,9 @@
           "externalRedactedLocator": {
             "type": "string",
             "nullable": true
+          },
+          "isFilePresentForDownload": {
+            "type": "boolean"
           }
         }
       },
@@ -24861,6 +24873,10 @@
           "lastSuccessfulBackupRunId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "lastSuccessfulBackupRunIsSimulatedExecution": {
+            "type": "boolean",
             "nullable": true
           },
           "lastSuccessfulArtifactVerificationAt": {

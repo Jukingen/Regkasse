@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.RestoreVerification;
@@ -17,6 +18,7 @@ internal static class RestoreVerificationDumpPathResolver
         BackupOptions backupOpts,
         IReadOnlyList<Guid> candidateSucceededRunIds,
         ILogger logger,
+        IHostEnvironment? hostEnvironment,
         CancellationToken cancellationToken = default)
     {
         if (candidateSucceededRunIds.Count == 0)
@@ -57,6 +59,7 @@ internal static class RestoreVerificationDumpPathResolver
                 artifact,
                 backupOpts,
                 logger,
+                hostEnvironment,
                 rank,
                 candidateSucceededRunIds.Count,
                 "Restore verification dump");

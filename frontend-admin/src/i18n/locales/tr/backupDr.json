@@ -7,6 +7,7 @@
     "title": "Kurtarılabilirlik kanıtları (son bilinen iyi durum)",
     "subtitle": "En son istenen çalıştırmadan ayrıdır; varsa en son başarılı kanıtları gösterir.",
     "lastGoodBackup": "Son başarılı yedek",
+    "lastGoodBackupSimulatedWarning": "Son başarılı yedek çalıştırması simüle edildi (Fake/Stub) — üretim pg_dump kanıtı değil. Bu DR hazırlığı değildir.",
     "lastGoodArtifactVerification": "Son başarılı artefakt doğrulaması",
     "lastGoodRestoreProof": "Son başarılı restore tatbikatı",
     "backupProofAge": "Yedek kanıtı yaşı",
@@ -15,7 +16,7 @@
     "latestRestoreRequest": "Son restore tatbikatı isteği (herhangi bir sonuç)",
     "executionProfile": "Çalıştırma profili (sunucu)",
     "realPgDumpConfigured": "Gerçek PostgreSQL mantıksal dökümü (pg_dump)",
-    "readinessLevel": "Yedek hazırlığı (sunucu)",
+    "readinessLevel": "Yedek hazırlığı (sunucu yapılandırması)",
     "serverNarrative": "Sunucu notu (İngilizce)"
   },
   "scope": {
@@ -30,16 +31,17 @@
     "restoreReadinessUnhealthy": "Geri yükleme doğrulaması hazırlığı kritik.",
     "restoreReadinessDegraded": "Geri yükleme doğrulaması hazırlığı kısıtlı.",
     "externalArchiveDegraded": "Harici artefakt kopyası başarısız veya tutarsız — yedek çalıştırması teknik olarak yine de başarılı olabilir.",
-    "noRealPostgreSqlBackup": "Yapılandırılmış gerçek PostgreSQL pg_dump yok"
+    "noRealPostgreSqlBackup": "Yapılandırılmış gerçek PostgreSQL pg_dump yok",
+    "latestRunSimulatedNotProduction": "Son yedek çalıştırması simüle/stub modunda başarılı — üretim pg_dump artefaktı değil."
   },
   "summary": {
     "backupHealth": "Yedek sağlığı",
     "backupConfig": "Yapılandırma (yedek)",
     "pipelinePolicy": "Artefakt hattı (özet)",
     "latestBackupRun": "Son yedek çalıştırması",
-    "restoreReadiness": "Geri yükleme doğrulaması hazırlığı",
+    "restoreReadiness": "Geri yükleme doğrulaması hazırlığı (operatör gerçeği)",
     "configurationShort": "Yapılandırma (özet)",
-    "externalArchiveCard": "Harici arşiv (son çalıştırma)",
+    "externalArchiveCard": "Harici arşiv (son çalıştırma artefaktları)",
     "unknown": "Bilinmiyor / veri yok"
   },
   "pipelineSteps": {
@@ -112,7 +114,8 @@
     "title": "Geri yükleme doğrulaması — hazırlık",
     "restoreWorker": "Geri yükleme işçisi",
     "restoreWorkerDisabled": "Geri yükleme doğrulama işçisi kapalı — tatbikatlar işlenmez.",
-    "noIssues": "Bu yanıtta ek not yok."
+    "noIssues": "Bu yanıtta ek not yok.",
+    "levelCappedForOperatorTruth": "Aşağıdaki seviye sınırlandı (ör. gerçek pg_dump yok veya son başarı simüle); tam „sağlıklı“ gösterilmez."
   },
   "lock": {
     "title": "Dağıtık kilit / orkestrasyon (API özeti)",
@@ -130,7 +133,7 @@
   },
   "manual": {
     "title": "Manuel eylemler (yalnızca kuyruk)",
-    "hint": "İşler API üzerinden asenkron kuyruğa alınır — anında sonuç yok. Başarılı çalıştırmadan sonra yetkili kullanıcılar artefaktı aşağıdan indirebilir.",
+    "hint": "İşler API üzerinden asenkron kuyruğa alınır. Başarıdan sonra artefaktlar aşağıdan indirilebilir (Fake/ProductionStub stub’ları sunucudaysa — üretim pg_dump değil). „Ayarları yönet“; denetim.",
     "confirmBackupTitle": "Yedek kuyruğa alınsın mı?",
     "confirmBackupDescription": "Sunucu işçisinde yeni çalıştırma kuyruğa almak için admin yedek API’sini çağırır. Anında indirme değildir; geri yükleme kanıtı da değildir.",
     "confirmBackupOk": "Kuyruğa al",
@@ -143,7 +146,9 @@
     "bodyQueued": "Çalıştırma worker kuyruğunda bekliyor veya hemen başlayacak.",
     "bodyRunning": "Sunucuda yürütülüyor (ör. pg_dump, artefakt, kontroller).",
     "bodyAwaiting": "Yürütme bitti; artefakt doğrulaması veya harici kopya sürebilir.",
-    "finishedOk": "Son yedek çalıştırması: başarıyla tamamlandı.",
+    "finishedOk": "Son yedek çalıştırması: başarıyla tamamlandı (üretim hattı).",
+    "finishedSimulatedOk": "Son yedek çalıştırması: tamamlandı (simüle / üretim pg_dump değil).",
+    "finishedSimulatedOkDetail": "İndirilebilir üretim mantıksal döküm kanıtı değildir. DR için PgDump ve kurtarılabilirlik kanıtları gerekir.",
     "finishedFailed": "Son yedek çalıştırması: başarısız — ayrıntılar tabloda.",
     "finishedVerificationFailed": "Son yedek çalıştırması: artefakt doğrulaması başarısız.",
     "finishedCancelled": "Son yedek çalıştırması: iptal edildi.",
@@ -153,8 +158,23 @@
   },
   "download": {
     "title": "Artefakt indir (son çalıştırma)",
-    "hint": "Yalnızca son çalıştırma başarılıysa. İndirme „Ayarları yönet“ yetkisi gerektirir ve denetim kaydına yazılır.",
+    "hint": "Son çalıştırma başarılı ve dosya sunucudaysa. Fake/ProductionStub dosyaları geliştirme/test için indirilebilir; üretim pg_dump kanıtı değildir. „Ayarları yönet“; denetim.",
+    "simulatedWarning": "Bu çalıştırma “{{adapter}}” adaptörünü kullandı — üretim PostgreSQL mantıksal dökümü (pg_dump) değil.",
+    "simulatedDownloadDisclaimer": "Sunucuda varsa stub/placeholder dosyalar yine indirilebilir. Bunları üretim felaket kurtarma kanıtı saymayın.",
+    "stubHint": "Stub dosyaları hat testi ve bütünlük kontrolleri için kullanılabilir; DR için gerçek pg_dump (PgDump adaptörü) gerekir.",
+    "errorRunNotFound": "Yedek çalıştırması yok (404).",
+    "errorArtifactNotFound": "Artefakt bu çalıştırmaya ait değil veya yok (404).",
+    "errorFileMissing": "Artefakt kaydı var ancak dosya sunucuda yok (404).",
+    "errorUnauthorized": "Oturum yok veya süresi doldu — yeniden giriş yapın (401).",
+    "errorNotFound": "İndirme bulunamadı (404).",
+    "errorConflict": "Yedek çalıştırması başarı durumunda değil — indirme yok (409).",
+    "errorStorage": "Yedek staging/arşiv yapılandırılmamış veya kullanılamıyor (503).",
+    "errorForbidden": "İndirme izni yok (403).",
+    "errorSimulated": "İndirme simüle/stub olarak reddedildi (eski API veya politika). Üretim PostgreSQL mantıksal dökümü değil (403).",
     "button": "İndir",
+    "buttonStub": "Stub dosyayı indir",
+    "noArtifactsInLatestRun": "Son başarılı çalıştırmada henüz materyalize artefakt satırı görünmüyor. Kısa süre sonra yenileyin.",
+    "fileUnavailableOnServer": "En az bir artefakt dosyası sunucuda şu an bulunamıyor — indirme kapalı (metadata eski olabilir).",
     "typeLabel": "Tür",
     "locatorLabel": "Staging konumu",
     "externalLabel": "Arşiv konumu",
@@ -194,6 +214,8 @@
     "none": "Henüz yedek çalıştırması yok.",
     "orchestrationHint": "“Kuyrukta” yalnızca sıraya alındığını gösterir — tamamlanmış yedek değildir.",
     "distinctFromRecoverability": "Bu bölüm API’den gelen son yedek çalıştırma durumunu gösterir; üstteki “son bilinen iyi” kurtarılabilirlik özeti ile aynı şey değildir.",
+    "simulatedBadge": "Simüle / pg_dump değil",
+    "notRealPgDump": "Bu çalıştırma gerçek PostgreSQL mantıksal dökümü (pg_dump) değildir. Üretim DR kanıtı saymayın.",
     "id": "Çalıştırma kimliği",
     "adapter": "Bağdaştırıcı",
     "requested": "İstendi",
@@ -223,6 +245,8 @@
     "none": "Henüz tatbikat yok.",
     "explanation": "Dump incelemesi ve isteğe bağlı izole geri yükleme denemesi ile klon üzerinde SQL kapsar — bu arayüzden üretim geri yükleme yok.",
     "drillFailed": "Geri yükleme tatbikatı başarısız",
+    "drillFailedAlert": "Geri yükleme tatbikatı başarısız",
+    "drillFailedProminent": "Geri yükleme tatbikatı başarısız — müdahale gerekli",
     "fiscalSql": "Mali SQL (klon)",
     "skipped": "Atlandı",
     "integrity": "Bütünlük (kapsam)",
@@ -230,7 +254,9 @@
     "block": {
       "dumpInspection": "Dump incelemesi",
       "restoreAttempt": "İzole geri yükleme denemesi"
-    }
+    },
+    "failureCode": "Hata kodu",
+    "failureDetail": "Hata ayrıntısı"
   },
   "distinction": {
     "title": "Artefakt doğrulaması ve geri yükleme doğrulaması",
@@ -254,7 +280,8 @@
     "failed": "Harici kopya başarısız veya hash uyumsuzluğu.",
     "stagingOnly": "Yalnızca staging / bu çalıştırma için harici kopya yok.",
     "mixed": "Karma artefakt durumu — ayrıntıları inceleyin.",
-    "unknown": "Son çalıştırma için artefakt ayrıntısı yok."
+    "unknown": "Son çalıştırma için artefakt ayrıntısı yok.",
+    "scopeFromLatestRun": "Aşağıdaki artefakt yaşam döngüsü son yedek çalıştırması detayından — kurtarılabilirlik özet kartından değildir."
   },
   "disclaimer": {
     "title": "API uyarı metni"
@@ -274,6 +301,7 @@
     "1": "Çalışıyor",
     "2": "Doğrulama bekliyor",
     "3": "Başarılı (doğrulandı)",
+    "simulatedSuccess": "Başarılı (simüle — üretim pg_dump değil)",
     "4": "Başarısız",
     "5": "Doğrulama başarısız",
     "6": "İptal"

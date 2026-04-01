@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models.Backup;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services.Backup;
@@ -12,12 +13,14 @@ internal static class BackupArtifactOnDiskResolver
 {
     /// <summary>
     /// Staging üzerinde dosya varsa onu; yoksa <c>ExternalArchiveRoot/{runId:N}/&lt;dosyaAdı&gt;</c> altındaki kopyayı döndürür.
+    /// Development: <see cref="IHostEnvironment"/> doluysa, kök yapılandırması olmadan Fake stub temp dizini altındaki dosyalar da kabul edilir.
     /// </summary>
     public static (string absolutePath, string relativeDescriptor)? TryResolveStagingOrExternalArchive(
         Guid runId,
         BackupArtifact artifact,
         BackupOptions backupOpts,
         ILogger logger,
+        IHostEnvironment? hostEnvironment,
         int candidateRank,
         int candidateTotal,
         string logScope)
@@ -32,6 +35,19 @@ internal static class BackupArtifactOnDiskResolver
                 candidateTotal,
                 runId);
             return null;
+        }
+
+        if (hostEnvironment != null
+            && TryResolveDevelopmentFakeStubFile(descriptor, hostEnvironment, out var devAbs))
+        {
+            logger.LogInformation(
+                "{LogScope}: candidate rank {Rank}/{Total}: using development stub path for backup run {BackupRunId} (descriptor {Descriptor}).",
+                logScope,
+                candidateRank,
+                candidateTotal,
+                runId,
+                descriptor);
+            return (devAbs, descriptor);
         }
 
         var stagingRoot = backupOpts.ArtifactStagingRoot;
@@ -141,6 +157,55 @@ internal static class BackupArtifactOnDiskResolver
     }
 
     /// <summary>
+    /// Development: <c>%TEMP%/regkasse-backup-stub</c> altında gerçek dosya (Fake adapter, staging kökü yokken).
+    /// Production’da kullanılmaz.
+    /// </summary>
+    private static bool TryResolveDevelopmentFakeStubFile(
+        string storageDescriptor,
+        IHostEnvironment env,
+        [NotNullWhen(true)] out string? absolutePath)
+    {
+        absolutePath = null;
+        if (!env.IsDevelopment())
+            return false;
+
+        var stubRoot = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "regkasse-backup-stub"));
+        var d = storageDescriptor.Trim();
+        if (string.IsNullOrEmpty(d))
+            return false;
+
+        if (Path.IsPathRooted(d))
+        {
+            var fp = Path.GetFullPath(d);
+            if (File.Exists(fp) && IsPathUnderRootDirectory(fp, stubRoot))
+            {
+                absolutePath = fp;
+                return true;
+            }
+        }
+
+        // Eski satırlar: yalnızca dosya adı veya /tmp/... — stub klasöründe aynı dosya adıyla dene
+        var fileName = Path.GetFileName(d);
+        if (string.IsNullOrEmpty(fileName))
+            return false;
+        var candidate = Path.GetFullPath(Path.Combine(stubRoot, fileName));
+        if (!File.Exists(candidate) || !IsPathUnderRootDirectory(candidate, stubRoot))
+            return false;
+        absolutePath = candidate;
+        return true;
+    }
+
+    private static bool IsPathUnderRootDirectory(string filePath, string directoryRoot)
+    {
+        var f = Path.GetFullPath(filePath);
+        var root = Path.GetFullPath(directoryRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        var sep = Path.DirectorySeparatorChar;
+        var prefix = root + sep;
+        return f.Equals(root, StringComparison.OrdinalIgnoreCase)
+               || f.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Tek çalıştırma / indirme için log sırası olmadan çözüm (rank 1/1).
     /// </summary>
     public static bool TryResolveForSingleRun(
@@ -148,11 +213,12 @@ internal static class BackupArtifactOnDiskResolver
         BackupArtifact artifact,
         BackupOptions backupOpts,
         ILogger logger,
+        IHostEnvironment? hostEnvironment,
         string logScope,
         [NotNullWhen(true)] out string? absolutePath)
     {
         absolutePath = null;
-        var r = TryResolveStagingOrExternalArchive(runId, artifact, backupOpts, logger, 1, 1, logScope);
+        var r = TryResolveStagingOrExternalArchive(runId, artifact, backupOpts, logger, hostEnvironment, 1, 1, logScope);
         if (r == null)
             return false;
         absolutePath = r.Value.absolutePath;

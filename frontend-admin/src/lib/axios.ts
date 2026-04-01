@@ -75,9 +75,15 @@ const createAxiosInstance = () => {
             }
 
             if (status === 403) {
-                const reasonCode = data?.reasonCode ?? mapRequiredPolicyToReasonCode(data?.requiredPolicy);
-                const userMessage = getForbiddenMessage(reasonCode, getStoredLanguage());
-                message.error(userMessage);
+                const urlStr = String(url);
+                const isBackupArtifactBlobDownload =
+                    originalRequest?.responseType === 'blob' &&
+                    /\/api\/admin\/backup\/runs\/[^/]+\/artifacts\/[^/]+\/download\b/.test(urlStr);
+                if (!isBackupArtifactBlobDownload) {
+                    const reasonCode = data?.reasonCode ?? mapRequiredPolicyToReasonCode(data?.requiredPolicy);
+                    const userMessage = getForbiddenMessage(reasonCode, getStoredLanguage());
+                    message.error(userMessage);
+                }
             }
 
             if (status === 401 && originalRequest && !originalRequest._retry && !String(url).includes('/api/Auth/refresh')) {

@@ -3,6 +3,8 @@ import type { BackupArtifactResponseDto, RestoreVerificationRunResponseDto } fro
 import { BackupArtifactResponseDtoArtifactType } from '@/api/generated/model/backupArtifactResponseDtoArtifactType';
 import { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/model/backupArtifactResponseDtoLifecycleState';
 import {
+  computeEffectiveRestoreReadinessLevel,
+  isSimulatedBackupAdapterKind,
   configurationHealthSummaryI18nKey,
   externalCopyVariantToI18nKey,
   mapArtifactsToExternalCopyVariant,
@@ -13,6 +15,94 @@ import {
   mapRestoreVerificationStatusAntdColor,
   normalizeHealthLevelString,
 } from '@/features/backup-dr/logic/backupDrMappers';
+
+describe('computeEffectiveRestoreReadinessLevel', () => {
+  it('downgrades healthy to degraded when latest success is simulated', () => {
+    expect(
+      computeEffectiveRestoreReadinessLevel({
+        apiLevel: 'healthy',
+        realPostgreSqlLogicalDumpConfiguredHealth: true,
+        realPostgreSqlLogicalDumpConfiguredRecoverability: true,
+        latestBackupStatus: 3,
+        isLatestRunSimulatedExecution: true,
+        latestAdapterKind: 'PgDump',
+      }),
+    ).toBe('degraded');
+  });
+
+  it('downgrades when simulated flag is undefined but adapter_kind is Fake (status/latest path)', () => {
+    expect(
+      computeEffectiveRestoreReadinessLevel({
+        apiLevel: 'healthy',
+        realPostgreSqlLogicalDumpConfiguredHealth: true,
+        realPostgreSqlLogicalDumpConfiguredRecoverability: true,
+        latestBackupStatus: 3,
+        isLatestRunSimulatedExecution: undefined,
+        latestAdapterKind: 'Fake',
+      }),
+    ).toBe('degraded');
+  });
+
+  it('downgrades healthy to degraded when health reports no real pg_dump', () => {
+    expect(
+      computeEffectiveRestoreReadinessLevel({
+        apiLevel: 'healthy',
+        realPostgreSqlLogicalDumpConfiguredHealth: false,
+        realPostgreSqlLogicalDumpConfiguredRecoverability: true,
+        latestBackupStatus: 3,
+        isLatestRunSimulatedExecution: false,
+        latestAdapterKind: 'PgDump',
+      }),
+    ).toBe('degraded');
+  });
+
+  it('downgrades healthy to degraded when recoverability reports no real pg_dump', () => {
+    expect(
+      computeEffectiveRestoreReadinessLevel({
+        apiLevel: 'healthy',
+        realPostgreSqlLogicalDumpConfiguredHealth: true,
+        realPostgreSqlLogicalDumpConfiguredRecoverability: false,
+        latestBackupStatus: 3,
+        isLatestRunSimulatedExecution: false,
+        latestAdapterKind: 'PgDump',
+      }),
+    ).toBe('degraded');
+  });
+
+  it('does not downgrade when API is unhealthy', () => {
+    expect(
+      computeEffectiveRestoreReadinessLevel({
+        apiLevel: 'unhealthy',
+        realPostgreSqlLogicalDumpConfiguredHealth: false,
+        realPostgreSqlLogicalDumpConfiguredRecoverability: true,
+        latestBackupStatus: 3,
+        isLatestRunSimulatedExecution: false,
+        latestAdapterKind: 'PgDump',
+      }),
+    ).toBe('unhealthy');
+  });
+
+  it('returns api level unchanged when healthy and real pg_dump and latest not simulated', () => {
+    expect(
+      computeEffectiveRestoreReadinessLevel({
+        apiLevel: 'healthy',
+        realPostgreSqlLogicalDumpConfiguredHealth: true,
+        realPostgreSqlLogicalDumpConfiguredRecoverability: true,
+        latestBackupStatus: 3,
+        isLatestRunSimulatedExecution: false,
+        latestAdapterKind: 'PgDump',
+      }),
+    ).toBe('healthy');
+  });
+});
+
+describe('isSimulatedBackupAdapterKind', () => {
+  it('detects Fake and ProductionStub', () => {
+    expect(isSimulatedBackupAdapterKind('Fake')).toBe(true);
+    expect(isSimulatedBackupAdapterKind('ProductionStub')).toBe(true);
+    expect(isSimulatedBackupAdapterKind('PgDump')).toBe(false);
+  });
+});
 
 describe('mapConfigurationHealthLevel / configurationHealthSummaryI18nKey', () => {
   it('8) unknown / empty / whitespace', () => {

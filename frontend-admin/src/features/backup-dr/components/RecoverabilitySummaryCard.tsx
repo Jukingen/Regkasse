@@ -65,6 +65,7 @@ export function RecoverabilitySummaryCard({
       ) : !summary ? (
         <Typography.Text type="secondary">{t('backupDr.summary.unknown')}</Typography.Text>
       ) : (
+        <>
         <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
           <Descriptions.Item label={t('backupDr.recoverability.executionProfile')} span={2}>
             <Typography.Text code>{summary.backupExecutionReality ?? '—'}</Typography.Text>
@@ -126,6 +127,15 @@ export function RecoverabilitySummaryCard({
             )}
           </Descriptions.Item>
         </Descriptions>
+        {summary.lastSuccessfulBackupRunIsSimulatedExecution === true ? (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginTop: 12 }}
+            message={t('backupDr.recoverability.lastGoodBackupSimulatedWarning')}
+          />
+        ) : null}
+        </>
       )}
     </Card>
   );

@@ -64,7 +64,15 @@ public sealed class AdminRestoreVerificationController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest(new { code = "RESTORE_VERIFICATION_TRIGGER_VALIDATION", error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new
+            {
+                code = "RESTORE_VERIFICATION_ENQUEUE_CONTENTION",
+                message = ex.Message
+            });
         }
     }
 

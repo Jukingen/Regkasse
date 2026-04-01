@@ -66,6 +66,7 @@ public sealed class RestoreVerificationDumpPathResolverTests
                 opts,
                 ids,
                 NullLogger.Instance,
+                null,
                 default);
 
             Assert.NotNull(result);
@@ -120,6 +121,7 @@ public sealed class RestoreVerificationDumpPathResolverTests
                 opts,
                 ids,
                 NullLogger.Instance,
+                null,
                 default);
 
             Assert.NotNull(result);
@@ -167,6 +169,7 @@ public sealed class RestoreVerificationDumpPathResolverTests
                 opts,
                 ids,
                 NullLogger.Instance,
+                null,
                 default);
 
             Assert.Null(result);
@@ -218,6 +221,7 @@ public sealed class RestoreVerificationDumpPathResolverTests
                 opts,
                 idsDepth2,
                 NullLogger.Instance,
+                null,
                 default);
             Assert.Null(shallow);
 
@@ -227,6 +231,7 @@ public sealed class RestoreVerificationDumpPathResolverTests
                 opts,
                 idsDepth3,
                 NullLogger.Instance,
+                null,
                 default);
             Assert.NotNull(deep);
             Assert.Equal(r3, deep.Value.backupRunId);

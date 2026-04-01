@@ -130,35 +130,40 @@ namespace KasseAPI_Final.Services
                 var httpContext = _httpContextAccessor.HttpContext;
                 var sessionId = Guid.NewGuid().ToString();
 
+                var actionCol = AuditLogPersistenceSanitizer.TruncateForAction(action);
+                var entityTypeCol = AuditLogPersistenceSanitizer.TruncateForEntityType(entityType);
+                var userRoleCol = AuditLogPersistenceSanitizer.TruncateForUserRole(userRole);
                 var auditLog = new AuditLog
                 {
                     Id = Guid.NewGuid(),
                     SessionId = sessionId,
-                    UserId = userId,
-                    UserRole = userRole,
-                    Action = action,
-                    EntityType = entityType,
+                    UserId = AuditLogPersistenceSanitizer.TruncateUserId(userId),
+                    UserRole = userRoleCol,
+                    Action = actionCol,
+                    EntityType = entityTypeCol,
                     EntityId = entityId,
                     OldValues = null, // Payment operations typically don't have old values
-                    NewValues = responseData != null ? JsonSerializer.Serialize(responseData) : null,
-                    RequestData = requestData != null ? JsonSerializer.Serialize(requestData) : null,
-                    ResponseData = responseData != null ? JsonSerializer.Serialize(responseData) : null,
+                    NewValues = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(responseData),
+                    RequestData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(requestData),
+                    ResponseData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(responseData),
                     Status = status,
                     Timestamp = DateTime.UtcNow,
-                    Description = description ?? $"Payment operation: {action} on {entityType}",
-                    Notes = notes,
+                    Description = AuditLogPersistenceSanitizer.Truncate(
+                        description ?? $"Payment operation: {actionCol} on {entityTypeCol}",
+                        AuditLogPersistenceSanitizer.DescriptionMaxLength),
+                    Notes = AuditLogPersistenceSanitizer.Truncate(notes, AuditLogPersistenceSanitizer.NotesMaxLength),
                     IpAddress = GetClientIpAddress(httpContext),
                     UserAgent = GetUserAgentMinimized(httpContext),
-                    Endpoint = httpContext?.Request.Path,
+                    Endpoint = AuditLogPersistenceSanitizer.TruncateEndpoint(httpContext),
                     HttpMethod = httpContext?.Request.Method,
                     HttpStatusCode = httpContext?.Response.StatusCode,
                     ProcessingTimeMs = processingTimeMs,
-                    ErrorDetails = errorDetails,
-                    CorrelationId = correlationId,
-                    TransactionId = transactionId,
+                    ErrorDetails = AuditLogPersistenceSanitizer.Truncate(errorDetails, AuditLogPersistenceSanitizer.ErrorDetailsMaxLength),
+                    CorrelationId = AuditLogPersistenceSanitizer.Truncate(correlationId, AuditLogPersistenceSanitizer.CorrelationIdMaxLength),
+                    TransactionId = AuditLogPersistenceSanitizer.Truncate(transactionId, AuditLogPersistenceSanitizer.TransactionIdMaxLength),
                     Amount = amount,
-                    PaymentMethod = paymentMethod,
-                    TseSignature = tseSignature
+                    PaymentMethod = AuditLogPersistenceSanitizer.Truncate(paymentMethod, 50),
+                    TseSignature = AuditLogPersistenceSanitizer.Truncate(tseSignature, 500)
                 };
 
                 _context.AuditLogs.Add(auditLog);
@@ -190,31 +195,36 @@ namespace KasseAPI_Final.Services
                 var httpContext = _httpContextAccessor.HttpContext;
                 var sessionId = Guid.NewGuid().ToString();
 
+                var actionCol = AuditLogPersistenceSanitizer.TruncateForAction(action);
+                var entityTypeCol = AuditLogPersistenceSanitizer.TruncateForEntityType(entityType);
+                var userRoleCol = AuditLogPersistenceSanitizer.TruncateForUserRole(userRole);
                 var auditLog = new AuditLog
                 {
                     Id = Guid.NewGuid(),
                     SessionId = sessionId,
-                    UserId = userId,
-                    UserRole = userRole,
-                    Action = action,
-                    EntityType = entityType,
+                    UserId = AuditLogPersistenceSanitizer.TruncateUserId(userId),
+                    UserRole = userRoleCol,
+                    Action = actionCol,
+                    EntityType = entityTypeCol,
                     EntityId = entityId,
-                    OldValues = oldValues != null ? JsonSerializer.Serialize(oldValues) : null,
-                    NewValues = newValues != null ? JsonSerializer.Serialize(newValues) : null,
+                    OldValues = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(oldValues),
+                    NewValues = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(newValues),
                     RequestData = null,
                     ResponseData = null,
                     Status = status,
                     Timestamp = DateTime.UtcNow,
-                    Description = description ?? $"Entity change: {action} on {entityType}",
-                    Notes = notes,
+                    Description = AuditLogPersistenceSanitizer.Truncate(
+                        description ?? $"Entity change: {actionCol} on {entityTypeCol}",
+                        AuditLogPersistenceSanitizer.DescriptionMaxLength),
+                    Notes = AuditLogPersistenceSanitizer.Truncate(notes, AuditLogPersistenceSanitizer.NotesMaxLength),
                     IpAddress = GetClientIpAddress(httpContext),
                     UserAgent = GetUserAgentMinimized(httpContext),
-                    Endpoint = httpContext?.Request.Path,
+                    Endpoint = AuditLogPersistenceSanitizer.TruncateEndpoint(httpContext),
                     HttpMethod = httpContext?.Request.Method,
                     HttpStatusCode = httpContext?.Response.StatusCode,
                     ProcessingTimeMs = null,
-                    ErrorDetails = errorDetails,
-                    CorrelationId = GetRequestCorrelationId(),
+                    ErrorDetails = AuditLogPersistenceSanitizer.Truncate(errorDetails, AuditLogPersistenceSanitizer.ErrorDetailsMaxLength),
+                    CorrelationId = AuditLogPersistenceSanitizer.Truncate(GetRequestCorrelationId(), AuditLogPersistenceSanitizer.CorrelationIdMaxLength),
                     TransactionId = null,
                     Amount = null,
                     PaymentMethod = null,
@@ -250,31 +260,38 @@ namespace KasseAPI_Final.Services
                 var httpContext = _httpContextAccessor.HttpContext;
                 var sessionId = Guid.NewGuid().ToString();
 
+                var actionCol = AuditLogPersistenceSanitizer.TruncateForAction(action);
+                var entityTypeCol = AuditLogPersistenceSanitizer.TruncateForEntityType(entityType);
+                var userRoleCol = AuditLogPersistenceSanitizer.TruncateForUserRole(userRole);
                 var auditLog = new AuditLog
                 {
                     Id = Guid.NewGuid(),
                     SessionId = sessionId,
-                    UserId = userId,
-                    UserRole = userRole,
-                    Action = action,
-                    EntityType = entityType,
+                    UserId = AuditLogPersistenceSanitizer.TruncateUserId(userId),
+                    UserRole = userRoleCol,
+                    Action = actionCol,
+                    EntityType = entityTypeCol,
                     EntityId = null,
                     OldValues = null,
                     NewValues = null,
-                    RequestData = requestData != null ? JsonSerializer.Serialize(requestData) : null,
-                    ResponseData = responseData != null ? JsonSerializer.Serialize(responseData) : null,
+                    RequestData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(requestData),
+                    ResponseData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(responseData),
                     Status = status,
                     Timestamp = DateTime.UtcNow,
-                    Description = description ?? $"System operation: {action} on {entityType}",
-                    Notes = notes,
+                    Description = AuditLogPersistenceSanitizer.Truncate(
+                        description ?? $"System operation: {actionCol} on {entityTypeCol}",
+                        AuditLogPersistenceSanitizer.DescriptionMaxLength),
+                    Notes = AuditLogPersistenceSanitizer.Truncate(notes, AuditLogPersistenceSanitizer.NotesMaxLength),
                     IpAddress = GetClientIpAddress(httpContext),
                     UserAgent = GetUserAgentMinimized(httpContext),
-                    Endpoint = httpContext?.Request.Path,
+                    Endpoint = AuditLogPersistenceSanitizer.TruncateEndpoint(httpContext),
                     HttpMethod = httpContext?.Request.Method,
                     HttpStatusCode = httpContext?.Response.StatusCode,
                     ProcessingTimeMs = null,
-                    ErrorDetails = errorDetails,
-                    CorrelationId = correlationIdOverride ?? GetRequestCorrelationId(),
+                    ErrorDetails = AuditLogPersistenceSanitizer.Truncate(errorDetails, AuditLogPersistenceSanitizer.ErrorDetailsMaxLength),
+                    CorrelationId = AuditLogPersistenceSanitizer.Truncate(
+                        correlationIdOverride ?? GetRequestCorrelationId(),
+                        AuditLogPersistenceSanitizer.CorrelationIdMaxLength),
                     TransactionId = null,
                     Amount = null,
                     PaymentMethod = null,
@@ -309,31 +326,35 @@ namespace KasseAPI_Final.Services
                 var httpContext = _httpContextAccessor.HttpContext;
                 var sessionId = Guid.NewGuid().ToString();
 
+                var actionCol = AuditLogPersistenceSanitizer.TruncateForAction(action);
+                var userRoleCol = AuditLogPersistenceSanitizer.TruncateForUserRole(userRole);
                 var auditLog = new AuditLog
                 {
                     Id = Guid.NewGuid(),
                     SessionId = sessionId,
-                    UserId = userId,
-                    UserRole = userRole,
-                    Action = action,
-                    EntityType = AuditLogEntityTypes.USER,
+                    UserId = AuditLogPersistenceSanitizer.TruncateUserId(userId),
+                    UserRole = userRoleCol,
+                    Action = actionCol,
+                    EntityType = AuditLogPersistenceSanitizer.TruncateForEntityType(AuditLogEntityTypes.USER),
                     EntityId = null,
                     OldValues = null,
                     NewValues = null,
-                    RequestData = requestData != null ? JsonSerializer.Serialize(requestData) : null,
-                    ResponseData = responseData != null ? JsonSerializer.Serialize(responseData) : null,
+                    RequestData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(requestData),
+                    ResponseData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(responseData),
                     Status = status,
                     Timestamp = DateTime.UtcNow,
-                    Description = description ?? $"User activity: {action}",
-                    Notes = notes,
+                    Description = AuditLogPersistenceSanitizer.Truncate(
+                        description ?? $"User activity: {actionCol}",
+                        AuditLogPersistenceSanitizer.DescriptionMaxLength),
+                    Notes = AuditLogPersistenceSanitizer.Truncate(notes, AuditLogPersistenceSanitizer.NotesMaxLength),
                     IpAddress = GetClientIpAddress(httpContext),
                     UserAgent = GetUserAgentMinimized(httpContext),
-                    Endpoint = httpContext?.Request.Path,
+                    Endpoint = AuditLogPersistenceSanitizer.TruncateEndpoint(httpContext),
                     HttpMethod = httpContext?.Request.Method,
                     HttpStatusCode = httpContext?.Response.StatusCode,
                     ProcessingTimeMs = null,
-                    ErrorDetails = errorDetails,
-                    CorrelationId = GetRequestCorrelationId(),
+                    ErrorDetails = AuditLogPersistenceSanitizer.Truncate(errorDetails, AuditLogPersistenceSanitizer.ErrorDetailsMaxLength),
+                    CorrelationId = AuditLogPersistenceSanitizer.Truncate(GetRequestCorrelationId(), AuditLogPersistenceSanitizer.CorrelationIdMaxLength),
                     TransactionId = null,
                     Amount = null,
                     PaymentMethod = null,
@@ -401,7 +422,9 @@ namespace KasseAPI_Final.Services
 
             // Structured diff: only changed fields (whitelist). Do not log unchanged values.
             var changeList = UserAuditDiffHelper.BuildStructuredChanges(oldValues, newValues);
-            var changesJson = changeList.Count > 0 ? JsonSerializer.Serialize(changeList) : null;
+            var changesJson = changeList.Count > 0
+                ? AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(changeList)
+                : null;
 
             var metadata = new Dictionary<string, object?>
             {
@@ -409,33 +432,38 @@ namespace KasseAPI_Final.Services
             };
             if (!string.IsNullOrEmpty(reason))
                 metadata["reason"] = reason;
-            var metadataJson = JsonSerializer.Serialize(metadata);
+            var metadataJson = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(metadata);
 
+            var actionCol = AuditLogPersistenceSanitizer.TruncateForAction(action);
             var auditLog = new AuditLog
             {
                 Id = Guid.NewGuid(),
                 SessionId = sessionId,
-                UserId = actorUserId,
-                UserRole = actorRole,
-                Action = action,
-                EntityType = AuditLogEntityTypes.USER,
+                UserId = AuditLogPersistenceSanitizer.TruncateUserId(actorUserId),
+                UserRole = AuditLogPersistenceSanitizer.TruncateForUserRole(actorRole),
+                Action = actionCol,
+                EntityType = AuditLogPersistenceSanitizer.TruncateForEntityType(AuditLogEntityTypes.USER),
                 EntityId = null,
-                EntityName = targetUserId,
-                OldValues = oldValues != null ? JsonSerializer.Serialize(oldValues) : null,
-                NewValues = newValues != null ? JsonSerializer.Serialize(newValues) : null,
-                RequestData = JsonSerializer.Serialize(requestData),
+                EntityName = AuditLogPersistenceSanitizer.Truncate(targetUserId, AuditLogPersistenceSanitizer.EntityNameMaxLength),
+                OldValues = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(oldValues),
+                NewValues = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(newValues),
+                RequestData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(requestData),
                 ResponseData = null,
                 Status = status,
                 Timestamp = DateTime.UtcNow,
-                Description = description ?? $"User lifecycle: {action} on user {targetUserId}",
-                Notes = reason,
+                Description = AuditLogPersistenceSanitizer.Truncate(
+                    description ?? $"User lifecycle: {actionCol} on user {targetUserId}",
+                    AuditLogPersistenceSanitizer.DescriptionMaxLength),
+                Notes = AuditLogPersistenceSanitizer.Truncate(reason, AuditLogPersistenceSanitizer.NotesMaxLength),
                 IpAddress = GetClientIpAddress(httpContext),
                 UserAgent = GetUserAgentMinimized(httpContext),
-                Endpoint = httpContext?.Request.Path,
+                Endpoint = AuditLogPersistenceSanitizer.TruncateEndpoint(httpContext),
                 HttpMethod = httpContext?.Request.Method,
                 HttpStatusCode = httpContext?.Response.StatusCode,
-                CorrelationId = correlationId ?? GetRequestCorrelationId() ?? Guid.NewGuid().ToString(),
-                ActorDisplayName = actorDisplayName,
+                CorrelationId = AuditLogPersistenceSanitizer.Truncate(
+                    correlationId ?? GetRequestCorrelationId() ?? Guid.NewGuid().ToString(),
+                    AuditLogPersistenceSanitizer.CorrelationIdMaxLength),
+                ActorDisplayName = AuditLogPersistenceSanitizer.Truncate(actorDisplayName, 200),
                 Changes = changesJson,
                 Metadata = metadataJson,
                 ActionType = actionType
@@ -929,14 +957,15 @@ namespace KasseAPI_Final.Services
             {
                 if (httpContext == null) return "Unknown";
 
+                string? raw = null;
                 var forwardedHeader = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
                 if (!string.IsNullOrEmpty(forwardedHeader))
-                {
-                    return forwardedHeader.Split(',')[0].Trim();
-                }
+                    raw = forwardedHeader.Split(',')[0].Trim();
+                else
+                    raw = httpContext.Connection.RemoteIpAddress?.ToString();
 
-                var remoteIp = httpContext.Connection.RemoteIpAddress;
-                return remoteIp?.ToString() ?? "Unknown";
+                if (string.IsNullOrEmpty(raw)) return "Unknown";
+                return AuditLogPersistenceSanitizer.Truncate(raw, AuditLogPersistenceSanitizer.IpAddressMaxLength) ?? raw;
             }
             catch
             {
