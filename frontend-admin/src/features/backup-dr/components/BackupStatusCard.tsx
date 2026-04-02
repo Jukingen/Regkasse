@@ -13,6 +13,7 @@ import {
   resolveBackupPipelineStepsForUi,
   sumLogicalDumpBytes,
 } from '@/features/backup-dr/logic/backupPipelineDerived';
+import type { RunTruth } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
 
 export interface BackupStatusCardProps {
@@ -33,6 +34,12 @@ export interface BackupStatusCardProps {
   allowClientPipelineFallback?: boolean;
   /** recoverability-summary kartından bu kartın ayrı olduğunu vurgular (yanıltıcı birleşimi önler). */
   showLatestRunVsRecoverabilityHint?: boolean;
+  /** Fake/Stub ortamı — “başarılı” çalıştırma gerçek yedek anlamına gelmez. */
+  simulatedOperationalMode?: boolean;
+  /** Üst pano Fake uyarısı varken kart içi tekrar uyarıyı keser. */
+  omitFakeOperationalNotice?: boolean;
+  /** Merkezi operatör-doğruluk modeli — verilirse simülasyon/başarı etiketleri buradan türetilir. */
+  operatorRunTruth?: Pick<RunTruth, 'technicalSuccess' | 'simulatedEvidence'>;
 }
 
 function formatDurationMs(ms: number | undefined, t: (key: string, options?: Record<string, string | number>) => string): string {
@@ -67,6 +74,9 @@ export function BackupStatusCard({
   t,
   allowClientPipelineFallback = false,
   showLatestRunVsRecoverabilityHint = false,
+  simulatedOperationalMode = false,
+  omitFakeOperationalNotice = false,
+  operatorRunTruth,
 }: BackupStatusCardProps) {
   const allowFb = allowClientPipelineFallback === true;
   const resolved = useMemo(
@@ -80,10 +90,11 @@ export function BackupStatusCard({
   const durationMs = formatRunDurationMs(latest?.requestedAt, latest?.completedAt);
   const bytes = sumLogicalDumpBytes(detail?.artifacts ?? latest?.artifacts ?? undefined);
 
-  const succeededSimulated =
-    latest?.status === 3 &&
-    (detail?.isSimulatedExecution === true || isSimulatedBackupAdapterKind(latest?.adapterKind));
-  const statusTagColor = succeededSimulated ? 'warning' : backupStatusTagColor(latest?.status ?? -1);
+  const succeededSimulated = operatorRunTruth
+    ? operatorRunTruth.technicalSuccess && operatorRunTruth.simulatedEvidence
+    : latest?.status === 3 &&
+      (detail?.isSimulatedExecution === true || isSimulatedBackupAdapterKind(latest?.adapterKind));
+  const statusTagColor = succeededSimulated ? 'blue' : backupStatusTagColor(latest?.status ?? -1);
   const statusLabelText =
     succeededSimulated && latest
       ? t('backupDr.backupStatus.simulatedSuccess')
@@ -101,13 +112,8 @@ export function BackupStatusCard({
             </Typography.Paragraph>
           ) : null}
           <Alert type="info" showIcon message={t('backupDr.latestRun.orchestrationHint')} style={{ marginBottom: 12 }} />
-          {succeededSimulated ? (
-            <Alert
-              type="warning"
-              showIcon
-              message={t('backupDr.latestRun.notRealPgDump')}
-              style={{ marginBottom: 12 }}
-            />
+          {simulatedOperationalMode && !omitFakeOperationalNotice ? (
+            <Alert type="info" showIcon style={{ marginBottom: 12 }} message={t('backupDr.latestRun.fakeModeOperationalNotice')} />
           ) : null}
           <Descriptions column={1} size="small" bordered style={{ marginBottom: 16 }}>
             <Descriptions.Item label={t('backupDr.latestRun.id')}>{latest.id}</Descriptions.Item>
@@ -115,13 +121,15 @@ export function BackupStatusCard({
               <Space wrap>
                 <Tag color={statusTagColor}>{statusLabelText}</Tag>
                 {succeededSimulated ? (
-                  <Tag color="warning">{t('backupDr.latestRun.simulatedBadge')}</Tag>
+                  <Tag color="blue">{t('backupDr.latestRun.simulatedBadge')}</Tag>
                 ) : null}
               </Space>
             </Descriptions.Item>
             <Descriptions.Item label={t('backupDr.latestRun.adapter')}>{latest.adapterKind}</Descriptions.Item>
             <Descriptions.Item label={t('backupDr.latestRun.duration')}>{formatDurationMs(durationMs, t)}</Descriptions.Item>
-            <Descriptions.Item label={t('backupDr.latestRun.dumpSize')}>{formatBytes(bytes, t)}</Descriptions.Item>
+            <Descriptions.Item label={t(succeededSimulated ? 'backupDr.latestRun.dumpSizeStub' : 'backupDr.latestRun.dumpSize')}>
+              {formatBytes(bytes, t)}
+            </Descriptions.Item>
             <Descriptions.Item label={t('backupDr.latestRun.requested')}>
               {formatDt(latest.requestedAt, formatLocale)}
             </Descriptions.Item>
@@ -137,7 +145,7 @@ export function BackupStatusCard({
               {t('backupDr.pipelineSteps.sectionTitle')}
             </Typography.Title>
             {source === 'server_projection' && (
-              <Tag color="success">{t('backupDr.pipelineSteps.sourceBadge.serverProjection')}</Tag>
+              <Tag color="blue">{t('backupDr.pipelineSteps.sourceBadge.serverProjection')}</Tag>
             )}
             {source === 'client_fallback' && (
               <Tag color="warning">{t('backupDr.pipelineSteps.sourceBadge.clientDerived')}</Tag>

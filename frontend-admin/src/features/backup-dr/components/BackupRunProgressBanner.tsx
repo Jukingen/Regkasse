@@ -12,6 +12,8 @@ export interface BackupRunProgressBannerProps {
   latest: BackupRunResponseDto | undefined | null;
   /** Latest run detail: when true, terminal success is Fake/Stub — must not use production-success styling. */
   isSimulatedExecution?: boolean;
+  /** pg_dump yapılandırması zaten üst uyarılarda anlatıldıysa tekrarlayan açıklama satırını gizle. */
+  omitSimulatedSuccessDetail?: boolean;
   averageSucceededDurationSeconds: number | undefined | null;
   averageSucceededDurationSampleCount: number | undefined | null;
   formatDt: (iso: string | undefined | null, locale: string) => string;
@@ -21,8 +23,8 @@ export interface BackupRunProgressBannerProps {
 
 function buildEtaDescription(
   status: number,
-  requestedAt: string | undefined,
-  startedAt: string | undefined,
+  requestedAt: string | null | undefined,
+  startedAt: string | null | undefined,
   avgSec: number | undefined,
   sampleCount: number | undefined,
   formatDt: (iso: string | undefined | null, locale: string) => string,
@@ -53,6 +55,7 @@ function buildEtaDescription(
 export function BackupRunProgressBanner({
   latest,
   isSimulatedExecution = false,
+  omitSimulatedSuccessDetail = false,
   averageSucceededDurationSeconds,
   averageSucceededDurationSampleCount,
   formatDt,
@@ -125,10 +128,12 @@ export function BackupRunProgressBanner({
   }
 
   const alertType =
-    s === 3 ? (isSimulatedExecution ? 'warning' : 'success') : s === 6 ? 'info' : 'error';
+    s === 3 && isSimulatedExecution ? 'warning' : s === 3 ? 'info' : s === 6 ? 'info' : 'error';
   const description =
-    s === 3 && isSimulatedExecution ? (
+    s === 3 && isSimulatedExecution && !omitSimulatedSuccessDetail ? (
       <Typography.Text type="secondary">{t('backupDr.progress.finishedSimulatedOkDetail')}</Typography.Text>
+    ) : s === 3 && !isSimulatedExecution ? (
+      <Typography.Text type="secondary">{t('backupDr.progress.finishedOkDetail')}</Typography.Text>
     ) : undefined;
   return (
     <Alert

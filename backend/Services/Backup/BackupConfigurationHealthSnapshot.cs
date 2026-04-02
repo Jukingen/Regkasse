@@ -33,7 +33,16 @@ public sealed class BackupConfigurationHealthSnapshot
     /// <summary>Operator-facing issues (English for logs/API).</summary>
     public IReadOnlyList<string> Issues { get; init; } = Array.Empty<string>();
 
+    /// <summary>Machine-actionable setup signals (stable codes); tooling probes may be merged at runtime.</summary>
+    public IReadOnlyList<BackupConfigurationDiagnostic> Diagnostics { get; init; } = Array.Empty<BackupConfigurationDiagnostic>();
+
     public BackupExecutionAdapterKind EffectiveAdapterKind { get; init; }
+
+    /// <summary><c>appsettings</c> / ortam değişkenlerinden gelen <c>Backup:ExecutionAdapterKind</c> (admin geçersiz kılmasından önce).</summary>
+    public BackupExecutionAdapterKind ConfigurationExecutionAdapterKind { get; init; }
+
+    /// <summary>Veritabanında saklanan admin çalışma modu; <see cref="AdminBackupRuntimeExecutionMode.InheritFromConfiguration"/> varsayılan.</summary>
+    public AdminBackupRuntimeExecutionMode AdminRuntimeExecutionMode { get; init; }
 
     public bool WorkerEnabled { get; init; }
 

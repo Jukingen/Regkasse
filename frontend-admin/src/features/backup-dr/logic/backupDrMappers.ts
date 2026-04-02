@@ -7,10 +7,18 @@ import type { BackupArtifactResponseDtoLifecycleState } from '@/api/generated/mo
 
 export type ConfigurationHealthUiKind = 'unknown' | 'healthy' | 'degraded' | 'unhealthy';
 
-export type ExternalCopyVariant = 'unknown' | 'verified' | 'failed' | 'staging' | 'mixed';
+/** lifecycleState meta — `externalLifecycleOk` ayrı “doğrulandı” anlamına gelmez (bkz. backupDrOperatorTruth). */
+export type ExternalCopyVariant = 'unknown' | 'externalLifecycleOk' | 'failed' | 'staging' | 'mixed';
 
 /** Ant Design Tag `color` prop değerleri (RecentRunsTable / kartlar). */
-export type BackupRunAntdTagColor = 'success' | 'error' | 'processing' | 'default' | 'warning';
+export type BackupRunAntdTagColor =
+  | 'success'
+  | 'error'
+  | 'processing'
+  | 'default'
+  | 'warning'
+  | 'cyan'
+  | 'blue';
 
 export function normalizeHealthLevelString(level: string | undefined | null): string {
   return (level ?? '').trim().toLowerCase();
@@ -27,7 +35,17 @@ export function mapConfigurationHealthLevel(level: string | undefined | null): C
 
 /** Summary Statistic value color — avoid implying “all green” when readiness is capped in UI. */
 export function healthStatisticValueStyle(kind: ConfigurationHealthUiKind): { color: string } | undefined {
-  if (kind === 'healthy') return { color: '#52c41a' };
+  if (kind === 'healthy') return { color: '#1677ff' };
+  if (kind === 'degraded') return { color: '#faad14' };
+  if (kind === 'unhealthy') return { color: '#ff4d4f' };
+  return undefined;
+}
+
+/**
+ * Restore verification readiness özeti — “sağlıklı” bile uçtan uca DR değildir; yeşil yerine mavi ton.
+ */
+export function restoreReadinessStatisticValueStyle(kind: ConfigurationHealthUiKind): { color: string } | undefined {
+  if (kind === 'healthy') return { color: '#1677ff' };
   if (kind === 'degraded') return { color: '#faad14' };
   if (kind === 'unhealthy') return { color: '#ff4d4f' };
   return undefined;
@@ -54,6 +72,10 @@ export function computeEffectiveRestoreReadinessLevel(params: {
   isLatestRunSimulatedExecution: boolean | undefined;
   /** From latest run DTO; used when simulated flag is undefined but adapter_kind is Fake/ProductionStub. */
   latestAdapterKind: string | null | undefined;
+  /**
+   * GET /api/admin/backup/execution-mode etkin adaptörü Fake/Stub ise gerçek pg_dump yolu yokmuş gibi üst sınır uygula.
+   */
+  executionModeUsesSimulatedAdapter?: boolean;
 }): string | undefined | null {
   const {
     apiLevel,
@@ -62,6 +84,7 @@ export function computeEffectiveRestoreReadinessLevel(params: {
     latestBackupStatus,
     isLatestRunSimulatedExecution,
     latestAdapterKind,
+    executionModeUsesSimulatedAdapter,
   } = params;
 
   const latestSucceededIsSimulated =
@@ -71,7 +94,8 @@ export function computeEffectiveRestoreReadinessLevel(params: {
   const noRealProductionDump =
     realPostgreSqlLogicalDumpConfiguredHealth === false ||
     realPostgreSqlLogicalDumpConfiguredRecoverability === false ||
-    latestSucceededIsSimulated;
+    latestSucceededIsSimulated ||
+    executionModeUsesSimulatedAdapter === true;
 
   if (!noRealProductionDump) return apiLevel;
 
@@ -89,9 +113,12 @@ export function configurationHealthSummaryI18nKey(level: string | undefined | nu
   return 'backupDr.health.unhealthy';
 }
 
+/**
+ * Yedek çalıştırması operasyonel durumu — `success` (yeşil) kullanılmaz; tamamlanmış çalıştırma kurtarılabilirlik değildir.
+ */
 export function mapBackupRunStatusAntdColor(status: number | undefined): BackupRunAntdTagColor {
   if (status === undefined || status === null) return 'default';
-  if (status === 3) return 'success';
+  if (status === 3) return 'blue';
   if (status === 4 || status === 5) return 'error';
   if (status === 0) return 'default';
   if (status === 1) return 'processing';
@@ -100,9 +127,10 @@ export function mapBackupRunStatusAntdColor(status: number | undefined): BackupR
   return 'default';
 }
 
+/** Restore drill “Succeeded” yeşil üretim başarısı gibi okunmasın — teknik tamamlanma (API). */
 export function mapRestoreVerificationStatusAntdColor(status: number | undefined): BackupRunAntdTagColor {
   const s = status ?? 0;
-  if (s === 2) return 'success';
+  if (s === 2) return 'cyan';
   if (s === 3) return 'error';
   if (s === 0 || s === 1) return 'processing';
   return 'default';
@@ -123,15 +151,15 @@ export function mapArtifactsToExternalCopyVariant(
     if (states.size === 1) return 'failed';
     return 'mixed';
   }
-  if (states.has(2) && stateList.every((s) => s === 2 || s === 1)) return 'verified';
+  if (states.has(2) && stateList.every((s) => s === 2 || s === 1)) return 'externalLifecycleOk';
   if (stateList.length > 0 && stateList.every((s) => s === 0 || s === 1)) return 'staging';
   return 'mixed';
 }
 
 export function externalCopyVariantToI18nKey(variant: ExternalCopyVariant): string {
   switch (variant) {
-    case 'verified':
-      return 'backupDr.externalCopy.verified';
+    case 'externalLifecycleOk':
+      return 'backupDr.externalCopy.externalLifecycleOk';
     case 'failed':
       return 'backupDr.externalCopy.failed';
     case 'staging':
@@ -158,13 +186,19 @@ export interface RestoreVerificationPhaseMap {
   integrity: RestoreIntegrityPhase;
 }
 
+/**
+ * Dump incelemesi üç değerli özeti — yalnızca OpenAPI’deki alanlar.
+ * `dumpInspectionPassed` öncelikli; yoksa `pgRestoreListExitCode` (0 = liste komutu başarılı, ≠0 = başarısız).
+ * Eski `pgRestoreListPassed` alanı spec’ten kaldırıldı; burada yeniden tanımlanmaz.
+ */
 export function mapDumpInspectionTriState(
   rr: RestoreVerificationRunResponseDto | undefined | null,
 ): boolean | undefined {
   if (!rr) return undefined;
   if (rr.dumpInspectionPassed !== undefined && rr.dumpInspectionPassed !== null) return rr.dumpInspectionPassed;
-  if (rr.pgRestoreListPassed !== undefined && rr.pgRestoreListPassed !== null) return rr.pgRestoreListPassed;
-  return undefined;
+  const exit = rr.pgRestoreListExitCode;
+  if (exit === undefined || exit === null) return undefined;
+  return exit === 0;
 }
 
 export function mapRestoreVerificationPhases(

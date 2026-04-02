@@ -82,4 +82,32 @@ describe('downloadBackupArtifactFile', () => {
       expect((e as BackupArtifactDownloadError).code).toBe('run_not_found');
     }
   });
+
+  it('HTTP 200 with empty octet-stream body yields empty_payload', async () => {
+    mockGet.mockResolvedValue({
+      data: new Blob([], { type: 'application/octet-stream' }),
+      status: 200,
+      statusText: 'OK',
+      headers: { 'content-type': 'application/octet-stream' },
+      config: {} as import('axios').InternalAxiosRequestConfig,
+    });
+    await expect(downloadBackupArtifactFile('r1', 'a1', 'f.bin')).rejects.toMatchObject({
+      code: 'empty_payload',
+    });
+  });
+
+  it('HTTP 200 with application/json error envelope maps code', async () => {
+    mockGet.mockResolvedValue({
+      data: new Blob([JSON.stringify({ code: 'BACKUP_ARTIFACT_FILE_MISSING', message: 'x' })], {
+        type: 'application/json',
+      }),
+      status: 200,
+      statusText: 'OK',
+      headers: { 'content-type': 'application/json' },
+      config: {} as import('axios').InternalAxiosRequestConfig,
+    });
+    await expect(downloadBackupArtifactFile('r1', 'a1', 'f.bin')).rejects.toMatchObject({
+      code: 'file_missing',
+    });
+  });
 });

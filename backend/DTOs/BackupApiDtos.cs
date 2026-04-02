@@ -310,6 +310,96 @@ public sealed class BackupRetentionReadinessResponseDto
     public IReadOnlyList<string> OperatorNotes { get; init; } = Array.Empty<string>();
 }
 
+public sealed class BackupConfigurationDiagnosticResponseDto
+{
+    /// <summary>Stable token, e.g. BACKUP_SETUP_DEV_ADAPTER_FAKE_NO_REAL_PG_DUMP.</summary>
+    public string Code { get; init; } = string.Empty;
+
+    /// <summary>Information, Warning, or Error.</summary>
+    public string Severity { get; init; } = string.Empty;
+
+    public string Message { get; init; } = string.Empty;
+
+    public IReadOnlyList<string>? RelatedConfigurationKeys { get; init; }
+}
+
+/// <summary>Admin seçim listesi: hangi kullanıcı modunun seçilebileceği ve engel nedeni.</summary>
+public sealed class BackupExecutionSelectableModeDto
+{
+    /// <summary>Örn. UseConfigurationDefault, Fake, RealPgDump.</summary>
+    public string UserFacingMode { get; init; } = string.Empty;
+
+    /// <summary>PUT ile gönderilebilecek iç enum adı (geriye dönük).</summary>
+    public string InternalMode { get; init; } = string.Empty;
+
+    public bool Selectable { get; init; }
+
+    /// <summary>Seçilemiyorsa İngilizce kısa gerekçe; aksi halde null.</summary>
+    public string? BlockReason { get; init; }
+}
+
+public sealed class BackupExecutionModeResponseDto
+{
+    /// <summary>Kalıcı admin modu adı (InheritFromConfiguration, SimulatedFake, PostgreSqlPgDump).</summary>
+    public string StoredMode { get; init; } = string.Empty;
+
+    /// <summary>Kullanıcıya dönük: UseConfigurationDefault | Fake | RealPgDump.</summary>
+    public string RequestedUserFacingMode { get; init; } = string.Empty;
+
+    /// <summary>Yapılandırma dosyasındaki adaptörün kullanıcıya dönük karşılığı (Fake, RealPgDump, ProductionStub).</summary>
+    public string ConfigurationDefaultUserFacingMode { get; init; } = string.Empty;
+
+    /// <summary>Çözümlenmiş etkin adaptörün kullanıcıya dönük karşılığı.</summary>
+    public string EffectiveUserFacingMode { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Kalıcı RealPgDump + Unhealthy iken önerilen mod (UseConfigurationDefault). Çalışma zamanı adaptörü otomatik düşürülmez.
+    /// </summary>
+    public string? RecommendedFallbackUserFacingMode { get; init; }
+
+    /// <summary>
+    /// Yalnızca kalıcı mod Inherit olsaydı uygulanacak adaptör (bilgi amaçlı; geçersiz kılma yok).
+    /// </summary>
+    public string AdapterKindIfConfigurationDefaultOnly { get; init; } = string.Empty;
+
+    /// <summary>Tek satır İngilizce çözüm özeti (günlük / operatör).</summary>
+    public string EffectiveModeResolutionSummaryEnglish { get; init; } = string.Empty;
+
+    public string ConfigurationExecutionAdapterKind { get; init; } = string.Empty;
+
+    public string EffectiveExecutionAdapterKind { get; init; } = string.Empty;
+
+    /// <summary>Etkin mod için yapılandırma sağlığı Unhealthy değilse true.</summary>
+    public bool EffectiveModeRunnable { get; init; }
+
+    /// <summary>
+    /// PostgreSqlPgDump admin modu varsayıldığında sağlık (Real seçilebilirlik ve RealModeBlockingDiagnostics bununla uyumludur).
+    /// </summary>
+    public string HypotheticalPgDumpHealthLevel { get; init; } = string.Empty;
+
+    /// <summary>Unhealthy ise engelleyici kısa mesajlar (İngilizce).</summary>
+    public IReadOnlyList<string> Blockers { get; init; } = Array.Empty<string>();
+
+    /// <summary>RealPgDump varsayılarak hesaplanan önkoşul tanıları (Error/Warning; pg_dump/pg_restore probları dahil).</summary>
+    public IReadOnlyList<BackupConfigurationDiagnosticResponseDto> RealModeBlockingDiagnostics { get; init; } =
+        Array.Empty<BackupConfigurationDiagnosticResponseDto>();
+
+    /// <summary>Seçilebilir kullanıcı modları ve engel nedenleri.</summary>
+    public IReadOnlyList<BackupExecutionSelectableModeDto> SelectableModes { get; init; } = Array.Empty<BackupExecutionSelectableModeDto>();
+
+    /// <summary>Etkin adaptöre göre hesaplanan tam sağlık özeti.</summary>
+    public BackupConfigurationHealthResponseDto EffectiveConfigurationHealth { get; init; } = null!;
+}
+
+public sealed class BackupExecutionModePutRequestDto
+{
+    /// <summary>UseConfigurationDefault (inherit), Fake, RealPgDump — veya iç enum adları / takma adlar (bkz. <c>BackupExecutionModeApiMapper.TryParseAdminMode</c>).</summary>
+    public string Mode { get; init; } = string.Empty;
+
+    /// <summary>Üretim benzeri ortamda SimulatedFake için zorunlu açık onay.</summary>
+    public bool ConfirmSimulatedOnlyOperationalRiskInProduction { get; init; }
+}
+
 public sealed class BackupConfigurationHealthResponseDto
 {
     /// <summary>Healthy, Degraded, or Unhealthy.</summary>
@@ -317,7 +407,16 @@ public sealed class BackupConfigurationHealthResponseDto
 
     public IReadOnlyList<string> Issues { get; init; } = Array.Empty<string>();
 
+    /// <summary>Machine-actionable setup reasons (merged with Development pg_dump/pg_restore probes when applicable).</summary>
+    public IReadOnlyList<BackupConfigurationDiagnosticResponseDto> Diagnostics { get; init; } = Array.Empty<BackupConfigurationDiagnosticResponseDto>();
+
     public string EffectiveAdapterKind { get; init; } = string.Empty;
+
+    /// <summary><c>appsettings</c> içindeki <c>Backup:ExecutionAdapterKind</c> (admin geçersiz kılmasından önce).</summary>
+    public string ConfigurationExecutionAdapterKind { get; init; } = string.Empty;
+
+    /// <summary>Kalıcı admin modu: InheritFromConfiguration, SimulatedFake, PostgreSqlPgDump.</summary>
+    public string AdminRuntimeExecutionMode { get; init; } = string.Empty;
 
     public bool WorkerEnabled { get; init; }
 
@@ -364,7 +463,10 @@ public static class BackupConfigurationHealthResponseMapper
         {
             Level = snapshot.Level.ToString(),
             Issues = snapshot.Issues,
+            Diagnostics = snapshot.Diagnostics.Select(FromDiagnostic).ToList(),
             EffectiveAdapterKind = snapshot.EffectiveAdapterKind.ToString(),
+            ConfigurationExecutionAdapterKind = snapshot.ConfigurationExecutionAdapterKind.ToString(),
+            AdminRuntimeExecutionMode = snapshot.AdminRuntimeExecutionMode.ToString(),
             WorkerEnabled = snapshot.WorkerEnabled,
             RealPostgreSqlLogicalDumpConfigured = snapshot.RealPostgreSqlLogicalDumpConfigured,
             BackupExecutionReality = snapshot.BackupExecutionReality,
@@ -373,6 +475,15 @@ public static class BackupConfigurationHealthResponseMapper
             ArtifactVerificationDisclaimer = snapshot.ArtifactVerificationDisclaimer,
             RetentionReadiness = RetentionFromSnapshot(snapshot.RetentionReadiness),
             ExternalArchiveReadiness = ExternalArchiveFromSnapshot(snapshot.ExternalArchiveReadiness)
+        };
+
+    public static BackupConfigurationDiagnosticResponseDto FromDiagnostic(BackupConfigurationDiagnostic d) =>
+        new()
+        {
+            Code = d.Code,
+            Severity = d.Severity.ToString(),
+            Message = d.Message,
+            RelatedConfigurationKeys = d.RelatedConfigurationKeys
         };
 
     private static BackupExternalArchiveReadinessResponseDto ExternalArchiveFromSnapshot(

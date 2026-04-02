@@ -78,7 +78,8 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
         if (nextFire == null || nextFire.Value > utcNow)
             return false;
 
-        var adapterKind = opts.ExecutionAdapterKind.ToString();
+        var effectiveKind = health.EffectiveAdapterKind;
+        var adapterKind = effectiveKind.ToString();
         var capturedAt = utcNow;
         var run = new BackupRun
         {
@@ -91,7 +92,9 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
             ConfigSnapshotJson = OperationalRunConfigSnapshotBuilder.SerializeBackup(
                 opts,
                 "backup_scheduled_enqueue",
-                capturedAt)
+                capturedAt,
+                effectiveKind,
+                health.AdminRuntimeExecutionMode)
         };
         run.CorrelationId = $"sched-{run.Id:N}";
 

@@ -1,5 +1,6 @@
 /**
- * Başarılı yedek artefaktı için blob indirme; Content-Disposition dosya adını okur (Orval customInstance başlıkları düşürdüğü için doğrudan axios örneği).
+ * Başarılı yedek çalıştırması artefaktı için blob indirme; Fake/stub ortamında gövde küçük yer tutucu olabilir (UI bunu ayrı etiketler).
+ * Content-Disposition dosya adını okur (Orval customInstance başlıkları düşürdüğü için doğrudan axios örneği).
  */
 
 import axios from 'axios';
@@ -15,6 +16,8 @@ export type BackupArtifactDownloadFailureCode =
   | 'forbidden'
   | 'simulated_not_downloadable'
   | 'unauthorized'
+  /** HTTP 200 ama gövde boş veya Content-Length ile çelişiyor — büyük olasılıkla sunucu/depolama. */
+  | 'empty_payload'
   | 'unknown';
 
 export class BackupArtifactDownloadError extends Error {
@@ -54,6 +57,17 @@ async function readJsonCodeFromBlob(blob: Blob): Promise<string | undefined> {
   }
 }
 
+function mapApiCodeToFailure(code: string | undefined): BackupArtifactDownloadFailureCode | undefined {
+  if (code === undefined) return undefined;
+  if (code === 'BACKUP_ARTIFACT_FILE_MISSING') return 'file_missing';
+  if (code === 'BACKUP_RUN_NOT_FOUND') return 'run_not_found';
+  if (code === 'BACKUP_ARTIFACT_NOT_FOUND') return 'artifact_not_found';
+  if (code === 'BACKUP_RUN_NOT_SUCCEEDED') return 'conflict';
+  if (code === 'BACKUP_STORAGE_NOT_CONFIGURED') return 'storage';
+  if (code === 'BACKUP_ARTIFACT_NOT_DOWNLOADABLE_SIMULATED') return 'simulated_not_downloadable';
+  return undefined;
+}
+
 const downloadPath = (runId: string, artifactId: string) =>
   `/api/admin/backup/runs/${runId}/artifacts/${artifactId}/download`;
 
@@ -67,6 +81,16 @@ export async function downloadBackupArtifactFile(
       responseType: 'blob',
     });
     const blob = res.data as Blob;
+    const ct = (res.headers['content-type'] as string | undefined)?.toLowerCase() ?? '';
+    if (ct.includes('application/json')) {
+      const code = await readJsonCodeFromBlob(blob);
+      const mapped = mapApiCodeToFailure(code);
+      if (mapped) throw new BackupArtifactDownloadError(mapped);
+      if (code) throw new BackupArtifactDownloadError('unknown');
+    }
+    if (blob.size === 0) {
+      throw new BackupArtifactDownloadError('empty_payload');
+    }
     const name = parseFilenameFromContentDisposition(
       res.headers['content-disposition'] as string | undefined,
       fallbackFilename,
@@ -89,8 +113,15 @@ export async function downloadBackupArtifactFile(
       if (status === 401) {
         throw new BackupArtifactDownloadError('unauthorized');
       }
-      if (err.response?.data instanceof Blob) {
-        const code = await readJsonCodeFromBlob(err.response.data);
+      const raw = err.response?.data;
+      let code: string | undefined;
+      if (raw instanceof Blob) {
+        code = await readJsonCodeFromBlob(raw);
+      } else if (raw && typeof raw === 'object' && 'code' in raw) {
+        const c = (raw as { code?: unknown }).code;
+        code = typeof c === 'string' ? c : undefined;
+      }
+      if (code !== undefined || raw instanceof Blob) {
         if (status === 404) {
           if (code === 'BACKUP_ARTIFACT_FILE_MISSING') {
             throw new BackupArtifactDownloadError('file_missing');

@@ -83,6 +83,9 @@ namespace KasseAPI_Final.Data
         public DbSet<BackupArtifact> BackupArtifacts { get; set; }
         public DbSet<BackupVerification> BackupVerifications { get; set; }
 
+        /// <summary>Tek satır: admin yedek çalıştırma modu (Fake / PgDump / yapılandırmayı izle).</summary>
+        public DbSet<BackupRuntimeExecutionPreference> BackupRuntimeExecutionPreferences { get; set; }
+
         /// <summary>Restore drill metadata (pg_restore --list + optional fiscal SQL + integrity); not artifact verification.</summary>
         public DbSet<RestoreVerificationRun> RestoreVerificationRuns { get; set; }
 
@@ -1419,6 +1422,15 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ToDate).IsRequired();
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
+            });
+
+            builder.Entity<BackupRuntimeExecutionPreference>(entity =>
+            {
+                entity.ToTable("backup_runtime_execution_preferences");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Mode).IsRequired();
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
+                entity.Property(e => e.UpdatedByUserId).HasMaxLength(450);
             });
 
             builder.Entity<BackupRun>(entity =>

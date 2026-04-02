@@ -30,6 +30,8 @@ public sealed class BackupRecoverabilitySummaryServiceTests
         Level = BackupConfigurationHealthLevel.Healthy,
         Issues = Array.Empty<string>(),
         EffectiveAdapterKind = BackupExecutionAdapterKind.Fake,
+        ConfigurationExecutionAdapterKind = BackupExecutionAdapterKind.Fake,
+        AdminRuntimeExecutionMode = AdminBackupRuntimeExecutionMode.InheritFromConfiguration,
         WorkerEnabled = true,
         RealPostgreSqlLogicalDumpConfigured = false,
         BackupExecutionReality = BackupConfigurationEvaluation.BackupExecutionRealitySimulatedFake,
@@ -41,7 +43,9 @@ public sealed class BackupRecoverabilitySummaryServiceTests
     private static IBackupOperationalReadiness StubReadiness(BackupConfigurationHealthSnapshot? snap = null)
     {
         var m = new Mock<IBackupOperationalReadiness>();
-        m.Setup(x => x.GetConfigurationHealth()).Returns(snap ?? DefaultConfigurationHealth());
+        var effective = snap ?? DefaultConfigurationHealth();
+        m.Setup(x => x.GetConfigurationHealth()).Returns(effective);
+        m.Setup(x => x.GetConfigurationHealthAssumingAdminMode(It.IsAny<AdminBackupRuntimeExecutionMode>())).Returns(effective);
         return m.Object;
     }
 
@@ -65,6 +69,8 @@ public sealed class BackupRecoverabilitySummaryServiceTests
             Level = BackupConfigurationHealthLevel.Degraded,
             Issues = new[] { "issue-a" },
             EffectiveAdapterKind = BackupExecutionAdapterKind.ProductionStub,
+            ConfigurationExecutionAdapterKind = BackupExecutionAdapterKind.ProductionStub,
+            AdminRuntimeExecutionMode = AdminBackupRuntimeExecutionMode.InheritFromConfiguration,
             WorkerEnabled = true,
             RealPostgreSqlLogicalDumpConfigured = false,
             BackupExecutionReality = BackupConfigurationEvaluation.BackupExecutionRealityProductionStubNoPostgreSql,

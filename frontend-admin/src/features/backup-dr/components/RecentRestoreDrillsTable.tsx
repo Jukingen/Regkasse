@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Alert, Button, Card, Table } from 'antd';
+import { Alert, Button, Card, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { RestoreVerificationRunResponseDto } from '@/api/generated/model';
 
@@ -54,6 +54,9 @@ export function RecentRestoreDrillsTable({
         pagination={false}
         locale={{ emptyText }}
       />
+      <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+        {t('backupDr.restoreHistory.statusHint')}
+      </Typography.Paragraph>
     </Card>
   );
 }

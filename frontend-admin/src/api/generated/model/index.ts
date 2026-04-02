@@ -46,6 +46,7 @@ export * from './backupArtifactPipelinePolicyResponseDto';
 export * from './backupArtifactResponseDto';
 export * from './backupArtifactResponseDtoArtifactType';
 export * from './backupArtifactResponseDtoLifecycleState';
+export * from './backupConfigurationDiagnosticResponseDto';
 export * from './backupConfigurationHealthResponseDto';
 export * from './backupHistoryResponseDto';
 export * from './backupLatestStatusResponseDto';

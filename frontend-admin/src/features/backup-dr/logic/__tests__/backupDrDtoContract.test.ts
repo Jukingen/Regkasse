@@ -9,7 +9,8 @@ import type {
 } from '@/api/generated/model';
 
 /**
- * Bu testler derleme anında kırılır: client fallback / mapper’lar generated DTO’da olmayan alan okursa TypeScript hata verir.
+ * Mapper’ların kullandığı alanların OpenAPI DTO ile hizalı kalması için anahtar listesi.
+ * Vitest tek başına `tsc` çalıştırmaz — sözleşme için `npm run typecheck` (frontend-admin) kullanın.
  */
 
 describe('backup-dr Orval DTO field allowlist', () => {
@@ -60,17 +61,16 @@ describe('backup-dr Orval DTO field allowlist', () => {
     expect(Object.keys(_).length).toBe(3);
   });
 
-  it('restore drill mappers use only RestoreVerificationRunResponseDto keys', () => {
+  it('mapDumpInspectionTriState / mapRestoreVerificationPhases touch only declared DTO keys', () => {
     const _: Partial<Record<keyof RestoreVerificationRunResponseDto, true>> = {
-      status: true,
       dumpInspectionPassed: true,
-      pgRestoreListPassed: true,
+      pgRestoreListExitCode: true,
       restoreAttemptExecuted: true,
       restoreAttemptPassed: true,
       fiscalSqlSkipped: true,
       fiscalSqlPassed: true,
       integrityChecksPassed: true,
     };
-    expect(Object.keys(_).length).toBe(8);
+    expect(Object.keys(_).length).toBe(7);
   });
 });

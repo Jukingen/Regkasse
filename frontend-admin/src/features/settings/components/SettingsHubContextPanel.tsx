@@ -6,7 +6,7 @@ import React from 'react';
 import { Collapse, List, Space, Typography, Button } from 'antd';
 import Link from 'next/link';
 import { useI18n } from '@/i18n/I18nProvider';
-import { RKSV_HUB_MENU_LEAF_KEY } from '@/shared/adminSidebarNavigation';
+import { RKSV_HUB_PATH } from '@/shared/adminSidebarNavigation';
 
 export function SettingsHubContextPanel() {
   const { t } = useI18n();
@@ -39,7 +39,7 @@ export function SettingsHubContextPanel() {
                 <Link href="/receipt-templates">
                   <Button size="small">{t('settings.hub.linkReceiptTemplates')}</Button>
                 </Link>
-                <Link href={RKSV_HUB_MENU_LEAF_KEY}>
+                <Link href={RKSV_HUB_PATH}>
                   <Button size="small">{t('settings.hub.linkRksv')}</Button>
                 </Link>
               </Space>

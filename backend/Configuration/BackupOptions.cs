@@ -4,6 +4,10 @@ namespace KasseAPI_Final.Configuration;
 /// Phase 1: backup orchestration is config-driven; heavy execution stays out of HTTP and controllers.
 /// Production pg_dump / pg_basebackup / WAL automation plugs in via <see cref="BackupExecutionAdapterKind"/> in later phases.
 /// </summary>
+/// <remarks>
+/// Development’ta gerçek <c>pg_dump</c> (PgDump) kullanımı için yapılandırma: <c>docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md</c>.
+/// Kod Development ortamında PgDump’ı yasaklamaz; varsayılan <see cref="ExecutionAdapterKind"/> Fake seçilir.
+/// </remarks>
 public sealed class BackupOptions
 {
     public const string SectionName = "Backup";
@@ -27,6 +31,10 @@ public sealed class BackupOptions
     public int OrchestratorAdvisoryLockKey2 { get; set; } = 1;
 
     /// <summary>Which adapter performs backup work (no shell in web layer — adapter runs inside worker scope).</summary>
+    /// <remarks>
+    /// <see cref="BackupExecutionAdapterKind.PgDump"/> için <see cref="ArtifactStagingRoot"/> ve geçerli bağlantı dizesi gerekir.
+    /// Yerel geliştirme: docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md.
+    /// </remarks>
     public BackupExecutionAdapterKind ExecutionAdapterKind { get; set; } = BackupExecutionAdapterKind.Fake;
 
     /// <summary>Staging/root path for artifacts (adapter interprets; may be no-op for Fake).</summary>

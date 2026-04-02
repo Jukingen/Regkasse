@@ -68,3 +68,114 @@ describe('ManualActionsPanel — backup trigger', () => {
     expect(mutate).not.toHaveBeenCalled();
   });
 });
+
+describe('ManualActionsPanel — mode-aware confirmations', () => {
+  it('shows action banner and mode-specific backup copy when modeAwareConfirmations provided', async () => {
+    const mutate = vi.fn();
+    render(
+      <ManualActionsPanel
+        canManage
+        backupTrigger={{ isPending: false, mutate }}
+        restoreTrigger={{ isPending: false, mutate: vi.fn() }}
+        modeAwareConfirmations={{
+          actionBannerLine: 'MODE_BANNER',
+          backupTitle: 'BACKUP_TITLE_MODE',
+          backupDescriptionParts: ['BACKUP_PART_A', 'BACKUP_PART_B'],
+          restoreTitle: 'RESTORE_TITLE_MODE',
+          restoreDescriptionParts: ['RESTORE_PART_A'],
+          cardAlert: { severity: 'warning', message: 'CARD_ALERT_MODE' },
+        }}
+        t={(k) => k}
+      />,
+    );
+
+    expect(screen.getByText('MODE_BANNER')).toBeInTheDocument();
+    expect(screen.getByText('CARD_ALERT_MODE')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /backupDr\.actions\.enqueueBackup/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText('BACKUP_TITLE_MODE')).toBeInTheDocument();
+    });
+    expect(screen.getByText('BACKUP_PART_A')).toBeInTheDocument();
+    expect(screen.getByText('BACKUP_PART_B')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'backupDr.manual.confirmBackupOk' }));
+    await waitFor(() => expect(mutate).toHaveBeenCalledWith({ data: {} }));
+  });
+
+  it('restore popconfirm shows mode-aware restore paragraphs', async () => {
+    const mutate = vi.fn();
+    render(
+      <ManualActionsPanel
+        canManage
+        backupTrigger={{ isPending: false, mutate: vi.fn() }}
+        restoreTrigger={{ isPending: false, mutate }}
+        modeAwareConfirmations={{
+          actionBannerLine: null,
+          backupTitle: 'B',
+          backupDescriptionParts: ['x'],
+          restoreTitle: 'RESTORE_TITLE_X',
+          restoreDescriptionParts: ['RESTORE_LATEST_FAKE', 'RESTORE_FOOT'],
+          cardAlert: null,
+        }}
+        t={(k) => k}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /backupDr\.actions\.enqueueRestoreDrill/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText('RESTORE_TITLE_X')).toBeInTheDocument();
+    });
+    expect(screen.getByText('RESTORE_LATEST_FAKE')).toBeInTheDocument();
+    expect(screen.getByText('RESTORE_FOOT')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'backupDr.manual.confirmRestoreOk' }));
+    await waitFor(() => expect(mutate).toHaveBeenCalledWith({ data: {} }));
+  });
+});
+
+describe('ManualActionsPanel — restore drill trigger', () => {
+  it('confirm flow calls mutate with empty body (symmetry with backup)', async () => {
+    const mutate = vi.fn();
+    render(
+      <ManualActionsPanel
+        canManage
+        backupTrigger={{ isPending: false, mutate: vi.fn() }}
+        restoreTrigger={{ isPending: false, mutate }}
+        t={(k) => k}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /backupDr\.actions\.enqueueRestoreDrill/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText('backupDr.manual.confirmRestoreTitle')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'backupDr.manual.confirmRestoreOk' }));
+
+    await waitFor(() => {
+      expect(mutate).toHaveBeenCalledWith({ data: {} });
+    });
+    expect(mutate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call restore mutate when manage permission is off', () => {
+    const mutate = vi.fn();
+    render(
+      <ManualActionsPanel
+        canManage={false}
+        backupTrigger={{ isPending: false, mutate: vi.fn() }}
+        restoreTrigger={{ isPending: false, mutate }}
+        t={(k) => k}
+      />,
+    );
+
+    const btn = screen.getByRole('button', { name: /backupDr\.actions\.enqueueRestoreDrill/ });
+    expect(btn).toBeDisabled();
+    fireEvent.click(btn);
+    expect(mutate).not.toHaveBeenCalled();
+  });
+});

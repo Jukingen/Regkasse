@@ -88,9 +88,9 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         }
     }
 
-    private IBackupExecutionAdapter SelectAdapter()
+    private IBackupExecutionAdapter SelectAdapter(BackupExecutionAdapterKind kind)
     {
-        return _options.CurrentValue.ExecutionAdapterKind switch
+        return kind switch
         {
             BackupExecutionAdapterKind.ProductionStub => _productionStubAdapter,
             BackupExecutionAdapterKind.PgDump => _pgDumpAdapter,
@@ -243,7 +243,11 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         CancellationToken ct)
     {
         var opts = _options.CurrentValue;
-        var adapter = SelectAdapter();
+        var prefExec = await db.BackupRuntimeExecutionPreferences.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == BackupRuntimeExecutionPreference.SingletonId, ct);
+        var adminModeExec = prefExec?.Mode ?? AdminBackupRuntimeExecutionMode.InheritFromConfiguration;
+        var effectiveKindExec = BackupEffectiveExecutionAdapterResolver.ResolveEffectiveAdapterKind(opts, adminModeExec);
+        var adapter = SelectAdapter(effectiveKindExec);
             var execContext = new BackupExecutionContext(run.Id, run.CorrelationId, adapter.AdapterKind, ct);
 
             BackupExecutionResult result;

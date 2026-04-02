@@ -46,7 +46,6 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         string? correlationId,
         CancellationToken cancellationToken = default)
     {
-        var adapterKind = _options.CurrentValue.ExecutionAdapterKind.ToString();
         var normalizedIdempotency = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
 
         await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
@@ -104,6 +103,11 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         }
 
         var opts = _options.CurrentValue;
+        var pref = await _db.BackupRuntimeExecutionPreferences.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == BackupRuntimeExecutionPreference.SingletonId, cancellationToken);
+        var adminMode = pref?.Mode ?? AdminBackupRuntimeExecutionMode.InheritFromConfiguration;
+        var effectiveKind = BackupEffectiveExecutionAdapterResolver.ResolveEffectiveAdapterKind(opts, adminMode);
+        var adapterKind = effectiveKind.ToString();
         var run = new BackupRun
         {
             Status = BackupRunStatus.Queued,
@@ -117,7 +121,9 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
             ConfigSnapshotJson = OperationalRunConfigSnapshotBuilder.SerializeBackup(
                 opts,
                 "backup_manual_enqueue",
-                DateTime.UtcNow)
+                DateTime.UtcNow,
+                effectiveKind,
+                adminMode)
         };
 
         _db.BackupRuns.Add(run);

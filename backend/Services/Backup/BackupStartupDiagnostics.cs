@@ -13,8 +13,10 @@ public static class BackupStartupDiagnostics
     {
         using var scope = services.CreateScope();
         var opts = scope.ServiceProvider.GetRequiredService<IOptions<BackupOptions>>().Value;
+        var restoreOpts = scope.ServiceProvider.GetRequiredService<IOptions<RestoreVerificationOptions>>().Value;
         var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var probeState = scope.ServiceProvider.GetRequiredService<IBackupPostgresClientToolingProbeState>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("BackupStartup");
 
         var snap = BackupConfigurationEvaluation.Evaluate(opts, env, configuration);
@@ -27,17 +29,39 @@ public static class BackupStartupDiagnostics
                 snap.BackupExecutionReality,
                 snap.RealPostgreSqlLogicalDumpConfigured,
                 snap.WorkerEnabled);
-            return;
+        }
+        else
+        {
+            logger.LogWarning(
+                "Backup orchestration: health={Level}, adapterKind={Adapter}, executionReality={Reality}, realPostgreSqlLogicalDump={RealPg}, workerEnabled={Worker}, narrative={Narrative}, issues={@Issues}",
+                snap.Level,
+                snap.EffectiveAdapterKind,
+                snap.BackupExecutionReality,
+                snap.RealPostgreSqlLogicalDumpConfigured,
+                snap.WorkerEnabled,
+                snap.ReadinessNarrative,
+                snap.Issues);
         }
 
-        logger.LogWarning(
-            "Backup orchestration: health={Level}, adapterKind={Adapter}, executionReality={Reality}, realPostgreSqlLogicalDump={RealPg}, workerEnabled={Worker}, narrative={Narrative}, issues={@Issues}",
-            snap.Level,
-            snap.EffectiveAdapterKind,
-            snap.BackupExecutionReality,
-            snap.RealPostgreSqlLogicalDumpConfigured,
-            snap.WorkerEnabled,
-            snap.ReadinessNarrative,
-            snap.Issues);
+        var diagnosticCodes = snap.Diagnostics.Select(d => d.Code).ToArray();
+        if (diagnosticCodes.Length > 0)
+        {
+            logger.LogInformation(
+                "Backup configuration diagnostics (machine codes): {DiagnosticCodes}",
+                diagnosticCodes);
+        }
+
+        BackupDevelopmentToolingDiagnostics.LogPostgresClientToolingIfDevelopment(env, logger, opts, restoreOpts, probeState);
+
+        var toolingSnap = probeState.Snapshot;
+        if (!toolingSnap.ProbesSkipped && env.IsDevelopment() && opts.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump)
+        {
+            logger.LogInformation(
+                "Backup development tooling summary: pg_dump_ok={PgDumpOk}, pg_restore_ok={PgRestoreOk}, pg_dump_failureKind={PgDumpFail}, pg_restore_failureKind={PgRestoreFail}",
+                toolingSnap.PgDumpProbeSucceeded,
+                toolingSnap.PgRestoreProbeSucceeded,
+                toolingSnap.PgDumpFailureKind,
+                toolingSnap.PgRestoreFailureKind);
+        }
     }
 }

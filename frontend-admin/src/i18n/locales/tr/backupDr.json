@@ -3,46 +3,226 @@
     "title": "Yedekleme ve felaket kurtarma",
     "subtitle": "Yalnızca kontrol ve görünürlük. Yürütme arka plan işçisinde — bu arayüzde değil."
   },
+  "operatorTruth": {
+    "noTimestampFromApi": "Zaman damgası yok (bildirilmedi)",
+    "recoverabilityProofGap": "Bu API yanıtında en az bir kanıt zaman damgası eksik — sessizlikten kurtarılabilirlik çıkarmayın."
+  },
   "recoverability": {
-    "title": "Kurtarılabilirlik kanıtları (son bilinen iyi durum)",
-    "subtitle": "En son istenen çalıştırmadan ayrıdır; varsa en son başarılı kanıtları gösterir.",
-    "lastGoodBackup": "Son başarılı yedek",
+    "title": "Son bilinen iyi sinyaller (API — tam kurtarma kanıtı değil)",
+    "subtitle": "Satırlar API’nin bildirdiği son başarılı kontrol zaman damgalarıdır — aşağıdaki “son istek” ile aynı değildir. Simüle başarı sunumu güçlendirmez.",
+    "proofSectionTitle": "Kanıt sinyalleri (API)",
+    "proofSectionIntro": "“Son ne başarılı oldu” için — en güncel işin bitip bitmediği değil.",
+    "simulatedEnvironmentStrip": "Fake/Stub modunda “kanıt” zaman damgaları API defter kaydıdır (hat kontrolleri) — üretim kurtarması veya gerçek döküm değildir.",
+    "proofBlock": {
+      "backup": "Son yedek çalıştırması başarılı bildirildi (API kanıtı)",
+      "backupStub": "Son yedek hattı başarısı (API) — simüle/stub; geri yüklenebilir üretim verisi değil",
+      "artifactVerification": "Son artefakt doğrulaması tamam bildirildi (bütünlük kontrolleri — API)",
+      "artifactVerificationScope": "Staging/hash kapsamı — tam iş kurtarma testi değildir.",
+      "restoreDrill": "Son restore tatbikatı başarılı bildirildi (API kanıtı)"
+    },
+    "requestsSectionTitle": "Son istekler (operasyonel)",
+    "requestsSectionIntro": "Yalnızca kuyruk/çalıştırma durumu — üstteki eski kanıtlar varken başarısız olabilir.",
+    "freshnessFootnote": {
+      "recent": "Yaş taze görünüyor; yine de yedek politikanızla doğrulayın.",
+      "aging": "Kanıt yaşlanıyor — daha yeni çalıştırmaların bunu güncellemesi gerekir mi kontrol edin.",
+      "stale": "Kanıt eski — bu görünüm dışında daha yeni yedek/tatbikat var mı bakın.",
+      "unknown": "Yaş bildirilmedi — tazelik bilinmiyor."
+    },
+    "lastGoodBackup": "Son yedek başarılı bildirildi (API)",
     "lastGoodBackupSimulatedWarning": "Son başarılı yedek çalıştırması simüle edildi (Fake/Stub) — üretim pg_dump kanıtı değil. Bu DR hazırlığı değildir.",
-    "lastGoodArtifactVerification": "Son başarılı artefakt doğrulaması",
-    "lastGoodRestoreProof": "Son başarılı restore tatbikatı",
-    "backupProofAge": "Yedek kanıtı yaşı",
-    "restoreProofAge": "Restore tatbikatı kanıtı yaşı",
+    "simulatedProofCompact": "Son bilinen iyi yedek kanıtı simüle çalıştırmadan; aşağıdaki çalıştırma profili ve pg_dump satırı geçerli — üretim DR kanıtı değil.",
+    "lastGoodArtifactVerification": "Son artefakt doğrulaması tamam bildirildi (API)",
+    "lastGoodRestoreProof": "Son restore tatbikatı başarılı bildirildi (API)",
+    "backupProofAge": "Yedek kanıtı yaşı (API)",
+    "restoreProofAge": "Restore tatbikatı kanıtı yaşı (API)",
     "latestBackupRequest": "Son yedek isteği (herhangi bir sonuç)",
     "latestRestoreRequest": "Son restore tatbikatı isteği (herhangi bir sonuç)",
+    "latestRequestVsProofHint": "Buradaki etiketler yalnızca istek durumudur — “son bilinen iyi” kanıtı değildir.",
+    "latestDrillFailedVsProofTimestamps": "Son geri yükleme tatbikatı isteği başarısız (Geri yükleme doğrulaması bölümüne bakın). Yukarıdaki “son başarılı tatbikat” zamanı daha eski bir çalıştırmayı gösterebilir — güncel hatayı operasyonel olarak geçersiz kılmaz.",
     "executionProfile": "Çalıştırma profili (sunucu)",
     "realPgDumpConfigured": "Gerçek PostgreSQL mantıksal dökümü (pg_dump)",
     "readinessLevel": "Yedek hazırlığı (sunucu yapılandırması)",
     "serverNarrative": "Sunucu notu (İngilizce)"
   },
+  "operatorValidity": {
+    "stubDataPlaneTitle": "Geliştirme / simülasyon modu (Fake adaptör)",
+    "stubDataPlaneBody": "Yedek hattı tasarıma uygun çalışıyor: kuyruk, işçi ve artefakt satırları gerçek pg_dump üretmeden test edilir. Bu “bozuk yedek” değil; PgDump, staging ve PostgreSQL araçları yapılandırılana kadar bilinçli stub’dur. İndirmeler yalnızca test artefaktıdır.",
+    "executionModeFakeOverrideBody": "Admin yedek çalıştırma modu Fake (veya stub): işçi, yapılandırma dosyasındaki varsayılan adaptörden bağımsız olarak simüle artefakt kullanır. Bu üretim PostgreSQL mantıksal dökümü değildir. Gerçek döküm için çalıştırma modunu ve yapılandırmayı Real (PgDump) yapın.",
+    "executionModeRequestedRealEffectiveSimulatedTitle": "Real istenmiş, etkin yüzey simüle",
+    "executionModeRequestedRealEffectiveSimulatedBody": "Kayıtlı tercih Real (PgDump) iken etkin işçi profili Fake veya ProductionStub. Çalıştırma modu API’si ve yapılandırma uyum sağlayana kadar çıktıları simüle kabul edin.",
+    "executionModeRequestedFakeEffectivePgDumpTitle": "Fake kayıtlı, etkin adaptör PgDump",
+    "executionModeRequestedFakeEffectivePgDumpBody": "Veritabanı tercihi Fake iken etkin adaptör PgDump — “yapılandırmayı izle” niyetinizi veya mod değişiminden sonra sayfayı yenilemeyi doğrulayın.",
+    "executionModeRequestedRealBlockedTitle": "Real seçili ancak çalıştırılamıyor",
+    "executionModeRequestedRealBlockedBody": "Hedef adaptör Real (PgDump) kalır ancak yapılandırma sağlığı Unhealthy — staging, bağlantı dizesi, araçlar ve arşiv kuralları düzeltilene kadar çalıştırmalar güvenilmez. Sessiz Fake düşüşü yoktur.",
+    "noRealPgConfiguredTitle": "Gerçek pg_dump yolu yapılandırılmamış",
+    "noRealPgConfiguredBody": "Sunucu gerçek PostgreSQL mantıksal dökümünün yapılandırılmadığını bildiriyor. pg_dump etkin ve kanıtlanana kadar “başarılı” çalıştırma anlamlı veritabanı yedeği sayılmaz.",
+    "realPgUnknownTitle": "Gerçek pg_dump: sinyal eksik",
+    "realPgUnknownBody": "Bu arayüz API’den gerçek bir pg_dump’ın yapılandırılıp yapılandırılmadığını kesin doğrulayamıyor. Sunucuda doğrulayın; kurtarılabilirliği yalnızca iş durumundan çıkarmayın.",
+    "realPgButProofGapsTitle": "Operasyonel döküm mümkün — kurtarılabilirlik tam kanıtlı değil",
+    "realPgButProofGapsBody": "pg_dump yolu yapılandırılmış olabilir ancak bu yanıtta son başarı zaman damgaları eksik. Kanıt boşlukları kapanana kadar indirmeler onaylı son iyi yedek sayılmaz.",
+    "strongSignalsTitle": "Güçlü kurtarılabilirlik sinyalleri (API sınırları içinde)",
+    "strongSignalsBody": "Gerçek pg_dump yapılandırılmış görünüyor, kanıt zaman damgaları tam, son restore tatbikatı başarılı — bu sayfadaki en iyi sinyal. RPO/RTO’yu yine de politika dışında doğrulayın.",
+    "realPgOperationalTitle": "Gerçek pg_dump bildirildi — tatbikat kanıtı yok veya son tatbikat başarısız",
+    "realPgOperationalBody": "Ortam gerçek PostgreSQL mantıksal dökümü bildiriyor ancak son restore tatbikatı başarılı değil veya burada başarılı görünmüyor. Politikaya uygun geçen bir tatbikat olana kadar kurtarmayı kanıtsız kabul edin."
+  },
+  "fakeMode": {
+    "bannerTitle": "Sahte / simüle yedek adaptörü etkin",
+    "bannerBody": "Fake modu yerel geliştirme için beklenen ve güvenli bir varsayılandır — ürün hatası değildir. Sunucu pg_dump çalıştırmaz: “başarı”, entegrasyon testi için orkestrasyonun bittiği anlamına gelir; geri yüklenebilir PostgreSQL arşivi değildir. İndirmeler küçük yer tutuculardır. Stub dosyada PG_RESTORE_LIST_FAILED gibi tatbikat sonuçları PgDump’a geçene kadar sık normaldir. Kanıt zaman damgaları yalnızca kayıt tutmadır.",
+    "bannerRealBackupPrereq": "Gerçek mantıksal yedek için: PgDump adaptörü, mutlak staging dizini, PostgreSQL bağlantı dizesi ve API ana bilgisayarında çalışan pg_dump/pg_restore gerekir. Dosyalar staging kökünüzde oluşur (kontrol listesine bakın)."
+  },
+  "realDumpMode": {
+    "bannerTitle": "Gerçek PostgreSQL mantıksal döküm yolu (pg_dump) etkin",
+    "bannerBody": "Sunucu PgDump tarzı yapılandırma bildiriyor: yedekler gerçek özel biçim arşivi üretebilir ve geri yükleme tatbikatları bu dosyada pg_restore --list çalıştırabilir. Anlamlı tatbikat önkoşuludur — boyut, saklama ve off-site kopyaları yine runbook ile doğrulayın."
+  },
+  "devRealPgDump": {
+    "title": "Geliştirici kontrol listesi: Development’ta gerçek pg_dump",
+    "jumpToChecklist": "Geliştirici kontrol listesine git",
+    "docRepoFileLead": "Depodaki asıl kılavuz dosyası:",
+    "intro": "API, ASPNETCORE_ENVIRONMENT=Development iken PgDump’ı engellemez. Asgari yapılandırma:",
+    "sectionEnableTitle": "Gerçek mantıksal yedeği nasıl açarsınız",
+    "sectionTroubleshootingTitle": "Hâlâ takılıyorsanız",
+    "itemAdapter": "Backup__ExecutionAdapterKind=PgDump ayarlayın (veya appsettings / User Secrets içinde Backup:ExecutionAdapterKind).",
+    "itemStaging": "Backup__ArtifactStagingRoot’u API sürecinin yazabildiği boş olmayan mutlak bir dizin olarak verin.",
+    "itemConnection": "Geçerli PostgreSQL bağlantı dizesi sağlayın (ör. ConnectionStrings__DefaultConnection veya tanımlı bir bağlantıya Backup__LogicalDumpConnectionStringName).",
+    "itemBinaries": "pg_dump ve pg_restore PATH’te olsun veya Backup__PgDumpExecutablePath ile RestoreVerification__PgRestoreExecutablePath ayarlayın.",
+    "stuckFakeAdapter": "Hâlâ Fake: etkin adaptör Fake — Backup:ExecutionAdapterKind değerini PgDump yapıp API’yi yeniden başlatın.",
+    "stuckStaging": "Staging eksik: PgDump için Backup:ArtifactStagingRoot (mutlak yol, yazılabilir) gerekir.",
+    "stuckConnection": "Bağlantı dizesi: ConnectionStrings:DefaultConnection (veya Backup:LogicalDumpConnectionStringName) PostgreSQL’e Host, Username, Database ile ulaşmalı. Eksikler Development’ta artık ilk yedekten önce bu sayfadaki yapılandırma uyarılarında görünür.",
+    "stuckPgDump": "pg_dump bulunamadı: PostgreSQL istemci araçlarını kurun veya Backup:PgDumpExecutablePath verin. Başlangıç sonrası „Backup development tooling“ loglarına bakın.",
+    "stuckPgRestore": "pg_restore bulunamadı (geri yükleme tatbikatları): RestoreVerification:PgRestoreExecutablePath veya PATH. Aynı log öneki.",
+    "expectedOutputPath": "Staging kökünde: logical_{runId}_{timestamp}Z.dump ve manifest_{runId}.json. Gerçek özel biçim PGDMP ile başlar (pg_restore --list ile doğrulayın).",
+    "startupLogsHint": "„KASSE API STARTED“ sonrası BackupStartup logları: yapılandırma sorunları erken listelenir; Development’ta PgDump seçiliyken pg_dump/pg_restore --version bir kez sınanır.",
+    "docHint": "Ayrıntılı yürüyüş (yollar, dosya adları, doğrulama, sorun giderme): depo dosyası backend/docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md"
+  },
+  "evidence": {
+    "title": "Yedek kanıt basamakları (API neyi kanıtlayabilir)",
+    "footer": "Başarılı pg_restore --list, ham bayt olmadan bile özel biçim arşivinin okunabilir olduğuna güçlü dolaylı kanıttır. İş kurtarması bu sayfanın dışında politika ve saklama ile doğrulanır.",
+    "backendGapsTitle": "API’de görünmeyen sinyaller (gerekirse sunucuda doğrulayın)",
+    "gaps": {
+      "pgdmpHeader": "PGDMP başlık baytları API yanıtında yok; hex inceleme veya aynı dosyada başarılı pg_restore --list güveni.",
+      "stagingPathRedacted": "Mutlak staging dizini güvenlik nedeniyle API’de yok; worker çalıştıran makinede kontrol edin."
+    },
+    "status": {
+      "pass": "Sağlandı",
+      "fail": "Sağlanmadı",
+      "unknown": "Bilinmiyor",
+      "na": "Uygulanamaz",
+      "limited": "Kısıtlı / stub"
+    },
+    "headline": {
+      "noTechnicalSuccess": "Son yedek işi başarıyla tamamlanmış görünmüyor — gerçek döküm kanıtı henüz yok.",
+      "stubPipeline": "Stub/Fake hat: teknik başarı geri yüklenebilir PostgreSQL arşifi üretmez.",
+      "noRealPgPath": "Sunucu gerçek pg_dump yolu bildirmiyor — artefaktlar üretim mantıksal dökümü sayılmaz.",
+      "realPathButFileUncertain": "PgDump yapılandırılmış ancak mantıksal döküm dosyası eksik veya belirsiz.",
+      "strongWithinApi": "API sınırları içinde güçlü: gerçek hat, dosya var, liste OK, tatbikat OK, zaman damgaları tam — politika yine dışarıda.",
+      "listOkMoreProofMayBeMissing": "Liste adımı iyi görünüyor — tatbikat ve özet zaman damgalarını ayrı doğrulayın.",
+      "realDumpWorkInProgress": "Gerçek pg_dump etkin — tam kanıt için doğrulama ve restore tatbikatları tamamlayın.",
+      "requestedRealButEffectiveStub": "Kanıt basamakları: Real istenmiş, etkin hat simüle — artefaktları PostgreSQL mantıksal dökümü saymayın.",
+      "requestedRealButPrerequisitesBlocked": "Kanıt basamakları: Real (PgDump) seçili, profil çalıştırılamıyor — döküm dosyası ve tatbikat kanıtı beklemeden önce önkoşulları giderin."
+    },
+    "steps": {
+      "technicalJob": {
+        "label": "1. Yedek işi tamamlandı (teknik)",
+        "detail": "API terminal başarı bildirir — orkestrasyon bitti, kurtarma kanıtı değildir."
+      },
+      "realPgConfigured": {
+        "label": "2. Gerçek pg_dump yapılandırıldı",
+        "detail": "Sağlık/özet PgDump mantıksal döküm yolunu bildirir; Fake/stub değil."
+      },
+      "nonStubRun": {
+        "label": "3. Simüle olmayan çalıştırma",
+        "detail": "Son başarılı çalıştırma simüle değil ve Fake adaptör değil — operasyonel döküm önkoşulu."
+      },
+      "logicalDumpFile": {
+        "label": "4. Mantıksal döküm artefaktı bildirildi",
+        "detailNa": "Tamamlanmış başarılı çalıştırma yok.",
+        "detailStub": "Stub baytlar satır olarak görünebilir — özel biçim arşivi değildir.",
+        "detailPass": "Mantıksal döküm satırı var ve API dosyayı sunucuda mevcut bildiriyor.",
+        "detailFail": "Mantıksal döküm yok veya dosya yok.",
+        "detailUnknown": "Varlık belirsiz — çalıştırma detayını yenileyin."
+      },
+      "artifactVerification": {
+        "label": "5. Artefakt doğrulama (staging/checksum)",
+        "detailNa": "Bağlam yok.",
+        "detailStub": "Yer tutucu üzerinde doğrulama — gerçek döküm kanıtı değil.",
+        "detailPass": "Son doğrulama son çalıştırmayla eşleşiyor ve geçti.",
+        "detailFail": "Doğrulama başarısız.",
+        "detailUnknown": "Uygun doğrulama satırı yok veya beklemede."
+      },
+      "dumpListInspection": {
+        "label": "6. Döküm arşiv olarak okunabilir (pg_restore --list)",
+        "detailNoDrill": "Henüz restore tatbikatı yok.",
+        "detailDrillInFlight": "Tatbikat kuyrukta veya çalışıyor.",
+        "detailPassIndirect": "pg_restore --list başarılı — güçlü dolaylı kanıt; ham PGDMP API’de yok.",
+        "detailFailReal": "Gerçek hatta liste adımı başarısız — loglara bakın.",
+        "detailStubExpected": "Fake/stub için beklenen — arşiv yok; PgDump gerekir.",
+        "detailUnknown": "Sonuç belirsiz — geri yükleme doğrulama kartı."
+      },
+      "restoreDrillCompleted": {
+        "label": "7. Restore tatbikatı başarıyla bitti (API)",
+        "detailNoRow": "Geçmişte tatbikat yok.",
+        "detailInFlight": "Tatbikat henüz bitmedi.",
+        "detailPass": "Son tatbikat başarılı — tam iş kurtarma programı değil.",
+        "detailNotOk": "Son tatbikat başarısız."
+      },
+      "recoverabilityProof": {
+        "label": "8. Kurtarılabilirlik zaman damgaları (özet)",
+        "detailGap": "Özet API’de en az bir kanıt zaman damgası eksik.",
+        "detailOk": "Üç zaman damgası da yanıtta var."
+      },
+      "isolatedRestore": {
+        "label": "9. İzole geri yükleme denemesi (isteğe bağlı)",
+        "detailNotRun": "Çalıştırılmadı.",
+        "detailPass": "API denemeyi başarılı bildirdi.",
+        "detailFail": "API denemeyi başarısız bildirdi."
+      }
+    }
+  },
   "scope": {
     "title": "Bu sayfa ne yapar (ve yapmaz)",
-    "body": "Tarayıcıda yedek dosyası üretilmez ve buradan geri yükleme komutu çalıştırılmaz. Düğmeler yalnızca API kuyruğuna iş ekler; yürütme ve artefaktlar backend işçisinde çalışır."
+    "body": "Tarayıcıda yedek dosyası üretilmez ve buradan geri yükleme komutu çalıştırılmaz. Düğmeler yalnızca API kuyruğuna iş ekler; yürütme ve artefaktlar backend işçisinde çalışır. Boş veya hatalı indirme akışları sunucu/depolama sorunlarıdır — bu arayüz yalnızca API meta verilerini ve istemci tarafı anomali ipuçlarını gösterir; arka uç davranışını onarmaz.",
+    "devRealPgLead": "Geliştirmede çoğu zaman Fake adaptörü (stub baytlar) kullanılır — bu kasıtlıdır. Diskte gerçek PostgreSQL özel biçim dökümleri için PgDump, staging, bağlantı dizesi ve istemci ikililerini yapılandırın; aşağıdaki kontrol listesi ve depo belgesini kullanın."
   },
   "banner": {
     "criticalTitle": "Kritik uyarılar",
     "warningTitle": "Kısıtlı / dikkat",
+    "informationalTitle": "Bu yapılandırmada beklenen (olay değil)",
     "backupConfigUnhealthy": "Yedek yapılandırması kritik.",
     "backupConfigDegraded": "Yedek yapılandırması kısıtlı.",
     "restoreReadinessUnhealthy": "Geri yükleme doğrulaması hazırlığı kritik.",
     "restoreReadinessDegraded": "Geri yükleme doğrulaması hazırlığı kısıtlı.",
     "externalArchiveDegraded": "Harici artefakt kopyası başarısız veya tutarsız — yedek çalıştırması teknik olarak yine de başarılı olabilir.",
     "noRealPostgreSqlBackup": "Yapılandırılmış gerçek PostgreSQL pg_dump yok",
-    "latestRunSimulatedNotProduction": "Son yedek çalıştırması simüle/stub modunda başarılı — üretim pg_dump artefaktı değil."
+    "latestRunSimulatedNotProduction": "Son çalıştırma stub hattını başarıyla tamamladı — Fake modunda tasarım gereği üretim pg_dump artefaktı yok.",
+    "restoreDrillStubListFailedExpected": "Geri yükleme tatbikatı: pg_restore --list stub dosyayı okuyamaz (PostgreSQL özel biçim arşivi değil). Fake/stub için beklenir — üretim DR’nin bozuk olduğu anlamına gelmez; gerçek arşivlerde liste/geri yükleme için PgDump yapılandırın.",
+    "restoreDrillRealListFailedPgRestoreUnavailable": "Geri yükleme tatbikatı: pg_restore işçi üzerinde başlatılamadı (PATH/ikili). Bu, ana bilgisayardaki araç eksikliğidir — “veritabanı geri yüklemesi bozuldu” ile aynı şey değildir; istemci araçları veya RestoreVerification:PgRestoreExecutablePath ayarlayın.",
+    "restoreDrillRealListFailedDumpMissing": "Geri yükleme tatbikatı: mantıksal döküm dosyası çözümlenen yolda bulunamadı. Staging/arşiv yolları, izinler ve işçi erişimini kontrol edin — stub artefakt sınırlaması değildir.",
+    "restoreDrillRealListFailedBadArchive": "Geri yükleme tatbikatı: yedek hattı gerçekken pg_restore --list dosyayı reddetti. Kurtarılabilirlik riski sayın — arşiv bozuk veya geçerli özel biçim değil olabilir.",
+    "restoreDrillRealListFailedUnknown": "Geri yükleme tatbikatı: stub olmayan hat üzerinde pg_restore --list bilinmeyen nedenle başarısız — hata ayrıntısı ve işçi günlüklerini inceleyin.",
+    "healthIssuesSummary": "{{count}} yedek yapılandırma uyarısı — ayrıntılar aşağıdaki Yapılandırma sağlığı kartında.",
+    "restoreIssuesSummary": "{{count}} geri yükleme doğrulama hazırlığı uyarısı — ayrıntılar aşağıdaki hazırlık kartında.",
+    "executionModeRequestedRealEffectiveSimulated": "Yedek çalıştırma modu uyumsuzluğu: Real istenmiş, etkin işçi profili simüle (Fake/Stub). Sunucu durumu kayıtlı tercihle eşleşene kadar PostgreSQL mantıksal dökümü varsaymayın.",
+    "executionModeRequestedRealBlocked": "Real (PgDump) seçili, etkin profil çalıştırılamıyor — önkoşullar unhealthy. İşçi hâlâ PgDump hedefler; otomatik Fake geçişi yoktur. Gerçek dökümler için yapılandırmayı düzeltin.",
+    "executionModeRequestedFakeEffectivePgDump": "Kayıtlı tercih Fake, etkin işçi adaptörü PgDump — genelde “yapılandırmayı izle” veya geçici yenileme. Çalıştırma modu kartını ve sunucu özetini doğrulayın.",
+    "executionModeFallbackGuidanceOnly": "Sunucu, önkoşullar sağlıklı olana kadar „{{mode}}“ modunu düşünmeyi önerir — yalnızca yönlendirme; API bunu otomatik uygulamaz."
   },
   "summary": {
-    "backupHealth": "Yedek sağlığı",
+    "backupHealth": "Yedek sağlığı (API özeti)",
+    "backupHealthFootnote": "Yalnızca yapılandırma sinyali — kurtarmanın çalışacağını kanıtlamaz.",
+    "backupHealthFootnoteFake": "Sahte/stub adaptör: bu yalnızca yapılandırma kontrolüdür — üretim yedek sağlığı veya DR hazırlığı değildir.",
+    "restoreReadinessFootnoteFake": "Yalnızca işçi/yapılandırma sinyali. Sahte adaptör ve gerçek pg_dump yokken hazırlık, gerçek dökümlerde tatbikatın başarılı olacağı anlamına gelmez (ör. stub üzerinde pg_restore --list).",
     "backupConfig": "Yapılandırma (yedek)",
     "pipelinePolicy": "Artefakt hattı (özet)",
     "latestBackupRun": "Son yedek çalıştırması",
-    "restoreReadiness": "Geri yükleme doğrulaması hazırlığı (operatör gerçeği)",
+    "restoreReadiness": "Geri yükleme doğrulaması hazırlığı (API sinyali)",
+    "restoreReadinessFootnote": "Yapılandırma/işçi sinyali — uçtan uca DR kanıtı değildir.",
     "configurationShort": "Yapılandırma (özet)",
+    "fakeAdapterConfigNote": "Bağdaştırıcı Fake/Stub — “sağlıklı” yedek, geri yüklenebilir veritabanı yedeği anlamına gelmez.",
+    "fakeAdapterConfigNoteTooltip": "Fake/Stub, varsayılan geliştirme ortamında beklenir.\n\nGerçek yedek için:\n• Backup:ExecutionAdapterKind = PgDump\n• Backup:ArtifactStagingRoot = mutlak, yazılabilir klasör\n• Bağlantı dizesi (ör. ConnectionStrings:DefaultConnection) — Host, Username, Database\n• PATH’te pg_dump ve pg_restore veya açık yürütülebilir yollar\n\nDiskte (PgDump): staging altında — logical_{runId}_{timestamp}Z.dump ve manifest_{runId}.json (geliştirici belgesine bakın).",
     "externalArchiveCard": "Harici arşiv (son çalıştırma artefaktları)",
-    "unknown": "Bilinmiyor / veri yok"
+    "unknown": "Bilinmiyor / veri yok",
+    "executionModeSurfaceTitle": "Çalıştırma modu (kaydedilen vs. etkin)",
+    "executionModeSurfaceBody": "İstenen: {{requested}} · Etkin: {{effective}} · Yapılandırma varsayılanı: {{defaultMode}} · Çalıştırılabilir: {{runnable}} — değişiklikler için Çalıştırma modu kartı; „Çalıştırılabilir: Hayır“, Real seçili olsa bile önkoşulların sağlıklı çalıştırmayı engellediği anlamına gelir."
   },
   "pipelineSteps": {
     "sectionTitle": "Hat adımları",
@@ -92,7 +272,7 @@
     "state": {
       "pending": "Beklemede",
       "running": "Çalışıyor",
-      "success": "Tamam",
+      "success": "Tamamlandı",
       "failed": "Başarısız",
       "skipped": "Uygulanamaz",
       "degraded": "Kısıtlı"
@@ -112,6 +292,8 @@
   },
   "readiness": {
     "title": "Geri yükleme doğrulaması — hazırlık",
+    "notEndToEndDr": "Bu bölüm backend yapılandırması ve işçi sinyallerini bildirir; tam üretim kurtarma tatbikatının uçtan uca başarılı olduğunu kanıtlamaz.",
+    "backendReportedSignal": "Seviye ve bayraklar sunucudan gelir — bağımsız doğrulanmış operasyonel hazırlık değildir.",
     "restoreWorker": "Geri yükleme işçisi",
     "restoreWorkerDisabled": "Geri yükleme doğrulama işçisi kapalı — tatbikatlar işlenmez.",
     "noIssues": "Bu yanıtta ek not yok.",
@@ -134,10 +316,35 @@
   "manual": {
     "title": "Manuel eylemler (yalnızca kuyruk)",
     "hint": "İşler API üzerinden asenkron kuyruğa alınır. Başarıdan sonra artefaktlar aşağıdan indirilebilir (Fake/ProductionStub stub’ları sunucudaysa — üretim pg_dump değil). „Ayarları yönet“; denetim.",
+    "hintFake": "Sahte/stub modu: kuyruk işleri hattı çalıştırır ancak artefaktlar yer tutucudur. PG_RESTORE_LIST_FAILED ile başarısız tatbikat, gerçek PostgreSQL mantıksal dökümü olana kadar sık görülür — ayrıntı için Geri yükleme doğrulaması kartına bakın.",
+    "modeLabelUnknown": "Bilinmiyor",
+    "actionBannerEffective": "Şu an etkin yürütme: {{mode}} (işçi adaptörü {{adapter}}). Yeni çalıştırma bu profili kullanır.",
+    "actionBannerAdapterOnly": "Çalıştırma modu yüklenmedi — sağlık özetindeki adaptör: {{adapter}}. Kayıtlı vs. etkin için Çalıştırma modu kartına bakın; tetik yine canlı sunucu durumunu kullanır.",
+    "effectiveExecutionLine": "Etkin şimdi: {{mode}} — işçi adaptörü {{adapter}}.",
+    "effectiveExecutionLineFallback": "Çalıştırma modu API’si yok. Son sağlık bildirimi: adaptör {{adapter}}.",
     "confirmBackupTitle": "Yedek kuyruğa alınsın mı?",
-    "confirmBackupDescription": "Sunucu işçisinde yeni çalıştırma kuyruğa almak için admin yedek API’sini çağırır. Anında indirme değildir; geri yükleme kanıtı da değildir.",
+    "confirmBackupIntro": "Sunucu işçisinde yedek çalıştırması kuyruğa alınır (yük, depolama G/Ç). Anında indirme değildir; kurtarılabilirlik kanıtı değildir. Denetim.",
+    "confirmBackupDescription": "Sunucu işçisinde yedek çalıştırması kuyruğa alınır (yük, depolama G/Ç). Anında indirme değildir; kurtarılabilirlik kanıtı değildir. Denetim.",
+    "confirmBackupMismatchRequestedRealEffectiveSimulated": "Kayıtlı tercih {{requested}}, etkin profil ise {{effective}} (simüle). Sunucu Real ile uyum sağlayana kadar bu kuyruk gerçek PostgreSQL dökümü üretmez — kasıtsızsa önce düzeltin.",
+    "confirmBackupMismatchRequestedRealBlocked": "Real (PgDump) kayıtlı ancak önkoşullar unhealthy: çalıştırmalar PgDump hedefler ve başarısız olabilir. Sessiz Fake düşüşü yoktur.",
+    "confirmBackupBehaviorSimulated": "Bu modda işçi yalnızca simüle veya stub artefakt üretir — geri yüklenebilir üretim pg_dump arşivi değildir.",
+    "confirmBackupBehaviorRealPgDump": "Bu modda işçi, yapılandırma ve araçlara bağlı olarak gerçek PostgreSQL mantıksal dökümü (pg_dump) dener.",
+    "confirmBackupBehaviorOtherAdapter": "İşçi adaptörü {{adapter}} — bu yolun ne ürettiğini sunucuda doğrulayın.",
+    "confirmBackupBehaviorUnknown": "Etkin yol burada sınıflanamadı — Çalıştırma modu kartı ve sunucu günlükleri.",
     "confirmBackupOk": "Kuyruğa al",
-    "confirmBackupCancel": "Vazgeç"
+    "confirmBackupCancel": "Vazgeç",
+    "confirmRestoreTitle": "Geri yükleme tatbikatı kuyruğa alınsın mı?",
+    "confirmRestoreIntro": "İşçide geri yükleme doğrulaması kuyruğa alınır (CPU, disk ve test veritabanı kullanımı olabilir). Bu arayüzden üretim geri yükleme çalıştırmaz.",
+    "confirmRestoreDescription": "İşçide geri yükleme doğrulaması kuyruğa alınır (CPU, disk ve test veritabanı kullanımı olabilir). Bu arayüzden üretim geri yükleme çalıştırmaz. Sonuçlar asenkron; denetim.",
+    "confirmRestoreLatestRunUnknown": "Durum API’sinde son yedek satırı yok — tatbikat yine sunucu bağlamını kullanır; kuyruktan sonra Geri yükleme doğrulaması kartına bakın.",
+    "confirmRestoreLatestSimulated": "Son durum satırı adaptör {{adapter}} (simüle/stub). Stub baytlarda pg_restore --list başarısızlığı sık beklenir — bu üretim DR arızası kanıtı değildir.",
+    "confirmRestoreLatestReal": "Son durum satırı PgDump — işçi dosyayı çözümlediğinde tatbikat mantıksal döküm tarzı artefakta odaklanır.",
+    "confirmRestoreLatestAmbiguous": "Son durum satırı adaptör {{adapter}} — yorumu ihtiyatlı yapın; hata ayrıntısı doğrulama kartında.",
+    "confirmRestoreDrillFootnote": "Sonuçlar asenkron; denetim.",
+    "confirmRestoreOk": "Kuyruğa al",
+    "confirmRestoreCancel": "Vazgeç",
+    "cardAlertRequestedRealEffectiveSimulated": "Uyumsuzluk: kayıtlı {{requested}}, etkin {{effective}} (simüle). Çözülene kadar gerçek döküm varsaymayın.",
+    "cardAlertRequestedRealBlocked": "Real (PgDump) seçili, profil çalıştırılamıyor — önkoşullar düzelene kadar yedek çalıştırmaları başarısız olabilir."
   },
   "progress": {
     "titleQueued": "Yedek kuyrukta — henüz bitmedi",
@@ -146,9 +353,10 @@
     "bodyQueued": "Çalıştırma worker kuyruğunda bekliyor veya hemen başlayacak.",
     "bodyRunning": "Sunucuda yürütülüyor (ör. pg_dump, artefakt, kontroller).",
     "bodyAwaiting": "Yürütme bitti; artefakt doğrulaması veya harici kopya sürebilir.",
-    "finishedOk": "Son yedek çalıştırması: başarıyla tamamlandı (üretim hattı).",
-    "finishedSimulatedOk": "Son yedek çalıştırması: tamamlandı (simüle / üretim pg_dump değil).",
-    "finishedSimulatedOkDetail": "İndirilebilir üretim mantıksal döküm kanıtı değildir. DR için PgDump ve kurtarılabilirlik kanıtları gerekir.",
+    "finishedOk": "Son yedek çalıştırması: tamamlandı (API başarı bildiriyor; simüle olmayan yol). Operasyonel durum, DR garantisi değil.",
+    "finishedSimulatedOk": "Son çalıştırma: hat tamamlandı (Fake/Stub — gerçek pg_dump çıktısı yok).",
+    "finishedSimulatedOkDetail": "İndirilebilir üretim mantıksal döküm kanıtı değildir. PgDump ve son bilinen iyi zaman damgaları ayrı kontroller içindir — kurtarmanın çalışacağı garantisi değildir.",
+    "finishedOkDetail": "Yalnızca operasyonel tamamlanma — kurtarılabilirlik kanıtlarını (son bilinen iyi) ayrı doğrulayın.",
     "finishedFailed": "Son yedek çalıştırması: başarısız — ayrıntılar tabloda.",
     "finishedVerificationFailed": "Son yedek çalıştırması: artefakt doğrulaması başarısız.",
     "finishedCancelled": "Son yedek çalıştırması: iptal edildi.",
@@ -157,11 +365,23 @@
     "noEta": "Süre tahmini yok: henüz ölçülebilir süreli başarılı çalıştırma yok."
   },
   "download": {
-    "title": "Artefakt indir (son çalıştırma)",
-    "hint": "Son çalıştırma başarılı ve dosya sunucudaysa. Fake/ProductionStub dosyaları geliştirme/test için indirilebilir; üretim pg_dump kanıtı değildir. „Ayarları yönet“; denetim.",
+    "titleLatestSuccess": "Artefakt indir (son çalıştırma — API başarı durumu)",
+    "titleLatestSuccessFake": "Son çalıştırmadan test dosyaları (üretim yedeği değil)",
+    "titleLastKnownGood": "Artefakt indir (son bilinen iyi — API kurtarılabilirlik özeti)",
+    "titleLastKnownGoodFake": "Son bilinen iyi çalıştırmadan test dosyaları (üretim yedeği değil)",
+    "scopeLatestSuccess": "Liste, durum API’sindeki son başarılı çalıştırmadan; kurtarılabilirlik kartındaki “son bilinen iyi” ile otomatik aynı değildir.",
+    "scopeLatestSuccessFake": "Fake/Stub modunda satırlar hat yer tutucularıdır (manifest + küçük dump benzeri dosya). Geri yüklenebilir PostgreSQL arşivi ve DR kanıtı değildir.",
+    "scopeLastKnownGood": "Son çalıştırma başarısız olduğu için gösterilir; çalıştırma kimliği kurtarılabilirlik özetinden. DR garantisi değildir.",
+    "scopeLastKnownGoodFake": "Fake/Stub sınırı aynı: dosyalar entegrasyon kontrolleri içindir — API “son bilinen iyi” dese bile kullanılabilir yedek değildir.",
+    "pathsOmitted": "Tam staging/arşiv yolları burada gösterilmez (yanlış yorum riski).",
+    "hint": "Uygunluk yalnızca API’nin bildirdiği dosya varlığına dayanır; sunucu indirmeyi yine reddedebilir. „Ayarları yönet“; denetim.",
     "simulatedWarning": "Bu çalıştırma “{{adapter}}” adaptörünü kullandı — üretim PostgreSQL mantıksal dökümü (pg_dump) değil.",
-    "simulatedDownloadDisclaimer": "Sunucuda varsa stub/placeholder dosyalar yine indirilebilir. Bunları üretim felaket kurtarma kanıtı saymayın.",
-    "stubHint": "Stub dosyaları hat testi ve bütünlük kontrolleri için kullanılabilir; DR için gerçek pg_dump (PgDump adaptörü) gerekir.",
+    "simulatedDownloadDisclaimer": "Stub dosyalar test içindir; üretim DR kanıtı değildir.",
+    "stubHint": "Stub dosyalar hat testi için kullanılabilir; DR için gerçek pg_dump (PgDump) gerekir.",
+    "stubPayloadNote": "Fake/Stub çalıştırmalarından indirilen dosyalar yalnızca küçük bir yer tutucu içerir (PostgreSQL özel biçim dökümü değildir).",
+    "stubZoneAlertTitle": "Fake/Stub çalıştırması — indirmeler test artefaktıdır, veritabanı yedeği değil",
+    "stubZoneAlertDescription": "Fake adaptörü genelde iki dosya üretir: (1) mantıksal döküm gibi görünen ama yalnızca kısa `fake-bytes-<runId>` metni içeren minimal UTF-8 dosyası ve (2) `note: \"no real pg_dump\"` gibi alanlar içerebilen küçük JSON bildirimi. Küçük boyut beklenen bir durumdur. Hiçbiri PostgreSQL özel biçim arşivi değildir ve kurtarma sınıfında sayılmaz.",
+    "rowPosition": "Bu çalıştırmada dosya {{current}} / {{total}}",
     "errorRunNotFound": "Yedek çalıştırması yok (404).",
     "errorArtifactNotFound": "Artefakt bu çalıştırmaya ait değil veya yok (404).",
     "errorFileMissing": "Artefakt kaydı var ancak dosya sunucuda yok (404).",
@@ -170,50 +390,159 @@
     "errorConflict": "Yedek çalıştırması başarı durumunda değil — indirme yok (409).",
     "errorStorage": "Yedek staging/arşiv yapılandırılmamış veya kullanılamıyor (503).",
     "errorForbidden": "İndirme izni yok (403).",
-    "errorSimulated": "İndirme simüle/stub olarak reddedildi (eski API veya politika). Üretim PostgreSQL mantıksal dökümü değil (403).",
-    "button": "İndir",
-    "buttonStub": "Stub dosyayı indir",
-    "noArtifactsInLatestRun": "Son başarılı çalıştırmada henüz materyalize artefakt satırı görünmüyor. Kısa süre sonra yenileyin.",
-    "fileUnavailableOnServer": "En az bir artefakt dosyası sunucuda şu an bulunamıyor — indirme kapalı (metadata eski olabilir).",
-    "typeLabel": "Tür",
-    "locatorLabel": "Staging konumu",
-    "externalLabel": "Arşiv konumu",
+    "errorSimulated": "İndirme simüle/stub olarak reddedildi (politika). Üretim PostgreSQL mantıksal dökümü değil (403).",
+    "errorUnknown": "Sunucudan tanınmayan hata kodu ile indirme başarısız.",
+    "errorEmptyPayload": "HTTP 200 ile başarılı görünen indirme gövdesi boş (0 bayt) — sunucu, depolama yolu veya akış sorunu olabilir. API/işçi günlükleri ve artefakt depolamasını kontrol edin; bu satırın bildirdiği metadata ile karşılaştırın.",
+    "button": "İndirme iste",
+    "buttonStub": "Stub indirme iste",
+    "downloadNotProvenUntilRequest": "Düğme yalnızca arayüz ön kontrolüdür; sunucu her isteği doğrular.",
+    "downloadStubTooltip": "Stub/simüle dosya — üretim PostgreSQL yedeği değil. İstekte sunucu doğrular.",
+    "integrityPrecheckNote": "Satırlar yalnızca API metadata’sını gösterir. “Dosya var” ve bayt boyutu yedek bütünlüğünü, geri yüklenebilirliği veya indirme akışının bu satırla birebir eşleşeceğini kanıtlamaz — şüphede sunucu tarafını doğrulayın.",
+    "suspicionBulkIntro": "Aşağıda en az bir satırda metadata uyumsuzluğu var (uyarı etiketleri). Artefakta güvenmeden önce depolama, API eşlemesi ve backend günlüklerini inceleyin.",
+    "noArtifactsInRun": "Bu çalıştırma yanıtında henüz artefakt satırı yok. İşçi bitince yenileyin.",
+    "fileUnavailableOnServer": "En az bir satır dosyayı sunucuda yok bildiriyor — o satır için indirme kapalı.",
+    "filePresenceUnknownBulk": "En az bir satırda dosya varlığı bildirilmedi — indirme başarısız olabilir.",
+    "lkgLoadFailed": "Son bilinen iyi çalıştırma ayrıntıları yüklenemedi.",
+    "artifactLabel": "Artefakt sınıfı",
+    "artifactLabelSimulated": "Artefakt sınıfı (stub / simüle çalıştırma)",
+    "byteSizeColumn": "Bildirilen boyut (API)",
+    "byteSizeColumnSimulated": "Bildirilen boyut (stub yükü — API)",
+    "confirmStubTitle": "Stub/simüle dosya indirilsin mi?",
+    "confirmStubBody": "Bu çalıştırma simüle/stub — kurtarılabilirlik kanıtı ve üretim yedeği değil. Sunucu bu satır için diskteki baytları döndürür (çoğunlukla küçük yer tutucu, pg_dump çıktısı değil). Boyut (API): {{size}}. Satır: {{artifact}}.",
+    "confirmStubNotEmptyFailedBackup": "Çok küçük boyut burada beklenir — bozuk pg_dump anlamında “boş başarısız yedek” değildir; Fake bağdaştırıcı kasıtlı yer tutucu yazar.",
+    "confirmStubExpectationLead": "Bu dosyanın ne olduğu (kaydetmeden önce okuyun):",
+    "confirmStubOk": "Dosyayı indir",
+    "confirmUnprovenLogicalTitle": "Mantıksal döküm satırını indir (üretim pg_dump onaylı değil)",
+    "confirmUnprovenLogicalLead": "Yapılandırma bu ortam için gerçek PostgreSQL mantıksal döküm yolu bildirmiyor. Dosya yine de işçiden gerçek bir döküm olabilir; kurtarılabilirlik yalnızca yapılandırmadan sertifiye edilmez.",
+    "confirmUnprovenLogicalOk": "İndirmeye devam et",
+    "preDownloadWhatYouGet": "İndirmeden önce:",
+    "reality": {
+      "stub": "Test / stub artefakt",
+      "realPipeline": "Yapılandırılmış yedek hattından",
+      "unknown": "Hat sınıfı bilinmiyor"
+    },
+    "byteSizeFootnote": {
+      "stubExpectedTiny": "Küçük boyut beklenir (yer tutucu — boş başarısız yedek değil).",
+      "manifestMetadataOnly": "Genelde küçük JSON metadata — veritabanı veri dökümü değil."
+    },
+    "contentExpectSummary": {
+      "stubLogicalDumpFakeAdapter": "UTF-8 yer tutucu (fake-bytes…), pg_restore özel biçimi değil.",
+      "stubManifestFakeAdapter": "Küçük JSON manifest (hat metadata), döküm dosyası değil.",
+      "manifestNonStub": "Doğrulama manifest JSON — hash/metadata, tablo verisi değil.",
+      "logicalDumpOperationalShort": "İşçiden mantıksal döküm — emin değilseniz biçimi ve politikayı sunucuda doğrulayın."
+    },
+    "filePresenceLabel": "Sunucuda dosya (API)",
+    "actionLabel": "İndirme",
+    "recoverabilityUse": {
+      "not_dr_evidence_simulated": "DR veya kurtarılabilirlik kanıtı değil — yalnızca simüle stub yükü.",
+      "not_dr_evidence_unverified_adapter": "Üretim pg_dump kanıtlanmadı (yapılandırma: gerçek mantıksal döküm yok).",
+      "possible_operational_artifact": "Operasyonel dosya — DR ayrı doğrulanır.",
+      "unknown_recovery_value": "API sinyalleriyle kurtarma değeri bilinmiyor.",
+      "short": {
+        "not_dr_evidence_simulated": "DR değeri yok (stub)",
+        "not_dr_evidence_unverified_adapter": "pg_dump kanıtlı değil (yapılandırma)",
+        "possible_operational_artifact": "Operasyonel dosya",
+        "unknown_recovery_value": "DR değeri bilinmiyor"
+      }
+    },
+    "filePresence": {
+      "reported_present": "Bildirildi: var",
+      "reported_absent": "Bildirildi: yok",
+      "unknown": "Varlık bildirilmedi — istekten önce politika bilinmez"
+    },
+    "downloadBlocked": {
+      "no_manage": "„Ayarları yönet“ gerekir",
+      "file_not_on_server": "Kapalı — dosya yok bildirildi",
+      "file_presence_unknown": "Kapalı — varlık önceden doğrulanamıyor"
+    },
     "error": "İndirme başarısız.",
     "needManage": "İndirmek için „Ayarları yönet“ yetkisi gerekir.",
+    "suspicion": {
+      "metadata_incomplete": {
+        "short": "Boyut yok",
+        "detail": "API dosyayı var bildiriyor ancak bayt boyutu yok — metadata eksik olabilir. Artefakt listesi API’si ve depolama eşlemesini kontrol edin."
+      },
+      "zero_reported_size": {
+        "short": "0 B bildirildi",
+        "detail": "Dosya var denmesine rağmen bildirilen boyut 0 — kullanılabilir artefakt için olağan dışı. Depolama, yol çözümlemesi ve işçi günlüklerini kontrol edin."
+      },
+      "tiny_reported_logical_dump": {
+        "short": "Çok küçük döküm",
+        "detail": "Mantıksal döküm satırı için bildirilen boyut 1 KB altı — tipik pg_dump için beklenmedik (küçük veritabanı veya hat sorunu). Sunucuda doğrulayın."
+      }
+    },
+    "contentExpect": {
+      "stubLogicalDumpFakeAdapter": "Beklenen içerik: çok küçük UTF-8 metin. Fake adaptör `fake-bytes-<runId>` yazar — PostgreSQL özel biçimi değildir, pg_restore ile geri yüklenemez.",
+      "stubManifestFakeAdapter": "Beklenen içerik: küçük JSON (çoğunlukla `note: \"no real pg_dump\"` içerir). Yalnızca hat/test meta verisi — veritabanı dökümü değildir.",
+      "stubTyped": {
+        "1": "Hat testi yer tutucusu — gerçek fiziksel taban yedeği değil.",
+        "2": "Yer tutucu — gerçek WAL arşivi değil.",
+        "3": "Yer tutucu — gerçek globals dökümü değil.",
+        "4": "Yer tutucu bildirim — yalnızca meta veri.",
+        "5": "Yer tutucu günlük — operasyonel kanıt değil."
+      },
+      "stubOther": "Test/yer tutucu artefakt — kurtarma sınıfında değil.",
+      "operationalLogicalDump": "Simüle olmayan çalıştırma: hat üretilen mantıksal döküm dosyası olarak düşünülmüştür. Boyut ve biçim politikanıza uyuyorsa döküm dosyası olarak ele alın — şüphede sunucuda doğrulayın.",
+      "logicalDumpNotProvenConfig": "Tür mantıksal döküm, ancak yapılandırma gerçek pg_dump yolu bildirmiyor — sunucuda doğrulanana kadar geri yüklenebilir arşiv varsaymayın.",
+      "logicalDumpProofUnknown": "Tür mantıksal döküm; API gerçek pg_dump yapılandırmasını doğrulamıyor — kurtarma değeri bu arayüzden bilinmez.",
+      "verificationManifest": "Bildirim / doğrulama meta verisi (sağlama, hat defteri) — tek başına veritabanı yedeği değildir.",
+      "nonSimulatedTyped": {
+        "1": "Fiziksel/taban yedek sınıfı dosya — operatörünüzle doğrulayın; stratejiye bağlıdır.",
+        "2": "WAL penceresi artefaktı — kapsamı operatörünüzle doğrulayın.",
+        "3": "Globals döküm artefaktı — kapsamı operatörünüzle doğrulayın.",
+        "5": "Yedek günlüğü / tanılama — döküm dosyası değildir."
+      },
+      "unknown": "Artefakt baytları — rol ve biçimi yedek operasyonuyla netleştirin."
+    },
     "types": {
+      "logicalDumpStub": "Stub mantıksal döküm satırı (yer tutucu baytlar — pg_dump çıktısı değil)",
+      "logicalDumpOperational": "Mantıksal döküm (simüle olmayan çalıştırma)",
+      "logicalDumpNotProven": "Mantıksal döküm — üretim pg_dump yapılandırmayla kanıtlanmadı",
       "0": "Mantıksal döküm",
       "1": "Fiziksel temel yedek",
       "2": "WAL penceresi",
       "3": "Globals dökümü",
       "4": "Doğrulama manifestosu",
+      "manifestStub": "Stub doğrulama manifestosu (metadata — yedek değil)",
       "5": "Yedek günlüğü",
-      "unknown": "Artefakt"
+      "unknown": "Artefakt",
+      "stub": {
+        "1": "Fiziksel temel yedek (stub — gerçek küme yedeği değil)",
+        "2": "WAL penceresi (stub — gerçek WAL kanıtı değil)",
+        "3": "Globals dökümü (stub — üretim çıktısı değil)",
+        "4": "Doğrulama manifestosu (stub — hat yer tutucusu)",
+        "5": "Yedek günlüğü (stub — operasyonel kanıt değil)"
+      }
     }
   },
   "triState": {
-    "ok": "Tamam",
+    "ok": "Uygun (teknik)",
     "fail": "Başarısız",
-    "issues": "Sorunlar"
+    "issues": "Sorunlar",
+    "dumpInspectionNotApplicableStub": "Listelenemez (stub dosya — PostgreSQL dökümü değil)"
   },
   "restoreAttempt": {
     "notRun": "Çalıştırılmadı"
   },
   "health": {
     "title": "Yapılandırma sağlığı",
-    "healthy": "Sağlıklı",
+    "healthy": "Uygun (yapılandırma — API)",
     "degraded": "Kısıtlı",
     "unhealthy": "Kritik",
     "workerDisabled": "İşçi kapalı — kuyruktaki yedekler işlenmez.",
     "adapter": "Bağdaştırıcı",
     "worker": "İşçi",
     "realPgDumpYes": "pg_dump: evet",
-    "realPgDumpNo": "pg_dump: hayır"
+    "realPgDumpNo": "pg_dump: hayır",
+    "diagnosticsIntro": "API’den kurulum sinyalleri (sabit kodlar — ayrıntı için üzerine gelin). Üstteki sorunlarla birlikte gerçek pg_dump’ın neden kapalı olabileceğini gösterir.",
+    "diagnosticsTruncated": "+ {{count}} kod daha — tam liste gerekirse API/günlüklerde."
   },
   "latestRun": {
     "title": "Son yedek çalıştırması",
     "none": "Henüz yedek çalıştırması yok.",
     "orchestrationHint": "“Kuyrukta” yalnızca sıraya alındığını gösterir — tamamlanmış yedek değildir.",
     "distinctFromRecoverability": "Bu bölüm API’den gelen son yedek çalıştırma durumunu gösterir; üstteki “son bilinen iyi” kurtarılabilirlik özeti ile aynı şey değildir.",
+    "fakeModeOperationalNotice": "Yalnızca hat testi: geri yüklenebilir veritabanı yedeği üretilmez.",
     "simulatedBadge": "Simüle / pg_dump değil",
     "notRealPgDump": "Bu çalıştırma gerçek PostgreSQL mantıksal dökümü (pg_dump) değildir. Üretim DR kanıtı saymayın.",
     "id": "Çalıştırma kimliği",
@@ -227,6 +556,7 @@
     "durationSec": "{{s}} sn",
     "durationMin": "{{m}} dk {{s}} sn",
     "dumpSize": "Dump boyutu (yakl.)",
+    "dumpSizeStub": "Bildirilen artefakt boyutu (stub bayt — gerçek dump değil)",
     "bytesB": "{{n}} B",
     "bytesKb": "{{n}} KB",
     "bytesMb": "{{n}} MB"
@@ -235,7 +565,7 @@
     "title": "Son artefakt doğrulaması (faz 2)",
     "none": "Doğrulama kaydı yok.",
     "pending": "Beklemede",
-    "passed": "Geçti",
+    "passed": "Kontroller tamam bildirildi (bütünlük — API)",
     "failed": "Başarısız",
     "notRestoreProof": "Artefakt doğrulaması dosya bütünlüğünü (ör. hash) doğrular — tam kurtarılabilirlik değildir."
   },
@@ -244,30 +574,58 @@
     "title": "Son geri yükleme doğrulaması (tatbikat)",
     "none": "Henüz tatbikat yok.",
     "explanation": "Dump incelemesi ve isteğe bağlı izole geri yükleme denemesi ile klon üzerinde SQL kapsar — bu arayüzden üretim geri yükleme yok.",
+    "realProfileBlockedTitle": "Yedek profili çalıştırılamıyor (Real / PgDump)",
+    "realProfileBlockedBody": "İşçi PostgreSQL mantıksal dökümleri hedefliyor, ancak çalıştırma modu API’si etkin profili çalıştırılamıyor (unhealthy önkoşullar) bildiriyor. Yapılandırma düzeltilene kadar tatbikat sonuçları sağlıklı gerçek döküm yolunu yansıtmayabilir.",
     "drillFailed": "Geri yükleme tatbikatı başarısız",
     "drillFailedAlert": "Geri yükleme tatbikatı başarısız",
     "drillFailedProminent": "Geri yükleme tatbikatı başarısız — müdahale gerekli",
     "fiscalSql": "Mali SQL (klon)",
     "skipped": "Atlandı",
     "integrity": "Bütünlük (kapsam)",
-    "strongerThanArtifact": "Geri yükleme doğrulaması, yalnızca artefakt doğrulamasından daha güçlü teknik kanıt sunar — eksiksiz felaket kurtarma programı değildir.",
+    "strongerThanArtifact": "Artefakt doğrulamasına ek teknik kontroller sunar — yine de eksiksiz felaket kurtarma programı veya üretim kurtarma kanıtı değildir.",
     "block": {
       "dumpInspection": "Dump incelemesi",
       "restoreAttempt": "İzole geri yükleme denemesi"
     },
     "failureCode": "Hata kodu",
-    "failureDetail": "Hata ayrıntısı"
+    "failureDetail": "Hata ayrıntısı",
+    "fakePipeline": {
+      "sectionContext": "Fake adaptörle restore tatbikatları kabloyu doğrular; gerçek arşiv olmadığı için üretim kurtarmasını kanıtlamaz.",
+      "drillOutcomeTitle": "Restore tatbikatı: pg_restore --list başarılı olmadı (Fake/stub yedekte beklenen)",
+      "pgRestoreListTitle": "pg_restore --list neden burada başarısız (simüle yedek)",
+      "pgRestoreListExplainer": "Restore tatbikatı, başarılı bir yedek çalıştırmasındaki mantıksal döküm dosyasında pg_restore --list çalıştırır. Fake bağdaştırıcı PostgreSQL özel biçim dökümü üretmez — küçük stub baytlar yazar (ör. fake-bytes-…). Bu dosya gerçek bir pg_dump arşivi değildir; pg_restore reddeder. Fake/stub modunda bu beklenir ve üretim DR sorunu kanıtı değildir. Gerçek döküm için Backup:ExecutionAdapterKind=PgDump, staging yolu ve PostgreSQL araçları yapılandırılmalıdır (sunucu ayarlarına bakın).",
+      "pgRestoreListTooltip": "Fake bağdaştırıcıdan stub döküm — pg_restore listeleyemez; dev/stub için beklenen.",
+      "technicalDetailLabel": "pg_restore teknik ayrıntısı"
+    },
+    "realPipeline": {
+      "listFailedPgRestoreUnavailableTitle": "Liste adımı başarısız — pg_restore çalıştırılamıyor",
+      "listFailedPgRestoreUnavailableBody": "İşçi pg_restore sürecini başlatamadı (yaygın: ikili eksik veya API sürecinin PATH’inde yok). Ana bilgisayarda araçları düzeltin — bu, Fake/stub sahte dosya sınıfıyla aynı değildir. RestoreVerification:PgRestoreExecutablePath verin veya PostgreSQL istemci araçlarını kurun, tatbikatı yeniden çalıştırın.",
+      "listFailedDumpMissingTitle": "Liste adımı başarısız — döküm dosyası diskte yok",
+      "listFailedDumpMissingBody": "Tatbikat, çözümlenen yolda döküm dosyasını okuyamadı. Staging ve harici arşiv yapılandırması, izinler ve yedek gerçekten dosya bıraktı mı kontrol edin.",
+      "listFailedFormatRejectedTitle": "Liste adımı başarısız — dosya PostgreSQL özel biçim arşivi olarak kabul edilmedi",
+      "listFailedFormatRejectedBody": "Kaynak Fake adaptör değilken pg_restore --list hata döndü. Dosya bozuk, kesik veya geçerli özel biçim değil olabilir — dökümü ve işçi günlüklerini inceleyin; gerçek kurtarma güvenini etkiler.",
+      "listFailedUnknownTitle": "Liste adımı başarısız — metadata ile sınıflandırılamadı",
+      "listFailedUnknownBody": "Stub olmayan hat üzerinde pg_restore --list başarısız; çıkış metadata’sı yaygın “ikili yok” veya “dosya yok” kalıplarına uymuyor. Stderr’i ve sunucu günlüklerini kullanın.",
+      "failureTooltips": {
+        "real_pg_restore_unavailable": "pg_restore başlatılamadı — PATH veya RestoreVerification:PgRestoreExecutablePath.",
+        "real_dump_file_missing": "Çözümlenen yolda okunabilir dosya yok — staging/arşiv ve izinler.",
+        "real_format_or_corrupt": "pg_restore dosyayı reddetti — dökümü doğrulayın (bozulma, yanlış biçim).",
+        "real_unknown": "Sınıflanmamış liste hatası — stderr ve günlükler."
+      }
+    }
   },
   "distinction": {
     "title": "Artefakt doğrulaması ve geri yükleme doğrulaması",
     "body": "Artefakt: üretilen dosyaların bütünlüğü (ör. sağlama / staging). Geri yükleme tatbikatı: ek teknik metadatalar — tam geri yükleme kanıtı veya RPO/RTO garantisi değildir."
   },
   "runs": {
-    "title": "Son yedek çalıştırmaları"
+    "title": "Son yedek çalıştırmaları",
+    "statusHint": "Her satır o çalıştırma için API’nin bildirdiği sonucu gösterir. Bu geçmiş, kurtarılabilirlik bölümündeki son bilinen iyi kanıtının yerini tutmaz."
   },
   "restoreHistory": {
     "title": "Son geri yükleme tatbikatları",
-    "empty": "Henüz geri yükleme tatbikatı yok."
+    "empty": "Henüz geri yükleme tatbikatı yok.",
+    "statusHint": "Her satır tatbikat için API’nin bildirdiği sonucu gösterir. Tamamlanmış tatbikat teknik metadata’dır — tam kurtarma garantisi değildir."
   },
   "alerts": {
     "title": "Uyarılar ve düşük sağlık",
@@ -276,7 +634,7 @@
   "externalCopy": {
     "title": "Harici kopya (artefaktlar)",
     "loading": "Artefakt ayrıntıları yükleniyor…",
-    "verified": "Harici kopya doğrulandı (uygunsa).",
+    "externalLifecycleOk": "Artefakt yaşam döngüsü harici aşamayı bildiriyor (sunucu metadata — bağımsız off-site kanıt değil).",
     "failed": "Harici kopya başarısız veya hash uyumsuzluğu.",
     "stagingOnly": "Yalnızca staging / bu çalıştırma için harici kopya yok.",
     "mixed": "Karma artefakt durumu — ayrıntıları inceleyin.",
@@ -287,9 +645,12 @@
     "title": "API uyarı metni"
   },
   "restoreCapability": {
-    "title": "Otomatik geri yükleme",
-    "available": "Kullanılabilir bildirildi",
-    "notAvailable": "Otomatik olarak kullanılabilir bildirilmedi"
+    "title": "Otomatik geri yükleme bayrağı (backend alanı — testli geri yükleme değil)",
+    "available": "Bayrak açık (testli geri yükleme değil)",
+    "notAvailable": "Bayrak kapalı veya otomatik bildirilmedi",
+    "reportedEnabled": "Sunucu alanı: otomatik geri yükleme etkin bildirildi (testli geri yükleme değil).",
+    "reportedDisabled": "Sunucu alanı: otomatik geri yükleme etkin bildirilmedi.",
+    "reportedUnknown": "Sunucu alanı: bilinmiyor / gelmedi — kanıtsız sayın."
   },
   "actions": {
     "enqueueBackup": "Yedeği kuyruğa al",
@@ -300,28 +661,239 @@
     "0": "Kuyrukta",
     "1": "Çalışıyor",
     "2": "Doğrulama bekliyor",
-    "3": "Başarılı (doğrulandı)",
-    "simulatedSuccess": "Başarılı (simüle — üretim pg_dump değil)",
+    "3": "Bitti (API başarı bildiriyor)",
+    "simulatedSuccess": "Bitti (hat testi — gerçek yedek değil)",
     "4": "Başarısız",
     "5": "Doğrulama başarısız",
     "6": "İptal"
   },
   "verificationStatus": {
     "0": "Beklemede",
-    "1": "Geçti",
+    "1": "Staging/hash kontrolleri tamam bildirildi (API)",
     "2": "Başarısız"
   },
   "restoreStatus": {
     "0": "Kuyrukta",
     "1": "Çalışıyor",
-    "2": "Başarılı",
-    "3": "Başarısız"
+    "2": "Bitti (tatbikat — API metadata)",
+    "3": "Başarısız",
+    "drillStubExpected": "Bitti (stub döküm — tatbikat sınırı beklenir)",
+    "drillListFailedPgRestoreUnavailable": "Başarısız (tatbikat — pg_restore çalışmıyor)",
+    "drillListFailedDumpMissing": "Başarısız (tatbikat — döküm dosyası yok)",
+    "drillListFailedBadArchive": "Başarısız (tatbikat — arşiv kabul edilmedi)",
+    "drillListFailedUnknown": "Başarısız (tatbikat — liste adımı başarısız)"
   },
   "lifecycle": {
     "0": "Staging",
-    "1": "Staging doğrulandı",
-    "2": "Harici doğrulandı",
+    "1": "Staging kontrolleri tamam bildirildi (API)",
+    "2": "Harici aşama tamam bildirildi (metadata — API)",
     "3": "Harici başarısız"
+  },
+  "executionMode": {
+    "title": "Yedek çalıştırma modu (sunucu)",
+    "intro": "Arka plan işçisinin yedeği nasıl çalıştıracağını seçin. Seçim veritabanında saklanır ve etkin adaptörü (Fake veya PgDump) değiştirir. Yol, bağlantı adları ve dağıtım onayları sunucu yapılandırmasından gelmeye devam eder.",
+    "realReadiness": {
+      "panelTitle": "Real (PgDump) önkoşul kontrolü",
+      "footnoteApi": "Real (PgDump) istendiği varsayılır; sunucu yapılandırmayı bu mod aktifmiş gibi değerlendirir. Aşağıdaki İngilizce API satırları ek ayrıntı verir.",
+      "configKeysLabel": "İlgili yapılandırma anahtarları:",
+      "serverDetailLabel": "Sunucu ayrıntısı:",
+      "noDiagnosticsListed": "Bu profil için Error/Uyarı tanısı yok (veya sondalar henüz çalışmadı).",
+      "realRowSelectableYes": "Real modu: aşağıdaki listede seçilebilir",
+      "realRowSelectableNo": "Real modu: önkoşullar Healthy olana kadar seçilemez",
+      "healthLevels": {
+        "unknown": "Seviye bildirilmedi",
+        "Healthy": "Healthy",
+        "Degraded": "Degraded (yalnızca uyarılar)",
+        "Unhealthy": "Unhealthy (engelleyici)"
+      },
+      "summary": {
+        "noLevelTitle": "Varsayımsal Real sağlığı yok",
+        "noLevelBody": "API HypotheticalPgDumpHealthLevel döndürmedi — sayfayı yenileyin veya sunucuyu güncelleyin.",
+        "readyTitle": "Şimdi Real (PgDump) moduna geçebilirsiniz",
+        "readyBody": "Önkoşullar Healthy ve Real seçeneği açık. Kaydetme yine sunucu doğrulamasından geçer.",
+        "blockedTitle": "Real (PgDump) henüz seçilemiyor",
+        "blockedBody": "Aşağıdaki engelleyici maddeleri giderin (kırmızı “Engel” etiketi). Önkoşullar Unhealthy iken API Real kaydını reddeder.",
+        "degradedSelectableTitle": "Real seçilebilir; uyarılar var",
+        "degradedSelectableBody": "Real (PgDump) kaydedilebilir; bazı kontroller yalnızca uyarıdır (altın “Danışman” etiketi). Üretim yedekleri için yine de düzeltin."
+      },
+      "tier": {
+        "blocking": "Real modunu engeller",
+        "advisory": "Danışman"
+      },
+      "category": {
+        "staging": "Staging ve yollar",
+        "connection": "PostgreSQL bağlantı dizesi",
+        "pgDump": "pg_dump istemcisi",
+        "pgRestore": "pg_restore istemcisi",
+        "archive": "Harici arşiv ve doğrulama",
+        "policy": "İlke / onay",
+        "environment": "Ortam / güvensiz dev bayrakları",
+        "schedule": "Zamanlanmış yedek",
+        "orchestrator": "İşçi ve orkestrasyon",
+        "other": "Diğer"
+      },
+      "codes": {
+        "pgDumpStagingRootMissing": {
+          "title": "Artifact staging kökü eksik",
+          "action": "Backup:ArtifactStagingRoot boş olmayan bir yol olsun; üretim benzeri ortamda mutlak ve API süreci tarafından yazılabilir olmalı."
+        },
+        "pgDumpStagingRootNotAbsolute": {
+          "title": "Staging yolu mutlak olmalı",
+          "action": "Development dışında Backup:ArtifactStagingRoot için mutlak dizin kullanın."
+        },
+        "pgDumpVerifyOnDiskRequired": {
+          "title": "Disk üstü döküm doğrulaması gerekli",
+          "action": "Development dışında PgDump için Backup:VerifyLogicalDumpFileOnDisk=true yapın."
+        },
+        "pgDumpExternalArchiveRequired": {
+          "title": "Harici arşiv kökü gerekli",
+          "action": "Development dışında Backup:ExternalArchiveRoot yapılandırın."
+        },
+        "devExternalArchiveNotSet": {
+          "title": "Harici arşiv yok (Development)",
+          "action": "Development’ta isteğe bağlı; üretim öncesi Backup:ExternalArchiveRoot ayarlayın."
+        },
+        "externalArchiveRootNotAbsolute": {
+          "title": "Harici arşiv yolu mutlak değil",
+          "action": "Backup:ExternalArchiveRoot ayarlıysa mutlak yol olmalı."
+        },
+        "externalArchiveImmutabilityMismatch": {
+          "title": "Değişmez arşiv onayı eksik",
+          "action": "Backup:RequireExternalArchiveImmutableTarget=true ise Backup:ExternalArchiveImmutabilityAcknowledged=true veya ilke bayraklarını düzenleyin."
+        },
+        "externalArchiveOperatorDispositionMissing": {
+          "title": "Harici arşiv operatör beyanı eksik",
+          "action": "Değişmez hedefi onaylayın veya değişken hedefi açıkça kabul edin (Backup:ExternalArchiveMutableTargetAccepted) veya immutable + onay kullanın."
+        },
+        "externalArchiveImmutableAttestationOnly": {
+          "title": "Immutability yalnızca yapılandırma beyanı",
+          "action": "Mevcut arşiv backend’i API’de WORM/object-lock kanıtlamaz — depolamayı veya backend’i planlayın."
+        },
+        "pgDumpConnectionStringMissing": {
+          "title": "Mantıksal döküm bağlantı dizesi eksik",
+          "action": "ConnectionStrings:{ad} (varsayılan veya Backup:LogicalDumpConnectionStringName) Host, Username, Database içersin."
+        },
+        "pgDumpConnectionStringIncomplete": {
+          "title": "Bağlantı dizesi eksik alanlı",
+          "action": "Npgsql için Host, Username ve Database zorunlu."
+        },
+        "pgDumpConnectionStringInvalid": {
+          "title": "Bağlantı dizesi geçersiz",
+          "action": "Npgsql sözdizimini düzeltin (yazım, kaçış)."
+        },
+        "devPgDumpClientMissing": {
+          "title": "pg_dump bu ana bilgisayarda kullanılamıyor",
+          "action": "İstemci araçları kurun veya Backup:PgDumpExecutablePath verin; API yeniden başlangıç loglarına bakın."
+        },
+        "devPgRestoreClientMissing": {
+          "title": "pg_restore bu ana bilgisayarda kullanılamıyor",
+          "action": "RestoreVerification:PgRestoreExecutablePath veya PATH ile istemci sağlayın."
+        },
+        "fakeAdapterForbiddenProduction": {
+          "title": "Fake adaptör ilke ile engelli",
+          "action": "PgDump zorlanırken beklenmez; aksi halde yalnızca kasıtlıysa Backup:AcknowledgeFakeBackupAdapterOutsideDevelopment kullanın."
+        },
+        "fakeAdapterAcknowledgedProduction": {
+          "title": "Fake üretim benzeri ortamda onaylı",
+          "action": "PgDump dışı profiller için bilgi; Real için ExecutionAdapterKind PgDump olmalı."
+        },
+        "productionStubForbiddenProduction": {
+          "title": "Production stub onaysız engelli",
+          "action": "Backup:AcknowledgePhase1NoRealBackup yalnızca kasıtlı stub için; gerçek döküm için PgDump."
+        },
+        "productionStubAcknowledgedProduction": {
+          "title": "Production stub onaylı",
+          "action": "Stub pg_dump çalıştırmaz — Real için yapılandırmada PgDump’a geçin."
+        },
+        "orchestratorPollingTooShort": {
+          "title": "Orkestratör yoklama aralığı çok kısa",
+          "action": "Backup:OrchestratorPollingInterval en az bir saniye olsun."
+        },
+        "orchestratorPollingTooLong": {
+          "title": "Orkestratör yoklama aralığı çok uzun",
+          "action": "24 saatten kısa bir değer kullanın."
+        },
+        "workerDisabled": {
+          "title": "Yedek işçisi kapalı",
+          "action": "Backup:WorkerEnabled=true yapın."
+        },
+        "orchestratorLockDisabledNonDev": {
+          "title": "Development dışında dağıtık kilit kapalı",
+          "action": "Backup:OrchestratorDistributedLockEnabled açın veya tek örnek çalıştırın."
+        },
+        "developmentForceVerificationFailureNonDev": {
+          "title": "Yalnızca geliştirme doğrulama sabotaj bayrağı açık",
+          "action": "Development dışında Backup:DevelopmentForceVerificationFailure kapatın."
+        },
+        "retentionExecutionPlanned": {
+          "title": "Saklama silmesi uygulanmadı",
+          "action": "ExecutionPlanned planlama modu; otomasyon gelene kadar Backup:RetentionArtifactDeletionEnabled=false tutun."
+        },
+        "scheduledBackupCronMissing": {
+          "title": "Zamanlanmış yedek cron eksik",
+          "action": "Backup:ScheduledBackupEnabled=true ise Backup:ScheduledBackupCron ayarlayın."
+        },
+        "scheduledBackupCronInvalid": {
+          "title": "Zamanlanmış yedek cron geçersiz",
+          "action": "CronFormat.Standard beş alanlı geçerli bir ifade kullanın."
+        }
+      }
+    },
+    "meaningTitle": "Modların anlamı",
+    "meaningFake": "Fake: yalnızca simüle / stub artefakt — gerçek pg_dump yok, üretim veritabanı arşivi değildir.",
+    "meaningReal": "Real (PgDump): PostgreSQL istemci araçlarıyla mantıksal döküm — staging, bağlantı dizesi, ikililer ve diğer sunucu kontrollerinin sağlıklı olması gerekir.",
+    "labelRequested": "İstenen (kayıtlı tercih)",
+    "labelEffective": "Etkin (işçinin kullandığı)",
+    "labelConfigDefault": "Ortam varsayılanı (yapılandırma dosyası)",
+    "adapterInternal": "Adaptör",
+    "userFacing": {
+      "fake": "Fake (simüle)",
+      "realPgDump": "Real (PgDump)",
+      "useConfig": "Yapılandırmayı izle",
+      "productionStub": "Üretim stub (gerçek döküm yok)"
+    },
+    "realRunnableYes": "Real mod çalıştırılabilir",
+    "realRunnableNo": "Real mod çalıştırılamıyor",
+    "resolutionSummaryLabel": "Çözüm özeti (İngilizce, sunucu):",
+    "recommendedFallbackTitle": "Önerilen sonraki adım",
+    "recommendedFallbackBody": "Sunucu, önkoşullar düzelene kadar kayıtlı tercihi “{{mode}}” yapmanızı önerir. Real seçiliyken sessizce Fake’e düşülmez.",
+    "realDiagnosticsTitle": "Real (PgDump) neden engellenmiş olabilir",
+    "realDiagnosticsToggle": "Tanılar ({{count}})",
+    "saveRejectedHint": "Real kaydı doğrulama hatasıyla başarısız olursa seçiminiz sunucuda saklanmaz — sorunları giderip yeniden deneyin. Uygulama Real kaydedip ardından Fake çalıştırmaz.",
+    "realSavedButBlockedTitle": "Real mod kayıtlı, ancak etkin yapılandırma henüz çalıştırılamıyor",
+    "realSavedButBlockedBody": "Tercihiniz Real (PgDump) olarak saklandı ve etkin adaptör PgDump kalır. Yapılandırma sağlığı Unhealthy; staging, bağlantı dizesi, pg_dump/pg_restore, arşiv kuralları vb. düzelene kadar başarılı çalıştırma beklenmez.",
+    "noFakeFallbackExplanation": "Otomatik Fake geri dönüşü yok: sistem Real seçiminizi şeffaf tutar; operatör yanıltılmaz.",
+    "saveConfirmTitleInherit": "“Yapılandırmayı izle”ye geçilsin mi?",
+    "saveConfirmTitleReal": "Real (PgDump) moduna geçilsin mi?",
+    "saveConfirmTitleFake": "Fake (simüle) moduna geçilsin mi?",
+    "saveConfirmTitleFakeStrong": "Yalnızca simüle yedeklere geçilsin mi?",
+    "saveConfirmBodyInherit": "İşçi, dağıtımdaki Backup:ExecutionAdapterKind değerini kullanır (Fake, ProductionStub veya PgDump).",
+    "saveConfirmBodyReal": "İşçi PostgreSQL mantıksal dökümü hedefler. Staging, bağlantı dizeleri ve istemci araçları sunucu gereksinimlerini karşılamalıdır.",
+    "saveConfirmBodyFake": "İşçi yalnızca simüle artefakt üretir — gerçek veritabanı dökümü değildir.",
+    "saveConfirmBodyFakeStrong": "Sunucunun açık onay istediği bir ortamda Fake etkinleştiriyorsunuz. Simüle yedekler üretim DR planında pg_dump’ın yerini almaz.",
+    "saveConfirmBodyFakeDevHint": "Development ortamında bu genelde hat entegrasyon testleri için sorun değildir.",
+    "saveConfirmOk": "Onayla ve kaydet",
+    "viewOnlyHint": "Salt görüntüleme — değiştirmek için “Ayarları yönet” gerekir.",
+    "optionInherit": "Uygulama yapılandırmasını izle (appsettings / ortam)",
+    "optionFake": "Simüle (Fake) — pg_dump yok",
+    "optionPgDump": "Gerçek PostgreSQL mantıksal dökümü (PgDump)",
+    "helpInherit": "Dağıtım yapılandırmasındaki Backup:ExecutionAdapterKind değerini kullanır (Fake, ProductionStub veya PgDump).",
+    "helpFake": "Fake’e zorlar; yalnızca simüle artefakt. Üretim benzeri ortamlarda API yapılandırma onayı ve aşağıdaki onay kutusunu ister.",
+    "helpPgDump": "PgDump’a zorlar. Önkoşullar Unhealthy iken API kaydı reddeder (staging, bağlantı dizesi, harici arşiv kuralları vb.).",
+    "save": "Modu kaydet",
+    "notRunnableTitle": "Etkin mod çalıştırılamıyor (yapılandırma Unhealthy)",
+    "confirmFakeProduction": "Üretim benzeri ortamlarda simüle yedeğin gerçek PostgreSQL dökümü olmadığını anlıyorum.",
+    "configFileAdapter": "Yapılandırma dosyası adaptörü",
+    "effectiveAdapter": "Etkin adaptör",
+    "errors": {
+      "loadFailed": "Çalıştırma modu yüklenemedi.",
+      "saveFailed": "Çalıştırma modu kaydedilemedi.",
+      "forbidden": "Çalıştırma modunu görüntüleme veya değiştirme izni yok.",
+      "unauthorized": "Oturum açılmamış.",
+      "confirmFakeRequired": "Üretim benzeri ortamda SimulatedFake için onay kutusunu işaretleyin.",
+      "fakeForbiddenProduction": "Sunucu yapılandırmasında Backup:AcknowledgeFakeBackupAdapterOutsideDevelopment ayarlanana kadar SimulatedFake engellenir.",
+      "pgDumpUnhealthy": "Sunucu yapılandırma sağlığı düzelene kadar PgDump modu kaydedilemez (API sorunlarına bakın)."
+    }
   },
   "messages": {
     "backupNewQueued": "Yeni yedek çalıştırması kuyruğa alındı — işçi asenkron yürütecek.",
@@ -358,6 +930,7 @@
     "restoreAttempt": "Geri yükleme denemesi (izole)"
   },
   "permission": {
-    "noManage": "Salt okunur — kuyruğa almak için “ayarları yönet” gerekir."
+    "noManage": "Salt okunur — kuyruğa almak için „Ayarları yönet“ gerekir.",
+    "manualActionsTooltip": "Kapalı: „Ayarları yönet“ yetkisi yok — teknik veya sunucu hatası değil."
   }
 }

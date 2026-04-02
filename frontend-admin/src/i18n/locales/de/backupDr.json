@@ -3,46 +3,226 @@
     "title": "Backup & Disaster Recovery",
     "subtitle": "Steuerung und Transparenz. Ausführung läuft im Hintergrund-Worker — nicht in dieser Oberfläche."
   },
+  "operatorTruth": {
+    "noTimestampFromApi": "Kein Zeitstempel (nicht gemeldet)",
+    "recoverabilityProofGap": "Mindestens ein Nachweis-Zeitstempel fehlt in dieser API-Antwort — aus Stille keine Wiederherstellbarkeit ableiten."
+  },
   "recoverability": {
-    "title": "Wiederherstellungsnachweise (letzter bekannter guter Stand)",
-    "subtitle": "Unabhängig vom zuletzt angeforderten Lauf: zeigt die jüngsten erfolgreichen Nachweise, sofern vorhanden.",
-    "lastGoodBackup": "Letztes erfolgreiches Backup",
+    "title": "Letzte-bekannte-gute Signale (API — kein vollständiger Recovery-Nachweis)",
+    "subtitle": "Zeilen sind API-gemeldete Zeitstempel für zuletzt erfolgreiche Prüfungen — nicht dasselbe wie „letzte Anforderung“ unten. Simulierter Erfolg verbessert die Darstellung nicht.",
+    "proofSectionTitle": "Nachweis-Signale (API)",
+    "proofSectionIntro": "Block für „was zuletzt erfolgreich war“ — nicht ob der aktuellste Job fertig ist.",
+    "simulatedEnvironmentStrip": "Im Fake-/Stub-Modus sind „Nachweis“-Zeitstempel API-Buchungen über Pipeline-Prüfungen — kein Produktions-Recovery und kein echter Dump.",
+    "proofBlock": {
+      "backup": "Letzter Backup-Lauf als erfolgreich gemeldet (API-Nachweis)",
+      "backupStub": "Letzter Backup-Pipeline-Erfolg (API) — simuliert/Stub; keine wiederherstellbaren Produktionsdaten",
+      "artifactVerification": "Letzte Artefakt-Verifikation als OK gemeldet (Integritätsprüfungen — API)",
+      "artifactVerificationScope": "Staging/Checksumme — kein vollständiger Geschäfts-Recovery-Test.",
+      "restoreDrill": "Letzter Restore-Drill als erfolgreich gemeldet (API-Nachweis)"
+    },
+    "requestsSectionTitle": "Letzte Anforderungen (Betrieb)",
+    "requestsSectionIntro": "Nur Anforderungs-/Laufstatus — kann fehlschlagen, während ältere Nachweise oben bestehen.",
+    "freshnessFootnote": {
+      "recent": "Alter wirkt aktuell; dennoch gegen Backup-Richtlinie prüfen.",
+      "aging": "Nachweis altert — prüfen, ob neuere Läufe dies hätten aktualisieren sollen.",
+      "stale": "Nachweis ist alt — ggf. neuere Backups/Drills außerhalb dieser Ansicht prüfen.",
+      "unknown": "Alter nicht gemeldet — Frische unbekannt."
+    },
+    "lastGoodBackup": "Letzter Backup als erfolgreich gemeldet (API)",
     "lastGoodBackupSimulatedWarning": "Der letzte erfolgreiche Backup-Lauf war simuliert (Fake/Stub) — kein Produktions-pg_dump-Nachweis. Das ist keine DR-Bereitschaft.",
-    "lastGoodArtifactVerification": "Letzte erfolgreiche Artefakt-Verifikation",
-    "lastGoodRestoreProof": "Letzter erfolgreicher Restore-Drill",
-    "backupProofAge": "Alter des Backup-Nachweises",
-    "restoreProofAge": "Alter des Restore-Drill-Nachweises",
+    "simulatedProofCompact": "Letzter bekannter guter Backup-Nachweis stammt aus einem simulierten Lauf — Ausführungsprofil und pg_dump-Zeile unten gelten weiter; kein Produktions-DR-Nachweis.",
+    "lastGoodArtifactVerification": "Letzte Artefakt-Verifikation als OK gemeldet (API)",
+    "lastGoodRestoreProof": "Letzter Restore-Drill als erfolgreich gemeldet (API)",
+    "backupProofAge": "Alter des Backup-Nachweises (API)",
+    "restoreProofAge": "Alter des Restore-Drill-Nachweises (API)",
     "latestBackupRequest": "Letzte Backup-Anforderung (beliebiges Ergebnis)",
     "latestRestoreRequest": "Letzte Restore-Drill-Anforderung (beliebiges Ergebnis)",
+    "latestRequestVsProofHint": "Tags hier sind nur Anforderungsstatus — kein „letzter bekannter guter“ Nachweis.",
+    "latestDrillFailedVsProofTimestamps": "Letzte Restore-Drill-Anforderung fehlgeschlagen (siehe Abschnitt Restore-Verifikation). Ein „letzter erfolgreicher Restore-Drill“-Zeitstempel oben kann einen älteren Lauf meinen — er ersetzt die aktuelle Fehlersituation operativ nicht.",
     "executionProfile": "Ausführungsprofil (Server)",
     "realPgDumpConfigured": "Echter PostgreSQL-Logikdump (pg_dump)",
     "readinessLevel": "Backup-Bereitschaft (Server-Konfiguration)",
     "serverNarrative": "Hinweis (Server, EN)"
   },
+  "operatorValidity": {
+    "stubDataPlaneTitle": "Entwicklungs-/Simulationsmodus (Fake-Adapter)",
+    "stubDataPlaneBody": "Die Backup-Pipeline funktioniert wie vorgesehen: Sie durchläuft Warteschlange, Worker und Artefaktzeilen, ohne einen echten pg_dump zu erzeugen. Das ist kein „kaputtes Backup“, sondern beabsichtigter Stub, bis PgDump, Staging und PostgreSQL-Tools konfiguriert sind. Downloads sind nur Test-Artefakte.",
+    "executionModeFakeOverrideBody": "Der Admin-Backup-Ausführungsmodus steht auf Fake (oder Stub): Der Worker nutzt simulierte Artefakte — unabhängig vom Standard-Adapter in der Konfigurationsdatei. Das ist kein produktives PostgreSQL-Logikbackup. Für echte Dumps Ausführungsmodus und Konfiguration auf Real (PgDump) stellen.",
+    "executionModeRequestedRealEffectiveSimulatedTitle": "Real angefordert, effektive Oberfläche ist simuliert",
+    "executionModeRequestedRealEffectiveSimulatedBody": "Die gespeicherte Präferenz lautet Real (PgDump), aber das effektive Worker-Profil ist Fake oder ProductionStub. Ausgaben bis zur Übereinstimmung von Ausführungsmodus-API und Konfiguration als simuliert behandeln.",
+    "executionModeRequestedFakeEffectivePgDumpTitle": "Fake gespeichert, effektiver Adapter ist PgDump",
+    "executionModeRequestedFakeEffectivePgDumpBody": "Die Datenbankpräferenz ist Fake, der effektive Adapter PgDump — prüfen Sie, ob „Konfiguration folgen“ beabsichtigt ist oder die Seite nach einem Moduswechsel neu geladen werden muss.",
+    "executionModeRequestedRealBlockedTitle": "Real gewählt, aber nicht ausführbar",
+    "executionModeRequestedRealBlockedBody": "Real (PgDump) bleibt Ziel-Adapter, aber die Konfigurationsgesundheit ist Unhealthy — bis Staging, Verbindungszeichenfolge, Werkzeuge und Archivregeln behoben sind, sind Läufe fehleranfällig. Es gibt keinen stillen Fallback auf Fake.",
+    "noRealPgConfiguredTitle": "Kein echter pg_dump-Pfad konfiguriert",
+    "noRealPgConfiguredBody": "Der Server meldet keinen konfigurierten echten PostgreSQL-Logikdump. Ein „erfolgreicher“ Lauf ist bis zur Aktivierung und zum Nachweis von pg_dump kein sinnvoller Datenbank-Backup-Nachweis.",
+    "realPgUnknownTitle": "Echter pg_dump: Signal unvollständig",
+    "realPgUnknownBody": "Aus der API kann diese Oberfläche nicht sicher erkennen, ob ein echter PostgreSQL-Logikdump konfiguriert ist. Serverseitig prüfen — Recoverability nicht allein aus Jobstatus ableiten.",
+    "realPgButProofGapsTitle": "Operativer Dump möglich — Recoverability nicht voll belegt",
+    "realPgButProofGapsBody": "Ein pg_dump-Pfad kann konfiguriert sein, aber die letzten Erfolgs-Zeitstempel sind in dieser Antwort lückenhaft. Downloads sind kein last-known-good-Nachweis, bis die Lücken geschlossen sind.",
+    "strongSignalsTitle": "Starke Recoverability-Signale (API-Rahmen)",
+    "strongSignalsBody": "Echter pg_dump scheint konfiguriert, Beweis-Zeitstempel wirken vollständig, letzter Restore-Drill abgeschlossen — bestes verfügbares Signal auf dieser Seite. RPO/RTO weiterhin policyseitig prüfen.",
+    "realPgOperationalTitle": "Echter pg_dump gemeldet — Drill-Nachweis ausstehend oder nicht erfolgreich",
+    "realPgOperationalBody": "Die Umgebung meldet einen echten PostgreSQL-Logikdump, aber der letzte Restore-Drill war nicht erfolgreich oder erscheint hier nicht als erfolgreich. Recovery bis zu einem passenden Drill nach Policy als unbelegt behandeln."
+  },
+  "fakeMode": {
+    "bannerTitle": "Simulierter / Fake-Backup-Adapter aktiv",
+    "bannerBody": "Fake-Modus ist für lokale Entwicklung üblich und unkritisch — kein Produktfehler. Es läuft kein pg_dump: „Erfolg“ bedeutet, dass die Orchestrierung für Integrationstests durchlief, kein wiederherstellbares PostgreSQL-Archiv. Downloads sind kleine Platzhalter. Restore-Drill-Ergebnisse wie PG_RESTORE_LIST_FAILED auf der Stub-Datei sind oft normal, bis Sie auf PgDump wechseln. Nachweise sind bis dahin nur Buchführung.",
+    "bannerRealBackupPrereq": "Für einen echten Logikdump brauchen Sie: PgDump-Adapter, absolutes Staging-Verzeichnis, PostgreSQL-Verbindungszeichenfolge sowie funktionierendes pg_dump/pg_restore auf dem API-Host. Dateien liegen dann unter Ihrem Staging-Root (siehe Checkliste)."
+  },
+  "realDumpMode": {
+    "bannerTitle": "Echter PostgreSQL-Logikdump (pg_dump) ist aktiv",
+    "bannerBody": "Der Server meldet PgDump-Konfiguration: Backups können ein echtes Custom-Format-Archiv erzeugen, und Restore-Drills können pg_restore --list auf dieser Datei ausführen. Das ist die Voraussetzung für sinnvolle Drill-Nachweise — Größe, Retention und Offsite-Kopien weiterhin nach Runbook prüfen."
+  },
+  "devRealPgDump": {
+    "title": "Checkliste (Entwicklung): echten pg_dump aktivieren",
+    "jumpToChecklist": "Zur Entwickler-Checkliste springen",
+    "docRepoFileLead": "Kanonische Anleitung im Repository:",
+    "intro": "Die API blockiert PgDump nicht bei ASPNETCORE_ENVIRONMENT=Development. Mindestkonfiguration:",
+    "sectionEnableTitle": "Echten logischen Dump aktivieren",
+    "sectionTroubleshootingTitle": "Wenn es noch hakt",
+    "itemAdapter": "Backup__ExecutionAdapterKind=PgDump setzen (oder Backup:ExecutionAdapterKind in appsettings / User Secrets).",
+    "itemStaging": "Backup__ArtifactStagingRoot auf ein nicht leeres absolutes Verzeichnis setzen, das für den API-Prozess beschreibbar ist.",
+    "itemConnection": "Gültige PostgreSQL-Verbindungszeichenfolge angeben (z. B. ConnectionStrings__DefaultConnection oder Backup__LogicalDumpConnectionStringName auf eine definierte Verbindung).",
+    "itemBinaries": "pg_dump und pg_restore im PATH bereitstellen oder Backup__PgDumpExecutablePath und RestoreVerification__PgRestoreExecutablePath setzen.",
+    "stuckFakeAdapter": "Noch Fake: effektiver Adapter ist Fake — Backup:ExecutionAdapterKind auf PgDump setzen und API neu starten.",
+    "stuckStaging": "Staging fehlt: PgDump braucht Backup:ArtifactStagingRoot (absoluter Pfad, beschreibbar).",
+    "stuckConnection": "Verbindungszeichenfolge: ConnectionStrings:DefaultConnection (oder Name in Backup:LogicalDumpConnectionStringName) muss Host, Username, Database enthalten. Fehlende Werte erscheinen in Development jetzt in der Konfigurationsgesundheit auf dieser Seite, noch vor dem ersten Lauf.",
+    "stuckPgDump": "pg_dump nicht gefunden: PostgreSQL-Client installieren oder Backup:PgDumpExecutablePath setzen. Nach dem Start die Logs „Backup development tooling“ prüfen.",
+    "stuckPgRestore": "pg_restore nicht gefunden (Restore-Drills): RestoreVerification:PgRestoreExecutablePath oder PATH. Dasselbe Log-Präfix nach dem Start.",
+    "expectedOutputPath": "Auf der Festplatte unter dem Staging-Root: logical_{runId}_{timestamp}Z.dump und manifest_{runId}.json. Ein echtes Custom-Format beginnt mit PGDMP (prüfen mit pg_restore --list).",
+    "startupLogsHint": "Nach „KASSE API STARTED“ die BackupStartup-Logs lesen: Konfigurationsprobleme stehen früh; In Development mit PgDump wird pg_dump/pg_restore --version einmal geprüft.",
+    "docHint": "Ausführliche Anleitung (Pfade, Dateinamen, Verifikation, Fehlerbehebung): Repository-Datei backend/docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md"
+  },
+  "evidence": {
+    "title": "Nachweis-Kette (was die API belegen kann)",
+    "footer": "Ein erfolgreicher pg_restore --list-Schritt ist starker indirekter Hinweis auf ein lesbares PostgreSQL-Custom-Format, auch ohne Rohbytes in der API. Geschäfts-Recovery bleibt außerhalb dieser Seite (Policy, Retention, Offsite).",
+    "backendGapsTitle": "Nicht in der API sichtbar (ggf. auf dem Server prüfen)",
+    "gaps": {
+      "pgdmpHeader": "Byte-genauer PGDMP-Header — nicht in API-Antworten; Hex-Prüfung oder Vertrauen in erfolgreichen pg_restore --list auf derselben Datei.",
+      "stagingPathRedacted": "Absoluter Staging-Pfad — aus Sicherheitsgründen nicht in der API; auf dem Worker-Host prüfen."
+    },
+    "status": {
+      "pass": "Erfüllt",
+      "fail": "Nicht erfüllt",
+      "unknown": "Unbekannt",
+      "na": "N/A",
+      "limited": "Begrenzt / Stub"
+    },
+    "headline": {
+      "noTechnicalSuccess": "Letzter Backup-Lauf nicht als erfolgreich abgeschlossen gemeldet — kein echter Dump-Nachweis.",
+      "stubPipeline": "Stub/Fake-Pipeline: technischer Erfolg liefert kein wiederherstellbares PostgreSQL-Archiv.",
+      "noRealPgPath": "Server meldet keinen echten pg_dump-Pfad — Artefakte nicht als Produktions-Logikdump werten.",
+      "realPathButFileUncertain": "PgDump konfiguriert, aber Logikdump-Datei fehlt, ist abwesend oder unklar.",
+      "strongWithinApi": "Stark innerhalb der API-Grenzen: echte Pipeline, Datei vorhanden, Listenprüfung OK, Drill OK, Zeitstempel vollständig — Policy trotzdem extern prüfen.",
+      "listOkMoreProofMayBeMissing": "Listenprüfung OK — Drill-Abschluss und Recoverability-Zeitstempel separat bestätigen.",
+      "realDumpWorkInProgress": "Echter pg_dump aktiv — Verifikation und Restore-Drills für vollständigen Nachweis.",
+      "requestedRealButEffectiveStub": "Nachweis-Kette: Real ist angefordert, die effektive Pipeline ist simuliert — Artefakte nicht als PostgreSQL-Logikdumps werten.",
+      "requestedRealButPrerequisitesBlocked": "Nachweis-Kette: Real (PgDump) ist gewählt, das Profil ist nicht ausführbar — Voraussetzungen beheben, bevor Dump-Datei- und Drill-Nachweise erwartet werden."
+    },
+    "steps": {
+      "technicalJob": {
+        "label": "1. Backup-Lauf abgeschlossen (technisch)",
+        "detail": "API meldet terminalen Erfolg — Orchestrierung fertig, noch kein Recovery-Nachweis."
+      },
+      "realPgConfigured": {
+        "label": "2. Echter pg_dump konfiguriert",
+        "detail": "Konfiguration meldet PgDump / Logikdump-Werkzeug, nicht Fake/Stub."
+      },
+      "nonStubRun": {
+        "label": "3. Nicht simulierter Lauf",
+        "detail": "Letzter Erfolgslauf nicht als simuliert markiert und kein Fake-Adapter — Voraussetzung für operative Dumps."
+      },
+      "logicalDumpFile": {
+        "label": "4. Logikdump-Artefakt gemeldet vorhanden",
+        "detailNa": "Kein abgeschlossener Erfolgslauf.",
+        "detailStub": "Stub-Bytes können als Zeilen erscheinen — kein Custom-Format-Archiv.",
+        "detailPass": "Logikdump-Zeile und Datei laut API zum Download vorhanden.",
+        "detailFail": "Logikdump fehlt oder Datei nicht auf dem Server.",
+        "detailUnknown": "Präsenz unklar — Run-Detail aktualisieren."
+      },
+      "artifactVerification": {
+        "label": "5. Artefakt-Verifikation (Staging/Checksumme)",
+        "detailNa": "Kein Kontext.",
+        "detailStub": "Verifikation auf Platzhalterdaten — keine echten Dump-Beweise.",
+        "detailPass": "Letzte Verifikation passt zum Lauf und ist bestanden.",
+        "detailFail": "Verifikation fehlgeschlagen.",
+        "detailUnknown": "Keine passende Verifikationszeile oder ausstehend."
+      },
+      "dumpListInspection": {
+        "label": "6. Dump als Archiv lesbar (pg_restore --list)",
+        "detailNoDrill": "Noch kein Restore-Drill.",
+        "detailDrillInFlight": "Drill läuft oder wartet.",
+        "detailPassIndirect": "pg_restore --list erfolgreich — starker indirekter Hinweis; keine Roh-PGDMP-Bytes in der API.",
+        "detailFailReal": "Listen-Schritt auf echter Pipeline fehlgeschlagen — Logs prüfen.",
+        "detailStubExpected": "Auf Fake/Stub erwartet — kein Archiv; PgDump verwenden.",
+        "detailUnknown": "Ergebnis unklar — Restore-Verifikationskarte."
+      },
+      "restoreDrillCompleted": {
+        "label": "7. Restore-Drill erfolgreich abgeschlossen (API)",
+        "detailNoRow": "Kein Drill in der Historie.",
+        "detailInFlight": "Drill noch nicht fertig.",
+        "detailPass": "Letzter Drill-Status erfolgreich — kein vollständiges Recovery-Programm.",
+        "detailNotOk": "Letzter Drill nicht erfolgreich."
+      },
+      "recoverabilityProof": {
+        "label": "8. Recoverability-Zeitstempel (Zusammenfassung)",
+        "detailGap": "Mindestens ein Kanäle-Zeitstempel fehlt in der Summary-API.",
+        "detailOk": "Alle drei Zeitstempel in der Antwort vorhanden."
+      },
+      "isolatedRestore": {
+        "label": "9. Isolierter Restore-Versuch (optional)",
+        "detailNotRun": "Nicht ausgeführt.",
+        "detailPass": "Versuch laut API bestanden.",
+        "detailFail": "Versuch laut API fehlgeschlagen."
+      }
+    }
+  },
   "scope": {
     "title": "Was diese Seite tut (und was nicht)",
-    "body": "Es wird kein Backup im Browser erzeugt und kein Restore-Befehl von hier ausgeführt. Schaltflächen reihen Aufträge nur in die API-Warteschlange ein; Ausführung und Artefakte laufen auf dem Backend-Worker."
+    "body": "Es wird kein Backup im Browser erzeugt und kein Restore-Befehl von hier ausgeführt. Schaltflächen reihen Aufträge nur in die API-Warteschlange ein; Ausführung und Artefakte laufen auf dem Backend-Worker. Leere oder fehlerhafte Download-Streams sind Server-/Speicherprobleme — diese Oberfläche zeigt nur API-Metadaten und clientseitige Anomalie-Hinweise; sie behebt kein Backend-Verhalten.",
+    "devRealPgLead": "In der Entwicklung ist oft der Fake-Adapter (Stub-Bytes) aktiv — das ist beabsichtigt. Für echte PostgreSQL-Custom-Format-Dumps auf der Festplatte konfigurieren Sie PgDump, Staging, Verbindungszeichenfolge und Client-Binaries; nutzen Sie die Checkliste und die Repository-Dokumentation unten."
   },
   "banner": {
     "criticalTitle": "Kritische Hinweise",
     "warningTitle": "Eingeschränkt / abweichend",
+    "informationalTitle": "In dieser Konfiguration erwartbar (kein Vorfall)",
     "backupConfigUnhealthy": "Backup-Konfiguration: Zustand „kritisch“.",
     "backupConfigDegraded": "Backup-Konfiguration: Zustand „eingeschränkt“.",
     "restoreReadinessUnhealthy": "Restore-Verifikation: Bereitschaft „kritisch“.",
     "restoreReadinessDegraded": "Restore-Verifikation: Bereitschaft „eingeschränkt“.",
     "externalArchiveDegraded": "Externe Artefakt-Kopie: fehlgeschlagen oder uneinheitlich — Backup kann trotzdem technisch erfolgreich gewesen sein.",
     "noRealPostgreSqlBackup": "Kein konfigurierter echter PostgreSQL-Logikdump (pg_dump)",
-    "latestRunSimulatedNotProduction": "Letzter Backup-Lauf war simuliert/stub — kein produktiver pg_dump-Artefakt."
+    "latestRunSimulatedNotProduction": "Letzter Lauf hat die Stub-Pipeline erfolgreich abgeschlossen — im Fake-Modus gibt es bewusst keinen produktiven pg_dump-Artefakt.",
+    "restoreDrillStubListFailedExpected": "Restore-Drill: pg_restore --list kann die Stub-Datei nicht lesen (kein PostgreSQL-Custom-Format). Bei Fake/stub erwartet — kein Zeichen für defektes Produktions-DR; für Listen-/Restore-Checks auf echten Archiven PgDump konfigurieren.",
+    "restoreDrillRealListFailedPgRestoreUnavailable": "Restore-Drill: pg_restore konnte auf dem Worker nicht gestartet werden (PATH/Binary). Das ist ein Tooling-Thema auf dem Host — nicht dass „die Datenbankwiederherstellung kaputt“ ist; PostgreSQL-Client installieren oder RestoreVerification:PgRestoreExecutablePath setzen.",
+    "restoreDrillRealListFailedDumpMissing": "Restore-Drill: die Logikdump-Datei war auf dem Datenträger nicht auffindbar. Staging/Archiv-Pfade, Berechtigungen und Sichtbarkeit für den Worker prüfen — kein Stub-Artefakt-Problem.",
+    "restoreDrillRealListFailedBadArchive": "Restore-Drill: pg_restore --list lehnt die Datei ab, während die Backup-Pipeline real ist (nicht Stub). Als Wiederherstellbarkeitsrisiko behandeln — Archiv ggf. beschädigt oder kein gültiges Custom-Format.",
+    "restoreDrillRealListFailedUnknown": "Restore-Drill: pg_restore --list schlägt in einer Nicht-Stub-Pipeline aus unbekanntem Grund fehl — Fehlerdetail und Worker-Logs prüfen.",
+    "healthIssuesSummary": "{{count}} Konfigurationsproblem(e) beim Backup — vollständiger Text steht in der Karte „Konfigurations-Gesundheit“ unten.",
+    "restoreIssuesSummary": "{{count}} Problem(e) bei der Restore-Verifikations-Bereitschaft — vollständiger Text steht in der Karte „Restore-Verifikation — Bereitschaft“ unten.",
+    "executionModeRequestedRealEffectiveSimulated": "Ausführungsmodus-Konflikt: Real ist angefordert, das effektive Worker-Profil ist simuliert (Fake/Stub). Kein PostgreSQL-Logikdump annehmen, bis der Serverzustand der gespeicherten Präferenz entspricht.",
+    "executionModeRequestedRealBlocked": "Real (PgDump) ist gewählt, das effektive Profil ist nicht ausführbar — Voraussetzungen sind unhealthy. Der Worker zielt weiter auf PgDump; es gibt keinen automatischen Wechsel zu Fake. Konfiguration beheben, bevor echte Dumps erwartet werden.",
+    "executionModeRequestedFakeEffectivePgDump": "Gespeicherte Präferenz ist Fake, der effektive Worker-Adapter ist PgDump — meist „Konfiguration folgen“ oder kurzzeitiger Reload. Ausführungsmodus-Karte und Serverzusammenfassung prüfen.",
+    "executionModeFallbackGuidanceOnly": "Der Server schlägt Modus „{{mode}}“ vor, bis die Voraussetzungen gesund sind — nur Hinweis; die API wendet ihn nicht automatisch an."
   },
   "summary": {
-    "backupHealth": "Backup-Gesundheit",
+    "backupHealth": "Backup-Gesundheit (API-Kurzüberblick)",
+    "backupHealthFootnote": "Nur Konfigurationssignal — kein Nachweis, dass Recovery funktioniert.",
+    "backupHealthFootnoteFake": "Fake/Stub-Adapter: Konfigurationsprüfung — keine produktive Backup-Gesundheit und kein DR-Nachweis.",
+    "restoreReadinessFootnoteFake": "Nur Worker-/Konfigurationssignal. Mit Fake-Adapter und ohne echten pg_dump bedeutet Bereitschaft nicht, dass Restore-Drills auf echten Dumps gelingen (z. B. pg_restore --list auf Stubs).",
     "backupConfig": "Konfiguration (Backup)",
     "pipelinePolicy": "Artefakt-Pipeline (Kurz)",
     "latestBackupRun": "Letzter Backup-Lauf",
-    "restoreReadiness": "Restore-Verifikation Bereitschaft (Operator-Wahrheit)",
+    "restoreReadiness": "Restore-Verifikation Bereitschaft (API-Signal)",
+    "restoreReadinessFootnote": "Konfigurations-/Worker-Signal — kein nachgewiesenes End-to-End-DR.",
     "configurationShort": "Konfiguration (Kurz)",
+    "fakeAdapterConfigNote": "Adapter ist Fake/Stub — „gesund“ bedeutet nicht ein wiederherstellbares Datenbank-Backup.",
+    "fakeAdapterConfigNoteTooltip": "Fake/Stub ist in der Standard-Entwicklung erwartbar.\n\nEchte Backups benötigen:\n• Backup:ExecutionAdapterKind = PgDump\n• Backup:ArtifactStagingRoot = absoluter, beschreibbarer Ordner\n• Verbindungszeichenfolge (z. B. ConnectionStrings:DefaultConnection) mit Host, Username, Database\n• pg_dump und pg_restore im PATH oder explizite Pfade\n\nAuf der Festplatte (PgDump): unter Staging — logical_{runId}_{timestamp}Z.dump und manifest_{runId}.json (siehe Entwicklerdokument).",
     "externalArchiveCard": "Externes Archiv (letzter Lauf — Artefakte)",
-    "unknown": "Unbekannt / keine Daten"
+    "unknown": "Unbekannt / keine Daten",
+    "executionModeSurfaceTitle": "Ausführungsmodus (gespeichert vs. effektiv)",
+    "executionModeSurfaceBody": "Angefordert: {{requested}} · Effektiv: {{effective}} · Konfig-Standard: {{defaultMode}} · Ausführbar: {{runnable}} — Änderungen in der Karte „Ausführungsmodus“; „Ausführbar: Nein“ bedeutet: Voraussetzungen blockieren gesunde Läufe, auch wenn Real gewählt ist."
   },
   "pipelineSteps": {
     "sectionTitle": "Pipeline-Schritte",
@@ -92,7 +272,7 @@
     "state": {
       "pending": "Ausstehend",
       "running": "Läuft",
-      "success": "OK",
+      "success": "Abgeschlossen",
       "failed": "Fehlgeschlagen",
       "skipped": "Entfällt",
       "degraded": "Eingeschränkt"
@@ -112,6 +292,8 @@
   },
   "readiness": {
     "title": "Restore-Verifikation — Bereitschaft",
+    "notEndToEndDr": "Dieser Abschnitt meldet Backend-Konfiguration und Worker-Signale — kein vollständiger Produktions-Recovery-Nachweis.",
+    "backendReportedSignal": "Level und Flags stammen vom Backend — keine unabhängig verifizierte Betriebsbereitschaft.",
     "restoreWorker": "Restore-Worker",
     "restoreWorkerDisabled": "Restore-Verifikations-Worker deaktiviert — Drills werden nicht verarbeitet.",
     "noIssues": "Keine zusätzlichen Hinweise in dieser Antwort.",
@@ -134,10 +316,35 @@
   "manual": {
     "title": "Manuelle Aktionen (nur einreihen)",
     "hint": "Startet Aufträge asynchron über die API — kein sofortiges Ergebnis. Nach Erfolg: Artefakte unten herunterladbar (auch Fake/ProductionStub-Stubs auf dem Server — kein Produktions-pg_dump). „Einstellungen verwalten“; Audit.",
+    "hintFake": "Fake/Stub-Modus: Jobs laufen durch die Pipeline, Artefakte sind Platzhalter. Ein fehlgeschlagener Restore-Drill mit PG_RESTORE_LIST_FAILED ist oft erwartbar, bis ein echter PostgreSQL-Logikdump existiert — siehe Restore-Verifikationskarte für stderr/Kontext.",
+    "modeLabelUnknown": "Unbekannt",
+    "actionBannerEffective": "Aktuell effektiv: {{mode}} (Worker-Adapter {{adapter}}). Der neue Lauf nutzt dieses Profil.",
+    "actionBannerAdapterOnly": "Ausführungsmodus nicht geladen — Adapter laut Gesundheitsübersicht: {{adapter}}. Karte „Ausführungsmodus“ für gespeichert vs. effektiv öffnen; Trigger nutzen weiter den Live-Server.",
+    "effectiveExecutionLine": "Effektiv jetzt: {{mode}} — Worker-Adapter {{adapter}}.",
+    "effectiveExecutionLineFallback": "Ausführungsmodus-API nicht geladen. Letzte Gesundheit meldet Adapter {{adapter}}.",
     "confirmBackupTitle": "Backup einreihen?",
-    "confirmBackupDescription": "Ruft die Admin-Backup-API auf und reiht einen Lauf auf dem Server-Worker ein. Kein sofortiger Download; kein Restore-Nachweis.",
+    "confirmBackupIntro": "Reiht einen Backup-Lauf auf dem Server-Worker ein (Last, Speicher-I/O). Kein sofortiger Download; kein Wiederherstellungsnachweis. Audit.",
+    "confirmBackupDescription": "Reiht einen Backup-Lauf auf dem Server-Worker ein (Last, Speicher-I/O). Kein sofortiger Download; kein Wiederherstellungsnachweis. Audit.",
+    "confirmBackupMismatchRequestedRealEffectiveSimulated": "Gespeicherte Präferenz ist {{requested}}, effektives Profil aber {{effective}} (simuliert). Dieser Auftrag erzeugt keinen PostgreSQL-Logikdump, bis Server und Ausführungsmodus zu Real passen — falls unbeabsichtigt, zuerst beheben.",
+    "confirmBackupMismatchRequestedRealBlocked": "Real (PgDump) ist gespeichert, aber Voraussetzungen unhealthy: Läufe zielen weiter auf PgDump und können fehlschlagen. Kein stiller Fallback auf Fake.",
+    "confirmBackupBehaviorSimulated": "In diesem Modus erzeugt der Worker nur simulierte oder Stub-Artefakte — kein wiederherstellbares Produktions-pg_dump-Archiv.",
+    "confirmBackupBehaviorRealPgDump": "In diesem Modus versucht der Worker einen echten PostgreSQL-Logikdump (pg_dump) gemäß Konfiguration und Host-Tooling.",
+    "confirmBackupBehaviorOtherAdapter": "Worker-Adapter {{adapter}} — auf dem Server klären, was dieser Pfad produziert.",
+    "confirmBackupBehaviorUnknown": "Effektiver Pfad hier nicht klassifizierbar — Ausführungsmodus-Karte und Server-Logs prüfen.",
     "confirmBackupOk": "Einreihen",
-    "confirmBackupCancel": "Abbrechen"
+    "confirmBackupCancel": "Abbrechen",
+    "confirmRestoreTitle": "Restore-Drill einreihen?",
+    "confirmRestoreIntro": "Reiht eine Restore-Verifikation auf dem Worker ein (u. a. CPU, Platte, Test-DB möglich). Kein Produktions-Restore über diese Oberfläche.",
+    "confirmRestoreDescription": "Reiht eine Restore-Verifikation auf dem Worker ein (u. a. CPU, Platte, Test-DB möglich). Kein Produktions-Restore über diese Oberfläche. Ergebnis erscheint asynchron; Audit.",
+    "confirmRestoreLatestRunUnknown": "Kein letzter Backup-Statuszeile in der API — der Drill nutzt serverseitigen Kontext; nach Einreihen die Restore-Verifikationskarte prüfen.",
+    "confirmRestoreLatestSimulated": "Letzte Statuszeile: Adapter {{adapter}} (simuliert/Stub). pg_restore --list auf Stub-Bytes schlägt oft erwartbar fehl — kein Produktions-DR-Ausfall.",
+    "confirmRestoreLatestReal": "Letzte Statuszeile: PgDump — der Drill zielt auf ein Logikdump-Artefakt, sobald der Worker die Datei auflöst.",
+    "confirmRestoreLatestAmbiguous": "Letzte Statuszeile: Adapter {{adapter}} — Drill-Ergebnis konservativ interpretieren; Fehlerdetail auf der Restore-Karte lesen.",
+    "confirmRestoreDrillFootnote": "Ergebnis erscheint asynchron; Audit.",
+    "confirmRestoreOk": "Einreihen",
+    "confirmRestoreCancel": "Abbrechen",
+    "cardAlertRequestedRealEffectiveSimulated": "Konflikt: gespeichert {{requested}}, effektiv {{effective}} (simuliert). Keinen echten Dump annehmen, bis der Konflikt behoben ist.",
+    "cardAlertRequestedRealBlocked": "Real (PgDump) gewählt, Profil nicht lauffähig — Backup-Läufe können fehlschlagen, bis die Voraussetzungen healthy sind."
   },
   "progress": {
     "titleQueued": "Backup eingereiht — läuft noch nicht",
@@ -146,9 +353,10 @@
     "bodyQueued": "Der Lauf wartet in der Worker-Warteschlange oder startet gleich.",
     "bodyRunning": "Ausführung auf dem Server (z. B. pg_dump, Artefakte, Prüfschritte).",
     "bodyAwaiting": "Ausführungsphase abgeschlossen; Artefakt-Verifikation oder externe Kopie kann noch laufen.",
-    "finishedOk": "Letzter Backup-Lauf: erfolgreich abgeschlossen (Produktions-Pipeline).",
-    "finishedSimulatedOk": "Letzter Backup-Lauf: abgeschlossen (simuliert / kein produktiver pg_dump).",
-    "finishedSimulatedOkDetail": "Kein Nachweis für einen herunterladbaren produktiven Logikdump. Für DR: PgDump-Adapter und Recoverability-Nachweise.",
+    "finishedOk": "Letzter Backup-Lauf: abgeschlossen (API meldet Erfolg; nicht simulierter Pfad). Betriebsstatus, keine DR-Garantie.",
+    "finishedSimulatedOk": "Letzter Lauf: Pipeline abgeschlossen (Fake/Stub — kein echter pg_dump-Output).",
+    "finishedSimulatedOkDetail": "Kein Nachweis für einen herunterladbaren produktiven Logikdump. PgDump-Adapter und letzte-bekannte-gute Zeitstempel für separate Prüfungen nutzen — keine Gewähr, dass Recovery funktioniert.",
+    "finishedOkDetail": "Nur betrieblicher Abschluss — Recoverability (letzte bekannte gute Nachweise) separat prüfen.",
     "finishedFailed": "Letzter Backup-Lauf: fehlgeschlagen — Details in der Tabelle.",
     "finishedVerificationFailed": "Letzter Backup-Lauf: Artefakt-Verifikation fehlgeschlagen.",
     "finishedCancelled": "Letzter Backup-Lauf: abgebrochen.",
@@ -157,11 +365,23 @@
     "noEta": "Kein Zeit-Richtwert: noch keine erfolgreichen Läufe mit messbarer Dauer."
   },
   "download": {
-    "title": "Artefakte herunterladen (letzter Lauf)",
-    "hint": "Bei erfolgreichem Lauf, wenn die Datei auf dem Server liegt. Fake/ProductionStub-Dateien sind für Entwicklung/Tests herunterladbar, aber kein Produktions-pg_dump-Nachweis. „Einstellungen verwalten“; Audit.",
+    "titleLatestSuccess": "Artefakte herunterladen (letzter Lauf — API-Erfolgsstatus)",
+    "titleLatestSuccessFake": "Testdateien vom letzten Lauf (kein Produktions-Backup)",
+    "titleLastKnownGood": "Artefakte herunterladen (letzter bekannter guter Stand — API-Wiederherstellbarkeit)",
+    "titleLastKnownGoodFake": "Testdateien vom letzten bekannten guten Lauf (kein Produktions-Backup)",
+    "scopeLatestSuccess": "Zeilen aus dem letzten erfolgreichen Lauf der Status-API — nicht automatisch derselbe „letzte bekannte gute“ Nachweis wie in der Recoverability-Karte.",
+    "scopeLatestSuccessFake": "Im Fake-/Stub-Modus sind das Pipeline-Platzhalter (Manifest + kleine dump-ähnliche Datei). Keine wiederherstellbaren PostgreSQL-Archive und kein DR-Nachweis.",
+    "scopeLastKnownGood": "Eingeblendet, weil der letzte Lauf nicht erfolgreich war; Lauf-ID aus Recoverability-Zusammenfassung. Kein DR-Garantie-Nachweis.",
+    "scopeLastKnownGoodFake": "Gleiche Fake-/Stub-Grenze: Dateien nur für Integrationsprüfungen — kein nutzbares Backup, auch wenn die API „letzte bekannte gut“ meldet.",
+    "pathsOmitted": "Vollständige Staging-/Archiv-Pfade werden hier nicht angezeigt (weniger Fehlinterpretation).",
+    "hint": "Verfügbarkeit nutzt nur API-gemeldete Datei-Anwesenheit. Der Server kann den Download dennoch ablehnen. „Einstellungen verwalten“; Audit.",
     "simulatedWarning": "Dieser Lauf nutzte den Adapter „{{adapter}}“ — kein produktiver PostgreSQL-Logikdump (pg_dump).",
-    "simulatedDownloadDisclaimer": "Stub-/Platzhalterdateien können dennoch heruntergeladen werden, falls vorhanden. Nicht als produktiven Disaster-Recovery-Nachweis werten.",
-    "stubHint": "Stub-Dateien können zu Pipeline-Tests und Integritätschecks dienen; für DR ist ein echter pg_dump-Lauf (Adapter PgDump) erforderlich.",
+    "simulatedDownloadDisclaimer": "Stub-/Platzhalterdateien können vorhanden sein. Nicht als produktiven DR-Nachweis werten.",
+    "stubHint": "Stub-Dateien können zu Pipeline-Tests dienen; für DR ist ein echter pg_dump-Lauf (PgDump) erforderlich.",
+    "stubPayloadNote": "Heruntergeladene Dateien bei Fake-/Stub-Läufen enthalten nur eine minimale Platzhalter-Nutzlast (kein PostgreSQL-Custom-Format-Dump).",
+    "stubZoneAlertTitle": "Fake/Stub-Lauf — Downloads sind Testartefakte, kein Datenbank-Backup",
+    "stubZoneAlertDescription": "Der Fake-Adapter erzeugt typischerweise zwei Dateien: (1) eine minimale UTF-8-Datei, die wie ein Logikdump aussieht, aber nur den kurzen Text `fake-bytes-<runId>` enthält, und (2) ein kleines JSON-Manifest mit z. B. `note: \"no real pg_dump\"`. Die geringe Größe ist erwartet. Keine der Dateien ist ein PostgreSQL-Custom-Format-Archiv und keine ist recovery-tauglich.",
+    "rowPosition": "Datei {{current}} von {{total}} in diesem Lauf",
     "errorRunNotFound": "Backup-Lauf existiert nicht (404).",
     "errorArtifactNotFound": "Artefakt gehört nicht zu diesem Lauf oder existiert nicht (404).",
     "errorFileMissing": "Artefakt-Metadaten vorhanden, aber die Datei fehlt auf dem Server (404).",
@@ -170,50 +390,159 @@
     "errorConflict": "Backup-Lauf ist nicht im Erfolgszustand — Download nicht möglich (409).",
     "errorStorage": "Backup-Staging/Archiv ist nicht konfiguriert oder nicht verfügbar (503).",
     "errorForbidden": "Keine Berechtigung zum Herunterladen (403).",
-    "errorSimulated": "Download als simuliert/Stub abgelehnt (Legacy oder Richtlinie). Kein produktiver PostgreSQL-Logikdump (403).",
-    "button": "Herunterladen",
-    "buttonStub": "Stub-Datei herunterladen",
-    "noArtifactsInLatestRun": "Beim letzten erfolgreichen Lauf sind aktuell noch keine Artefaktzeilen materialisiert. Bitte gleich erneut aktualisieren.",
-    "fileUnavailableOnServer": "Mindestens ein Artefakt ist auf dem Server aktuell nicht als Datei auffindbar — Download ist deaktiviert (Metadaten können älter sein).",
-    "typeLabel": "Typ",
-    "locatorLabel": "Staging-Kennung",
-    "externalLabel": "Archiv-Kennung",
+    "errorSimulated": "Download als simuliert/Stub abgelehnt (Richtlinie). Kein produktiver PostgreSQL-Logikdump (403).",
+    "errorUnknown": "Download mit unbekanntem Server-Fehlercode fehlgeschlagen.",
+    "errorEmptyPayload": "Download war mit HTTP 200 erfolgreich, aber der Inhalt war leer (0 Bytes) — vermutlich Server, Speicherpfad oder Streaming. API-/Worker-Logs und Artefakt-Speicher prüfen; mit den gemeldeten Metadaten dieser Zeile abgleichen.",
+    "button": "Download anfordern",
+    "buttonStub": "Stub-Download anfordern",
+    "downloadNotProvenUntilRequest": "Aktiviert nur UI-Vorprüfungen — der Server prüft jede Anfrage.",
+    "downloadStubTooltip": "Stub/Simulationsdatei — kein produktives PostgreSQL-Backup. Server prüft bei jeder Anfrage.",
+    "integrityPrecheckNote": "Zeilen zeigen nur API-Metadaten. „Datei vorhanden“ und Größe belegen keine Backup-Integrität, keine Wiederherstellbarkeit und nicht, dass der Stream exakt dieser Zeile entspricht — bei Zweifeln serverseitig prüfen.",
+    "suspicionBulkIntro": "Mindestens eine Zeile unten hat eine Metadaten-Auffälligkeit (Warn-Tags). Speicher, API-Zuordnung und Backend-Logs prüfen, bevor dem Artefakt vertraut wird.",
+    "noArtifactsInRun": "In dieser Lauf-Antwort noch keine Artefaktzeilen. Nach Worker-Ende aktualisieren.",
+    "fileUnavailableOnServer": "Mindestens eine Zeile meldet die Datei als abwesend — Download für diese Zeile gesperrt.",
+    "filePresenceUnknownBulk": "Mindestens eine Zeile ohne Datei-Anwesenheits-Flag — Download kann fehlschlagen.",
+    "lkgLoadFailed": "Details zum letzten bekannten guten Lauf konnten nicht geladen werden.",
+    "artifactLabel": "Artefakt-Klasse",
+    "artifactLabelSimulated": "Artefakt-Klasse (Stub / simulierter Lauf)",
+    "byteSizeColumn": "Gemeldete Größe (API)",
+    "byteSizeColumnSimulated": "Gemeldete Größe (Stub-Nutzlast — API)",
+    "confirmStubTitle": "Stub-/Simulationsdatei herunterladen?",
+    "confirmStubBody": "Dieser Lauf ist simuliert/Stub — kein Recoverability-Nachweis und kein Produktions-Backup. Der Server liefert die Bytes auf der Platte für diese Zeile (oft nur Platzhalter, kein pg_dump-Output). Größe (API): {{size}}. Zeile: {{artifact}}.",
+    "confirmStubNotEmptyFailedBackup": "Eine sehr kleine Größe ist hier erwartet — das ist kein fehlgeschlagenes oder „leeres Backup“ im Sinne eines defekten pg_dump; der Fake-Adapter schreibt bewusst Platzhalter-Bytes.",
+    "confirmStubExpectationLead": "Was diese Datei ist (vor dem Speichern lesen):",
+    "confirmStubOk": "Datei laden",
+    "confirmUnprovenLogicalTitle": "Logikdump-Zeile herunterladen (produktiver pg_dump nicht bestätigt)",
+    "confirmUnprovenLogicalLead": "Die Konfiguration meldet für diese Umgebung keinen echten PostgreSQL-Logikdump-Pfad. Die Datei kann dennoch ein echter Worker-Dump sein, aber Wiederherstellbarkeit ist allein aus der Konfiguration nicht zertifiziert.",
+    "confirmUnprovenLogicalOk": "Download fortsetzen",
+    "preDownloadWhatYouGet": "Vor dem Download:",
+    "reality": {
+      "stub": "Test-/Stub-Artefakt",
+      "realPipeline": "Aus konfigurierter Backup-Pipeline",
+      "unknown": "Pipeline-Art unbekannt"
+    },
+    "byteSizeFootnote": {
+      "stubExpectedTiny": "Winzig ist erwartet (Platzhalter — kein „leeres fehlgeschlagenes Backup“).",
+      "manifestMetadataOnly": "Meist kleine JSON-Metadaten — kein Datenbank-Daten-Dump."
+    },
+    "contentExpectSummary": {
+      "stubLogicalDumpFakeAdapter": "UTF-8-Platzhalter (fake-bytes…), kein pg_restore-Custom-Format.",
+      "stubManifestFakeAdapter": "Kleines JSON-Manifest (Pipeline-Metadaten), kein Dump.",
+      "manifestNonStub": "Verifikations-Manifest JSON — Checksummen/Metadaten, keine Tabellendaten.",
+      "logicalDumpOperationalShort": "Logikdump vom Worker — bei Unsicherheit Format und Policy serverseitig prüfen."
+    },
+    "filePresenceLabel": "Datei auf Server (API)",
+    "actionLabel": "Download",
+    "recoverabilityUse": {
+      "not_dr_evidence_simulated": "Kein DR-/Recoverability-Nachweis — nur simulierte Stub-Nutzlast.",
+      "not_dr_evidence_unverified_adapter": "Kein nachgewiesener produktiver pg_dump (Konfig: kein echter Logikdump).",
+      "possible_operational_artifact": "Operative Datei — DR separat prüfen.",
+      "unknown_recovery_value": "Wiederherstellbarkeit aus API-Signalen unbekannt.",
+      "short": {
+        "not_dr_evidence_simulated": "Kein DR-Wert (Stub)",
+        "not_dr_evidence_unverified_adapter": "pg_dump nicht belegt (Konfig)",
+        "possible_operational_artifact": "Operative Datei",
+        "unknown_recovery_value": "DR-Wert unbekannt"
+      }
+    },
+    "filePresence": {
+      "reported_present": "Gemeldet vorhanden",
+      "reported_absent": "Gemeldet fehlend",
+      "unknown": "Nicht gemeldet — Richtlinie bis zur Anfrage unbekannt"
+    },
+    "downloadBlocked": {
+      "no_manage": "Benötigt „Einstellungen verwalten“",
+      "file_not_on_server": "Gesperrt — Datei gemeldet fehlend",
+      "file_presence_unknown": "Gesperrt — Anwesenheit nicht vorab bestätigbar"
+    },
     "error": "Download fehlgeschlagen.",
     "needManage": "Zum Herunterladen fehlt die Berechtigung „Einstellungen verwalten“.",
+    "suspicion": {
+      "metadata_incomplete": {
+        "short": "Größe fehlt",
+        "detail": "API meldet Datei vorhanden, aber keine Byte-Größe — Metadaten ggf. unvollständig. Artefakt-API und Storage-Zuordnung prüfen."
+      },
+      "zero_reported_size": {
+        "short": "0 B gemeldet",
+        "detail": "Gemeldete Größe ist 0, obwohl die Datei als vorhanden gilt — unüblich. Speicher, Pfadauflösung und Worker-Logs prüfen."
+      },
+      "tiny_reported_logical_dump": {
+        "short": "Sehr kleiner Dump",
+        "detail": "Gemeldete Größe unter 1 KB für eine Logikdump-Zeile — für typischen pg_dump unerwartet (kleine DB oder Pipeline). Serverseitig verifizieren."
+      }
+    },
+    "contentExpect": {
+      "stubLogicalDumpFakeAdapter": "Erwarteter Inhalt: winziger UTF-8-Text. Der Fake-Adapter schreibt `fake-bytes-<runId>` — kein PostgreSQL-Custom-Format, kein pg_restore.",
+      "stubManifestFakeAdapter": "Erwarteter Inhalt: kleine JSON-Datei (oft mit `note: \"no real pg_dump\"`). Nur Pipeline-/Test-Metadaten — kein Datenbank-Dump.",
+      "stubTyped": {
+        "1": "Platzhalter für Pipeline-Tests — kein echtes Physical-Base-Backup.",
+        "2": "Platzhalter — kein echtes WAL-Archiv.",
+        "3": "Platzhalter — kein echter Globals-Dump.",
+        "4": "Platzhalter-Manifest — nur Metadaten.",
+        "5": "Platzhalter-Log — kein operativer Nachweis."
+      },
+      "stubOther": "Test-/Platzhalter-Artefakt — nicht recovery-tauglich.",
+      "operationalLogicalDump": "Nicht-simulierter Lauf: vorgesehen als Logikdump der Pipeline. Bei passender Größe/Format nach Policy behandeln — bei Zweifeln serverseitig prüfen.",
+      "logicalDumpNotProvenConfig": "Typ Logikdump, aber Konfiguration meldet keinen echten pg_dump-Pfad — kein wiederherstellbares Archiv annehmen, bis serverseitig verifiziert.",
+      "logicalDumpProofUnknown": "Typ Logikdump; API bestätigt keine echte pg_dump-Konfiguration — Nutzen für Recovery hier unbekannt.",
+      "verificationManifest": "Manifest / Verifikations-Metadaten (Checksummen, Pipeline) — kein eigenständiges Datenbank-Backup.",
+      "nonSimulatedTyped": {
+        "1": "Physical/Base-Backup-Klasse — mit Operator abstimmen; Strategieabhängig.",
+        "2": "WAL-Fenster-Artefakt — Umfang mit Operator klären.",
+        "3": "Globals-Dump — Umfang mit Operator klären.",
+        "5": "Backup-Log / Diagnose — kein Dump."
+      },
+      "unknown": "Artefakt-Bytes — Rolle und Format beim Backup-Betrieb klären."
+    },
     "types": {
+      "logicalDumpStub": "Stub-Logikdump-Zeile (Platzhalter-Bytes — kein pg_dump-Output)",
+      "logicalDumpOperational": "Logischer Dump (nicht simulierter Lauf)",
+      "logicalDumpNotProven": "Logischer Dump — produktiver pg_dump aus Konfiguration nicht belegt",
       "0": "Logischer Dump",
       "1": "Physisches Basis-Backup",
       "2": "WAL-Fenster",
       "3": "Globals-Dump",
       "4": "Verifikations-Manifest",
+      "manifestStub": "Stub-Verifikations-Manifest (Metadaten — kein Backup)",
       "5": "Backup-Log",
-      "unknown": "Artefakt"
+      "unknown": "Artefakt",
+      "stub": {
+        "1": "Physisches Basis-Backup (Stub — kein echtes Cluster-Backup)",
+        "2": "WAL-Fenster (Stub — kein echtes WAL)",
+        "3": "Globals-Dump (Stub — kein Produktions-Output)",
+        "4": "Verifikations-Manifest (Stub — Pipeline-Platzhalter)",
+        "5": "Backup-Log (Stub — kein Betriebsnachweis)"
+      }
     }
   },
   "triState": {
-    "ok": "OK",
+    "ok": "OK (technisch)",
     "fail": "Fehlgeschlagen",
-    "issues": "Abweichungen"
+    "issues": "Abweichungen",
+    "dumpInspectionNotApplicableStub": "Nicht auflistbar (Stub-Datei — kein PostgreSQL-Dump)"
   },
   "restoreAttempt": {
     "notRun": "Nicht ausgeführt"
   },
   "health": {
     "title": "Konfigurations-Gesundheit",
-    "healthy": "OK",
+    "healthy": "OK (Konfiguration — API)",
     "degraded": "Eingeschränkt",
     "unhealthy": "Kritisch",
     "workerDisabled": "Worker deaktiviert — wartende Backups werden nicht verarbeitet.",
     "adapter": "Adapter",
     "worker": "Worker",
     "realPgDumpYes": "pg_dump: ja",
-    "realPgDumpNo": "pg_dump: nein"
+    "realPgDumpNo": "pg_dump: nein",
+    "diagnosticsIntro": "Einrichtungssignale aus der API (stabile Codes — für Details mit der Maus darauf zeigen). Zusammen mit den Problemen oben zeigt das, warum kein echter pg_dump aktiv sein kann.",
+    "diagnosticsTruncated": "+ {{count}} weitere Code(s) — vollständige Liste ggf. in API/Logs."
   },
   "latestRun": {
     "title": "Letzter Backup-Lauf",
     "none": "Noch kein Backup-Lauf erfasst.",
     "orchestrationHint": "„Neu eingereiht“ bedeutet nur Warteschlange — kein abgeschlossenes Backup.",
     "distinctFromRecoverability": "Dieser Abschnitt zeigt den letzten Backup-Laufstatus aus der API — nicht dasselbe wie die „letzte bekannte gute“ Wiederherstellbarkeit in der Karte darüber.",
+    "fakeModeOperationalNotice": "Nur Pipeline-Testlauf: es entsteht kein wiederherstellbares Datenbank-Backup.",
     "simulatedBadge": "Simuliert / kein pg_dump",
     "notRealPgDump": "Dieser Lauf ist kein echter PostgreSQL-Logikdump (pg_dump). Nicht als produktiver DR-Nachweis werten.",
     "id": "Lauf-ID",
@@ -227,6 +556,7 @@
     "durationSec": "{{s}} s",
     "durationMin": "{{m}} min {{s}} s",
     "dumpSize": "Dump-Größe (ca.)",
+    "dumpSizeStub": "Gemeldete Artefaktgröße (Stub-Bytes — kein echter Dump)",
     "bytesB": "{{n}} B",
     "bytesKb": "{{n}} KB",
     "bytesMb": "{{n}} MB"
@@ -235,7 +565,7 @@
     "title": "Letzte Artefakt-Verifikation (Phase 2)",
     "none": "Keine Verifikationszeile gefunden.",
     "pending": "Ausstehend",
-    "passed": "Bestanden",
+    "passed": "Prüfungen als bestanden gemeldet (Integrität — API)",
     "failed": "Fehlgeschlagen",
     "notRestoreProof": "Artefakt-Verifikation bestätigt Dateiintegrität (z. B. Checksummen) — keine vollständige Wiederherstellbarkeit."
   },
@@ -244,30 +574,58 @@
     "title": "Letzte Restore-Verifikation (Drill)",
     "none": "Noch kein Restore-Drill ausgeführt.",
     "explanation": "Prüft u. a. Dump-Inspektion und optional isolierten Restore-Versuch sowie SQL auf Clone — kein Produktions-Restore über diese UI.",
+    "realProfileBlockedTitle": "Backup-Profil nicht ausführbar (Real / PgDump)",
+    "realProfileBlockedBody": "Der Worker zielt auf PostgreSQL-Logikdumps, aber die Ausführungsmodus-API meldet das effektive Profil als nicht ausführbar (unhealthy Voraussetzungen). Drill-Ergebnisse spiegeln erst nach Konfigurationskorrektur einen gesunden Real-Dump-Pfad wider.",
     "drillFailed": "Restore-Drill fehlgeschlagen",
     "drillFailedAlert": "Restore-Drill fehlgeschlagen",
     "drillFailedProminent": "Restore-Drill fehlgeschlagen — Handlung erforderlich",
     "fiscalSql": "Fiskal-SQL (Clone)",
     "skipped": "Übersprungen",
     "integrity": "Integrität (Scope)",
-    "strongerThanArtifact": "Restore-Verifikation liefert stärkere technische Evidenz als die Artefakt-Verifikation allein — ersetzt aber kein vollständiges Disaster-Recovery-Programm.",
+    "strongerThanArtifact": "Zusätzliche technische Prüfungen gegenüber der Artefakt-Verifikation allein — dennoch kein vollständiges Disaster-Recovery-Programm und kein Produktions-Recovery-Nachweis.",
     "block": {
       "dumpInspection": "Dump-Inspektion",
       "restoreAttempt": "Isolierter Restore-Versuch"
     },
     "failureCode": "Fehlercode",
-    "failureDetail": "Fehlerdetail"
+    "failureDetail": "Fehlerdetail",
+    "fakePipeline": {
+      "sectionContext": "Mit dem Fake-Adapter prüfen Restore-Drills die Verbindung; sie belegen keine Produktions-Wiederherstellung, weil kein echtes Archiv existiert.",
+      "drillOutcomeTitle": "Restore-Drill: pg_restore --list fehlgeschlagen (bei Fake-/Stub-Backup erwartet)",
+      "pgRestoreListTitle": "Warum pg_restore --list hier fehlschlägt (simuliertes Backup)",
+      "pgRestoreListExplainer": "Der Restore-Drill führt pg_restore --list auf der Logikdump-Datei eines erfolgreichen Backup-Laufs aus. Der Fake-Adapter erzeugt keinen PostgreSQL-Custom-Format-Dump — er schreibt kleine Stub-Bytes (z. B. fake-bytes-…). Diese Datei ist kein echtes pg_dump-Archiv; pg_restore lehnt sie ab. Das ist im Fake-/Stub-Modus erwartet und kein Nachweis für ein Produktions-DR-Problem. Für einen echten Dump: Backup:ExecutionAdapterKind=PgDump mit Staging-Pfad und PostgreSQL-Tools konfigurieren (siehe Serverkonfiguration).",
+      "pgRestoreListTooltip": "Stub-Dump vom Fake-Adapter — pg_restore kann ihn nicht auflisten; in Dev/Stub erwartet.",
+      "technicalDetailLabel": "Technische Ausgabe von pg_restore"
+    },
+    "realPipeline": {
+      "listFailedPgRestoreUnavailableTitle": "Listen-Schritt fehlgeschlagen — pg_restore nicht startbar",
+      "listFailedPgRestoreUnavailableBody": "Der Worker konnte pg_restore nicht starten (häufig: Binary fehlt oder nicht im PATH des API-Prozesses). Tooling auf dem Host beheben — das ist nicht dieselbe Fehlerklasse wie ein Fake/Stub-Platzhalter. RestoreVerification:PgRestoreExecutablePath setzen oder PostgreSQL-Client installieren, Drill erneut ausführen.",
+      "listFailedDumpMissingTitle": "Listen-Schritt fehlgeschlagen — Dump-Datei auf dem Datenträger fehlt",
+      "listFailedDumpMissingBody": "Der Drill konnte die Dump-Datei am aufgelösten Pfad nicht lesen. Staging- und Archivpfade, Berechtigungen und ob das Backup tatsächlich eine Datei hinterlassen hat, prüfen.",
+      "listFailedFormatRejectedTitle": "Listen-Schritt fehlgeschlagen — Datei wird nicht als PostgreSQL-Custom-Format akzeptiert",
+      "listFailedFormatRejectedBody": "pg_restore --list meldet einen Fehler, während die Quelle nicht vom Fake-Adapter stammt. Die Datei kann beschädigt, unvollständig oder kein gültiges Custom-Format sein — Dump und Worker-Logs prüfen; betrifft reale Wiederherstellbarkeit.",
+      "listFailedUnknownTitle": "Listen-Schritt fehlgeschlagen — Einordnung aus Metadaten unklar",
+      "listFailedUnknownBody": "pg_restore --list ist in einer Nicht-Stub-Pipeline fehlgeschlagen; die Exit-Metadaten passen nicht zu den gängigen Mustern „Binary fehlt“ oder „Datei fehlt“. Stderr im Fehlerdetail und Server-Logs auswerten.",
+      "failureTooltips": {
+        "real_pg_restore_unavailable": "pg_restore nicht startbar — PATH oder RestoreVerification:PgRestoreExecutablePath.",
+        "real_dump_file_missing": "Keine lesbare Datei am aufgelösten Pfad — Staging/Archiv und Berechtigungen prüfen.",
+        "real_format_or_corrupt": "pg_restore lehnt die Datei ab — Dump prüfen (Beschädigung, falsches Format).",
+        "real_unknown": "Nicht eingeteilter Listen-Fehler — Stderr und Logs prüfen."
+      }
+    }
   },
   "distinction": {
     "title": "Artefakt-Verifikation vs. Restore-Verifikation",
     "body": "Artefakt-Verifikation: Integrität der erzeugten Dateien (z. B. Checksummen / Staging). Restore-Verifikation: zusätzliche technische Drill-Metadaten (Listen-Inspect, optional fiskalische SQL auf Clone) — ersetzt weder vollständigen Restore-Test noch RPO/RTO-Garantien."
   },
   "runs": {
-    "title": "Letzte Backup-Läufe"
+    "title": "Letzte Backup-Läufe",
+    "statusHint": "Jede Zeile zeigt das von der API gemeldete Ergebnis dieses Laufs. Der Verlauf ersetzt nicht die „letzte bekannte gute“ Nachweise in der Recoverability-Karte."
   },
   "restoreHistory": {
     "title": "Letzte Restore-Drills",
-    "empty": "Noch keine Restore-Drills erfasst."
+    "empty": "Noch keine Restore-Drills erfasst.",
+    "statusHint": "Jede Zeile zeigt das API-Ergebnis des Drills. Ein abgeschlossener Drill ist technische Metadaten — keine vollständige Recovery-Garantie."
   },
   "alerts": {
     "title": "Hinweise & Abweichungen",
@@ -276,7 +634,7 @@
   "externalCopy": {
     "title": "Externe Kopie (Artefakte)",
     "loading": "Lade Artefakt-Details…",
-    "verified": "Externe Kopie verifiziert (wo zutreffend).",
+    "externalLifecycleOk": "Artefakt-Lebenszyklus meldet externe Stufe (Backend-Metadaten — kein unabhängiger Off-site-Nachweis).",
     "failed": "Externe Kopie fehlgeschlagen oder Hash-Problem.",
     "stagingOnly": "Nur Staging / keine externe Kopie für diesen Lauf (Konfiguration oder Adapter).",
     "mixed": "Gemischter Status zwischen Artefakten — Details prüfen.",
@@ -287,9 +645,12 @@
     "title": "Hinweis aus der API"
   },
   "restoreCapability": {
-    "title": "Automatisierte Wiederherstellung",
-    "available": "Als verfügbar gemeldet",
-    "notAvailable": "Nicht als automatisiert verfügbar gemeldet"
+    "title": "Flag „automatisiertes Restore“ (Backend-Feld — kein getesteter Restore)",
+    "available": "Flag an (kein getesteter Restore)",
+    "notAvailable": "Flag aus oder nicht als automatisiert gemeldet",
+    "reportedEnabled": "Backend-Feld: automatisierte Wiederherstellung als aktiviert gemeldet (kein getesteter Restore).",
+    "reportedDisabled": "Backend-Feld: automatisierte Wiederherstellung nicht als aktiviert gemeldet.",
+    "reportedUnknown": "Backend-Feld: unbekannt / nicht geliefert — als unbelegt behandeln."
   },
   "actions": {
     "enqueueBackup": "Backup einreihen",
@@ -300,28 +661,239 @@
     "0": "Eingereiht",
     "1": "Läuft",
     "2": "Wartet auf Verifikation",
-    "3": "Erfolgreich (mit Verifikation)",
-    "simulatedSuccess": "Erfolgreich (simuliert — kein produktiver pg_dump)",
+    "3": "Beendet (API meldet Erfolg)",
+    "simulatedSuccess": "Beendet (Pipeline-Test — kein echtes Backup)",
     "4": "Fehlgeschlagen",
     "5": "Verifikation fehlgeschlagen",
     "6": "Abgebrochen"
   },
   "verificationStatus": {
     "0": "Ausstehend",
-    "1": "Bestanden",
+    "1": "Staging/Checksummen-Prüfungen als OK gemeldet (API)",
     "2": "Fehlgeschlagen"
   },
   "restoreStatus": {
     "0": "Eingereiht",
     "1": "Läuft",
-    "2": "Erfolgreich",
-    "3": "Fehlgeschlagen"
+    "2": "Beendet (Drill — API-Metadaten)",
+    "3": "Fehlgeschlagen",
+    "drillStubExpected": "Beendet (Stub-Dump — erwartete Drill-Einschränkung)",
+    "drillListFailedPgRestoreUnavailable": "Fehlgeschlagen (Drill — pg_restore nicht startbar)",
+    "drillListFailedDumpMissing": "Fehlgeschlagen (Drill — Dump-Datei fehlt)",
+    "drillListFailedBadArchive": "Fehlgeschlagen (Drill — kein akzeptiertes Archiv)",
+    "drillListFailedUnknown": "Fehlgeschlagen (Drill — Listen-Schritt fehlgeschlagen)"
   },
   "lifecycle": {
     "0": "Staging",
-    "1": "Staging verifiziert",
-    "2": "Extern verifiziert",
+    "1": "Staging-Prüfungen als OK gemeldet (API)",
+    "2": "Externe Stufe als OK gemeldet (Metadaten — API)",
     "3": "Extern fehlgeschlagen"
+  },
+  "executionMode": {
+    "title": "Yedek-Ausführungsmodus (Server)",
+    "intro": "Legt fest, wie der Hintergrund-Worker Backups ausführt. Die Wahl wird in der Datenbank gespeichert und ändert den effektiven Adapter (Fake vs. PgDump). Pfade, Verbindungsnamen und Bestätigungen in der Konfiguration gelten weiterhin.",
+    "realReadiness": {
+      "panelTitle": "Real (PgDump) — Voraussetzungsprüfung",
+      "footnoteApi": "Annahme: Sie wollen Real (PgDump). Der Server wertet die Konfiguration so, als wäre dieser Modus aktiv. Englische API-Zeilen unten ergänzen Details.",
+      "configKeysLabel": "Zugehörige Konfigurationsschlüssel:",
+      "serverDetailLabel": "Server-Detail:",
+      "noDiagnosticsListed": "Keine Error-/Warning-Tanüe für dieses Profil (oder Sonden noch nicht gelaufen).",
+      "realRowSelectableYes": "Real-Modus: in der Liste unten wählbar",
+      "realRowSelectableNo": "Real-Modus: nicht wählbar, bis die Voraussetzungen „Healthy“ sind",
+      "healthLevels": {
+        "unknown": "Stufe nicht gemeldet",
+        "Healthy": "Healthy",
+        "Degraded": "Degraded (nur Warnungen)",
+        "Unhealthy": "Unhealthy (blockierend)"
+      },
+      "summary": {
+        "noLevelTitle": "Hypothetische Real-Gesundheit fehlt",
+        "noLevelBody": "Die API lieferte HypotheticalPgDumpHealthLevel nicht — Seite neu laden oder Server aktualisieren.",
+        "readyTitle": "Sie können jetzt auf Real (PgDump) wechseln",
+        "readyBody": "Voraussetzungen sind Healthy und die Real-Option ist freigeschaltet. Beim Speichern läuft weiter die normale Server-Validierung.",
+        "blockedTitle": "Real (PgDump) ist noch nicht wählbar",
+        "blockedBody": "Beheben Sie die blockierenden Punkte unten (roter „Blockiert“-Tag). Die API speichert Real nicht, solange die Voraussetzungen Unhealthy sind.",
+        "degradedSelectableTitle": "Real ist wählbar, aber Warnungen bestehen",
+        "degradedSelectableBody": "Real (PgDump) kann gespeichert werden; einige Prüfungen sind nur Warnungen (goldener „Hinweis“-Tag). Für Produktion trotzdem beheben."
+      },
+      "tier": {
+        "blocking": "Blockiert Real-Modus",
+        "advisory": "Hinweis"
+      },
+      "category": {
+        "staging": "Staging & Pfade",
+        "connection": "PostgreSQL-Verbindungszeichenfolge",
+        "pgDump": "pg_dump-Client",
+        "pgRestore": "pg_restore-Client",
+        "archive": "Externes Archiv & Verifikation",
+        "policy": "Richtlinie / Bestätigung",
+        "environment": "Umgebung / unsichere Dev-Flags",
+        "schedule": "Geplantes Backup",
+        "orchestrator": "Worker & Orchestrierung",
+        "other": "Sonstiges"
+      },
+      "codes": {
+        "pgDumpStagingRootMissing": {
+          "title": "Artifact-Staging-Root fehlt",
+          "action": "Backup:ArtifactStagingRoot setzen (nicht leer; außerhalb Development absolut und für den API-Prozess beschreibbar)."
+        },
+        "pgDumpStagingRootNotAbsolute": {
+          "title": "Staging-Pfad muss absolut sein",
+          "action": "Backup:ArtifactStagingRoot außerhalb Development als absolutes Verzeichnis angeben."
+        },
+        "pgDumpVerifyOnDiskRequired": {
+          "title": "On-Disk-Dump-Verifikation erforderlich",
+          "action": "Backup:VerifyLogicalDumpFileOnDisk=true außerhalb Development für PgDump."
+        },
+        "pgDumpExternalArchiveRequired": {
+          "title": "Externes Archiv-Root erforderlich",
+          "action": "Backup:ExternalArchiveRoot außerhalb Development konfigurieren."
+        },
+        "devExternalArchiveNotSet": {
+          "title": "Externes Archiv nicht gesetzt (Development)",
+          "action": "In Development optional; für Produktion Backup:ExternalArchiveRoot setzen."
+        },
+        "externalArchiveRootNotAbsolute": {
+          "title": "Externer Archivpfad nicht absolut",
+          "action": "Wenn Backup:ExternalArchiveRoot gesetzt ist, muss der Pfad absolut sein."
+        },
+        "externalArchiveImmutabilityMismatch": {
+          "title": "Immutable-Archiv-Bestätigung fehlt",
+          "action": "Bei Backup:RequireExternalArchiveImmutableTarget=true Backup:ExternalArchiveImmutabilityAcknowledged=true setzen oder Richtlinien anpassen."
+        },
+        "externalArchiveOperatorDispositionMissing": {
+          "title": "Operatoren-Entscheidung zum externen Archiv fehlt",
+          "action": "Immutable-Ziel bestätigen oder mutables Ziel ausdrücklich akzeptieren (Backup:ExternalArchiveMutableTargetAccepted) bzw. Immutable-Pflicht mit Bestätigung aktivieren."
+        },
+        "externalArchiveImmutableAttestationOnly": {
+          "title": "Immutability nur Konfigurationsbescheinigung",
+          "action": "Das aktuelle Backend belegt kein WORM/Object-Lock in der API — Speicher darunter absichern oder passendes Backend planen."
+        },
+        "pgDumpConnectionStringMissing": {
+          "title": "Verbindungszeichenfolge für Logikdump fehlt",
+          "action": "ConnectionStrings:{Name} (Standard oder Backup:LogicalDumpConnectionStringName) mit Host, Username, Database setzen."
+        },
+        "pgDumpConnectionStringIncomplete": {
+          "title": "Verbindungszeichenfolge unvollständig",
+          "action": "Npgsql verlangt Host, Username und Database im gewählten Eintrag."
+        },
+        "pgDumpConnectionStringInvalid": {
+          "title": "Verbindungszeichenfolge ungültig",
+          "action": "Syntax für Npgsql korrigieren (Tippfehler, Escaping in appsettings/Umgebung)."
+        },
+        "devPgDumpClientMissing": {
+          "title": "pg_dump auf diesem Host nicht nutzbar",
+          "action": "PostgreSQL-Client installieren oder Backup:PgDumpExecutablePath setzen; nach API-Neustart Startup-Logs prüfen."
+        },
+        "devPgRestoreClientMissing": {
+          "title": "pg_restore auf diesem Host nicht nutzbar",
+          "action": "Client installieren oder RestoreVerification:PgRestoreExecutablePath setzen."
+        },
+        "fakeAdapterForbiddenProduction": {
+          "title": "Fake-Adapter durch Richtlinie blockiert",
+          "action": "Bei erzwungenem PgDump unüblich — sonst nur mit Absicht Backup:AcknowledgeFakeBackupAdapterOutsideDevelopment setzen."
+        },
+        "fakeAdapterAcknowledgedProduction": {
+          "title": "Fake in produktionsähnlicher Umgebung bestätigt",
+          "action": "Hinweis für Nicht-PgDump-Profile; für Real: ExecutionAdapterKind auf PgDump stellen."
+        },
+        "productionStubForbiddenProduction": {
+          "title": "Production-Stub ohne Bestätigung blockiert",
+          "action": "Backup:AcknowledgePhase1NoRealBackup=true nur bei bewusstem Stub; echte Dumps mit PgDump."
+        },
+        "productionStubAcknowledgedProduction": {
+          "title": "Production-Stub bestätigt",
+          "action": "Stub führt kein pg_dump aus — für Real-Bereitschaft auf PgDump in der Konfiguration wechseln."
+        },
+        "orchestratorPollingTooShort": {
+          "title": "Orchestrator-Polling zu kurz",
+          "action": "Backup:OrchestratorPollingInterval mindestens eine Sekunde."
+        },
+        "orchestratorPollingTooLong": {
+          "title": "Orchestrator-Polling zu lang",
+          "action": "Intervall unter 24 Stunden halten."
+        },
+        "workerDisabled": {
+          "title": "Backup-Worker deaktiviert",
+          "action": "Backup:WorkerEnabled=true setzen."
+        },
+        "orchestratorLockDisabledNonDev": {
+          "title": "Verteilte Sperre außerhalb Development aus",
+          "action": "Backup:OrchestratorDistributedLockEnabled aktivieren oder nur eine Instanz betreiben."
+        },
+        "developmentForceVerificationFailureNonDev": {
+          "title": "Dev-only Verifikations-Sabotage-Flag aktiv",
+          "action": "Backup:DevelopmentForceVerificationFailure außerhalb Development deaktivieren."
+        },
+        "retentionExecutionPlanned": {
+          "title": "Retention-Löschung nicht implementiert",
+          "action": "Modus ExecutionPlanned ist Planung; Backup:RetentionArtifactDeletionEnabled=false bis Automatisierung existiert."
+        },
+        "scheduledBackupCronMissing": {
+          "title": "Cron für geplantes Backup fehlt",
+          "action": "Backup:ScheduledBackupCron setzen, wenn Backup:ScheduledBackupEnabled=true."
+        },
+        "scheduledBackupCronInvalid": {
+          "title": "Cron für geplantes Backup ungültig",
+          "action": "Gültigen Fünf-Felder-Cron (CronFormat.Standard) verwenden."
+        }
+      }
+    },
+    "meaningTitle": "Bedeutung der Modi",
+    "meaningFake": "Fake: nur simulierte / Stub-Artefakte — kein echtes pg_dump, kein produktionsrelevantes Datenbank-Archiv.",
+    "meaningReal": "Real (PgDump): logische Dumps mit PostgreSQL-Client-Tools — erfordert gesundes Staging, Verbindungszeichenfolge, Binaries und weitere Serverprüfungen.",
+    "labelRequested": "Angefordert (gespeicherte Präferenz)",
+    "labelEffective": "Effektiv (was der Worker nutzt)",
+    "labelConfigDefault": "Umgebungsstandard (Konfigurationsdatei)",
+    "adapterInternal": "Adapter",
+    "userFacing": {
+      "fake": "Fake (simuliert)",
+      "realPgDump": "Real (PgDump)",
+      "useConfig": "Konfiguration folgen",
+      "productionStub": "Production-Stub (kein echtes Dump)"
+    },
+    "realRunnableYes": "Real-Modus lauffähig",
+    "realRunnableNo": "Real-Modus nicht lauffähig",
+    "resolutionSummaryLabel": "Auflösung (Englisch, vom Server):",
+    "recommendedFallbackTitle": "Vorgeschlagener nächster Schritt",
+    "recommendedFallbackBody": "Der Server schlägt vor, die gespeicherte Präferenz auf „{{mode}}“ zu setzen, bis die Voraussetzungen stimmen. Es gibt keinen stillen Fallback auf Fake, solange Real gewählt ist.",
+    "realDiagnosticsTitle": "Warum Real (PgDump) blockiert sein kann",
+    "realDiagnosticsToggle": "Diagnosen ({{count}})",
+    "saveRejectedHint": "Schlägt das Speichern von Real mit Validierungsfehler fehl, wurde die Wahl nicht gespeichert — Probleme beheben und erneut versuchen. Die App speichert Real nicht und läuft dann heimlich mit Fake.",
+    "realSavedButBlockedTitle": "Real-Modus ist gespeichert, die effektive Konfiguration ist aber noch nicht lauffähig",
+    "realSavedButBlockedBody": "Die Präferenz ist als Real (PgDump) gespeichert und der effektive Adapter bleibt PgDump. Die Konfigurationsgesundheit ist Unhealthy — erfolgreiche Läufe sind unwahrscheinlich, bis Voraussetzungen (Staging, Verbindung, pg_dump/pg_restore, Archivregeln usw.) erfüllt sind.",
+    "noFakeFallbackExplanation": "Es gibt keinen automatischen Fallback auf Fake: Das System behält die Real-Wahl transparent, damit Operateure nicht getäuscht werden.",
+    "saveConfirmTitleInherit": "Auf „Konfiguration folgen“ wechseln?",
+    "saveConfirmTitleReal": "Auf Real (PgDump) wechseln?",
+    "saveConfirmTitleFake": "Auf Fake (simuliert) wechseln?",
+    "saveConfirmTitleFakeStrong": "Auf nur simulierte Backups wechseln?",
+    "saveConfirmBodyInherit": "Der Worker nutzt den in der Bereitstellung gesetzten Backup:ExecutionAdapterKind (Fake, ProductionStub oder PgDump).",
+    "saveConfirmBodyReal": "Der Worker zielt auf PostgreSQL-Logikdumps. Staging, Verbindungszeichenfolgen und Client-Tools müssen den Serveranforderungen entsprechen.",
+    "saveConfirmBodyFake": "Der Worker erzeugt nur simulierte Artefakte — kein echtes Datenbank-Dump.",
+    "saveConfirmBodyFakeStrong": "Sie aktivieren Fake in einer Umgebung, in der der Server ausdrückliche Bestätigung verlangt. Simulierte Backups ersetzen kein pg_dump in der Produktions-DR-Planung.",
+    "saveConfirmBodyFakeDevHint": "In Development ist das für Pipeline-Tests in der Regel unkritisch.",
+    "saveConfirmOk": "Bestätigen und speichern",
+    "viewOnlyHint": "Nur Ansicht — „Einstellungen verwalten“ ist zum Ändern nötig.",
+    "optionInherit": "Anwendungskonfiguration folgen (appsettings / Umgebung)",
+    "optionFake": "Simuliert (Fake) — kein pg_dump",
+    "optionPgDump": "Echtes PostgreSQL-Logikbackup (PgDump)",
+    "helpInherit": "Nutzt Backup:ExecutionAdapterKind aus der Bereitstellungskonfiguration (Fake, ProductionStub oder PgDump).",
+    "helpFake": "Erzwingt Fake: nur simulierte Artefakte. In produktionsähnlichen Umgebungen verlangt die API Konfigurations-Anerkennung plus die Bestätigungs-Checkbox unten.",
+    "helpPgDump": "Erzwingt PgDump. Die API lehnt das Speichern ab, solange Voraussetzungen Unhealthy sind (Staging, Verbindungszeichenfolge, externes Archiv usw.).",
+    "save": "Modus speichern",
+    "notRunnableTitle": "Effektiver Modus nicht lauffähig (Konfiguration Unhealthy)",
+    "confirmFakeProduction": "Ich verstehe, dass simulierte Backups in produktionsähnlichen Umgebungen kein echtes PostgreSQL-Dump sind.",
+    "configFileAdapter": "Adapter laut Konfigurationsdatei",
+    "effectiveAdapter": "Effektiver Adapter",
+    "errors": {
+      "loadFailed": "Ausführungsmodus konnte nicht geladen werden.",
+      "saveFailed": "Ausführungsmodus konnte nicht gespeichert werden.",
+      "forbidden": "Keine Berechtigung zum Anzeigen oder Ändern des Ausführungsmodus.",
+      "unauthorized": "Nicht angemeldet.",
+      "confirmFakeRequired": "Bitte die Bestätigungs-Checkbox für SimulatedFake in produktionsähnlichen Umgebungen aktivieren.",
+      "fakeForbiddenProduction": "SimulatedFake ist blockiert, bis Backup:AcknowledgeFakeBackupAdapterOutsideDevelopment in der Serverkonfiguration gesetzt ist.",
+      "pgDumpUnhealthy": "PgDump-Modus kann nicht gespeichert werden, bis die Server-Konfiguration gesünder ist (siehe API-Meldungen)."
+    }
   },
   "messages": {
     "backupNewQueued": "Neuer Backup-Lauf wurde eingereiht — der Worker führt ihn asynchron aus.",
@@ -358,6 +930,7 @@
     "restoreAttempt": "Restore-Versuch (isoliert)"
   },
   "permission": {
-    "noManage": "Nur Ansicht — zum Einreihen fehlt die Berechtigung „Einstellungen verwalten“."
+    "noManage": "Nur Ansicht — zum Einreihen fehlt „Einstellungen verwalten“.",
+    "manualActionsTooltip": "Deaktiviert: fehlende Berechtigung „Einstellungen verwalten“ — kein technischer oder Serverfehler."
   }
 }

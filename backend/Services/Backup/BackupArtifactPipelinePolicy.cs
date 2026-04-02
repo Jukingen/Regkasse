@@ -26,16 +26,18 @@ public static class BackupArtifactPipelinePolicyEvaluator
     public static BackupArtifactPipelinePolicySnapshot Evaluate(
         BackupOptions options,
         IHostEnvironment environment,
-        BackupExternalArchiveBackendDescriptor? externalArchiveBackend = null)
+        BackupExternalArchiveBackendDescriptor? externalArchiveBackend = null,
+        BackupExecutionAdapterKind? effectiveExecutionAdapterKind = null)
     {
         var backend = externalArchiveBackend ?? BackupExternalArchiveBackendDescriptors.AssumedWhenCallerOmitsRegistration;
+        var effective = effectiveExecutionAdapterKind ?? options.ExecutionAdapterKind;
 
         var dev = environment.IsDevelopment();
-        var pg = options.ExecutionAdapterKind == BackupExecutionAdapterKind.PgDump;
+        var pg = effective == BackupExecutionAdapterKind.PgDump;
         var extConfigured = !string.IsNullOrWhiteSpace(options.ExternalArchiveRoot);
         var stagingRootConfigured = !string.IsNullOrWhiteSpace(options.ArtifactStagingRoot);
 
-        var requirement = options.ExecutionAdapterKind switch
+        var requirement = effective switch
         {
             BackupExecutionAdapterKind.PgDump when !dev => BackupExternalArchiveRequirementKind.RequiredForProductionLike,
             BackupExecutionAdapterKind.PgDump when dev && extConfigured => BackupExternalArchiveRequirementKind.OptionalButConfigured,
@@ -44,7 +46,7 @@ public static class BackupArtifactPipelinePolicyEvaluator
         };
 
         var willRunExternal = ShouldRunExternalArchiveAfterStagingVerification(
-            options.ExecutionAdapterKind,
+            effective,
             environment,
             options);
 
@@ -92,7 +94,7 @@ public static class BackupArtifactPipelinePolicyEvaluator
             ArtifactStagingRootConfigured = stagingRootConfigured,
             WillRunExternalArchiveAfterStagingVerificationWhenEligible = willRunExternal,
             StagingOnDiskHashReverificationExpected = stagingVerifyExpected,
-            EffectiveAdapterKind = options.ExecutionAdapterKind,
+            EffectiveAdapterKind = effective,
             OperatorNotes = lines,
             RegisteredExternalArchiveBackendKind = backend.BackendKind,
             ExternalArchiveImmutabilityEnforcement = backend.ImmutabilityEnforcement.ToString(),

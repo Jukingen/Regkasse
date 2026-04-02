@@ -8,6 +8,8 @@ import {
   configurationHealthSummaryI18nKey,
   externalCopyVariantToI18nKey,
   mapArtifactsToExternalCopyVariant,
+  healthStatisticValueStyle,
+  restoreReadinessStatisticValueStyle,
   mapBackupRunStatusAntdColor,
   mapConfigurationHealthLevel,
   mapDumpInspectionTriState,
@@ -94,6 +96,20 @@ describe('computeEffectiveRestoreReadinessLevel', () => {
       }),
     ).toBe('healthy');
   });
+
+  it('downgrades healthy to degraded when execution-mode forces Fake adapter', () => {
+    expect(
+      computeEffectiveRestoreReadinessLevel({
+        apiLevel: 'healthy',
+        realPostgreSqlLogicalDumpConfiguredHealth: true,
+        realPostgreSqlLogicalDumpConfiguredRecoverability: true,
+        latestBackupStatus: 3,
+        isLatestRunSimulatedExecution: false,
+        latestAdapterKind: 'PgDump',
+        executionModeUsesSimulatedAdapter: true,
+      }),
+    ).toBe('degraded');
+  });
 });
 
 describe('isSimulatedBackupAdapterKind', () => {
@@ -128,12 +144,24 @@ describe('mapConfigurationHealthLevel / configurationHealthSummaryI18nKey', () =
   });
 });
 
+describe('restoreReadinessStatisticValueStyle', () => {
+  it('uses blue for healthy to avoid green DR misread', () => {
+    expect(restoreReadinessStatisticValueStyle('healthy')).toEqual({ color: '#1677ff' });
+  });
+});
+
+describe('healthStatisticValueStyle', () => {
+  it('uses blue for healthy API-summary configuration signal', () => {
+    expect(healthStatisticValueStyle('healthy')).toEqual({ color: '#1677ff' });
+  });
+});
+
 describe('mapBackupRunStatusAntdColor (recent runs)', () => {
   it('maps queued/running/await/success/fail/verify-fail/cancelled distinctly', () => {
     expect(mapBackupRunStatusAntdColor(0)).toBe('default');
     expect(mapBackupRunStatusAntdColor(1)).toBe('processing');
     expect(mapBackupRunStatusAntdColor(2)).toBe('warning');
-    expect(mapBackupRunStatusAntdColor(3)).toBe('success');
+    expect(mapBackupRunStatusAntdColor(3)).toBe('blue');
     expect(mapBackupRunStatusAntdColor(4)).toBe('error');
     expect(mapBackupRunStatusAntdColor(5)).toBe('error');
     expect(mapBackupRunStatusAntdColor(6)).toBe('default');
@@ -145,7 +173,7 @@ describe('mapRestoreVerificationStatusAntdColor', () => {
   it('maps restore drill statuses', () => {
     expect(mapRestoreVerificationStatusAntdColor(0)).toBe('processing');
     expect(mapRestoreVerificationStatusAntdColor(1)).toBe('processing');
-    expect(mapRestoreVerificationStatusAntdColor(2)).toBe('success');
+    expect(mapRestoreVerificationStatusAntdColor(2)).toBe('cyan');
     expect(mapRestoreVerificationStatusAntdColor(3)).toBe('error');
     expect(mapRestoreVerificationStatusAntdColor(undefined)).toBe('processing');
   });
@@ -155,9 +183,10 @@ describe('mapArtifactsToExternalCopyVariant / i18n key', () => {
   it('unknown empty', () => {
     expect(mapArtifactsToExternalCopyVariant(undefined)).toBe('unknown');
     expect(externalCopyVariantToI18nKey('unknown')).toBe('backupDr.externalCopy.unknown');
+    expect(externalCopyVariantToI18nKey('externalLifecycleOk')).toBe('backupDr.externalCopy.externalLifecycleOk');
   });
 
-  it('verified / failed / staging / mixed', () => {
+  it('externalLifecycleOk / failed / staging / mixed', () => {
     const logical = (ls: number): BackupArtifactResponseDto => ({
       artifactType: BackupArtifactResponseDtoArtifactType.NUMBER_0,
       lifecycleState: ls as BackupArtifactResponseDtoLifecycleState,
@@ -170,7 +199,7 @@ describe('mapArtifactsToExternalCopyVariant / i18n key', () => {
           lifecycleState: BackupArtifactResponseDtoLifecycleState.NUMBER_1,
         },
       ]),
-    ).toBe('verified');
+    ).toBe('externalLifecycleOk');
 
     expect(mapArtifactsToExternalCopyVariant([logical(BackupArtifactResponseDtoLifecycleState.NUMBER_3)])).toBe('failed');
 
@@ -188,11 +217,17 @@ describe('mapArtifactsToExternalCopyVariant / i18n key', () => {
 });
 
 describe('mapDumpInspectionTriState', () => {
-  it('prefers dumpInspectionPassed then legacy pgRestoreListPassed', () => {
+  it('prefers dumpInspectionPassed then pgRestoreListExitCode (0 = pass)', () => {
     expect(mapDumpInspectionTriState({ dumpInspectionPassed: true } as RestoreVerificationRunResponseDto)).toBe(true);
     expect(
-      mapDumpInspectionTriState({ dumpInspectionPassed: null, pgRestoreListPassed: false } as RestoreVerificationRunResponseDto),
+      mapDumpInspectionTriState({ dumpInspectionPassed: null, pgRestoreListExitCode: 0 } as RestoreVerificationRunResponseDto),
+    ).toBe(true);
+    expect(
+      mapDumpInspectionTriState({ dumpInspectionPassed: null, pgRestoreListExitCode: 2 } as RestoreVerificationRunResponseDto),
     ).toBe(false);
+    expect(mapDumpInspectionTriState({ dumpInspectionPassed: null, pgRestoreListExitCode: null } as RestoreVerificationRunResponseDto)).toBe(
+      undefined,
+    );
   });
 });
 

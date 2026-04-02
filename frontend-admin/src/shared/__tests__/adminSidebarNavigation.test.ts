@@ -22,6 +22,11 @@ describe('adminSidebarNavigation', () => {
         expect(resolveAdminMenuSelectedKeys(RKSV_HUB_PATH, SAMPLE_LEAVES)).toEqual([RKSV_HUB_MENU_LEAF_KEY]);
     });
 
+    it('maps legacy /rksv/operations pathname to hub leaf when that key is in selectable leaves', () => {
+        const leavesWithHub = ['/rksv/operations', '/rksv/finanz-online-queue', '/rksv/incident'];
+        expect(resolveAdminMenuSelectedKeys('/rksv/operations', leavesWithHub)).toEqual([RKSV_HUB_MENU_LEAF_KEY]);
+    });
+
     it('selects longest matching route prefix for nested paths', () => {
         expect(resolveAdminMenuSelectedKeys('/receipts/abc-uuid', SAMPLE_LEAVES)).toEqual(['/receipts']);
         expect(resolveAdminMenuSelectedKeys('/receipt-templates/new', SAMPLE_LEAVES)).toEqual(['/receipt-templates']);

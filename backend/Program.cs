@@ -471,6 +471,7 @@ builder.Services.AddScoped<IBackupArtifactDownloadService, BackupArtifactDownloa
 builder.Services.AddScoped<IBackupRecoverabilitySummaryService, BackupRecoverabilitySummaryService>();
 builder.Services.AddScoped<IBackupVerificationService, BackupVerificationService>();
 builder.Services.AddSingleton<IRestoreOrchestrationBoundary, DeferredRestoreOrchestrationBoundary>();
+builder.Services.AddSingleton<IBackupPostgresClientToolingProbeState, BackupPostgresClientToolingProbeState>();
 builder.Services.AddSingleton<IBackupOperationalReadiness, BackupOperationalReadinessService>();
 builder.Services.AddSingleton<IBackupScheduledEnqueueService, BackupScheduledEnqueueService>();
 builder.Services.AddSingleton<IBackupOrchestratorMetrics, PrometheusBackupOrchestratorMetrics>();

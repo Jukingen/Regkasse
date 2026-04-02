@@ -37,7 +37,10 @@ public sealed class BackupScheduledEnqueueServiceTests
         m.Setup(x => x.GetConfigurationHealth()).Returns(new BackupConfigurationHealthSnapshot
         {
             Level = BackupConfigurationHealthLevel.Healthy,
-            WorkerEnabled = true
+            WorkerEnabled = true,
+            EffectiveAdapterKind = BackupExecutionAdapterKind.Fake,
+            ConfigurationExecutionAdapterKind = BackupExecutionAdapterKind.Fake,
+            AdminRuntimeExecutionMode = AdminBackupRuntimeExecutionMode.InheritFromConfiguration
         });
         return m.Object;
     }
@@ -49,7 +52,10 @@ public sealed class BackupScheduledEnqueueServiceTests
         {
             Level = BackupConfigurationHealthLevel.Unhealthy,
             Issues = new[] { "test unhealthy" },
-            WorkerEnabled = true
+            WorkerEnabled = true,
+            EffectiveAdapterKind = BackupExecutionAdapterKind.Fake,
+            ConfigurationExecutionAdapterKind = BackupExecutionAdapterKind.Fake,
+            AdminRuntimeExecutionMode = AdminBackupRuntimeExecutionMode.InheritFromConfiguration
         });
         return m.Object;
     }

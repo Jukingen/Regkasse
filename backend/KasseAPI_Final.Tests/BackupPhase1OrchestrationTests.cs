@@ -64,7 +64,7 @@ public sealed class BackupPhase1OrchestrationTests
         Assert.Equal(BackupTriggerSource.Manual, outcome.Run.TriggerSource);
         Assert.NotNull(outcome.Run.ConfigSnapshotJson);
         Assert.Contains("backup_manual_enqueue", outcome.Run.ConfigSnapshotJson, StringComparison.Ordinal);
-        Assert.Contains("\"schemaVersion\":1", outcome.Run.ConfigSnapshotJson, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\":2", outcome.Run.ConfigSnapshotJson, StringComparison.Ordinal);
     }
 
     [Fact]

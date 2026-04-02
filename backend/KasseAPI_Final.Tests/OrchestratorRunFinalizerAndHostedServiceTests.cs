@@ -123,7 +123,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
         Assert.Contains("adapter boom", run.FailureDetail ?? "", StringComparison.Ordinal);
         Assert.NotNull(run.ConfigSnapshotJson);
         Assert.Contains("backup_run_start", run.ConfigSnapshotJson, StringComparison.Ordinal);
-        Assert.Contains("\"schemaVersion\":1", run.ConfigSnapshotJson, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\":2", run.ConfigSnapshotJson, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -293,7 +293,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
             Assert.Contains("list boom", run.FailureDetail ?? "", StringComparison.Ordinal);
             Assert.NotNull(run.ConfigSnapshotJson);
             Assert.Contains("restore_run_start", run.ConfigSnapshotJson, StringComparison.Ordinal);
-            Assert.Contains("\"schemaVersion\":1", run.ConfigSnapshotJson, StringComparison.Ordinal);
+            Assert.Contains("\"schemaVersion\":2", run.ConfigSnapshotJson, StringComparison.Ordinal);
             alerts.Verify(
                 a => a.Publish(It.Is<BackupAlertEvent>(e =>
                     e.Kind == BackupAlertKind.RestoreVerificationFailed

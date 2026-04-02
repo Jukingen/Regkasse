@@ -1,13 +1,16 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -34,6 +37,7 @@ public sealed class AdminBackupController : ControllerBase
     private readonly IAuditLogService _audit;
     private readonly ILogger<AdminBackupController> _logger;
     private readonly IHostEnvironment _hostEnvironment;
+    private readonly AppDbContext _db;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
@@ -45,7 +49,8 @@ public sealed class AdminBackupController : ControllerBase
         IBackupArtifactDownloadService artifactDownload,
         IAuditLogService audit,
         ILogger<AdminBackupController> logger,
-        IHostEnvironment hostEnvironment)
+        IHostEnvironment hostEnvironment,
+        AppDbContext db)
     {
         _trigger = trigger;
         _query = query;
@@ -57,6 +62,7 @@ public sealed class AdminBackupController : ControllerBase
         _audit = audit;
         _logger = logger;
         _hostEnvironment = hostEnvironment;
+        _db = db;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -292,4 +298,131 @@ public sealed class AdminBackupController : ControllerBase
             FailureReason = v.FailureReason
         });
     }
+
+    /// <summary>Kalıcı yedek çalıştırma modu + etkin sağlık (Fake / PgDump / yapılandırmayı izle).</summary>
+    [HttpGet("execution-mode")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupExecutionModeResponseDto), StatusCodes.Status200OK)]
+    public ActionResult<BackupExecutionModeResponseDto> GetExecutionMode()
+    {
+        var snap = _readiness.GetConfigurationHealth();
+        var dto = BuildExecutionModeResponse(snap);
+        return Ok(dto);
+    }
+
+    /// <summary>Admin yedek modunu kalıcı olarak günceller; PgDump önkoşulları Unhealthy ise kayıt yapılmaz.</summary>
+    [HttpPut("execution-mode")]
+    [HasPermission(AppPermissions.SettingsManage)]
+    [ProducesResponseType(typeof(BackupExecutionModeResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<BackupExecutionModeResponseDto>> PutExecutionMode(
+        [FromBody] BackupExecutionModePutRequestDto? body,
+        CancellationToken cancellationToken)
+    {
+        if (body == null || string.IsNullOrWhiteSpace(body.Mode))
+        {
+            return BadRequest(new
+            {
+                code = "BACKUP_EXECUTION_MODE_MISSING",
+                message =
+                    "Request body must include a non-empty Mode: UseConfigurationDefault (inherit config), Fake, or RealPgDump (aliases and internal enum names are accepted)."
+            });
+        }
+
+        if (!BackupExecutionModeApiMapper.TryParseAdminMode(body.Mode, out var parsed, out var parseError))
+        {
+            return BadRequest(new
+            {
+                code = "BACKUP_EXECUTION_MODE_INVALID",
+                message = parseError ?? "Invalid mode."
+            });
+        }
+
+        var opts = _backupOptions.CurrentValue;
+        if (parsed == AdminBackupRuntimeExecutionMode.SimulatedFake
+            && BackupConfigurationEvaluation.IsProductionLikeEnvironment(_hostEnvironment))
+        {
+            if (!opts.AcknowledgeFakeBackupAdapterOutsideDevelopment)
+            {
+                return Conflict(new
+                {
+                    code = "BACKUP_SIMULATED_FAKE_FORBIDDEN_PRODUCTION",
+                    message =
+                        "SimulatedFake is not allowed in production-like environments until Backup:AcknowledgeFakeBackupAdapterOutsideDevelopment=true is set in configuration (explicit operator intent at deployment level)."
+                });
+            }
+
+            if (!body.ConfirmSimulatedOnlyOperationalRiskInProduction)
+            {
+                return BadRequest(new
+                {
+                    code = "BACKUP_SIMULATED_FAKE_CONFIRMATION_REQUIRED",
+                    message =
+                        "In production-like environments, set ConfirmSimulatedOnlyOperationalRiskInProduction=true to acknowledge simulated-only backups (no PostgreSQL logical dump)."
+                });
+            }
+        }
+
+        var preview = _readiness.GetConfigurationHealthAssumingAdminMode(parsed);
+        if (parsed == AdminBackupRuntimeExecutionMode.PostgreSqlPgDump
+            && preview.Level == BackupConfigurationHealthLevel.Unhealthy)
+        {
+            return UnprocessableEntity(new
+            {
+                code = "BACKUP_PG_DUMP_PREREQUISITES_UNHEALTHY",
+                message = "Real (PgDump) mode cannot be saved while configuration health is Unhealthy; fix blockers first.",
+                issues = preview.Issues
+            });
+        }
+
+        var userId = User.GetActorUserId();
+        var role = User.GetActorRole() ?? "Unknown";
+        var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+        var now = DateTime.UtcNow;
+
+        var row = await _db.BackupRuntimeExecutionPreferences
+            .FirstOrDefaultAsync(x => x.Id == BackupRuntimeExecutionPreference.SingletonId, cancellationToken);
+        if (row == null)
+        {
+            row = new BackupRuntimeExecutionPreference { Id = BackupRuntimeExecutionPreference.SingletonId };
+            _db.BackupRuntimeExecutionPreferences.Add(row);
+        }
+
+        row.Mode = parsed;
+        row.UpdatedAtUtc = now;
+        row.UpdatedByUserId = userId;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _audit.LogSystemOperationAsync(
+            action: "BACKUP_RUNTIME_EXECUTION_MODE_CHANGED",
+            entityType: "BackupRuntimeExecutionPreference",
+            userId: userId ?? "unknown",
+            userRole: role,
+            description: $"Backup runtime execution mode set to {parsed}.",
+            notes: null,
+            status: AuditLogStatus.Success,
+            errorDetails: null,
+            requestData: new { mode = parsed.ToString(), body.ConfirmSimulatedOnlyOperationalRiskInProduction },
+            responseData: null,
+            correlationIdOverride: correlationId);
+
+        var after = _readiness.GetConfigurationHealth();
+        var responseDto = BuildExecutionModeResponse(after);
+        _logger.LogInformation(
+            "Backup execution mode updated: storedInternal={StoredInternal}, userFacing={UserFacing}, effectiveAdapter={Effective}, summary={Summary}",
+            parsed.ToString(),
+            responseDto.RequestedUserFacingMode,
+            responseDto.EffectiveExecutionAdapterKind,
+            responseDto.EffectiveModeResolutionSummaryEnglish);
+        return Ok(responseDto);
+    }
+
+    private BackupExecutionModeResponseDto BuildExecutionModeResponse(BackupConfigurationHealthSnapshot snap) =>
+        BackupExecutionModeResponseBuilder.Build(
+            snap,
+            _backupOptions.CurrentValue,
+            _hostEnvironment,
+            _readiness);
 }

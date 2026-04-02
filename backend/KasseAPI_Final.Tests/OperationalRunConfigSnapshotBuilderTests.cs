@@ -94,8 +94,10 @@ public sealed class OperationalRunConfigSnapshotBuilderTests
             new DateTime(2026, 3, 29, 12, 0, 0, DateTimeKind.Utc));
         using var doc = JsonDocument.Parse(json);
         Assert.Equal(JsonValueKind.Number, doc.RootElement.GetProperty("schemaVersion").ValueKind);
-        Assert.Equal(1, doc.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(2, doc.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("backup_run", doc.RootElement.GetProperty("scope").GetString());
+        Assert.Equal("Fake", doc.RootElement.GetProperty("configurationExecutionAdapterKind").GetString());
+        Assert.Equal("InheritFromConfiguration", doc.RootElement.GetProperty("adminRuntimeExecutionMode").GetString());
         Assert.Equal("Disabled", doc.RootElement.GetProperty("retentionPolicyMode").GetString());
         Assert.False(doc.RootElement.GetProperty("retentionArtifactDeletionEnabled").GetBoolean());
     }

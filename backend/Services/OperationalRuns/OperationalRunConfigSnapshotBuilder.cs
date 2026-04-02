@@ -10,7 +10,7 @@ namespace KasseAPI_Final.Services.OperationalRuns;
 /// </summary>
 public static class OperationalRunConfigSnapshotBuilder
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -20,15 +20,25 @@ public static class OperationalRunConfigSnapshotBuilder
     };
 
     /// <param name="capturePhase">Örn. backup_manual_enqueue, backup_run_start.</param>
-    public static string SerializeBackup(BackupOptions options, string capturePhase, DateTime capturedAtUtc)
+    /// <param name="effectiveExecutionAdapterKind">İşçi sırasında kullanılan etkin adaptör; null ise <paramref name="options"/>.</param>
+    public static string SerializeBackup(
+        BackupOptions options,
+        string capturePhase,
+        DateTime capturedAtUtc,
+        BackupExecutionAdapterKind? effectiveExecutionAdapterKind = null,
+        AdminBackupRuntimeExecutionMode? adminRuntimeExecutionMode = null)
     {
         var utc = DateTime.SpecifyKind(capturedAtUtc, DateTimeKind.Utc);
+        var effectiveKind = effectiveExecutionAdapterKind ?? options.ExecutionAdapterKind;
+        var adminMode = adminRuntimeExecutionMode ?? AdminBackupRuntimeExecutionMode.InheritFromConfiguration;
         var payload = new BackupRunConfigSnapshotV1(
             SchemaVersion: CurrentSchemaVersion,
             Scope: "backup_run",
             CapturePhase: capturePhase,
             CapturedAtUtc: utc,
-            ExecutionAdapterKind: options.ExecutionAdapterKind.ToString(),
+            ExecutionAdapterKind: effectiveKind.ToString(),
+            ConfigurationExecutionAdapterKind: options.ExecutionAdapterKind.ToString(),
+            AdminRuntimeExecutionMode: adminMode.ToString(),
             WorkerEnabled: options.WorkerEnabled,
             OrchestratorDistributedLockEnabled: options.OrchestratorDistributedLockEnabled,
             OrchestratorAdvisoryLockKey1: options.OrchestratorAdvisoryLockKey1,
@@ -103,6 +113,8 @@ public static class OperationalRunConfigSnapshotBuilder
         string CapturePhase,
         DateTime CapturedAtUtc,
         string ExecutionAdapterKind,
+        string ConfigurationExecutionAdapterKind,
+        string AdminRuntimeExecutionMode,
         bool WorkerEnabled,
         bool OrchestratorDistributedLockEnabled,
         int OrchestratorAdvisoryLockKey1,

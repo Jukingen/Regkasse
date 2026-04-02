@@ -124,6 +124,44 @@ public sealed class BackupOptionsValidatorTests
     }
 
     [Fact]
+    public void Evaluate_Development_PgDump_missing_connection_string_is_Degraded()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var snap = BackupConfigurationEvaluation.Evaluate(
+            new BackupOptions
+            {
+                ExecutionAdapterKind = BackupExecutionAdapterKind.PgDump,
+                ArtifactStagingRoot = OperatingSystem.IsWindows() ? @"C:\RegkasseBackup" : "/var/regkasse-backup"
+            },
+            env.Object,
+            ConfigWithConnectionString(null));
+
+        Assert.Equal(BackupConfigurationHealthLevel.Degraded, snap.Level);
+        Assert.Contains(snap.Issues, i => i.Contains("Development:", StringComparison.Ordinal) && i.Contains("connection string", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Evaluate_Development_PgDump_with_valid_connection_is_Degraded_when_external_archive_missing()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var snap = BackupConfigurationEvaluation.Evaluate(
+            new BackupOptions
+            {
+                ExecutionAdapterKind = BackupExecutionAdapterKind.PgDump,
+                ArtifactStagingRoot = OperatingSystem.IsWindows() ? @"C:\RegkasseBackup" : "/var/regkasse-backup"
+            },
+            env.Object,
+            ConfigWithConnectionString("Host=h;Username=u;Password=p;Database=d"));
+
+        Assert.Equal(BackupConfigurationHealthLevel.Degraded, snap.Level);
+        Assert.Contains(snap.Issues, i => i.Contains("ExternalArchiveRoot", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Validate_PgDump_without_staging_root_fails_even_in_Development()
     {
         var env = new Mock<IHostEnvironment>();
@@ -330,5 +368,61 @@ public sealed class BackupOptionsValidatorTests
         });
 
         Assert.True(r.Failed);
+    }
+
+    [Fact]
+    public void Evaluate_Development_Fake_emits_machine_diagnostic_for_no_real_pg_dump()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var snap = BackupConfigurationEvaluation.Evaluate(
+            new BackupOptions { ExecutionAdapterKind = BackupExecutionAdapterKind.Fake, WorkerEnabled = true },
+            env.Object,
+            ConfigWithConnectionString(null));
+
+        Assert.Contains(
+            snap.Diagnostics,
+            d => d.Code == BackupConfigurationDiagnosticCodes.DevAdapterFakeNoPgDump);
+    }
+
+    [Fact]
+    public void Evaluate_PgDump_missing_staging_emits_PgDumpStagingRootMissing_code()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var snap = BackupConfigurationEvaluation.Evaluate(
+            new BackupOptions
+            {
+                ExecutionAdapterKind = BackupExecutionAdapterKind.PgDump,
+                ArtifactStagingRoot = ""
+            },
+            env.Object,
+            ConfigWithConnectionString("Host=h;Username=u;Password=p;Database=d"));
+
+        Assert.Contains(
+            snap.Diagnostics,
+            d => d.Code == BackupConfigurationDiagnosticCodes.PgDumpStagingRootMissing);
+    }
+
+    [Fact]
+    public void Evaluate_Development_PgDump_missing_connection_string_emits_code()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+
+        var snap = BackupConfigurationEvaluation.Evaluate(
+            new BackupOptions
+            {
+                ExecutionAdapterKind = BackupExecutionAdapterKind.PgDump,
+                ArtifactStagingRoot = "C:\\backup-staging"
+            },
+            env.Object,
+            ConfigWithConnectionString(null));
+
+        Assert.Contains(
+            snap.Diagnostics,
+            d => d.Code == BackupConfigurationDiagnosticCodes.PgDumpConnectionStringMissing);
     }
 }

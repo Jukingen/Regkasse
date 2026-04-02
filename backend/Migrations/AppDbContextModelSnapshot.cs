@@ -618,6 +618,26 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("backup_runs", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupRuntimeExecutionPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("backup_runtime_execution_preferences", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupVerification", b =>
                 {
                     b.Property<Guid>("Id")

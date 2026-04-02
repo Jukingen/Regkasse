@@ -360,6 +360,20 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
                 run.CompletedAt = DateTime.UtcNow;
                 run.FailureCode = "PG_RESTORE_LIST_FAILED";
                 run.FailureDetail = listResult.StdErrSnippet ?? "pg_restore --list failed.";
+                var sourceAdapter = await db.BackupRuns.AsNoTracking()
+                    .Where(r => r.Id == dump.Value.backupRunId)
+                    .Select(r => r.AdapterKind)
+                    .FirstOrDefaultAsync(ct);
+                if (string.Equals(sourceAdapter, "Fake", StringComparison.OrdinalIgnoreCase))
+                {
+                    details["pgRestoreListFailureContext"] = JsonSerializer.SerializeToNode(new
+                    {
+                        sourceBackupRunId = dump.Value.backupRunId,
+                        sourceAdapterKind = sourceAdapter,
+                        reason = "fake_adapter_stub_not_pg_restore_format",
+                    });
+                }
+
                 run.DetailsJson = details.ToJsonString();
                 await db.SaveChangesAsync(ct);
                 return;

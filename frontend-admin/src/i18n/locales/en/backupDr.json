@@ -3,46 +3,226 @@
     "title": "Backup & disaster recovery",
     "subtitle": "Control and visibility only. Execution runs in the background worker — not in this UI."
   },
+  "operatorTruth": {
+    "noTimestampFromApi": "No timestamp (not reported)",
+    "recoverabilityProofGap": "At least one proof timestamp is missing in this API response — do not infer recoverability from silence."
+  },
   "recoverability": {
-    "title": "Recoverability evidence (last known good)",
-    "subtitle": "Distinct from the latest requested run: shows the most recent successful proofs where they exist.",
-    "lastGoodBackup": "Last successful backup",
+    "title": "Last-known-good signals (API — not full recovery proof)",
+    "subtitle": "Rows are API-reported timestamps for last successful checks — not the same as “latest request” below. Simulated success does not improve how this is shown.",
+    "proofSectionTitle": "Proof signals (API)",
+    "proofSectionIntro": "Use this block for “what last succeeded” — not for whether the latest job finished.",
+    "simulatedEnvironmentStrip": "In Fake/Stub mode, “proof” timestamps are API bookkeeping on pipeline checks — they do not certify production recovery or a real dump.",
+    "proofBlock": {
+      "backup": "Last backup run reported successful (API proof)",
+      "backupStub": "Last backup pipeline success (API) — simulated/stub; not restorable production data",
+      "artifactVerification": "Last artifact verification reported OK (integrity checks — API)",
+      "artifactVerificationScope": "Staging/checksum scope — not a full business recovery test.",
+      "restoreDrill": "Last restore drill reported successful (API proof)"
+    },
+    "requestsSectionTitle": "Latest requests (operational)",
+    "requestsSectionIntro": "Queue/run status only — can fail while older proof above still exists.",
+    "freshnessFootnote": {
+      "recent": "Age looks recent; still confirm against your backup policy.",
+      "aging": "Proof is aging — check whether newer runs should have updated this.",
+      "stale": "Proof is old — verify newer backups/drills outside this UI if needed.",
+      "unknown": "Age not reported — freshness unknown."
+    },
+    "lastGoodBackup": "Last backup reported successful (API)",
     "lastGoodBackupSimulatedWarning": "The last successful backup run was simulated (Fake/Stub) — not production pg_dump evidence. This is not DR readiness.",
-    "lastGoodArtifactVerification": "Last successful artifact verification",
-    "lastGoodRestoreProof": "Last successful restore drill",
-    "backupProofAge": "Backup proof age",
-    "restoreProofAge": "Restore drill proof age",
+    "simulatedProofCompact": "Last-known-good backup proof is from a simulated run; execution profile and pg_dump row below still apply — not production DR evidence.",
+    "lastGoodArtifactVerification": "Last artifact verification reported OK (API)",
+    "lastGoodRestoreProof": "Last restore drill reported successful (API)",
+    "backupProofAge": "Backup proof age (API)",
+    "restoreProofAge": "Restore drill proof age (API)",
     "latestBackupRequest": "Latest backup request (any outcome)",
     "latestRestoreRequest": "Latest restore drill request (any outcome)",
+    "latestRequestVsProofHint": "Tags here are request status only — they are not “last known good” proof.",
+    "latestDrillFailedVsProofTimestamps": "Latest restore drill request failed (see Restore verification section). A “last successful restore drill” timestamp above may refer to an older run — it does not override the current failure for operational interpretation.",
     "executionProfile": "Execution profile (server)",
     "realPgDumpConfigured": "Real PostgreSQL logical dump (pg_dump)",
     "readinessLevel": "Backup readiness (server config)",
     "serverNarrative": "Operator note (server, English)"
   },
+  "operatorValidity": {
+    "stubDataPlaneTitle": "Development / simulation mode (Fake adapter)",
+    "stubDataPlaneBody": "The backup pipeline is working as designed: it exercises queues, workers, and artifact rows without producing a real pg_dump. This is not a failed backup product — it is an intentional stub until you configure PgDump, staging, and PostgreSQL tools. Downloads are test artifacts only.",
+    "executionModeFakeOverrideBody": "The admin Backup execution mode is set to Fake (or stub): the worker uses simulated artifacts regardless of the default adapter in configuration files. This is not a production PostgreSQL logical dump path. Change execution mode and configuration to Real (PgDump) when you need real dumps.",
+    "executionModeRequestedRealEffectiveSimulatedTitle": "Requested Real, effective surface is simulated",
+    "executionModeRequestedRealEffectiveSimulatedBody": "The saved preference says Real (PgDump), but the effective worker profile is Fake or ProductionStub. Treat outputs as simulated until the execution-mode API and configuration agree.",
+    "executionModeRequestedFakeEffectivePgDumpTitle": "Saved Fake, effective adapter is PgDump",
+    "executionModeRequestedFakeEffectivePgDumpBody": "The database preference is Fake while the effective adapter is PgDump — confirm whether you intended “follow configuration” or reload the page after a mode change.",
+    "executionModeRequestedRealBlockedTitle": "Real mode selected but not runnable",
+    "executionModeRequestedRealBlockedBody": "Real (PgDump) remains the target adapter, but configuration health is Unhealthy — expect failed or unreliable runs until staging, connection string, tooling, and archive rules are fixed. The system does not silently fall back to Fake.",
+    "noRealPgConfiguredTitle": "No real pg_dump path configured",
+    "noRealPgConfiguredBody": "The server reports that a real PostgreSQL logical dump is not configured. A “successful” run cannot be treated as a meaningful database backup until pg_dump is enabled and proven.",
+    "realPgUnknownTitle": "Real pg_dump: signal incomplete",
+    "realPgUnknownBody": "This UI cannot confirm from the API whether a real PostgreSQL logical dump is configured. Verify on the server; do not infer recoverability from job status alone.",
+    "realPgButProofGapsTitle": "Operational dump possible — recoverability not fully proven",
+    "realPgButProofGapsBody": "A real pg_dump path may be configured, but last-known-good proof timestamps are incomplete in this response. Downloads are not certified as last-known-good recovery until proof gaps close.",
+    "strongSignalsTitle": "Strong recoverability signals (within API limits)",
+    "strongSignalsBody": "Real pg_dump appears configured, proof timestamps look complete, and the latest restore drill completed successfully — best available signal from this page. Still validate against your RPO/RTO policy outside the UI.",
+    "realPgOperationalTitle": "Real pg_dump path reported — drill proof pending or not latest",
+    "realPgOperationalBody": "The environment reports a real PostgreSQL logical dump, but the latest restore drill did not succeed or is not shown as successful here. Treat recovery as unproven until a passing drill aligns with your policy."
+  },
+  "fakeMode": {
+    "bannerTitle": "Simulated / Fake backup adapter is active",
+    "bannerBody": "Fake mode is expected and safe for local development — not a product failure. The server does not run pg_dump: “success” means the orchestration pipeline finished for integration testing, not a restorable PostgreSQL archive. Downloads are tiny placeholders. Restore-drill results such as PG_RESTORE_LIST_FAILED on the stub file are often normal until you switch to PgDump. Proof timestamps, if shown, are bookkeeping only.",
+    "bannerRealBackupPrereq": "For a real logical backup you need: PgDump adapter, an absolute staging directory, a PostgreSQL connection string, and working pg_dump / pg_restore on the API host. Files then land under your staging root (see checklist)."
+  },
+  "realDumpMode": {
+    "bannerTitle": "Real PostgreSQL logical dump path (pg_dump) is active",
+    "bannerBody": "The server reports PgDump-style configuration: backups can produce a real custom-format archive, and restore drills can run pg_restore --list against that file. This is the prerequisite for drill-capable, production-meaningful checks — still validate size, retention, and off-site copies in your runbook."
+  },
+  "devRealPgDump": {
+    "title": "Developer checklist: enable real pg_dump in Development",
+    "jumpToChecklist": "Jump to developer checklist",
+    "docRepoFileLead": "Canonical setup doc in repository:",
+    "intro": "The API does not block PgDump when ASPNETCORE_ENVIRONMENT=Development. Minimum configuration:",
+    "sectionEnableTitle": "How to enable a real logical backup",
+    "sectionTroubleshootingTitle": "If something still fails",
+    "itemAdapter": "Set Backup__ExecutionAdapterKind=PgDump (or Backup:ExecutionAdapterKind in appsettings / User Secrets).",
+    "itemStaging": "Set Backup__ArtifactStagingRoot to a non-empty absolute directory writable by the API process.",
+    "itemConnection": "Provide a valid PostgreSQL connection string (e.g. ConnectionStrings__DefaultConnection, or Backup__LogicalDumpConnectionStringName pointing at a defined connection).",
+    "itemBinaries": "Ensure pg_dump and pg_restore are on PATH, or set Backup__PgDumpExecutablePath and RestoreVerification__PgRestoreExecutablePath.",
+    "stuckFakeAdapter": "Still on Fake: the effective adapter is Fake — set Backup:ExecutionAdapterKind to PgDump and restart the API.",
+    "stuckStaging": "Missing staging root: PgDump requires Backup:ArtifactStagingRoot (absolute path; the process must be able to create/write it).",
+    "stuckConnection": "Connection string: ensure ConnectionStrings:DefaultConnection (or the name in Backup:LogicalDumpConnectionStringName) reaches your PostgreSQL database with Host, Username, and Database set. Missing values now surface as configuration issues in this page (Development) before the first backup run.",
+    "stuckPgDump": "pg_dump not found: install PostgreSQL client tools or set Backup:PgDumpExecutablePath. Check API logs for \"Backup development tooling\" after startup.",
+    "stuckPgRestore": "pg_restore not found (restore drills): add RestoreVerification:PgRestoreExecutablePath or PATH. See the same startup log section.",
+    "expectedOutputPath": "On disk under your staging root: logical_{runId}_{timestamp}Z.dump plus manifest_{runId}.json. A real custom-format file starts with PGDMP (verify with pg_restore --list).",
+    "startupLogsHint": "After \"KASSE API STARTED\", read BackupStartup logs: configuration health lists issues early; with PgDump in Development, the API also probes pg_dump/pg_restore --version once.",
+    "docHint": "Full walkthrough (paths, file naming, verification, troubleshooting): repository file backend/docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md"
+  },
+  "evidence": {
+    "title": "Backup evidence ladder (what the API can prove)",
+    "footer": "A passing pg_restore --list step is strong indirect evidence of a readable PostgreSQL custom-format file (PGDMP family), even though this UI does not receive raw file bytes. Full business recovery still requires policy, retention, and off-site validation outside this page.",
+    "backendGapsTitle": "Signals not exposed by the API (verify on server if needed)",
+    "gaps": {
+      "pgdmpHeader": "Byte-level PGDMP magic / file header check — not in API responses; use hex inspection or trust pg_restore --list success on the same file.",
+      "stagingPathRedacted": "Absolute staging directory path — omitted from API for security; confirm on the host running the worker."
+    },
+    "status": {
+      "pass": "Supported",
+      "fail": "Not met",
+      "unknown": "Unknown",
+      "na": "N/A",
+      "limited": "Limited / stub"
+    },
+    "headline": {
+      "noTechnicalSuccess": "Latest backup job is not reported as successfully completed — real dump evidence does not apply yet.",
+      "stubPipeline": "Stub / Fake pipeline: technical success does not produce a restorable PostgreSQL custom-format dump.",
+      "noRealPgPath": "Server does not report a configured real pg_dump (PgDump) path — artifacts cannot be treated as production logical dumps.",
+      "realPathButFileUncertain": "Real pg_dump is configured, but the logical dump file is missing, absent on disk, or unclear from API metadata.",
+      "strongWithinApi": "Strong evidence within API limits: real pipeline, file present, list inspection passed, drill completed, recoverability timestamps present — still validate policy off-UI.",
+      "listOkMoreProofMayBeMissing": "Dump list inspection looks OK — confirm drill completion and recoverability timestamps for a fuller picture.",
+      "realDumpWorkInProgress": "Real pg_dump path is active — complete verification and restore drills to build evidence.",
+      "requestedRealButEffectiveStub": "Evidence ladder: Real is requested but the effective pipeline is simulated — do not treat artifacts as PostgreSQL logical dumps.",
+      "requestedRealButPrerequisitesBlocked": "Evidence ladder: Real (PgDump) is selected but the profile is not runnable — fix prerequisites before expecting dump file and drill evidence."
+    },
+    "steps": {
+      "technicalJob": {
+        "label": "1. Backup job completed (technical)",
+        "detail": "API reports terminal success for the latest run — orchestration finished, not necessarily a restorable database."
+      },
+      "realPgConfigured": {
+        "label": "2. Real pg_dump configured",
+        "detail": "Configuration health / recoverability reports PgDump adapter / logical dump tooling, distinct from Fake/stub."
+      },
+      "nonStubRun": {
+        "label": "3. Non-simulated run (not Fake adapter output)",
+        "detail": "Latest successful run is not flagged as simulated and does not use Fake/ProductionStub adapter — prerequisite for treating files as operational dumps."
+      },
+      "logicalDumpFile": {
+        "label": "4. Logical dump artifact reported present",
+        "detailNa": "No completed successful run to evaluate.",
+        "detailStub": "Stub bytes may still appear as rows — small test payloads, not a PostgreSQL custom-format archive.",
+        "detailPass": "Logical dump row exists and the API reports the file as present for download.",
+        "detailFail": "Logical dump missing or reported absent on the server.",
+        "detailUnknown": "Presence unknown from metadata — refresh run detail or check storage."
+      },
+      "artifactVerification": {
+        "label": "5. Artifact verification (staging / checksum job)",
+        "detailNa": "Not evaluated (no successful run context).",
+        "detailStub": "Verification may still run on stub payloads — integrity of placeholders, not proof of a real dump.",
+        "detailPass": "Latest verification row matches the latest run and reports passed (checksum/staging checks).",
+        "detailFail": "Verification failed for the linked run — investigate before trusting artifacts.",
+        "detailUnknown": "No passing verification row linked to the latest run, or still pending."
+      },
+      "dumpListInspection": {
+        "label": "6. Dump readable as archive (pg_restore --list)",
+        "detailNoDrill": "No restore drill row yet — enqueue a drill after a successful backup.",
+        "detailDrillInFlight": "Restore drill queued or running — wait for completion.",
+        "detailPassIndirect": "pg_restore --list succeeded (or dumpInspectionPassed) — strong indirect evidence of a valid custom-format dump; not a raw PGDMP byte proof.",
+        "detailFailReal": "List step failed on a non-stub pipeline — investigate dump file and worker logs.",
+        "detailStubExpected": "Expected limitation on Fake/stub files — not a PostgreSQL archive; switch to PgDump for this check.",
+        "detailUnknown": "List outcome not reported — see Restore verification card."
+      },
+      "restoreDrillCompleted": {
+        "label": "7. Restore drill finished successfully (API)",
+        "detailNoRow": "No restore drill in API history.",
+        "detailInFlight": "Drill still queued or running.",
+        "detailPass": "Latest drill status is completed successfully (API) — still not a full production recovery proof.",
+        "detailNotOk": "Latest drill did not complete successfully — see restore verification section."
+      },
+      "recoverabilityProof": {
+        "label": "8. Recoverability proof timestamps (summary)",
+        "detailGap": "At least one of backup / artifact verification / restore-drill proof timestamps is missing in the summary API.",
+        "detailOk": "All three proof timestamps are present in the recoverability summary response."
+      },
+      "isolatedRestore": {
+        "label": "9. Isolated restore attempt (optional drill phase)",
+        "detailNotRun": "Restore attempt not executed in the latest drill (skipped or not configured).",
+        "detailPass": "Isolated restore attempt reported passed — deeper technical signal; still not full DR program proof.",
+        "detailFail": "Isolated restore attempt reported failed — see drill details."
+      }
+    }
+  },
   "scope": {
     "title": "What this page does (and does not)",
-    "body": "No backup file is produced in the browser and no restore command is executed from here. Buttons only enqueue jobs via the API; execution and artifacts run on the backend worker."
+    "body": "No backup file is produced in the browser and no restore command is executed from here. Buttons only enqueue jobs via the API; execution and artifacts run on the backend worker. Empty or incorrect download streams are server/storage issues — this UI surfaces API metadata and client-side anomaly hints only; it does not repair backend behavior.",
+    "devRealPgLead": "Default Development often uses the Fake adapter (stub bytes) — that is intentional. To produce real PostgreSQL custom-format dumps on disk, configure PgDump, staging, connection string, and client binaries; use the checklist and repository doc below."
   },
   "banner": {
     "criticalTitle": "Critical issues",
     "warningTitle": "Degraded / attention",
+    "informationalTitle": "Expected in this configuration (not an incident)",
     "backupConfigUnhealthy": "Backup configuration is unhealthy.",
     "backupConfigDegraded": "Backup configuration is degraded.",
     "restoreReadinessUnhealthy": "Restore verification readiness is unhealthy.",
     "restoreReadinessDegraded": "Restore verification readiness is degraded.",
     "externalArchiveDegraded": "External artifact copy failed or is inconsistent — the backup run may still have succeeded technically.",
     "noRealPostgreSqlBackup": "No real PostgreSQL logical dump (pg_dump) configured",
-    "latestRunSimulatedNotProduction": "Latest backup run succeeded in a simulated/stub mode — not a production pg_dump artifact."
+    "latestRunSimulatedNotProduction": "Latest run completed the stub pipeline successfully — there is no production pg_dump artifact by design in Fake mode.",
+    "restoreDrillStubListFailedExpected": "Restore drill: pg_restore --list cannot read the stub file (not a PostgreSQL custom-format dump). Expected with Fake/stub backups — not a sign that production DR is broken; configure PgDump for list/restore checks on real archives.",
+    "restoreDrillRealListFailedPgRestoreUnavailable": "Restore drill: pg_restore could not be started on the worker (PATH / binary). This is a tooling issue on the host — not the same as “database restore broke”; install PostgreSQL client tools or set RestoreVerification:PgRestoreExecutablePath.",
+    "restoreDrillRealListFailedDumpMissing": "Restore drill: the logical dump file was not found on disk at the resolved path. Check staging, external archive copy, retention, and worker file access — not a stub-artifact limitation.",
+    "restoreDrillRealListFailedBadArchive": "Restore drill: pg_restore --list rejected the file while the backup pipeline is real (non-stub). Treat as recoverability risk: the archive may be corrupt, incomplete, or not a PostgreSQL custom-format dump.",
+    "restoreDrillRealListFailedUnknown": "Restore drill: pg_restore --list failed on a non-stub pipeline for an undetermined reason — inspect failure detail and worker logs.",
+    "healthIssuesSummary": "{{count}} backup configuration issue(s) — details are listed in the Configuration health card below.",
+    "restoreIssuesSummary": "{{count}} restore verification readiness issue(s) — details are listed in the readiness card below.",
+    "executionModeRequestedRealEffectiveSimulated": "Backup execution mode mismatch: Real is requested but the effective worker profile is simulated (Fake/Stub). Do not assume a PostgreSQL logical dump until the server state matches the saved preference.",
+    "executionModeRequestedRealBlocked": "Real (PgDump) is selected but the effective profile is not runnable — prerequisites are unhealthy. The worker still targets PgDump; there is no automatic switch to Fake. Fix configuration before expecting real dumps.",
+    "executionModeRequestedFakeEffectivePgDump": "Saved preference is Fake but the effective worker adapter is PgDump — usually “follow configuration” or a transient reload. Verify the Execution mode card and server summary.",
+    "executionModeFallbackGuidanceOnly": "Server suggests considering mode “{{mode}}” until prerequisites are healthy — this is guidance only; the API does not apply it automatically."
   },
   "summary": {
-    "backupHealth": "Backup health",
+    "backupHealth": "Backup health (API summary)",
+    "backupHealthFootnote": "Configuration signal only — not proof that recovery will work.",
+    "backupHealthFootnoteFake": "Fake/stub adapter: this is a configuration check — not production backup health or DR readiness.",
+    "restoreReadinessFootnoteFake": "Worker/config signal only. With Fake adapter and no real pg_dump, readiness does not mean restore drills will succeed on real dumps (e.g. pg_restore --list on stubs).",
     "backupConfig": "Configuration (backup)",
     "pipelinePolicy": "Artifact pipeline (summary)",
     "latestBackupRun": "Latest backup run",
-    "restoreReadiness": "Restore verification readiness (operator-truth)",
+    "restoreReadiness": "Restore verification readiness (API signal)",
+    "restoreReadinessFootnote": "Configuration/worker signal — not proven end-to-end DR.",
     "configurationShort": "Configuration (summary)",
+    "fakeAdapterConfigNote": "Adapter is Fake/Stub — configuration “healthy” does not imply a recoverable database backup.",
+    "fakeAdapterConfigNoteTooltip": "Fake / stub mode is expected in default Development.\n\nReal backups need:\n• Backup:ExecutionAdapterKind = PgDump\n• Backup:ArtifactStagingRoot = absolute writable folder\n• Connection string (e.g. ConnectionStrings:DefaultConnection) with Host, Username, Database\n• pg_dump and pg_restore on PATH or explicit executable paths\n\nOn disk (PgDump): under staging — logical_{runId}_{timestamp}Z.dump and manifest_{runId}.json (see developer doc).",
     "externalArchiveCard": "External archive (latest run artifacts)",
-    "unknown": "Unknown / no data"
+    "unknown": "Unknown / no data",
+    "executionModeSurfaceTitle": "Execution mode (saved vs effective)",
+    "executionModeSurfaceBody": "Requested: {{requested}} · Effective: {{effective}} · Config default: {{defaultMode}} · Runnable: {{runnable}} — use the Execution mode card for changes; “Runnable: no” means prerequisites block healthy runs even when Real is selected."
   },
   "pipelineSteps": {
     "sectionTitle": "Pipeline steps",
@@ -92,7 +272,7 @@
     "state": {
       "pending": "Pending",
       "running": "Running",
-      "success": "OK",
+      "success": "Complete",
       "failed": "Failed",
       "skipped": "N/A",
       "degraded": "Degraded"
@@ -112,9 +292,12 @@
   },
   "readiness": {
     "title": "Restore verification — readiness",
+    "notEndToEndDr": "This section reports backend configuration and worker signals. It does not prove a full production recovery drill succeeded end-to-end.",
+    "backendReportedSignal": "Level and flags are backend-reported — not independently verified operational readiness.",
     "restoreWorker": "Restore worker",
     "restoreWorkerDisabled": "Restore verification worker is disabled — drills will not be processed.",
-    "noIssues": "No extra notes in this response."
+    "noIssues": "No extra notes in this response.",
+    "levelCappedForOperatorTruth": "The level shown below is capped (e.g. no real pg_dump path or latest success was simulated) and is not presented as fully “healthy”."
   },
   "lock": {
     "title": "Distributed lock / orchestration (API excerpt)",
@@ -133,10 +316,35 @@
   "manual": {
     "title": "Manual actions (enqueue only)",
     "hint": "Jobs are queued asynchronously via the API — no instant result. After a successful run, authorized users can download artifacts below (including Fake/ProductionStub stub files when on disk — not production pg_dump proof). “Manage settings”; audit-logged.",
+    "hintFake": "Fake/stub mode: enqueued jobs still run the pipeline, but artifacts are placeholders. A restore drill that fails with PG_RESTORE_LIST_FAILED is often expected until a real PostgreSQL logical dump exists — use the Restore verification card for the exact stderr/context.",
+    "modeLabelUnknown": "Unknown",
+    "actionBannerEffective": "Current effective execution: {{mode}} (worker adapter {{adapter}}). The new run will use this profile.",
+    "actionBannerAdapterOnly": "Execution mode details not loaded — health summary adapter: {{adapter}}. Open the Execution mode card for saved vs effective; the trigger still uses live server state.",
+    "effectiveExecutionLine": "Effective now: {{mode}} — worker adapter {{adapter}}.",
+    "effectiveExecutionLineFallback": "Execution mode API not loaded. Latest health reports effective adapter {{adapter}}.",
     "confirmBackupTitle": "Enqueue backup?",
-    "confirmBackupDescription": "Calls the admin backup API to queue a run on the server worker. Not an instant download and does not prove restore.",
+    "confirmBackupIntro": "Queues a backup run on the server worker (load, storage I/O). Not an instant download; does not prove you can recover. Audit-logged.",
+    "confirmBackupDescription": "Queues a backup run on the server worker (load, storage I/O). Not an instant download; does not prove you can recover. Audit-logged.",
+    "confirmBackupMismatchRequestedRealEffectiveSimulated": "Saved preference is {{requested}}, but the effective profile is {{effective}} (simulated). This enqueue will not produce a PostgreSQL logical dump until the server matches your Real selection — fix execution mode and configuration first if that is not what you intend.",
+    "confirmBackupMismatchRequestedRealBlocked": "Real (PgDump) is saved but prerequisites are unhealthy: runs still target PgDump and may fail. There is no silent fallback to Fake.",
+    "confirmBackupBehaviorSimulated": "In this mode the worker produces simulated or stub artifacts only — not a restorable production pg_dump archive.",
+    "confirmBackupBehaviorRealPgDump": "In this mode the worker attempts a real PostgreSQL logical dump (pg_dump) subject to server configuration and host tooling.",
+    "confirmBackupBehaviorOtherAdapter": "Worker adapter {{adapter}} — confirm on the server what this path produces.",
+    "confirmBackupBehaviorUnknown": "Effective path could not be classified here — verify on the Execution mode card and server logs.",
     "confirmBackupOk": "Enqueue",
-    "confirmBackupCancel": "Cancel"
+    "confirmBackupCancel": "Cancel",
+    "confirmRestoreTitle": "Enqueue restore drill?",
+    "confirmRestoreIntro": "Queues restore verification on the worker (may use CPU, disk, and a test database). Does not run a production restore from this UI.",
+    "confirmRestoreDescription": "Queues restore verification on the worker (may use CPU, disk, and a test database). Does not run a production restore from this UI. Results appear asynchronously; audit-logged.",
+    "confirmRestoreLatestRunUnknown": "Latest backup row is missing from the status API — the drill still uses server-side context; check the Restore verification card after enqueue for which dump file was inspected.",
+    "confirmRestoreLatestSimulated": "Latest backup status row reports adapter {{adapter}} (simulated / stub path). pg_restore --list on stub bytes often fails by design — that is not proof of production DR breakage.",
+    "confirmRestoreLatestReal": "Latest backup status row reports PgDump — the drill targets a logical-dump style artifact when the worker resolves the file.",
+    "confirmRestoreLatestAmbiguous": "Latest backup status row reports adapter {{adapter}} — treat drill interpretation conservatively and read failure detail on the Restore verification card.",
+    "confirmRestoreDrillFootnote": "Results appear asynchronously; audit-logged.",
+    "confirmRestoreOk": "Enqueue",
+    "confirmRestoreCancel": "Cancel",
+    "cardAlertRequestedRealEffectiveSimulated": "Mismatch: you saved {{requested}} but the effective worker profile is {{effective}} (simulated). Do not assume this page will enqueue a real dump until the mismatch is resolved.",
+    "cardAlertRequestedRealBlocked": "Real (PgDump) is selected but the profile is not runnable — backup runs may fail until prerequisites are healthy."
   },
   "progress": {
     "titleQueued": "Backup queued — not finished yet",
@@ -145,9 +353,10 @@
     "bodyQueued": "The run is waiting in the worker queue or is about to start.",
     "bodyRunning": "Execution on the server (e.g. pg_dump, artifacts, checks).",
     "bodyAwaiting": "Execution finished; artifact verification or external copy may still run.",
-    "finishedOk": "Latest backup run: completed successfully (production pipeline).",
-    "finishedSimulatedOk": "Latest backup run: completed (simulated / not production pg_dump).",
-    "finishedSimulatedOkDetail": "This outcome does not prove a downloadable production logical dump. Use PgDump adapter and recoverability evidence for DR confidence.",
+    "finishedOk": "Latest backup run: completed (API reports success; non-simulated path). This is operational status, not a DR guarantee.",
+    "finishedSimulatedOk": "Latest run: pipeline completed (Fake/Stub — no real pg_dump output).",
+    "finishedSimulatedOkDetail": "This outcome does not prove a downloadable production logical dump. Use the PgDump adapter and last-known-good timestamps for separate checks — not assurance that recovery will work.",
+    "finishedOkDetail": "Operational completion only — confirm recoverability evidence (last known good) separately.",
     "finishedFailed": "Latest backup run: failed — see table for details.",
     "finishedVerificationFailed": "Latest backup run: artifact verification failed.",
     "finishedCancelled": "Latest backup run: cancelled.",
@@ -156,11 +365,23 @@
     "noEta": "No time estimate: no successful runs with measurable duration yet."
   },
   "download": {
-    "title": "Download artifacts (latest run)",
-    "hint": "When the latest run succeeded and the file exists on the server. Fake/ProductionStub files are downloadable for dev/tests but are not production pg_dump proof. Requires “Manage settings”; audit-logged.",
+    "titleLatestSuccess": "Download artifacts (latest run — API success status)",
+    "titleLatestSuccessFake": "Test files from latest run (not a production backup)",
+    "titleLastKnownGood": "Download artifacts (last known good — API recoverability summary)",
+    "titleLastKnownGoodFake": "Test files from last-known-good run (not a production backup)",
+    "scopeLatestSuccess": "Rows come from the latest successful run in the status API. They are not recoverability proof unless you also match the recoverability card.",
+    "scopeLatestSuccessFake": "In Fake/Stub mode these rows are pipeline placeholders (manifest + tiny dump-like file). They are not restorable PostgreSQL archives and not DR evidence.",
+    "scopeLastKnownGood": "Shown because the latest run did not succeed; run ID comes from the recoverability summary. This is still not a DR guarantee — only an operational file list.",
+    "scopeLastKnownGoodFake": "Same limitation as Fake/Stub: files are for integration checks only — not a usable backup even if labeled “last known good” in the API.",
+    "pathsOmitted": "Full staging and archive paths are not listed here (reduces misinterpretation). Use server-side access if you need exact locators.",
+    "hint": "Eligibility uses API-reported file presence only. The server may still reject the download (policy, permissions, simulated guard). Requires “Manage settings”; audit-logged.",
     "simulatedWarning": "This run used adapter “{{adapter}}” — not a production PostgreSQL logical dump (pg_dump).",
-    "simulatedDownloadDisclaimer": "You can still download stub/placeholder files if the server has them. Do not treat them as production disaster-recovery evidence.",
+    "simulatedDownloadDisclaimer": "Stub/placeholder files may exist for tests. Do not treat them as production disaster-recovery evidence.",
     "stubHint": "Stub files may support pipeline tests and integrity checks; for DR you need a real pg_dump run (PgDump adapter).",
+    "stubPayloadNote": "Downloaded files from Fake/Stub runs contain only a tiny placeholder payload (not a PostgreSQL custom-format dump).",
+    "stubZoneAlertTitle": "Fake/stub run — these downloads are test artifacts, not a database backup",
+    "stubZoneAlertDescription": "The Fake adapter emits two typical files: (1) a minimal UTF-8 file that looks like a logical dump but only contains a short `fake-bytes-<runId>` marker, and (2) a small JSON manifest that may include `note: \"no real pg_dump\"`. That small size is expected. Neither file is a PostgreSQL custom-format archive and neither is recovery-grade.",
+    "rowPosition": "File {{current}} of {{total}} in this run",
     "errorRunNotFound": "Backup run does not exist (404).",
     "errorArtifactNotFound": "Artifact does not belong to this run or does not exist (404).",
     "errorFileMissing": "Artifact metadata exists but the file is missing on the server (404).",
@@ -169,50 +390,159 @@
     "errorConflict": "Backup run is not in a success state — download unavailable (409).",
     "errorStorage": "Backup staging/archive is not configured or unavailable (503).",
     "errorForbidden": "No permission to download (403).",
-    "errorSimulated": "Download was rejected as simulated/stub (legacy or policy). Not a production PostgreSQL logical dump (403).",
-    "button": "Download",
-    "buttonStub": "Download stub file",
-    "noArtifactsInLatestRun": "Latest successful run currently has no materialized artifact rows yet. Refresh shortly.",
-    "fileUnavailableOnServer": "At least one artifact file is not currently found on the server — download is disabled (metadata may be stale).",
-    "typeLabel": "Type",
-    "locatorLabel": "Staging locator",
-    "externalLabel": "Archive locator",
+    "errorSimulated": "Download was rejected as simulated/stub (policy). Not a production PostgreSQL logical dump (403).",
+    "errorUnknown": "Download failed with an unrecognized error code from the server.",
+    "errorEmptyPayload": "Download returned an empty body (0 bytes) with HTTP success — likely a server, storage path, or streaming issue. Check API logs, worker host, and artifact storage; compare with reported metadata for this row.",
+    "button": "Request download",
+    "buttonStub": "Request stub download",
+    "downloadNotProvenUntilRequest": "Button enabled only means UI pre-checks passed; the server validates policy on each request.",
+    "downloadStubTooltip": "Stub/simulated file — not a production PostgreSQL backup. Server validates on request.",
+    "integrityPrecheckNote": "Rows show API metadata only. “File present” and byte size do not prove backup integrity, restorability, or that the stream will match this row — verify on the server if in doubt.",
+    "suspicionBulkIntro": "At least one row below shows a metadata concern (see warning tags). Investigate storage, API mapping, and backend logs before trusting the artifact.",
+    "noArtifactsInRun": "No artifact rows in this run response yet. Refresh after the worker finishes.",
+    "fileUnavailableOnServer": "At least one row reports the file as absent on the server — download is blocked for that row.",
+    "filePresenceUnknownBulk": "At least one row has no file-presence flag from the API — download may fail until the server reports availability.",
+    "lkgLoadFailed": "Could not load last-known-good run details for downloads.",
+    "artifactLabel": "Artifact class",
+    "artifactLabelSimulated": "Artifact class (stub / simulated run)",
+    "byteSizeColumn": "Reported size (API)",
+    "byteSizeColumnSimulated": "Reported size (stub payload — API)",
+    "confirmStubTitle": "Download stub / simulated file?",
+    "confirmStubBody": "This run is simulated/stub — not recoverability proof and not a production backup. The server returns the on-disk bytes for this row (often tiny placeholder data, not pg_dump output). Size (API): {{size}}. Row: {{artifact}}.",
+    "confirmStubNotEmptyFailedBackup": "A very small size here is expected — it is not a failed or “empty backup” in the sense of a broken pg_dump; the Fake adapter writes intentional placeholder bytes.",
+    "confirmStubExpectationLead": "What this file is (read before saving):",
+    "confirmStubOk": "Download file",
+    "confirmUnprovenLogicalTitle": "Download logical-dump row (production pg_dump not confirmed)",
+    "confirmUnprovenLogicalLead": "Configuration does not report a real PostgreSQL logical-dump path for this environment. The file may still be a real dump from the worker, but recoverability is not certified from configuration alone.",
+    "confirmUnprovenLogicalOk": "Continue download",
+    "preDownloadWhatYouGet": "Before download:",
+    "reality": {
+      "stub": "Test / stub artifact",
+      "realPipeline": "From configured backup pipeline",
+      "unknown": "Pipeline class unknown"
+    },
+    "byteSizeFootnote": {
+      "stubExpectedTiny": "Tiny size is expected (placeholder — not a failed empty backup).",
+      "manifestMetadataOnly": "Typically small JSON metadata — not a database data dump."
+    },
+    "contentExpectSummary": {
+      "stubLogicalDumpFakeAdapter": "Placeholder UTF-8 marker (fake-bytes…), not pg_restore custom format.",
+      "stubManifestFakeAdapter": "Small JSON manifest (pipeline metadata), not a dump file.",
+      "manifestNonStub": "Verification manifest JSON — checksums/metadata, not table data.",
+      "logicalDumpOperationalShort": "Logical dump file from worker — verify format and policy on the server if unsure."
+    },
+    "filePresenceLabel": "File on server (API)",
+    "actionLabel": "Download",
+    "recoverabilityUse": {
+      "not_dr_evidence_simulated": "Not DR or recoverability proof — simulated stub payload only.",
+      "not_dr_evidence_unverified_adapter": "Not proven production pg_dump (config: no real logical dump).",
+      "possible_operational_artifact": "Operational file — confirm DR separately.",
+      "unknown_recovery_value": "Recovery value unknown from API signals.",
+      "short": {
+        "not_dr_evidence_simulated": "No DR value (stub)",
+        "not_dr_evidence_unverified_adapter": "pg_dump not proven (config)",
+        "possible_operational_artifact": "Operational file",
+        "unknown_recovery_value": "DR value unknown"
+      }
+    },
+    "filePresence": {
+      "reported_present": "Reported present",
+      "reported_absent": "Reported absent",
+      "unknown": "Presence not reported — policy unknown until request"
+    },
+    "downloadBlocked": {
+      "no_manage": "Requires “Manage settings” permission",
+      "file_not_on_server": "Blocked — file reported absent",
+      "file_presence_unknown": "Blocked — cannot pre-confirm file presence"
+    },
     "error": "Download failed.",
     "needManage": "You need “Manage settings” permission to download.",
+    "suspicion": {
+      "metadata_incomplete": {
+        "short": "Size missing",
+        "detail": "API reports the file as present but no byte size — metadata may be incomplete. Check artifact listing API and storage mapping."
+      },
+      "zero_reported_size": {
+        "short": "0 B reported",
+        "detail": "Reported size is zero while the file is marked present — unexpected for a usable artifact. Check storage, path resolution, and worker logs."
+      },
+      "tiny_reported_logical_dump": {
+        "short": "Very small dump",
+        "detail": "Reported size is under 1 KB for a logical-dump row — unexpected for a typical pg_dump output (may be a tiny DB or a pipeline issue). Verify on the server."
+      }
+    },
+    "contentExpect": {
+      "stubLogicalDumpFakeAdapter": "Expected content: a tiny UTF-8 text payload. The Fake adapter writes `fake-bytes-<runId>` — it is not PostgreSQL custom-format data and cannot be restored with pg_restore.",
+      "stubManifestFakeAdapter": "Expected content: small JSON (often includes `note: \"no real pg_dump\"`). Pipeline/test metadata only — not a database dump and not a substitute for pg_dump output.",
+      "stubTyped": {
+        "1": "Placeholder file for pipeline tests — not a real physical base backup.",
+        "2": "Placeholder file — not a real WAL archive.",
+        "3": "Placeholder file — not a real globals dump.",
+        "4": "Placeholder manifest row — metadata only.",
+        "5": "Placeholder log — not operational evidence."
+      },
+      "stubOther": "Placeholder/test artifact — not recovery-grade data.",
+      "operationalLogicalDump": "From a non-simulated run: intended as the logical dump output from your configured pipeline. If size and format match policy, treat as the dump file — verify on the server if unsure.",
+      "logicalDumpNotProvenConfig": "Typed as logical dump, but configuration does not report a real pg_dump path — do not assume a restorable PostgreSQL archive until verified server-side.",
+      "logicalDumpProofUnknown": "Typed as logical dump; the API did not confirm real pg_dump configuration — recovery value unknown from this UI alone.",
+      "verificationManifest": "Manifest / verification metadata (checksums, pipeline bookkeeping) — not a standalone database backup file.",
+      "nonSimulatedTyped": {
+        "1": "Physical/base backup class file — confirm with your operator; not necessarily a single-file “full DB” depending on strategy.",
+        "2": "WAL archive window artifact — confirm scope with your operator.",
+        "3": "Globals dump artifact — confirm scope with your operator.",
+        "5": "Backup log / diagnostics — not a dump file."
+      },
+      "unknown": "Artifact bytes — confirm role and format with your backup operator."
+    },
     "types": {
+      "logicalDumpStub": "Stub logical-dump row (placeholder bytes — not pg_dump output)",
+      "logicalDumpOperational": "Logical dump (non-simulated run)",
+      "logicalDumpNotProven": "Logical dump — production pg_dump not proven from configuration",
       "0": "Logical dump",
       "1": "Physical base backup",
       "2": "WAL archive window",
       "3": "Globals dump",
       "4": "Verification manifest",
+      "manifestStub": "Stub verification manifest (metadata — not a backup)",
       "5": "Backup log",
-      "unknown": "Artifact"
+      "unknown": "Artifact",
+      "stub": {
+        "1": "Physical base backup (stub — not a real cluster backup)",
+        "2": "WAL archive window (stub — not real WAL evidence)",
+        "3": "Globals dump (stub — not production output)",
+        "4": "Verification manifest (stub — same as pipeline placeholder)",
+        "5": "Backup log (stub — not operational evidence)"
+      }
     }
   },
   "triState": {
-    "ok": "OK",
+    "ok": "OK (technical)",
     "fail": "Failed",
-    "issues": "Issues"
+    "issues": "Issues",
+    "dumpInspectionNotApplicableStub": "Not listable (stub file — not a PostgreSQL dump)"
   },
   "restoreAttempt": {
     "notRun": "Not executed"
   },
   "health": {
     "title": "Configuration health",
-    "healthy": "Healthy",
+    "healthy": "OK (configuration — API)",
     "degraded": "Degraded",
     "unhealthy": "Unhealthy",
     "workerDisabled": "Worker disabled — queued backups will not be processed.",
     "adapter": "Adapter",
     "worker": "Worker",
     "realPgDumpYes": "pg_dump: yes",
-    "realPgDumpNo": "pg_dump: no"
+    "realPgDumpNo": "pg_dump: no",
+    "diagnosticsIntro": "Setup signals from the API (stable codes — hover for detail). Use with issues above to see why real pg_dump may be inactive.",
+    "diagnosticsTruncated": "+ {{count}} more code(s) — full list is in API/logs if needed."
   },
   "latestRun": {
     "title": "Latest backup run",
     "none": "No backup run recorded yet.",
     "orchestrationHint": "“Queued” means only enqueued — not a completed backup.",
     "distinctFromRecoverability": "This section shows the latest backup run state from the API. It is not the same as “last known good” recoverability evidence in the card above.",
+    "fakeModeOperationalNotice": "Pipeline-only test run: no restorable database backup is produced.",
     "simulatedBadge": "Simulated / not pg_dump",
     "notRealPgDump": "This run is not a real PostgreSQL logical dump (pg_dump). Do not treat it as production DR evidence.",
     "id": "Run ID",
@@ -226,6 +556,7 @@
     "durationSec": "{{s}} s",
     "durationMin": "{{m}} min {{s}} s",
     "dumpSize": "Dump size (approx.)",
+    "dumpSizeStub": "Declared artifact size (stub bytes — not a real dump)",
     "bytesB": "{{n}} B",
     "bytesKb": "{{n}} KB",
     "bytesMb": "{{n}} MB"
@@ -234,7 +565,7 @@
     "title": "Latest artifact verification (phase 2)",
     "none": "No verification row found.",
     "pending": "Pending",
-    "passed": "Passed",
+    "passed": "Checks passed (integrity)",
     "failed": "Failed",
     "notRestoreProof": "Artifact verification confirms file integrity (e.g. checksums) — not full recoverability."
   },
@@ -243,30 +574,58 @@
     "title": "Latest restore verification (drill)",
     "none": "No restore drill has run yet.",
     "explanation": "Covers dump inspection and optionally an isolated restore attempt plus SQL on a clone — no production restore from this UI.",
+    "realProfileBlockedTitle": "Backup profile not runnable (Real / PgDump)",
+    "realProfileBlockedBody": "The worker targets PostgreSQL logical dumps, but the execution-mode API reports the effective profile as not runnable (Unhealthy prerequisites). Drill outcomes may not reflect a healthy real-dump path until configuration is fixed.",
     "drillFailed": "Restore drill failed",
     "drillFailedAlert": "Restore drill failed",
     "drillFailedProminent": "Restore drill failed — action required",
     "fiscalSql": "Fiscal SQL (clone)",
     "skipped": "Skipped",
     "integrity": "Integrity (scope)",
-    "strongerThanArtifact": "Restore verification provides stronger technical evidence than artifact verification alone — it is not a complete disaster recovery program.",
+    "strongerThanArtifact": "Adds technical checks beyond artifact verification alone — still not a full disaster recovery program or proof of production recovery.",
     "block": {
       "dumpInspection": "Dump inspection",
       "restoreAttempt": "Isolated restore attempt"
     },
     "failureCode": "Failure code",
-    "failureDetail": "Failure detail"
+    "failureDetail": "Failure detail",
+    "fakePipeline": {
+      "sectionContext": "With the Fake adapter, restore drills validate wiring; they do not prove production recovery because there is no real archive to inspect.",
+      "drillOutcomeTitle": "Restore drill: pg_restore --list did not succeed (expected with Fake/stub backup)",
+      "pgRestoreListTitle": "Why pg_restore --list failed here (simulated backup)",
+      "pgRestoreListExplainer": "The restore drill runs pg_restore --list on the logical-dump file from a successful backup run. The Fake adapter does not produce a PostgreSQL custom-format dump — it writes small stub bytes (e.g. fake-bytes-…). That file is not a real pg_dump archive, so pg_restore rejects it. This is expected in Fake/stub mode and is not proof of a production DR problem. For a real dump, configure Backup:ExecutionAdapterKind=PgDump with staging path and PostgreSQL tools (see server configuration).",
+      "pgRestoreListTooltip": "Stub dump from Fake adapter — pg_restore cannot list it; expected in dev/stub mode.",
+      "technicalDetailLabel": "Technical detail from pg_restore"
+    },
+    "realPipeline": {
+      "listFailedPgRestoreUnavailableTitle": "List step failed — pg_restore not runnable",
+      "listFailedPgRestoreUnavailableBody": "The worker could not start pg_restore (common: binary missing or not on PATH for the API process). Fix tooling on the host — this is not the same class of problem as a Fake/stub placeholder file. Configure RestoreVerification:PgRestoreExecutablePath or install PostgreSQL client tools, then rerun the drill.",
+      "listFailedDumpMissingTitle": "List step failed — dump file missing on disk",
+      "listFailedDumpMissingBody": "The drill could not read the dump file at the resolved path. Verify staging and archive paths, permissions, and that a successful backup actually left a file where the drill resolves it.",
+      "listFailedFormatRejectedTitle": "List step failed — file not accepted as PostgreSQL custom-format archive",
+      "listFailedFormatRejectedBody": "pg_restore --list exited with an error while the source backup is not from the Fake adapter. The artifact may be corrupt, truncated, or not a valid custom-format dump — investigate the dump and worker logs; this affects real recoverability confidence.",
+      "listFailedUnknownTitle": "List step failed — classification unclear from metadata",
+      "listFailedUnknownBody": "pg_restore --list failed on a non-stub pipeline; exit metadata did not match the common “missing binary” or “missing file” patterns. Use the failure detail (stderr) and server logs to diagnose.",
+      "failureTooltips": {
+        "real_pg_restore_unavailable": "pg_restore could not be started — fix PATH or RestoreVerification:PgRestoreExecutablePath.",
+        "real_dump_file_missing": "Resolved dump path had no readable file — check staging/archive and permissions.",
+        "real_format_or_corrupt": "pg_restore rejected the file — validate the dump (corruption, wrong format, incomplete write).",
+        "real_unknown": "Unclassified list failure — inspect stderr in failure detail and worker logs."
+      }
+    }
   },
   "distinction": {
     "title": "Artifact verification vs. restore verification",
     "body": "Artifact verification: integrity of produced files (e.g. checksums / staging). Restore verification: additional drill metadata (list inspect, optional fiscal SQL on a clone) — it is not a full restore proof and does not guarantee RPO/RTO."
   },
   "runs": {
-    "title": "Recent backup runs"
+    "title": "Recent backup runs",
+    "statusHint": "Each row shows the API-reported outcome for that run. This history is not the same as last-known-good proof in the recoverability section."
   },
   "restoreHistory": {
     "title": "Recent restore drills",
-    "empty": "No restore drills recorded yet."
+    "empty": "No restore drills recorded yet.",
+    "statusHint": "Each row shows the API-reported drill outcome. A completed drill is technical metadata — not a full recovery guarantee."
   },
   "alerts": {
     "title": "Alerts & degraded signals",
@@ -275,7 +634,7 @@
   "externalCopy": {
     "title": "External copy (artifacts)",
     "loading": "Loading artifact details…",
-    "verified": "External copy verified (where applicable).",
+    "externalLifecycleOk": "Artifact lifecycle indicates external stage reached (backend metadata — not independent off-site proof).",
     "failed": "External copy failed or hash mismatch.",
     "stagingOnly": "Staging only / no external copy for this run (config or adapter).",
     "mixed": "Mixed artifact states — review details.",
@@ -286,9 +645,12 @@
     "title": "Disclaimer from API"
   },
   "restoreCapability": {
-    "title": "Automated restore",
-    "available": "Reported as available",
-    "notAvailable": "Not reported as automated"
+    "title": "Automated-restore flag (backend field — not a tested restore)",
+    "available": "Flag on (not a tested restore)",
+    "notAvailable": "Flag off or not reported as automated",
+    "reportedEnabled": "Backend field: automated restore reported as enabled (not a tested restore).",
+    "reportedDisabled": "Backend field: automated restore not reported as enabled.",
+    "reportedUnknown": "Backend field: unknown / not provided — treat as unproven."
   },
   "actions": {
     "enqueueBackup": "Enqueue backup",
@@ -299,28 +661,239 @@
     "0": "Queued",
     "1": "Running",
     "2": "Awaiting verification",
-    "3": "Succeeded (verified)",
-    "simulatedSuccess": "Succeeded (simulated — not production pg_dump)",
+    "3": "Finished (API reports success)",
+    "simulatedSuccess": "Finished (pipeline test — not a real backup)",
     "4": "Failed",
     "5": "Verification failed",
     "6": "Cancelled"
   },
   "verificationStatus": {
     "0": "Pending",
-    "1": "Passed",
+    "1": "Staging/checksum checks reported OK (API)",
     "2": "Failed"
   },
   "restoreStatus": {
     "0": "Queued",
     "1": "Running",
-    "2": "Succeeded",
-    "3": "Failed"
+    "2": "Finished (drill — API metadata)",
+    "3": "Failed",
+    "drillStubExpected": "Finished (stub dump — drill limitation expected)",
+    "drillListFailedPgRestoreUnavailable": "Failed (drill — pg_restore not runnable)",
+    "drillListFailedDumpMissing": "Failed (drill — dump file missing on disk)",
+    "drillListFailedBadArchive": "Failed (drill — dump not accepted as archive)",
+    "drillListFailedUnknown": "Failed (drill — list step failed)"
   },
   "lifecycle": {
     "0": "Staging",
-    "1": "Staging verified",
-    "2": "External verified",
+    "1": "Staging checks reported OK (API)",
+    "2": "External stage reported OK (metadata — API)",
     "3": "External failed"
+  },
+  "executionMode": {
+    "title": "Backup execution mode (server)",
+    "intro": "Choose how the background worker runs backups. The selection is persisted in the database and changes the effective adapter (Fake vs PgDump). Paths, connection string names, and deployment acknowledgments still come from server configuration.",
+    "realReadiness": {
+      "panelTitle": "Real (PgDump) prerequisite check",
+      "footnoteApi": "This block assumes you want Real (PgDump): the server evaluates configuration as if that mode were active. Technical English lines below repeat the API when they add detail.",
+      "configKeysLabel": "Related configuration keys:",
+      "serverDetailLabel": "Server detail:",
+      "noDiagnosticsListed": "No Error/Warning diagnostics returned for this profile (or probes not run yet).",
+      "realRowSelectableYes": "Real mode: selectable in the list below",
+      "realRowSelectableNo": "Real mode: not selectable until prerequisites are Healthy",
+      "healthLevels": {
+        "unknown": "Level not reported",
+        "Healthy": "Healthy",
+        "Degraded": "Degraded (warnings only)",
+        "Unhealthy": "Unhealthy (blocking)"
+      },
+      "summary": {
+        "noLevelTitle": "Hypothetical Real health not available",
+        "noLevelBody": "The API did not return HypotheticalPgDumpHealthLevel — refresh or upgrade the server.",
+        "readyTitle": "You can switch to Real (PgDump) now",
+        "readyBody": "Prerequisite health is Healthy and the Real option is enabled. Saving still runs normal server validation.",
+        "blockedTitle": "Real (PgDump) is not selectable yet",
+        "blockedBody": "Fix the blocking items below (red “Blocks” tag). The API refuses to save Real while prerequisite health is Unhealthy.",
+        "degradedSelectableTitle": "Real is selectable, but warnings remain",
+        "degradedSelectableBody": "You may save Real (PgDump), yet some checks are only warnings (gold “Advisory” tag). Resolve them before relying on backups or restore drills in production."
+      },
+      "tier": {
+        "blocking": "Blocks Real mode",
+        "advisory": "Advisory"
+      },
+      "category": {
+        "staging": "Staging & paths",
+        "connection": "PostgreSQL connection string",
+        "pgDump": "pg_dump client",
+        "pgRestore": "pg_restore client",
+        "archive": "External archive & verification",
+        "policy": "Policy / acknowledgment",
+        "environment": "Environment / unsafe dev flags",
+        "schedule": "Scheduled backup",
+        "orchestrator": "Worker & orchestration",
+        "other": "Other"
+      },
+      "codes": {
+        "pgDumpStagingRootMissing": {
+          "title": "Artifact staging root missing",
+          "action": "Set Backup:ArtifactStagingRoot to a non-empty path. For production-like hosts it must be absolute and writable by the API process."
+        },
+        "pgDumpStagingRootNotAbsolute": {
+          "title": "Staging path must be absolute",
+          "action": "Use an absolute directory for Backup:ArtifactStagingRoot outside Development when using PgDump."
+        },
+        "pgDumpVerifyOnDiskRequired": {
+          "title": "On-disk dump verification required",
+          "action": "Set Backup:VerifyLogicalDumpFileOnDisk=true in non-Development for PgDump so success reflects a real file hash, not metadata only."
+        },
+        "pgDumpExternalArchiveRequired": {
+          "title": "External archive root required",
+          "action": "Configure Backup:ExternalArchiveRoot in non-Development so verified dumps can be copied off staging with post-copy checks."
+        },
+        "devExternalArchiveNotSet": {
+          "title": "External archive not configured (Development)",
+          "action": "Optional in Development; set Backup:ExternalArchiveRoot before production so external copy policy can run."
+        },
+        "externalArchiveRootNotAbsolute": {
+          "title": "External archive path not absolute",
+          "action": "When Backup:ExternalArchiveRoot is set, it must be an absolute path."
+        },
+        "externalArchiveImmutabilityMismatch": {
+          "title": "Immutable archive acknowledgment missing",
+          "action": "If Backup:RequireExternalArchiveImmutableTarget=true, set Backup:ExternalArchiveImmutabilityAcknowledged=true after you configure a WORM/immutable tier, or adjust the policy flags."
+        },
+        "externalArchiveOperatorDispositionMissing": {
+          "title": "External archive operator disposition missing",
+          "action": "Declare whether the external target is immutable (acknowledgment) or explicitly accept a mutable target (Backup:ExternalArchiveMutableTargetAccepted), or enable immutable requirement with acknowledgment."
+        },
+        "externalArchiveImmutableAttestationOnly": {
+          "title": "Immutability is configuration attestation only",
+          "action": "The current archive backend does not prove object-lock/WORM in the API — ensure storage below enforces immutability or plan a capable backend."
+        },
+        "pgDumpConnectionStringMissing": {
+          "title": "Logical dump connection string missing",
+          "action": "Define ConnectionStrings:{name} (default or Backup:LogicalDumpConnectionStringName) with Host, Username, and Database so pg_dump can connect."
+        },
+        "pgDumpConnectionStringIncomplete": {
+          "title": "Connection string incomplete",
+          "action": "Npgsql requires Host, Username, and Database in the chosen connection string entry."
+        },
+        "pgDumpConnectionStringInvalid": {
+          "title": "Connection string invalid",
+          "action": "Fix the connection string syntax for Npgsql; check typos and escaping in appsettings or environment variables."
+        },
+        "devPgDumpClientMissing": {
+          "title": "pg_dump not usable on this host",
+          "action": "Install PostgreSQL client tools or set Backup:PgDumpExecutablePath to a working pg_dump. After API restart, Development probes surface this in logs too."
+        },
+        "devPgRestoreClientMissing": {
+          "title": "pg_restore not usable on this host",
+          "action": "Install client tools or set RestoreVerification:PgRestoreExecutablePath for restore drills and dump list checks."
+        },
+        "fakeAdapterForbiddenProduction": {
+          "title": "Fake adapter blocked by policy",
+          "action": "Not applicable when forcing PgDump — if you see this, report a server bug. Otherwise set Backup:AcknowledgeFakeBackupAdapterOutsideDevelopment only if you truly intend Fake outside Development."
+        },
+        "fakeAdapterAcknowledgedProduction": {
+          "title": "Fake acknowledged in production-like environment",
+          "action": "Informational for non-PgDump profiles; for Real readiness, ensure ExecutionAdapterKind resolves to PgDump."
+        },
+        "productionStubForbiddenProduction": {
+          "title": "Production stub blocked without acknowledgment",
+          "action": "Set Backup:AcknowledgePhase1NoRealBackup=true only if stub is intentional; use PgDump for real dumps."
+        },
+        "productionStubAcknowledgedProduction": {
+          "title": "Production stub acknowledged",
+          "action": "Stub does not run pg_dump — switch configuration to PgDump for Real mode readiness."
+        },
+        "orchestratorPollingTooShort": {
+          "title": "Orchestrator polling interval too short",
+          "action": "Set Backup:OrchestratorPollingInterval to at least one second."
+        },
+        "orchestratorPollingTooLong": {
+          "title": "Orchestrator polling interval too long",
+          "action": "Reduce Backup:OrchestratorPollingInterval — values over 24 hours are rejected."
+        },
+        "workerDisabled": {
+          "title": "Backup worker disabled",
+          "action": "Set Backup:WorkerEnabled=true so queued runs are processed."
+        },
+        "orchestratorLockDisabledNonDev": {
+          "title": "Distributed lock disabled outside Development",
+          "action": "Enable Backup:OrchestratorDistributedLockEnabled or run a single API/worker instance to avoid duplicate execution."
+        },
+        "developmentForceVerificationFailureNonDev": {
+          "title": "Development-only verification sabotage flag enabled",
+          "action": "Turn off Backup:DevelopmentForceVerificationFailure outside Development."
+        },
+        "retentionExecutionPlanned": {
+          "title": "Retention deletion not implemented",
+          "action": "Backup:RetentionPolicyMode=ExecutionPlanned is planning-only — keep Backup:RetentionArtifactDeletionEnabled=false until automation ships."
+        },
+        "scheduledBackupCronMissing": {
+          "title": "Scheduled backup cron missing",
+          "action": "Set Backup:ScheduledBackupCron (or legacy placeholder) when Backup:ScheduledBackupEnabled=true."
+        },
+        "scheduledBackupCronInvalid": {
+          "title": "Scheduled backup cron invalid",
+          "action": "Use a valid five-field cron (CronFormat.Standard) for Backup:ScheduledBackupCron."
+        }
+      }
+    },
+    "meaningTitle": "What each mode means",
+    "meaningFake": "Fake: simulated / stub artifacts only — no real pg_dump, not a restorable production database archive.",
+    "meaningReal": "Real (PgDump): logical dumps using PostgreSQL client tools — requires staging paths, connection string, binaries, and other server checks to be healthy.",
+    "labelRequested": "Requested (saved preference)",
+    "labelEffective": "Effective (what the worker uses)",
+    "labelConfigDefault": "Environment default (config file)",
+    "adapterInternal": "Adapter",
+    "userFacing": {
+      "fake": "Fake (simulated)",
+      "realPgDump": "Real (PgDump)",
+      "useConfig": "Follow configuration",
+      "productionStub": "Production stub (no real dump)"
+    },
+    "realRunnableYes": "Real mode runnable",
+    "realRunnableNo": "Real mode not runnable",
+    "resolutionSummaryLabel": "Resolution (English, from server):",
+    "recommendedFallbackTitle": "Suggested next step",
+    "recommendedFallbackBody": "The server suggests switching the saved preference to “{{mode}}” until prerequisites are fixed. The worker does not silently fall back to Fake while Real is selected.",
+    "realDiagnosticsTitle": "Why Real (PgDump) may be blocked",
+    "realDiagnosticsToggle": "Diagnostics ({{count}})",
+    "saveRejectedHint": "If saving Real mode fails with a validation error, the server did not store your choice — fix the listed issues and try again. The app does not save Real and then run Fake instead.",
+    "realSavedButBlockedTitle": "Real mode is saved, but the effective configuration is not runnable yet",
+    "realSavedButBlockedBody": "Your preference is stored as Real (PgDump) and the effective adapter remains PgDump. Configuration health is Unhealthy, so successful runs are unlikely until prerequisites (staging, connection string, pg_dump/pg_restore, archive rules, etc.) are fixed.",
+    "noFakeFallbackExplanation": "There is no automatic fallback to Fake: the system keeps your Real selection honest so operators are not misled about what the worker targets.",
+    "saveConfirmTitleInherit": "Switch to “follow configuration”?",
+    "saveConfirmTitleReal": "Switch to Real (PgDump)?",
+    "saveConfirmTitleFake": "Switch to Fake (simulated)?",
+    "saveConfirmTitleFakeStrong": "Switch to simulated-only backups?",
+    "saveConfirmBodyInherit": "The worker will use whatever Backup:ExecutionAdapterKind is set in deployment configuration (Fake, ProductionStub, or PgDump).",
+    "saveConfirmBodyReal": "The worker will target PostgreSQL logical dumps. Ensure staging, connection strings, and client tools meet server requirements.",
+    "saveConfirmBodyFake": "The worker will produce simulated artifacts only — not a real database dump.",
+    "saveConfirmBodyFakeStrong": "You are enabling Fake in an environment where the server requires explicit acknowledgment. Simulated backups are not a substitute for pg_dump in production DR planning.",
+    "saveConfirmBodyFakeDevHint": "In Development this is usually harmless for pipeline testing.",
+    "saveConfirmOk": "Confirm and save",
+    "viewOnlyHint": "View only — “Manage settings” is required to change mode.",
+    "optionInherit": "Follow application configuration (appsettings / environment)",
+    "optionFake": "Simulated (Fake) — no pg_dump",
+    "optionPgDump": "Real PostgreSQL logical dump (PgDump)",
+    "helpInherit": "Uses Backup:ExecutionAdapterKind from deployment configuration (Fake, ProductionStub, or PgDump).",
+    "helpFake": "Forces Fake: simulated artifacts only. In production-like environments the API requires configuration acknowledgment plus the confirmation checkbox below.",
+    "helpPgDump": "Forces PgDump. The API refuses to save while prerequisites are Unhealthy (staging, connection string, external archive rules, etc.).",
+    "save": "Save mode",
+    "notRunnableTitle": "Effective mode is not runnable (configuration Unhealthy)",
+    "confirmFakeProduction": "I understand simulated-only backups in production-like environments (no real PostgreSQL logical dump).",
+    "configFileAdapter": "Config file adapter",
+    "effectiveAdapter": "Effective adapter",
+    "errors": {
+      "loadFailed": "Could not load execution mode.",
+      "saveFailed": "Could not save execution mode.",
+      "forbidden": "No permission to view or change execution mode.",
+      "unauthorized": "Not authenticated.",
+      "confirmFakeRequired": "Enable the confirmation checkbox for SimulatedFake in production-like environments.",
+      "fakeForbiddenProduction": "SimulatedFake is blocked until Backup:AcknowledgeFakeBackupAdapterOutsideDevelopment is set in server configuration.",
+      "pgDumpUnhealthy": "PgDump mode cannot be saved until server configuration health improves (see API issues)."
+    }
   },
   "messages": {
     "backupNewQueued": "A new backup run was queued — the worker will execute it asynchronously.",
@@ -357,6 +930,7 @@
     "restoreAttempt": "Restore attempt (isolated)"
   },
   "permission": {
-    "noManage": "View only — “Settings manage” is required to enqueue jobs."
+    "noManage": "View only — “Manage settings” is required to enqueue jobs.",
+    "manualActionsTooltip": "Disabled: missing “Manage settings” permission — not a technical or server error."
   }
 }
