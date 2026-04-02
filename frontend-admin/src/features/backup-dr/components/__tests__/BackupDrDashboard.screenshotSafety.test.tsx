@@ -18,28 +18,33 @@ vi.mock('@/lib/axios', () => ({
   customInstance: vi.fn(),
 }));
 
-vi.mock('@/features/backup-dr/logic/backupExecutionModeApi', () => ({
-  getBackupExecutionMode: vi.fn(() =>
-    Promise.resolve({
-      storedMode: 'InheritFromConfiguration',
-      requestedUserFacingMode: 'UseConfigurationDefault',
-      configurationDefaultUserFacingMode: 'Fake',
-      effectiveUserFacingMode: 'Fake',
-      recommendedFallbackUserFacingMode: null,
-      adapterKindIfConfigurationDefaultOnly: 'Fake',
-      effectiveModeResolutionSummaryEnglish: 'test',
-      configurationExecutionAdapterKind: 'Fake',
-      effectiveExecutionAdapterKind: 'Fake',
-      effectiveModeRunnable: true,
-      hypotheticalPgDumpHealthLevel: 'Healthy',
-      blockers: [],
-      realModeBlockingDiagnostics: [],
-      selectableModes: [],
-      effectiveConfigurationHealth: {},
-    }),
-  ),
-  putBackupExecutionMode: vi.fn(),
-}));
+vi.mock('@/features/backup-dr/logic/backupExecutionModeApi', async () => {
+  const q = await import('@/features/backup-dr/logic/backupExecutionModeQueryKeys');
+  return {
+    getGetApiAdminBackupExecutionModeQueryKey: q.getGetApiAdminBackupExecutionModeQueryKey,
+    BACKUP_EXECUTION_MODE_API_PATH: q.BACKUP_EXECUTION_MODE_API_PATH,
+    getBackupExecutionMode: vi.fn(() =>
+      Promise.resolve({
+        storedMode: 'InheritFromConfiguration',
+        requestedUserFacingMode: 'UseConfigurationDefault',
+        configurationDefaultUserFacingMode: 'Fake',
+        effectiveUserFacingMode: 'Fake',
+        recommendedFallbackUserFacingMode: null,
+        adapterKindIfConfigurationDefaultOnly: 'Fake',
+        effectiveModeResolutionSummaryEnglish: 'test',
+        configurationExecutionAdapterKind: 'Fake',
+        effectiveExecutionAdapterKind: 'Fake',
+        effectiveModeRunnable: true,
+        hypotheticalPgDumpHealthLevel: 'Healthy',
+        blockers: [],
+        realModeBlockingDiagnostics: [],
+        selectableModes: [],
+        effectiveConfigurationHealth: {},
+      }),
+    ),
+    putBackupExecutionMode: vi.fn(),
+  };
+});
 
 import {
   useGetApiAdminBackupRecoverabilitySummary,

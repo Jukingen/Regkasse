@@ -174,11 +174,11 @@ describe('buildBackupOperatorTruthModel — combined scenarios', () => {
   it('artifact verification passed but restore drill failed — drill failure is critical, verification not conflated', () => {
     const m = buildBackupOperatorTruthModel({
       t,
-      health: undefined,
-      healthLv: '',
-      restoreReady: undefined,
-      restoreLv: '',
-      latest: undefined,
+      health: { realPostgreSqlLogicalDumpConfigured: true } as never,
+      healthLv: 'healthy',
+      restoreReady: { level: 'healthy', workerEnabled: true } as never,
+      restoreLv: 'healthy',
+      latest: { status: BackupRunResponseDtoStatus.NUMBER_3, id: 'b1', adapterKind: 'PgDump' } as never,
       detailForPipeline: null,
       verification: {
         status: BackupVerificationResponseDtoStatus.NUMBER_1,
@@ -190,13 +190,19 @@ describe('buildBackupOperatorTruthModel — combined scenarios', () => {
         failureCode: 'E_DRILL',
         failureDetail: 'boom',
       } as never,
-      recoverabilitySummary: undefined,
+      recoverabilitySummary: {
+        realPostgreSqlLogicalDumpConfigured: true,
+        lastSuccessfulBackupAt: '2026-01-01',
+        lastSuccessfulArtifactVerificationAt: '2026-01-01',
+        lastSuccessfulRestoreProofAt: '2026-01-01',
+      } as never,
       restoreCapability: undefined,
       externalCopyVariant: 'unknown',
     });
     expect(m.restore.latestDrillFailed).toBe(true);
     expect(m.banner.critical.some((c) => c.includes('restoreVerification.drillFailed'))).toBe(true);
     expect(m.banner.critical.some((c) => c.includes('artifactVerification.failed'))).toBe(false);
+    expect(m.operatorValidity?.titleKey).toBe('backupDr.operatorValidity.latestDrillFailedTitle');
   });
 
   it('readiness capped: effective differs from API when policy applies', () => {

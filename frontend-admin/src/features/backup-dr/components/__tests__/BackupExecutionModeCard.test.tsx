@@ -26,10 +26,15 @@ import { BackupExecutionModeCard } from '@/features/backup-dr/components/BackupE
 const getMock = vi.fn();
 const putMock = vi.fn();
 
-vi.mock('@/features/backup-dr/logic/backupExecutionModeApi', () => ({
-  getBackupExecutionMode: (...a: unknown[]) => getMock(...a),
-  putBackupExecutionMode: (...a: unknown[]) => putMock(...a),
-}));
+vi.mock('@/features/backup-dr/logic/backupExecutionModeApi', async () => {
+  const q = await import('@/features/backup-dr/logic/backupExecutionModeQueryKeys');
+  return {
+    getGetApiAdminBackupExecutionModeQueryKey: q.getGetApiAdminBackupExecutionModeQueryKey,
+    BACKUP_EXECUTION_MODE_API_PATH: q.BACKUP_EXECUTION_MODE_API_PATH,
+    getBackupExecutionMode: (...a: unknown[]) => getMock(...a),
+    putBackupExecutionMode: (...a: unknown[]) => putMock(...a),
+  };
+});
 
 const baseDto = {
   storedMode: 'InheritFromConfiguration',

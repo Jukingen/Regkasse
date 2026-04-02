@@ -27,6 +27,32 @@ Strings are translated (de / en / tr); technical setting names stay in English i
 
 ---
 
+## RealPgDump **selectable** in the admin UI (without changing repo default adapter)
+
+The Backup & DR **execution mode** card enables **RealPgDump** only when hypothetical PgDump configuration health is **not Unhealthy** (see `BackupExecutionModeApiMapper.BuildSelectableModes`). The repo intentionally keeps `Backup:ExecutionAdapterKind` = **Fake**; you do **not** need to set `ExecutionAdapterKind` = `PgDump` in config to make the radio option selectable — that would also risk startup validation ordering issues if other prerequisites were missing.
+
+**Minimum local setup (user secrets or env — do not commit paths):**
+
+1. Set absolute paths for staging and (recommended) external archive so hypothetical evaluation clears the usual blockers:
+
+   ```bash
+   cd backend
+   dotnet user-secrets set "Backup:ArtifactStagingRoot" "C:\data\regkasse-backup-staging"
+   dotnet user-secrets set "Backup:ExternalArchiveRoot" "C:\data\regkasse-backup-archive"
+   ```
+
+   Or on Windows run `scripts/setup-backup-dr-dev-secrets.ps1` from `backend/` (same defaults).
+
+2. Ensure `ConnectionStrings:DefaultConnection` is valid Npgsql (Host, Username, Database) — already required for the API to start.
+
+3. Restart the API. In **Development**, `Backup:VerifyLogicalDumpFileOnDisk` defaults to **true** (no change needed). Set `Backup:PgDumpExecutablePath` only if `pg_dump` is not on `PATH`.
+
+4. Open the admin Backup & DR page and select **RealPgDump** there when ready; the effective adapter remains **Fake** until you save that mode.
+
+**Verify:** `GET /api/admin/backup/execution-mode` — `hypotheticalPgDumpHealthLevel` should not be `Unhealthy`, and `selectableModes` should include `userFacingMode: "RealPgDump"` with `selectable: true`. `effectiveConfigurationHealth` may still reflect **Fake** until you persist Real mode.
+
+---
+
 ## Current state
 
 | Area | Default (repo + `appsettings.json`) | Notes |
@@ -41,13 +67,15 @@ Strings are translated (de / en / tr); technical setting names stay in English i
 
 ## Required environment variables / settings
 
-Minimum to switch from Fake to real logical dumps:
+Minimum to **run** real `pg_dump` (effective adapter PgDump):
 
 | Setting | Value | Purpose |
 |---------|--------|---------|
-| `Backup__ExecutionAdapterKind` | `PgDump` | Selects `PostgreSqlPgDumpBackupExecutionAdapter`. |
+| `Backup__ExecutionAdapterKind` | `PgDump` | Selects `PostgreSqlPgDumpBackupExecutionAdapter` (or persist **RealPgDump** in admin execution mode). |
 | `Backup__ArtifactStagingRoot` | Absolute path, e.g. `C:\data\regkasse-backup-staging` or `/var/regkasse-backup-staging` | Output directory for `.dump` + manifest; **required** for PgDump. |
 | `ConnectionStrings__DefaultConnection` | Valid Npgsql connection string | Or set `Backup__LogicalDumpConnectionStringName` to another name and define that connection string. |
+
+To make **RealPgDump selectable** in the admin UI while keeping the default **Fake** adapter, set only `Backup__ArtifactStagingRoot` (and recommended `Backup__ExternalArchiveRoot`) via user secrets; do **not** set `ExecutionAdapterKind` in config unless you intentionally want the config default to be PgDump.
 
 Optional but recommended for restore drill verification on the same machine:
 
@@ -64,11 +92,15 @@ Optional in Development (otherwise health may show **Degraded**):
 
 **Ways to apply:** `appsettings.Development.json` (local only, not committed with secrets), **User Secrets**, or environment variables as above.
 
-Example **User Secrets** (CLI):
+Example **User Secrets** (CLI) from `backend/` (project already has `UserSecretsId`):
 
 ```bash
-dotnet user-secrets set "Backup:ExecutionAdapterKind" "PgDump" --project path/to/KasseAPI_Final.csproj
-dotnet user-secrets set "Backup:ArtifactStagingRoot" "C:\data\regkasse-backup-staging" --project path/to/KasseAPI_Final.csproj
+# Paths only — enables RealPgDump in admin UI; keeps ExecutionAdapterKind=Fake from appsettings
+dotnet user-secrets set "Backup:ArtifactStagingRoot" "C:\data\regkasse-backup-staging"
+dotnet user-secrets set "Backup:ExternalArchiveRoot" "C:\data\regkasse-backup-archive"
+
+# Optional: make PgDump the config default (not required for selectability)
+# dotnet user-secrets set "Backup:ExecutionAdapterKind" "PgDump"
 ```
 
 ---

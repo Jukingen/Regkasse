@@ -7,6 +7,7 @@
 import React from 'react';
 import { Alert, Card, List, Space, Tag, Typography } from 'antd';
 import type { BackupEvidenceLadderModel, EvidenceStepStatus } from '@/features/backup-dr/logic/backupDrEvidenceLadder';
+import { mapEvidenceHeadlineToneToAlertType } from '@/features/backup-dr/logic/backupDrGlancePresentation';
 
 function tagColor(s: EvidenceStepStatus): string {
   switch (s) {
@@ -29,12 +30,7 @@ export interface BackupEvidenceLadderCardProps {
 }
 
 export function BackupEvidenceLadderCard({ model, t }: BackupEvidenceLadderCardProps) {
-  const alertType =
-    model.headlineTone === 'success'
-      ? 'success'
-      : model.headlineTone === 'warning'
-        ? 'warning'
-        : 'info';
+  const alertType = mapEvidenceHeadlineToneToAlertType(model.headlineTone);
 
   return (
     <Card title={t('backupDr.evidence.title')} size="small">

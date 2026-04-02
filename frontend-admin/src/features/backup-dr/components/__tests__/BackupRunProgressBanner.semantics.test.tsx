@@ -34,6 +34,43 @@ describe('BackupRunProgressBanner — operator-visible alert semantics', () => {
     expect(container.querySelector('.ant-alert-success')).toBeNull();
   });
 
+  it('non-simulated success with latest restore drill failed uses warning and drill-specific keys', () => {
+    const { container } = render(
+      <BackupRunProgressBanner
+        latest={base(3)}
+        isSimulatedExecution={false}
+        latestRestoreDrillFailed
+        averageSucceededDurationSeconds={null}
+        averageSucceededDurationSampleCount={null}
+        formatDt={(iso) => String(iso)}
+        formatLocale="en-US"
+        t={(k) => k}
+      />,
+    );
+    expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
+    expect(screen.getByText('backupDr.progress.finishedOkLatestDrillFailed')).toBeInTheDocument();
+    expect(screen.getByText('backupDr.progress.finishedOkLatestDrillFailedDetail')).toBeInTheDocument();
+  });
+
+  it('non-simulated success with unproven recoverability uses warning tone', () => {
+    const { container } = render(
+      <BackupRunProgressBanner
+        latest={base(3)}
+        isSimulatedExecution={false}
+        recoverabilityNotProven
+        averageSucceededDurationSeconds={null}
+        averageSucceededDurationSampleCount={null}
+        formatDt={(iso) => String(iso)}
+        formatLocale="en-US"
+        t={(k) => k}
+      />,
+    );
+    expect(container.querySelector('.ant-alert-warning')).toBeTruthy();
+    expect(container.querySelector('.ant-alert-success')).toBeNull();
+    expect(screen.getByText('backupDr.progress.finishedOkUnproven')).toBeInTheDocument();
+    expect(screen.getByText('backupDr.progress.finishedOkUnprovenDetail')).toBeInTheDocument();
+  });
+
   it('simulated success uses warning, not success', () => {
     const { container } = render(
       <BackupRunProgressBanner

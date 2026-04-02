@@ -19,8 +19,10 @@ import {
 } from '@/api/generated/model';
 import {
   computeEffectiveRestoreReadinessLevel,
+  configurationHealthSummaryI18nKey,
   externalCopyVariantToI18nKey,
   isSimulatedBackupAdapterKind,
+  mapConfigurationHealthLevel,
   normalizeHealthLevelString,
   type ConfigurationHealthUiKind,
   type ExternalCopyVariant,
@@ -37,6 +39,17 @@ import {
   deriveBackupExecutionModeTruth,
   type BackupExecutionModeTruth,
 } from '@/features/backup-dr/logic/backupDrExecutionModeTruth';
+import {
+  buildManualActionsConfirmations,
+  type ManualActionsModeConfirmations,
+} from '@/features/backup-dr/logic/backupManualActionsModePresentation';
+import {
+  buildBackupOperatorTruthProvenance,
+  type BackupOperatorTruthProvenance,
+  type BackupTruthContractHints,
+} from '@/features/backup-dr/logic/backupDrTruthExtensionPoints';
+
+export type { BackupOperatorTruthProvenance, BackupTruthContractHints } from '@/features/backup-dr/logic/backupDrTruthExtensionPoints';
 
 export type OperatorTruthTranslate = (key: string, options?: Record<string, string | number>) => string;
 
@@ -183,6 +196,36 @@ export interface BackupOperatorTruthModel {
   recoverability: RecoverabilityTruth;
   artifact: ArtifactTruth;
   restore: RestoreTruth;
+  labels: {
+    backupStatus: (status: number | undefined) => string;
+    restoreStatus: (status: number | undefined) => string;
+  };
+  lockHints: {
+    backup: string[];
+    restore: string[];
+  };
+  summaryPresentation: {
+    summaryBackupFootnoteKey: string;
+    summaryRestoreFootnoteKey: string;
+    showRealPgDumpOperationalBanner: boolean;
+    showDevRealDumpGuidance: boolean;
+    /** Özet istatistik değeri: `t(backupHealthSummaryLabelKey)` ile üretilir. */
+    backupHealthSummaryLabelKey: string;
+    /** Özet istatistik değeri: `t(restoreReadinessSummaryLabelKey)` ile üretilir. */
+    restoreReadinessSummaryLabelKey: string;
+    backupHealthUiKind: ConfigurationHealthUiKind;
+    restoreReadinessUiKind: ConfigurationHealthUiKind;
+    /** Konfig kısa satırı (çeviri uygulanmış). */
+    configShortSummaryLine: string;
+  };
+  /** İlerleme bandı için tek kaynaklı boolean’lar (dashboard OR birleşimini tekrarlamaz). */
+  progressRunBanner: {
+    recoverabilityNotProvenGlance: boolean;
+    latestRestoreDrillFailed: boolean;
+  };
+  manualActionsModeConfirmations: ManualActionsModeConfirmations;
+  /** Gercek/Fake operasyonel yuzeyin merkezi karari (dashboard heuristik dagilimini azaltir). */
+  simulatedOperationalMode: boolean;
   /** Admin seçilebilir çalıştırma modu: requested / effective / runnable / blokaj tek yerde. */
   executionMode: BackupExecutionModeTruth;
   banner: BannerOperatorTruth;
@@ -192,6 +235,16 @@ export interface BackupOperatorTruthModel {
   operatorValidity: OperatorValidityStrip | null;
   /** Teknik başarı → gerçek döküm → liste tatbikatı → kanıt zaman damgaları basamakları. */
   evidenceLadder: BackupEvidenceLadderModel;
+  /**
+   * Hangi alt sistemlerin hâlâ sezgisel/çıkarımsal olduğunu özetler (backend sözleşmesi genişletmesi için).
+   * Davranışı değiştirmez; telemetri / dokümantasyon / ileride `truthContractHints` ile birleştirmeye uygun.
+   */
+  truthProvenance: BackupOperatorTruthProvenance;
+  /**
+   * İleride OpenAPI’ye eklenecek açık alanlar — şu an isteğe bağlı ve yok sayılır.
+   * @see BackupTruthContractHints
+   */
+  truthContractHints?: BackupTruthContractHints;
 }
 
 export interface BuildBackupOperatorTruthModelParams {
@@ -216,6 +269,27 @@ export interface BuildBackupOperatorTruthModelParams {
    * GET /api/admin/backup/execution-mode gövdesi; requested / effective / runnable / blokaj türetilir.
    */
   executionModeDto?: BackupExecutionModeResponseDto | null;
+  hasStatusPayload?: boolean;
+  /**
+   * Gelecek backend alanları için uyumluluk yuvası — şu an `buildBackupOperatorTruthModel` içinde kullanılmaz.
+   */
+  truthContractHints?: BackupTruthContractHints;
+}
+
+function labelFromStatusNamespace(
+  ns: 'backupStatus' | 'restoreStatus',
+  status: number | undefined,
+  t: OperatorTruthTranslate,
+): string {
+  const s = status ?? 0;
+  const key = `backupDr.${ns}.${s}`;
+  const label = t(key);
+  return label === key ? String(s) : label;
+}
+
+function lockHintIssues(issues: string[] | undefined): string[] {
+  const re = /lock|advisory|distributed|kilit|sperre/i;
+  return (issues ?? []).filter((x) => re.test(x));
 }
 
 export function deriveRunTruth(
@@ -394,6 +468,13 @@ export function deriveOperatorValidityStrip(params: {
       severity: 'info',
       titleKey: 'backupDr.operatorValidity.realPgButProofGapsTitle',
       descriptionKey: 'backupDr.operatorValidity.realPgButProofGapsBody',
+    };
+  }
+  if (restore.latestDrillFailed) {
+    return {
+      severity: 'warning',
+      titleKey: 'backupDr.operatorValidity.latestDrillFailedTitle',
+      descriptionKey: 'backupDr.operatorValidity.latestDrillFailedBody',
     };
   }
   if (restore.latestDrillSucceeded) {
@@ -647,6 +728,8 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
     restoreNotes,
     omitDedicatedSectionIssueDuplicates,
     executionModeDto,
+    hasStatusPayload,
+    truthContractHints,
   } = params;
 
   const executionMode = deriveBackupExecutionModeTruth(executionModeDto);
@@ -679,6 +762,56 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
     ...restoreBase,
     backupExecutionProfileRunnable: executionMode.loaded ? executionMode.effectiveModeRunnable : undefined,
   };
+  const simulatedOperationalMode =
+    (executionMode.loaded && executionMode.effectiveIsSimulatedAdapter) ||
+    isSimulatedBackupAdapterKind(health?.effectiveAdapterKind) ||
+    isSimulatedBackupAdapterKind(detailForPipeline?.adapterKind) ||
+    isSimulatedBackupAdapterKind(latest?.adapterKind) ||
+    detailForPipeline?.isSimulatedExecution === true ||
+    latest?.isSimulatedExecution === true;
+  const labels = {
+    backupStatus: (status: number | undefined) => labelFromStatusNamespace('backupStatus', status, t),
+    restoreStatus: (status: number | undefined) => labelFromStatusNamespace('restoreStatus', status, t),
+  };
+  const lockHints = {
+    backup: lockHintIssues(health?.issues),
+    restore: lockHintIssues(restoreReady?.issues),
+  };
+  const backupHealthUiKind = mapConfigurationHealthLevel(health?.level);
+  const restoreReadinessUiKind = mapConfigurationHealthLevel(effectiveReadinessLevel);
+  const summaryPresentation = {
+    summaryBackupFootnoteKey: simulatedOperationalMode
+      ? 'backupDr.summary.backupHealthFootnoteFake'
+      : 'backupDr.summary.backupHealthFootnote',
+    summaryRestoreFootnoteKey: simulatedOperationalMode
+      ? 'backupDr.summary.restoreReadinessFootnoteFake'
+      : 'backupDr.summary.restoreReadinessFootnote',
+    showRealPgDumpOperationalBanner:
+      Boolean(hasStatusPayload) &&
+      !simulatedOperationalMode &&
+      health?.realPostgreSqlLogicalDumpConfigured === true,
+    showDevRealDumpGuidance:
+      Boolean(hasStatusPayload) &&
+      (simulatedOperationalMode || health?.realPostgreSqlLogicalDumpConfigured !== true),
+    backupHealthSummaryLabelKey: configurationHealthSummaryI18nKey(health?.level),
+    restoreReadinessSummaryLabelKey: configurationHealthSummaryI18nKey(effectiveReadinessLevel),
+    backupHealthUiKind,
+    restoreReadinessUiKind,
+    configShortSummaryLine: `${t('backupDr.health.adapter')}: ${health?.effectiveAdapterKind ?? '—'} · ${t('backupDr.health.worker')}: ${
+      health?.workerEnabled ? t('common.buttons.yes') : t('common.buttons.no')
+    } · ${
+      health?.realPostgreSqlLogicalDumpConfigured
+        ? t('backupDr.health.realPgDumpYes')
+        : t('backupDr.health.realPgDumpNo')
+    }`,
+  };
+  const progressRunBanner = {
+    recoverabilityNotProvenGlance: recoverability.recoverabilityNotProven || run.recoverabilityNotProven,
+    latestRestoreDrillFailed: restore.latestDrillFailed,
+  };
+  const manualActionsModeConfirmations = buildManualActionsConfirmations(executionMode, latest, t, {
+    healthEffectiveAdapterKind: health?.effectiveAdapterKind,
+  });
 
   const banner = pushBannerFromAlerts(
     t,
@@ -728,16 +861,33 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
     executionMode,
   });
 
-  return {
+  const truthProvenance = buildBackupOperatorTruthProvenance({
     run,
     recoverability,
     artifact,
     restore,
     executionMode,
+    readinessCapped: restore.readinessCapped,
+  });
+
+  return {
+    run,
+    recoverability,
+    artifact,
+    restore,
+    labels,
+    lockHints,
+    summaryPresentation,
+    progressRunBanner,
+    manualActionsModeConfirmations,
+    simulatedOperationalMode,
+    executionMode,
     banner,
     alerts,
     operatorValidity,
     evidenceLadder,
+    truthProvenance,
+    truthContractHints,
   };
 }
 

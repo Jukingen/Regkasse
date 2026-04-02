@@ -5,6 +5,10 @@ import {
   deriveRunTruth,
   tagColorForConfigurationHealthUiKind,
 } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
+import {
+  configurationHealthSummaryI18nKey,
+  mapConfigurationHealthLevel,
+} from '@/features/backup-dr/logic/backupDrMappers';
 import { BackupRunResponseDtoStatus, RestoreVerificationRunResponseDtoStatus } from '@/api/generated/model';
 import { FAKE_ADAPTER_STUB_NOT_PG_RESTORE_FORMAT } from '@/features/backup-dr/logic/restoreVerificationFailurePresentation';
 
@@ -308,5 +312,74 @@ describe('buildBackupOperatorTruthModel', () => {
     });
     expect(m.operatorValidity?.titleKey).toBe('backupDr.operatorValidity.stubDataPlaneTitle');
     expect(m.operatorValidity?.severity).toBe('info');
+  });
+
+  it('centralizes dashboard-facing labels/lock hints/summary presentation', () => {
+    const m = buildBackupOperatorTruthModel({
+      t,
+      health: {
+        effectiveAdapterKind: 'Fake',
+        realPostgreSqlLogicalDumpConfigured: false,
+        issues: ['distributed lock disabled', 'path missing'],
+      } as never,
+      healthLv: 'degraded',
+      restoreReady: {
+        level: 'healthy',
+        workerEnabled: true,
+        issues: ['advisory lock timeout'],
+      } as never,
+      restoreLv: 'healthy',
+      latest: { id: 'r1', status: 3, adapterKind: 'Fake' } as never,
+      detailForPipeline: null,
+      verification: undefined,
+      restoreLatest: undefined,
+      recoverabilitySummary: undefined,
+      restoreCapability: undefined,
+      externalCopyVariant: 'unknown',
+      hasStatusPayload: true,
+    });
+
+    expect(m.labels.backupStatus(3)).toBe('3');
+    expect(m.labels.restoreStatus(2)).toBe('2');
+    expect(m.lockHints.backup).toEqual(['distributed lock disabled']);
+    expect(m.lockHints.restore).toEqual(['advisory lock timeout']);
+    expect(m.summaryPresentation.summaryBackupFootnoteKey).toBe('backupDr.summary.backupHealthFootnoteFake');
+    expect(m.summaryPresentation.showDevRealDumpGuidance).toBe(true);
+    expect(m.summaryPresentation.showRealPgDumpOperationalBanner).toBe(false);
+    expect(m.manualActionsModeConfirmations.backupTitle).toBe('backupDr.manual.confirmBackupTitle');
+    expect(m.truthProvenance.simulatedOperationalSurface.runSimulatedSource).toBe('adapter_inference');
+    expect(m.truthProvenance.recoverabilityProofStrength.hasProofGapsFromTimestamps).toBe(m.recoverability.hasProofGaps);
+    expect(m.truthProvenance.externalArchiveProofStrength.variantKind).toBe('frontend_inferred');
+    expect(m.summaryPresentation.backupHealthSummaryLabelKey).toBe(configurationHealthSummaryI18nKey(undefined));
+    expect(m.summaryPresentation.restoreReadinessSummaryLabelKey).toBe(
+      configurationHealthSummaryI18nKey(m.restore.effectiveReadinessLevel),
+    );
+    expect(m.summaryPresentation.backupHealthUiKind).toBe(mapConfigurationHealthLevel(undefined));
+    expect(m.summaryPresentation.restoreReadinessUiKind).toBe(
+      mapConfigurationHealthLevel(m.restore.effectiveReadinessLevel),
+    );
+    expect(m.summaryPresentation.configShortSummaryLine).toContain('Fake');
+    expect(m.summaryPresentation.configShortSummaryLine).toContain('backupDr.health.realPgDumpNo');
+    expect(m.progressRunBanner.recoverabilityNotProvenGlance).toBe(true);
+    expect(m.progressRunBanner.latestRestoreDrillFailed).toBe(false);
+  });
+
+  it('progressRunBanner mirrors latest restore drill failed from truth model', () => {
+    const m = buildBackupOperatorTruthModel({
+      t,
+      health: undefined,
+      healthLv: '',
+      restoreReady: undefined,
+      restoreLv: '',
+      latest: undefined,
+      detailForPipeline: null,
+      verification: undefined,
+      restoreLatest: { status: RestoreVerificationRunResponseDtoStatus.NUMBER_3 } as never,
+      recoverabilitySummary: undefined,
+      restoreCapability: undefined,
+      externalCopyVariant: 'unknown',
+    });
+    expect(m.progressRunBanner.latestRestoreDrillFailed).toBe(true);
+    expect(m.restore.latestDrillFailed).toBe(true);
   });
 });

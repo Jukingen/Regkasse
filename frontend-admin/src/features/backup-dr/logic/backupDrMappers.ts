@@ -1,5 +1,8 @@
 /**
  * Backup & DR UI için saf eşleme fonksiyonları (i18n anahtarı / AntD rengi üretimi dashboard’da kalabilir).
+ *
+ * Sezgisel çıkarımların merkezi özeti ve gelecekteki backend alan önerileri: `backupDrTruthExtensionPoints.ts`.
+ * @see buildBackupOperatorTruthProvenance
  */
 
 import type { BackupArtifactResponseDto, RestoreVerificationRunResponseDto } from '@/api/generated/model';
@@ -63,6 +66,7 @@ export function isSimulatedBackupAdapterKind(adapterKind: string | null | undefi
 /**
  * Caps restore readiness API level so the summary is not “healthy” (green) when there is no real pg_dump path
  * or the latest backup success was simulated — mirrors BackupDrDashboard useMemo.
+ * Gelecek: API’de `effectiveLevel` + `capReason` ile değiştirilebilir (`truthProvenance.readinessLevelCap`).
  */
 export function computeEffectiveRestoreReadinessLevel(params: {
   apiLevel: string | undefined | null;
@@ -138,6 +142,7 @@ export function mapRestoreVerificationStatusAntdColor(status: number | undefined
 
 /**
  * Harici kopya kartı için lifecycle özet sınıfı (metin i18n ile dashboard’da).
+ * Gelecek: run veya artefakt özetinde `externalArchiveProofKind` (`truthProvenance.externalArchiveProofStrength`).
  */
 export function mapArtifactsToExternalCopyVariant(
   artifacts: BackupArtifactResponseDto[] | undefined | null,

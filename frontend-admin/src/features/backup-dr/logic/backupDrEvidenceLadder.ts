@@ -1,5 +1,6 @@
 /**
  * Yedek kanıt merdiveni: teknik başarı ile gerçek pg_dump / liste tatbikatı / kurtarma kanıtını ayırır (DTO sınırları içinde).
+ * Başlık önceliği (`pickHeadline`) ve kanıt gücü özeti: `truthProvenance` ile hizalanacak şekilde `backupDrTruthExtensionPoints.ts` üzerinden dokümante edilir.
  */
 
 import type {
@@ -275,6 +276,7 @@ export function deriveBackupEvidenceLadder(params: {
     logicalPresence,
     listStatus,
     drillOk,
+    latestDrillFailed: restoreLatest?.status === RestoreVerificationRunResponseDtoStatus.NUMBER_3,
     proofGap,
     requestedRealButBlocked: executionMode.loaded && executionMode.requestedRealButBlocked,
     requestedRealButEffectiveSimulated: executionMode.loaded && executionMode.requestedRealButEffectiveSimulated,
@@ -295,6 +297,7 @@ function pickHeadline(p: {
   logicalPresence: EvidenceStepStatus;
   listStatus: EvidenceStepStatus;
   drillOk: boolean;
+  latestDrillFailed: boolean;
   proofGap: boolean;
   requestedRealButBlocked: boolean;
   requestedRealButEffectiveSimulated: boolean;
@@ -316,6 +319,9 @@ function pickHeadline(p: {
   }
   if (p.logicalPresence !== 'pass') {
     return { key: 'backupDr.evidence.headline.realPathButFileUncertain', tone: 'warning' };
+  }
+  if (p.latestDrillFailed) {
+    return { key: 'backupDr.evidence.headline.latestDrillFailed', tone: 'warning' };
   }
   if (p.listStatus === 'pass' && p.drillOk && !p.proofGap) {
     return { key: 'backupDr.evidence.headline.strongWithinApi', tone: 'success' };

@@ -42,17 +42,20 @@ import {
   type RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
 import {
-  configurationHealthSummaryI18nKey,
   healthStatisticValueStyle,
   restoreReadinessStatisticValueStyle,
   mapArtifactsToExternalCopyVariant,
   mapBackupRunStatusAntdColor,
-  mapConfigurationHealthLevel,
   mapDumpInspectionTriState,
   mapRestoreVerificationStatusAntdColor,
   normalizeHealthLevelString,
   isSimulatedBackupAdapterKind,
 } from '@/features/backup-dr/logic/backupDrMappers';
+import {
+  REAL_DUMP_PATH_BANNER_ALERT_TYPE,
+  mapExternalCopyVariantToAlertType,
+  mapOperatorValidityStripToAlertType,
+} from '@/features/backup-dr/logic/backupDrGlancePresentation';
 import { buildBackupOperatorTruthModel, tagColorForConfigurationHealthUiKind } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import { describeBackupTriggerOutcome } from '@/features/backup-dr/logic/backupTriggerOutcome';
 import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
@@ -66,8 +69,10 @@ import { RestoreVerificationCard } from '@/features/backup-dr/components/Restore
 import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
 import { BackupEvidenceLadderCard } from '@/features/backup-dr/components/BackupEvidenceLadderCard';
 import { BackupExecutionModeCard } from '@/features/backup-dr/components/BackupExecutionModeCard';
-import { getBackupExecutionMode } from '@/features/backup-dr/logic/backupExecutionModeApi';
-import { buildManualActionsConfirmations } from '@/features/backup-dr/logic/backupManualActionsModePresentation';
+import {
+  getBackupExecutionMode,
+  getGetApiAdminBackupExecutionModeQueryKey,
+} from '@/features/backup-dr/logic/backupExecutionModeApi';
 import { isBackupPipelineClientFallbackEnabled } from '@/features/backup-dr/logic/backupPipelineEnv';
 import { apiNullableToUndefined } from '@/features/backup-dr/logic/backupDrDtoNormalize';
 import { shouldOfferLastKnownGoodArtifactDownload } from '@/features/backup-dr/logic/backupArtifactDownloadTruth';
@@ -91,29 +96,6 @@ function formatDt(iso: string | undefined | null, formatLocale: string): string 
   } catch {
     return iso;
   }
-}
-
-function levelSummaryLabel(level: string | undefined | null, t: (k: string) => string): string {
-  return t(configurationHealthSummaryI18nKey(level));
-}
-
-function backupStatusLabel(status: number | undefined, t: (k: string) => string): string {
-  const s = status ?? 0;
-  const key = `backupDr.backupStatus.${s}`;
-  const label = t(key);
-  return label === key ? String(s) : label;
-}
-
-function restoreStatusLabel(status: number | undefined, t: (k: string) => string): string {
-  const s = status ?? 0;
-  const key = `backupDr.restoreStatus.${s}`;
-  const label = t(key);
-  return label === key ? String(s) : label;
-}
-
-function lockHintIssues(issues: string[] | undefined): string[] {
-  const re = /lock|advisory|distributed|kilit|sperre/i;
-  return (issues ?? []).filter((x) => re.test(x));
 }
 
 function triggerErrorMessage(err: unknown, t: (k: string) => string): string {
@@ -148,7 +130,7 @@ export function BackupDrDashboard() {
   const allowClientPipelineFallback = isBackupPipelineClientFallbackEnabled();
 
   const executionModeQuery = useQuery({
-    queryKey: ['/api/admin/backup', 'execution-mode'],
+    queryKey: getGetApiAdminBackupExecutionModeQueryKey(),
     queryFn: getBackupExecutionMode,
     staleTime: 20_000,
     refetchOnWindowFocus: true,
@@ -326,7 +308,7 @@ export function BackupDrDashboard() {
 
   const invalidateAll = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['/api/admin/backup'] });
-    await queryClient.invalidateQueries({ queryKey: ['/api/admin/backup', 'execution-mode'] });
+    await queryClient.invalidateQueries({ queryKey: getGetApiAdminBackupExecutionModeQueryKey() });
     await queryClient.invalidateQueries({ queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey() });
     await queryClient.invalidateQueries({ queryKey: ['/api/admin/restore-verification'] });
   }, [queryClient]);
@@ -337,9 +319,6 @@ export function BackupDrDashboard() {
   const restoreLv = normalizeHealthLevelString(restoreReady?.level);
 
   const detailForPipeline = runDetailQuery.data ?? null;
-
-  const backupLockHints = useMemo(() => lockHintIssues(health?.issues), [health?.issues]);
-  const restoreLockHints = useMemo(() => lockHintIssues(restoreReady?.issues), [restoreReady?.issues]);
 
   const operatorTruth = useMemo(
     () =>
@@ -359,6 +338,7 @@ export function BackupDrDashboard() {
         restoreNotes: statusQuery.data?.restore?.notes?.trim(),
         omitDedicatedSectionIssueDuplicates: true,
         executionModeDto: executionModeQuery.data ?? null,
+        hasStatusPayload: Boolean(statusQuery.data),
       }),
     [
       t,
@@ -373,50 +353,14 @@ export function BackupDrDashboard() {
       recoverabilityQuery.data,
       statusQuery.data?.restore,
       executionModeQuery.data,
+      statusQuery.data,
     ],
   );
 
   const banner = operatorTruth.banner;
   const alertItems = operatorTruth.alerts;
 
-  /**
-   * Etkin worker yüzeyi + son çalıştırma: execution-mode yüklüyse önce `operatorTruth.executionMode`,
-   * PgDump hedefliyken yalnızca ilgili çalıştırma simüle ise simüle sayılır.
-   */
-  const isSimulatedAdapterEnvironment = useMemo(() => {
-    const em = operatorTruth.executionMode;
-    if (em.loaded && em.effectiveIsSimulatedAdapter) return true;
-    if (em.loaded && em.effectiveIsPgDumpAdapter) {
-      return (
-        detailForPipeline?.isSimulatedExecution === true ||
-        latest?.isSimulatedExecution === true ||
-        isSimulatedBackupAdapterKind(detailForPipeline?.adapterKind) ||
-        isSimulatedBackupAdapterKind(latest?.adapterKind)
-      );
-    }
-    return (
-      isSimulatedBackupAdapterKind(health?.effectiveAdapterKind) ||
-      isSimulatedBackupAdapterKind(detailForPipeline?.adapterKind) ||
-      isSimulatedBackupAdapterKind(latest?.adapterKind) ||
-      detailForPipeline?.isSimulatedExecution === true ||
-      latest?.isSimulatedExecution === true
-    );
-  }, [
-    operatorTruth.executionMode,
-    health?.effectiveAdapterKind,
-    detailForPipeline?.adapterKind,
-    detailForPipeline?.isSimulatedExecution,
-    latest?.adapterKind,
-    latest?.isSimulatedExecution,
-  ]);
-
-  const manualActionsModeConfirmations = useMemo(
-    () =>
-      buildManualActionsConfirmations(operatorTruth.executionMode, latest, t, {
-        healthEffectiveAdapterKind: health?.effectiveAdapterKind,
-      }),
-    [operatorTruth.executionMode, latest, t, health?.effectiveAdapterKind],
-  );
+  const isSimulatedAdapterEnvironment = operatorTruth.simulatedOperationalMode;
 
   const columns: ColumnsType<BackupRunResponseDto> = useMemo(
     () => [
@@ -431,7 +375,7 @@ export function BackupDrDashboard() {
         dataIndex: 'status',
         key: 'status',
         render: (s: number | undefined) => (
-          <Tag color={mapBackupRunStatusAntdColor(s)}>{backupStatusLabel(s, t)}</Tag>
+          <Tag color={mapBackupRunStatusAntdColor(s)}>{operatorTruth.labels.backupStatus(s)}</Tag>
         ),
       },
       {
@@ -452,7 +396,7 @@ export function BackupDrDashboard() {
         render: (c: string | null) => c ?? '—',
       },
     ],
-    [formatLocale, t],
+    [formatLocale, operatorTruth.labels, t],
   );
 
   const restoreHistoryColumns: ColumnsType<RestoreVerificationRunResponseDto> = useMemo(
@@ -478,7 +422,7 @@ export function BackupDrDashboard() {
           const color =
             listInterp != null ? pgRestoreListFailureKindToTagColor(listInterp.kind) : mapRestoreVerificationStatusAntdColor(s);
           const label =
-            listInterp != null ? t(pgRestoreListFailureKindToStatusLabelKey(listInterp.kind)) : restoreStatusLabel(s, t);
+            listInterp != null ? t(pgRestoreListFailureKindToStatusLabelKey(listInterp.kind)) : operatorTruth.labels.restoreStatus(s);
           return <Tag color={color}>{label}</Tag>;
         },
       },
@@ -544,7 +488,7 @@ export function BackupDrDashboard() {
         },
       },
     ],
-    [formatLocale, isSimulatedAdapterEnvironment, t],
+    [formatLocale, isSimulatedAdapterEnvironment, operatorTruth.labels, t],
   );
 
   const loading =
@@ -561,37 +505,10 @@ export function BackupDrDashboard() {
   const v = verificationForTruth;
   const rr = restoreLatestForTruth;
 
-  const effectiveRestoreReadinessLevel = operatorTruth.restore.effectiveReadinessLevel;
-
-  const summaryBackupHealth = levelSummaryLabel(health?.level, t);
-  const summaryRestoreHealth = levelSummaryLabel(effectiveRestoreReadinessLevel, t);
-  const backupHealthUiKind = mapConfigurationHealthLevel(health?.level);
-  const restoreReadinessUiKind = mapConfigurationHealthLevel(effectiveRestoreReadinessLevel);
-  const summaryConfigShort = `${t('backupDr.health.adapter')}: ${health?.effectiveAdapterKind ?? '—'} · ${t('backupDr.health.worker')}: ${
-    health?.workerEnabled ? t('common.buttons.yes') : t('common.buttons.no')
-  } · ${
-    health?.realPostgreSqlLogicalDumpConfigured
-      ? t('backupDr.health.realPgDumpYes')
-      : t('backupDr.health.realPgDumpNo')
-  }`;
-
-  const summaryBackupFootnote = isSimulatedAdapterEnvironment
-    ? t('backupDr.summary.backupHealthFootnoteFake')
-    : t('backupDr.summary.backupHealthFootnote');
-  const summaryRestoreFootnote = isSimulatedAdapterEnvironment
-    ? t('backupDr.summary.restoreReadinessFootnoteFake')
-    : t('backupDr.summary.restoreReadinessFootnote');
-
-  /** Gerçek pg_dump yolu API tarafından onaylandığında — tatbikat mantıklı bir PostgreSQL arşivine karşı çalışabilir. */
-  const showRealPgDumpOperationalBanner =
-    Boolean(statusQuery.data) &&
-    !isSimulatedAdapterEnvironment &&
-    health?.realPostgreSqlLogicalDumpConfigured === true;
-
-  /** Fake/stub veya gerçek mantıksal döküm yapılandırması eksik — geliştirici kontrol listesi gösterilir. */
-  const showDevRealDumpGuidance =
-    Boolean(statusQuery.data) &&
-    (isSimulatedAdapterEnvironment || health?.realPostgreSqlLogicalDumpConfigured !== true);
+  const summaryBackupFootnote = t(operatorTruth.summaryPresentation.summaryBackupFootnoteKey);
+  const summaryRestoreFootnote = t(operatorTruth.summaryPresentation.summaryRestoreFootnoteKey);
+  const showRealPgDumpOperationalBanner = operatorTruth.summaryPresentation.showRealPgDumpOperationalBanner;
+  const showDevRealDumpGuidance = operatorTruth.summaryPresentation.showDevRealDumpGuidance;
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -648,8 +565,8 @@ export function BackupDrDashboard() {
               <Card size="small">
                 <Statistic
                   title={t('backupDr.summary.backupHealth')}
-                  value={summaryBackupHealth}
-                  valueStyle={healthStatisticValueStyle(backupHealthUiKind)}
+                  value={t(operatorTruth.summaryPresentation.backupHealthSummaryLabelKey)}
+                  valueStyle={healthStatisticValueStyle(operatorTruth.summaryPresentation.backupHealthUiKind)}
                 />
                 <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
                   {summaryBackupFootnote}
@@ -660,8 +577,8 @@ export function BackupDrDashboard() {
               <Card size="small">
                 <Statistic
                   title={t('backupDr.summary.restoreReadiness')}
-                  value={summaryRestoreHealth}
-                  valueStyle={restoreReadinessStatisticValueStyle(restoreReadinessUiKind)}
+                  value={t(operatorTruth.summaryPresentation.restoreReadinessSummaryLabelKey)}
+                  valueStyle={restoreReadinessStatisticValueStyle(operatorTruth.summaryPresentation.restoreReadinessUiKind)}
                 />
                 <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
                   {summaryRestoreFootnote}
@@ -670,7 +587,7 @@ export function BackupDrDashboard() {
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Card size="small">
-                <Statistic title={t('backupDr.summary.configurationShort')} value={summaryConfigShort} />
+                <Statistic title={t('backupDr.summary.configurationShort')} value={operatorTruth.summaryPresentation.configShortSummaryLine} />
                 {isSimulatedAdapterEnvironment ? (
                   <Tooltip
                     title={<span style={{ whiteSpace: 'pre-wrap' }}>{t('backupDr.summary.fakeAdapterConfigNoteTooltip')}</span>}
@@ -705,7 +622,7 @@ export function BackupDrDashboard() {
 
           {showRealPgDumpOperationalBanner ? (
             <Alert
-              type="success"
+              type={REAL_DUMP_PATH_BANNER_ALERT_TYPE}
               showIcon
               message={t('backupDr.realDumpMode.bannerTitle')}
               description={
@@ -742,13 +659,7 @@ export function BackupDrDashboard() {
 
           {operatorTruth.operatorValidity ? (
             <Alert
-              type={
-                operatorTruth.operatorValidity.severity === 'success'
-                  ? 'success'
-                  : operatorTruth.operatorValidity.severity === 'warning'
-                    ? 'warning'
-                    : 'info'
-              }
+              type={mapOperatorValidityStripToAlertType(operatorTruth.operatorValidity.severity)}
               showIcon
               message={t(operatorTruth.operatorValidity.titleKey)}
               description={
@@ -774,8 +685,8 @@ export function BackupDrDashboard() {
             onRetry={() => void recoverabilityQuery.refetch()}
             formatDt={formatDt}
             formatLocale={formatLocale}
-            backupStatusLabel={backupStatusLabel}
-            restoreStatusLabel={restoreStatusLabel}
+            backupStatusLabel={(s) => operatorTruth.labels.backupStatus(s)}
+            restoreStatusLabel={(s) => operatorTruth.labels.restoreStatus(s)}
             simulatedOperationalMode={isSimulatedAdapterEnvironment}
             omitSimulatedEnvironmentStrip={isSimulatedAdapterEnvironment}
             t={t}
@@ -788,6 +699,8 @@ export function BackupDrDashboard() {
               <BackupRunProgressBanner
                 latest={latest}
                 isSimulatedExecution={operatorTruth.run.simulatedEvidence}
+                recoverabilityNotProven={operatorTruth.progressRunBanner.recoverabilityNotProvenGlance}
+                latestRestoreDrillFailed={operatorTruth.progressRunBanner.latestRestoreDrillFailed}
                 omitSimulatedSuccessDetail={false}
                 averageSucceededDurationSeconds={statusQuery.data?.averageSucceededBackupDurationSeconds ?? undefined}
                 averageSucceededDurationSampleCount={statusQuery.data?.averageSucceededBackupDurationSampleCount}
@@ -804,7 +717,7 @@ export function BackupDrDashboard() {
                 formatDt={formatDt}
                 formatLocale={formatLocale}
                 backupStatusTagColor={mapBackupRunStatusAntdColor}
-                backupStatusLabel={backupStatusLabel}
+                backupStatusLabel={(s) => operatorTruth.labels.backupStatus(s)}
                 allowClientPipelineFallback={allowClientPipelineFallback}
                 showLatestRunVsRecoverabilityHint
                 simulatedOperationalMode={isSimulatedAdapterEnvironment}
@@ -825,7 +738,7 @@ export function BackupDrDashboard() {
                   runAdapterKind={detailForPipeline?.adapterKind ?? undefined}
                   realPostgreSqlLogicalDumpConfigured={recoverabilityQuery.data?.realPostgreSqlLogicalDumpConfigured}
                   simulatedOperationalMode={
-                    isSimulatedBackupAdapterKind(detailForPipeline?.adapterKind) || operatorTruth.run.simulatedEvidence
+                    operatorTruth.simulatedOperationalMode
                   }
                   loadingArtifacts={(runDetailQuery.isLoading || runDetailQuery.isFetching) && Boolean(latest.id)}
                   t={t}
@@ -877,12 +790,7 @@ export function BackupDrDashboard() {
                   <Spin tip={t('backupDr.externalCopy.loading')} />
                 ) : (
                   <Alert
-                    type={
-                      operatorTruth.artifact.externalCopyVariant === 'failed' ||
-                      operatorTruth.artifact.externalCopyVariant === 'mixed'
-                        ? 'warning'
-                        : 'info'
-                    }
+                    type={mapExternalCopyVariantToAlertType(operatorTruth.artifact.externalCopyVariant)}
                     showIcon
                     message={operatorTruth.artifact.externalCopyDisplayText}
                   />
@@ -923,7 +831,7 @@ export function BackupDrDashboard() {
                 formatDt={formatDt}
                 formatLocale={formatLocale}
                 restoreStatusTagColor={mapRestoreVerificationStatusAntdColor}
-                restoreStatusLabel={restoreStatusLabel}
+                restoreStatusLabel={(s) => operatorTruth.labels.restoreStatus(s)}
                 dumpInspectionTriState={mapDumpInspectionTriState}
                 isSimulatedBackupPipeline={isSimulatedAdapterEnvironment}
                 backupWorkerRealProfileBlocked={
@@ -942,7 +850,7 @@ export function BackupDrDashboard() {
                 ) : (
                   <>
                     {normalizeHealthLevelString(restoreReady.level) !==
-                    normalizeHealthLevelString(effectiveRestoreReadinessLevel ?? '') ? (
+                    normalizeHealthLevelString(operatorTruth.restore.effectiveReadinessLevel ?? '') ? (
                       <Typography.Paragraph type="warning" style={{ marginBottom: 12 }}>
                         {t('backupDr.readiness.levelCappedForOperatorTruth')}
                       </Typography.Paragraph>
@@ -953,16 +861,16 @@ export function BackupDrDashboard() {
                     <Space wrap style={{ marginBottom: 12 }}>
                       <Tag
                         color={
-                          restoreReadinessUiKind === 'unhealthy'
+                          operatorTruth.summaryPresentation.restoreReadinessUiKind === 'unhealthy'
                             ? 'red'
-                            : restoreReadinessUiKind === 'degraded'
+                            : operatorTruth.summaryPresentation.restoreReadinessUiKind === 'degraded'
                               ? 'orange'
-                              : restoreReadinessUiKind === 'healthy'
+                              : operatorTruth.summaryPresentation.restoreReadinessUiKind === 'healthy'
                                 ? 'blue'
                                 : 'default'
                         }
                       >
-                        {levelSummaryLabel(effectiveRestoreReadinessLevel, t)}
+                        {t(operatorTruth.summaryPresentation.restoreReadinessSummaryLabelKey)}
                       </Tag>
                       <Tag color={restoreReady.workerEnabled ? 'blue' : 'orange'}>
                         {t('backupDr.readiness.restoreWorker')}: {restoreReady.workerEnabled ? t('common.buttons.yes') : t('common.buttons.no')}
@@ -1049,8 +957,8 @@ export function BackupDrDashboard() {
               <Card title={t('backupDr.health.title')} size="small">
                 <Space direction="vertical" style={{ width: '100%' }} size="middle">
                   <div>
-                    <Tag color={tagColorForConfigurationHealthUiKind(backupHealthUiKind)}>
-                      {summaryBackupHealth}
+                    <Tag color={tagColorForConfigurationHealthUiKind(operatorTruth.summaryPresentation.backupHealthUiKind)}>
+                      {t(operatorTruth.summaryPresentation.backupHealthSummaryLabelKey)}
                     </Tag>
                     <Typography.Text type="secondary">
                       {' '}
@@ -1115,7 +1023,7 @@ export function BackupDrDashboard() {
                         : t('common.buttons.no')}
                   </Descriptions.Item>
                 </Descriptions>
-                {restoreLockHints.length ? (
+                {operatorTruth.lockHints.restore.length ? (
                   <Alert
                     style={{ marginTop: 12 }}
                     type="warning"
@@ -1123,7 +1031,7 @@ export function BackupDrDashboard() {
                     message={t('backupDr.lock.hintsFromApi')}
                     description={
                       <ul style={{ marginBottom: 0 }}>
-                        {restoreLockHints.map((x, i) => (
+                        {operatorTruth.lockHints.restore.map((x, i) => (
                           <li key={i}>{x}</li>
                         ))}
                       </ul>
@@ -1134,14 +1042,14 @@ export function BackupDrDashboard() {
               <Col xs={24} md={12}>
                 <Typography.Title level={5}>{t('backupDr.lock.backupSide')}</Typography.Title>
                 <Typography.Paragraph type="secondary">{t('backupDr.lock.backupSideHint')}</Typography.Paragraph>
-                {backupLockHints.length ? (
+                {operatorTruth.lockHints.backup.length ? (
                   <Alert
                     type="warning"
                     showIcon
                     message={t('backupDr.lock.hintsFromApi')}
                     description={
                       <ul style={{ marginBottom: 0 }}>
-                        {backupLockHints.map((x, i) => (
+                        {operatorTruth.lockHints.backup.map((x, i) => (
                           <li key={i}>{x}</li>
                         ))}
                       </ul>
@@ -1246,7 +1154,7 @@ export function BackupDrDashboard() {
             backupTrigger={backupTrigger as ManualActionsPanelProps['backupTrigger']}
             restoreTrigger={restoreTrigger as ManualActionsPanelProps['restoreTrigger']}
             simulatedOperationalMode={isSimulatedAdapterEnvironment}
-            modeAwareConfirmations={manualActionsModeConfirmations}
+            modeAwareConfirmations={operatorTruth.manualActionsModeConfirmations}
             t={t}
           />
 

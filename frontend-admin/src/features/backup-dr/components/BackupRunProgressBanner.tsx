@@ -12,6 +12,10 @@ export interface BackupRunProgressBannerProps {
   latest: BackupRunResponseDto | undefined | null;
   /** Latest run detail: when true, terminal success is Fake/Stub — must not use production-success styling. */
   isSimulatedExecution?: boolean;
+  /** Son basari, recoverability kaniti eksikken iyimser okunmamasi icin warning tona cekilir. */
+  recoverabilityNotProven?: boolean;
+  /** Son restore tatbikatı API’de başarısız — yedek teknik başarısı bunu görünürde “telafi etmesin”. */
+  latestRestoreDrillFailed?: boolean;
   /** pg_dump yapılandırması zaten üst uyarılarda anlatıldıysa tekrarlayan açıklama satırını gizle. */
   omitSimulatedSuccessDetail?: boolean;
   averageSucceededDurationSeconds: number | undefined | null;
@@ -55,6 +59,8 @@ function buildEtaDescription(
 export function BackupRunProgressBanner({
   latest,
   isSimulatedExecution = false,
+  recoverabilityNotProven = false,
+  latestRestoreDrillFailed = false,
   omitSimulatedSuccessDetail = false,
   averageSucceededDurationSeconds,
   averageSucceededDurationSampleCount,
@@ -76,13 +82,17 @@ export function BackupRunProgressBanner({
     if (s === 0) return t('backupDr.progress.titleQueued');
     if (s === 1) return t('backupDr.progress.titleRunning');
     if (s === 2) return t('backupDr.progress.titleAwaiting');
-    if (s === 3)
-      return isSimulatedExecution ? t('backupDr.progress.finishedSimulatedOk') : t('backupDr.progress.finishedOk');
+    if (s === 3) {
+      if (isSimulatedExecution) return t('backupDr.progress.finishedSimulatedOk');
+      if (latestRestoreDrillFailed) return t('backupDr.progress.finishedOkLatestDrillFailed');
+      if (recoverabilityNotProven) return t('backupDr.progress.finishedOkUnproven');
+      return t('backupDr.progress.finishedOk');
+    }
     if (s === 4) return t('backupDr.progress.finishedFailed');
     if (s === 5) return t('backupDr.progress.finishedVerificationFailed');
     if (s === 6) return t('backupDr.progress.finishedCancelled');
     return null;
-  }, [s, isSimulatedExecution, t]);
+  }, [s, isSimulatedExecution, latestRestoreDrillFailed, recoverabilityNotProven, t]);
 
   const etaLine = useMemo(() => {
     if (s === undefined || s === null) return undefined;
@@ -128,10 +138,22 @@ export function BackupRunProgressBanner({
   }
 
   const alertType =
-    s === 3 && isSimulatedExecution ? 'warning' : s === 3 ? 'info' : s === 6 ? 'info' : 'error';
+    s === 3 && isSimulatedExecution
+      ? 'warning'
+      : s === 3 && (latestRestoreDrillFailed || recoverabilityNotProven)
+        ? 'warning'
+        : s === 3
+          ? 'info'
+          : s === 6
+            ? 'info'
+            : 'error';
   const description =
     s === 3 && isSimulatedExecution && !omitSimulatedSuccessDetail ? (
       <Typography.Text type="secondary">{t('backupDr.progress.finishedSimulatedOkDetail')}</Typography.Text>
+    ) : s === 3 && latestRestoreDrillFailed && !isSimulatedExecution ? (
+      <Typography.Text type="secondary">{t('backupDr.progress.finishedOkLatestDrillFailedDetail')}</Typography.Text>
+    ) : s === 3 && recoverabilityNotProven ? (
+      <Typography.Text type="secondary">{t('backupDr.progress.finishedOkUnprovenDetail')}</Typography.Text>
     ) : s === 3 && !isSimulatedExecution ? (
       <Typography.Text type="secondary">{t('backupDr.progress.finishedOkDetail')}</Typography.Text>
     ) : undefined;
