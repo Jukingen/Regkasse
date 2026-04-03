@@ -3,6 +3,24 @@
     "title": "Backup & disaster recovery",
     "subtitle": "Read-only visibility. Workers execute jobs — not this UI."
   },
+  "postureSummary": {
+    "title": "At a glance (API)",
+    "postureLabel": "DR proof & current gap",
+    "backupAndDrillLabel": "Latest backup run & latest restore drill",
+    "lkgAndModeLabel": "Last known good backup proof & mode",
+    "executionModeShort": "Execution mode",
+    "executionModeLoading": "Loading…",
+    "nextActionLabel": "Recommended next step",
+    "simulatedModeTag": "Simulated / stub — not production DR"
+  },
+  "dataFreshness": {
+    "title": "Incomplete refresh",
+    "hint": "Supporting APIs failed — refresh before trusting drill/verification lines.",
+    "generic": "Supporting data may be stale",
+    "sliceRecoverability": "Recoverability summary",
+    "sliceVerification": "Artifact verification (latest)",
+    "sliceRestoreLatest": "Latest restore drill row"
+  },
   "glossary": {
     "backupArtifact": "Backup artifact",
     "artifactIntegrity": "Artifact integrity",
@@ -83,19 +101,19 @@
     },
     "strip": {
       "drillFailedTitle": "Latest restore drill failed — no optimistic “all good”",
-      "drillFailedBody": "Even if older proof exists, the newest drill is the current truth for this UI. Investigate and rerun before treating posture as strong.",
+      "drillFailedBody": "Newest drill is current truth here. Investigate and rerun before trusting posture.",
       "stubTitle": "Stub / simulation mode — proof is not production DR",
-      "stubBody": "Pipeline successes book API rows; they do not replace a real pg_dump or a production-meaningful restore proof.",
+      "stubBody": "API rows from pipeline runs do not replace real pg_dump or production-meaningful restore proof.",
       "gapsTitle": "Proof gaps — recoverability not fully evidenced",
-      "gapsBody": "At least one proof timestamp is missing or signals disagree. Do not infer full recovery from silence.",
+      "gapsBody": "Missing timestamps or disagreeing signals. Do not infer full recovery from silence.",
       "l3Title": "Restore drill succeeded (API) — fiscal depth may still be missing",
-      "l3Body": "List checks and (when applicable) isolated restore passed per API signals. Business recovery, app startup, and external systems are separate layers.",
+      "l3Body": "Per API: list checks and (if applicable) isolated restore passed. Business recovery, app startup, and externals are separate layers.",
       "strongWithinApiTitle": "Strong within API limits (including fiscal continuity layer when evidenced)",
-      "strongWithinApiBody": "Best available signal from backup, artifact, restore, and (when active) fiscal + clone continuity proof. App HTTP smoke and live externals remain separate layers.",
+      "strongWithinApiBody": "Best API-backed signal from backup, artifact, restore, and (when active) fiscal + clone continuity. App HTTP smoke and live externals remain separate.",
       "l5Title": "Application smoke passed (configured URL)",
-      "l5Body": "Restore drill reached HTTP smoke against the configured base URL. This does not prove the same process as this admin API unless you pointed it there intentionally.",
+      "l5Body": "HTTP smoke against the configured base URL. Not the same as this admin API unless you configured it that way.",
       "inProgressTitle": "Proof incomplete or intermediate",
-      "inProgressBody": "Review the six blocks below — missing steps stay visible, not hidden behind a generic “healthy.”"
+      "inProgressBody": "See L0–L6 below — gaps stay visible (not folded into a generic “healthy”)."
     },
     "layers": {
       "L0": {
@@ -209,11 +227,12 @@
   },
   "operatorTruth": {
     "noTimestampFromApi": "No timestamp (not reported)",
-    "recoverabilityProofGap": "Missing proof timestamp(s) in this API — do not infer recoverability from silence."
+    "recoverabilityProofGap": "Proof timestamp(s) missing in this API — do not infer recoverability from silence."
   },
   "recoverability": {
     "title": "Last-known-good (API — not full recovery proof)",
-    "subtitle": "Timestamps = last successful checks, not “latest request” below. Simulated runs do not read as stronger proof.",
+    "caveatsTitle": "Context (read once)",
+    "subtitle": "Timestamps = last successful checks (not latest request). Simulated runs are not stronger proof.",
     "proofSectionTitle": "Proof signals (API)",
     "proofSectionIntro": "Use this block for “what last succeeded” — not for whether the latest job finished.",
     "simulatedEnvironmentStrip": "In Fake/Stub mode, “proof” timestamps are API bookkeeping on pipeline checks — they do not certify production recovery or a real dump.",
@@ -575,14 +594,14 @@
     "titleQueued": "Backup queued — not finished yet",
     "titleRunning": "Backup in progress",
     "titleAwaiting": "Backup almost done — verification / copy",
-    "bodyQueued": "The run is waiting in the worker queue or is about to start.",
-    "bodyRunning": "Execution on the server (e.g. pg_dump, artifacts, checks).",
-    "bodyAwaiting": "Execution finished; artifact verification or external copy may still run.",
+    "bodyQueued": "Queued or about to start on the worker.",
+    "bodyRunning": "Server-side work (dump, artifacts, checks).",
+    "bodyAwaiting": "Dump done; verification or external copy may still run.",
     "finishedOk": "Operational only — latest backup run completed (API reports success; non-simulated path). Not DR proof.",
     "finishedOkLatestDrillFailed": "Latest backup run succeeded — latest restore drill failed (see restore verification).",
-    "finishedOkLatestDrillFailedDetail": "Backup technical success does not override a failed restore drill; treat recoverability as at risk until a passing drill aligns with policy.",
-    "finishedOkUnproven": "Latest backup run completed, but recoverability proof is incomplete or stale.",
-    "finishedOkUnprovenDetail": "Treat this as operational completion only. Do not infer DR readiness until restore-drill and proof signals are aligned.",
+    "finishedOkLatestDrillFailedDetail": "Technical backup success does not override a failed drill; recoverability stays at risk until a passing drill matches policy.",
+    "finishedOkUnproven": "Backup run completed — recoverability proof incomplete or stale.",
+    "finishedOkUnprovenDetail": "Operational completion only. Align restore drill and proof signals before inferring DR readiness.",
     "finishedSimulatedOk": "Latest run: pipeline completed (Fake/Stub — no real pg_dump output).",
     "finishedSimulatedOkDetail": "This outcome does not prove a downloadable production logical dump. Use the PgDump adapter and last-known-good timestamps for separate checks — not assurance that recovery will work.",
     "finishedOkDetail": "Operational completion only — confirm recoverability evidence (last known good) separately.",
@@ -591,7 +610,8 @@
     "finishedCancelled": "Latest backup run: cancelled.",
     "etaFromStart": "Estimated completion (from average of prior successful runs, n={{n}}): {{time}}",
     "etaQueued": "Rough estimated completion (queue + average duration, n={{n}}): {{time}}",
-    "noEta": "No time estimate: no successful runs with measurable duration yet."
+    "noEta": "No time estimate: no successful runs with measurable duration yet.",
+    "etaDemotedLead": "Rough timing hint (not a promise):"
   },
   "download": {
     "titleLatestSuccess": "Download artifacts (latest run — API success status)",

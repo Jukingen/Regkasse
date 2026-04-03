@@ -429,6 +429,16 @@ export interface DrProofScanTag {
   tone: DrProofScanTagTone;
 }
 
+/** Ant Design `Tag` preset `color` — tutarlı uyarı / işlem tonları (yeşil yok). */
+export function mapDrProofScanTagToneToAntdTagColor(
+  tone: DrProofScanTagTone,
+): 'red' | 'orange' | 'blue' | 'default' {
+  if (tone === 'error') return 'red';
+  if (tone === 'warning') return 'orange';
+  if (tone === 'processing') return 'blue';
+  return 'default';
+}
+
 /**
  * Üst karar şeridinde 2–5 sn tarama: tatbikat, kanıt boşlukları, API kapsamı (tam kurum kurtarması değil).
  */

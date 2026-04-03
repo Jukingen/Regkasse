@@ -268,7 +268,7 @@ describe('BackupDrDashboard — screenshot-level DR false-confidence', () => {
     expect(screen.getAllByText('backupDr.health.degraded').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('backupDr.readiness.levelCappedForOperatorTruth')).toBeInTheDocument();
 
-    expect(screen.getByText('backupDr.operatorTruth.recoverabilityProofGap')).toBeInTheDocument();
+    expect(screen.getByText('backupDr.scan.proofTimestampsIncomplete')).toBeInTheDocument();
     expect(screen.getByText('backupDr.recoverability.proofSectionTitle')).toBeInTheDocument();
     expect(screen.getByText('backupDr.recoverability.requestsSectionTitle')).toBeInTheDocument();
 

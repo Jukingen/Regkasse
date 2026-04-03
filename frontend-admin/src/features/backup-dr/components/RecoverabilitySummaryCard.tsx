@@ -9,6 +9,7 @@ import {
   Alert,
   Button,
   Card,
+  Collapse,
   Descriptions,
   Divider,
   Spin,
@@ -51,6 +52,10 @@ export interface RecoverabilitySummaryCardProps {
   omitSimulatedEnvironmentStrip?: boolean;
   /** Üstte “Son kanıt” ızgarası varken zaman damgası tekrarını keser; istek bölümü kalır. */
   hideProofTimestampBlock?: boolean;
+  /**
+   * Üst tarama etiketleri + özet zaten “kanıt zaman damgası eksik” söylüyorsa caveats’taki tekrarı keser.
+   */
+  omitProofGapCaveat?: boolean;
   t: (k: string) => string;
 }
 
@@ -96,6 +101,7 @@ export function RecoverabilitySummaryCard({
   simulatedOperationalMode = false,
   omitSimulatedEnvironmentStrip = false,
   hideProofTimestampBlock = false,
+  omitProofGapCaveat = false,
   t,
 }: RecoverabilitySummaryCardProps) {
   const simulatedLkg =
@@ -135,36 +141,50 @@ export function RecoverabilitySummaryCard({
         </Typography.Text>
       ) : (
         <>
-          {hasRecoverabilityProofGaps(summary) ? (
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 12 }}
-              message={t("backupDr.operatorTruth.recoverabilityProofGap")}
-            />
-          ) : null}
-
-          {summary.latestRestoreRunStatus ===
-            BackupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus.NUMBER_3 &&
-          summary.lastSuccessfulRestoreProofAt ? (
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 12 }}
-              message={t(
-                "backupDr.recoverability.latestDrillFailedVsProofTimestamps",
-              )}
-            />
-          ) : null}
-
-          {simulatedOperationalMode && !omitSimulatedEnvironmentStrip ? (
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 12 }}
-              message={t("backupDr.recoverability.simulatedEnvironmentStrip")}
-            />
-          ) : null}
+          {(() => {
+            const caveats: string[] = [];
+            if (hasRecoverabilityProofGaps(summary) && !omitProofGapCaveat) {
+              caveats.push(t("backupDr.operatorTruth.recoverabilityProofGap"));
+            }
+            if (
+              summary.latestRestoreRunStatus ===
+                BackupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus.NUMBER_3 &&
+              summary.lastSuccessfulRestoreProofAt
+            ) {
+              caveats.push(
+                t("backupDr.recoverability.latestDrillFailedVsProofTimestamps"),
+              );
+            }
+            if (simulatedOperationalMode && !omitSimulatedEnvironmentStrip) {
+              caveats.push(t("backupDr.recoverability.simulatedEnvironmentStrip"));
+            }
+            if (caveats.length === 0) return null;
+            return (
+              <Collapse
+                ghost
+                size="small"
+                style={{ marginBottom: 12 }}
+                defaultActiveKey={["caveats"]}
+                items={[
+                  {
+                    key: "caveats",
+                    label: t("backupDr.recoverability.caveatsTitle"),
+                    children: (
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {caveats.map((line, i) => (
+                          <li key={i}>
+                            <Typography.Text style={{ fontSize: 13 }}>
+                              {line}
+                            </Typography.Text>
+                          </li>
+                        ))}
+                      </ul>
+                    ),
+                  },
+                ]}
+              />
+            );
+          })()}
 
           <div
             style={{
@@ -191,14 +211,12 @@ export function RecoverabilitySummaryCard({
               </Typography.Paragraph>
             ) : null}
             {simulatedLkg && !compactSimulatedProof ? (
-              <Alert
-                type="info"
-                showIcon
-                style={{ marginBottom: 12 }}
-                message={t(
-                  "backupDr.recoverability.lastGoodBackupSimulatedWarning",
-                )}
-              />
+              <Typography.Paragraph
+                type="warning"
+                style={{ marginBottom: 12, padding: "8px 10px", background: "#fffbe6", borderRadius: 4 }}
+              >
+                {t("backupDr.recoverability.lastGoodBackupSimulatedWarning")}
+              </Typography.Paragraph>
             ) : null}
 
             {!hideProofTimestampBlock ? (

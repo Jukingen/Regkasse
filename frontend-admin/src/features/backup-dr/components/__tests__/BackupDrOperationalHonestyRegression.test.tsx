@@ -463,7 +463,8 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
     expect(screen.getByText('backupDr.fakeMode.bannerTitle')).toBeInTheDocument();
     expect(screen.getByText('backupDr.devRealPgDump.title')).toBeInTheDocument();
     expect(screen.queryByText('backupDr.realDumpMode.bannerTitle')).not.toBeInTheDocument();
-    expect(screen.getByText('backupDr.operatorValidity.stubDataPlaneTitle')).toBeInTheDocument();
+    expect(screen.getByText('backupDr.postureSummary.simulatedModeTag')).toBeInTheDocument();
+    expect(screen.getByText('backupDr.confidenceDashboard.strip.stubTitle')).toBeInTheDocument();
     expect(screen.getByText(/backupDr\.health\.realPgDumpNo/)).toBeInTheDocument();
     expect(screen.getByText('backupDr.summary.backupHealthFootnoteFake')).toBeInTheDocument();
     expect(screen.getByText('backupDr.backupStatus.simulatedSuccess')).toBeInTheDocument();
@@ -624,7 +625,7 @@ describe('BackupDrDashboard — integration: Fake vs PgDump wording separation',
     render(wrap(<BackupDrDashboard />));
 
     expect(screen.getByText('backupDr.backupStatus.simulatedSuccess')).toBeInTheDocument();
-    expect(screen.getByText('backupDr.operatorTruth.recoverabilityProofGap')).toBeInTheDocument();
+    expect(screen.getByText('backupDr.scan.proofTimestampsIncomplete')).toBeInTheDocument();
     expect(screen.getByText('backupDr.recoverability.proofBlock.backupStub')).toBeInTheDocument();
     expect(screen.getByText('backupDr.restoreVerification.fakePipeline.drillOutcomeTitle')).toBeInTheDocument();
   });

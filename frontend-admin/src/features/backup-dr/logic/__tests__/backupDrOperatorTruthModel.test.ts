@@ -382,4 +382,31 @@ describe('buildBackupOperatorTruthModel', () => {
     expect(m.progressRunBanner.latestRestoreDrillFailed).toBe(true);
     expect(m.restore.latestDrillFailed).toBe(true);
   });
+
+  it('suppressRestoreDrillFailureInHealthBanner removes drill line from HealthBanner critical without changing restore.latestDrillFailed', () => {
+    const base = {
+      t,
+      health: undefined,
+      healthLv: '',
+      restoreReady: undefined,
+      restoreLv: '',
+      latest: undefined,
+      detailForPipeline: null,
+      verification: undefined,
+      restoreLatest: {
+        status: RestoreVerificationRunResponseDtoStatus.NUMBER_3,
+        failureCode: 'E_TEST',
+        failureDetail: 'x',
+      } as never,
+      recoverabilitySummary: undefined,
+      restoreCapability: undefined,
+      externalCopyVariant: 'unknown' as const,
+    };
+    const withDrillInBanner = buildBackupOperatorTruthModel({ ...base, suppressRestoreDrillFailureInHealthBanner: false });
+    const suppressed = buildBackupOperatorTruthModel({ ...base, suppressRestoreDrillFailureInHealthBanner: true });
+    expect(withDrillInBanner.restore.latestDrillFailed).toBe(true);
+    expect(suppressed.restore.latestDrillFailed).toBe(true);
+    expect(withDrillInBanner.banner.critical.length).toBeGreaterThan(0);
+    expect(suppressed.banner.critical.length).toBe(0);
+  });
 });

@@ -95,7 +95,8 @@ import { RecentRestoreDrillsTable } from "@/features/backup-dr/components/Recent
 import { RecentRunsTable } from "@/features/backup-dr/components/RecentRunsTable";
 import { RestoreVerificationCard } from "@/features/backup-dr/components/RestoreVerificationCard";
 import { RecoverabilitySummaryCard } from "@/features/backup-dr/components/RecoverabilitySummaryCard";
-import { BackupDrDecisionStrip } from "@/features/backup-dr/components/BackupDrDecisionStrip";
+import { BackupDrPostureSummary } from "@/features/backup-dr/components/BackupDrPostureSummary";
+import { BackupDrDataFreshnessStrip } from "@/features/backup-dr/components/BackupDrDataFreshnessStrip";
 import { BackupDrEvidenceSurface } from "@/features/backup-dr/components/BackupDrEvidenceSurface";
 import { BackupDrRecentEvidenceGrid } from "@/features/backup-dr/components/BackupDrRecentEvidenceGrid";
 import { BackupDrSection } from "@/features/backup-dr/components/BackupDrSection";
@@ -428,6 +429,7 @@ export function BackupDrDashboard() {
         omitDedicatedSectionIssueDuplicates: true,
         executionModeDto: executionModeQuery.data ?? null,
         hasStatusPayload: Boolean(statusQuery.data),
+        suppressRestoreDrillFailureInHealthBanner: true,
       }),
     [
       t,
@@ -667,11 +669,29 @@ export function BackupDrDashboard() {
   const showDevRealDumpGuidance =
     operatorTruth.summaryPresentation.showDevRealDumpGuidance;
 
-  /** Üst karar + banner yeterliyse ortam uyarıları varsayılan kapalı; simüle/uyarı varsa açık. */
+  /** Simüle / gerçek dump / geçerlilik uyarıları: üst özetle çakışsa da uzun açıklama burada; açık tutulur. */
   const pipelineNoticesDefaultOpen =
     isSimulatedAdapterEnvironment ||
     showRealPgDumpOperationalBanner ||
     Boolean(operatorTruth.operatorValidity);
+
+  /** Üst özette turuncu “simüle” etiketi + şerit varken aynı “stub data plane” geçerlilik Alert’ini tekrarlama. */
+  const showPipelineOperatorValidityStrip =
+    Boolean(operatorTruth.operatorValidity) &&
+    !(
+      isSimulatedAdapterEnvironment &&
+      operatorTruth.operatorValidity?.severity === "info" &&
+      operatorTruth.operatorValidity.titleKey ===
+        "backupDr.operatorValidity.stubDataPlaneTitle"
+    );
+
+  /** Çekirdek status yüklüyken destekleyici uçlardan biri başarısız — kısmi gerçeklik uyarısı. */
+  const partialSupportingQueryFailure =
+    Boolean(statusQuery.data) &&
+    !statusQuery.isError &&
+    (recoverabilityQuery.isError ||
+      verificationQuery.isError ||
+      restoreLatestQuery.isError);
 
   return (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
@@ -766,17 +786,36 @@ export function BackupDrDashboard() {
         <Spin />
       ) : (
         <>
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <BackupDrDataFreshnessStrip
+              show={partialSupportingQueryFailure}
+              recoverabilityFailed={recoverabilityQuery.isError}
+              verificationFailed={verificationQuery.isError}
+              restoreLatestFailed={restoreLatestQuery.isError}
+              onRetry={() => void invalidateAll()}
+              t={t}
+            />
+            <BackupDrPostureSummary
+              drProof={drProofPresentation}
+              scanTags={drProofScanTags}
+              latestRun={latest}
+              restoreLatest={restoreLatestForTruth}
+              recoverability={recoverabilityQuery.data}
+              executionMode={operatorTruth.executionMode}
+              simulatedOperationalMode={isSimulatedAdapterEnvironment}
+              backupStatusLabel={(s) => operatorTruth.labels.backupStatus(s)}
+              restoreStatusLabel={(s) => operatorTruth.labels.restoreStatus(s)}
+              formatDt={formatDt}
+              formatLocale={formatLocale}
+              t={t}
+            />
+          </Space>
           <BackupDrSection
             titleKey="backupDr.dashboardSections.proofAndPosture"
             descriptionKey="backupDr.dashboardSections.proofAndPostureDesc"
             t={t}
           >
             <Space direction="vertical" size={12} style={{ width: "100%" }}>
-              <BackupDrDecisionStrip
-                model={drProofPresentation}
-                scanTags={drProofScanTags}
-                t={t}
-              />
               <HealthBanner
                 critical={banner.critical}
                 warn={banner.warn}
@@ -921,34 +960,6 @@ export function BackupDrDashboard() {
                         size="middle"
                         style={{ width: "100%" }}
                       >
-                        {operatorTruth.executionMode.loaded ? (
-                          <Alert
-                            type="info"
-                            showIcon
-                            message={t(
-                              "backupDr.summary.executionModeSurfaceTitle",
-                            )}
-                            description={t(
-                              "backupDr.summary.executionModeSurfaceBody",
-                              {
-                                requested:
-                                  operatorTruth.executionMode
-                                    .requestedUserFacingMode,
-                                effective:
-                                  operatorTruth.executionMode
-                                    .effectiveUserFacingMode,
-                                defaultMode:
-                                  operatorTruth.executionMode
-                                    .configurationDefaultUserFacingMode,
-                                runnable: operatorTruth.executionMode
-                                  .effectiveModeRunnable
-                                  ? t("common.buttons.yes")
-                                  : t("common.buttons.no"),
-                              },
-                            )}
-                          />
-                        ) : null}
-
                         {showRealPgDumpOperationalBanner ? (
                           <Alert
                             type={REAL_DUMP_PATH_BANNER_ALERT_TYPE}
@@ -1007,13 +1018,16 @@ export function BackupDrDashboard() {
                           />
                         ) : null}
 
-                        {operatorTruth.operatorValidity ? (
+                        {showPipelineOperatorValidityStrip &&
+                        operatorTruth.operatorValidity ? (
                           <Alert
                             type={mapOperatorValidityStripToAlertType(
                               operatorTruth.operatorValidity.severity,
                             )}
                             showIcon
-                            message={t(operatorTruth.operatorValidity.titleKey)}
+                            message={t(
+                              operatorTruth.operatorValidity.titleKey,
+                            )}
                             description={
                               <Typography.Paragraph
                                 style={{ marginBottom: 0 }}
@@ -1044,6 +1058,7 @@ export function BackupDrDashboard() {
                 }
                 simulatedOperationalMode={isSimulatedAdapterEnvironment}
                 omitSimulatedEnvironmentStrip={isSimulatedAdapterEnvironment}
+                omitProofGapCaveat
                 hideProofTimestampBlock
                 t={t}
               />
@@ -1292,12 +1307,12 @@ export function BackupDrDashboard() {
               </Col>
               <Col xs={24} lg={12}>
                 <Card title={t("backupDr.readiness.title")} size="small">
-                  <Alert
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 12 }}
-                    message={t("backupDr.readiness.notEndToEndDr")}
-                  />
+                  <Typography.Paragraph
+                    type="secondary"
+                    style={{ marginTop: 0, marginBottom: 12, fontSize: 13 }}
+                  >
+                    {t("backupDr.readiness.notEndToEndDr")}
+                  </Typography.Paragraph>
                   {!restoreReady ? (
                     <Typography.Text type="secondary">
                       {t("backupDr.summary.unknown")}

@@ -3,6 +3,24 @@
     "title": "Backup & Disaster Recovery",
     "subtitle": "Nur Lesen/Sichtbarkeit. Ausführung im Worker — nicht in dieser Oberfläche."
   },
+  "postureSummary": {
+    "title": "Auf einen Blick (API)",
+    "postureLabel": "DR-Nachweis & aktuelle Lücke",
+    "backupAndDrillLabel": "Letzter Backup-Lauf & letzte Restore-Übung",
+    "lkgAndModeLabel": "Letzter bekannter guter Backup-Nachweis & Modus",
+    "executionModeShort": "Ausführungsmodus",
+    "executionModeLoading": "Wird geladen…",
+    "nextActionLabel": "Empfohlener nächster Schritt",
+    "simulatedModeTag": "Simuliert / Stub — keine Produktions-DR"
+  },
+  "dataFreshness": {
+    "title": "Unvollständige Aktualisierung",
+    "hint": "Unterstützende APIs fehlgeschlagen — vor Drill-/Verifikationszeilen aktualisieren.",
+    "generic": "Unterstützende Daten können veraltet sein",
+    "sliceRecoverability": "Recoverability-Zusammenfassung",
+    "sliceVerification": "Artefakt-Verifikation (aktuell)",
+    "sliceRestoreLatest": "Zeile letzte Restore-Übung"
+  },
   "glossary": {
     "backupArtifact": "Backup-Artefakt",
     "artifactIntegrity": "Artefakt-Integrität",
@@ -83,19 +101,19 @@
     },
     "strip": {
       "drillFailedTitle": "Letzter Restore-Drill fehlgeschlagen — kein optimistisches „alles gut“",
-      "drillFailedBody": "Selbst wenn ältere Nachweise existieren: der neueste Drill ist die aktuelle Wahrheit für diese Oberfläche. Analyse und erneuter erfolgreicher Drill vor starkem Vertrauen.",
+      "drillFailedBody": "Neuester Drill ist hier maßgeblich. Analyse und erneuter Drill vor Vertrauen in die Lage.",
       "stubTitle": "Stub-/Simulationsmodus — Nachweise gelten nicht als Produktions-DR",
-      "stubBody": "Pipeline-Erfolge buchen API-Zeilen, ersetzen aber keinen echten pg_dump und keinen produktionsnahen Restore-Nachweis.",
+      "stubBody": "API-Zeilen aus der Pipeline ersetzen keinen echten pg_dump und keinen produktionsnahen Restore-Nachweis.",
       "gapsTitle": "Nachweis-Lücken — Recoverability nicht vollständig belegt",
-      "gapsBody": "Mindestens ein API-Nachweis-Zeitstempel fehlt oder Signale widersprechen sich. Nicht aus Stille auf vollständige Wiederherstellung schließen.",
+      "gapsBody": "Fehlende Zeitstempel oder widersprüchliche Signale. Nicht aus Stille auf volle Wiederherstellung schließen.",
       "l3Title": "Restore-Drill (API) als erfolgreich — fiskalische Vollprüfung kann fehlen",
-      "l3Body": "Listen- und ggf. Restore-Versuch bestanden nach API-Signalen. Geschäfts-Recovery, App-Start und externe Systeme sind separate Ebenen.",
+      "l3Body": "Nach API: Listen- und ggf. isolierter Restore bestanden. Geschäfts-Recovery, App-Start und Externe sind getrennte Ebenen.",
       "strongWithinApiTitle": "Stark innerhalb der API-Grenzen (inkl. fiskalischer Kontinuitätsschicht, wenn belegt)",
-      "strongWithinApiBody": "Bestes verfügbares Signal aus Backup-, Artefakt-, Restore- und (falls aktiv) Fiskal- plus Klon-Kontinuitätsnachweisen. HTTP-Smoke und Live-Externe bleiben getrennte Ebenen.",
+      "strongWithinApiBody": "Bestes API-gestütztes Signal aus Backup, Artefakt, Restore und (falls aktiv) Fiskal- plus Klon-Kontinuität. HTTP-Smoke und Live-Externe bleiben getrennt.",
       "l5Title": "Anwendungs-Smoke bestanden (konfigurierte URL)",
-      "l5Body": "Der Restore-Drill hat einen HTTP-Smoke gegen die konfigurierte Basis-URL erreicht. Das belegt nicht automatisch denselben Prozess wie diese Admin-API, außer Sie haben das so konfiguriert.",
+      "l5Body": "HTTP-Smoke gegen die konfigurierte Basis-URL. Nicht dasselbe wie diese Admin-API, außer so gezielt konfiguriert.",
       "inProgressTitle": "Nachweis unvollständig oder Zwischenstufe",
-      "inProgressBody": "Prüfen Sie die sechs Blöcke unten: fehlende Schritte sind sichtbar — nicht in einem generischen „Healthy“ versteckt."
+      "inProgressBody": "L0–L6 unten — Lücken bleiben sichtbar (nicht in einem generischen „Healthy“ versteckt)."
     },
     "layers": {
       "L0": {
@@ -209,11 +227,12 @@
   },
   "operatorTruth": {
     "noTimestampFromApi": "Kein Zeitstempel (nicht gemeldet)",
-    "recoverabilityProofGap": "Fehlende Nachweis-Zeitstempel in dieser API — aus Stille keine Wiederherstellbarkeit ableiten."
+    "recoverabilityProofGap": "Nachweis-Zeitstempel fehlen in dieser API — aus Stille keine Wiederherstellbarkeit ableiten."
   },
   "recoverability": {
     "title": "Letzte-bekannte-gute (API — kein vollständiger Recovery-Nachweis)",
-    "subtitle": "Zeitstempel = zuletzt erfolgreiche Prüfungen, nicht „letzte Anforderung“ unten. Simuliert liest sich nicht stärker.",
+    "caveatsTitle": "Kontext (einmal lesen)",
+    "subtitle": "Zeitstempel = zuletzt erfolgreich (nicht letzte Anforderung). Simuliert ist kein stärkerer Nachweis.",
     "proofSectionTitle": "Nachweis-Signale (API)",
     "proofSectionIntro": "Block für „was zuletzt erfolgreich war“ — nicht ob der aktuellste Job fertig ist.",
     "simulatedEnvironmentStrip": "Im Fake-/Stub-Modus sind „Nachweis“-Zeitstempel API-Buchungen über Pipeline-Prüfungen — kein Produktions-Recovery und kein echter Dump.",
@@ -591,7 +610,8 @@
     "finishedCancelled": "Letzter Backup-Lauf: abgebrochen.",
     "etaFromStart": "Richtwert Fertigstellung (nach Ø früherer erfolgreicher Läufe, n={{n}}): {{time}}",
     "etaQueued": "Grober Richtwert Fertigstellung (Warteschlange + Ø Dauer, n={{n}}): {{time}}",
-    "noEta": "Kein Zeit-Richtwert: noch keine erfolgreichen Läufe mit messbarer Dauer."
+    "noEta": "Kein Zeit-Richtwert: noch keine erfolgreichen Läufe mit messbarer Dauer.",
+    "etaDemotedLead": "Grober Zeit-Hinweis (keine Zusage):"
   },
   "download": {
     "titleLatestSuccess": "Artefakte herunterladen (letzter Lauf — API-Erfolgsstatus)",

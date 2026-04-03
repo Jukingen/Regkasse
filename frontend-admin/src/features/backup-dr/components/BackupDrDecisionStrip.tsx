@@ -68,16 +68,34 @@ export function BackupDrDecisionStrip({
           >
             {t("backupDr.ia.columns.blocker")}
           </Typography.Text>
-          <Alert
-            type={strip.alertType}
-            showIcon
-            message={t(strip.titleKey)}
-            description={
-              <Typography.Paragraph style={{ marginBottom: 0 }}>
+          {strip.alertType === "error" || strip.alertType === "warning" ? (
+            <Alert
+              type={strip.alertType}
+              showIcon
+              message={t(strip.titleKey)}
+              description={
+                <Typography.Paragraph style={{ marginBottom: 0 }}>
+                  {t(strip.bodyKey)}
+                </Typography.Paragraph>
+              }
+            />
+          ) : (
+            <div
+              style={{
+                padding: "10px 12px",
+                borderRadius: 6,
+                border: "1px solid #d9d9d9",
+                background: "#fafafa",
+              }}
+            >
+              <Typography.Text strong style={{ display: "block", marginBottom: 6 }}>
+                {t(strip.titleKey)}
+              </Typography.Text>
+              <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                 {t(strip.bodyKey)}
               </Typography.Paragraph>
-            }
-          />
+            </div>
+          )}
         </Col>
         <Col xs={24} lg={7}>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>

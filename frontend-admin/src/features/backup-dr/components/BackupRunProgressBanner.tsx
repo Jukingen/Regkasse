@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Son yedek çalıştırmasının sürüyor / bitti durumunu üst düzey uyarı ile gösterir; ortalama süreden tahmini bitiş (varsa).
+ * Son yedek çalıştırması: kısa başlık + net alt satır; ETA yalnızca ikincil (yanlış kesinlik ima etmesin).
  */
 
 import React, { useMemo } from 'react';
@@ -129,7 +129,14 @@ export function BackupRunProgressBanner({
         description={
           <Space direction="vertical" size={4} style={{ width: '100%' }}>
             {body ? <Typography.Text>{body}</Typography.Text> : null}
-            {etaLine ? <Typography.Text type="secondary">{etaLine}</Typography.Text> : null}
+            {etaLine ? (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>
+                  {t('backupDr.progress.etaDemotedLead')}
+                </Typography.Text>
+                {etaLine}
+              </Typography.Text>
+            ) : null}
           </Space>
         }
         style={{ marginBottom: 12 }}

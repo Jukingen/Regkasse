@@ -11,7 +11,10 @@ import type {
   BackupVerificationResponseDto,
   RestoreVerificationRunResponseDto,
 } from '@/api/generated/model';
-import { buildDrProofPresentationModel } from '@/features/backup-dr/logic/drProofLevelPresentation';
+import {
+  buildDrProofPresentationModel,
+  mapDrProofScanTagToneToAntdTagColor,
+} from '@/features/backup-dr/logic/drProofLevelPresentation';
 
 function mkTruth(partial: {
   simulated?: boolean;
@@ -123,5 +126,14 @@ describe('buildDrProofPresentationModel', () => {
     expect(m.layers[5].state).toBe('gap');
     expect(m.layers[6].state).toBe('gap');
     expect(m.appRecoverySummary.state).toBe('not_configured');
+  });
+});
+
+describe('mapDrProofScanTagToneToAntdTagColor', () => {
+  it('maps scan tag tones to Ant Design Tag presets (no success/green)', () => {
+    expect(mapDrProofScanTagToneToAntdTagColor('error')).toBe('red');
+    expect(mapDrProofScanTagToneToAntdTagColor('warning')).toBe('orange');
+    expect(mapDrProofScanTagToneToAntdTagColor('processing')).toBe('blue');
+    expect(mapDrProofScanTagToneToAntdTagColor('default')).toBe('default');
   });
 });

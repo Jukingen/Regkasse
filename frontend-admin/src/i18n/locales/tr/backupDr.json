@@ -3,6 +3,24 @@
     "title": "Yedekleme ve felaket kurtarma",
     "subtitle": "Salt görünürlük. İşler worker’da — bu arayüzde değil."
   },
+  "postureSummary": {
+    "title": "Tek bakış (API)",
+    "postureLabel": "DR kanıtı ve güncel boşluk",
+    "backupAndDrillLabel": "Son yedek çalıştırması ve son geri yükleme tatbikatı",
+    "lkgAndModeLabel": "Son bilinen iyi yedek kanıtı ve mod",
+    "executionModeShort": "Çalıştırma modu",
+    "executionModeLoading": "Yükleniyor…",
+    "nextActionLabel": "Önerilen sonraki adım",
+    "simulatedModeTag": "Simüle / stub — üretim DR değil"
+  },
+  "dataFreshness": {
+    "title": "Eksik yenileme",
+    "hint": "Destekleyici API’ler başarısız — tatbikat/doğrulama satırlarından önce yenileyin.",
+    "generic": "Destekleyici veriler eski olabilir",
+    "sliceRecoverability": "Kurtarılabilirlik özeti",
+    "sliceVerification": "Artefakt doğrulaması (son)",
+    "sliceRestoreLatest": "Son geri yükleme tatbikatı satırı"
+  },
   "glossary": {
     "backupArtifact": "Yedek artefaktı",
     "artifactIntegrity": "Artefakt bütünlüğü",
@@ -83,19 +101,19 @@
     },
     "strip": {
       "drillFailedTitle": "Son restore tatbikatı başarısız — iyimser “her şey yolunda” yok",
-      "drillFailedBody": "Eski kanıtlar olsa bile bu arayüz için en yeni tatbikat güncel gerçektir. Güçlü güven için analiz ve başarılı yeniden çalıştırma gerekir.",
+      "drillFailedBody": "Bu arayüzde güncel gerçek en yeni tatbikattır. Güven için incele ve yeniden çalıştır.",
       "stubTitle": "Stub / simülasyon — kanıt üretim DR değildir",
-      "stubBody": "Pipeline başarıları API satırı yazar; gerçek pg_dump veya üretim anlamında restore kanıtının yerini almaz.",
+      "stubBody": "Pipeline’dan gelen API satırları gerçek pg_dump veya üretim anlamında restore kanıtının yerini almaz.",
       "gapsTitle": "Kanıt boşlukları — kurtarılabilirlik tam kanıtlanmadı",
-      "gapsBody": "En az bir kanıt zaman damgası eksik veya sinyaller çelişiyor. Sessizlikten tam kurtarma çıkarmayın.",
+      "gapsBody": "Eksik zaman damgası veya çelişen sinyaller. Sessizlikten tam kurtarma çıkarma.",
       "l3Title": "Restore tatbikatı (API) başarılı — mali derinlik eksik olabilir",
-      "l3Body": "Liste ve (varsa) izole restore denemesi API sinyallerine göre geçti. İş kurtarması, uygulama ve harici sistemler ayrı katmanlardır.",
+      "l3Body": "API’ye göre liste ve (varsa) izole restore geçti. İş kurtarması, uygulama ve hariciler ayrı katmanlar.",
       "strongWithinApiTitle": "API sınırları içinde güçlü (kanıtlandıysa mali süreklilik katmanı dahil)",
-      "strongWithinApiBody": "Yedek, artefakt, restore ve (etkinse) mali + klon sürekliliği kanıtından gelen en iyi sinyal. HTTP smoke ve canlı hariciler ayrı katmanlardır.",
+      "strongWithinApiBody": "Yedek, artefakt, restore ve (etkinse) mali + klon sürekliliğinden en iyi API sinyali. HTTP smoke ve canlı hariciler ayrı.",
       "l5Title": "Uygulama smoke geçti (yapılandırılmış URL)",
-      "l5Body": "Restore tatbikatı yapılandırılmış taban URL’ye karşı HTTP smoke’a ulaştı. Bu admin API ile aynı süreci kanıtlamaz (bilinçli yönlendirmediyseniz).",
+      "l5Body": "Yapılandırılmış taban URL’ye karşı HTTP smoke. Bu admin API ile aynı değil (öyle ayarlamadıysanız).",
       "inProgressTitle": "Kanıt eksik veya ara aşama",
-      "inProgressBody": "Aşağıdaki altı blokta eksik adımlar görünür — genel “sağlıklı” arkasına saklanmaz."
+      "inProgressBody": "Aşağıda L0–L6 — boşluklar görünür (genel “sağlıklı”ya gömülmez)."
     },
     "layers": {
       "L0": {
@@ -209,11 +227,12 @@
   },
   "operatorTruth": {
     "noTimestampFromApi": "Zaman damgası yok (bildirilmedi)",
-    "recoverabilityProofGap": "Bu API yanıtında eksik kanıt zaman damgası — sessizlikten kurtarılabilirlik çıkarmayın."
+    "recoverabilityProofGap": "Kanıt zaman damgası bu API’de eksik — sessizlikten kurtarılabilirlik çıkarmayın."
   },
   "recoverability": {
     "title": "Son bilinen iyi (API — tam kurtarma kanıtı değil)",
-    "subtitle": "Zaman damgaları = son başarılı kontroller; “son istek” değil. Simüle daha güçlü kanıt sayılmaz.",
+    "caveatsTitle": "Bağlam (bir kez okuyun)",
+    "subtitle": "Zaman damgaları = son başarılı kontroller (son istek değil). Simüle daha güçlü kanıt değildir.",
     "proofSectionTitle": "Kanıt sinyalleri (API)",
     "proofSectionIntro": "“Son ne başarılı oldu” için — en güncel işin bitip bitmediği değil.",
     "simulatedEnvironmentStrip": "Fake/Stub modunda “kanıt” zaman damgaları API defter kaydıdır (hat kontrolleri) — üretim kurtarması veya gerçek döküm değildir.",
@@ -591,7 +610,8 @@
     "finishedCancelled": "Son yedek çalıştırması: iptal edildi.",
     "etaFromStart": "Tahmini bitiş (önceki başarılı çalıştırmaların ortalaması, n={{n}}): {{time}}",
     "etaQueued": "Kabaca tahmini bitiş (kuyruk + ortalama süre, n={{n}}): {{time}}",
-    "noEta": "Süre tahmini yok: henüz ölçülebilir süreli başarılı çalıştırma yok."
+    "noEta": "Süre tahmini yok: henüz ölçülebilir süreli başarılı çalıştırma yok.",
+    "etaDemotedLead": "Kaba süre ipucu (taahhüt değil):"
   },
   "download": {
     "titleLatestSuccess": "Artefakt indir (son çalıştırma — API başarı durumu)",

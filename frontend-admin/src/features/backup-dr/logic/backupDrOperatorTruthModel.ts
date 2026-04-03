@@ -274,6 +274,10 @@ export interface BuildBackupOperatorTruthModelParams {
    * Gelecek backend alanları için uyumluluk yuvası — şu an `buildBackupOperatorTruthModel` içinde kullanılmaz.
    */
   truthContractHints?: BackupTruthContractHints;
+  /**
+   * Üst “operator snapshot” / DR karar şeridinde zaten öne çıkan son drill hatası HealthBanner kritik listesinde tekrarlanmasın.
+   */
+  suppressRestoreDrillFailureInHealthBanner?: boolean;
 }
 
 function labelFromStatusNamespace(
@@ -511,6 +515,7 @@ function pushBannerFromAlerts(
   externalCopyVariant: ExternalCopyVariant,
   restoreLatest: RestoreVerificationRunResponseDto | undefined,
   executionMode: BackupExecutionModeTruth,
+  suppressRestoreDrillFailureInHealthBanner?: boolean,
 ): BannerOperatorTruth {
   const critical: string[] = [];
   const warn: string[] = [];
@@ -585,11 +590,17 @@ function pushBannerFromAlerts(
       const interp = interpretPgRestoreListFailure({ run: rr, isSimulatedPipelineHeuristic: simHeuristic });
       if (interp) {
         const { tier, key } = pgRestoreListFailureKindToBannerMessageKey(interp.kind);
-        if (tier === 'info') info.push(t(key));
-        else if (tier === 'warn') warn.push(t(key));
-        else critical.push(t(key));
+        /** Stub-expected list failure: always surface — posture strip does not replace Fake/stub nuance. */
+        if (tier === 'info') {
+          info.push(t(key));
+        } else if (interp.kind === 'fake_stub_expected') {
+          warn.push(t(key));
+        } else if (!suppressRestoreDrillFailureInHealthBanner) {
+          if (tier === 'warn') warn.push(t(key));
+          else critical.push(t(key));
+        }
       }
-    } else {
+    } else if (!suppressRestoreDrillFailureInHealthBanner) {
       critical.push(
         `${t('backupDr.restoreVerification.drillFailed')}: ${rr.failureCode ?? ''} ${(rr.failureDetail ?? '').trim()}`.trim(),
       );
@@ -730,6 +741,7 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
     executionModeDto,
     hasStatusPayload,
     truthContractHints,
+    suppressRestoreDrillFailureInHealthBanner,
   } = params;
 
   const executionMode = deriveBackupExecutionModeTruth(executionModeDto);
@@ -825,6 +837,7 @@ export function buildBackupOperatorTruthModel(params: BuildBackupOperatorTruthMo
     externalCopyVariant,
     restoreLatest,
     executionMode,
+    suppressRestoreDrillFailureInHealthBanner,
   );
 
   const alertsRaw = buildOperatorAlertRows(

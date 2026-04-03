@@ -6,7 +6,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Alert, Button, Card, Modal, Space, Spin, Table, Tag, Tooltip, Typography, message } from 'antd';
+import { Button, Card, Modal, Space, Spin, Table, Tag, Tooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
 import {
@@ -405,36 +405,53 @@ export function BackupArtifactsDownloadCard({
       </Typography.Paragraph>
 
       {simulated ? (
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 12 }}
-          message={t('backupDr.download.stubZoneAlertTitle')}
-          description={
-            <Space direction="vertical" size={4}>
-              <Typography.Paragraph style={{ marginBottom: 0 }}>{t('backupDr.download.stubZoneAlertDescription')}</Typography.Paragraph>
-              <Typography.Text type="secondary">{t('backupDr.download.simulatedWarning', { adapter: runAdapterKind ?? '—' })}</Typography.Text>
-            </Space>
-          }
-        />
+        <div
+          style={{
+            marginBottom: 12,
+            padding: '10px 12px',
+            borderRadius: 6,
+            border: '1px solid #91caff',
+            background: '#e6f4ff',
+          }}
+        >
+          <Typography.Text strong style={{ display: 'block', marginBottom: 6 }}>
+            {t('backupDr.download.stubZoneAlertTitle')}
+          </Typography.Text>
+          <Typography.Paragraph style={{ marginBottom: 8 }}>{t('backupDr.download.stubZoneAlertDescription')}</Typography.Paragraph>
+          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+            {t('backupDr.download.simulatedWarning', { adapter: runAdapterKind ?? '—' })}
+          </Typography.Text>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+            {t('backupDr.download.simulatedDownloadDisclaimer')}
+          </Typography.Paragraph>
+        </div>
       ) : null}
 
       <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
         {t('backupDr.download.pathsOmitted')}
       </Typography.Paragraph>
 
-      {simulated ? (
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-          {t('backupDr.download.simulatedDownloadDisclaimer')}
-        </Typography.Paragraph>
-      ) : null}
-
-      {showNonFakeIntegrityNote ? (
-        <Alert type="info" showIcon style={{ marginBottom: 12 }} message={t('backupDr.download.integrityPrecheckNote')} />
-      ) : null}
-
-      {!simulated && hasNonFakeSuspicionRow ? (
-        <Alert type="warning" showIcon style={{ marginBottom: 12 }} message={t('backupDr.download.suspicionBulkIntro')} />
+      {!simulated && (showNonFakeIntegrityNote || hasNonFakeSuspicionRow) ? (
+        <div
+          style={{
+            marginBottom: 12,
+            padding: '8px 10px',
+            borderRadius: 6,
+            border: `1px solid ${hasNonFakeSuspicionRow ? '#ffd591' : '#d9d9d9'}`,
+            background: hasNonFakeSuspicionRow ? '#fffbe6' : '#fafafa',
+          }}
+        >
+          {showNonFakeIntegrityNote ? (
+            <Typography.Paragraph style={{ marginBottom: hasNonFakeSuspicionRow ? 8 : 0 }}>
+              {t('backupDr.download.integrityPrecheckNote')}
+            </Typography.Paragraph>
+          ) : null}
+          {hasNonFakeSuspicionRow ? (
+            <Typography.Paragraph type="warning" style={{ marginBottom: 0 }}>
+              {t('backupDr.download.suspicionBulkIntro')}
+            </Typography.Paragraph>
+          ) : null}
+        </div>
       ) : null}
 
       {loadingArtifacts ? (
