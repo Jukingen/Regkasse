@@ -1,15 +1,219 @@
 {
   "page": {
     "title": "Backup & Disaster Recovery",
-    "subtitle": "Steuerung und Transparenz. Ausführung läuft im Hintergrund-Worker — nicht in dieser Oberfläche."
+    "subtitle": "Nur Lesen/Sichtbarkeit. Ausführung im Worker — nicht in dieser Oberfläche."
+  },
+  "glossary": {
+    "backupArtifact": "Backup-Artefakt",
+    "artifactIntegrity": "Artefakt-Integrität",
+    "restoreVerification": "Restore-Verifikation",
+    "continuityProof": "Kontinuitätsnachweis",
+    "appRecoveryProof": "App-Recovery-Nachweis",
+    "externalProof": "Externer Nachweis"
+  },
+  "layout": {
+    "groupLatestAttempt": "Letzter Versuch (API)",
+    "groupProofAnchors": "Nachweis-Anker (API)",
+    "pipelineNoticesCollapse": "Pipeline & Umgebung",
+    "configurationCollapse": "Pipeline, Worker & Sperren"
+  },
+  "dashboardSections": {
+    "intro": "Steuerung & Geltungsbereich",
+    "introDesc": "Aktualisieren lädt Daten neu. Der Geltungsbereich-Hinweis sagt, was diese Seite belegen kann — und was nicht.",
+    "summary": "Kurzüberblick",
+    "summaryDesc": "Kurzlabels werden absichtlich begrenzt, wenn Nachweise fehlen, teil sind oder simuliert sind.",
+    "environment": "Umgebung & Pipeline",
+    "environmentDesc": "Adapter, Dump-Pfad, Simulation, Gültigkeit — vor „grün“ anderswo.",
+    "healthHighlights": "Worker- & Pipeline-Highlights",
+    "proofAndPosture": "DR-Nachweis & Evidenz (API)",
+    "proofAndPostureDesc": "L0–L6 und Pipeline-Evidenz. Nur konservative Formulierungen.",
+    "liveRun": "Aktueller Lauf & Off-Box-Kopie",
+    "artifactVerification": "Artefakt-Integrität",
+    "restoreDrill": "Restore-Verifikation & Bereitschaft",
+    "configuration": "Pipeline & Worker",
+    "reference": "Referenz & Hinweise",
+    "manualActions": "Manuelle Aktionen (nur Einreihen)",
+    "history": "Letzte Läufe & Verifikationen"
+  },
+  "ia": {
+    "decisionStrip": "Entscheidung",
+    "decisionStripDesc": "Nachweisgrad, schlimmste Lücke, nächster Schritt — vor Aktion lesen.",
+    "proofSummary": "DR-Nachweis (API-Schichten + Pipeline)",
+    "proofSummaryDesc": "L0–L6 und Pipeline-/Artefakt-Evidenz auf einer Fläche.",
+    "pipelineEvidenceHeading": "Pipeline & Backup-Artefakt-Evidenz",
+    "recentEvidence": "Jüngste Nachweise (API)",
+    "recentEvidenceDesc": "Letzter Lauf, Artefakt-Integrität, Restore-Verifikation, letzter guter Backup-Nachweis — nur API.",
+    "drilldown": "Detail & Vertiefung",
+    "drilldownDesc": "Ausführungsmodus, Warnungen, Recoverability-Detail, Downloads und Historie.",
+    "drilldownGlance": "Kurzüberblick (begrenzte Labels)",
+    "drilldownExecution": "Ausführungsmodus",
+    "drilldownWarnings": "Umgebungs- & Pipeline-Warnungen",
+    "columns": {
+      "proofLevel": "DR-Nachweisgrad",
+      "blocker": "Lücke / Status",
+      "nextStep": "Nächster Schritt",
+      "latestBackupRun": "Letzter Backup-Lauf",
+      "latestRealArtifact": "Artefakt-Integrität (aktuell)",
+      "latestRestoreDrill": "Restore-Verifikation (aktuell)",
+      "lkgProof": "Letzter guter Backup (API)"
+    }
+  },
+  "recentEvidence": {
+    "artifactVerificationAt": "Letzte Artefakt-Integrität (OK)",
+    "artifactVerificationScope": "Nur Staging/Checksumme — kein vollständiger DR allein.",
+    "simulatedExecution": "Simuliert",
+    "lkgTimestampLabel": "Letzter Backup-Erfolg (API-Nachweis)"
+  },
+  "confidenceDashboard": {
+    "title": "Geschichteter DR-Nachweis (API)",
+    "subtitle": "Backup-Zeile ≠ wiederherstellbar. Jede Zeile: aktueller API-Nachweis — nicht mehr.",
+    "snapshotSectionTitle": "Nachweise & Zeitstempel (API)",
+    "layersSectionTitle": "Stufen L0–L6",
+    "currentProofLevel": "DR-Nachweisgrad (höchster voller Schritt)",
+    "levelLabel": "L{{level}}",
+    "nextStepHeading": "Nächster sinnvoller Schritt",
+    "sections": {
+      "databaseCoverage": "Datenbank-Abdeckung",
+      "artifactValidity": "Artefakt-Integrität",
+      "restoreValidity": "Restore-Verifikation",
+      "fiscalIntegrity": "Kontinuitätsnachweis (fiskal)",
+      "appRecovery": "App-Recovery (HTTP)",
+      "externalDeps": "Externer Nachweis (teilweise)",
+      "nonDbProof": "Nicht nur DB (Checkliste — oft manuell)"
+    },
+    "strip": {
+      "drillFailedTitle": "Letzter Restore-Drill fehlgeschlagen — kein optimistisches „alles gut“",
+      "drillFailedBody": "Selbst wenn ältere Nachweise existieren: der neueste Drill ist die aktuelle Wahrheit für diese Oberfläche. Analyse und erneuter erfolgreicher Drill vor starkem Vertrauen.",
+      "stubTitle": "Stub-/Simulationsmodus — Nachweise gelten nicht als Produktions-DR",
+      "stubBody": "Pipeline-Erfolge buchen API-Zeilen, ersetzen aber keinen echten pg_dump und keinen produktionsnahen Restore-Nachweis.",
+      "gapsTitle": "Nachweis-Lücken — Recoverability nicht vollständig belegt",
+      "gapsBody": "Mindestens ein API-Nachweis-Zeitstempel fehlt oder Signale widersprechen sich. Nicht aus Stille auf vollständige Wiederherstellung schließen.",
+      "l3Title": "Restore-Drill (API) als erfolgreich — fiskalische Vollprüfung kann fehlen",
+      "l3Body": "Listen- und ggf. Restore-Versuch bestanden nach API-Signalen. Geschäfts-Recovery, App-Start und externe Systeme sind separate Ebenen.",
+      "strongWithinApiTitle": "Stark innerhalb der API-Grenzen (inkl. fiskalischer Kontinuitätsschicht, wenn belegt)",
+      "strongWithinApiBody": "Bestes verfügbares Signal aus Backup-, Artefakt-, Restore- und (falls aktiv) Fiskal- plus Klon-Kontinuitätsnachweisen. HTTP-Smoke und Live-Externe bleiben getrennte Ebenen.",
+      "l5Title": "Anwendungs-Smoke bestanden (konfigurierte URL)",
+      "l5Body": "Der Restore-Drill hat einen HTTP-Smoke gegen die konfigurierte Basis-URL erreicht. Das belegt nicht automatisch denselben Prozess wie diese Admin-API, außer Sie haben das so konfiguriert.",
+      "inProgressTitle": "Nachweis unvollständig oder Zwischenstufe",
+      "inProgressBody": "Prüfen Sie die sechs Blöcke unten: fehlende Schritte sind sichtbar — nicht in einem generischen „Healthy“ versteckt."
+    },
+    "layers": {
+      "L0": {
+        "title": "L0 — Lauf vorhanden (ausgelöst)",
+        "detailOk": "API meldet Lauf-/Zeitstempel oder technischen Kontext — noch kein Archiv-Nachweis.",
+        "detailGap": "Kein belastbarer Startpunkt für DB-Nachweis sichtbar."
+      },
+      "L1": {
+        "title": "L1 — Backup-Artefakt (logischer Dump)",
+        "detailOk": "Echter pg_dump-Pfad und Download-fähige Logikdump-Zeile (API) — kein vollständiger DR-Beweis.",
+        "detailGap": "Kein belastbarer Logikdump-Nachweis für den letzten relevanten Lauf.",
+        "detailStub": "Stub/Fake: keine produktionsrelevante Dump-Datei."
+      },
+      "L2": {
+        "title": "L2 — Artefakt-Integrität",
+        "detailOk": "Letzte Artefakt-Verifikation passt zum letzten Backup-Lauf (API).",
+        "detailGap": "Verifikation fehlt, passt nicht oder ist unklar.",
+        "detailStub": "Stub/Fake: Integritätsnachweis gilt nicht für Produktion."
+      },
+      "L3": {
+        "title": "L3 — Restore-Verifikation (Drill)",
+        "detailOk": "Drill abgeschlossen; Dump-Listenprüfung und ggf. isolierter Restore-Versuch nach API-Signalen bestanden.",
+        "detailPartial": "Drill teilweise erfolgreich oder ohne vollständigen isolierten Restore — nicht als „vollständig wiederhergestellt“ werten.",
+        "detailFailed": "Letzter Drill fehlgeschlagen — kein aktuelles Restore-Vertrauen.",
+        "detailGap": "Kein erfolgreicher Restore-Drill-Nachweis."
+      },
+      "L4": {
+        "title": "L4 — Kontinuität nach Restore (SQL)",
+        "detailOk": "Strukturierte Kontinuitäts-SQL auf der isoliert wiederhergestellten DB bestanden (fiskal, Resilienz, Plattform).",
+        "detailGap": "Kontinuitäts-SQL fehlgeschlagen oder unklar — kein L4-Nachweis.",
+        "detailNotConfigured": "Kontinuitäts-SQL nach Restore nicht ausgeführt — für L4 aktivieren.",
+        "detailSkipped": "Fiskal-SQL übersprungen — L4 nicht belegt.",
+        "detailStub": "Stub/Fake: keine Produktions-Fiskalität."
+      },
+      "L5": {
+        "title": "L5 — Anwendungs-Smoke (wiederhergestellte DB)",
+        "detailOk": "In-Process-Smoke auf der wiederhergestellten Kopie bestanden: Verbindung, EF-Migrationen, Lesepfad.",
+        "detailFailed": "Smoke auf wiederhergestellter DB ausgeführt und fehlgeschlagen — kein L5.",
+        "detailGap": "Smoke deaktiviert, unklar oder nicht bestanden — kein L5-Nachweis.",
+        "detailStub": "Stub-Modus — keine produktionsrelevante Smoke-Bedeutung.",
+        "detailNotInApi": "Legacy: API-Felder applicationSmokeProbe* an Restore-Drill-Zeilen."
+      },
+      "L6": {
+        "title": "L6 — Externer Nachweis (teilweise)",
+        "detailPartial": "Nur Konfigurations-Snapshot in den Nachweisen — keine Erreichbarkeit von FinanzOnline, TSE-Hardware oder Secrets.",
+        "detailGap": "Kein Nachweis zu externen Abhängigkeiten — als nicht belegt werten.",
+        "detailStub": "Stub-Modus — kein Produktions-Extern-Nachweis."
+      }
+    },
+    "layerState": {
+      "proven": "belegt",
+      "partial": "teilweise",
+      "gap": "Lücke",
+      "stub_only": "nur Stub",
+      "not_applicable": "API: nicht belegt",
+      "unknown": "unknown"
+    },
+    "labels": {
+      "runId": "Run-ID",
+      "sourceBackupRunId": "Quell-Backup-Lauf-ID",
+      "sourceArtifactId": "Quell-Artefakt-ID"
+    },
+    "snapshot": {
+      "latestRealBackup": "Letzter echter Backup-Artefakt",
+      "latestSimulatedBackup": "Letzter Erfolg war simuliert (kein Produktions-Dump)",
+      "distinctFromLatestRequest": "Letzte Anforderung ≠ diese Nachweis-Zeile",
+      "restoreVerified": "Letzte Restore-Verifikation (OK)",
+      "restoreNotVerified": "Keine erfolgreiche Restore-Verifikation als letzter Stand",
+      "fiscalDrill": "Letzte Kontinuität (fiskal)",
+      "appRecovery": "App-Recovery (HTTP)",
+      "externalDeps": "Externer Nachweis (teilweise)"
+    },
+    "artifacts": {
+      "lastGoodReal": "Letzter nachgewiesener guter Lauf (nicht simuliert)",
+      "lastGoodSimulated": "Letzter nachgewiesener guter Lauf war simuliert — kein echter Dump-Nachweis"
+    },
+    "restore": {
+      "verifiedOk": "Letzter Drill erfolgreich (API-Status)",
+      "notVerified": "Letzter Drill nicht erfolgreich oder nicht abgeschlossen"
+    },
+    "fiscal": {
+      "proven": "Fiskal-Kontinuitätsschicht bestanden (wenn API belegt)",
+      "notProven": "Fiskal-Kontinuität nicht belegt oder Fiskal-SQL übersprungen"
+    },
+    "appRecovery": {
+      "proven": "HTTP-Smoke OK (konfigurierte Drill-URL)",
+      "notProven": "App-Recovery nicht belegt — ApplicationSmokeProbe* für L5 setzen."
+    },
+    "external": {
+      "notProven": "Vollständige externe Recovery nicht belegt — Live-FinanzOnline/TSE nicht im Drill.",
+      "partialConfigSnapshot": "Teilweise: nur Konfig-Snapshot (evidence JSON) — kein Live-Abhängigkeitsnachweis."
+    },
+    "nonDb": {
+      "intro": "Vollständige Notfallwiederherstellung braucht mehr als die Datenbankdatei.",
+      "tse": "TSE / Signaturgerät: Zustand und Wiederanbindung (Vendor/Runbook).",
+      "secrets": "Secrets / Umgebungsvariablen / Schlüsselmaterial.",
+      "tooling": "pg_dump / pg_restore auf Ziel-Host verfügbar und getestet.",
+      "archive": "Externes / unveränderliches Archiv (Offsite, Retention).",
+      "finanzOnline": "FinanzOnline / externe Steuer-Seite — Verfügbarkeit und Konfiguration."
+    },
+    "nextStepHints": {
+      "L0": "Sicherstellen, dass Backups ankommen und API-Zeitstempel gesetzt werden.",
+      "L1": "Echten PgDump-Pfad, Staging und Logikdump-Datei nachweisen.",
+      "L2": "Artefakt-Verifikation für den letzten erfolgreichen Lauf anstoßen oder abwarten.",
+      "L3": "Restore-Drill erfolgreich durchlaufen (Dump-Liste + Restore-Policy).",
+      "L4": "Kontinuitäts-SQL nach Restore im Drill-Worker aktivieren.",
+      "L5": "RestoredDatabaseApplicationSmoke im Drill-Worker aktivieren, damit L5 nach L4 läuft.",
+      "finishL1": "Von Logikdump-Nachweis (L1) aus weiterarbeiten.",
+      "leaveStub": "Von Fake/Stub auf echten PgDump umstellen — sonst bleibt der Nachweis bei L0."
+    }
   },
   "operatorTruth": {
     "noTimestampFromApi": "Kein Zeitstempel (nicht gemeldet)",
-    "recoverabilityProofGap": "Mindestens ein Nachweis-Zeitstempel fehlt in dieser API-Antwort — aus Stille keine Wiederherstellbarkeit ableiten."
+    "recoverabilityProofGap": "Fehlende Nachweis-Zeitstempel in dieser API — aus Stille keine Wiederherstellbarkeit ableiten."
   },
   "recoverability": {
-    "title": "Letzte-bekannte-gute Signale (API — kein vollständiger Recovery-Nachweis)",
-    "subtitle": "Zeilen sind API-gemeldete Zeitstempel für zuletzt erfolgreiche Prüfungen — nicht dasselbe wie „letzte Anforderung“ unten. Simulierter Erfolg verbessert die Darstellung nicht.",
+    "title": "Letzte-bekannte-gute (API — kein vollständiger Recovery-Nachweis)",
+    "subtitle": "Zeitstempel = zuletzt erfolgreiche Prüfungen, nicht „letzte Anforderung“ unten. Simuliert liest sich nicht stärker.",
     "proofSectionTitle": "Nachweis-Signale (API)",
     "proofSectionIntro": "Block für „was zuletzt erfolgreich war“ — nicht ob der aktuellste Job fertig ist.",
     "simulatedEnvironmentStrip": "Im Fake-/Stub-Modus sind „Nachweis“-Zeitstempel API-Buchungen über Pipeline-Prüfungen — kein Produktions-Recovery und kein echter Dump.",
@@ -184,7 +388,25 @@
   "scope": {
     "title": "Was diese Seite tut (und was nicht)",
     "body": "Es wird kein Backup im Browser erzeugt und kein Restore-Befehl von hier ausgeführt. Schaltflächen reihen Aufträge nur in die API-Warteschlange ein; Ausführung und Artefakte laufen auf dem Backend-Worker. Leere oder fehlerhafte Download-Streams sind Server-/Speicherprobleme — diese Oberfläche zeigt nur API-Metadaten und clientseitige Anomalie-Hinweise; sie behebt kein Backend-Verhalten.",
-    "devRealPgLead": "In der Entwicklung ist oft der Fake-Adapter (Stub-Bytes) aktiv — das ist beabsichtigt. Für echte PostgreSQL-Custom-Format-Dumps auf der Festplatte konfigurieren Sie PgDump, Staging, Verbindungszeichenfolge und Client-Binaries; nutzen Sie die Checkliste und die Repository-Dokumentation unten."
+    "devRealPgLead": "In der Entwicklung ist oft der Fake-Adapter (Stub-Bytes) aktiv — das ist beabsichtigt. Für echte PostgreSQL-Custom-Format-Dumps auf der Festplatte konfigurieren Sie PgDump, Staging, Verbindungszeichenfolge und Client-Binaries; nutzen Sie die Checkliste und die Repository-Dokumentation unten.",
+    "collapseLabel": "Seitenumfang & Grenzen (aufklappen)"
+  },
+  "scan": {
+    "drill": {
+      "latestFailed": "Restore-Verifikation: fehlgeschlagen (API)",
+      "inProgress": "Restore-Verifikation: läuft / Warteschlange (API)",
+      "latestSucceededApi": "Restore-Verifikation: OK (API — keine vollständige System-Recovery)",
+      "noTerminalOutcome": "Restore-Verifikation: noch kein Endstatus (API)"
+    },
+    "pipeline": {
+      "stubOrSimulated": "Pipeline Stub/Sim — kein Produktions-DR-Nachweis"
+    },
+    "proofTimestampsIncomplete": "Nachweis-Zeitstempel unvollständig (API)",
+    "scope": {
+      "endToEndRestoreNotProven": "End-to-End-Restore nicht belegt (API)",
+      "apiDbCentricNotFullSystem": "Umfang: DB + Verifikation in API — keine vollständige App/Org-Recovery",
+      "apiIncludesAppLayerNotFullOrg": "Umfang: App-Smoke in API — keine vollständige Org-Recovery"
+    }
   },
   "banner": {
     "criticalTitle": "Kritische Hinweise",
@@ -569,16 +791,16 @@
     "bytesMb": "{{n}} MB"
   },
   "artifactVerification": {
-    "title": "Letzte Artefakt-Verifikation (Phase 2)",
+    "title": "Artefakt-Integrität (aktuell)",
     "none": "Keine Verifikationszeile gefunden.",
     "pending": "Ausstehend",
     "passed": "Prüfungen als bestanden gemeldet (Integrität — API)",
     "failed": "Fehlgeschlagen",
-    "notRestoreProof": "Artefakt-Verifikation bestätigt Dateiintegrität (z. B. Checksummen) — keine vollständige Wiederherstellbarkeit."
+    "notRestoreProof": "Integritätsprüfung (z. B. Checksummen) — keine vollständige Wiederherstellbarkeit."
   },
   "restoreVerification": {
-    "sectionTitle": "Restore-Verifikation (separat vom Backup-Pipeline)",
-    "title": "Letzte Restore-Verifikation (Drill)",
+    "sectionTitle": "Restore-Verifikation (vs. Backup-Pipeline)",
+    "title": "Letzte Restore-Verifikation",
     "none": "Noch kein Restore-Drill ausgeführt.",
     "explanation": "Prüft u. a. Dump-Inspektion und optional isolierten Restore-Versuch sowie SQL auf Clone — kein Produktions-Restore über diese UI.",
     "realProfileBlockedTitle": "Backup-Profil nicht ausführbar (Real / PgDump)",
@@ -622,15 +844,15 @@
     }
   },
   "distinction": {
-    "title": "Artefakt-Verifikation vs. Restore-Verifikation",
-    "body": "Artefakt-Verifikation: Integrität der erzeugten Dateien (z. B. Checksummen / Staging). Restore-Verifikation: zusätzliche technische Drill-Metadaten (Listen-Inspect, optional fiskalische SQL auf Clone) — ersetzt weder vollständigen Restore-Test noch RPO/RTO-Garantien."
+    "title": "Artefakt-Integrität vs. Restore-Verifikation",
+    "body": "Artefakt-Integrität: Dateien/Checksummen. Restore-Verifikation: Drill-Metadaten (Listen-Inspect, optional fiskal. SQL auf Clone) — kein vollständiger Restore-Nachweis oder RPO/RTO."
   },
   "runs": {
     "title": "Letzte Backup-Läufe",
     "statusHint": "Jede Zeile zeigt das von der API gemeldete Ergebnis dieses Laufs. Der Verlauf ersetzt nicht die „letzte bekannte gute“ Nachweise in der Recoverability-Karte."
   },
   "restoreHistory": {
-    "title": "Letzte Restore-Drills",
+    "title": "Letzte Restore-Verifikationen",
     "empty": "Noch keine Restore-Drills erfasst.",
     "statusHint": "Jede Zeile zeigt das API-Ergebnis des Drills. Ein abgeschlossener Drill ist technische Metadaten — keine vollständige Recovery-Garantie."
   },

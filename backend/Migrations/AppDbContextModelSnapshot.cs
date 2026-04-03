@@ -4508,6 +4508,14 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<bool>("ApplicationSmokeProbeExecuted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("application_smoke_probe_executed");
+
+                    b.Property<bool?>("ApplicationSmokeProbePassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("application_smoke_probe_passed");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completed_at");
@@ -4530,6 +4538,33 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(512)")
                         .HasColumnName("dump_relative_descriptor");
 
+                    b.Property<long?>("DurationMs")
+                        .HasColumnType("bigint")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<string>("EvidenceJson")
+                        .HasColumnType("text")
+                        .HasColumnName("evidence_json");
+
+                    b.Property<string>("ExternalDependencyL6OverallState")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("external_dependency_l6_overall_state");
+
+                    b.Property<string>("ExternalDependencyL6Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("external_dependency_l6_summary");
+
+                    b.Property<string>("ExternalDependencyProofOutcome")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("external_dependency_proof_outcome");
+
+                    b.Property<short?>("FailureCategory")
+                        .HasColumnType("smallint")
+                        .HasColumnName("failure_category");
+
                     b.Property<string>("FailureCode")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -4539,6 +4574,10 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("failure_detail");
+
+                    b.Property<bool?>("FiscalContinuityLayerPassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("fiscal_continuity_layer_passed");
 
                     b.Property<int?>("FiscalSqlFailCount")
                         .HasColumnType("integer")
@@ -4595,6 +4634,18 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("pg_restore_list_passed");
 
+                    b.Property<bool>("PostRestoreContinuityChecksExecuted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("post_restore_continuity_checks_executed");
+
+                    b.Property<bool?>("PostRestoreContinuityChecksPassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("post_restore_continuity_checks_passed");
+
+                    b.Property<int?>("PostRestoreL4ContinuityProofState")
+                        .HasColumnType("integer")
+                        .HasColumnName("post_restore_l4_continuity_proof_state");
+
                     b.Property<DateTime>("RequestedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("requested_at");
@@ -4621,10 +4672,31 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(150)")
                         .HasColumnName("restore_attempt_skip_reason");
 
+                    b.Property<short?>("RestoreDrillReachedStage")
+                        .HasColumnType("smallint")
+                        .HasColumnName("restore_drill_reached_stage");
+
                     b.Property<string>("RestoreTargetDbRedacted")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)")
                         .HasColumnName("restore_target_db_redacted");
+
+                    b.Property<bool>("RestoredDatabaseApplicationSmokeExecuted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("restored_database_application_smoke_executed");
+
+                    b.Property<bool?>("RestoredDatabaseApplicationSmokePassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("restored_database_application_smoke_passed");
+
+                    b.Property<string>("RestoredDatabaseApplicationSmokeResultKind")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("restored_database_application_smoke_result_kind");
+
+                    b.Property<Guid?>("SourceBackupArtifactId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_backup_artifact_id");
 
                     b.Property<Guid?>("SourceBackupRunId")
                         .HasColumnType("uuid")
@@ -4663,6 +4735,8 @@ namespace KasseAPI_Final.Migrations
                         .HasFilter("status = 1");
 
                     b.HasIndex("RequestedAt");
+
+                    b.HasIndex("SourceBackupArtifactId");
 
                     b.HasIndex("SourceBackupRunId");
 
@@ -6080,10 +6154,17 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.RestoreVerification.RestoreVerificationRun", b =>
                 {
+                    b.HasOne("KasseAPI_Final.Models.Backup.BackupArtifact", "SourceBackupArtifact")
+                        .WithMany()
+                        .HasForeignKey("SourceBackupArtifactId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("KasseAPI_Final.Models.Backup.BackupRun", "SourceBackupRun")
                         .WithMany()
                         .HasForeignKey("SourceBackupRunId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("SourceBackupArtifact");
 
                     b.Navigation("SourceBackupRun");
                 });

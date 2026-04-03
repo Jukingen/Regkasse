@@ -107,7 +107,8 @@ export function pgRestoreListFailureKindToBannerMessageKey(kind: PgRestoreListFa
 } {
   switch (kind) {
     case 'fake_stub_expected':
-      return { tier: 'info', key: 'backupDr.banner.restoreDrillStubListFailedExpected' };
+      /** warn: üst şeritte kritik/uyarı varken de görünür (info HealthBanner’da gizlenir). */
+      return { tier: 'warn', key: 'backupDr.banner.restoreDrillStubListFailedExpected' };
     case 'real_pg_restore_unavailable':
       return { tier: 'warn', key: 'backupDr.banner.restoreDrillRealListFailedPgRestoreUnavailable' };
     case 'real_dump_file_missing':

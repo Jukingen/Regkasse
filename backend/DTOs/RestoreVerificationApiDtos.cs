@@ -63,6 +63,9 @@ public sealed class RestoreVerificationRunResponseDto
     public RestoreVerificationTriggerSource TriggerSource { get; init; }
     public Guid? SourceBackupRunId { get; init; }
 
+    /// <summary>Seçilen mantıksal dump satırı (<c>backup_artifacts.id</c>).</summary>
+    public Guid? SourceBackupArtifactId { get; init; }
+
     /// <summary><c>pg_restore --list</c> / TOC okunabilirliği (checksum değil).</summary>
     public bool? DumpInspectionPassed { get; init; }
 
@@ -90,6 +93,53 @@ public sealed class RestoreVerificationRunResponseDto
     public string? IntegrityScope { get; init; }
 
     public bool? IntegrityChecksPassed { get; init; }
+
+    /// <summary>Geri yüklenen kopyada çalıştırılan süreklilik SQL kontrolleri.</summary>
+    public bool PostRestoreContinuityChecksExecuted { get; init; }
+
+    public bool? PostRestoreContinuityChecksPassed { get; init; }
+
+    /// <summary>
+    /// L4: izole geri yükleme sonrası kritik süreklilik SQL sonucu; null = kontrol çalıştırılmadı veya kapsam dışı.
+    /// </summary>
+    public PostRestoreContinuityProofState? PostRestoreL4ContinuityProofState { get; init; }
+
+    /// <summary>L4 bileşik kanıt (fiscal + klon sürekliliği kapsamı).</summary>
+    public bool? FiscalContinuityLayerPassed { get; init; }
+
+    /// <summary>L5a: geri yüklenen izole DB üzerinde in-process uygulama dumanı çalıştırıldı mı.</summary>
+    public bool RestoredDatabaseApplicationSmokeExecuted { get; init; }
+
+    /// <summary>L5a: sonuç türü adı (<see cref="RestoreDrillApplicationSmokeResultKind"/>); yoksa null.</summary>
+    public string? RestoredDatabaseApplicationSmokeResultKind { get; init; }
+
+    /// <summary>L5a: kesin geçiş için true/false; Inconclusive vb. için null.</summary>
+    public bool? RestoredDatabaseApplicationSmokePassed { get; init; }
+
+    /// <summary>L5: HTTP duman testi çalıştırıldı mı.</summary>
+    public bool ApplicationSmokeProbeExecuted { get; init; }
+
+    /// <summary>L5: duman testi geçti mi.</summary>
+    public bool? ApplicationSmokeProbePassed { get; init; }
+
+    /// <summary>L6: harici bağımlılık kanıt özeti (Partial = tam canlı kanıt değil).</summary>
+    public string? ExternalDependencyProofOutcome { get; init; }
+
+    /// <summary>L6 konsolide durum (<see cref="ExternalDependencyProofState"/> adı).</summary>
+    public string? ExternalDependencyL6OverallState { get; init; }
+
+    /// <summary>L6 alan rollup özeti (kısa).</summary>
+    public string? ExternalDependencyL6Summary { get; init; }
+
+    public RestoreDrillStage? RestoreDrillReachedStage { get; init; }
+
+    public RestoreDrillFailureCategory? FailureCategory { get; init; }
+
+    public long? DurationMs { get; init; }
+
+    /// <summary>Makine kanıtı (JSON); ayrıca <c>detailsJson</c> operasyonel notlar.</summary>
+    public string? EvidenceJson { get; init; }
+
     public DateTime RequestedAt { get; init; }
     public DateTime? StartedAt { get; init; }
     public DateTime? CompletedAt { get; init; }
@@ -124,6 +174,7 @@ public static class RestoreVerificationRunMapper
         Status = r.Status,
         TriggerSource = r.TriggerSource,
         SourceBackupRunId = r.SourceBackupRunId,
+        SourceBackupArtifactId = r.SourceBackupArtifactId,
         DumpInspectionPassed = r.PgRestoreListPassed,
         PgRestoreListExitCode = r.PgRestoreListExitCode,
         PgRestoreListLineCount = r.PgRestoreListLineCount,
@@ -139,6 +190,22 @@ public static class RestoreVerificationRunMapper
         FiscalSqlWarnCount = r.FiscalSqlWarnCount,
         IntegrityScope = r.IntegrityScope,
         IntegrityChecksPassed = r.IntegrityChecksPassed,
+        PostRestoreContinuityChecksExecuted = r.PostRestoreContinuityChecksExecuted,
+        PostRestoreContinuityChecksPassed = r.PostRestoreContinuityChecksPassed,
+        PostRestoreL4ContinuityProofState = MapPostRestoreL4ContinuityProofState(r),
+        FiscalContinuityLayerPassed = r.FiscalContinuityLayerPassed,
+        RestoredDatabaseApplicationSmokeExecuted = r.RestoredDatabaseApplicationSmokeExecuted,
+        RestoredDatabaseApplicationSmokeResultKind = r.RestoredDatabaseApplicationSmokeResultKind,
+        RestoredDatabaseApplicationSmokePassed = r.RestoredDatabaseApplicationSmokePassed,
+        ApplicationSmokeProbeExecuted = r.ApplicationSmokeProbeExecuted,
+        ApplicationSmokeProbePassed = r.ApplicationSmokeProbePassed,
+        ExternalDependencyProofOutcome = r.ExternalDependencyProofOutcome,
+        ExternalDependencyL6OverallState = r.ExternalDependencyL6OverallState,
+        ExternalDependencyL6Summary = r.ExternalDependencyL6Summary,
+        RestoreDrillReachedStage = r.RestoreDrillReachedStage,
+        FailureCategory = r.FailureCategory,
+        DurationMs = r.DurationMs,
+        EvidenceJson = r.EvidenceJson,
         RequestedAt = r.RequestedAt,
         StartedAt = r.StartedAt,
         CompletedAt = r.CompletedAt,
@@ -160,4 +227,15 @@ public static class RestoreVerificationRunMapper
             ExistingRunReturned = r.ExistingRunReturned,
             Run = ToDto(r.Run)
         };
+
+    private static PostRestoreContinuityProofState? MapPostRestoreL4ContinuityProofState(RestoreVerificationRun r)
+    {
+        if (r.PostRestoreL4ContinuityProofState.HasValue)
+            return r.PostRestoreL4ContinuityProofState.Value;
+        if (!r.PostRestoreContinuityChecksExecuted)
+            return null;
+        return r.PostRestoreContinuityChecksPassed == true
+            ? PostRestoreContinuityProofState.Passed
+            : PostRestoreContinuityProofState.Failed;
+    }
 }

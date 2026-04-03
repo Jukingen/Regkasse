@@ -168,7 +168,7 @@ export interface RestoreTruth {
 export interface BannerOperatorTruth {
   critical: string[];
   warn: string[];
-  /** Beklenen Fake/stub davranışı — üretim olayı gibi sunulmaz (HealthBanner’da info). */
+  /** Beklenen Fake/stub davranışı — üretim olayı gibi sunulmaz; çoğu HealthBanner’da info (stub tatbikat açıklaması warn). */
   info: string[];
 }
 

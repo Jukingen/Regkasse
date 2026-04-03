@@ -85,4 +85,32 @@ public sealed class RestoreVerificationOptionsValidatorTests
         var r = Validator.Validate(null, new RestoreVerificationOptions { IsolatedPgRestoreEnabled = false });
         Assert.False(r.Failed);
     }
+
+    [Fact]
+    public void Validate_fails_when_restored_database_application_smoke_enabled_without_post_restore_sql_checks()
+    {
+        var r = Validator.Validate(
+            null,
+            new RestoreVerificationOptions
+            {
+                IsolatedPgRestoreEnabled = false,
+                PostRestoreSqlChecksEnabled = false,
+                RestoredDatabaseApplicationSmokeEnabled = true
+            });
+        Assert.True(r.Failed);
+    }
+
+    [Fact]
+    public void Validate_succeeds_when_restored_database_application_smoke_enabled_with_post_restore_sql_checks()
+    {
+        var r = Validator.Validate(
+            null,
+            new RestoreVerificationOptions
+            {
+                IsolatedPgRestoreEnabled = false,
+                PostRestoreSqlChecksEnabled = true,
+                RestoredDatabaseApplicationSmokeEnabled = true
+            });
+        Assert.False(r.Failed);
+    }
 }

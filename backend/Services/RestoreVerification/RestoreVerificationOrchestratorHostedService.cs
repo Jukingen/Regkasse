@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.RestoreVerification;
@@ -8,7 +6,6 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.OperationalRuns;
-using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +22,7 @@ namespace KasseAPI_Final.Services.RestoreVerification;
 /// Çoklu örnek: <see cref="IRestoreVerificationOrchestratorDistributedLock"/> ile Backup worker’dan bağımsız PostgreSQL advisory lock
 /// (<c>RestoreVerification:OrchestratorDistributedLockEnabled</c>). Kilit yoksa veya DB hatası varsa tick atlanır; Queued satırına yanlış başarı yazılmaz.
 /// </remarks>
-public sealed class RestoreVerificationOrchestratorHostedService : BackgroundService
+public sealed partial class RestoreVerificationOrchestratorHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptionsMonitor<RestoreVerificationOptions> _restoreOpts;
@@ -35,7 +32,11 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
     private readonly IRestoreVerificationOrchestratorDistributedLock _distributedLock;
     private readonly IPgRestoreListInspector _pgRestoreList;
     private readonly IPgRestoreIsolatedRestoreRunner _isolatedRestore;
+    private readonly IPostRestoreDrillSqlChecker _postRestoreSqlChecker;
+    private readonly IRestoredDatabaseApplicationSmokeRunner _restoredDatabaseApplicationSmoke;
     private readonly IFiscalGoLiveValidationRunner _fiscalRunner;
+    private readonly IApplicationRecoverySmokeProbe _applicationSmokeProbe;
+    private readonly IExternalDependencyRecoveryEvidenceBuilder _externalDependencyEvidence;
     private readonly IRestoreVerificationOperationalReadiness _restoreReadiness;
     private readonly IRestoreVerificationOrchestratorMetrics _orchestratorMetrics;
     private readonly IBackupAlertPublisher _alerts;
@@ -50,7 +51,11 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
         IRestoreVerificationOrchestratorDistributedLock distributedLock,
         IPgRestoreListInspector pgRestoreList,
         IPgRestoreIsolatedRestoreRunner isolatedRestore,
+        IPostRestoreDrillSqlChecker postRestoreSqlChecker,
+        IRestoredDatabaseApplicationSmokeRunner restoredDatabaseApplicationSmoke,
         IFiscalGoLiveValidationRunner fiscalRunner,
+        IApplicationRecoverySmokeProbe applicationSmokeProbe,
+        IExternalDependencyRecoveryEvidenceBuilder externalDependencyEvidence,
         IRestoreVerificationOperationalReadiness restoreReadiness,
         IRestoreVerificationOrchestratorMetrics orchestratorMetrics,
         IBackupAlertPublisher alerts,
@@ -64,7 +69,11 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
         _distributedLock = distributedLock;
         _pgRestoreList = pgRestoreList;
         _isolatedRestore = isolatedRestore;
+        _postRestoreSqlChecker = postRestoreSqlChecker;
+        _restoredDatabaseApplicationSmoke = restoredDatabaseApplicationSmoke;
         _fiscalRunner = fiscalRunner;
+        _applicationSmokeProbe = applicationSmokeProbe;
+        _externalDependencyEvidence = externalDependencyEvidence;
         _restoreReadiness = restoreReadiness;
         _orchestratorMetrics = orchestratorMetrics;
         _alerts = alerts;
@@ -288,376 +297,4 @@ public sealed class RestoreVerificationOrchestratorHostedService : BackgroundSer
         }
     }
 
-    private async Task ExecuteRestoreVerificationRunWorkAsync(
-        IServiceProvider sp,
-        AppDbContext db,
-        RestoreVerificationRun run,
-        CancellationToken ct)
-    {
-        var backupOpts = _backupOpts.CurrentValue;
-            var restoreOpts = _restoreOpts.CurrentValue;
-            var details = new JsonObject
-            {
-                ["scope"] = "restore_confidence_drill_not_artifact_checksum",
-                ["tseRestoreVerification"] = "deferred_vendor_scope",
-                ["finanzOnlineOutbox"] =
-                    "Restore drill does not replay FinanzOnline outbox; treat as separate operational concern.",
-                ["integrityInterpretation"] =
-                    "When IncludeLiveIntegrityChecks runs against DefaultConnection, it validates current operational data only; post-restore fiscal/schema checks require fiscal script on a restored clone connection."
-            };
-
-            var fallbackDepth = restoreOpts.DumpFallbackDepth;
-            var backupRunQuery = sp.GetRequiredService<IBackupRunQueryService>();
-            var candidateRunIds = await backupRunQuery.GetRecentSucceededRunIdsAsync(fallbackDepth, ct);
-            var dump = await RestoreVerificationDumpPathResolver.TryResolveAmongSucceededCandidatesAsync(
-                db,
-                backupOpts,
-                candidateRunIds,
-                _logger,
-                _hostEnvironment,
-                ct);
-
-            if (dump == null)
-            {
-                details["dumpResolution"] = JsonSerializer.SerializeToNode(new
-                {
-                    outcome = "no_dump_available",
-                    fallbackDepth,
-                    candidateRunCount = candidateRunIds.Count
-                });
-                run.Status = RestoreVerificationStatus.Failed;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "NO_DUMP_AVAILABLE";
-                run.FailureDetail =
-                    $"No logical dump file found on disk for the {fallbackDepth} most recent successful backup run(s) (checked staging, then external archive per run).";
-                run.DetailsJson = details.ToJsonString();
-                await db.SaveChangesAsync(ct);
-                return;
-            }
-
-            run.SourceBackupRunId = dump.Value.backupRunId;
-            run.DumpRelativeDescriptor = dump.Value.relativeDescriptor;
-
-            var listResult = await _pgRestoreList.InspectDumpFileAsync(dump.Value.absolutePath, ct);
-            run.PgRestoreListExitCode = listResult.ExitCode;
-            run.PgRestoreListLineCount = listResult.NonEmptyLineCount;
-            run.PgRestoreListPassed = listResult.Success;
-            // Two separate JsonNode graphs — never reuse one JsonNode under two JsonObject keys (InvalidOperationException:
-            // "The node already has a parent."). DeepClone works too; double SerializeToNode is maximally explicit.
-            var inspectionPayload = new
-            {
-                passed = listResult.Success,
-                exitCode = listResult.ExitCode,
-                lineCount = listResult.NonEmptyLineCount,
-                kind = "pg_restore_list_toc_inspection_not_checksum"
-            };
-            details["pgRestoreList"] = JsonSerializer.SerializeToNode(inspectionPayload);
-            details["dumpInspection"] = JsonSerializer.SerializeToNode(inspectionPayload);
-
-            if (!listResult.Success)
-            {
-                run.Status = RestoreVerificationStatus.Failed;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "PG_RESTORE_LIST_FAILED";
-                run.FailureDetail = listResult.StdErrSnippet ?? "pg_restore --list failed.";
-                var sourceAdapter = await db.BackupRuns.AsNoTracking()
-                    .Where(r => r.Id == dump.Value.backupRunId)
-                    .Select(r => r.AdapterKind)
-                    .FirstOrDefaultAsync(ct);
-                if (string.Equals(sourceAdapter, "Fake", StringComparison.OrdinalIgnoreCase))
-                {
-                    details["pgRestoreListFailureContext"] = JsonSerializer.SerializeToNode(new
-                    {
-                        sourceBackupRunId = dump.Value.backupRunId,
-                        sourceAdapterKind = sourceAdapter,
-                        reason = "fake_adapter_stub_not_pg_restore_format",
-                    });
-                }
-
-                run.DetailsJson = details.ToJsonString();
-                await db.SaveChangesAsync(ct);
-                return;
-            }
-
-            var restoreAttemptNode = new JsonObject();
-            details["restoreAttempt"] = restoreAttemptNode;
-            var isoEnabled = restoreOpts.IsolatedPgRestoreEnabled;
-            var isoConnName = restoreOpts.IsolatedRestoreAdminConnectionStringName;
-            if (!isoEnabled)
-            {
-                run.RestoreAttemptExecuted = false;
-                run.RestoreAttemptPassed = null;
-                run.RestoreAttemptExitCode = null;
-                run.RestoreAttemptSkipReason = "ISOLATED_PG_RESTORE_DISABLED";
-                run.RestoreTargetDbRedacted = null;
-                restoreAttemptNode["skipped"] = true;
-                restoreAttemptNode["reason"] = run.RestoreAttemptSkipReason;
-            }
-            else if (_hostEnvironment.IsProduction()
-                     && string.Equals(isoConnName?.Trim(), "DefaultConnection", StringComparison.OrdinalIgnoreCase))
-            {
-                run.RestoreAttemptExecuted = false;
-                run.RestoreAttemptPassed = null;
-                run.RestoreAttemptExitCode = null;
-                run.RestoreAttemptSkipReason = "PRODUCTION_REQUIRES_NON_DEFAULT_CONNECTION";
-                run.RestoreTargetDbRedacted = null;
-                restoreAttemptNode["skipped"] = true;
-                restoreAttemptNode["reason"] = run.RestoreAttemptSkipReason;
-                run.Status = RestoreVerificationStatus.Failed;
-                run.CompletedAt = DateTime.UtcNow;
-                run.FailureCode = "RESTORE_ATTEMPT_NOT_ALLOWED";
-                run.FailureDetail =
-                    "Isolated restore admin connection must not be DefaultConnection in Production.";
-                run.DetailsJson = details.ToJsonString();
-                await db.SaveChangesAsync(ct);
-                return;
-            }
-            else
-            {
-                var adminCs = _configuration.GetConnectionString(isoConnName!.Trim());
-                if (string.IsNullOrWhiteSpace(adminCs))
-                {
-                    run.RestoreAttemptExecuted = false;
-                    run.RestoreAttemptPassed = null;
-                    run.RestoreAttemptExitCode = null;
-                    run.RestoreAttemptSkipReason = "MISSING_ADMIN_CONNECTION_STRING";
-                    run.RestoreTargetDbRedacted = null;
-                    restoreAttemptNode["skipped"] = false;
-                    restoreAttemptNode["executed"] = false;
-                    restoreAttemptNode["reason"] = run.RestoreAttemptSkipReason;
-                    run.Status = RestoreVerificationStatus.Failed;
-                    run.CompletedAt = DateTime.UtcNow;
-                    run.FailureCode = "ISOLATED_RESTORE_NOT_CONFIGURED";
-                    run.FailureDetail =
-                        "IsolatedPgRestoreEnabled is true but IsolatedRestoreAdminConnectionStringName is missing or empty in configuration.";
-                    run.DetailsJson = details.ToJsonString();
-                    await db.SaveChangesAsync(ct);
-                    return;
-                }
-
-                var dbName = $"rv_v_{run.Id:N}";
-                run.RestoreTargetDbRedacted = dbName;
-                var timeoutSec = restoreOpts.IsolatedPgRestoreTimeoutSeconds <= 0
-                    ? 3600
-                    : restoreOpts.IsolatedPgRestoreTimeoutSeconds;
-                var timeout = TimeSpan.FromSeconds(Math.Max(60, timeoutSec));
-
-                _logger.LogInformation(
-                    "Restore verification isolated pg_restore: runId={RunId}, backupRunId={BackupRunId}, targetDb={TargetDb}",
-                    run.Id,
-                    run.SourceBackupRunId,
-                    dbName);
-
-                PgRestoreIsolatedRestoreOutcome isolatedOutcome;
-                try
-                {
-                    isolatedOutcome = await _isolatedRestore.RestoreCustomDumpToEphemeralDatabaseAsync(
-                        adminCs,
-                        dump.Value.absolutePath,
-                        dbName,
-                        restoreOpts.PgRestoreExecutablePath,
-                        timeout,
-                        ct);
-                }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested)
-                {
-                    run.RestoreAttemptExecuted = true;
-                    run.RestoreAttemptPassed = false;
-                    run.RestoreAttemptExitCode = -3;
-                    run.RestoreAttemptSkipReason = null;
-                    restoreAttemptNode["executed"] = true;
-                    restoreAttemptNode["passed"] = false;
-                    restoreAttemptNode["cancelled"] = true;
-                    run.Status = RestoreVerificationStatus.Failed;
-                    run.CompletedAt = DateTime.UtcNow;
-                    run.FailureCode = "ISOLATED_PG_RESTORE_CANCELLED";
-                    run.FailureDetail = "Restore verification cancelled during isolated pg_restore.";
-                    run.DetailsJson = details.ToJsonString();
-                    await db.SaveChangesAsync(ct);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Isolated pg_restore runner threw for run {RunId}", run.Id);
-                    run.RestoreAttemptExecuted = true;
-                    run.RestoreAttemptPassed = false;
-                    run.RestoreAttemptExitCode = -1;
-                    restoreAttemptNode["executed"] = true;
-                    restoreAttemptNode["passed"] = false;
-                    restoreAttemptNode["error"] = ex.Message;
-                    run.Status = RestoreVerificationStatus.Failed;
-                    run.CompletedAt = DateTime.UtcNow;
-                    run.FailureCode = "ISOLATED_PG_RESTORE_EXCEPTION";
-                    run.FailureDetail = ex.Message;
-                    run.DetailsJson = details.ToJsonString();
-                    await db.SaveChangesAsync(ct);
-                    return;
-                }
-
-                run.RestoreAttemptExecuted = true;
-                run.RestoreAttemptPassed = isolatedOutcome.Success;
-                run.RestoreAttemptExitCode = isolatedOutcome.ExitCode;
-                run.RestoreAttemptSkipReason = null;
-                restoreAttemptNode["executed"] = true;
-                restoreAttemptNode["passed"] = isolatedOutcome.Success;
-                restoreAttemptNode["exitCode"] = isolatedOutcome.ExitCode;
-                restoreAttemptNode["targetDbRedacted"] = dbName;
-
-                if (!isolatedOutcome.Success)
-                {
-                    run.Status = RestoreVerificationStatus.Failed;
-                    run.CompletedAt = DateTime.UtcNow;
-                    run.FailureCode = "ISOLATED_PG_RESTORE_FAILED";
-                    run.FailureDetail = isolatedOutcome.StdErrSnippet ?? "pg_restore into ephemeral database failed.";
-                    run.DetailsJson = details.ToJsonString();
-                    await db.SaveChangesAsync(ct);
-                    return;
-                }
-
-                restoreAttemptNode["ephemeralDbDropped"] = true;
-                restoreAttemptNode["fiscalNote"] =
-                    "Fiscal SQL does not automatically run against the ephemeral DB; use FiscalValidationConnectionStringName for a clone if post-restore fiscal checks are required.";
-            }
-
-            // Fiscal SQL: isolated connection only; never DefaultConnection in Production.
-            var fiscalName = restoreOpts.FiscalValidationConnectionStringName;
-            if (string.IsNullOrWhiteSpace(fiscalName))
-            {
-                run.FiscalSqlSkipped = true;
-                run.FiscalSqlSkipReason = "FISCAL_CONNECTION_NOT_CONFIGURED";
-                details["fiscalSql"] = JsonSerializer.SerializeToNode(new { skipped = true, reason = run.FiscalSqlSkipReason });
-            }
-            else if (_hostEnvironment.IsProduction()
-                     && string.Equals(fiscalName.Trim(), "DefaultConnection", StringComparison.OrdinalIgnoreCase))
-            {
-                run.FiscalSqlSkipped = true;
-                run.FiscalSqlSkipReason = "PRODUCTION_REQUIRES_NON_DEFAULT_CONNECTION";
-                details["fiscalSql"] = JsonSerializer.SerializeToNode(new { skipped = true, reason = run.FiscalSqlSkipReason });
-            }
-            else
-            {
-                var fiscalCs = _configuration.GetConnectionString(fiscalName.Trim());
-                if (string.IsNullOrWhiteSpace(fiscalCs))
-                {
-                    run.FiscalSqlSkipped = false;
-                    run.FiscalSqlPassed = null;
-                    details["fiscalSql"] = JsonSerializer.SerializeToNode(new
-                    {
-                        skipped = false,
-                        executed = false,
-                        reason = "MISSING_CONNECTION_STRING",
-                        connectionName = fiscalName.Trim()
-                    });
-                    run.Status = RestoreVerificationStatus.Failed;
-                    run.CompletedAt = DateTime.UtcNow;
-                    run.FailureCode = "FISCAL_VALIDATION_NOT_EXECUTED";
-                    run.FailureDetail =
-                        "FiscalValidationConnectionStringName is set but the connection string entry is missing.";
-                    run.DetailsJson = details.ToJsonString();
-                    await db.SaveChangesAsync(ct);
-                    return;
-                }
-
-                var contentRoot = _hostEnvironment.ContentRootPath;
-                var scriptRel = restoreOpts.FiscalValidationScriptRelativePath;
-                var scriptPath = Path.GetFullPath(Path.Combine(contentRoot, scriptRel));
-                var fiscalOutcome = await _fiscalRunner.RunScriptAsync(scriptPath, fiscalCs, ct);
-                if (!fiscalOutcome.Executed)
-                {
-                    run.FiscalSqlSkipped = true;
-                    run.FiscalSqlSkipReason = string.IsNullOrWhiteSpace(fiscalOutcome.ErrorDetail)
-                        ? "FISCAL_RUN_PREREQ_FAILED"
-                        : fiscalOutcome.ErrorDetail;
-                    details["fiscalSql"] = JsonSerializer.SerializeToNode(new
-                    {
-                        skipped = true,
-                        executed = false,
-                        error = fiscalOutcome.ErrorDetail
-                    });
-                    run.Status = RestoreVerificationStatus.Failed;
-                    run.CompletedAt = DateTime.UtcNow;
-                    run.FailureCode = "FISCAL_VALIDATION_NOT_EXECUTED";
-                    run.FailureDetail = fiscalOutcome.ErrorDetail ?? "Fiscal validation could not run.";
-                    run.DetailsJson = details.ToJsonString();
-                    await db.SaveChangesAsync(ct);
-                    return;
-                }
-
-                run.FiscalSqlSkipped = false;
-                run.FiscalSqlPassed = fiscalOutcome.Passed;
-                run.FiscalSqlFailCount = fiscalOutcome.FailCount;
-                run.FiscalSqlWarnCount = fiscalOutcome.WarnCount;
-                details["fiscalSql"] = JsonSerializer.SerializeToNode(new
-                {
-                    executed = true,
-                    passed = fiscalOutcome.Passed,
-                    failCount = fiscalOutcome.FailCount,
-                    warnCount = fiscalOutcome.WarnCount,
-                    summary = fiscalOutcome.SummaryLine,
-                    scriptPathRelative = scriptRel
-                });
-
-                if (!fiscalOutcome.Passed)
-                {
-                    run.Status = RestoreVerificationStatus.Failed;
-                    run.CompletedAt = DateTime.UtcNow;
-                    run.FailureCode = "FISCAL_VALIDATION_FAILED";
-                    run.FailureDetail = fiscalOutcome.ErrorDetail ?? fiscalOutcome.SummaryLine ?? "Fiscal SQL reported FAIL rows.";
-                    run.DetailsJson = details.ToJsonString();
-                    await db.SaveChangesAsync(ct);
-                    return;
-                }
-            }
-
-            if (restoreOpts.IncludeLiveIntegrityChecks)
-            {
-                var integrity = sp.GetRequiredService<IIntegrityCheckService>();
-                var toUtc = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
-                var fromUtc = toUtc.AddDays(-restoreOpts.IntegrityLookbackDays);
-                var report = await integrity.GetReportAsync(fromUtc, toUtc, includeDetails: false);
-                var pass = report.SequenceIssues.DuplicateReceiptNumberCount == 0
-                           && report.SequenceIssues.NonMonotonicSequenceCount == 0
-                           && report.OrphanRefunds.OrphanRefundCount == 0
-                           && report.PaymentWithoutInvoice.Count == 0;
-                run.IntegrityScope = "LiveOperationalReadOnly";
-                run.IntegrityChecksPassed = pass;
-                details["integrity"] = JsonSerializer.SerializeToNode(new
-                {
-                    scope = run.IntegrityScope,
-                    passed = pass,
-                    duplicateReceiptNumbers = report.SequenceIssues.DuplicateReceiptNumberCount,
-                    nonMonotonic = report.SequenceIssues.NonMonotonicSequenceCount,
-                    orphanRefunds = report.OrphanRefunds.OrphanRefundCount,
-                    paymentWithoutInvoice = report.PaymentWithoutInvoice.Count
-                });
-
-                if (!pass)
-                {
-                    run.Status = RestoreVerificationStatus.Failed;
-                    run.CompletedAt = DateTime.UtcNow;
-                    run.FailureCode = "INTEGRITY_CHECKS_FAILED";
-                    run.FailureDetail = "Operational integrity report reported issues in lookback window.";
-                    run.DetailsJson = details.ToJsonString();
-                    await db.SaveChangesAsync(ct);
-                    return;
-                }
-            }
-            else
-            {
-                run.IntegrityChecksPassed = null;
-                details["integrity"] = JsonSerializer.SerializeToNode(new { skipped = true });
-            }
-
-            run.Status = RestoreVerificationStatus.Succeeded;
-            run.CompletedAt = DateTime.UtcNow;
-            run.FailureCode = null;
-            run.FailureDetail = null;
-            run.DetailsJson = details.ToJsonString();
-            await db.SaveChangesAsync(ct);
-
-            _logger.LogInformation(
-                "Restore verification drill succeeded: runId={RunId}, backupRunId={BackupRunId}",
-                run.Id,
-                run.SourceBackupRunId);
-    }
 }

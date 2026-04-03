@@ -481,13 +481,22 @@ builder.Services.AddHostedService<BackupRetentionPolicyDiagnosticsHostedService>
 
 builder.Services.AddSingleton<IPgRestoreListInspector, PgRestoreListInspector>();
 builder.Services.AddSingleton<IPgRestoreIsolatedRestoreRunner, PgRestoreIsolatedRestoreRunner>();
+builder.Services.AddSingleton<IPostRestoreDrillSqlChecker, PostRestoreDrillSqlChecker>();
+builder.Services.AddSingleton<IRestoredDatabaseApplicationSmokeRunner, RestoredDatabaseApplicationSmokeRunner>();
 builder.Services.AddSingleton<IFiscalGoLiveValidationRunner, FiscalGoLiveValidationRunner>();
+builder.Services.AddHttpClient(ApplicationRecoverySmokeProbe.HttpClientName, c =>
+{
+    c.Timeout = TimeSpan.FromMinutes(3);
+});
+builder.Services.AddSingleton<IApplicationRecoverySmokeProbe, ApplicationRecoverySmokeProbe>();
+builder.Services.AddSingleton<IExternalDependencyRecoveryEvidenceBuilder, ExternalDependencyRecoveryEvidenceBuilder>();
 builder.Services.AddSingleton<IRestoreVerificationOrchestratorMetrics, PrometheusRestoreVerificationOrchestratorMetrics>();
 builder.Services.AddSingleton<IRestoreVerificationOrchestratorDistributedLock, RestoreVerificationOrchestratorPostgreSqlAdvisoryLock>();
 builder.Services.AddSingleton<IRestoreVerificationOperationalReadiness, RestoreVerificationOperationalReadinessService>();
 builder.Services.AddScoped<IRestoreVerificationManualTriggerService, RestoreVerificationManualTriggerService>();
         builder.Services.AddScoped<IRestoreVerificationSchedulingQueryService, RestoreVerificationSchedulingQueryService>();
         builder.Services.AddScoped<IRestoreVerificationRunQueryService, RestoreVerificationRunQueryService>();
+        builder.Services.AddScoped<IRestoreProofMilestonesQueryService, RestoreProofMilestonesQueryService>();
 builder.Services.AddHostedService<RestoreVerificationOrchestratorHostedService>();
 builder.Services.AddHostedService<StaleRunReaperHostedService>();
 builder.Services.Configure<KasseAPI_Final.Configuration.OfflineReplayOptions>(

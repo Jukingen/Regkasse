@@ -46,6 +46,35 @@ public sealed class RestoreVerificationOptionsValidator : IValidateOptions<Resto
                 "RestoreVerification:DumpFallbackDepth must be between 1 and 100.");
         }
 
+        if (options.ApplicationSmokeProbeEnabled)
+        {
+            if (string.IsNullOrWhiteSpace(options.ApplicationSmokeProbeBaseUrl))
+            {
+                return ValidateOptionsResult.Fail(
+                    "RestoreVerification:ApplicationSmokeProbeEnabled requires RestoreVerification:ApplicationSmokeProbeBaseUrl (absolute http or https URL).");
+            }
+
+            if (!Uri.TryCreate(options.ApplicationSmokeProbeBaseUrl.Trim(), UriKind.Absolute, out var smokeUri)
+                || (!string.Equals(smokeUri.Scheme, "http", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(smokeUri.Scheme, "https", StringComparison.OrdinalIgnoreCase)))
+            {
+                return ValidateOptionsResult.Fail(
+                    "RestoreVerification:ApplicationSmokeProbeBaseUrl must be an absolute http or https URL.");
+            }
+        }
+
+        if (options.ApplicationSmokeProbeTimeoutSeconds is > 0 and < 5)
+        {
+            return ValidateOptionsResult.Fail(
+                "RestoreVerification:ApplicationSmokeProbeTimeoutSeconds must be at least 5 when set.");
+        }
+
+        if (options.RestoredDatabaseApplicationSmokeEnabled && !options.PostRestoreSqlChecksEnabled)
+        {
+            return ValidateOptionsResult.Fail(
+                "RestoreVerification:RestoredDatabaseApplicationSmokeEnabled requires RestoreVerification:PostRestoreSqlChecksEnabled.");
+        }
+
         return ValidateOptionsResult.Success;
     }
 }

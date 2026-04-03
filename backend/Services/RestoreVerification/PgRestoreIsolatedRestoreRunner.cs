@@ -23,6 +23,7 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
         string newDatabaseName,
         string? pgRestoreExecutablePath,
         TimeSpan timeout,
+        bool dropEphemeralDatabaseAfterRestore = true,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(adminConnectionString))
@@ -38,25 +39,18 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
             };
         }
 
-        var invalidChar = false;
         foreach (var c in newDatabaseName)
         {
             if (!char.IsLetterOrDigit(c) && c != '_')
             {
-                invalidChar = true;
-                break;
+                return new PgRestoreIsolatedRestoreOutcome
+                {
+                    Success = false,
+                    ExitCode = -1,
+                    StdErrSnippet = "Invalid database name for isolated restore (allowed: letters, digits, underscore).",
+                    DatabaseName = newDatabaseName
+                };
             }
-        }
-
-        if (invalidChar)
-        {
-            return new PgRestoreIsolatedRestoreOutcome
-            {
-                Success = false,
-                ExitCode = -1,
-                StdErrSnippet = "Invalid database name for isolated restore (allowed: letters, digits, underscore).",
-                DatabaseName = newDatabaseName
-            };
         }
 
         NpgsqlConnectionStringBuilder adminB;
@@ -79,6 +73,8 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
         adminB.Database = maintenanceDb;
         var adminCs = adminB.ConnectionString;
 
+        var databaseCreated = false;
+        var restoreSucceeded = false;
         try
         {
             await using (var conn = new NpgsqlConnection(adminCs))
@@ -89,13 +85,13 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
                     $"CREATE DATABASE \"{newDatabaseName}\"",
                     conn);
                 await createCmd.ExecuteNonQueryAsync(cancellationToken);
+                databaseCreated = true;
             }
 
             var targetB = new NpgsqlConnectionStringBuilder(adminConnectionString)
             {
                 Database = newDatabaseName
             };
-            // Parolayı process ortamına ver; komut satırında gösterme.
             var password = targetB.Password ?? string.Empty;
             var exe = string.IsNullOrWhiteSpace(pgRestoreExecutablePath)
                 ? "pg_restore"
@@ -157,8 +153,8 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
                 throw;
             }
 
-            var ok = proc.ExitCode == 0;
-            if (!ok)
+            restoreSucceeded = proc.ExitCode == 0;
+            if (!restoreSucceeded)
                 _logger.LogWarning(
                     "Isolated pg_restore failed: database={Database}, exitCode={ExitCode}",
                     newDatabaseName,
@@ -166,7 +162,7 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
 
             return new PgRestoreIsolatedRestoreOutcome
             {
-                Success = ok,
+                Success = restoreSucceeded,
                 ExitCode = proc.ExitCode,
                 StdErrSnippet = Truncate(CombineOut(stderr, stdout), 3500),
                 DatabaseName = newDatabaseName
@@ -174,16 +170,62 @@ public sealed class PgRestoreIsolatedRestoreRunner : IPgRestoreIsolatedRestoreRu
         }
         finally
         {
-            try
+            if (!databaseCreated)
             {
-                await using var conn = new NpgsqlConnection(adminCs);
-                await conn.OpenAsync(cancellationToken);
-                await DropDatabaseIfExistsAsync(conn, newDatabaseName, cancellationToken);
+                // nothing to drop
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogWarning(ex, "Ephemeral database drop failed: {Database}", newDatabaseName);
+                var shouldDrop = !restoreSucceeded || dropEphemeralDatabaseAfterRestore;
+                if (shouldDrop)
+                {
+                    try
+                    {
+                        await using var conn = new NpgsqlConnection(adminCs);
+                        await conn.OpenAsync(cancellationToken);
+                        await DropDatabaseIfExistsAsync(conn, newDatabaseName, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Ephemeral database drop failed: {Database}", newDatabaseName);
+                    }
+                }
             }
+        }
+    }
+
+    public async Task DropEphemeralDatabaseAsync(
+        string adminConnectionString,
+        string databaseName,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(adminConnectionString))
+            throw new ArgumentException("Admin connection string is required.", nameof(adminConnectionString));
+
+        NpgsqlConnectionStringBuilder adminB;
+        try
+        {
+            adminB = new NpgsqlConnectionStringBuilder(adminConnectionString);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "DropEphemeralDatabase: invalid admin connection string");
+            return;
+        }
+
+        var maintenanceDb = string.IsNullOrWhiteSpace(adminB.Database) ? "postgres" : adminB.Database;
+        adminB.Database = maintenanceDb;
+        var adminCs = adminB.ConnectionString;
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(adminCs);
+            await conn.OpenAsync(cancellationToken);
+            await DropDatabaseIfExistsAsync(conn, databaseName, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Ephemeral database drop failed: {Database}", databaseName);
         }
     }
 

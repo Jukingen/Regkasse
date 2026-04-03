@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using KasseAPI_Final.Models.Backup;
+
 namespace KasseAPI_Final.Models.RestoreVerification;
 
 /// <summary>
@@ -26,6 +27,12 @@ public sealed class RestoreVerificationRun : KasseAPI_Final.Models.IRunLeaseColu
 
     [ForeignKey(nameof(SourceBackupRunId))]
     public BackupRun? SourceBackupRun { get; set; }
+
+    [Column("source_backup_artifact_id")]
+    public Guid? SourceBackupArtifactId { get; set; }
+
+    [ForeignKey(nameof(SourceBackupArtifactId))]
+    public BackupArtifact? SourceBackupArtifact { get; set; }
 
     /// <summary>Internal relative file name or locator for ops logs only; not exposed via redacted API.</summary>
     [MaxLength(512)]
@@ -86,6 +93,74 @@ public sealed class RestoreVerificationRun : KasseAPI_Final.Models.IRunLeaseColu
 
     [Column("integrity_checks_passed")]
     public bool? IntegrityChecksPassed { get; set; }
+
+    /// <summary>Geri yüklenen izole DB üzerinde yapılandırılmış süreklilik SQL kontrolleri çalıştırıldı mı.</summary>
+    [Column("post_restore_continuity_checks_executed")]
+    public bool PostRestoreContinuityChecksExecuted { get; set; }
+
+    /// <summary>Geri yüklenen kopyada tablo/kalıcılık kontrolleri özeti.</summary>
+    [Column("post_restore_continuity_checks_passed")]
+    public bool? PostRestoreContinuityChecksPassed { get; set; }
+
+    /// <summary>L4 süreklilik SQL rollup (makine); null = henüz kalıcı yazılmadı veya kapsam dışı.</summary>
+    [Column("post_restore_l4_continuity_proof_state")]
+    public PostRestoreContinuityProofState? PostRestoreL4ContinuityProofState { get; set; }
+
+    /// <summary>L4 bileşik: fiscal betik + (klon sürekliliği kapsamındaysa) post-restore SQL.</summary>
+    [Column("fiscal_continuity_layer_passed")]
+    public bool? FiscalContinuityLayerPassed { get; set; }
+
+    /// <summary>L5a: geri yüklenen izole DB üzerinde in-process uygulama dumanı çalıştırıldı mı.</summary>
+    [Column("restored_database_application_smoke_executed")]
+    public bool RestoredDatabaseApplicationSmokeExecuted { get; set; }
+
+    /// <summary>L5a: <see cref="Models.RestoreVerification.RestoreDrillApplicationSmokeResultKind"/> dize adı; çalıştırılmadıysa null.</summary>
+    [MaxLength(64)]
+    [Column("restored_database_application_smoke_result_kind")]
+    public string? RestoredDatabaseApplicationSmokeResultKind { get; set; }
+
+    /// <summary>L5a: yalnızca <c>Passed</c> için true; <c>Failed</c> için false; diğer sonuçlar için null.</summary>
+    [Column("restored_database_application_smoke_passed")]
+    public bool? RestoredDatabaseApplicationSmokePassed { get; set; }
+
+    /// <summary>L5: yapılandırılmış HTTP duman testi çalıştırıldı mı.</summary>
+    [Column("application_smoke_probe_executed")]
+    public bool ApplicationSmokeProbeExecuted { get; set; }
+
+    /// <summary>L5: duman testi sonucu (çalıştırılmadıysa null).</summary>
+    [Column("application_smoke_probe_passed")]
+    public bool? ApplicationSmokeProbePassed { get; set; }
+
+    /// <summary>L6: harici bağımlılık kanıt bandı (ör. Partial — tam canlı kanıt değil).</summary>
+    [MaxLength(64)]
+    [Column("external_dependency_proof_outcome")]
+    public string? ExternalDependencyProofOutcome { get; set; }
+
+    /// <summary>L6 rollup: <see cref="ExternalDependencyProofState"/> dize adı.</summary>
+    [MaxLength(40)]
+    [Column("external_dependency_l6_overall_state")]
+    public string? ExternalDependencyL6OverallState { get; set; }
+
+    /// <summary>L6 kısa özet (makine üretimi).</summary>
+    [MaxLength(2000)]
+    [Column("external_dependency_l6_summary")]
+    public string? ExternalDependencyL6Summary { get; set; }
+
+    /// <summary>Son başarılı aşama (kısmi çalıştırmalarda terminal öncesi).</summary>
+    [Column("restore_drill_reached_stage")]
+    public RestoreDrillStage? RestoreDrillReachedStage { get; set; }
+
+    /// <summary><see cref="FailureCode"/> ile uyumlu makine sınıfı.</summary>
+    [Column("failure_category")]
+    public RestoreDrillFailureCategory? FailureCategory { get; set; }
+
+    /// <summary><see cref="StartedAt"/> ile <see cref="CompletedAt"/> arası süre.</summary>
+    [Column("duration_ms")]
+    public long? DurationMs { get; set; }
+
+    /// <summary>Yapılandırılmış kanıt: aşamalar, geçerlilik bantları, SQL satırları (parola/host yok).</summary>
+    [Column("evidence_json")]
+    public string? EvidenceJson { get; set; }
 
     [Required]
     [Column("requested_at")]

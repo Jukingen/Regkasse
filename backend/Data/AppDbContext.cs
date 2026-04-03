@@ -1488,10 +1488,16 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.SourceBackupRunId)
                     .OnDelete(DeleteBehavior.SetNull);
+                entity.HasIndex(e => e.SourceBackupArtifactId);
+                entity.HasOne(e => e.SourceBackupArtifact)
+                    .WithMany()
+                    .HasForeignKey(e => e.SourceBackupArtifactId)
+                    .OnDelete(DeleteBehavior.SetNull);
                 entity.HasIndex(e => e.IdempotencyKey)
                     .IsUnique()
                     .HasDatabaseName("ux_restore_verification_runs_idempotency_key")
                     .HasFilter("idempotency_key IS NOT NULL");
+                entity.Property(e => e.PostRestoreL4ContinuityProofState).HasConversion<int>();
             });
 
             Console.WriteLine("AppDbContext model configuration completed with TableOrder support");

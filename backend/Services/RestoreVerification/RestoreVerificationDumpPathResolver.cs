@@ -13,7 +13,7 @@ internal static class RestoreVerificationDumpPathResolver
     /// <summary>
     /// En yeni başarılı yedeklerden başlayarak aday sırasında ilk disk üzerinde bulunan mantıksal dump dosyasını seçer.
     /// </summary>
-    public static async Task<(Guid backupRunId, string absolutePath, string relativeDescriptor)?> TryResolveAmongSucceededCandidatesAsync(
+    public static async Task<(Guid backupRunId, Guid artifactId, string absolutePath, string relativeDescriptor)?> TryResolveAmongSucceededCandidatesAsync(
         AppDbContext db,
         BackupOptions backupOpts,
         IReadOnlyList<Guid> candidateSucceededRunIds,
@@ -64,7 +64,7 @@ internal static class RestoreVerificationDumpPathResolver
                 candidateSucceededRunIds.Count,
                 "Restore verification dump");
             if (resolved != null)
-                return (runId, resolved.Value.absolutePath, resolved.Value.relativeDescriptor);
+                return (runId, artifact.Id, resolved.Value.absolutePath, resolved.Value.relativeDescriptor);
         }
 
         logger.LogWarning(

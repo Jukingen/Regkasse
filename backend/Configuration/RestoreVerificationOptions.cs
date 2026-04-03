@@ -76,4 +76,34 @@ public sealed class RestoreVerificationOptions
     /// Restore drill dump seçimi: en yeni başarılı yedekten geriye doğru en fazla bu kadar çalıştırma disk üzerinde aranır (staging, sonra harici arşiv).
     /// </summary>
     public int DumpFallbackDepth { get; set; } = 5;
+
+    /// <summary>
+    /// True: Fake/ProductionStub gibi PgDump dışı başarılı yedekler de aday olabilir (geliştirme). False: yalnızca gerçek PostgreSQL pg_dump başarıları.
+    /// </summary>
+    public bool AllowNonPgDumpBackupSource { get; set; } = true;
+
+    /// <summary>
+    /// İzole <c>pg_restore</c> başarısından sonra geri yüklenen veritabanında şema ve süreklilik SQL kontrolleri.
+    /// </summary>
+    public bool PostRestoreSqlChecksEnabled { get; set; } = true;
+
+    /// <summary>
+    /// True: süreklilik SQL geçtikten sonra geri yüklenen izole DB üzerinde in-process uygulama dumanı (EF/migrasyon + salt okunur okuma).
+    /// <see cref="PostRestoreSqlChecksEnabled"/> false iken anlamsız; doğrulayıcı reddeder.
+    /// </summary>
+    public bool RestoredDatabaseApplicationSmokeEnabled { get; set; }
+
+    /// <summary>
+    /// True: kurtarma kanıtına HTTP GET duman testi eklenir (<see cref="ApplicationSmokeProbeBaseUrl"/> ayrı dağıtım olabilir).
+    /// </summary>
+    public bool ApplicationSmokeProbeEnabled { get; set; }
+
+    /// <summary>Mutlak http(s) taban URL (ör. yedek ortam API).</summary>
+    public string? ApplicationSmokeProbeBaseUrl { get; set; }
+
+    /// <summary>Taban URL’ye göre göreli yol (varsayılan <c>health</c>).</summary>
+    public string ApplicationSmokeProbeRelativePath { get; set; } = "health";
+
+    /// <summary>Duman testi zaman aşımı (saniye); en az 5.</summary>
+    public int ApplicationSmokeProbeTimeoutSeconds { get; set; } = 30;
 }

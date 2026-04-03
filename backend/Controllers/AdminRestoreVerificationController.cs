@@ -22,15 +22,18 @@ public sealed class AdminRestoreVerificationController : ControllerBase
     private readonly IRestoreVerificationManualTriggerService _trigger;
     private readonly IRestoreVerificationRunQueryService _query;
     private readonly IRestoreVerificationOperationalReadiness _readiness;
+    private readonly IRestoreProofMilestonesQueryService _milestones;
 
     public AdminRestoreVerificationController(
         IRestoreVerificationManualTriggerService trigger,
         IRestoreVerificationRunQueryService query,
-        IRestoreVerificationOperationalReadiness readiness)
+        IRestoreVerificationOperationalReadiness readiness,
+        IRestoreProofMilestonesQueryService milestones)
     {
         _trigger = trigger;
         _query = query;
         _readiness = readiness;
+        _milestones = milestones;
     }
 
     /// <summary>Worker / dağıtık kilit yapılandırma özeti (backup artifact health değil).</summary>
@@ -76,6 +79,17 @@ public sealed class AdminRestoreVerificationController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Son yedek çalıştırması, pg_dump başarısı, artifact, restore drill denemesi / başarısı ve L4/L5 &quot;son bilinen iyi&quot; kilometre taşları (tek sorgu; muhafazakâr semantik).
+    /// </summary>
+    [HttpGet("milestones")]
+    [HasPermission(AppPermissions.SettingsView)]
+    public async Task<ActionResult<RestoreProofMilestonesResponseDto>> GetProofMilestones(CancellationToken cancellationToken)
+    {
+        var dto = await _milestones.GetMilestonesAsync(cancellationToken);
+        return Ok(dto);
+    }
+
     [HttpGet("runs/latest")]
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<RestoreVerificationRunResponseDto?>> GetLatest(CancellationToken cancellationToken)
@@ -109,5 +123,20 @@ public sealed class AdminRestoreVerificationController : ControllerBase
         if (run == null)
             return NotFound();
         return Ok(RestoreVerificationRunMapper.ToDto(run));
+    }
+
+    /// <summary>
+    /// Son drill için kalıcı <c>evidence_json</c> (schemaVersion, aşamalar, geçerlilik bantları). Boşsa 404 değil 200 + null gövde yok; boş dize dönebilir.
+    /// </summary>
+    [HttpGet("runs/{id:guid}/evidence")]
+    [HasPermission(AppPermissions.SettingsView)]
+    public async Task<IActionResult> GetEvidenceJson(Guid id, CancellationToken cancellationToken)
+    {
+        var run = await _query.GetByIdAsync(id, cancellationToken);
+        if (run == null)
+            return NotFound();
+        if (string.IsNullOrEmpty(run.EvidenceJson))
+            return Content("{}", "application/json");
+        return Content(run.EvidenceJson, "application/json");
     }
 }

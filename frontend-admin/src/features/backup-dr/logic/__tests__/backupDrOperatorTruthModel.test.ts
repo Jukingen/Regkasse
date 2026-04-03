@@ -241,7 +241,7 @@ describe('buildBackupOperatorTruthModel', () => {
     expect(m.alerts.some((a) => a.text.includes('backupDr.latestRun.failure'))).toBe(false);
   });
 
-  it('restore drill PG_RESTORE_LIST_FAILED on fake stub: banner info (expected), not critical', () => {
+  it('restore drill PG_RESTORE_LIST_FAILED on fake stub: banner warn (expected), not critical', () => {
     const m = buildBackupOperatorTruthModel({
       t,
       health: undefined,
@@ -263,7 +263,7 @@ describe('buildBackupOperatorTruthModel', () => {
       restoreCapability: undefined,
       externalCopyVariant: 'unknown',
     });
-    expect(m.banner.info.some((w) => w.includes('restoreDrillStubListFailedExpected'))).toBe(true);
+    expect(m.banner.warn.some((w) => w.includes('restoreDrillStubListFailedExpected'))).toBe(true);
     expect(m.banner.critical.some((c) => c.includes('restoreVerification.drillFailed'))).toBe(false);
   });
 

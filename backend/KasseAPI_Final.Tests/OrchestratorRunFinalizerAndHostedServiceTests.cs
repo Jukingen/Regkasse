@@ -123,7 +123,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
         Assert.Contains("adapter boom", run.FailureDetail ?? "", StringComparison.Ordinal);
         Assert.NotNull(run.ConfigSnapshotJson);
         Assert.Contains("backup_run_start", run.ConfigSnapshotJson, StringComparison.Ordinal);
-        Assert.Contains("\"schemaVersion\":2", run.ConfigSnapshotJson, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\":3", run.ConfigSnapshotJson, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -277,7 +277,11 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
                 Mock.Of<IRestoreVerificationOrchestratorDistributedLock>(),
                 listMock.Object,
                 Mock.Of<IPgRestoreIsolatedRestoreRunner>(),
+                Mock.Of<IPostRestoreDrillSqlChecker>(),
+                Mock.Of<IRestoredDatabaseApplicationSmokeRunner>(),
                 Mock.Of<IFiscalGoLiveValidationRunner>(),
+                Mock.Of<IApplicationRecoverySmokeProbe>(),
+                RestoreVerificationTestDoubles.ExternalDependencyEvidence(),
                 restoreReadiness,
                 Mock.Of<IRestoreVerificationOrchestratorMetrics>(),
                 alerts.Object,
@@ -293,7 +297,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
             Assert.Contains("list boom", run.FailureDetail ?? "", StringComparison.Ordinal);
             Assert.NotNull(run.ConfigSnapshotJson);
             Assert.Contains("restore_run_start", run.ConfigSnapshotJson, StringComparison.Ordinal);
-            Assert.Contains("\"schemaVersion\":2", run.ConfigSnapshotJson, StringComparison.Ordinal);
+            Assert.Contains("\"schemaVersion\":3", run.ConfigSnapshotJson, StringComparison.Ordinal);
             alerts.Verify(
                 a => a.Publish(It.Is<BackupAlertEvent>(e =>
                     e.Kind == BackupAlertKind.RestoreVerificationFailed
@@ -392,7 +396,11 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
                 Mock.Of<IRestoreVerificationOrchestratorDistributedLock>(),
                 listMock.Object,
                 Mock.Of<IPgRestoreIsolatedRestoreRunner>(),
+                Mock.Of<IPostRestoreDrillSqlChecker>(),
+                Mock.Of<IRestoredDatabaseApplicationSmokeRunner>(),
                 Mock.Of<IFiscalGoLiveValidationRunner>(),
+                Mock.Of<IApplicationRecoverySmokeProbe>(),
+                RestoreVerificationTestDoubles.ExternalDependencyEvidence(),
                 restoreReadiness,
                 Mock.Of<IRestoreVerificationOrchestratorMetrics>(),
                 Mock.Of<IBackupAlertPublisher>(),
@@ -406,6 +414,9 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
             Assert.Equal(RestoreVerificationStatus.Succeeded, run.Status);
             Assert.Null(run.FailureCode);
             Assert.False(string.IsNullOrWhiteSpace(run.DetailsJson));
+            Assert.False(string.IsNullOrWhiteSpace(run.EvidenceJson));
+            Assert.Contains("\"schemaVersion\":4", run.EvidenceJson, StringComparison.Ordinal);
+            Assert.NotNull(run.SourceBackupArtifactId);
 
             var root = JsonNode.Parse(run.DetailsJson!) as JsonObject;
             Assert.NotNull(root);

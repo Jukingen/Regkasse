@@ -17,6 +17,9 @@ export interface HealthBannerProps {
 }
 
 export function HealthBanner({ critical, warn, info = [], t: tt, onRefresh }: HealthBannerProps) {
+  const hasSeverity = critical.length > 0 || warn.length > 0;
+  const infoEffective = hasSeverity ? [] : info;
+
   return (
     <>
       {critical.length > 0 && (
@@ -52,14 +55,14 @@ export function HealthBanner({ critical, warn, info = [], t: tt, onRefresh }: He
           }
         />
       )}
-      {info.length > 0 && (
+      {infoEffective.length > 0 && (
         <Alert
           type="info"
           showIcon
           message={tt('backupDr.banner.informationalTitle')}
           description={
             <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
-              {info.map((x, i) => (
+              {infoEffective.map((x, i) => (
                 <li key={i}>
                   <Typography.Text>{x}</Typography.Text>
                 </li>

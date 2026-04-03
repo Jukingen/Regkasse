@@ -1,15 +1,219 @@
 {
   "page": {
     "title": "Backup & disaster recovery",
-    "subtitle": "Control and visibility only. Execution runs in the background worker — not in this UI."
+    "subtitle": "Read-only visibility. Workers execute jobs — not this UI."
+  },
+  "glossary": {
+    "backupArtifact": "Backup artifact",
+    "artifactIntegrity": "Artifact integrity",
+    "restoreVerification": "Restore verification",
+    "continuityProof": "Continuity proof",
+    "appRecoveryProof": "App recovery proof",
+    "externalProof": "External proof"
+  },
+  "layout": {
+    "groupLatestAttempt": "Latest attempt (API)",
+    "groupProofAnchors": "Proof anchors (API)",
+    "pipelineNoticesCollapse": "Pipeline & environment",
+    "configurationCollapse": "Pipeline, worker & locks"
+  },
+  "dashboardSections": {
+    "intro": "Controls & scope",
+    "introDesc": "Refresh updates data. The scope banner states what this page can and cannot prove.",
+    "summary": "At-a-glance summary",
+    "summaryDesc": "Top-line labels are capped when proof is missing, partial, or simulated — by design.",
+    "environment": "Environment & pipeline",
+    "environmentDesc": "Adapter, dump path, simulation, validity — before trusting green states elsewhere.",
+    "healthHighlights": "Worker & pipeline highlights",
+    "proofAndPosture": "DR proof & evidence (API)",
+    "proofAndPostureDesc": "L0–L6 layers and pipeline evidence. Conservative wording only.",
+    "liveRun": "Current run & off-box copy",
+    "artifactVerification": "Artifact integrity",
+    "restoreDrill": "Restore verification & readiness",
+    "configuration": "Pipeline & worker",
+    "reference": "Reference & notices",
+    "manualActions": "Manual actions (queue only)",
+    "history": "Recent runs & drills"
+  },
+  "ia": {
+    "decisionStrip": "Decision",
+    "decisionStripDesc": "Proof level, worst gap, next step — read before acting.",
+    "proofSummary": "DR evidence (API layers + pipeline)",
+    "proofSummaryDesc": "L0–L6 and pipeline/artifact evidence in one surface.",
+    "pipelineEvidenceHeading": "Pipeline & backup-artifact evidence",
+    "recentEvidence": "Recent proof (API)",
+    "recentEvidenceDesc": "Latest run, artifact integrity, restore verification, last good backup — API only.",
+    "drilldown": "Detail & drill-down",
+    "drilldownDesc": "Execution mode, warnings, recoverability detail, downloads, and history.",
+    "drilldownGlance": "Summary (capped labels)",
+    "drilldownExecution": "Execution mode",
+    "drilldownWarnings": "Environment & pipeline warnings",
+    "columns": {
+      "proofLevel": "DR proof level",
+      "blocker": "Gap / status",
+      "nextStep": "Next step",
+      "latestBackupRun": "Latest backup run",
+      "latestRealArtifact": "Artifact integrity (latest)",
+      "latestRestoreDrill": "Restore verification (latest)",
+      "lkgProof": "Last good backup (API)"
+    }
+  },
+  "recentEvidence": {
+    "artifactVerificationAt": "Latest artifact integrity (OK)",
+    "artifactVerificationScope": "Staging/checksum only — not full DR alone.",
+    "simulatedExecution": "Simulated",
+    "lkgTimestampLabel": "Last backup success (API proof)"
+  },
+  "confidenceDashboard": {
+    "title": "Layered DR proof (API)",
+    "subtitle": "A backup row ≠ recoverable. Each line is current API proof — nothing more.",
+    "snapshotSectionTitle": "Proofs & timestamps (API)",
+    "layersSectionTitle": "Stages L0–L6",
+    "currentProofLevel": "DR proof level (highest full step)",
+    "levelLabel": "L{{level}}",
+    "nextStepHeading": "Next meaningful step",
+    "sections": {
+      "databaseCoverage": "Database coverage",
+      "artifactValidity": "Artifact integrity",
+      "restoreValidity": "Restore verification",
+      "fiscalIntegrity": "Continuity proof (fiscal)",
+      "appRecovery": "App recovery (HTTP)",
+      "externalDeps": "External proof (partial)",
+      "nonDbProof": "Beyond DB (checklist — often manual)"
+    },
+    "strip": {
+      "drillFailedTitle": "Latest restore drill failed — no optimistic “all good”",
+      "drillFailedBody": "Even if older proof exists, the newest drill is the current truth for this UI. Investigate and rerun before treating posture as strong.",
+      "stubTitle": "Stub / simulation mode — proof is not production DR",
+      "stubBody": "Pipeline successes book API rows; they do not replace a real pg_dump or a production-meaningful restore proof.",
+      "gapsTitle": "Proof gaps — recoverability not fully evidenced",
+      "gapsBody": "At least one proof timestamp is missing or signals disagree. Do not infer full recovery from silence.",
+      "l3Title": "Restore drill succeeded (API) — fiscal depth may still be missing",
+      "l3Body": "List checks and (when applicable) isolated restore passed per API signals. Business recovery, app startup, and external systems are separate layers.",
+      "strongWithinApiTitle": "Strong within API limits (including fiscal continuity layer when evidenced)",
+      "strongWithinApiBody": "Best available signal from backup, artifact, restore, and (when active) fiscal + clone continuity proof. App HTTP smoke and live externals remain separate layers.",
+      "l5Title": "Application smoke passed (configured URL)",
+      "l5Body": "Restore drill reached HTTP smoke against the configured base URL. This does not prove the same process as this admin API unless you pointed it there intentionally.",
+      "inProgressTitle": "Proof incomplete or intermediate",
+      "inProgressBody": "Review the six blocks below — missing steps stay visible, not hidden behind a generic “healthy.”"
+    },
+    "layers": {
+      "L0": {
+        "title": "L0 — Run present (triggered)",
+        "detailOk": "API reports run/timestamps or technical context — not yet an archive proof.",
+        "detailGap": "No credible starting point for DB proof visible."
+      },
+      "L1": {
+        "title": "L1 — Backup artifact (logical dump)",
+        "detailOk": "Real pg_dump path and a downloadable logical dump row (API) — still not full DR proof.",
+        "detailGap": "No credible logical-dump proof for the relevant latest run.",
+        "detailStub": "Stub/Fake: no production-meaningful dump file."
+      },
+      "L2": {
+        "title": "L2 — Artifact integrity",
+        "detailOk": "Latest artifact verification matches the latest backup run (API).",
+        "detailGap": "Verification missing, mismatched, or unclear.",
+        "detailStub": "Stub/Fake: integrity proof does not certify production."
+      },
+      "L3": {
+        "title": "L3 — Restore verification (drill)",
+        "detailOk": "Drill finished; dump list and (when applicable) isolated restore passed per API signals.",
+        "detailPartial": "Drill partially succeeded or without full isolated restore — do not read as “fully recovered.”",
+        "detailFailed": "Latest drill failed — no current restore confidence.",
+        "detailGap": "No successful restore drill proof."
+      },
+      "L4": {
+        "title": "L4 — Post-restore continuity (SQL)",
+        "detailOk": "Structured continuity SQL passed on the isolated restored database (fiscal spine, resilience, platform).",
+        "detailGap": "Continuity SQL failed or inconclusive — no L4 proof.",
+        "detailNotConfigured": "Post-restore continuity SQL not executed — enable checks to evidence L4.",
+        "detailSkipped": "Fiscal SQL skipped — L4 not evidenced.",
+        "detailStub": "Stub/Fake: no production fiscal meaning."
+      },
+      "L5": {
+        "title": "L5 — Application smoke (restored DB)",
+        "detailOk": "In-process smoke passed on the restored copy: connect, EF migrations aligned, read path OK.",
+        "detailFailed": "Restored-database smoke ran and failed — L5 not proven.",
+        "detailGap": "Smoke disabled, inconclusive, or not passed — no L5 proof.",
+        "detailStub": "Stub mode — no production smoke meaning.",
+        "detailNotInApi": "Legacy: use API fields applicationSmokeProbe* on restore drill rows."
+      },
+      "L6": {
+        "title": "L6 — External proof (partial)",
+        "detailPartial": "Configuration snapshot only in evidence — does not prove FinanzOnline reachability, TSE hardware, or secrets.",
+        "detailGap": "No external dependency evidence row — treat as not proven.",
+        "detailStub": "Stub mode — no production external proof."
+      }
+    },
+    "layerState": {
+      "proven": "proven",
+      "partial": "partial",
+      "gap": "gap",
+      "stub_only": "stub only",
+      "not_applicable": "API: not evidenced",
+      "unknown": "unknown"
+    },
+    "labels": {
+      "runId": "Run ID",
+      "sourceBackupRunId": "Source backup run ID",
+      "sourceArtifactId": "Source artifact ID"
+    },
+    "snapshot": {
+      "latestRealBackup": "Latest real backup artifact",
+      "latestSimulatedBackup": "Last success was simulated (not production dump)",
+      "distinctFromLatestRequest": "Latest request ≠ this proof row",
+      "restoreVerified": "Latest restore verification (OK)",
+      "restoreNotVerified": "No successful restore verification as latest",
+      "fiscalDrill": "Latest continuity (fiscal) check",
+      "appRecovery": "App recovery (HTTP)",
+      "externalDeps": "External proof (partial)"
+    },
+    "artifacts": {
+      "lastGoodReal": "Last evidenced good run (not simulated)",
+      "lastGoodSimulated": "Last evidenced good run was simulated — no real dump proof"
+    },
+    "restore": {
+      "verifiedOk": "Latest drill succeeded (API status)",
+      "notVerified": "Latest drill not successful or not finished"
+    },
+    "fiscal": {
+      "proven": "Fiscal continuity layer passed (when evidenced by API)",
+      "notProven": "Fiscal continuity not proven or fiscal SQL skipped"
+    },
+    "appRecovery": {
+      "proven": "HTTP smoke passed (configured drill URL)",
+      "notProven": "App recovery not proven — set ApplicationSmokeProbe* to evidence L5."
+    },
+    "external": {
+      "notProven": "Full external recovery not proven — live FinanzOnline/TSE not in drill.",
+      "partialConfigSnapshot": "Partial: config snapshot only (evidence JSON) — not live dependency proof."
+    },
+    "nonDb": {
+      "intro": "Full disaster recovery needs more than the database file alone.",
+      "tse": "TSE / signing device: state and re-pairing (vendor/runbook).",
+      "secrets": "Secrets / environment variables / key material.",
+      "tooling": "pg_dump / pg_restore available and tested on the target host.",
+      "archive": "External / immutable archive (off-site, retention).",
+      "finanzOnline": "FinanzOnline / external tax side — availability and configuration."
+    },
+    "nextStepHints": {
+      "L0": "Ensure backups are produced and API timestamps are populated.",
+      "L1": "Prove real PgDump path, staging, and logical dump file.",
+      "L2": "Run or wait for artifact verification aligned to the last successful run.",
+      "L3": "Complete a successful restore drill (list + restore policy).",
+      "L4": "Enable post-restore continuity SQL checks on the drill worker.",
+      "L5": "Enable RestoredDatabaseApplicationSmoke on the drill worker so L5 can run after L4.",
+      "finishL1": "Continue from logical dump proof (L1) upward.",
+      "leaveStub": "Move off Fake/Stub to real PgDump — otherwise proof stays at L0-class."
+    }
   },
   "operatorTruth": {
     "noTimestampFromApi": "No timestamp (not reported)",
-    "recoverabilityProofGap": "At least one proof timestamp is missing in this API response — do not infer recoverability from silence."
+    "recoverabilityProofGap": "Missing proof timestamp(s) in this API — do not infer recoverability from silence."
   },
   "recoverability": {
-    "title": "Last-known-good signals (API — not full recovery proof)",
-    "subtitle": "Rows are API-reported timestamps for last successful checks — not the same as “latest request” below. Simulated success does not improve how this is shown.",
+    "title": "Last-known-good (API — not full recovery proof)",
+    "subtitle": "Timestamps = last successful checks, not “latest request” below. Simulated runs do not read as stronger proof.",
     "proofSectionTitle": "Proof signals (API)",
     "proofSectionIntro": "Use this block for “what last succeeded” — not for whether the latest job finished.",
     "simulatedEnvironmentStrip": "In Fake/Stub mode, “proof” timestamps are API bookkeeping on pipeline checks — they do not certify production recovery or a real dump.",
@@ -184,7 +388,25 @@
   "scope": {
     "title": "What this page does (and does not)",
     "body": "No backup file is produced in the browser and no restore command is executed from here. Buttons only enqueue jobs via the API; execution and artifacts run on the backend worker. Empty or incorrect download streams are server/storage issues — this UI surfaces API metadata and client-side anomaly hints only; it does not repair backend behavior.",
-    "devRealPgLead": "Default Development often uses the Fake adapter (stub bytes) — that is intentional. To produce real PostgreSQL custom-format dumps on disk, configure PgDump, staging, connection string, and client binaries; use the checklist and repository doc below."
+    "devRealPgLead": "Default Development often uses the Fake adapter (stub bytes) — that is intentional. To produce real PostgreSQL custom-format dumps on disk, configure PgDump, staging, connection string, and client binaries; use the checklist and repository doc below.",
+    "collapseLabel": "Page scope & limits (expand)"
+  },
+  "scan": {
+    "drill": {
+      "latestFailed": "Restore verification: failed (API)",
+      "inProgress": "Restore verification: running / queued (API)",
+      "latestSucceededApi": "Restore verification: OK (API — not full-system recovery)",
+      "noTerminalOutcome": "Restore verification: no terminal outcome yet (API)"
+    },
+    "pipeline": {
+      "stubOrSimulated": "Pipeline stub/sim — not production DR evidence"
+    },
+    "proofTimestampsIncomplete": "Proof timestamps incomplete (API)",
+    "scope": {
+      "endToEndRestoreNotProven": "End-to-end restore not proven (API)",
+      "apiDbCentricNotFullSystem": "Scope: DB + verification in API — not full app/org recovery",
+      "apiIncludesAppLayerNotFullOrg": "Scope: app smoke in API — not full org recovery"
+    }
   },
   "banner": {
     "criticalTitle": "Critical issues",
@@ -569,16 +791,16 @@
     "bytesMb": "{{n}} MB"
   },
   "artifactVerification": {
-    "title": "Latest artifact verification (phase 2)",
+    "title": "Artifact integrity (latest)",
     "none": "No verification row found.",
     "pending": "Pending",
     "passed": "Checks passed (integrity)",
     "failed": "Failed",
-    "notRestoreProof": "Artifact verification confirms file integrity (e.g. checksums) — not full recoverability."
+    "notRestoreProof": "Integrity check (e.g. checksums) — not full recoverability."
   },
   "restoreVerification": {
-    "sectionTitle": "Restore verification (separate from backup pipeline)",
-    "title": "Latest restore verification (drill)",
+    "sectionTitle": "Restore verification (vs backup pipeline)",
+    "title": "Latest restore verification",
     "none": "No restore drill has run yet.",
     "explanation": "Covers dump inspection and optionally an isolated restore attempt plus SQL on a clone — no production restore from this UI.",
     "realProfileBlockedTitle": "Backup profile not runnable (Real / PgDump)",
@@ -622,15 +844,15 @@
     }
   },
   "distinction": {
-    "title": "Artifact verification vs. restore verification",
-    "body": "Artifact verification: integrity of produced files (e.g. checksums / staging). Restore verification: additional drill metadata (list inspect, optional fiscal SQL on a clone) — it is not a full restore proof and does not guarantee RPO/RTO."
+    "title": "Artifact integrity vs restore verification",
+    "body": "Artifact integrity: files/checksums. Restore verification: drill metadata (list inspect, optional fiscal SQL on clone) — not full restore proof or RPO/RTO."
   },
   "runs": {
     "title": "Recent backup runs",
     "statusHint": "Each row shows the API-reported outcome for that run. This history is not the same as last-known-good proof in the recoverability section."
   },
   "restoreHistory": {
-    "title": "Recent restore drills",
+    "title": "Recent restore verifications",
     "empty": "No restore drills recorded yet.",
     "statusHint": "Each row shows the API-reported drill outcome. A completed drill is technical metadata — not a full recovery guarantee."
   },

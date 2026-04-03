@@ -1,3 +1,4 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models.Backup;
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +57,18 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
         maxCount = Math.Clamp(maxCount, 1, 100);
         return await _db.BackupRuns.AsNoTracking()
             .Where(r => r.Status == BackupRunStatus.Succeeded)
+            .OrderByDescending(r => r.RequestedAt)
+            .Take(maxCount)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetRecentSucceededPgDumpRunIdsAsync(int maxCount, CancellationToken cancellationToken = default)
+    {
+        maxCount = Math.Clamp(maxCount, 1, 100);
+        var pgDump = nameof(BackupExecutionAdapterKind.PgDump);
+        return await _db.BackupRuns.AsNoTracking()
+            .Where(r => r.Status == BackupRunStatus.Succeeded && r.AdapterKind == pgDump)
             .OrderByDescending(r => r.RequestedAt)
             .Take(maxCount)
             .Select(r => r.Id)

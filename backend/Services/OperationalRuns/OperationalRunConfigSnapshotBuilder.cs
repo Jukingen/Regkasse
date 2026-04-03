@@ -10,7 +10,7 @@ namespace KasseAPI_Final.Services.OperationalRuns;
 /// </summary>
 public static class OperationalRunConfigSnapshotBuilder
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -95,7 +95,14 @@ public static class OperationalRunConfigSnapshotBuilder
             PgRestoreExecutablePathConfigured: !string.IsNullOrWhiteSpace(options.PgRestoreExecutablePath),
             RunLeaseTimeoutSeconds: (int)Math.Clamp(options.RunLeaseTimeout.TotalSeconds, 0, int.MaxValue),
             HeartbeatIntervalSeconds: (int)Math.Clamp(options.HeartbeatInterval.TotalSeconds, 0, int.MaxValue),
-            StaleRecoveryScanIntervalSeconds: (int)Math.Clamp(options.StaleRecoveryScanInterval.TotalSeconds, 0, int.MaxValue));
+            StaleRecoveryScanIntervalSeconds: (int)Math.Clamp(options.StaleRecoveryScanInterval.TotalSeconds, 0, int.MaxValue),
+            AllowNonPgDumpBackupSource: options.AllowNonPgDumpBackupSource,
+            PostRestoreSqlChecksEnabled: options.PostRestoreSqlChecksEnabled,
+            RestoredDatabaseApplicationSmokeEnabled: options.RestoredDatabaseApplicationSmokeEnabled,
+            ApplicationSmokeProbeEnabled: options.ApplicationSmokeProbeEnabled,
+            ApplicationSmokeProbeBaseUrlConfigured: !string.IsNullOrWhiteSpace(options.ApplicationSmokeProbeBaseUrl),
+            ApplicationSmokeProbeRelativePath: options.ApplicationSmokeProbeRelativePath.Trim(),
+            ApplicationSmokeProbeTimeoutSeconds: options.ApplicationSmokeProbeTimeoutSeconds);
 
         return JsonSerializer.Serialize(payload, JsonOptions);
     }
@@ -164,5 +171,12 @@ public static class OperationalRunConfigSnapshotBuilder
         bool PgRestoreExecutablePathConfigured,
         int RunLeaseTimeoutSeconds,
         int HeartbeatIntervalSeconds,
-        int StaleRecoveryScanIntervalSeconds);
+        int StaleRecoveryScanIntervalSeconds,
+        bool AllowNonPgDumpBackupSource,
+        bool PostRestoreSqlChecksEnabled,
+        bool RestoredDatabaseApplicationSmokeEnabled,
+        bool ApplicationSmokeProbeEnabled,
+        bool ApplicationSmokeProbeBaseUrlConfigured,
+        string ApplicationSmokeProbeRelativePath,
+        int ApplicationSmokeProbeTimeoutSeconds);
 }

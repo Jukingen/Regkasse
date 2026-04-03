@@ -1,15 +1,219 @@
 {
   "page": {
     "title": "Yedekleme ve felaket kurtarma",
-    "subtitle": "Yalnızca kontrol ve görünürlük. Yürütme arka plan işçisinde — bu arayüzde değil."
+    "subtitle": "Salt görünürlük. İşler worker’da — bu arayüzde değil."
+  },
+  "glossary": {
+    "backupArtifact": "Yedek artefaktı",
+    "artifactIntegrity": "Artefakt bütünlüğü",
+    "restoreVerification": "Geri yükleme doğrulaması",
+    "continuityProof": "Süreklilik kanıtı",
+    "appRecoveryProof": "Uygulama kurtarma kanıtı",
+    "externalProof": "Harici kanıt"
+  },
+  "layout": {
+    "groupLatestAttempt": "Son deneme (API)",
+    "groupProofAnchors": "Kanıt sabitleri (API)",
+    "pipelineNoticesCollapse": "Pipeline ve ortam",
+    "configurationCollapse": "Pipeline, worker ve kilitler"
+  },
+  "dashboardSections": {
+    "intro": "Kontroller ve kapsam",
+    "introDesc": "Yenileme veriyi tazeler. Kapsam bildirimi bu sayfanın neyi kanıtlayıp kanıtlamayacağını söyler.",
+    "summary": "Tek bakışta özet",
+    "summaryDesc": "Kanıt eksik, kısmi veya simüle olduğunda üst etiketler kasıtlı olarak sınırlanır.",
+    "environment": "Ortam ve pipeline",
+    "environmentDesc": "Bağdaştırıcı, dump yolu, simülasyon, geçerlilik — yeşili başka yerde yorumlamadan önce.",
+    "healthHighlights": "Worker ve pipeline öne çıkanlar",
+    "proofAndPosture": "DR kanıtı ve delil (API)",
+    "proofAndPostureDesc": "L0–L6 ve pipeline delili. Yalnızca muhafazakâr ifadeler.",
+    "liveRun": "Güncel çalışma ve dış kopya",
+    "artifactVerification": "Artefakt bütünlüğü",
+    "restoreDrill": "Geri yükleme doğrulaması ve hazırlık",
+    "configuration": "Pipeline ve worker",
+    "reference": "Referans ve bildirimler",
+    "manualActions": "Manuel eylemler (yalnızca kuyruk)",
+    "history": "Son çalışmalar ve doğrulamalar"
+  },
+  "ia": {
+    "decisionStrip": "Karar",
+    "decisionStripDesc": "Kanıt düzeyi, en kötü boşluk, sonraki adım — işlem öncesi okuyun.",
+    "proofSummary": "DR kanıtı (API katmanları + pipeline)",
+    "proofSummaryDesc": "L0–L6 ve pipeline/artefakt delili tek yüzeyde.",
+    "pipelineEvidenceHeading": "Pipeline ve yedek artefaktı delili",
+    "recentEvidence": "Son kanıt (API)",
+    "recentEvidenceDesc": "Son çalışma, artefakt bütünlüğü, geri yükleme doğrulaması, son iyi yedek — yalnızca API.",
+    "drilldown": "Ayrıntı ve derinlemesine",
+    "drilldownDesc": "Yürütme modu, uyarılar, kurtarılabilirlik ayrıntısı, indirmeler ve geçmiş.",
+    "drilldownGlance": "Özet (sınırlı etiketler)",
+    "drilldownExecution": "Yürütme modu",
+    "drilldownWarnings": "Ortam ve pipeline uyarıları",
+    "columns": {
+      "proofLevel": "DR kanıt düzeyi",
+      "blocker": "Boşluk / durum",
+      "nextStep": "Sonraki adım",
+      "latestBackupRun": "Son yedek çalışması",
+      "latestRealArtifact": "Artefakt bütünlüğü (güncel)",
+      "latestRestoreDrill": "Geri yükleme doğrulaması (güncel)",
+      "lkgProof": "Son iyi yedek (API)"
+    }
+  },
+  "recentEvidence": {
+    "artifactVerificationAt": "Son artefakt bütünlüğü (OK)",
+    "artifactVerificationScope": "Yalnızca staging/hash — tek başına tam DR değil.",
+    "simulatedExecution": "Simüle",
+    "lkgTimestampLabel": "Son yedek başarısı (API kanıtı)"
+  },
+  "confidenceDashboard": {
+    "title": "Katmanlı DR kanıtı (API)",
+    "subtitle": "Yedek satırı ≠ geri yüklenebilir. Her satır güncel API kanıtı — fazlası değil.",
+    "snapshotSectionTitle": "Kanıtlar ve zaman damgaları (API)",
+    "layersSectionTitle": "Aşamalar L0–L6",
+    "currentProofLevel": "DR kanıt düzeyi (tam kanıtlanmış en yüksek adım)",
+    "levelLabel": "L{{level}}",
+    "nextStepHeading": "Sonraki anlamlı adım",
+    "sections": {
+      "databaseCoverage": "Veritabanı kapsamı",
+      "artifactValidity": "Artefakt bütünlüğü",
+      "restoreValidity": "Geri yükleme doğrulaması",
+      "fiscalIntegrity": "Süreklilik kanıtı (mali)",
+      "appRecovery": "Uygulama kurtarması (HTTP)",
+      "externalDeps": "Harici kanıt (kısmi)",
+      "nonDbProof": "DB ötesi (çoğu zaman elle kontrol listesi)"
+    },
+    "strip": {
+      "drillFailedTitle": "Son restore tatbikatı başarısız — iyimser “her şey yolunda” yok",
+      "drillFailedBody": "Eski kanıtlar olsa bile bu arayüz için en yeni tatbikat güncel gerçektir. Güçlü güven için analiz ve başarılı yeniden çalıştırma gerekir.",
+      "stubTitle": "Stub / simülasyon — kanıt üretim DR değildir",
+      "stubBody": "Pipeline başarıları API satırı yazar; gerçek pg_dump veya üretim anlamında restore kanıtının yerini almaz.",
+      "gapsTitle": "Kanıt boşlukları — kurtarılabilirlik tam kanıtlanmadı",
+      "gapsBody": "En az bir kanıt zaman damgası eksik veya sinyaller çelişiyor. Sessizlikten tam kurtarma çıkarmayın.",
+      "l3Title": "Restore tatbikatı (API) başarılı — mali derinlik eksik olabilir",
+      "l3Body": "Liste ve (varsa) izole restore denemesi API sinyallerine göre geçti. İş kurtarması, uygulama ve harici sistemler ayrı katmanlardır.",
+      "strongWithinApiTitle": "API sınırları içinde güçlü (kanıtlandıysa mali süreklilik katmanı dahil)",
+      "strongWithinApiBody": "Yedek, artefakt, restore ve (etkinse) mali + klon sürekliliği kanıtından gelen en iyi sinyal. HTTP smoke ve canlı hariciler ayrı katmanlardır.",
+      "l5Title": "Uygulama smoke geçti (yapılandırılmış URL)",
+      "l5Body": "Restore tatbikatı yapılandırılmış taban URL’ye karşı HTTP smoke’a ulaştı. Bu admin API ile aynı süreci kanıtlamaz (bilinçli yönlendirmediyseniz).",
+      "inProgressTitle": "Kanıt eksik veya ara aşama",
+      "inProgressBody": "Aşağıdaki altı blokta eksik adımlar görünür — genel “sağlıklı” arkasına saklanmaz."
+    },
+    "layers": {
+      "L0": {
+        "title": "L0 — Çalışma var (tetiklendi)",
+        "detailOk": "API çalışma/zaman damgası veya teknik bağlam bildiriyor — henüz arşiv kanıtı değil.",
+        "detailGap": "DB kanıtı için güvenilir başlangıç görünmüyor."
+      },
+      "L1": {
+        "title": "L1 — Yedek artefaktı (mantıksal döküm)",
+        "detailOk": "Gerçek pg_dump yolu ve indirilebilir mantıksal döküm satırı (API) — tam DR kanıtı değil.",
+        "detailGap": "İlgili son çalışma için güvenilir mantıksal döküm kanıtı yok.",
+        "detailStub": "Stub/Fake: üretim anlamında döküm dosyası yok."
+      },
+      "L2": {
+        "title": "L2 — Artefakt bütünlüğü",
+        "detailOk": "Son artefakt doğrulaması son yedek çalışmasıyla uyumlu (API).",
+        "detailGap": "Doğrulama yok, uyumsuz veya belirsiz.",
+        "detailStub": "Stub/Fake: bütünlük kanıtı üretimi sertifiye etmez."
+      },
+      "L3": {
+        "title": "L3 — Geri yükleme doğrulaması (tatbikat)",
+        "detailOk": "Tatbikat bitti; döküm listesi ve (varsa) izole restore API sinyallerine göre geçti.",
+        "detailPartial": "Tatbikat kısmen başarılı veya tam izole restore yok — “tam kurtarıldı” saymayın.",
+        "detailFailed": "Son tatbikat başarısız — güncel restore güveni yok.",
+        "detailGap": "Başarılı restore tatbikatı kanıtı yok."
+      },
+      "L4": {
+        "title": "L4 — Restore sonrası süreklilik (SQL)",
+        "detailOk": "İzole geri yüklenen DB üzerinde yapılandırılmış süreklilik SQL geçti (omurga, dayanıklılık, platform).",
+        "detailGap": "Süreklilik SQL başarısız veya belirsiz — L4 yok.",
+        "detailNotConfigured": "Restore sonrası süreklilik SQL çalıştırılmadı — L4 için etkinleştirin.",
+        "detailSkipped": "Mali SQL atlandı — L4 kanıtlanmadı.",
+        "detailStub": "Stub/Fake: üretim mali anlamı yok."
+      },
+      "L5": {
+        "title": "L5 — Uygulama dumanı (geri yüklenen DB)",
+        "detailOk": "Geri yüklenen kopyada süreç içi duman geçti: bağlantı, EF migrasyonları, okuma yolu.",
+        "detailFailed": "Geri yüklenen DB dumanı çalıştı ve başarısız — L5 yok.",
+        "detailGap": "Duman kapalı, belirsiz veya geçmedi — L5 kanıtı yok.",
+        "detailStub": "Stub modu — üretim smoke anlamı yok.",
+        "detailNotInApi": "Eski: restore tatbikatı satırlarında applicationSmokeProbe* alanları."
+      },
+      "L6": {
+        "title": "L6 — Harici kanıt (kısmi)",
+        "detailPartial": "Kanıtta yalnızca yapılandırma anlık görüntüsü — FinanzOnline erişimi, TSE donanımı veya sırlar kanıtlanmaz.",
+        "detailGap": "Harici bağımlılık kanıtı yok — kanıtlanmış saymayın.",
+        "detailStub": "Stub modu — üretim harici kanıt yok."
+      }
+    },
+    "layerState": {
+      "proven": "kanıtlandı",
+      "partial": "kısmi",
+      "gap": "boşluk",
+      "stub_only": "yalnızca stub",
+      "not_applicable": "API: kanıt yok",
+      "unknown": "bilinmiyor"
+    },
+    "labels": {
+      "runId": "Çalışma kimliği",
+      "sourceBackupRunId": "Kaynak yedek çalışma kimliği",
+      "sourceArtifactId": "Kaynak artefakt kimliği"
+    },
+    "snapshot": {
+      "latestRealBackup": "Son gerçek yedek artefaktı",
+      "latestSimulatedBackup": "Son başarı simüleydi (üretim dökümü değil)",
+      "distinctFromLatestRequest": "Son istek ≠ bu kanıt satırı",
+      "restoreVerified": "Son geri yükleme doğrulaması (OK)",
+      "restoreNotVerified": "Son durumda başarılı doğrulama yok",
+      "fiscalDrill": "Son süreklilik (mali) kontrolü",
+      "appRecovery": "Uygulama kurtarması (HTTP)",
+      "externalDeps": "Harici kanıt (kısmi)"
+    },
+    "artifacts": {
+      "lastGoodReal": "Son kanıtlanmış iyi çalışma (simüle değil)",
+      "lastGoodSimulated": "Son kanıtlanmış iyi çalışma simüleydi — gerçek döküm kanıtı yok"
+    },
+    "restore": {
+      "verifiedOk": "Son tatbikat başarılı (API durumu)",
+      "notVerified": "Son tatbikat başarılı değil veya bitmedi"
+    },
+    "fiscal": {
+      "proven": "Mali süreklilik katmanı geçti (API kanıtlıysa)",
+      "notProven": "Mali süreklilik kanıtlanmadı veya mali SQL atlandı"
+    },
+    "appRecovery": {
+      "proven": "HTTP smoke OK (yapılandırılmış tatbikat URL’si)",
+      "notProven": "Uygulama kurtarma kanıtı yok — L5 için ApplicationSmokeProbe* ayarlayın."
+    },
+    "external": {
+      "notProven": "Tam harici kurtarma kanıtlanmıyor — canlı FinanzOnline/TSE tatbikatta değil.",
+      "partialConfigSnapshot": "Kısmi: yalnızca yapılandırma anlık görüntüsü (evidence JSON) — canlı bağımlılık kanıtı değil."
+    },
+    "nonDb": {
+      "intro": "Tam felaket kurtarma yalnızca veritabanı dosyasından ibaret değildir.",
+      "tse": "TSE / imza cihazı: durum ve yeniden eşleştirme (satıcı/runbook).",
+      "secrets": "Sırlar / ortam değişkenleri / anahtar materyali.",
+      "tooling": "Hedef ana bilgisayarda pg_dump / pg_restore kullanılabilir ve test edilmiş.",
+      "archive": "Harici / değiştirilemez arşiv (off-site, saklama).",
+      "finanzOnline": "FinanzOnline / harici vergi tarafı — erişilebilirlik ve yapılandırma."
+    },
+    "nextStepHints": {
+      "L0": "Yedeklerin üretildiğinden ve API zaman damgalarının dolduğundan emin olun.",
+      "L1": "Gerçek PgDump yolu, staging ve mantıksal döküm dosyasını kanıtlayın.",
+      "L2": "Son başarılı çalışmayla hizalı artefakt doğrulamasını çalıştırın veya bekleyin.",
+      "L3": "Başarılı restore tatbikatı tamamlayın (liste + restore ilkesi).",
+      "L4": "Tatbikat işçisinde restore sonrası süreklilik SQL kontrollerini etkinleştirin.",
+      "L5": "L4’ün ardından L5 için tatbikat işçisinde RestoredDatabaseApplicationSmoke’u etkinleştirin.",
+      "finishL1": "L1 mantıksal döküm kanıtından yukarı devam edin.",
+      "leaveStub": "Fake/Stub’tan gerçek PgDump’a geçin — aksi halde kanıt L0 sınıfında kalır."
+    }
   },
   "operatorTruth": {
     "noTimestampFromApi": "Zaman damgası yok (bildirilmedi)",
-    "recoverabilityProofGap": "Bu API yanıtında en az bir kanıt zaman damgası eksik — sessizlikten kurtarılabilirlik çıkarmayın."
+    "recoverabilityProofGap": "Bu API yanıtında eksik kanıt zaman damgası — sessizlikten kurtarılabilirlik çıkarmayın."
   },
   "recoverability": {
-    "title": "Son bilinen iyi sinyaller (API — tam kurtarma kanıtı değil)",
-    "subtitle": "Satırlar API’nin bildirdiği son başarılı kontrol zaman damgalarıdır — aşağıdaki “son istek” ile aynı değildir. Simüle başarı sunumu güçlendirmez.",
+    "title": "Son bilinen iyi (API — tam kurtarma kanıtı değil)",
+    "subtitle": "Zaman damgaları = son başarılı kontroller; “son istek” değil. Simüle daha güçlü kanıt sayılmaz.",
     "proofSectionTitle": "Kanıt sinyalleri (API)",
     "proofSectionIntro": "“Son ne başarılı oldu” için — en güncel işin bitip bitmediği değil.",
     "simulatedEnvironmentStrip": "Fake/Stub modunda “kanıt” zaman damgaları API defter kaydıdır (hat kontrolleri) — üretim kurtarması veya gerçek döküm değildir.",
@@ -184,7 +388,25 @@
   "scope": {
     "title": "Bu sayfa ne yapar (ve yapmaz)",
     "body": "Tarayıcıda yedek dosyası üretilmez ve buradan geri yükleme komutu çalıştırılmaz. Düğmeler yalnızca API kuyruğuna iş ekler; yürütme ve artefaktlar backend işçisinde çalışır. Boş veya hatalı indirme akışları sunucu/depolama sorunlarıdır — bu arayüz yalnızca API meta verilerini ve istemci tarafı anomali ipuçlarını gösterir; arka uç davranışını onarmaz.",
-    "devRealPgLead": "Geliştirmede çoğu zaman Fake adaptörü (stub baytlar) kullanılır — bu kasıtlıdır. Diskte gerçek PostgreSQL özel biçim dökümleri için PgDump, staging, bağlantı dizesi ve istemci ikililerini yapılandırın; aşağıdaki kontrol listesi ve depo belgesini kullanın."
+    "devRealPgLead": "Geliştirmede çoğu zaman Fake adaptörü (stub baytlar) kullanılır — bu kasıtlıdır. Diskte gerçek PostgreSQL özel biçim dökümleri için PgDump, staging, bağlantı dizesi ve istemci ikililerini yapılandırın; aşağıdaki kontrol listesi ve depo belgesini kullanın.",
+    "collapseLabel": "Sayfa kapsamı ve sınırlar (genişlet)"
+  },
+  "scan": {
+    "drill": {
+      "latestFailed": "Geri yükleme doğrulaması: başarısız (API)",
+      "inProgress": "Geri yükleme doğrulaması: çalışıyor / kuyrukta (API)",
+      "latestSucceededApi": "Geri yükleme doğrulaması: OK (API — tam sistem kurtarması değil)",
+      "noTerminalOutcome": "Geri yükleme doğrulaması: henüz kesin sonuç yok (API)"
+    },
+    "pipeline": {
+      "stubOrSimulated": "Pipeline stub/sim — üretim DR kanıtı değil"
+    },
+    "proofTimestampsIncomplete": "Kanıt zaman damgaları eksik (API)",
+    "scope": {
+      "endToEndRestoreNotProven": "Uçtan uca geri yükleme kanıtlanmadı (API)",
+      "apiDbCentricNotFullSystem": "Kapsam: API’de DB + doğrulama — tam uygulama/kurum kurtarması değil",
+      "apiIncludesAppLayerNotFullOrg": "Kapsam: uygulama smoke API’de — tam kurum kurtarması değil"
+    }
   },
   "banner": {
     "criticalTitle": "Kritik uyarılar",
@@ -569,16 +791,16 @@
     "bytesMb": "{{n}} MB"
   },
   "artifactVerification": {
-    "title": "Son artefakt doğrulaması (faz 2)",
+    "title": "Artefakt bütünlüğü (güncel)",
     "none": "Doğrulama kaydı yok.",
     "pending": "Beklemede",
     "passed": "Kontroller tamam bildirildi (bütünlük — API)",
     "failed": "Başarısız",
-    "notRestoreProof": "Artefakt doğrulaması dosya bütünlüğünü (ör. hash) doğrular — tam kurtarılabilirlik değildir."
+    "notRestoreProof": "Bütünlük kontrolü (ör. hash) — tam kurtarılabilirlik değildir."
   },
   "restoreVerification": {
-    "sectionTitle": "Geri yükleme doğrulaması (yedek hattından ayrı)",
-    "title": "Son geri yükleme doğrulaması (tatbikat)",
+    "sectionTitle": "Geri yükleme doğrulaması (yedek hattına karşı)",
+    "title": "Son geri yükleme doğrulaması",
     "none": "Henüz tatbikat yok.",
     "explanation": "Dump incelemesi ve isteğe bağlı izole geri yükleme denemesi ile klon üzerinde SQL kapsar — bu arayüzden üretim geri yükleme yok.",
     "realProfileBlockedTitle": "Yedek profili çalıştırılamıyor (Real / PgDump)",
@@ -622,15 +844,15 @@
     }
   },
   "distinction": {
-    "title": "Artefakt doğrulaması ve geri yükleme doğrulaması",
-    "body": "Artefakt: üretilen dosyaların bütünlüğü (ör. sağlama / staging). Geri yükleme tatbikatı: ek teknik metadatalar — tam geri yükleme kanıtı veya RPO/RTO garantisi değildir."
+    "title": "Artefakt bütünlüğü ve geri yükleme doğrulaması",
+    "body": "Artefakt bütünlüğü: dosyalar/hash. Geri yükleme doğrulaması: tatbikat metadatası — tam restore kanıtı veya RPO/RTO değildir."
   },
   "runs": {
     "title": "Son yedek çalıştırmaları",
     "statusHint": "Her satır o çalıştırma için API’nin bildirdiği sonucu gösterir. Bu geçmiş, kurtarılabilirlik bölümündeki son bilinen iyi kanıtının yerini tutmaz."
   },
   "restoreHistory": {
-    "title": "Son geri yükleme tatbikatları",
+    "title": "Son geri yükleme doğrulamaları",
     "empty": "Henüz geri yükleme tatbikatı yok.",
     "statusHint": "Her satır tatbikat için API’nin bildirdiği sonucu gösterir. Tamamlanmış tatbikat teknik metadata’dır — tam kurtarma garantisi değildir."
   },
