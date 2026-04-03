@@ -1,23 +1,18 @@
-# Frontend Contract (React Native + Expo Router)
+# Frontend Contract
 
-## Navigation
-- Expo Router yapısı:
-  - app/(auth) : login vb
-  - app/(tabs) : POS ana akış
-  - _layout.tsx mevcut
+## POS (`frontend/`)
+- Stack: React Native + Expo Router.
+- Navigation kaynakları: `app/_layout.tsx`, `app/(auth)/*`, `app/(tabs)/*`, `app/(screens)/*`.
+- API çağrıları `frontend/services/api/*` üzerinden yapılır.
+- Yeni POS çağrılarında canonical path tercih et: `/api/pos/*`.
 
-## Screen Pattern
-- cash-register.tsx: POS orchestrator ekran örneğidir.
-- Ekran; header, table selector, product list, cart display, summary gibi modüler component'leri birleştirir.
+## Admin (`frontend-admin/`)
+- Stack: Next.js 14 App Router + Ant Design + TanStack Query.
+- Route yapısı: `frontend-admin/src/app/**` (React Router/Vite değil).
+- API tüketimi: Orval generated client (`src/api/generated/**`) + admin boundary helper dosyaları.
+- `src/api/generated/**` elle düzenlenmez.
 
-## API Access
-- API çağrıları services/api/* üzerinden yapılır:
-  - services/api/productService
-  - services/api/config
-- Yeni endpoint entegrasyonu eklerken aynı service layer yaklaşımını takip et (ekranda doğrudan fetch/axios yazma).
-- **POS:** Cart ve payment için mümkün olduğunca `/api/pos/...` rotaları kullanılmalı; deprecated Cart/Payment rotalarına geri dönülmemeli. Detay: `ai/POS_API_GUARDRAIL.md`.
-
-## Component Structure
-- components altı modüler yapı:
-  - ui / soft / debug
-- Yeni UI eklerken mevcut component stilini ve naming’ini koru.
+## Ortak sınırlar
+- POS koduna web-only admin pattern’leri taşınmamalı.
+- Admin koduna React Native/Expo pattern’leri taşınmamalı.
+- API path stringleri merkezileştirilmiş dosyalarda tutulmalı; ekran içinde dağınık hardcode azaltılmalı.

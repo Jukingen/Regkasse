@@ -1,17 +1,18 @@
 # Security & Compliance
 
-## Auth
-- Backend: ASP.NET Core Identity + JWT (AuthController üzerinden)
-- Çoğu endpoint [Authorize]
-- Yeni endpoint eklerken varsayılan olarak authorize et; public ise özellikle belirt.
+## Kimlik doğrulama / yetkilendirme
+- Auth: ASP.NET Core Identity + JWT.
+- Yetki: `HasPermission(...)` tabanlı policy yaklaşımı ana standarttır.
+- Yeni endpointlerde public gereksinim yoksa auth varsayımıyla ilerle.
 
-## Regülasyon / Kritik Alanlar
-- TSE entegrasyonu (TseController)
-- FinanzOnline hata/raporlama akışları (FinanzOnlineError)
-- DailyClosing (gün sonu / kapanış)
-- Receipt/GeneratedReceipt
+## Fiscal/compliance hassas alanlar
+- TSE imza ve doğrulama akışları
+- Receipt zinciri ve sequence yönetimi
+- Daily closing / rapor kapanışları
+- FinanzOnline gönderim, outbox, reconciliation
+- Audit log ve legal hold alanları
 
-## Golden Rules
-- Bu modüllerde "mantık değiştirme" -> sadece istenen feature’ı ekle.
-- Logging/Audit beklentisini koru.
-- Money rounding ve receipt numbering gibi konularda varsayım yapma.
+## Değişiklik kuralı
+- Bu alanlarda davranış değişikliği yapmadan önce kapsamı daralt ve riskleri açık yaz.
+- Sessiz hata yutma, audit düşürme, authorization gevşetme yapılmaz.
+- Money/rounding davranışı mevcut üretim davranışıyla uyumlu kalmalıdır.

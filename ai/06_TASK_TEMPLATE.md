@@ -1,30 +1,32 @@
-# Task Template (AI'ye her görevde yapıştır)
+# AI Task Template
 
-## Context
-Bu repo Regkasse (backend kökü: `backend/`).
-Kurallar: ai/*.md dokümanları. Pattern’i bozma.
+## 1) Hedef
+- İstenen değişiklik:
+- Kapsam dışı:
 
-## Goal
-[Ne yapmak istiyorum?]
+## 2) Etki alanı
+- Backend: E/H
+- Frontend POS: E/H
+- Frontend Admin: E/H
+- DB/Migration: E/H
+- OpenAPI/Generated client: E/H
 
-## Scope
-- Backend değişecek mi? (E/H)
-- DB/Migration var mı? (E/H)
-- Frontend değişecek mi? (E/H)
+## 3) Risk notu
+- Compliance/fiscal etkisi var mı?
+- Auth/RBAC etkisi var mı?
+- Geriye dönük uyumluluk riski var mı?
 
-## Constraints
-- Controller-based API ve service layer korunacak
-- EF Core mapping AppDbContext stilinde
-- Money/rounding varsayım yok
-- TSE/FinanzOnline/DailyClosing alanlarında minimum değişiklik
+## 4) Plan (kısa)
+- Adım 1
+- Adım 2
+- Adım 3
 
-## Inputs (paste)
-- İlgili controller/service/dto dosyaları:
-- İlgili FE ekran + service dosyaları:
+## 5) Doğrulama
+- Çalıştırılacak test/script komutları
+- Beklenen sonuç
 
-## Output format
-1) Plan
-2) Değişecek dosyalar listesi
-3) Dosya bazlı patch (diff veya full file)
-4) Edge cases / riskler
-5) Test önerisi
+## 6) Çıktı formatı
+- Değişen dosyalar
+- Kısa gerekçe
+- Test sonuçları
+- Kalan belirsizlikler

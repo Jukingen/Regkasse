@@ -1,30 +1,14 @@
-# Admin legacy API wrapper removal
+# Admin legacy wrapper status
 
-**Status:** Completed (frontend-admin).  
-**Related:** `ai/10_API_BOUNDARY_POLICY.md`, `ai/11_OPENAPI_CONTRACT_GOVERNANCE.md`
+## Current status (2026-04-03)
+- `frontend-admin/src/api/legacy/` klasörü repoda yok (kaldırılmış durumda).
+- Admin tarafında ana tüketim yüzeyi generated client (`src/api/generated/**`) + `src/api/admin/**` helper katmanıdır.
 
-## What was removed
+## What still needs attention
+- Generated surfaces içinde legacy path üreten bölümler (özellikle `generated/cart`) hala izlenmeli/migrate edilmelidir.
+- Legacy path’lerin yok edilmesi için sadece transformer strip listesine güvenme; gerçek consumer migration yapılmalıdır.
 
-- **`frontend-admin/src/api/legacy/`** (entire folder): `payment.ts`, `index.ts`, `README.md`.
-- **Rationale:** No application code imported these modules; payments already used `useGetApiAdminPayments`, `postApiAdminPaymentsIdCancel`, etc. from `@/api/generated/admin/admin`. The wrappers only re-exported POS `/api/pos/payment/*` hooks and manual cancel/refund — redundant with admin endpoints and unused.
-
-## What remains (not legacy wrappers)
-
-- **`src/lib/axios.ts`**: `normalized` error attachment for all API calls — intentional cross-cutting behavior, not route-specific compatibility.
-- **`features/receipts/api/forensics-client.ts`**: Maps generated `ReceiptDTO` to admin view models; tightens loose OpenAPI gaps (documented in `rksvAdminTruth.ts` contract gaps).
-- **Page-local helpers** (e.g. `getPaymentsListErrorMessage` on payments page): read `error.normalized` from axios; keep until a shared `extractApiErrorMessage` is used app-wide.
-
-## Acceptance criteria (issue)
-
-| Criterion | Result |
-|-----------|--------|
-| Obsolete compatibility code removed for migrated routes | `src/api/legacy/*` deleted |
-| Admin uses generated client directly | **Payments** already use `@/api/generated/admin/admin` |
-| No critical regression | Run `npm run build` / `npm run test:contract` in `frontend-admin` after changes |
-
-## Docs updated
-
-- `frontend-admin/docs/rksv-admin-api-conventions.md`
-- `frontend-admin/docs/payment-boundary-hardening.md`
-- `frontend-admin/docs/CLEANUP_AND_CONSISTENCY_REPORT.md`
-- `frontend-admin/docs/LEGACY_API_BOUNDARY_DELIVERABLE.md` (superseded banner)
+## Validation
+- `node scripts/verify-api-client.mjs`
+- `cd frontend-admin && npm run test:contract`
+- `cd frontend-admin && npm run build`
