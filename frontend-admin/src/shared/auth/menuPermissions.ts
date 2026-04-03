@@ -1,5 +1,6 @@
 /**
  * Menu item key → required permission(s). Used to filter sidebar by permission.
+ * Sidebar leaf keys must match `SIDEBAR_NAV_ITEM_CATALOG` / RKSV model (`sidebarRouteCoverage` test).
  * Empty = show when authenticated. One permission = require it; array = require any.
  */
 import { PERMISSIONS } from './permissions';
@@ -53,6 +54,8 @@ export const MENU_PERMISSION: Record<string, string | string[] | undefined> = {
   '/rksv/integrity': [PERMISSIONS.AUDIT_VIEW, PERMISSIONS.FINANZONLINE_MANAGE],
   '/benefit-definitions': PERMISSIONS.BENEFIT_VIEW,
   '/benefit-assignments': PERMISSIONS.BENEFIT_VIEW,
+  /** No sidebar leaf today; deep links use `ROUTE_PERMISSIONS` only. */
+  '/orders': PERMISSIONS.ORDER_VIEW,
 };
 
 export function isMenuItemAllowed(

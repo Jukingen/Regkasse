@@ -1,5 +1,5 @@
 /**
- * RKSV hub landing: task groups and links. Keep hrefs aligned with `src/shared/rksvMenuModel.ts`.
+ * RKSV hub landing: task groups and links. Keep hrefs aligned with `src/features/rksv/rksvAdminMenuModel.ts`.
  * Türkçe: Görev grupları ve bağlantılar; menü modeli ile senkron tutulmalı.
  */
 

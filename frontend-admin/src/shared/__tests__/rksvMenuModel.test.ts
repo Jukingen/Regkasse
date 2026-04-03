@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildRksvMenuGroups } from '@/shared/rksvMenuModel';
+import { buildRksvMenuGroups, getRksvOpenSubgroupKeys } from '@/shared/rksvMenuModel';
 
 /** Stable route contract for sidebar + hub: keys and hrefs must match MENU_PERMISSION and App Router paths. */
 const EXPECTED_KEYS_AND_HREFS: { key: string; href: string }[] = [
@@ -18,29 +18,37 @@ const EXPECTED_KEYS_AND_HREFS: { key: string; href: string }[] = [
     { key: '/rksv/finanz-online-operations', href: '/rksv/finanz-online-operations' },
 ];
 
+const passthroughT = (key: string) => key;
+
 describe('buildRksvMenuGroups', () => {
     it('keeps menu keys and hrefs aligned with routes (labels may change)', () => {
-        const groups = buildRksvMenuGroups('Audit test label');
+        const groups = buildRksvMenuGroups(passthroughT, 'Audit test label');
         const flat = groups.flatMap((g) => g.items);
         expect(flat.map((i) => ({ key: i.key, href: i.href }))).toEqual(EXPECTED_KEYS_AND_HREFS);
     });
 
     it('injects the verifications nav label from operator copy', () => {
         const label = 'Audit-Spur (Signatur/Offline)';
-        const groups = buildRksvMenuGroups(label);
+        const groups = buildRksvMenuGroups(passthroughT, label);
         const v = groups.flatMap((g) => g.items).find((i) => i.key === '/rksv/verifications');
         expect(v?.label).toBe(label);
     });
 
     it('exposes four stable group ids for layout + hub', () => {
-        const ids = buildRksvMenuGroups('x').map((g) => g.id);
+        const ids = buildRksvMenuGroups(passthroughT, 'x').map((g) => g.id);
         expect(ids).toEqual(['daily', 'investigation', 'diagnostics', 'config']);
     });
 
     it('includes hub task lines for landing panels (sidebar ignores them)', () => {
-        const groups = buildRksvMenuGroups('x');
+        const groups = buildRksvMenuGroups(passthroughT, 'x');
         for (const g of groups) {
             expect(g.hubTaskLine.trim().length).toBeGreaterThan(20);
         }
+    });
+
+    it('does not treat the /rksv hub href as a prefix of deeper /rksv/* routes', () => {
+        const groups = buildRksvMenuGroups(passthroughT, 'x');
+        expect(getRksvOpenSubgroupKeys('/rksv/incident', groups)).toEqual(['rksv-grp-investigation']);
+        expect(getRksvOpenSubgroupKeys('/rksv', groups)).toEqual(['rksv-grp-daily']);
     });
 });

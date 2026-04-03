@@ -14,18 +14,24 @@ export const ADMIN_OVERVIEW_CRUMB = { title: 'Übersicht', href: ADMIN_OVERVIEW_
 
 /** Sidebar section key map (non-route keys); keep in sync with grouped layout menu. */
 export const ADMIN_NAV_GROUP_LABEL_KEYS = {
-    kasseBelege: 'adminShell.group.kasseBelege',
-    sortiment: 'adminShell.group.sortiment',
-    kundenVorteile: 'adminShell.group.kundenVorteile',
+    operations: 'adminShell.group.operations',
+    salesTransactions: 'adminShell.group.salesTransactions',
+    catalogPricing: 'adminShell.group.catalogPricing',
+    customersBenefits: 'adminShell.group.customersBenefits',
+    reportingAnalytics: 'adminShell.group.reportingAnalytics',
+    fiscalCompliance: 'adminShell.group.fiscalCompliance',
     verwaltung: 'adminShell.group.verwaltung',
     rksv: 'adminShell.group.rksv',
 } as const;
 
 /** Backward-compatible default (de) sidebar section labels. */
 export const ADMIN_NAV_GROUP_LABELS = {
-    kasseBelege: 'Kasse & Belege',
-    sortiment: 'Sortiment',
-    kundenVorteile: 'Kunden & Vorteile',
+    operations: 'Betrieb',
+    salesTransactions: 'Verkauf & Vorgänge',
+    catalogPricing: 'Sortiment & Preise',
+    customersBenefits: 'Kunden & Vorteile',
+    reportingAnalytics: 'Berichte & Auswertungen',
+    fiscalCompliance: 'Fiskal, Compliance & Audit',
     verwaltung: 'Verwaltung',
     rksv: 'RKSV',
 } as const;
@@ -71,6 +77,10 @@ export const ADMIN_NAV_LABEL_KEYS = {
     /** Payment-row FinanzOnline list (legacy); prefer Outbox for SOAP pipeline. */
     finanzOnlineAbgleichLegacy: 'nav.finanzOnlineAbgleichLegacy',
     finanzOnlineOutbox: 'nav.finanzOnlineOutbox',
+    /** Dashboard under Reporting & Analytics (distinct from RKSV overview). */
+    reportingDashboard: 'nav.reportingDashboard',
+    /** Nested formal DEP reports under Reporting. */
+    reportingFormalReports: 'nav.reportingFormalReports',
 } as const;
 
 /** Backward-compatible default (de) navigation labels. */
@@ -112,4 +122,6 @@ export const ADMIN_NAV_LABELS = {
     finanzOnlineAbgleichLegacy: 'FinanzOnline-Abgleich (Legacy)',
     /** Outbox / SOAP pipeline operational list (non-payment-centric). */
     finanzOnlineOutbox: 'FinanzOnline · Outbox',
+    reportingDashboard: 'Dashboard',
+    reportingFormalReports: 'Formale Berichte',
 } as const;

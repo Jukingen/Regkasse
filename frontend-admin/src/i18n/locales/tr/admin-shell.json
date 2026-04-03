@@ -9,7 +9,8 @@
     "openNav": "Gezinme menüsünü aç",
     "closeNav": "Gezinme menüsünü kapat",
     "expandSidebar": "Kenar çubuğunu genişlet",
-    "collapseSidebar": "Kenar çubuğunu daralt"
+    "collapseSidebar": "Kenar çubuğunu daralt",
+    "resizeSidebar": "Kenar çubuğu genişliğini ayarla"
   },
   "header": {
     "headerActionsAria": "Dil ve kullanıcı hesabı",
@@ -21,9 +22,12 @@
     "languageNameTr": "Türkçe"
   },
   "group": {
-    "kasseBelege": "Kasa ve fişler",
-    "sortiment": "Katalog",
-    "kundenVorteile": "Müşteriler ve avantajlar",
+    "operations": "Operasyon",
+    "salesTransactions": "Satış ve işlemler",
+    "catalogPricing": "Katalog ve fiyatlandırma",
+    "customersBenefits": "Müşteriler ve avantajlar",
+    "reportingAnalytics": "Raporlama ve analiz",
+    "fiscalCompliance": "Mali uyum ve denetim",
     "verwaltung": "Yönetim",
     "rksv": "RKSV"
   },

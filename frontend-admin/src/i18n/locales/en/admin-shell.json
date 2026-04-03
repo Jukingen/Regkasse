@@ -9,7 +9,8 @@
     "openNav": "Open navigation menu",
     "closeNav": "Close navigation menu",
     "expandSidebar": "Expand sidebar",
-    "collapseSidebar": "Collapse sidebar"
+    "collapseSidebar": "Collapse sidebar",
+    "resizeSidebar": "Resize sidebar width"
   },
   "header": {
     "headerActionsAria": "Language and user account",
@@ -21,9 +22,12 @@
     "languageNameTr": "Turkish"
   },
   "group": {
-    "kasseBelege": "Cashdesk & receipts",
-    "sortiment": "Catalog",
-    "kundenVorteile": "Customers & benefits",
+    "operations": "Operations",
+    "salesTransactions": "Sales & transactions",
+    "catalogPricing": "Catalog & pricing",
+    "customersBenefits": "Customers & benefits",
+    "reportingAnalytics": "Reporting & analytics",
+    "fiscalCompliance": "Fiscal, compliance & audit",
     "verwaltung": "Administration",
     "rksv": "RKSV"
   },
