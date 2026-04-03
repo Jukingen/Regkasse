@@ -3,10 +3,6 @@ name: API contract tests (OpenAPI + backend + Admin/POS smoke)
 # Critical route/schema checks, DTO contract tests, Orval smoke, and payment-focused frontend tests.
 
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
