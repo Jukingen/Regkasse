@@ -1,11 +1,11 @@
 # Module: Payments
 
-## Risk Notes
-- Payment amount, rounding, currency format (EUR) kritik
-- Split payment (cash+card) varsa açıkça belirtilmeli
-- Payment logs/metrics tabloları etkilenebilir
+## Risk surface
+- Amount, tax, rounding, idempotency, receipt link, cancellation/refund.
+- Payment çıktıları receipt/daily closing/fiscal zinciriyle bağlıdır.
 
 ## Rules
-- DB decimal(18,2) uyumunu bozma
-- Payment ile receipt/closing bağlantıları varsa koparma
-- İade/iptal senaryolarında audit/log beklentisini koru
+- Para hassasiyetini ve mevcut rounding davranışını koru.
+- Payment → receipt → fiscal kayıt bağını koparma.
+- İptal/iade akışında audit ve authorization kontrollerini zayıflatma.
+- Contract değişikliği varsa OpenAPI + consumer güncellemesini birlikte yap.

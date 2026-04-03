@@ -1,39 +1,27 @@
 # Database Contract (PostgreSQL + EF Core)
 
-## DbContext
-- AppDbContext : IdentityDbContext<ApplicationUser>
-- Mapping: Fluent API (OnModelCreating)
+## Kaynak
+- Gerçek model kaynağı: `backend/Data/AppDbContext.cs` ve `backend/Migrations/*`.
+- Migration yönetimi EF Core ile yapılır; migration geçmişi authoritative kabul edilir.
 
-## DbSets (özet)
-- Product, Category
-- Customer, Invoice
-- Cart, CartItem
-- Order, OrderItem
-- CashRegister, CashRegisterTransaction
-- PaymentDetails, PaymentItem
-- InventoryItem, InventoryTransaction
-- SystemSettings, UserSettings, CompanySettings, LocalizationSettings
-- AuditLog
-- ReceiptTemplate, GeneratedReceipt
-- TseDevice, TseSignature
-- DailyClosing
-- FinanzOnlineError
-- PaymentLogEntry, PaymentSession, PaymentMetrics
-- TableOrder, TableOrderItem
+## Veri modeli prensipleri
+- Finansal alanlarda `decimal(18,2)` yaygındır; vergi/oran alanlarında daha dar precision kullanılabilir (örn. `decimal(5,2)`).
+- Identity + uygulama tabloları aynı context içinde yönetilir.
+- Auth session tabloları kritik: `auth_sessions`, `refresh_tokens`.
+- JSON/esnek payload alanları mevcut; keyfi yeni json alanı açma.
 
-## Key & ID Notları
-- Bazı entity'lerde GUID yerine string key var (örn: Cart.CartId (max 50), UserId max 450).
-- Yeni tablo/kolon eklerken mevcut key stilini bozmadan ilerle.
+## Hassas domain alanları
+- Payment/receipt/daily closing ilişkileri
+- TSE imza ve zincir state (`tse*`, `signature chain`, receipt sequence)
+- FinanzOnline outbox/submission tabloları
+- Backup/restore verification tabloları (operasyonel güvence için)
 
-## Money & Precision
-- Varsayılan para alanları: decimal(18,2)
-- Bazı oran/vergiler: decimal(5,4) veya decimal(5,2)
-- Toplam/iskonto/vergilerde rounding mevcut policy ile aynı kalmalı.
+## Şema değişikliği kuralları
+1. Önce mevcut entity mapping ve migration paternini incele.
+2. Public contract etkisini (DTO/OpenAPI) ayrı değerlendir.
+3. Geriye dönük uyumluluk olmadan destructive değişiklik yapma.
+4. Hassas alanlarda index/constraint değişikliklerini testsiz bırakma.
 
-## JSONB Kullanımı
-- Bazı alanlar jsonb olarak map edilmiş (audit/receipt/tse payload gibi esnek data alanları).
-- Yeni jsonb alan eklemeden önce gerçekten gerekli mi kontrol et.
-
-## İlişki & Delete Behavior
-- Cart -> User: Cascade delete (AppDbContext’te konfigurasyon var)
-- Yeni ilişkiler eklerken mevcut delete behavior yaklaşımını takip et.
+## Minimum kontrol
+- `dotnet ef migrations list --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj`
+- `dotnet ef database update --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj`

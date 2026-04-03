@@ -1,34 +1,28 @@
-# Repository File Map
+# Repository File Map (current)
 
-Bu dosya, AI'nin projeyi karıştırmaması için hızlı bir navigasyon rehberidir.
+## Backend (`backend/`)
+- Controllers: `backend/Controllers/`
+- Services: `backend/Services/`
+- Authorization: `backend/Authorization/`
+- EF context: `backend/Data/AppDbContext.cs`
+- Migrations: `backend/Migrations/`
+- OpenAPI contract: `backend/swagger.json`
+- Backend tests: `backend/KasseAPI_Final.Tests/`
 
-## 📂 Backend (ASP.NET Core)
-- **Root**: `backend/`
-- **Controllers**: `backend/Controllers/`
-- **Models/Entities**: `backend/Models/`
-- **Data/Context**: `backend/Data/AppDbContext.cs`
-- **Services**: `backend/Services/`
+## POS Frontend (`frontend/`)
+- Expo Router app: `frontend/app/`
+- API services: `frontend/services/api/`
+- Contexts: `frontend/contexts/`
+- POS tests: `frontend/__tests__/`
 
-## 📱 Frontend Mobile (React Native + Expo)
-- **Root**: `frontend/`
-- **Navigation**: `frontend/app/` (Expo Router setup)
-- **Tabs**: `frontend/app/(tabs)/`
-- **Auth**: `frontend/app/(auth)/`
-- **Components**: `frontend/components/`
-- **Check**: `@react-navigation/*` ve `expo-*` paketleri sadece buradadır.
+## Admin Frontend (`frontend-admin/`)
+- Next App Router pages: `frontend-admin/src/app/`
+- Generated API client: `frontend-admin/src/api/generated/`
+- Admin API boundary helpers: `frontend-admin/src/api/admin/`
+- Axios mutator: `frontend-admin/src/lib/axios.ts`
+- Orval config/transformer: `frontend-admin/orval.config.ts`, `frontend-admin/scripts/orval-strip-legacy-paths.cjs`
 
-## 💻 Frontend Admin (React Web)
-- **Root**: `frontend-admin/`
-- **Entry**: `frontend-admin/src/main.tsx`
-- **Routes**: `frontend-admin/src/routes.tsx` (React Router)
-- **Pages**: `frontend-admin/src/pages/`
-- **API**: `frontend-admin/src/api/`
-- **Check**: Vite tabanlıdır. **Expo Router kullanılmaz.**
-
-## ⚠️ CRITICAL WARNING: DO NOT MIX
-- **React Native (frontend/)** dosyalarında `react-router-dom` kullanma; Expo Router kullan.
-- **Admin Web (frontend-admin/)** dosyalarında `react-native` paketlerini import etme.
-- Paylaşılan bir `common` klasörü yoksa, UI elementlerini kopyalarken platform spesifik API'leri (örn: `View` vs `div`) mutlaka dönüştür.
-
-## 🤖 AI Interaction Template
-- Planlama yaparken hangi klasörde (Mobile vs Admin) olduğunu her zaman teyit et.
+## CI & verification
+- Workflows: `.github/workflows/*.yml`
+- OpenAPI/Orval checks: `scripts/verify-api-client.mjs`, `scripts/validate-critical-openapi-paths.mjs`
+- Localization checks: `localization/scripts/*.mjs`

@@ -1,10 +1,11 @@
 # Module: TSE & FinanzOnline
 
-## What this is
-- TSE: cihaz / imza / kayıt akışları (TseDevice, TseSignature, TseController)
-- FinanzOnline: hata ve raporlama (FinanzOnlineError)
+## Scope
+- TSE imza/cihaz/state akışları
+- FinanzOnline submission/outbox/reconciliation akışları
 
 ## Rules
-- Bu modüllerde davranış değişikliği yapma (breaking change yok)
-- Sadece istenen endpoint/field ekle
-- Hata durumlarını sessizce yutma; logla ve mevcut error yaklaşımını koru
+- Davranış değişikliği ancak açık görev kapsamıyla yapılır.
+- Alan adları/payload eşleşmeleri keyfi değiştirilmez.
+- Hata durumları sessizce yutulmaz; izlenebilirlik korunur.
+- Bu alanlarda route/contract değişikliği yaparken migration ve rollback etkisi ayrıca değerlendirilir.

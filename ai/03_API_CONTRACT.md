@@ -1,20 +1,20 @@
 # API Contract
 
-## Routing
-- Base: /api/[controller]
-- JSON request/response
-- Auth çoğunlukla Bearer token ([Authorize])
+## Source of truth
+- Contract kaynağı: `backend/swagger.json`.
+- Backend implementation ve frontend tüketimi bu dosyayla hizalı olmalıdır.
 
-## Response & Error yaklaşımı
-- Başarılı: Ok(...) / Created(...) gibi standart ASP.NET Core sonuçları
-- Hata: Mevcut controller'ların döndüğü error formatını koru (AI varsayım yapmasın)
+## Boundary kuralı
+- Admin: `/api/admin/*`
+- POS: `/api/pos/*`
+- Legacy prefix (`/api/Payment`, `/api/Cart`, `/api/Product`) yeni işlev için kullanılmaz.
 
-## Örnek Controller Pattern
-- Controller: ince
-- Service: iş mantığı
-- DB: EF Core (AppDbContext)
+## Contract değişikliği kuralı
+- Endpoint/DTO/error shape değişiyorsa:
+  1. backend kodunu güncelle,
+  2. `backend/swagger.json` güncelle,
+  3. gerekiyorsa admin generated client’i yenile (`frontend-admin`, Orval).
 
-## Yeni Endpoint Ekleme Kuralları
-- Mevcut controller naming ve route düzenini koru
-- DTO gerekiyorsa `backend/DTOs` altında konumlandır (namespace: KasseAPI_Final.DTOs)
-- Authorization gereksinimlerini açıkça ekle
+## Kontroller
+- `node scripts/validate-critical-openapi-paths.mjs`
+- `node scripts/verify-api-client.mjs`

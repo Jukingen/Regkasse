@@ -1,43 +1,33 @@
 # Backend Contract (ASP.NET Core)
 
-## Mimari
-- API: Controller-based (Minimal API değil)
-- Servis Katmanı: İş mantığı çoğunlukla service layer'da (örn: IPaymentService)
-- Data Access: EF Core + Fluent API (AppDbContext)
-- Identity: AppDbContext, IdentityDbContext<ApplicationUser>
+## Teknik gerçekler
+- Framework: ASP.NET Core Web API, controller-based yapı.
+- Hedef framework: `net10.0`.
+- Veri: EF Core + Npgsql (`AppDbContext : IdentityDbContext<ApplicationUser>`).
+- AuthN/AuthZ: JWT + policy/permission sistemi (`HasPermission`, `AddAppAuthorization`).
+- OpenAPI: Swashbuckle ile üretilen `backend/swagger.json` contract kaynağıdır.
 
-## Controller Standards
-- Route: [Route("api/[controller]")]
-- [ApiController] kullanılır
-- Çoğu endpoint [Authorize] ile korunur (AuthController hariç)
-- Controller ince olmalı: doğrulama + servis çağrısı + response
+## Controller ve route kuralları
+- Repo hem canonical hem legacy route barındırır.
+- Canonical hedefler:
+  - Admin: `/api/admin/*`
+  - POS: `/api/pos/*`
+- Legacy alias içeren kritik controller’lar: `PaymentController`, `CartController`, `ProductController`.
+- Yeni endpointlerde legacy prefix açma; canonical prefix kullan.
 
-## Logging
-- Bazı controller'lar BaseController üzerinden ILogger alır (örn: PaymentController : BaseController)
-- Yeni controller eklerken mevcut BaseController kullanımını takip et.
+## Response/contract kuralları
+- Contract değişikliği varsa aynı PR’da `backend/swagger.json` güncel olmalı.
+- Kritik endpointlerde named DTO + `ProducesResponseType` kullan.
+- Payment v2 sözleşmesi header opt-in ile desteklenir: `X-Regkasse-Payment-Contract: v2`.
 
-## Validation
-- Basit guard/validation Controller veya Service katmanında
-- Yeni endpoint yazarken: 
-  - Request null/empty kontrol
-  - Domain kurallarını service tarafında uygula
+## Güvenlik ve uyumluluk
+- Varsayılan yaklaşım: endpoint’leri authorize et, permission ile sınırla.
+- Yüksek riskli alanlar: ödeme, fiş, günlük kapanış, TSE imza, FinanzOnline.
+- Bu alanlarda davranışsal değişiklik yapmadan önce kapsam ve risk notu açık yazılmalıdır.
 
-## Transaction / Money
-- Ödeme, fiş, closing gibi akışlar transaction-heavy.
-- Money alanları: decimal ve DB’de decimal(18,2) (bazı oranlar decimal(5,4)/(5,2))
-- Rounding politikasını değiştirme; sadece mevcut davranışı koru.
-
-## Dosya yerleşimi (mevcut örnekleri takip et)
-- Path: `backend/` (Controllers, Services, DTOs, Data)
-- Controllers: backend/Controllers (namespace: KasseAPI_Final.Controllers)
-- Services: backend/Services (namespace: KasseAPI_Final.Services)
-- DTOs: backend/DTOs (namespace: KasseAPI_Final.DTOs)
-- Data: backend/Data (AppDbContext, namespace: KasseAPI_Final.Data)
-
-## Yeni endpoint ekleme checklist
-1) Controller method + route
-2) Request/Response DTO (gerekirse)
-3) Service interface + implementation
-4) EF model / migration gerekiyorsa AppDbContext + migration
-5) Auth/role kontrolü
-6) Log & error response formatı
+## Backend değişiklik checklist
+1. İlgili controller/service/DTO dosyalarını tara.
+2. Authz etkisini kontrol et (`HasPermission`, role matrix).
+3. Contract etkisi varsa swagger diff üret.
+4. Gerekliyse migration ekle ve mevcut modelleme stilini koru.
+5. İlgili testleri ve script kontrollerini çalıştır.
