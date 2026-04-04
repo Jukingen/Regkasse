@@ -5,6 +5,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Time;
+using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -16,11 +17,16 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<ReportsController> _logger;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-        public ReportsController(AppDbContext context, ILogger<ReportsController> logger)
+        public ReportsController(
+            AppDbContext context,
+            ILogger<ReportsController> logger,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         /// <summary>
@@ -208,8 +214,9 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var products = await _context.Products
-                    .Where(p => p.IsActive)
+                    .Where(p => p.IsActive && p.TenantId == tenantId)
                     .ToListAsync();
 
                 var inventoryReport = new InventoryReport

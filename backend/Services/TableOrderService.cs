@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -15,11 +16,16 @@ namespace KasseAPI_Final.Services
     {
         private readonly AppDbContext _context;
         private readonly ILogger<TableOrderService> _logger;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-        public TableOrderService(AppDbContext context, ILogger<TableOrderService> logger)
+        public TableOrderService(
+            AppDbContext context,
+            ILogger<TableOrderService> logger,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         /// <summary>
@@ -84,9 +90,10 @@ namespace KasseAPI_Final.Services
                 };
 
                 // Product bilgilerini ayrı sorgu ile al
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var productIds = cart.Items.Select(ci => ci.ProductId).ToList();
                 var products = await _context.Products
-                    .Where(p => productIds.Contains(p.Id))
+                    .Where(p => p.TenantId == tenantId && productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
                 // Line total = base*qty + sum(mod.Price*mod.Quantity)
@@ -172,9 +179,10 @@ namespace KasseAPI_Final.Services
                 _context.TableOrderItems.RemoveRange(existingTableOrder.Items);
 
                 // Product bilgilerini ayrı sorgu ile al
+                var tenantIdUpdate = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var productIds = cart.Items.Select(ci => ci.ProductId).ToList();
                 var products = await _context.Products
-                    .Where(p => productIds.Contains(p.Id))
+                    .Where(p => p.TenantId == tenantIdUpdate && productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
                 var allLineAmounts = new List<CartMoneyHelper.LineAmounts>();

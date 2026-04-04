@@ -4,6 +4,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -56,10 +57,12 @@ public class CatalogStructureTests
         var addOnProductId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = mainProductId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -68,25 +71,37 @@ public class CatalogStructureTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{mainProductId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         context.Products.Add(new Product
         {
             Id = addOnProductId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Extra Käse",
             Price = 1.50m,
             CategoryId = categoryId,
-            Category = "Extras",
+            Category = "Speisen",
             StockQuantity = 0,
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{addOnProductId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true,
             IsSellableAddOn = true
         });
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Extras",
             SortOrder = 0,
             IsActive = true
@@ -95,18 +110,20 @@ public class CatalogStructureTests
         {
             ModifierGroupId = groupId,
             ProductId = addOnProductId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             SortOrder = 0
         });
         context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
         {
             ProductId = mainProductId,
             ModifierGroupId = groupId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             SortOrder = 0
         });
         await context.SaveChangesAsync();
 
         var productRepo = new GenericRepository<Product>(context, NullLogger<GenericRepository<Product>>.Instance);
-        var controller = new ProductController(context, productRepo, NullLogger<ProductController>.Instance);
+        var controller = new ProductController(context, productRepo, NullLogger<ProductController>.Instance, TenantTestDoubles.PrimaryTenantResolver);
         SetAuth(controller);
 
         var result = await controller.GetCatalog();
@@ -159,10 +176,12 @@ public class CatalogStructureTests
         var addOnProductId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = mainProductId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Pizza",
             Price = 8.50m,
             CategoryId = categoryId,
@@ -171,25 +190,37 @@ public class CatalogStructureTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{mainProductId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         context.Products.Add(new Product
         {
             Id = addOnProductId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Oliven",
             Price = 0.80m,
             CategoryId = categoryId,
-            Category = "Extras",
+            Category = "Speisen",
             StockQuantity = 0,
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{addOnProductId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true,
             IsSellableAddOn = true
         });
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Toppings",
             SortOrder = 0,
             IsActive = true
@@ -198,18 +229,20 @@ public class CatalogStructureTests
         {
             ModifierGroupId = groupId,
             ProductId = addOnProductId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             SortOrder = 0
         });
         context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
         {
             ProductId = mainProductId,
             ModifierGroupId = groupId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             SortOrder = 0
         });
         await context.SaveChangesAsync();
 
         var productRepo = new GenericRepository<Product>(context, NullLogger<GenericRepository<Product>>.Instance);
-        var controller = new ProductController(context, productRepo, NullLogger<ProductController>.Instance);
+        var controller = new ProductController(context, productRepo, NullLogger<ProductController>.Instance, TenantTestDoubles.PrimaryTenantResolver);
         SetAuth(controller);
 
         var result = await controller.GetCatalog();

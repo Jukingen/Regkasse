@@ -2,6 +2,7 @@ using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
@@ -29,13 +30,16 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
 {
     private readonly AppDbContext _context;
     private readonly ILogger<CashRegisterResolutionService> _logger;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
 
     public CashRegisterResolutionService(
         AppDbContext context,
-        ILogger<CashRegisterResolutionService> logger)
+        ILogger<CashRegisterResolutionService> logger,
+        ISettingsTenantResolver settingsTenantResolver)
     {
         _context = context;
         _logger = logger;
+        _settingsTenantResolver = settingsTenantResolver;
     }
 
     /// <inheritdoc />
@@ -47,8 +51,10 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         if (!IsMissingOrEmptyGuid(userSettings.CashRegisterId))
             return;
 
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var registers = await _context.CashRegisters
             .AsNoTracking()
+            .Where(r => r.TenantId == tenantId)
             .OrderBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -105,9 +111,10 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
                 "CashRegisterId must be a valid non-empty GUID.");
         }
 
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var register = await _context.CashRegisters
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == registerId, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == registerId && r.TenantId == tenantId, cancellationToken);
 
         if (register == null)
         {
@@ -123,7 +130,7 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
                 "Cash register is not open and cannot be assigned for payment.");
         }
 
-        if (!await CanUserSelectRegisterForAssignmentAsync(userId, register, principal, cancellationToken))
+        if (!await CanUserSelectRegisterForAssignmentAsync(userId, register, principal, tenantId, cancellationToken))
         {
             return CashRegisterResolutionValidationResult.Failure(
                 CashRegisterResolutionCodes.Forbidden,
@@ -152,15 +159,17 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
                 "CashRegisterId is required.");
         }
 
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var register = await _context.CashRegisters
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == requestedRegisterId, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == requestedRegisterId && r.TenantId == tenantId, cancellationToken);
 
         var settings = await _context.UserSettings
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
 
         var operationalRegisterCount = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.TenantId == tenantId)
             .WhereCountsTowardPosOperationalCardinality()
             .CountAsync(cancellationToken);
 
@@ -182,6 +191,7 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
                 "CashRegisterId is required.");
         }
 
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         await CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync(
             _context,
             requestedRegisterId,
@@ -189,13 +199,14 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
 
         var register = await _context.CashRegisters
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == requestedRegisterId, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == requestedRegisterId && r.TenantId == tenantId, cancellationToken);
 
         var settings = await _context.UserSettings
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == userId, cancellationToken);
 
         var operationalRegisterCount = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.TenantId == tenantId)
             .WhereCountsTowardPosOperationalCardinality()
             .CountAsync(cancellationToken);
 
@@ -274,9 +285,10 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         ClaimsPrincipal principal,
         CancellationToken cancellationToken = default)
     {
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var open = await _context.CashRegisters
             .AsNoTracking()
-            .Where(r => r.Status == RegisterStatus.Open)
+            .Where(r => r.TenantId == tenantId && r.Status == RegisterStatus.Open)
             .OrderBy(r => r.RegisterNumber)
             .ToListAsync(cancellationToken);
 
@@ -295,6 +307,7 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         }
 
         var operationalTotal = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.TenantId == tenantId)
             .WhereCountsTowardPosOperationalCardinality()
             .CountAsync(cancellationToken);
         if (operationalTotal == 1 && usableOpen.Count == 1)
@@ -340,16 +353,18 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             return new PosSelectableListResult { Registers = registers, EmptyReason = null };
         }
 
-        var totalRows = await _context.CashRegisters.AsNoTracking().CountAsync(cancellationToken);
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+        var totalRows = await _context.CashRegisters.AsNoTracking().CountAsync(r => r.TenantId == tenantId, cancellationToken);
         var operationalTotal = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.TenantId == tenantId)
             .WhereCountsTowardPosOperationalCardinality()
             .CountAsync(cancellationToken);
         var openRows = await _context.CashRegisters
             .AsNoTracking()
-            .CountAsync(r => r.Status == RegisterStatus.Open, cancellationToken);
+            .CountAsync(r => r.TenantId == tenantId && r.Status == RegisterStatus.Open, cancellationToken);
         var openUnclaimedOrSelf = await _context.CashRegisters
             .AsNoTracking()
-            .Where(r => r.Status == RegisterStatus.Open &&
+            .Where(r => r.TenantId == tenantId && r.Status == RegisterStatus.Open &&
                         (r.CurrentUserId == null || r.CurrentUserId == userId))
             .CountAsync(cancellationToken);
         var hasCashRegisterView =
@@ -380,6 +395,7 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         if (totalRows > 0 && operationalTotal == 0)
         {
             var excluded = await _context.CashRegisters.AsNoTracking()
+                .Where(r => r.TenantId == tenantId)
                 .OrderBy(r => r.RegisterNumber)
                 .Select(r => new { r.Id, r.RegisterNumber, StatusCode = (int)r.Status, r.IsActive })
                 .Take(25)
@@ -403,12 +419,14 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
         string userId,
         CashRegister register,
         ClaimsPrincipal principal,
+        Guid tenantId,
         CancellationToken cancellationToken)
     {
         if (PermissionClaimHelper.PrincipalHasAppPermission(principal, AppPermissions.CashRegisterView))
             return true;
 
         var operationalTotal = await _context.CashRegisters.AsNoTracking()
+            .Where(r => r.TenantId == tenantId)
             .WhereCountsTowardPosOperationalCardinality()
             .CountAsync(cancellationToken);
         return CashRegisterShiftOccupancy.MayAssignRegisterWithoutCashRegisterView(userId, register, operationalTotal);

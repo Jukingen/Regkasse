@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -9,6 +10,10 @@ namespace KasseAPI_Final.Models
     [Table("product_modifier_groups")]
     public class ProductModifierGroup : BaseEntity
     {
+        /// <summary>FK to <see cref="Models.Tenant"/>; aligns composite FKs on assignments and add-on links.</summary>
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
         [Required]
         [Column("name")]
         [MaxLength(100)]
@@ -25,6 +30,9 @@ namespace KasseAPI_Final.Models
 
         [Column("sort_order")]
         public int SortOrder { get; set; }
+
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
 
         public virtual ICollection<ProductModifierGroupAssignment> ProductAssignments { get; set; } = new List<ProductModifierGroupAssignment>();
 

@@ -13,6 +13,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -73,6 +75,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             await AddMinimalUserAsync(seed, "u1");
             seed.CashRegisters.Add(new CashRegister
             {
+                TenantId = LegacyDefaultTenantIds.Primary,
                 Id = regId,
                 RegisterNumber = "PG-LOCK-1",
                 Location = "T",
@@ -89,7 +92,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
 
         await using var holdCtx = CreateContext();
         await using var tx = await holdCtx.Database.BeginTransactionAsync();
-        var resolution = new CashRegisterResolutionService(holdCtx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(holdCtx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var gateOk = await resolution.ValidatePaymentRegisterForCommitAsync("u1", regId, new ClaimsPrincipal());
         Assert.True(gateOk.Ok);
 
@@ -99,7 +102,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             await using var closeCtx = new AppDbContext(
                 new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(cs).Options);
             var mgr = CreateUserManagerMock();
-            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
             return await shift.TryCloseCashRegisterAsync(regId, "u1", 0m, CancellationToken.None);
         });
 
@@ -123,6 +126,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             await AddMinimalUserAsync(seed, "u1");
             seed.CashRegisters.Add(new CashRegister
             {
+                TenantId = LegacyDefaultTenantIds.Primary,
                 Id = regId,
                 RegisterNumber = "PG-CLOSE-1",
                 Location = "T",
@@ -140,14 +144,14 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var closeCtx = CreateContext())
         {
             var mgr = CreateUserManagerMock();
-            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
             var closed = await shift.TryCloseCashRegisterAsync(regId, "u1", 0m, CancellationToken.None);
             Assert.Equal(CashRegisterCloseKind.Success, closed.Kind);
         }
 
         await using var payCtx = CreateContext();
         await using var tx = await payCtx.Database.BeginTransactionAsync();
-        var resolution = new CashRegisterResolutionService(payCtx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(payCtx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var gate = await resolution.ValidatePaymentRegisterForCommitAsync("u1", regId, new ClaimsPrincipal());
         Assert.False(gate.Ok);
         Assert.Equal(CashRegisterResolutionCodes.Closed, gate.Code);
@@ -191,6 +195,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             seed.Users.Add(u2);
             seed.CashRegisters.Add(new CashRegister
             {
+                TenantId = LegacyDefaultTenantIds.Primary,
                 Id = r1,
                 RegisterNumber = "PG-R1",
                 Location = "T",
@@ -204,6 +209,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             });
             seed.CashRegisters.Add(new CashRegister
             {
+                TenantId = LegacyDefaultTenantIds.Primary,
                 Id = r2,
                 RegisterNumber = "PG-R2",
                 Location = "T",
@@ -228,7 +234,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var step = CreateContext())
         {
             var mgr = CreateUserManagerMock(u1, u2);
-            var shift = new CashRegisterShiftService(step, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+            var shift = new CashRegisterShiftService(step, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
             var closeR = await shift.TryCloseCashRegisterAsync(r1, u1.Id, 0m, CancellationToken.None);
             Assert.Equal(CashRegisterCloseKind.Success, closeR.Kind);
             var openR = await shift.TryOpenCashRegisterAsync(
@@ -243,7 +249,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
 
         await using var payCtx = CreateContext();
         await using var tx = await payCtx.Database.BeginTransactionAsync();
-        var resolution = new CashRegisterResolutionService(payCtx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(payCtx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var gate = await resolution.ValidatePaymentRegisterForCommitAsync(u1.Id, r1, new ClaimsPrincipal());
         Assert.False(gate.Ok);
         Assert.Equal(CashRegisterResolutionCodes.Forbidden, gate.Code);
@@ -262,10 +268,12 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var seed = CreateContext())
         {
             await AddMinimalUserAsync(seed, "u1");
-            seed.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+            TenantTestDoubles.EnsureDefaultTenant(seed);
+            seed.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
             seed.Products.Add(new Product
             {
                 Id = productId,
+                TenantId = LegacyDefaultTenantIds.Primary,
                 Name = "Item",
                 Price = 6.90m,
                 CategoryId = categoryId,
@@ -274,6 +282,11 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
                 MinStockLevel = 0,
                 Unit = "Stk",
                 TaxType = 2,
+                TaxRate = TaxTypes.GetTaxRate(2),
+                Barcode = $"t-{productId:N}",
+                IsFiscalCompliant = true,
+                IsTaxable = true,
+                RksvProductType = RksvProductTypes.Standard,
                 IsActive = true
             });
             seed.Customers.Add(new Customer
@@ -286,6 +299,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             });
             seed.CashRegisters.Add(new CashRegister
             {
+                TenantId = LegacyDefaultTenantIds.Primary,
                 Id = cashRegisterId,
                 RegisterNumber = "PG-PAY-1",
                 Location = "T",
@@ -303,7 +317,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var closeCtx = CreateContext())
         {
             var mgr = CreateUserManagerMock();
-            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
             await shift.TryCloseCashRegisterAsync(cashRegisterId, "u1", 0m, CancellationToken.None);
         }
 
@@ -389,7 +403,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
                 It.IsAny<string?>(), It.IsAny<double?>()))
             .ReturnsAsync(new AuditLog());
 
-        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var httpAccessorMock = new Mock<IHttpContextAccessor>();
         httpAccessorMock.Setup(a => a.HttpContext).Returns(new DefaultHttpContext());
 
@@ -410,7 +424,8 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             Mock.Of<ILogger<PaymentService>>(),
             cashRegResolver,
             httpAccessorMock.Object,
-            new PaymentMethodCatalogService(ctx),
-            new PricingRuleResolver(ctx));
+            new PaymentMethodCatalogService(ctx, TenantTestDoubles.PrimaryTenantResolver),
+            new PricingRuleResolver(ctx),
+            TenantTestDoubles.PrimaryTenantResolver);
     }
 }

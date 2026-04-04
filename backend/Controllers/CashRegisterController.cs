@@ -10,6 +10,7 @@ using KasseAPI_Final.Services;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 
 namespace KasseAPI_Final.Controllers
@@ -30,17 +31,20 @@ namespace KasseAPI_Final.Controllers
         private readonly ILogger<CashRegisterController> _logger;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ICashRegisterShiftService _cashRegisterShift;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
         public CashRegisterController(
             ILogger<CashRegisterController> logger,
             AppDbContext context,
             UserManager<ApplicationUser> userManager,
-            ICashRegisterShiftService cashRegisterShift)
+            ICashRegisterShiftService cashRegisterShift,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _logger = logger;
             _context = context;
             _userManager = userManager;
             _cashRegisterShift = cashRegisterShift;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         /// <summary>Full register inventory (open and closed). Not filtered for POS assignment.</summary>
@@ -50,9 +54,11 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(HttpContext?.RequestAborted ?? default);
                 var registers = await _context.CashRegisters
                     .Include(cr => cr.CurrentUser)
                     .AsNoTracking()
+                    .Where(cr => cr.TenantId == tenantId)
                     .ToListAsync();
 
                 return Ok(new { message = "Kasalar başarıyla getirildi", registers });
@@ -70,9 +76,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(HttpContext?.RequestAborted ?? default);
                 var register = await _context.CashRegisters
                     .Include(r => r.CurrentUser)
-                    .FirstOrDefaultAsync(r => r.Id == id);
+                    .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId);
 
                 if (register == null)
                 {
@@ -94,9 +101,11 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(HttpContext?.RequestAborted ?? default);
                 var register = new CashRegister
                 {
-                    RegisterNumber = await GenerateRegisterNumber(),
+                    TenantId = tenantId,
+                    RegisterNumber = await GenerateRegisterNumberAsync(tenantId),
                     Location = model.Location,
                     StartingBalance = model.StartingBalance,
                     CurrentBalance = model.StartingBalance,
@@ -209,6 +218,12 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(HttpContext?.RequestAborted ?? default);
+                var registerOk = await _context.CashRegisters.AsNoTracking()
+                    .AnyAsync(r => r.Id == id && r.TenantId == tenantId);
+                if (!registerOk)
+                    return NotFound(new { message = "Kasa bulunamadı" });
+
                 var query = _context.CashRegisterTransactions
                     .Where(t => t.CashRegisterId == id);
 
@@ -234,9 +249,10 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        private async Task<string> GenerateRegisterNumber()
+        private async Task<string> GenerateRegisterNumberAsync(Guid tenantId)
         {
             var lastRegister = await _context.CashRegisters
+                .Where(r => r.TenantId == tenantId)
                 .OrderByDescending(r => r.RegisterNumber)
                 .FirstOrDefaultAsync();
 

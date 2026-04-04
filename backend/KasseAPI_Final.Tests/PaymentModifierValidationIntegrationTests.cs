@@ -13,6 +13,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -40,10 +42,12 @@ public class PaymentModifierValidationIntegrationTests
         var productPrice = 6.90m;
         var modifierPrice = 0.30m;
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = productPrice,
             CategoryId = categoryId,
@@ -52,11 +56,17 @@ public class PaymentModifierValidationIntegrationTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test Kunde", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -67,11 +77,12 @@ public class PaymentModifierValidationIntegrationTests
             CreatedAt = DateTime.UtcNow,
             IsActive = true
         });
-        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, Name = "Saucen", SortOrder = 0 });
+        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Saucen", SortOrder = 0 });
         context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment
         {
             ProductId = productId,
             ModifierGroupId = groupId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             SortOrder = 0
         });
         context.SaveChanges();
@@ -118,7 +129,7 @@ public class PaymentModifierValidationIntegrationTests
 
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
-        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
         return new PaymentService(
             context,
@@ -137,8 +148,9 @@ public class PaymentModifierValidationIntegrationTests
             loggerPayment,
             cashRegResolver,
             httpAccessor,
-            new PaymentMethodCatalogService(context),
-            new PricingRuleResolver(context));
+            new PaymentMethodCatalogService(context, TenantTestDoubles.PrimaryTenantResolver),
+            new PricingRuleResolver(context),
+            TenantTestDoubles.PrimaryTenantResolver);
     }
 
     [Fact]

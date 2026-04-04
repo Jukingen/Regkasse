@@ -10,6 +10,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Services.Pricing;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
@@ -49,6 +50,7 @@ namespace KasseAPI_Final.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IPaymentMethodCatalogService _paymentMethodCatalog;
         private readonly IPricingRuleResolver _pricingRuleResolver;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
         public PaymentService(
             AppDbContext context,
@@ -69,6 +71,7 @@ namespace KasseAPI_Final.Services
             IHttpContextAccessor httpContextAccessor,
             IPaymentMethodCatalogService paymentMethodCatalog,
             IPricingRuleResolver pricingRuleResolver,
+            ISettingsTenantResolver settingsTenantResolver,
             IFinanzOnlineMetrics? finanzOnlineMetrics = null)
         {
             _context = context;
@@ -89,6 +92,7 @@ namespace KasseAPI_Final.Services
             _httpContextAccessor = httpContextAccessor;
             _paymentMethodCatalog = paymentMethodCatalog;
             _pricingRuleResolver = pricingRuleResolver;
+            _settingsTenantResolver = settingsTenantResolver;
             _finanzOnlineMetrics = finanzOnlineMetrics;
         }
 
@@ -331,6 +335,8 @@ namespace KasseAPI_Final.Services
                     cashRegisterId = registerCommitValidation.ResolvedRegisterId!.Value;
                     registerNumber = registerCommitValidation.RegisterNumber!;
 
+                    var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+
                     // Ürün kontrolü ve stok güncelleme. Tek hesap motoru: CartMoneyHelper (gross model).
                     var paymentItems = new List<PaymentItem>();
                     var productIdToCategoryId = new Dictionary<Guid, Guid>();
@@ -344,7 +350,7 @@ namespace KasseAPI_Final.Services
                     {
                         var product = await _context.Products
                             .Include(p => p.CategoryNavigation)
-                            .FirstOrDefaultAsync(p => p.Id == itemRequest.ProductId);
+                            .FirstOrDefaultAsync(p => p.Id == itemRequest.ProductId && p.TenantId == effectiveTenantId);
                         if (product == null)
                         {
                             await transaction.RollbackAsync();
@@ -936,6 +942,7 @@ namespace KasseAPI_Final.Services
             if (customer == null || !customer.IsActive)
                 return null;
 
+            var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
             var paymentItems = new List<PaymentItem>();
             var productIdToCategoryId = new Dictionary<Guid, Guid>();
             decimal totalAmount = 0;
@@ -946,7 +953,7 @@ namespace KasseAPI_Final.Services
                 var product = await _context.Products
                     .Include(p => p.CategoryNavigation)
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                    .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == effectiveTenantId);
                 if (product?.CategoryNavigation == null) continue;
 
                 var vatRatePercent = product.CategoryNavigation.VatRate;
@@ -1552,6 +1559,7 @@ namespace KasseAPI_Final.Services
             await using var dbTx = await _context.Database.BeginTransactionAsync();
             try
             {
+                var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 stornoBelegNr = await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(dbTx, cashRegisterId, registerNumber, DateTime.UtcNow);
 
                 var storno = new PaymentDetails
@@ -1655,7 +1663,8 @@ namespace KasseAPI_Final.Services
 
                 foreach (var item in originalItems)
                 {
-                    var product = await _context.Products.FindAsync(item.ProductId);
+                    var product = await _context.Products
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == effectiveTenantId);
                     if (product != null)
                     {
                         product.StockQuantity += item.Quantity;
@@ -1891,6 +1900,7 @@ namespace KasseAPI_Final.Services
                 await using var refundTx = await _context.Database.BeginTransactionAsync();
                 try
                 {
+                    var effectiveTenantIdForRefund = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                     refundBelegNr = await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(refundTx, refundCashRegisterId, refundRegisterNumber, DateTime.UtcNow);
 
                     var refund = new PaymentDetails
@@ -1993,7 +2003,8 @@ namespace KasseAPI_Final.Services
 
                     foreach (var item in originalItems)
                     {
-                        var product = await _context.Products.FindAsync(item.ProductId);
+                        var product = await _context.Products
+                            .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == effectiveTenantIdForRefund);
                         if (product != null)
                         {
                             var refundQuantity = (int)Math.Round(item.Quantity * refundRatio);

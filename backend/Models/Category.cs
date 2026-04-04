@@ -6,6 +6,10 @@ namespace KasseAPI_Final.Models
     [Table("categories")]
     public class Category : BaseEntity
     {
+        /// <summary>FK to <see cref="Models.Tenant"/>; category names are unique per tenant.</summary>
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
         [Required]
         [MaxLength(100)]
         public string Name { get; set; } = string.Empty;
@@ -25,6 +29,9 @@ namespace KasseAPI_Final.Models
         [Column("vat_rate", TypeName = "decimal(5,2)")]
         [Range(0, 100, ErrorMessage = "VAT rate must be between 0 and 100")]
         public decimal VatRate { get; set; } = 20m;
+
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
 
         public virtual ICollection<Product> Products { get; set; } = new List<Product>();
     }

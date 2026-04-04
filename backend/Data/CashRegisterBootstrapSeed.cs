@@ -1,5 +1,6 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -51,6 +52,7 @@ public static class CashRegisterBootstrapSeed
         await context.CashRegisters.AddAsync(new CashRegister
         {
             Id = Guid.NewGuid(),
+            TenantId = LegacyDefaultTenantIds.Primary,
             RegisterNumber = "K01",
             Location = "Default",
             StartingBalance = 0,

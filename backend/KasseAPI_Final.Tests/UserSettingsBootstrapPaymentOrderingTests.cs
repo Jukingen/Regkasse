@@ -12,6 +12,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -31,7 +33,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
 
     private static UserSettingsController CreateController(AppDbContext ctx, string userId)
     {
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var c = new UserSettingsController(ctx, Mock.Of<ILogger<UserSettingsController>>(), resolution);
         c.ControllerContext = new ControllerContext
         {
@@ -58,6 +60,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
 
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -71,6 +74,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = Guid.NewGuid(),
             RegisterNumber = "Z",
             Location = "L",
@@ -90,7 +94,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         var afterGet = await ctx.UserSettings.AsNoTracking().SingleAsync(us => us.UserId == userId);
         Assert.Null(afterGet.CashRegisterId);
 
-        var resolutionAfterGet = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolutionAfterGet = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var preAfterGet = await resolutionAfterGet.ValidatePaymentRegisterAsync(userId, regId, new ClaimsPrincipal());
         Assert.True(preAfterGet.Ok);
 
@@ -99,7 +103,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         var afterBoot = await ctx.UserSettings.AsNoTracking().SingleAsync(us => us.UserId == userId);
         Assert.Equal(regId.ToString(), afterBoot.CashRegisterId);
 
-        var resolutionFinal = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolutionFinal = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var preFinal = await resolutionFinal.ValidatePaymentRegisterAsync(userId, regId, new ClaimsPrincipal());
         Assert.True(preFinal.Ok);
     }
@@ -115,6 +119,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         var openId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = openId,
             RegisterNumber = "K1",
             Location = "A",
@@ -128,6 +133,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = Guid.NewGuid(),
             RegisterNumber = "D",
             Location = "B",
@@ -144,7 +150,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         var controller = CreateController(ctx, userId);
         await controller.GetUserSettings();
 
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[]
             {

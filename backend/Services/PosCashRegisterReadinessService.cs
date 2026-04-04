@@ -3,6 +3,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -18,19 +19,22 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
     private readonly ICashRegisterShiftService _shift;
     private readonly IOptions<PosCashRegisterFeatureOptions> _options;
     private readonly ILogger<PosCashRegisterReadinessService> _logger;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
 
     public PosCashRegisterReadinessService(
         AppDbContext context,
         ICashRegisterResolutionService resolution,
         ICashRegisterShiftService shift,
         IOptions<PosCashRegisterFeatureOptions> options,
-        ILogger<PosCashRegisterReadinessService> logger)
+        ILogger<PosCashRegisterReadinessService> logger,
+        ISettingsTenantResolver settingsTenantResolver)
     {
         _context = context;
         _resolution = resolution;
         _shift = shift;
         _options = options;
         _logger = logger;
+        _settingsTenantResolver = settingsTenantResolver;
     }
 
     /// <inheritdoc />
@@ -54,8 +58,10 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             userId,
             cancellationToken);
 
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var registers = await _context.CashRegisters
             .Include(r => r.CurrentUser)
+            .Where(r => r.TenantId == tenantId)
             .OrderBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
@@ -238,9 +244,11 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             .AsNoTracking()
             .FirstOrDefaultAsync(us => us.UserId == userId, cancellationToken);
 
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var registers = await _context.CashRegisters
             .AsNoTracking()
             .Include(r => r.CurrentUser)
+            .Where(r => r.TenantId == tenantId)
             .OrderBy(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 

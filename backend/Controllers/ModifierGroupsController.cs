@@ -7,6 +7,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -19,11 +20,16 @@ namespace KasseAPI_Final.Controllers
     public class ModifierGroupsController : BaseController
     {
         private readonly AppDbContext _context;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-        public ModifierGroupsController(AppDbContext context, ILogger<ModifierGroupsController> logger)
+        public ModifierGroupsController(
+            AppDbContext context,
+            ILogger<ModifierGroupsController> logger,
+            ISettingsTenantResolver settingsTenantResolver)
             : base(logger)
         {
             _context = context;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         /// <summary>
@@ -34,8 +40,9 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var groups = await _context.ProductModifierGroups
-                    .Where(g => g.IsActive)
+                    .Where(g => g.IsActive && g.TenantId == tenantId)
                     .OrderBy(g => g.SortOrder)
                     .ThenBy(g => g.Name)
                     .Include(g => g.AddOnGroupProducts)
@@ -59,10 +66,11 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var group = await _context.ProductModifierGroups
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)
-                    .FirstOrDefaultAsync(g => g.Id == id);
+                    .FirstOrDefaultAsync(g => g.Id == id && g.TenantId == tenantId);
 
                 if (group == null)
                     return ErrorResponse("Modifier group not found.", 404);
@@ -85,9 +93,11 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var entity = new ProductModifierGroup
                 {
                     Id = Guid.NewGuid(),
+                    TenantId = tenantId,
                     Name = request.Name,
                     MinSelections = request.MinSelections,
                     MaxSelections = request.MaxSelections,
@@ -119,7 +129,9 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var entity = await _context.ProductModifierGroups.FindAsync(id);
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var entity = await _context.ProductModifierGroups
+                    .FirstOrDefaultAsync(g => g.Id == id && g.TenantId == tenantId);
                 if (entity == null)
                     return ErrorResponse("Modifier group not found.", 404);
 
@@ -149,7 +161,9 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var entity = await _context.ProductModifierGroups.FindAsync(id);
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var entity = await _context.ProductModifierGroups
+                    .FirstOrDefaultAsync(g => g.Id == id && g.TenantId == tenantId);
                 if (entity == null)
                     return ErrorResponse("Modifier group not found.", 404);
 
@@ -199,7 +213,9 @@ namespace KasseAPI_Final.Controllers
                 if (!hasProductId && !hasCreateNew)
                     return ErrorResponse("Provide either productId or createNewAddOnProduct.", 400);
 
-                var group = await _context.ProductModifierGroups.FindAsync(id);
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var group = await _context.ProductModifierGroups
+                    .FirstOrDefaultAsync(g => g.Id == id && g.TenantId == tenantId);
                 if (group == null)
                     return ErrorResponse("Modifier group not found.", 404);
 
@@ -211,14 +227,15 @@ namespace KasseAPI_Final.Controllers
 
                 if (hasProductId)
                 {
-                    var product = await _context.Products.FindAsync(request.ProductId!.Value);
+                    var product = await _context.Products
+                        .FirstOrDefaultAsync(p => p.Id == request.ProductId!.Value && p.TenantId == tenantId);
                     if (product == null)
                         return ErrorResponse("Product not found.", 404);
                     if (!product.IsActive)
                         return ErrorResponse("Product is inactive and cannot be added to the group.", 400);
 
                     var exists = await _context.AddOnGroupProducts
-                        .AnyAsync(a => a.ModifierGroupId == id && a.ProductId == product.Id);
+                        .AnyAsync(a => a.ModifierGroupId == id && a.TenantId == tenantId && a.ProductId == product.Id);
                     if (exists)
                         return ErrorResponse("Product is already in this group.", 409);
 
@@ -227,7 +244,7 @@ namespace KasseAPI_Final.Controllers
                     price = product.Price;
                     taxType = product.TaxType;
                     sortOrder = await _context.AddOnGroupProducts
-                        .Where(a => a.ModifierGroupId == id)
+                        .Where(a => a.ModifierGroupId == id && a.TenantId == tenantId)
                         .CountAsync();
                 }
                 else
@@ -238,7 +255,8 @@ namespace KasseAPI_Final.Controllers
                     if (create.Price < 0)
                         return ErrorResponse("Price must be >= 0.", 400);
 
-                    var category = await _context.Categories.FindAsync(create.CategoryId.Value);
+                    var category = await _context.Categories
+                        .FirstOrDefaultAsync(c => c.Id == create.CategoryId.Value && c.TenantId == tenantId);
                     if (category == null)
                         return ErrorResponse("Category not found.", 404);
 
@@ -246,6 +264,7 @@ namespace KasseAPI_Final.Controllers
                     var newProduct = new Product
                     {
                         Id = Guid.NewGuid(),
+                        TenantId = tenantId,
                         Name = name,
                         Description = name,
                         Price = Math.Round(create.Price, 2),
@@ -261,6 +280,8 @@ namespace KasseAPI_Final.Controllers
                         IsSellableAddOn = true,
                         TaxRate = TaxTypes.GetTaxRate(create.TaxType),
                         RksvProductType = RksvProductTypes.Standard,
+                        IsFiscalCompliant = true,
+                        IsTaxable = true,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
@@ -276,6 +297,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     ModifierGroupId = id,
                     ProductId = productId,
+                    TenantId = tenantId,
                     SortOrder = sortOrder
                 };
                 _context.AddOnGroupProducts.Add(link);
@@ -307,8 +329,9 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var link = await _context.AddOnGroupProducts
-                    .FirstOrDefaultAsync(a => a.ModifierGroupId == groupId && a.ProductId == productId);
+                    .FirstOrDefaultAsync(a => a.ModifierGroupId == groupId && a.TenantId == tenantId && a.ProductId == productId);
                 if (link == null)
                     return ErrorResponse("Product is not in this group.", 404);
 
@@ -329,7 +352,7 @@ namespace KasseAPI_Final.Controllers
         {
             var products = (g.AddOnGroupProducts ?? new List<AddOnGroupProduct>())
                 .OrderBy(a => a.SortOrder)
-                .Where(a => a.Product != null && a.Product.IsActive)
+                .Where(a => a.Product != null && a.Product.TenantId == g.TenantId && a.Product.IsActive)
                 .Select(a => new AddOnGroupProductItemDto
                 {
                     ProductId = a.ProductId,

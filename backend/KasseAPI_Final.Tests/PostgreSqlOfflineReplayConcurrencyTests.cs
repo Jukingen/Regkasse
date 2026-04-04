@@ -19,6 +19,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -62,8 +64,10 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
 
+        TenantTestDoubles.EnsureDefaultTenant(ctx);
         ctx.Categories.Add(new Category
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = categoryId,
             Name = "Speisen",
             VatRate = 10m
@@ -71,6 +75,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
         ctx.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -79,11 +84,17 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         ctx.Customers.Add(new Customer { Id = customerId, Name = "PGTest", Email = "pg@test.com", Phone = "1", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "PG-K01",
             Location = "T",
@@ -133,7 +144,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             Options.Create(TestCompany),
             userMock.Object);
 
-        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
         var paymentService = new PaymentService(
             ctx,
@@ -152,8 +163,9 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             Mock.Of<ILogger<PaymentService>>(),
             cashRegResolver,
             httpAccessor,
-            new PaymentMethodCatalogService(ctx),
-            new PricingRuleResolver(ctx));
+            new PaymentMethodCatalogService(ctx, TenantTestDoubles.PrimaryTenantResolver),
+            new PricingRuleResolver(ctx),
+            TenantTestDoubles.PrimaryTenantResolver);
 
         var offlineService = new OfflineTransactionService(
             ctx,

@@ -10,6 +10,10 @@ namespace KasseAPI_Final.Models
     [Table("products")]
     public class Product : BaseEntity
     {
+        /// <summary>FK to <see cref="Models.Tenant"/>; aligns with <see cref="CategoryId"/> composite FK to <see cref="Category"/>.</summary>
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
         [Required]
         [Column("name")]
         [MaxLength(200)]
@@ -68,6 +72,9 @@ namespace KasseAPI_Final.Models
 
         /// <summary>Kategori adı (gösterim için; Category navigation'dan senkron tutulur).</summary>
         public virtual Category? CategoryNavigation { get; set; }
+
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
 
         // RKSV Compliance Fields
         [Column("is_fiscal_compliant")]

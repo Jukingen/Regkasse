@@ -7,6 +7,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -17,11 +18,16 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<OrdersController> _logger;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-        public OrdersController(AppDbContext context, ILogger<OrdersController> logger)
+        public OrdersController(
+            AppDbContext context,
+            ILogger<OrdersController> logger,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         // GET: api/orders
@@ -143,10 +149,12 @@ namespace KasseAPI_Final.Controllers
                 decimal totalTax = 0;
                 decimal totalDiscount = 0;
 
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 foreach (var item in request.Items)
                 {
                     // Ürün bilgilerini al
-                    var product = await _context.Products.FindAsync(item.ProductId);
+                    var product = await _context.Products
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == tenantId);
                     if (product == null)
                     {
                         return BadRequest($"Product with ID {item.ProductId} not found");

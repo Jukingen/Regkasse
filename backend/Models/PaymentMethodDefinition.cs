@@ -12,6 +12,10 @@ public class PaymentMethodDefinition
     [Column("id")]
     public Guid Id { get; set; }
 
+    /// <summary>FK to <see cref="Models.Tenant"/>; scopes codes and defaults per tenant.</summary>
+    [Column("tenant_id")]
+    public Guid TenantId { get; set; }
+
     [Required]
     [Column("code")]
     [MaxLength(64)]
@@ -62,4 +66,7 @@ public class PaymentMethodDefinition
 
     [Column("updated_at_utc")]
     public DateTime? UpdatedAtUtc { get; set; }
+
+    [ForeignKey(nameof(TenantId))]
+    public virtual Tenant? Tenant { get; set; }
 }

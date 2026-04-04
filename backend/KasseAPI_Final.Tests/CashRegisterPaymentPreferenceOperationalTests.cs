@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -35,6 +37,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
 
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = closedPref,
             RegisterNumber = "K-CLOSED",
             Location = "L",
@@ -47,6 +50,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = openOther,
             RegisterNumber = "K-OPEN",
             Location = "L",
@@ -90,7 +94,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
         });
         await ctx.SaveChangesAsync();
 
-        var svc = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var svc = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var r = await svc.ValidatePaymentRegisterAsync(userId, closedPref, new ClaimsPrincipal());
 
         Assert.False(r.Ok);
@@ -106,6 +110,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
 
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -149,7 +154,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
         });
         await ctx.SaveChangesAsync();
 
-        var svc = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var svc = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var r = await svc.ValidatePaymentRegisterAsync(userId, regId, new ClaimsPrincipal());
 
         Assert.False(r.Ok);

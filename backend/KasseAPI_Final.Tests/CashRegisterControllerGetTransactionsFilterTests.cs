@@ -5,6 +5,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -43,12 +44,13 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
         var shift = new CashRegisterShiftService(
             ctx,
             CreateTestUserManager(),
-            Mock.Of<ILogger<CashRegisterShiftService>>());
+            Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var c = new CashRegisterController(
             Mock.Of<ILogger<CashRegisterController>>(),
             ctx,
             CreateTestUserManager(),
-            shift);
+            shift,
+            TenantTestDoubles.PrimaryTenantResolver);
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -63,6 +65,24 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
             },
         };
         return c;
+    }
+
+    /// <summary>Controller now requires a tenant-scoped cash register row before listing transactions.</summary>
+    private static void SeedTenantCashRegister(AppDbContext ctx, Guid regId)
+    {
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "TX-SEED",
+            Location = "T",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
     }
 
     private static List<CashRegisterTransaction> GetTransactionsFromOk(OkObjectResult ok)
@@ -88,6 +108,7 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
             FirstName = "V",
             LastName = "W",
         });
+        SeedTenantCashRegister(ctx, regId);
         var day = PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(2026, 7, 4);
         var (lo, hi) = PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(day, day);
         ctx.CashRegisterTransactions.Add(new CashRegisterTransaction
@@ -139,6 +160,7 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
             FirstName = "V",
             LastName = "2",
         });
+        SeedTenantCashRegister(ctx, regId);
         var day10 = PostgreSqlUtcDateTime.ViennaCalendarDateMidnightUnspecified(2026, 11, 3);
         var (lo10, _) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(day10);
         ctx.CashRegisterTransactions.Add(new CashRegisterTransaction
@@ -190,6 +212,7 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
             FirstName = "V",
             LastName = "3",
         });
+        SeedTenantCashRegister(ctx, regId);
         var start = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Unspecified);
         var end = new DateTime(2026, 4, 3, 0, 0, 0, DateTimeKind.Unspecified);
         var (lo, hi) = PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(start, end);
@@ -251,6 +274,7 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
             FirstName = "V",
             LastName = "4",
         });
+        SeedTenantCashRegister(ctx, regId);
         ctx.CashRegisterTransactions.Add(new CashRegisterTransaction
         {
             CashRegisterId = regId,
@@ -298,6 +322,7 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
             FirstName = "V",
             LastName = "5",
         });
+        SeedTenantCashRegister(ctx, regId);
         var d = new DateTime(2026, 3, 29, 0, 0, 0, DateTimeKind.Unspecified);
         var (lo, hi) = PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(d, d);
         ctx.CashRegisterTransactions.Add(new CashRegisterTransaction

@@ -7,6 +7,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Controllers.Base;
+using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -20,15 +21,18 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IGenericRepository<Product> _productRepository;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
         public AdminProductsController(
             AppDbContext context,
             IGenericRepository<Product> productRepository,
-            ILogger<AdminProductsController> logger)
+            ILogger<AdminProductsController> logger,
+            ISettingsTenantResolver settingsTenantResolver)
             : base(logger)
         {
             _context = context;
             _productRepository = productRepository;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         /// <summary>
@@ -44,8 +48,9 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
 
-                var query = _context.Products.Where(p => p.IsActive);
+                var query = _context.Products.Where(p => p.IsActive && p.TenantId == tenantId);
                 if (categoryId.HasValue)
                     query = query.Where(p => p.CategoryId == categoryId.Value);
                 if (!string.IsNullOrWhiteSpace(name))
@@ -110,7 +115,8 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var query = _context.Products.Where(p => p.IsActive);
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var query = _context.Products.Where(p => p.IsActive && p.TenantId == tenantId);
                 if (!string.IsNullOrWhiteSpace(name))
                     query = query.Where(p => p.Name.ToLower().Contains(name.Trim().ToLower()));
                 if (!string.IsNullOrWhiteSpace(category))
@@ -142,7 +148,9 @@ namespace KasseAPI_Final.Controllers
                 if (!validationResult.IsValid)
                     return ErrorResponse(validationResult.ErrorMessage!, 400);
 
-                var category = await _context.Categories.FindAsync(product.CategoryId);
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var category = await _context.Categories
+                    .FirstOrDefaultAsync(c => c.Id == product.CategoryId && c.TenantId == tenantId);
                 if (category == null || !category.IsActive)
                     return ErrorResponse("Category not found or inactive", 400);
                 product.Category = category.Name;
@@ -187,7 +195,9 @@ namespace KasseAPI_Final.Controllers
 
                 if (product.CategoryId != Guid.Empty)
                 {
-                    var category = await _context.Categories.FindAsync(product.CategoryId);
+                    var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                    var category = await _context.Categories
+                        .FirstOrDefaultAsync(c => c.Id == product.CategoryId && c.TenantId == tenantId);
                     if (category == null || !category.IsActive)
                         return ErrorResponse("Category not found or inactive", 400);
                     product.Category = category.Name;
@@ -275,12 +285,14 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var product = await _context.Products.FindAsync(id);
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
                 if (product == null)
                     return ErrorResponse("Product not found.", 404);
 
                 var assignmentGroupIds = await _context.ProductModifierGroupAssignments
-                    .Where(a => a.ProductId == id)
+                    .Where(a => a.ProductId == id && a.TenantId == tenantId)
                     .OrderBy(a => a.SortOrder)
                     .Select(a => a.ModifierGroupId)
                     .ToListAsync();
@@ -290,7 +302,7 @@ namespace KasseAPI_Final.Controllers
 
                 // Phase D PR-D: Admin product edit uses this only for assigned group IDs; return products-only (no Modifiers).
                 var groups = await _context.ProductModifierGroups
-                    .Where(g => g.IsActive && assignmentGroupIds.Contains(g.Id))
+                    .Where(g => g.IsActive && g.TenantId == tenantId && assignmentGroupIds.Contains(g.Id))
                     .Include(g => g.AddOnGroupProducts)
                     .ThenInclude(a => a.Product)
                     .OrderBy(g => g.SortOrder)
@@ -321,12 +333,14 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var product = await _context.Products.FindAsync(id);
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
                 if (product == null)
                     return ErrorResponse("Product not found.", 404);
 
                 var existing = await _context.ProductModifierGroupAssignments
-                    .Where(a => a.ProductId == id)
+                    .Where(a => a.ProductId == id && a.TenantId == tenantId)
                     .ToListAsync();
                 _context.ProductModifierGroupAssignments.RemoveRange(existing);
 
@@ -334,7 +348,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     var groupIds = request.ModifierGroupIds.Distinct().ToList();
                     var existingGroups = await _context.ProductModifierGroups
-                        .Where(g => g.IsActive && groupIds.Contains(g.Id))
+                        .Where(g => g.IsActive && g.TenantId == tenantId && groupIds.Contains(g.Id))
                         .Select(g => g.Id)
                         .ToListAsync();
 
@@ -346,6 +360,7 @@ namespace KasseAPI_Final.Controllers
                         {
                             ProductId = id,
                             ModifierGroupId = gid,
+                            TenantId = tenantId,
                             SortOrder = sortOrder++
                         });
                     }
@@ -390,7 +405,7 @@ namespace KasseAPI_Final.Controllers
         {
             var products = (g.AddOnGroupProducts ?? new List<AddOnGroupProduct>())
                 .OrderBy(a => a.SortOrder)
-                .Where(a => a.Product != null && a.Product.IsActive)
+                .Where(a => a.Product != null && a.Product.TenantId == g.TenantId && a.Product.IsActive)
                 .Select(a => new AddOnGroupProductItemDto
                 {
                     ProductId = a.ProductId,

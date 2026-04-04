@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,15 +11,18 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
     private readonly AppDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<CashRegisterShiftService> _logger;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
 
     public CashRegisterShiftService(
         AppDbContext context,
         UserManager<ApplicationUser> userManager,
-        ILogger<CashRegisterShiftService> logger)
+        ILogger<CashRegisterShiftService> logger,
+        ISettingsTenantResolver settingsTenantResolver)
     {
         _context = context;
         _userManager = userManager;
         _logger = logger;
+        _settingsTenantResolver = settingsTenantResolver;
     }
 
     /// <inheritdoc />
@@ -33,11 +37,12 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
             await CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync(_context, registerId, cancellationToken);
 
             var register = await _context.CashRegisters
                 .Include(r => r.CurrentUser)
-                .FirstOrDefaultAsync(r => r.Id == registerId, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == registerId && r.TenantId == tenantId, cancellationToken);
 
             if (register == null)
             {
@@ -87,7 +92,8 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
             var actorHasOtherOpenRegister = await _context.CashRegisters
                 .AsNoTracking()
                 .AnyAsync(
-                    r => r.Id != registerId
+                    r => r.TenantId == tenantId
+                        && r.Id != registerId
                         && r.Status == RegisterStatus.Open
                         && r.CurrentUserId != null
                         && string.Equals(r.CurrentUserId, shiftOperatorUserId, StringComparison.Ordinal),
@@ -159,11 +165,12 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
             await CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync(_context, registerId, cancellationToken);
 
             var register = await _context.CashRegisters
                 .Include(r => r.CurrentUser)
-                .FirstOrDefaultAsync(r => r.Id == registerId, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == registerId && r.TenantId == tenantId, cancellationToken);
 
             if (register == null)
             {

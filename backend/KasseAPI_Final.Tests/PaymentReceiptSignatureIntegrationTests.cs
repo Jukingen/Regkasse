@@ -11,6 +11,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -93,6 +95,7 @@ public class PaymentReceiptSignatureIntegrationTests
         var payRegId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = payRegId,
             RegisterNumber = "KASSE-01",
             Location = "T",

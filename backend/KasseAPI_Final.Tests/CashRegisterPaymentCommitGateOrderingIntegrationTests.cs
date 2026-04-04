@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -27,7 +29,7 @@ public class CashRegisterPaymentCommitGateOrderingIntegrationTests
     }
 
     private static CashRegisterResolutionService CreateService(AppDbContext ctx) =>
-        new(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        new(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
     [Fact]
     public async Task PreCheck_AllowsOpenRegister_ThenClose_BeforeCommitGate_CommitGate_RejectsClosed()
@@ -36,6 +38,7 @@ public class CashRegisterPaymentCommitGateOrderingIntegrationTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K01",
             Location = "T",
@@ -78,6 +81,7 @@ public class CashRegisterPaymentCommitGateOrderingIntegrationTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K01",
             Location = "T",

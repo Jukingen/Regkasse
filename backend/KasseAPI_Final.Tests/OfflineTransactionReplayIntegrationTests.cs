@@ -18,6 +18,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 public class OfflineTransactionReplayIntegrationTests
@@ -64,7 +66,7 @@ public class OfflineTransactionReplayIntegrationTests
             Options.Create(companyProfile),
             userMock.Object);
 
-        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
         var paymentService = new PaymentService(
             context,
@@ -83,8 +85,9 @@ public class OfflineTransactionReplayIntegrationTests
             loggerPayment,
             cashRegResolver,
             httpAccessor,
-            new PaymentMethodCatalogService(context),
-            new PricingRuleResolver(context));
+            new PaymentMethodCatalogService(context, TenantTestDoubles.PrimaryTenantResolver),
+            new PricingRuleResolver(context),
+            TenantTestDoubles.PrimaryTenantResolver);
 
         var offlineService = new OfflineTransactionService(
             context,
@@ -109,8 +112,10 @@ public class OfflineTransactionReplayIntegrationTests
         var cashRegisterId = Guid.NewGuid();
 
         // Seed minimal fiscal domain.
+        TenantTestDoubles.EnsureDefaultTenant(context);
         context.Categories.Add(new Category
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = categoryId,
             Name = "Speisen",
             VatRate = 10m
@@ -118,6 +123,7 @@ public class OfflineTransactionReplayIntegrationTests
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -126,11 +132,17 @@ public class OfflineTransactionReplayIntegrationTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -355,10 +367,12 @@ public class OfflineTransactionReplayIntegrationTests
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -367,11 +381,17 @@ public class OfflineTransactionReplayIntegrationTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -520,10 +540,12 @@ public class OfflineTransactionReplayIntegrationTests
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -532,11 +554,17 @@ public class OfflineTransactionReplayIntegrationTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -681,6 +709,7 @@ public class OfflineTransactionReplayIntegrationTests
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -806,10 +835,12 @@ public class OfflineTransactionReplayIntegrationTests
 
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
-        context.Categories.Add(new Category { Id = Guid.NewGuid(), Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = Guid.NewGuid(), Name = "Speisen", VatRate = 10m });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -976,6 +1007,7 @@ public class OfflineTransactionReplayIntegrationTests
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -1130,6 +1162,7 @@ public class OfflineTransactionReplayIntegrationTests
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -1277,8 +1310,10 @@ public class OfflineTransactionReplayIntegrationTests
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
 
+        TenantTestDoubles.EnsureDefaultTenant(context);
         context.Categories.Add(new Category
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = categoryId,
             Name = "Speisen",
             VatRate = 10m
@@ -1286,6 +1321,7 @@ public class OfflineTransactionReplayIntegrationTests
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -1294,11 +1330,17 @@ public class OfflineTransactionReplayIntegrationTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -1423,10 +1465,12 @@ public class OfflineTransactionReplayIntegrationTests
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -1435,11 +1479,17 @@ public class OfflineTransactionReplayIntegrationTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",

@@ -6,6 +6,10 @@ namespace KasseAPI_Final.Models
     [Table("cash_registers")]
     public class CashRegister : BaseEntity
     {
+        /// <summary>FK to <see cref="Tenant"/>; register numbers are unique per tenant.</summary>
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
         [Required]
         [MaxLength(20)]
         public string RegisterNumber { get; set; } = string.Empty;
@@ -32,6 +36,9 @@ namespace KasseAPI_Final.Models
         public string? CurrentUserId { get; set; }
 
         // Navigation properties
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
+
         public virtual ApplicationUser? CurrentUser { get; set; }
         public virtual ICollection<CashRegisterTransaction> Transactions { get; set; } = new List<CashRegisterTransaction>();
     }

@@ -13,6 +13,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 public class FiscalExportIntegrityMetricsTests
@@ -34,6 +36,7 @@ public class FiscalExportIntegrityMetricsTests
         var cashRegisterId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -233,6 +236,7 @@ public class FiscalExportIntegrityMetricsTests
         var cashRegisterId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",
@@ -375,6 +379,7 @@ public class FiscalExportIntegrityMetricsTests
         var cashRegisterId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "K-01",
             Location = "T",
@@ -474,6 +479,7 @@ public class FiscalExportIntegrityMetricsTests
         var cashRegisterId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",

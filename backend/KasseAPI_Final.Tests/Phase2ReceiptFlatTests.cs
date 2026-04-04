@@ -14,6 +14,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -61,9 +63,9 @@ public class Phase2ReceiptFlatTests
         var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, Options.Create(companyProfile), Mock.Of<IUserService>());
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
-        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
-        return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, receiptSeqMock.Object, receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment, cashRegResolver, httpAccessor, new PaymentMethodCatalogService(context), new PricingRuleResolver(context));
+        return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, receiptSeqMock.Object, receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment, cashRegResolver, httpAccessor, new PaymentMethodCatalogService(context, TenantTestDoubles.PrimaryTenantResolver), new PricingRuleResolver(context), TenantTestDoubles.PrimaryTenantResolver);
     }
 
     [Fact]
@@ -75,12 +77,13 @@ public class Phase2ReceiptFlatTests
         var product2Id = Guid.NewGuid();
         var customerId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
-        context.Products.Add(new Product { Id = product1Id, Name = "Döner", Price = 6.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 10, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true });
-        context.Products.Add(new Product { Id = product2Id, Name = "Extra Käse", Price = 1.50m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 0, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true, IsSellableAddOn = true });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        context.Products.Add(new Product { Id = product1Id, TenantId = LegacyDefaultTenantIds.Primary, Name = "Döner", Price = 6.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 10, MinStockLevel = 0, Unit = "Stk", TaxType = 2, TaxRate = TaxTypes.GetTaxRate(2), Barcode = $"t-{product1Id:N}", IsFiscalCompliant = true, IsTaxable = true, RksvProductType = RksvProductTypes.Standard, IsActive = true });
+        context.Products.Add(new Product { Id = product2Id, TenantId = LegacyDefaultTenantIds.Primary, Name = "Extra Käse", Price = 1.50m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 0, MinStockLevel = 0, Unit = "Stk", TaxType = 2, TaxRate = TaxTypes.GetTaxRate(2), Barcode = $"t-{product2Id:N}", IsFiscalCompliant = true, IsTaxable = true, RksvProductType = RksvProductTypes.Standard, IsActive = true, IsSellableAddOn = true });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         var regA = Guid.NewGuid();
-        context.CashRegisters.Add(new CashRegister { Id = regA, RegisterNumber = "KASSE-01", Location = "T", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
+        context.CashRegisters.Add(new CashRegister { TenantId = LegacyDefaultTenantIds.Primary, Id = regA, RegisterNumber = "KASSE-01", Location = "T", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
         await context.SaveChangesAsync();
 
         var paymentService = CreatePaymentService(context);
@@ -124,12 +127,13 @@ public class Phase2ReceiptFlatTests
         var product2Id = Guid.NewGuid();
         var customerId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
-        context.Products.Add(new Product { Id = product1Id, Name = "Burger", Price = 9.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 10, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true });
-        context.Products.Add(new Product { Id = product2Id, Name = "Ketchup", Price = 0.50m, CategoryId = categoryId, Category = "Extras", StockQuantity = 0, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true, IsSellableAddOn = true });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        context.Products.Add(new Product { Id = product1Id, TenantId = LegacyDefaultTenantIds.Primary, Name = "Burger", Price = 9.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 10, MinStockLevel = 0, Unit = "Stk", TaxType = 2, TaxRate = TaxTypes.GetTaxRate(2), Barcode = $"t-{product1Id:N}", IsFiscalCompliant = true, IsTaxable = true, RksvProductType = RksvProductTypes.Standard, IsActive = true });
+        context.Products.Add(new Product { Id = product2Id, TenantId = LegacyDefaultTenantIds.Primary, Name = "Ketchup", Price = 0.50m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 0, MinStockLevel = 0, Unit = "Stk", TaxType = 2, TaxRate = TaxTypes.GetTaxRate(2), Barcode = $"t-{product2Id:N}", IsFiscalCompliant = true, IsTaxable = true, RksvProductType = RksvProductTypes.Standard, IsActive = true, IsSellableAddOn = true });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
         var regB = Guid.NewGuid();
-        context.CashRegisters.Add(new CashRegister { Id = regB, RegisterNumber = "KASSE-01", Location = "T", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
+        context.CashRegisters.Add(new CashRegister { TenantId = LegacyDefaultTenantIds.Primary, Id = regB, RegisterNumber = "KASSE-01", Location = "T", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
         await context.SaveChangesAsync();
 
         var paymentService = CreatePaymentService(context);
@@ -176,13 +180,14 @@ public class Phase2ReceiptFlatTests
         var customerId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
-        context.Products.Add(new Product { Id = productId, Name = "Döner", Price = 6.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 10, MinStockLevel = 0, Unit = "Stk", TaxType = 2, IsActive = true });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        context.Products.Add(new Product { Id = productId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Döner", Price = 6.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 10, MinStockLevel = 0, Unit = "Stk", TaxType = 2, TaxRate = TaxTypes.GetTaxRate(2), Barcode = $"t-{productId:N}", IsFiscalCompliant = true, IsTaxable = true, RksvProductType = RksvProductTypes.Standard, IsActive = true });
         context.Customers.Add(new Customer { Id = customerId, Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true });
-        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, Name = "Saucen", SortOrder = 0, IsActive = true });
-        context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = productId, ModifierGroupId = groupId, SortOrder = 0 });
+        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Saucen", SortOrder = 0, IsActive = true });
+        context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = productId, ModifierGroupId = groupId, TenantId = LegacyDefaultTenantIds.Primary, SortOrder = 0 });
         var regC = Guid.NewGuid();
-        context.CashRegisters.Add(new CashRegister { Id = regC, RegisterNumber = "KASSE-01", Location = "T", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
+        context.CashRegisters.Add(new CashRegister { TenantId = LegacyDefaultTenantIds.Primary, Id = regC, RegisterNumber = "KASSE-01", Location = "T", StartingBalance = 0, CurrentBalance = 0, LastBalanceUpdate = DateTime.UtcNow, Status = RegisterStatus.Open, CreatedAt = DateTime.UtcNow, IsActive = true });
         await context.SaveChangesAsync();
 
         var paymentService = CreatePaymentService(context);

@@ -11,6 +11,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 public class UserSettingsControllerReadSideEffectTests
@@ -26,7 +28,7 @@ public class UserSettingsControllerReadSideEffectTests
 
     private static UserSettingsController CreateController(AppDbContext ctx, string userId)
     {
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var c = new UserSettingsController(ctx, Mock.Of<ILogger<UserSettingsController>>(), resolution);
         c.ControllerContext = new ControllerContext
         {
@@ -48,6 +50,7 @@ public class UserSettingsControllerReadSideEffectTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -106,6 +109,7 @@ public class UserSettingsControllerReadSideEffectTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",

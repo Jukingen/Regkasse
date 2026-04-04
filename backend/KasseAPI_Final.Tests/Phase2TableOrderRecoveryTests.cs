@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -92,7 +93,7 @@ public class Phase2TableOrderRecoveryTests
 
         var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
-        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context));
+        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context), TenantTestDoubles.PrimaryTenantResolver);
         SetAuth(controller);
 
         var result = await controller.GetTableOrdersForRecovery();
@@ -145,10 +146,12 @@ public class Phase2TableOrderRecoveryTests
             EmailConfirmed = true,
             SecurityStamp = Guid.NewGuid().ToString()
         });
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -157,9 +160,14 @@ public class Phase2TableOrderRecoveryTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
-        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, Name = "Saucen", SortOrder = 0, IsActive = true });
+        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Saucen", SortOrder = 0, IsActive = true });
         context.Carts.Add(new Cart
         {
             CartId = cartId,
@@ -187,7 +195,7 @@ public class Phase2TableOrderRecoveryTests
         });
         await context.SaveChangesAsync();
 
-        var service = new TableOrderService(context, NullLogger<TableOrderService>.Instance);
+        var service = new TableOrderService(context, NullLogger<TableOrderService>.Instance, TenantTestDoubles.PrimaryTenantResolver);
         var tableOrder = await service.ConvertCartToTableOrderAsync(cartId, "u1");
 
         Assert.NotNull(tableOrder);

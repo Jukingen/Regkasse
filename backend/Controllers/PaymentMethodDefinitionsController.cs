@@ -4,6 +4,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -16,11 +17,16 @@ public class PaymentMethodDefinitionsController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly ILogger<PaymentMethodDefinitionsController> _logger;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-    public PaymentMethodDefinitionsController(AppDbContext context, ILogger<PaymentMethodDefinitionsController> logger)
+    public PaymentMethodDefinitionsController(
+        AppDbContext context,
+        ILogger<PaymentMethodDefinitionsController> logger,
+        ISettingsTenantResolver settingsTenantResolver)
     {
         _context = context;
         _logger = logger;
+        _settingsTenantResolver = settingsTenantResolver;
     }
 
     [HttpGet]
@@ -29,8 +35,10 @@ public class PaymentMethodDefinitionsController : ControllerBase
     {
         try
         {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
             var list = await _context.PaymentMethodDefinitions
                 .AsNoTracking()
+                .Where(x => x.TenantId == tenantId)
                 .OrderBy(x => x.DisplayOrder)
                 .ThenBy(x => x.Code)
                 .ToListAsync(cancellationToken);
@@ -49,7 +57,9 @@ public class PaymentMethodDefinitionsController : ControllerBase
     {
         try
         {
-            var item = await _context.PaymentMethodDefinitions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            var item = await _context.PaymentMethodDefinitions.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && x.TenantId == tenantId, cancellationToken);
             if (item == null)
                 return NotFound(new { message = "Payment method definition not found" });
             return Ok(ToAdminDto(item));
@@ -70,11 +80,13 @@ public class PaymentMethodDefinitionsController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
             var code = NormalizeCode(request.Code);
             if (string.IsNullOrEmpty(code))
                 return BadRequest(new { message = "Code is required." });
 
-            var exists = await _context.PaymentMethodDefinitions.AnyAsync(x => x.Code == code, cancellationToken);
+            var exists = await _context.PaymentMethodDefinitions.AnyAsync(
+                x => x.TenantId == tenantId && x.Code == code, cancellationToken);
             if (exists)
                 return BadRequest(new { message = "A payment method with this code already exists." });
 
@@ -82,6 +94,7 @@ public class PaymentMethodDefinitionsController : ControllerBase
             var entity = new PaymentMethodDefinition
             {
                 Id = Guid.NewGuid(),
+                TenantId = tenantId,
                 Code = code,
                 Name = request.Name.Trim(),
                 LegacyPaymentMethodValue = request.LegacyPaymentMethodValue,
@@ -99,7 +112,7 @@ public class PaymentMethodDefinitionsController : ControllerBase
             };
 
             if (entity.IsDefault)
-                await ClearDefaultsExceptAsync(null, cancellationToken);
+                await ClearDefaultsExceptAsync(tenantId, null, cancellationToken);
 
             _context.PaymentMethodDefinitions.Add(entity);
             await _context.SaveChangesAsync(cancellationToken);
@@ -121,7 +134,9 @@ public class PaymentMethodDefinitionsController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var entity = await _context.PaymentMethodDefinitions.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            var entity = await _context.PaymentMethodDefinitions
+                .FirstOrDefaultAsync(x => x.Id == id && x.TenantId == tenantId, cancellationToken);
             if (entity == null)
                 return NotFound(new { message = "Payment method definition not found" });
 
@@ -130,12 +145,12 @@ public class PaymentMethodDefinitionsController : ControllerBase
                 return BadRequest(new { message = "Code is required." });
 
             var codeTaken = await _context.PaymentMethodDefinitions
-                .AnyAsync(x => x.Code == code && x.Id != id, cancellationToken);
+                .AnyAsync(x => x.TenantId == tenantId && x.Code == code && x.Id != id, cancellationToken);
             if (codeTaken)
                 return BadRequest(new { message = "A payment method with this code already exists." });
 
             if (request.IsDefault)
-                await ClearDefaultsExceptAsync(id, cancellationToken);
+                await ClearDefaultsExceptAsync(tenantId, id, cancellationToken);
 
             entity.Code = code;
             entity.Name = request.Name.Trim();
@@ -167,7 +182,9 @@ public class PaymentMethodDefinitionsController : ControllerBase
     {
         try
         {
-            var entity = await _context.PaymentMethodDefinitions.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            var entity = await _context.PaymentMethodDefinitions
+                .FirstOrDefaultAsync(x => x.Id == id && x.TenantId == tenantId, cancellationToken);
             if (entity == null)
                 return NotFound(new { message = "Payment method definition not found" });
 
@@ -183,9 +200,9 @@ public class PaymentMethodDefinitionsController : ControllerBase
         }
     }
 
-    private async Task ClearDefaultsExceptAsync(Guid? exceptId, CancellationToken cancellationToken)
+    private async Task ClearDefaultsExceptAsync(Guid tenantId, Guid? exceptId, CancellationToken cancellationToken)
     {
-        var q = _context.PaymentMethodDefinitions.Where(x => x.IsDefault);
+        var q = _context.PaymentMethodDefinitions.Where(x => x.TenantId == tenantId && x.IsDefault);
         if (exceptId.HasValue)
             q = q.Where(x => x.Id != exceptId.Value);
         await q.ExecuteUpdateAsync(s => s.SetProperty(x => x.IsDefault, false), cancellationToken);

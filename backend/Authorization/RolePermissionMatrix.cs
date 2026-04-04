@@ -71,7 +71,7 @@ public static class RolePermissionMatrix
                 AppPermissions.CashRegisterView, AppPermissions.CashRegisterManage,
                 AppPermissions.ShiftView, AppPermissions.ShiftManage,
                 AppPermissions.InventoryView, AppPermissions.InventoryManage,
-                AppPermissions.InventoryAdjust, AppPermissions.InventoryDelete,
+                AppPermissions.InventoryAdjust,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView, AppPermissions.InvoiceManage, AppPermissions.InvoiceExport,
                 AppPermissions.ReportView, AppPermissions.ReportExport,

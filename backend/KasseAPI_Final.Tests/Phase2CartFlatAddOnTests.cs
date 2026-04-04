@@ -4,6 +4,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -33,10 +34,12 @@ public class Phase2CartFlatAddOnTests
         var productId = Guid.NewGuid();
         var cartId = Guid.NewGuid().ToString("N")[..24];
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -45,6 +48,11 @@ public class Phase2CartFlatAddOnTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         context.Carts.Add(new Cart
@@ -60,7 +68,7 @@ public class Phase2CartFlatAddOnTests
 
         var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
-        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context));
+        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context), TenantTestDoubles.PrimaryTenantResolver);
         SetAuth(controller);
 
         var request = new AddItemToCartRequest { ProductId = productId, Quantity = 1, TableNumber = 1 };
@@ -91,10 +99,12 @@ public class Phase2CartFlatAddOnTests
         var productId = Guid.NewGuid();
         var cartId = Guid.NewGuid().ToString("N")[..24];
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Extras", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Extras", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Extra Käse",
             Price = 1.50m,
             CategoryId = categoryId,
@@ -103,6 +113,11 @@ public class Phase2CartFlatAddOnTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true,
             IsSellableAddOn = true
         });
@@ -119,7 +134,7 @@ public class Phase2CartFlatAddOnTests
 
         var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
-        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context));
+        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context), TenantTestDoubles.PrimaryTenantResolver);
 
         var request = new AddItemToCartRequest
         {
@@ -165,10 +180,12 @@ public class Phase2CartFlatAddOnTests
         var modifierId = Guid.NewGuid();
         var cartId = Guid.NewGuid().ToString("N")[..24];
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -177,10 +194,15 @@ public class Phase2CartFlatAddOnTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
-        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, Name = "Saucen", SortOrder = 0, IsActive = true });
-        context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = productId, ModifierGroupId = groupId, SortOrder = 0 });
+        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Saucen", SortOrder = 0, IsActive = true });
+        context.ProductModifierGroupAssignments.Add(new ProductModifierGroupAssignment { ProductId = productId, ModifierGroupId = groupId, TenantId = LegacyDefaultTenantIds.Primary, SortOrder = 0 });
         context.Carts.Add(new Cart
         {
             CartId = cartId,
@@ -194,7 +216,7 @@ public class Phase2CartFlatAddOnTests
 
         var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
-        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context));
+        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context), TenantTestDoubles.PrimaryTenantResolver);
         SetAuth(controller);
 
         var request = new AddItemToCartRequest
@@ -227,10 +249,12 @@ public class Phase2CartFlatAddOnTests
         var cartId = Guid.NewGuid().ToString("N")[..24];
         var cartItemId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -239,9 +263,14 @@ public class Phase2CartFlatAddOnTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
-        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, Name = "Saucen", SortOrder = 0, IsActive = true });
+        context.ProductModifierGroups.Add(new ProductModifierGroup { Id = groupId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Saucen", SortOrder = 0, IsActive = true });
         context.Carts.Add(new Cart
         {
             CartId = cartId,
@@ -271,7 +300,7 @@ public class Phase2CartFlatAddOnTests
 
         var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
-        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context));
+        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context), TenantTestDoubles.PrimaryTenantResolver);
 
         SetAuth(controller);
         var result = await controller.GetCart(cartId);

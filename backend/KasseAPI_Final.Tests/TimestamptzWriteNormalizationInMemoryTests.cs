@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -111,6 +113,7 @@ public sealed class TimestamptzWriteNormalizationInMemoryTests
         await AddMinimalUserAsync(ctx, userId);
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "INMEM-DC",
             Location = "T",
@@ -160,6 +163,7 @@ public sealed class TimestamptzWriteNormalizationInMemoryTests
         await AddMinimalUserAsync(ctx, userId);
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "INMEM-R",
             Location = "T",

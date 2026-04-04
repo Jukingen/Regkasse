@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -18,14 +19,15 @@ namespace KasseAPI_Final.Models
         [Column("product_id")]
         public Guid ProductId { get; set; }
 
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
         [Required]
         [Column("sort_order")]
         public int SortOrder { get; set; }
 
-        [ForeignKey("ModifierGroupId")]
         public virtual ProductModifierGroup ModifierGroup { get; set; } = null!;
 
-        [ForeignKey("ProductId")]
         public virtual Product Product { get; set; } = null!;
     }
 }

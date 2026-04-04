@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 public class CashRegisterBootstrapSeedTests
@@ -40,6 +42,7 @@ public class CashRegisterBootstrapSeedTests
         await using var ctx = CreateContext();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = Guid.NewGuid(),
             RegisterNumber = "X1",
             Location = "L",

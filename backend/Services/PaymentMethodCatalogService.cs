@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Services;
 
@@ -12,17 +13,20 @@ namespace KasseAPI_Final.Services;
 public sealed class PaymentMethodCatalogService : IPaymentMethodCatalogService
 {
     private readonly AppDbContext _context;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-    public PaymentMethodCatalogService(AppDbContext context)
+    public PaymentMethodCatalogService(AppDbContext context, ISettingsTenantResolver settingsTenantResolver)
     {
         _context = context;
+        _settingsTenantResolver = settingsTenantResolver;
     }
 
     public async Task<IReadOnlyList<PosPaymentMethodDto>> GetActivePosMethodsAsync(CancellationToken cancellationToken = default)
     {
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var rows = await _context.PaymentMethodDefinitions
             .AsNoTracking()
-            .Where(x => x.IsActive)
+            .Where(x => x.TenantId == tenantId && x.IsActive)
             .OrderBy(x => x.DisplayOrder)
             .ThenBy(x => x.Code)
             .ToListAsync(cancellationToken);
@@ -36,9 +40,10 @@ public sealed class PaymentMethodCatalogService : IPaymentMethodCatalogService
         if (string.IsNullOrEmpty(code))
             return new PaymentMethodResolutionResult(true, "0", null);
 
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var row = await _context.PaymentMethodDefinitions
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Code == code, cancellationToken);
+            .FirstOrDefaultAsync(x => x.TenantId == tenantId && x.Code == code, cancellationToken);
 
         if (row != null)
         {
@@ -56,9 +61,10 @@ public sealed class PaymentMethodCatalogService : IPaymentMethodCatalogService
         if (string.IsNullOrEmpty(code))
             return "0";
 
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var row = await _context.PaymentMethodDefinitions
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Code == code, cancellationToken);
+            .FirstOrDefaultAsync(x => x.TenantId == tenantId && x.Code == code, cancellationToken);
 
         if (row != null)
             return row.LegacyPaymentMethodValue.ToString(CultureInfo.InvariantCulture);

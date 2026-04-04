@@ -5,6 +5,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -19,11 +20,16 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<CategoriesController> _logger;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-        public CategoriesController(AppDbContext context, ILogger<CategoriesController> logger)
+        public CategoriesController(
+            AppDbContext context,
+            ILogger<CategoriesController> logger,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         // GET: api/categories
@@ -32,9 +38,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var categories = await _context.Categories
                     // .Include(c => c.Products) // Geçici olarak kapatıldı - navigation property yok
-                    .Where(c => c.IsActive)
+                    .Where(c => c.IsActive && c.TenantId == tenantId)
                     .OrderBy(c => c.Name)
                     .ToListAsync();
 
@@ -53,9 +60,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var category = await _context.Categories
                     // .Include(c => c.Products) // Geçici olarak kapatıldı - navigation property yok
-                    .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
+                    .FirstOrDefaultAsync(c => c.Id == id && c.IsActive && c.TenantId == tenantId);
 
                 if (category == null)
                 {
@@ -83,9 +91,11 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+
                 // Kategori adı benzersiz olmalı
                 var existingCategory = await _context.Categories
-                    .FirstOrDefaultAsync(c => c.Name.ToLower() == request.Name.ToLower() && c.IsActive);
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Name.ToLower() == request.Name.ToLower() && c.IsActive);
 
                 if (existingCategory != null)
                 {
@@ -94,6 +104,7 @@ namespace KasseAPI_Final.Controllers
 
                 var category = new Category
                 {
+                    TenantId = tenantId,
                     Name = request.Name,
                     Description = request.Description,
                     Color = request.Color,
@@ -127,7 +138,9 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var category = await _context.Categories.FindAsync(id);
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var category = await _context.Categories
+                    .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == tenantId);
                 if (category == null || !category.IsActive)
                 {
                     return NotFound(new { message = "Category not found" });
@@ -135,7 +148,7 @@ namespace KasseAPI_Final.Controllers
 
                 // Kategori adı benzersiz olmalı (kendisi hariç)
                 var existingCategory = await _context.Categories
-                    .FirstOrDefaultAsync(c => c.Name.ToLower() == request.Name.ToLower() && 
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Name.ToLower() == request.Name.ToLower() &&
                                            c.Id != id && c.IsActive);
 
                 if (existingCategory != null)
@@ -169,9 +182,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var category = await _context.Categories
                     // .Include(c => c.Products) // Geçici olarak kapatıldı - navigation property yok
-                    .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
+                    .FirstOrDefaultAsync(c => c.Id == id && c.IsActive && c.TenantId == tenantId);
 
                 if (category == null)
                 {
@@ -179,7 +193,7 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // Kategoriye bağlı ürünler varsa silme - manuel kontrol
-                var hasProducts = await _context.Products.AnyAsync(p => p.Category == category.Name && p.IsActive);
+                var hasProducts = await _context.Products.AnyAsync(p => p.TenantId == tenantId && p.Category == category.Name && p.IsActive);
                 if (hasProducts)
                 {
                     return BadRequest(new { message = "Cannot delete category with associated products" });
@@ -206,9 +220,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var category = await _context.Categories
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.Id == id && c.IsActive);
+                    .FirstOrDefaultAsync(c => c.Id == id && c.IsActive && c.TenantId == tenantId);
 
                 if (category == null)
                 {
@@ -218,7 +233,7 @@ namespace KasseAPI_Final.Controllers
                 // Manuel olarak kategoriye ait ürünleri getir
                 var products = await _context.Products
                     .AsNoTracking()
-                    .Where(p => p.Category == category.Name && p.IsActive)
+                    .Where(p => p.TenantId == tenantId && p.Category == category.Name && p.IsActive)
                     .Select(p => new AdminCategoryProductDto
                     {
                         Id = p.Id,
@@ -258,9 +273,10 @@ namespace KasseAPI_Final.Controllers
                     return await GetCategories();
                 }
 
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var categories = await _context.Categories
-                    .Where(c => c.IsActive && 
-                               (c.Name.ToLower().Contains(query.ToLower()) || 
+                    .Where(c => c.TenantId == tenantId && c.IsActive &&
+                               (c.Name.ToLower().Contains(query.ToLower()) ||
                                 c.Description.ToLower().Contains(query.ToLower())))
                     .OrderBy(c => c.Name)
                     .ToListAsync();

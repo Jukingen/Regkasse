@@ -196,6 +196,11 @@ namespace KasseAPI_Final.Data
             builder.Entity<Product>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).HasColumnType("text");
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
@@ -220,14 +225,21 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.Category);
                 entity.HasIndex(e => e.TaxType);
                 entity.HasIndex(e => e.CategoryId);
-                entity.HasIndex(e => e.Barcode).IsUnique();
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => new { e.TenantId, e.Barcode })
+                    .IsUnique()
+                    .HasFilter("barcode IS NOT NULL AND barcode <> ''");
                 
-                // Navigation property relationship - CategoryId foreign key (required)
+                // Composite FK: product category must belong to the same tenant
                 entity.HasOne(p => p.CategoryNavigation)
                       .WithMany(c => c.Products)
-                      .HasForeignKey(p => p.CategoryId)
+                      .HasForeignKey(p => new { p.CategoryId, p.TenantId })
+                      .HasPrincipalKey(c => new { c.Id, c.TenantId })
                       .OnDelete(DeleteBehavior.Restrict)
                       .IsRequired();
+
+                // Enables composite FKs from modifier join tables (id + tenant must match parent rows).
+                entity.HasAlternateKey(e => new { e.Id, e.TenantId });
                 
                 // Constraints
                 entity.ToTable("products", t => 
@@ -285,7 +297,12 @@ namespace KasseAPI_Final.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.MetadataJson).HasColumnType("text");
-                entity.HasIndex(e => e.Code).IsUnique();
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => new { e.TenantId, e.Code }).IsUnique();
                 entity.HasIndex(e => new { e.IsActive, e.DisplayOrder });
             });
 
@@ -396,6 +413,7 @@ namespace KasseAPI_Final.Data
             builder.Entity<CashRegister>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
                 entity.Property(e => e.RegisterNumber).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.Location).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.StartingBalance).HasColumnType("decimal(18,2)");
@@ -403,13 +421,17 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.LastBalanceUpdate).IsRequired();
                 entity.Property(e => e.Status).IsRequired();
                 entity.Property(e => e.CurrentUserId).HasMaxLength(450);
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 entity.HasOne(e => e.CurrentUser)
                     .WithMany(u => u.CashRegisters)
                     .HasForeignKey(e => e.CurrentUserId)
                     .IsRequired(false)
                     .OnDelete(DeleteBehavior.SetNull);
-                
-                entity.HasIndex(e => e.RegisterNumber).IsUnique();
+
+                entity.HasIndex(e => new { e.TenantId, e.RegisterNumber }).IsUnique();
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.CurrentUserId);
             });
@@ -431,14 +453,19 @@ namespace KasseAPI_Final.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).HasColumnType("uuid").HasColumnName("id");
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Description).HasMaxLength(500);
                 entity.Property(e => e.Color).HasMaxLength(20);
                 entity.Property(e => e.Icon).HasMaxLength(50);
                 entity.Property(e => e.SortOrder);
                 entity.Property(e => e.VatRate).HasColumnType("decimal(5,2)").IsRequired();
-                
-                entity.HasIndex(e => e.Name).IsUnique();
+                entity.HasAlternateKey(e => new { e.Id, e.TenantId });
+                entity.HasIndex(e => new { e.TenantId, e.Name }).IsUnique();
                 entity.HasIndex(e => e.SortOrder);
             });
 
@@ -446,6 +473,13 @@ namespace KasseAPI_Final.Data
             builder.Entity<ProductModifierGroup>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasAlternateKey(e => new { e.Id, e.TenantId });
+                entity.HasIndex(e => e.TenantId);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.MinSelections);
                 entity.Property(e => e.MaxSelections);
@@ -458,14 +492,18 @@ namespace KasseAPI_Final.Data
             builder.Entity<ProductModifierGroupAssignment>(entity =>
             {
                 entity.HasKey(e => new { e.ProductId, e.ModifierGroupId });
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
                 entity.HasOne(e => e.Product)
                     .WithMany(p => p.ModifierGroupAssignments)
-                    .HasForeignKey(e => e.ProductId)
+                    .HasForeignKey(e => new { e.ProductId, e.TenantId })
+                    .HasPrincipalKey(p => new { p.Id, p.TenantId })
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(e => e.ModifierGroup)
                     .WithMany(g => g.ProductAssignments)
-                    .HasForeignKey(e => e.ModifierGroupId)
+                    .HasForeignKey(e => new { e.ModifierGroupId, e.TenantId })
+                    .HasPrincipalKey(g => new { g.Id, g.TenantId })
                     .OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(e => e.TenantId);
                 entity.ToTable("product_modifier_group_assignments");
             });
 
@@ -473,19 +511,23 @@ namespace KasseAPI_Final.Data
             builder.Entity<AddOnGroupProduct>(entity =>
             {
                 entity.HasKey(e => new { e.ModifierGroupId, e.ProductId });
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
                 entity.Property(e => e.ModifierGroupId).HasColumnName("modifier_group_id").HasColumnType("uuid").IsRequired();
                 entity.Property(e => e.ProductId).HasColumnName("product_id").HasColumnType("uuid").IsRequired();
                 entity.Property(e => e.SortOrder).HasColumnName("sort_order").IsRequired();
                 entity.HasOne(e => e.ModifierGroup)
                     .WithMany(g => g.AddOnGroupProducts)
-                    .HasForeignKey(e => e.ModifierGroupId)
+                    .HasForeignKey(e => new { e.ModifierGroupId, e.TenantId })
+                    .HasPrincipalKey(g => new { g.Id, g.TenantId })
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.HasOne(e => e.Product)
                     .WithMany()
-                    .HasForeignKey(e => e.ProductId)
+                    .HasForeignKey(e => new { e.ProductId, e.TenantId })
+                    .HasPrincipalKey(p => new { p.Id, p.TenantId })
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.ToTable("addon_group_products");
                 entity.HasIndex(e => e.ProductId);
+                entity.HasIndex(e => e.TenantId);
             });
 
             // PaymentDetails configuration

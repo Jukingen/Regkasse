@@ -13,6 +13,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -123,8 +125,9 @@ public class PaymentRegisterCommitGateTests
             loggerPayment,
             cashRegisterResolution,
             httpAccessorMock.Object,
-            new PaymentMethodCatalogService(context),
-            new PricingRuleResolver(context));
+            new PaymentMethodCatalogService(context, TenantTestDoubles.PrimaryTenantResolver),
+            new PricingRuleResolver(context),
+            TenantTestDoubles.PrimaryTenantResolver);
     }
 
     private static (Guid CustomerId, Guid ProductId, Guid CashRegisterId) SeedSoleOpenRegisterU1(AppDbContext ctx)
@@ -134,10 +137,12 @@ public class PaymentRegisterCommitGateTests
         var customerId = Guid.NewGuid();
         var cashRegisterId = Guid.NewGuid();
 
-        ctx.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         ctx.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -146,11 +151,17 @@ public class PaymentRegisterCommitGateTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         ctx.Customers.Add(new Customer { Id = customerId, Name = "K", Email = "k@test", Phone = "1", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "K01",
             Location = "T",

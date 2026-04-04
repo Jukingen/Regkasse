@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260404010055_Wave2TenantScopedPaymentMethodsAndCashRegisters")]
+    partial class Wave2TenantScopedPaymentMethodsAndCashRegisters
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -37,19 +40,9 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("sort_order");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
                     b.HasKey("ModifierGroupId", "ProductId");
 
                     b.HasIndex("ProductId");
-
-                    b.HasIndex("TenantId");
-
-                    b.HasIndex("ModifierGroupId", "TenantId");
-
-                    b.HasIndex("ProductId", "TenantId");
 
                     b.ToTable("addon_group_products", (string)null);
                 });
@@ -1226,10 +1219,6 @@ namespace KasseAPI_Final.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1245,10 +1234,10 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SortOrder");
-
-                    b.HasIndex("TenantId", "Name")
+                    b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("SortOrder");
 
                     b.ToTable("categories");
                 });
@@ -4039,10 +4028,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("tax_type");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
                     b.Property<string>("Unit")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -4060,6 +4045,9 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Barcode")
+                        .IsUnique();
+
                     b.HasIndex("Category");
 
                     b.HasIndex("CategoryId");
@@ -4067,14 +4055,6 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("Name");
 
                     b.HasIndex("TaxType");
-
-                    b.HasIndex("TenantId");
-
-                    b.HasIndex("CategoryId", "TenantId");
-
-                    b.HasIndex("TenantId", "Barcode")
-                        .IsUnique()
-                        .HasFilter("barcode IS NOT NULL AND barcode <> ''");
 
                     b.ToTable("products", null, t =>
                         {
@@ -4132,10 +4112,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("sort_order");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -4146,8 +4122,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("product_modifier_groups", (string)null);
                 });
@@ -4166,17 +4140,9 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("sort_order");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
                     b.HasKey("ProductId", "ModifierGroupId");
 
-                    b.HasIndex("TenantId");
-
-                    b.HasIndex("ModifierGroupId", "TenantId");
-
-                    b.HasIndex("ProductId", "TenantId");
+                    b.HasIndex("ModifierGroupId");
 
                     b.ToTable("product_modifier_group_assignments", (string)null);
                 });
@@ -5872,15 +5838,13 @@ namespace KasseAPI_Final.Migrations
                 {
                     b.HasOne("KasseAPI_Final.Models.ProductModifierGroup", "ModifierGroup")
                         .WithMany("AddOnGroupProducts")
-                        .HasForeignKey("ModifierGroupId", "TenantId")
-                        .HasPrincipalKey("Id", "TenantId")
+                        .HasForeignKey("ModifierGroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KasseAPI_Final.Models.Product", "Product")
                         .WithMany()
-                        .HasForeignKey("ProductId", "TenantId")
-                        .HasPrincipalKey("Id", "TenantId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -6052,17 +6016,6 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("CashRegister");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.Category", b =>
-                {
-                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CompanySettings", b =>
@@ -6306,48 +6259,26 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.Product", b =>
                 {
-                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("KasseAPI_Final.Models.Category", "CategoryNavigation")
                         .WithMany("Products")
-                        .HasForeignKey("CategoryId", "TenantId")
-                        .HasPrincipalKey("Id", "TenantId")
+                        .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("CategoryNavigation");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.ProductModifierGroup", b =>
-                {
-                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ProductModifierGroupAssignment", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.ProductModifierGroup", "ModifierGroup")
                         .WithMany("ProductAssignments")
-                        .HasForeignKey("ModifierGroupId", "TenantId")
-                        .HasPrincipalKey("Id", "TenantId")
+                        .HasForeignKey("ModifierGroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("KasseAPI_Final.Models.Product", "Product")
                         .WithMany("ModifierGroupAssignments")
-                        .HasForeignKey("ProductId", "TenantId")
-                        .HasPrincipalKey("Id", "TenantId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

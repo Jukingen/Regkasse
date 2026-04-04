@@ -4,6 +4,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -31,8 +32,10 @@ public class CategoriesControllerProductsDtoTests
         var categoryId = Guid.NewGuid();
         var productId = Guid.NewGuid();
 
+        TenantTestDoubles.EnsureDefaultTenant(context);
         context.Categories.Add(new Category
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = categoryId,
             Name = "Getranke",
             Description = "Desc",
@@ -42,6 +45,7 @@ public class CategoriesControllerProductsDtoTests
 
         context.Products.Add(new Product
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = productId,
             Name = "Cola",
             Description = "Soft drink",
@@ -61,7 +65,7 @@ public class CategoriesControllerProductsDtoTests
 
         await context.SaveChangesAsync();
 
-        var controller = new CategoriesController(context, NullLogger<CategoriesController>.Instance);
+        var controller = new CategoriesController(context, NullLogger<CategoriesController>.Instance, TenantTestDoubles.PrimaryTenantResolver);
         var result = await controller.GetCategoryProducts(categoryId);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsAssignableFrom<IEnumerable<AdminCategoryProductDto>>(ok.Value);

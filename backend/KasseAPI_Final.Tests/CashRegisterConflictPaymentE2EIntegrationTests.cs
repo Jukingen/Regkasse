@@ -15,6 +15,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -41,10 +43,11 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
         PosCashRegisterFeatureOptions features) =>
         new(
             ctx,
-            new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>()),
+            new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver),
             shift,
             Options.Create(features),
-            Mock.Of<ILogger<PosCashRegisterReadinessService>>());
+            Mock.Of<ILogger<PosCashRegisterReadinessService>>(),
+            TenantTestDoubles.PrimaryTenantResolver);
 
     private static PaymentService CreatePaymentService(AppDbContext context, ClaimsPrincipal? httpUser = null)
     {
@@ -94,7 +97,7 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
 
-        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var httpAccessorMock = new Mock<IHttpContextAccessor>();
         var httpContext = new DefaultHttpContext();
         if (httpUser != null)
@@ -118,8 +121,9 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
             loggerPayment,
             cashRegResolver,
             httpAccessorMock.Object,
-            new PaymentMethodCatalogService(context),
-            new PricingRuleResolver(context));
+            new PaymentMethodCatalogService(context, TenantTestDoubles.PrimaryTenantResolver),
+            new PricingRuleResolver(context),
+            TenantTestDoubles.PrimaryTenantResolver);
     }
 
     /// <summary>
@@ -133,10 +137,12 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
         var cashRegisterId = Guid.NewGuid();
         const decimal productPrice = 6.90m;
 
-        ctx.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         ctx.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = productPrice,
             CategoryId = categoryId,
@@ -145,11 +151,17 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         ctx.Customers.Add(new Customer { Id = customerId, Name = "Test Kunde", Email = "t@t.com", Phone = "1", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = cashRegisterId,
             RegisterNumber = "KASSE-01",
             Location = "T",

@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 public class CashRegisterShiftServiceTests
@@ -37,6 +39,7 @@ public class CashRegisterShiftServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -59,7 +62,7 @@ public class CashRegisterShiftServiceTests
         };
 
         var mgr = CreateUserManager(user);
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var first = await svc.TryOpenCashRegisterAsync(regId, "u1", 0m, "open", allowIdempotentSameUser: true, CancellationToken.None);
         Assert.Equal(CashRegisterOpenKind.SuccessOpened, first.Kind);
@@ -92,6 +95,7 @@ public class CashRegisterShiftServiceTests
         ctx.Users.Add(other);
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -107,7 +111,7 @@ public class CashRegisterShiftServiceTests
 
         var user = new ApplicationUser { Id = "u1", UserName = "u1", Email = "u1@test", FirstName = "A", LastName = "B" };
         var mgr = CreateUserManager(user);
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var result = await svc.TryOpenCashRegisterAsync(regId, "u1", 0m, "open", allowIdempotentSameUser: true, CancellationToken.None);
         Assert.Equal(CashRegisterOpenKind.FailedConflictOtherUser, result.Kind);
@@ -130,6 +134,7 @@ public class CashRegisterShiftServiceTests
         ctx.Users.Add(user);
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regA,
             RegisterNumber = "K1",
             Location = "L",
@@ -143,6 +148,7 @@ public class CashRegisterShiftServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regB,
             RegisterNumber = "K2",
             Location = "L",
@@ -156,7 +162,7 @@ public class CashRegisterShiftServiceTests
         await ctx.SaveChangesAsync();
 
         var mgr = CreateUserManager(user);
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var result = await svc.TryOpenCashRegisterAsync(regB, "u1", 0m, "open", allowIdempotentSameUser: true, CancellationToken.None);
         Assert.Equal(CashRegisterOpenKind.FailedActorAlreadyHasOtherOpenRegister, result.Kind);
@@ -172,6 +178,7 @@ public class CashRegisterShiftServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -194,7 +201,7 @@ public class CashRegisterShiftServiceTests
             LastName = "B"
         };
         var mgr = CreateUserManager(user);
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var result = await svc.TryOpenCashRegisterAsync(regId, actorId, 10m, "open", allowIdempotentSameUser: true, CancellationToken.None);
         Assert.Equal(CashRegisterOpenKind.SuccessOpened, result.Kind);
@@ -212,6 +219,7 @@ public class CashRegisterShiftServiceTests
         const string ownerId = "u1";
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -226,7 +234,7 @@ public class CashRegisterShiftServiceTests
         await ctx.SaveChangesAsync();
 
         var mgr = CreateUserManager(new ApplicationUser { Id = ownerId, UserName = ownerId, Email = "u@test" });
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var result = await svc.TryCloseCashRegisterAsync(regId, ownerId, 42m, CancellationToken.None);
         Assert.Equal(CashRegisterCloseKind.Success, result.Kind);
@@ -251,6 +259,7 @@ public class CashRegisterShiftServiceTests
         const string ownerId = "owner-1";
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -265,7 +274,7 @@ public class CashRegisterShiftServiceTests
         await ctx.SaveChangesAsync();
 
         var mgr = CreateUserManager(new ApplicationUser { Id = "other", UserName = "o", Email = "o@test" });
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var result = await svc.TryCloseCashRegisterAsync(regId, "other", 1m, CancellationToken.None);
         Assert.Equal(CashRegisterCloseKind.FailedForbidden, result.Kind);
@@ -283,6 +292,7 @@ public class CashRegisterShiftServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -297,7 +307,7 @@ public class CashRegisterShiftServiceTests
         await ctx.SaveChangesAsync();
 
         var mgr = CreateUserManager(new ApplicationUser { Id = "u1", UserName = "u1", Email = "u@test" });
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var result = await svc.TryCloseCashRegisterAsync(regId, "u1", 0m, CancellationToken.None);
         Assert.Equal(CashRegisterCloseKind.FailedAlreadyClosed, result.Kind);

@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -26,10 +27,12 @@ public class Phase2ModifierGroupProductsTests
         var groupId = Guid.NewGuid();
         var productId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Extras", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Extras", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Extra Käse",
             Price = 1.50m,
             CategoryId = categoryId,
@@ -38,12 +41,18 @@ public class Phase2ModifierGroupProductsTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true,
             IsSellableAddOn = true
         });
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Extras",
             SortOrder = 0,
             IsActive = true
@@ -52,6 +61,7 @@ public class Phase2ModifierGroupProductsTests
         {
             ModifierGroupId = groupId,
             ProductId = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             SortOrder = 0
         });
         await context.SaveChangesAsync();
@@ -81,10 +91,12 @@ public class Phase2ModifierGroupProductsTests
         var groupId = Guid.NewGuid();
         var productId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Extras", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Extras", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Add-on Product",
             Price = 2.00m,
             CategoryId = categoryId,
@@ -93,12 +105,18 @@ public class Phase2ModifierGroupProductsTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true,
             IsSellableAddOn = true
         });
         context.ProductModifierGroups.Add(new ProductModifierGroup
         {
             Id = groupId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Extras",
             SortOrder = 0,
             IsActive = true
@@ -107,6 +125,7 @@ public class Phase2ModifierGroupProductsTests
         {
             ModifierGroupId = groupId,
             ProductId = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             SortOrder = 1
         });
         await context.SaveChangesAsync();

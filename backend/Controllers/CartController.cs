@@ -8,6 +8,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Tenancy;
 using System.Security.Claims;
 
 namespace KasseAPI_Final.Controllers
@@ -27,17 +28,20 @@ namespace KasseAPI_Final.Controllers
         private readonly ILogger<CartController> _logger;
         private readonly IProductModifierValidationService _modifierValidation;
         private readonly IPricingRuleResolver _pricingRuleResolver;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
         public CartController(
             AppDbContext context,
             ILogger<CartController> logger,
             IProductModifierValidationService modifierValidation,
-            IPricingRuleResolver pricingRuleResolver)
+            IPricingRuleResolver pricingRuleResolver,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
             _modifierValidation = modifierValidation;
             _pricingRuleResolver = pricingRuleResolver;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         // GET: api/cart/current - Belirli masadaki aktif sepeti getir
@@ -137,9 +141,10 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // Product bilgilerini ayrı sorgu ile al
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var productIds = cart.Items.Select(ci => ci.ProductId).ToList();
                 var products = await _context.Products
-                    .Where(p => productIds.Contains(p.Id))
+                    .Where(p => p.TenantId == tenantId && productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
                 var cartResponse = BuildCartResponse(cart, products);
@@ -176,9 +181,10 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // Product bilgilerini ayrı sorgu ile al
+                var tenantIdGetCart = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var productIds = cart.Items.Select(ci => ci.ProductId).ToList();
                 var products = await _context.Products
-                    .Where(p => productIds.Contains(p.Id))
+                    .Where(p => p.TenantId == tenantIdGetCart && productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
                 var cartResponse = BuildCartResponse(cart, products);
@@ -252,6 +258,8 @@ namespace KasseAPI_Final.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "User not authenticated" });
 
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+
                 // Kullanıcının belirli masadaki aktif sepetini bul veya oluştur
                 var tableNumber = request.TableNumber ?? 1;
                 
@@ -288,7 +296,8 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // Ürünü kontrol et
-                var product = await _context.Products.FindAsync(request.ProductId);
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == request.ProductId && p.TenantId == tenantId);
                 if (product == null)
                 {
                     return NotFound(new { message = "Product not found" });
@@ -330,7 +339,7 @@ namespace KasseAPI_Final.Controllers
                     await _context.SaveChangesAsync();
                     var cartWithItems = await _context.Carts.Include(c => c.Items).ThenInclude(i => i.Modifiers).FirstOrDefaultAsync(c => c.CartId == cart.CartId);
                     var pIds = cartWithItems!.Items.Select(ci => ci.ProductId).ToList();
-                    var prods = await _context.Products.Where(p => pIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p);
+                    var prods = await _context.Products.Where(p => p.TenantId == tenantId && pIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p);
                     return Ok(new { message = "Item added to cart successfully", cart = BuildCartResponse(cartWithItems, prods) });
                 }
 
@@ -393,7 +402,7 @@ namespace KasseAPI_Final.Controllers
                 // Product bilgilerini ayrı sorgu ile al
                 var productIds = updatedCart.Items.Select(ci => ci.ProductId).ToList();
                 var products = await _context.Products
-                    .Where(p => productIds.Contains(p.Id))
+                    .Where(p => p.TenantId == tenantId && productIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
                 var cartResponse = BuildCartResponse(updatedCart, products);
@@ -431,7 +440,9 @@ namespace KasseAPI_Final.Controllers
                 if (cart == null)
                     return NotFound(new { message = $"Cart {cartId} not found or not accessible" });
 
-                var product = await _context.Products.FindAsync(request.ProductId);
+                var tenantIdSpecific = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == request.ProductId && p.TenantId == tenantIdSpecific);
                 if (product == null)
                 {
                     return NotFound(new { message = "Product not found" });
@@ -1163,6 +1174,8 @@ namespace KasseAPI_Final.Controllers
 
                 _logger.LogInformation("🔄 Table orders recovery requested by user {UserId}", userId);
 
+                var tenantIdRecovery = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+
                                                // Kullanıcının tüm aktif masa siparişlerini getir - RKSV uyumlu güvenlik kontrolü
                 // Önce TableOrder'lardan kontrol et, yoksa Cart'tan al
                 var userActiveTableOrders = await _context.TableOrders
@@ -1252,7 +1265,7 @@ namespace KasseAPI_Final.Controllers
                     .Distinct()
                     .ToList();
                 var cartProducts = await _context.Products
-                    .Where(p => cartProductIds.Contains(p.Id))
+                    .Where(p => p.TenantId == tenantIdRecovery && cartProductIds.Contains(p.Id))
                     .ToDictionaryAsync(p => p.Id, p => p);
 
                 var cartBasedOrders = userActiveCarts

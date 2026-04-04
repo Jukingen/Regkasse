@@ -42,7 +42,8 @@ public class CashRegisterControllerCreateTests
             Mock.Of<ILogger<CashRegisterController>>(),
             ctx,
             CreateTestUserManager(),
-            Mock.Of<ICashRegisterShiftService>());
+            Mock.Of<ICashRegisterShiftService>(),
+            TenantTestDoubles.PrimaryTenantResolver);
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

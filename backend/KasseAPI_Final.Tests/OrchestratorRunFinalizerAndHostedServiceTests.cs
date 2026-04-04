@@ -415,7 +415,7 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
             Assert.Null(run.FailureCode);
             Assert.False(string.IsNullOrWhiteSpace(run.DetailsJson));
             Assert.False(string.IsNullOrWhiteSpace(run.EvidenceJson));
-            Assert.Contains("\"schemaVersion\":4", run.EvidenceJson, StringComparison.Ordinal);
+            Assert.Contains("\"schemaVersion\":5", run.EvidenceJson, StringComparison.Ordinal);
             Assert.NotNull(run.SourceBackupArtifactId);
 
             var root = JsonNode.Parse(run.DetailsJson!) as JsonObject;

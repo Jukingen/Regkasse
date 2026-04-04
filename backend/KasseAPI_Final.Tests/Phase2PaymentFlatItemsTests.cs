@@ -14,6 +14,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -70,7 +72,7 @@ public class Phase2PaymentFlatItemsTests
 
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
-        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
         return new PaymentService(
             context,
@@ -89,8 +91,9 @@ public class Phase2PaymentFlatItemsTests
             loggerPayment,
             cashRegResolver,
             httpAccessor,
-            new PaymentMethodCatalogService(context),
-            new PricingRuleResolver(context));
+            new PaymentMethodCatalogService(context, TenantTestDoubles.PrimaryTenantResolver),
+            new PricingRuleResolver(context),
+            TenantTestDoubles.PrimaryTenantResolver);
     }
 
     /// <summary>CreatePayment with two product-only items (base + add-on) produces PaymentItems with empty Modifiers.</summary>
@@ -103,10 +106,12 @@ public class Phase2PaymentFlatItemsTests
         var productAddOnId = Guid.NewGuid();
         var customerId = Guid.NewGuid();
 
-        context.Categories.Add(new Category { Id = categoryId, Name = "Speisen", VatRate = 10m });
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
         context.Products.Add(new Product
         {
             Id = productBaseId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
             Price = 6.90m,
             CategoryId = categoryId,
@@ -115,11 +120,17 @@ public class Phase2PaymentFlatItemsTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productBaseId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true
         });
         context.Products.Add(new Product
         {
             Id = productAddOnId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Extra Käse",
             Price = 1.50m,
             CategoryId = categoryId,
@@ -128,6 +139,11 @@ public class Phase2PaymentFlatItemsTests
             MinStockLevel = 0,
             Unit = "Stk",
             TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productAddOnId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
             IsActive = true,
             IsSellableAddOn = true
         });
@@ -135,6 +151,7 @@ public class Phase2PaymentFlatItemsTests
         var regId = Guid.NewGuid();
         context.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "KASSE-01",
             Location = "Test",

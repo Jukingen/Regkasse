@@ -11,6 +11,8 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 public class PosCashRegisterReadinessServiceTests
@@ -35,14 +37,15 @@ public class PosCashRegisterReadinessServiceTests
         ICashRegisterShiftService shift,
         PosCashRegisterFeatureOptions featureOptions)
     {
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var opt = Options.Create(featureOptions);
         return new PosCashRegisterReadinessService(
             ctx,
             resolution,
             shift,
             opt,
-            Mock.Of<ILogger<PosCashRegisterReadinessService>>());
+            Mock.Of<ILogger<PosCashRegisterReadinessService>>(),
+            TenantTestDoubles.PrimaryTenantResolver);
     }
 
     [Fact]
@@ -52,6 +55,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -78,7 +82,7 @@ public class PosCashRegisterReadinessServiceTests
         store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
 
-        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var features = new PosCashRegisterFeatureOptions
         {
             EffectiveDefaultOnPosEntry = true,
@@ -107,6 +111,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -119,6 +124,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = Guid.NewGuid(),
             RegisterNumber = "MNT",
             Location = "L",
@@ -145,7 +151,7 @@ public class PosCashRegisterReadinessServiceTests
         store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
 
-        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var features = new PosCashRegisterFeatureOptions
         {
             EffectiveDefaultOnPosEntry = true,
@@ -170,6 +176,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -196,7 +203,7 @@ public class PosCashRegisterReadinessServiceTests
         store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
 
-        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var features = new PosCashRegisterFeatureOptions
         {
             EffectiveDefaultOnPosEntry = true,
@@ -204,7 +211,7 @@ public class PosCashRegisterReadinessServiceTests
             DefaultAutoOpenOpeningBalance = 0
         };
         var sut = CreateSut(ctx, shift, features);
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
         Assert.Equal("ready", dto.NextAction);
@@ -230,6 +237,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -280,6 +288,7 @@ public class PosCashRegisterReadinessServiceTests
         ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -316,6 +325,7 @@ public class PosCashRegisterReadinessServiceTests
         ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -331,7 +341,7 @@ public class PosCashRegisterReadinessServiceTests
 
         var shift = new Mock<ICashRegisterShiftService>();
         var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true, AutoOpenSoleClosedRegister = true });
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
         Assert.Equal("forbidden", dto.NextAction);
@@ -354,6 +364,7 @@ public class PosCashRegisterReadinessServiceTests
         ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -377,7 +388,7 @@ public class PosCashRegisterReadinessServiceTests
 
         var shift = new Mock<ICashRegisterShiftService>();
         var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true, AutoOpenSoleClosedRegister = true });
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
         Assert.Equal("forbidden", dto.NextAction);
@@ -403,6 +414,7 @@ public class PosCashRegisterReadinessServiceTests
         ctx.Users.Add(new ApplicationUser { Id = "u2", UserName = "u2", Email = "b@test", FirstName = "C", LastName = "D" });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = rTaken,
             RegisterNumber = "K1",
             Location = "L",
@@ -416,6 +428,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = rOther,
             RegisterNumber = "K2",
             Location = "L",
@@ -438,7 +451,7 @@ public class PosCashRegisterReadinessServiceTests
 
         var shift = new Mock<ICashRegisterShiftService>();
         var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true, AutoOpenSoleClosedRegister = false });
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>());
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
         Assert.Equal("forbidden", dto.NextAction);
@@ -469,6 +482,7 @@ public class PosCashRegisterReadinessServiceTests
         await using var ctx = CreateContext();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = Guid.NewGuid(),
             RegisterNumber = "D1",
             Location = "L",
@@ -497,6 +511,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -542,6 +557,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = reg1,
             RegisterNumber = "K1",
             Location = "L",
@@ -554,6 +570,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = reg2,
             RegisterNumber = "K2",
             Location = "L",
@@ -580,7 +597,7 @@ public class PosCashRegisterReadinessServiceTests
         store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
 
-        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var features = new PosCashRegisterFeatureOptions
         {
             EffectiveDefaultOnPosEntry = true,
@@ -618,6 +635,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regOpen,
             RegisterNumber = "K1",
             Location = "L",
@@ -631,6 +649,7 @@ public class PosCashRegisterReadinessServiceTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regAssignedClosed,
             RegisterNumber = "K2",
             Location = "L",
@@ -657,7 +676,7 @@ public class PosCashRegisterReadinessServiceTests
         store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
 
-        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>());
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var features = new PosCashRegisterFeatureOptions
         {
             EffectiveDefaultOnPosEntry = true,
@@ -683,6 +702,7 @@ public class PosCashRegisterReadinessServiceTests
         var regId = Guid.NewGuid();
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",

@@ -13,6 +13,8 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
+using KasseAPI_Final.Tenancy;
+
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
@@ -42,12 +44,13 @@ public class CashRegisterControllerCloseTests
         var shift = new CashRegisterShiftService(
             ctx,
             CreateTestUserManager(),
-            Mock.Of<ILogger<CashRegisterShiftService>>());
+            Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var c = new CashRegisterController(
             Mock.Of<ILogger<CashRegisterController>>(),
             ctx,
             CreateTestUserManager(),
-            shift);
+            shift,
+            TenantTestDoubles.PrimaryTenantResolver);
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -80,6 +83,7 @@ public class CashRegisterControllerCloseTests
         });
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -121,6 +125,7 @@ public class CashRegisterControllerCloseTests
         const string otherId = "other-2";
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
@@ -154,6 +159,7 @@ public class CashRegisterControllerCloseTests
         const string ownerId = "owner-1";
         ctx.CashRegisters.Add(new CashRegister
         {
+            TenantId = LegacyDefaultTenantIds.Primary,
             Id = regId,
             RegisterNumber = "K1",
             Location = "L",
