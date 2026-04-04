@@ -42,6 +42,7 @@ namespace KasseAPI_Final.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<CompanySettings> CompanySettings { get; set; }
         public DbSet<LocalizationSettings> LocalizationSettings { get; set; }
+        public DbSet<Tenant> Tenants { get; set; }
         public DbSet<ReceiptTemplate> ReceiptTemplates { get; set; }
         public DbSet<GeneratedReceipt> GeneratedReceipts { get; set; }
         public DbSet<TseDevice> TseDevices { get; set; }
@@ -57,6 +58,7 @@ namespace KasseAPI_Final.Data
         public DbSet<PaymentMetrics> PaymentMetrics { get; set; }
         public DbSet<AuthSession> AuthSessions { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<UserTenantMembership> UserTenantMemberships { get; set; }
         
         // Masa siparişleri için yeni tablolar
         public DbSet<TableOrder> TableOrders { get; set; }
@@ -127,9 +129,14 @@ namespace KasseAPI_Final.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(450);
                 entity.Property(e => e.ClientApp).HasColumnName("client_app").IsRequired().HasMaxLength(20);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id");
                 entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
                 entity.Property(e => e.RevokedAtUtc).HasColumnName("revoked_at_utc");
                 entity.Property(e => e.RevokedReason).HasColumnName("revoked_reason").HasMaxLength(200);
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(e => new { e.UserId, e.RevokedAtUtc });
                 entity.HasIndex(e => e.CreatedAtUtc);
             });
@@ -156,6 +163,33 @@ namespace KasseAPI_Final.Data
                     .WithMany(s => s.RefreshTokens)
                     .HasForeignKey(e => e.SessionId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<UserTenantMembership>(entity =>
+            {
+                entity.ToTable("user_tenant_memberships");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.IsActive).HasColumnName("is_active").IsRequired();
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
+                entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc");
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.UserId, e.TenantId }).IsUnique();
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.UserId)
+                    .IsUnique()
+                    .HasFilter("\"is_active\" = true");
             });
 
             // Product configuration - RKSV uyumlu güncellenmiş yapı
@@ -617,10 +651,26 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.TransactionDate);
             });
 
+            // Tenant (Wave 0–1 SaaS root; single seeded row for legacy deployments)
+            builder.Entity<Tenant>(entity =>
+            {
+                entity.ToTable("tenants");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Slug).IsRequired().HasMaxLength(64);
+                entity.HasIndex(e => e.Slug).IsUnique();
+            });
+
             // SystemSettings configuration
             builder.Entity<SystemSettings>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId).IsUnique();
                 entity.Property(e => e.CompanyName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.CompanyAddress).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.CompanyPhone).HasMaxLength(20);
@@ -657,7 +707,7 @@ namespace KasseAPI_Final.Data
                         v => v == null ? "{}" : JsonSerializer.Serialize(v),
                         v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<Dictionary<string, string>>(v));
                 
-                entity.HasIndex(e => e.CompanyTaxNumber).IsUnique();
+                entity.HasIndex(e => new { e.TenantId, e.CompanyTaxNumber }).IsUnique();
             });
 
             // AuditLog: table audit_logs with snake_case columns everywhere (PostgreSQL default; no quoted identifiers).
@@ -716,6 +766,12 @@ namespace KasseAPI_Final.Data
             builder.Entity<CompanySettings>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId).IsUnique();
                 entity.Property(e => e.CompanyName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.CompanyAddress).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.CompanyPhone).HasMaxLength(20);
@@ -750,15 +806,21 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ReceiptNumbering).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.DefaultPaymentMethod).IsRequired().HasMaxLength(50);
                 
-                entity.HasIndex(e => e.CompanyTaxNumber).IsUnique();
-                entity.HasIndex(e => e.CompanyRegistrationNumber).IsUnique();
-                entity.HasIndex(e => e.CompanyVatNumber).IsUnique();
+                entity.HasIndex(e => new { e.TenantId, e.CompanyTaxNumber }).IsUnique();
+                entity.HasIndex(e => new { e.TenantId, e.CompanyRegistrationNumber }).IsUnique();
+                entity.HasIndex(e => new { e.TenantId, e.CompanyVatNumber }).IsUnique();
             });
 
             // LocalizationSettings configuration
             builder.Entity<LocalizationSettings>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId).IsUnique();
                 entity.Property(e => e.DefaultLanguage).IsRequired().HasMaxLength(10);
                 entity.Property(e => e.SupportedLanguages)
                     .HasColumnType("jsonb")

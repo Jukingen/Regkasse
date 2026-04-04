@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using KasseAPI_Final.Auth;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
@@ -12,35 +14,58 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 
 namespace KasseAPI_Final.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    /// <summary>
+    /// Auth endpoints. Effective permissions for JSON responses (login user payload, GET /me) must match JWT
+    /// <c>permission</c> claims: both use <see cref="IRolePermissionResolver"/> (system roles → RolePermissionMatrix;
+    /// custom roles → AspNetRoleClaims), same as <see cref="ITokenClaimsService.BuildClaimsAsync"/>.
+    /// Tenant fields on login come from <see cref="ILoginTenantResolver"/> (membership, else legacy default).
+    /// GET /me uses <see cref="IAuthTenantSnapshotProvider"/> (JWT <c>tenant_id</c> when valid, else default).
+    /// </summary>
     public class AuthController : ControllerBase
     {
+        private readonly AppDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
         private readonly ITokenClaimsService _tokenClaimsService;
+        private readonly IRolePermissionResolver _rolePermissionResolver;
         private readonly AuthOptions _authOptions;
         private readonly IRefreshTokenService _refreshTokenService;
+        private readonly IAuthTenantSnapshotProvider _authTenantSnapshotProvider;
+        private readonly ILoginTenantResolver _loginTenantResolver;
+        private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
 
         public AuthController(
+            AppDbContext context,
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
             ILogger<AuthController> logger,
             ITokenClaimsService tokenClaimsService,
+            IRolePermissionResolver rolePermissionResolver,
             IOptions<AuthOptions> authOptions,
-            IRefreshTokenService refreshTokenService)
+            IRefreshTokenService refreshTokenService,
+            IAuthTenantSnapshotProvider authTenantSnapshotProvider,
+            ILoginTenantResolver loginTenantResolver,
+            IUserTenantMembershipProvisioner tenantMembershipProvisioner)
         {
+            _context = context;
             _userManager = userManager;
             _configuration = configuration;
             _logger = logger;
             _tokenClaimsService = tokenClaimsService;
+            _rolePermissionResolver = rolePermissionResolver;
             _authOptions = authOptions.Value;
             _refreshTokenService = refreshTokenService;
+            _authTenantSnapshotProvider = authTenantSnapshotProvider;
+            _loginTenantResolver = loginTenantResolver;
+            _tenantMembershipProvisioner = tenantMembershipProvisioner;
         }
 
         [HttpPost("login")]
@@ -106,6 +131,23 @@ namespace KasseAPI_Final.Controllers
                     return StatusCode(403, new { message = "Bu kullanıcı bu uygulama için yetkili değil." });
                 }
 
+                var authCt = HttpContext?.RequestAborted ?? CancellationToken.None;
+                if (_authOptions.RequireTenantMembershipForLogin)
+                {
+                    var hasMembership = await _loginTenantResolver.HasActiveMembershipAsync(user.Id, authCt);
+                    if (!hasMembership)
+                    {
+                        _logger.LogWarning(
+                            "Login denied: RequireTenantMembershipForLogin is enabled but user {UserId} has no active tenant membership.",
+                            user.Id);
+                        return BadRequest(new
+                        {
+                            message = "Kein Mandantenzugriff konfiguriert. Bitte Administrator kontaktieren.",
+                            code = "TENANT_MEMBERSHIP_REQUIRED",
+                        });
+                    }
+                }
+
                 // Persist last login for audit and UI (Users list / detail).
                 user.LastLoginAt = DateTime.UtcNow;
                 user.LoginCount++;
@@ -116,15 +158,30 @@ namespace KasseAPI_Final.Controllers
                         user.Id, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
                 }
 
+                var tenantSnapshot = await _loginTenantResolver.ResolveSnapshotForLoginAsync(user.Id, authCt);
+
+                Guid? sessionTenantKey = Guid.TryParse(tenantSnapshot.TenantId, out var loginTenantGuid) ? loginTenantGuid : null;
+
                 var issuedTokens = await _refreshTokenService.IssueLoginTokensAsync(
                     user.Id,
                     resolvedClientApp ?? "legacy",
-                    async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp) =>
+                    async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp, persistedSessionTenantId) =>
                     {
-                        var claims = await _tokenClaimsService.BuildClaimsAsync(user, roles, appContext: resolvedClientApp);
+                        var issuance = await _authTenantSnapshotProvider.ResolveForTokenIssuanceAsync(
+                            persistedSessionTenantId,
+                            user: null,
+                            authCt);
+                        var claims = await _tokenClaimsService.BuildClaimsAsync(
+                            user,
+                            roles,
+                            tenantId: issuance.TenantId,
+                            branchId: issuance.BranchId,
+                            appContext: resolvedClientApp);
                         return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
-                    });
-                var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles).ToList();
+                    },
+                    sessionTenantId: sessionTenantKey,
+                    authCt);
+                var permissions = await GetEffectivePermissionsListAsync(roles, authCt);
 
                 var response = new
                 {
@@ -141,7 +198,11 @@ namespace KasseAPI_Final.Controllers
                         role = canonicalRole,
                         roles = roles,
                         permissions = permissions,
-                        isDemo = user.IsDemo
+                        isDemo = user.IsDemo,
+                        tenantId = tenantSnapshot.TenantId,
+                        tenantDisplayName = tenantSnapshot.TenantDisplayName,
+                        branchId = tenantSnapshot.BranchId,
+                        branchDisplayName = tenantSnapshot.BranchDisplayName,
                     },
                     appContext = resolvedClientApp
                 };
@@ -232,13 +293,16 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "User account is not active" });
                 }
 
-                // Kullanıcı rollerini al; permission set RolePermissionMatrix'ten
+                // Same effective permission source as JWT (IRolePermissionResolver / TokenClaimsService).
                 var roles = await _userManager.GetRolesAsync(user);
                 var primaryRole = roles.FirstOrDefault() ?? user.Role ?? Roles.FallbackUnknown;
-                var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles).ToList();
+                var meCt = HttpContext?.RequestAborted ?? CancellationToken.None;
+                var permissions = await GetEffectivePermissionsListAsync(roles, meCt);
                 var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
 
                 var appContext = User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value;
+
+                var tenantSnapshot = await _authTenantSnapshotProvider.GetSnapshotAsync(User, meCt);
 
                 var userResponse = new
                 {
@@ -250,7 +314,11 @@ namespace KasseAPI_Final.Controllers
                     roles = roles,
                     permissions = permissions,
                     isDemo = user.IsDemo,
-                    appContext = appContext
+                    appContext = appContext,
+                    tenantId = tenantSnapshot.TenantId,
+                    tenantDisplayName = tenantSnapshot.TenantDisplayName,
+                    branchId = tenantSnapshot.BranchId,
+                    branchDisplayName = tenantSnapshot.BranchDisplayName,
                 };
 
                 _logger.LogInformation("GetCurrentUser: Successfully retrieved user {Email} with role {Role}, appContext {AppContext}", user.Email, user.Role, appContext ?? "none");
@@ -278,15 +346,25 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Refresh token is required" });
                 }
 
+                var refreshCt = HttpContext?.RequestAborted ?? CancellationToken.None;
                 var result = await _refreshTokenService.RotateAsync(
                     model.RefreshToken,
-                    async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp) =>
+                    async (tokenUserId, jti, sessionId, expiresAtUtc, clientApp, persistedSessionTenantId) =>
                     {
                         var user = await _userManager.FindByIdAsync(tokenUserId);
                         if (user == null)
                             throw new InvalidOperationException("Refresh token user not found");
                         var roles = await _userManager.GetRolesAsync(user);
-                        var claims = await _tokenClaimsService.BuildClaimsAsync(user, roles, appContext: clientApp);
+                        var issuance = await _authTenantSnapshotProvider.ResolveForTokenIssuanceAsync(
+                            persistedSessionTenantId,
+                            user: null,
+                            refreshCt);
+                        var claims = await _tokenClaimsService.BuildClaimsAsync(
+                            user,
+                            roles,
+                            tenantId: issuance.TenantId,
+                            branchId: issuance.BranchId,
+                            appContext: clientApp);
                         return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
                     });
 
@@ -324,19 +402,42 @@ namespace KasseAPI_Final.Controllers
                     Email = model.Email,
                     FirstName = model.FirstName,
                     LastName = model.LastName,
-                    EmployeeNumber = model.EmployeeNumber,
+                    EmployeeNumber = model.EmployeeNumber ?? string.Empty,
                     IsActive = true
                 };
                 
-                var result = await _userManager.CreateAsync(user, model.Password);
-                
-                if (result.Succeeded)
+                var regCt = HttpContext?.RequestAborted ?? default;
+                await using var tx = await _context.Database.BeginTransactionAsync(regCt);
+                try
                 {
-                    await _userManager.AddToRoleAsync(user, Roles.Cashier);
-                    return Ok(new { message = "Kullanıcı başarıyla oluşturuldu" });
+                    var result = await _userManager.CreateAsync(user, model.Password);
+                    if (!result.Succeeded)
+                    {
+                        await tx.RollbackAsync(regCt);
+                        return BadRequest(new { errors = result.Errors });
+                    }
+
+                    var roleResult = await _userManager.AddToRoleAsync(user, Roles.Cashier);
+                    if (!roleResult.Succeeded)
+                    {
+                        await tx.RollbackAsync(regCt);
+                        return BadRequest(new { errors = roleResult.Errors });
+                    }
+
+                    await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
+                        user.Id,
+                        LegacyDefaultTenantIds.Primary,
+                        regCt);
+                    await tx.CommitAsync(regCt);
                 }
-                
-                return BadRequest(new { errors = result.Errors });
+                catch (Exception ex)
+                {
+                    await tx.RollbackAsync(regCt);
+                    _logger.LogError(ex, "Registration failed (rolled back) for email {Email}", model.Email);
+                    return StatusCode(500, new { message = "Registrierung fehlgeschlagen.", code = "REGISTRATION_TRANSACTION_FAILED" });
+                }
+
+                return Ok(new { message = "Kullanıcı başarıyla oluşturuldu" });
             }
             catch (Exception ex)
             {
@@ -402,6 +503,16 @@ namespace KasseAPI_Final.Controllers
             var prefix = email[..Math.Min(2, atIndex)];
             var domain = atIndex < email.Length - 1 ? email[atIndex..] : string.Empty;
             return $"{prefix}***{domain}";
+        }
+
+        /// <summary>
+        /// Effective permissions for API JSON: same set as embedded in JWT via <see cref="ITokenClaimsService"/>.
+        /// Sorted for stable serialization (JWT claim order is not significant for authorization).
+        /// </summary>
+        private async Task<List<string>> GetEffectivePermissionsListAsync(IList<string> roles, CancellationToken cancellationToken)
+        {
+            var set = await _rolePermissionResolver.GetPermissionsForRolesAsync(roles, cancellationToken);
+            return set.OrderBy(p => p, StringComparer.OrdinalIgnoreCase).ToList();
         }
     }
 

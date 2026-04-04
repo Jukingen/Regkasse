@@ -3,8 +3,8 @@ using System.Security.Claims;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Checks tenant/branch scope from user claims. Token claims tenant_id/branch_id are set in ITokenClaimsService.
-/// Use for: waiter own order, cashier own till, manager own branch.
+/// Checks tenant/branch scope from user claims when <c>tenant_id</c> / <c>branch_id</c> are present on the JWT.
+/// Login/refresh may omit these claims until multi-tenant wiring is complete; scope helpers treat missing branch as unconstrained (see implementation).
 /// </summary>
 public interface IScopeCheckService
 {

@@ -24,6 +24,12 @@ public sealed class AuthSession
     [Column("created_at_utc")]
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Effective tenant for this session (refresh rotation). Null for legacy rows → default tenant at issuance.</summary>
+    [Column("tenant_id")]
+    public Guid? TenantId { get; set; }
+
+    public Tenant? Tenant { get; set; }
+
     [Column("revoked_at_utc")]
     public DateTime? RevokedAtUtc { get; set; }
 

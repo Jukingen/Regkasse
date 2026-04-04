@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -15,11 +16,16 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<LocalizationController> _logger;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-        public LocalizationController(AppDbContext context, ILogger<LocalizationController> logger)
+        public LocalizationController(
+            AppDbContext context,
+            ILogger<LocalizationController> logger,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         [HasPermission(AppPermissions.LocalizationView)]
@@ -28,12 +34,16 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(
+                    HttpContext?.RequestAborted ?? CancellationToken.None);
+                var settings = await _context.LocalizationSettings
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId, HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     // Varsayılan lokalizasyon ayarlarını oluştur
                     settings = new Models.LocalizationSettings
                     {
+                        TenantId = tenantId,
                         DefaultLanguage = "de-DE",
                         SupportedLanguages = new List<string> { "de-DE", "en", "tr" },
                         DefaultCurrency = "EUR",
@@ -95,7 +105,10 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(
+                    HttpContext?.RequestAborted ?? CancellationToken.None);
+                var settings = await _context.LocalizationSettings
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId, HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -134,7 +147,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var settings = await LoadLocalizationForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -155,7 +168,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var settings = await LoadLocalizationForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -176,7 +189,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var settings = await LoadLocalizationForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -197,7 +210,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var settings = await LoadLocalizationForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -231,7 +244,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var settings = await LoadLocalizationForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -268,7 +281,7 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var settings = await LoadLocalizationForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -307,7 +320,7 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var settings = await LoadLocalizationForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -340,7 +353,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var settings = await LoadLocalizationForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -379,7 +392,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var settings = await LoadLocalizationForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -417,7 +430,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.LocalizationSettings.FirstOrDefaultAsync();
+                var settings = await LoadLocalizationForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Localization settings not found" });
@@ -436,6 +449,17 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogError(ex, "Error exporting localization settings");
                 return StatusCode(500, new { message = "Internal server error" });
             }
+        }
+
+        /// <summary>Wave 0–1: loads the singleton localization row for the effective tenant (server-resolved).</summary>
+        private async Task<Models.LocalizationSettings?> LoadLocalizationForEffectiveTenantAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return await _context.LocalizationSettings
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 

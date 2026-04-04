@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
@@ -22,27 +24,33 @@ namespace KasseAPI_Final.Controllers;
 [Produces("application/json")]
 public class AdminUsersController : ControllerBase
 {
+    private readonly AppDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IAuditLogService _auditLogService;
     private readonly IUserSessionInvalidation _sessionInvalidation;
     private readonly IUserUniquenessValidationService _uniquenessValidation;
     private readonly ILogger<AdminUsersController> _logger;
+    private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
 
     public AdminUsersController(
+        AppDbContext context,
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
         IAuditLogService auditLogService,
         IUserSessionInvalidation sessionInvalidation,
         IUserUniquenessValidationService uniquenessValidation,
-        ILogger<AdminUsersController> logger)
+        ILogger<AdminUsersController> logger,
+        IUserTenantMembershipProvisioner tenantMembershipProvisioner)
     {
+        _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
         _auditLogService = auditLogService;
         _sessionInvalidation = sessionInvalidation;
         _uniquenessValidation = uniquenessValidation;
         _logger = logger;
+        _tenantMembershipProvisioner = tenantMembershipProvisioner;
     }
 
     private string? ActorId => User.GetActorUserId();
@@ -147,15 +155,39 @@ public class AdminUsersController : ControllerBase
             EmailConfirmed = true,
         };
 
-        var result = await _userManager.CreateAsync(user, request.Password);
-        if (!result.Succeeded)
+        var createCt = HttpContext?.RequestAborted ?? default;
+        await using var tx = await _context.Database.BeginTransactionAsync(createCt);
+        try
         {
-            errors = result.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
-            return BadRequest(ApiError.Validation("User creation failed", errors));
-        }
+            var result = await _userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                await tx.RollbackAsync(createCt);
+                errors = result.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
+                return BadRequest(ApiError.Validation("User creation failed", errors));
+            }
 
-        if (!string.IsNullOrEmpty(request.Role))
-            await _userManager.AddToRoleAsync(user, request.Role);
+            if (!string.IsNullOrEmpty(request.Role))
+            {
+                var roleAdd = await _userManager.AddToRoleAsync(user, request.Role);
+                if (!roleAdd.Succeeded)
+                {
+                    await tx.RollbackAsync(createCt);
+                    _logger.LogWarning("Failed to add role {Role} to user {UserName}", request.Role, request.UserName);
+                    return BadRequest(ApiError.Validation("Role assignment failed",
+                        roleAdd.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray())));
+                }
+            }
+
+            await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(user.Id, LegacyDefaultTenantIds.Primary, createCt);
+            await tx.CommitAsync(createCt);
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(createCt);
+            _logger.LogError(ex, "Admin user create failed (rolled back): Identity or tenant membership for attempted user {UserName}", request.UserName);
+            return StatusCode(500, ApiError.ServerError("User creation failed", "User creation failed."));
+        }
 
         if (ActorId != null)
             await _auditLogService.LogUserLifecycleAsync(AuditEventType.UserCreated, ActorId, ActorRole, user.Id, null, null, AuditLogStatus.Success, $"User created: {user.UserName}");

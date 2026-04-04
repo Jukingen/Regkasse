@@ -1,6 +1,8 @@
 /**
- * RKSV sidebar plugin: attaches RKSV menu groups to the composed admin sidebar registry.
- * Replace `registerRksvSidebar` body to swap RKSV IA without touching core layout.
+ * RKSV sidebar plugin: attaches RKSV menu groups to the composed admin sidebar registry (`composeAdminSidebarData`).
+ *
+ * Menu structure and paths: `rksvAdminMenuModel.ts`. Permissions: `MENU_PERMISSION` + `ROUTE_PERMISSIONS`.
+ * Hub path `/rksv` vs selected key `/rksv/operations`: `adminSidebarNavigation.resolveAdminMenuSelectedKeys`.
  */
 
 import type { RksvMenuGroup } from '@/features/rksv/rksvAdminMenuModel';

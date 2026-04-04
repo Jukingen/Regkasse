@@ -1,8 +1,9 @@
 import { defineConfig } from 'orval';
 
 /**
- * Orval: Backend swagger.json → generated clients (tags-split).
- * Legacy product ve categories path'leri transformer ile spec'ten çıkarılır (FE-Admin src/api/admin/* kullanır).
+ * Orval: backend `swagger.json` → generated React Query clients (tags-split).
+ * Legacy product/category paths are stripped in `scripts/orval-strip-legacy-paths.cjs`; those APIs stay in
+ * `src/api/admin/*` (manual clients). Prefer generated endpoints for anything present in the OpenAPI spec.
  */
 export default defineConfig({
     kasse: {

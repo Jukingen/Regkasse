@@ -9,6 +9,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Middleware;
+using KasseAPI_Final.Tenancy;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
@@ -28,6 +29,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IUserUniquenessValidationService _uniquenessValidation;
         private readonly IRoleManagementService _roleManagementService;
         private readonly ILogger<UserManagementController> _logger;
+        private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
 
         public UserManagementController(
             AppDbContext context,
@@ -37,7 +39,8 @@ namespace KasseAPI_Final.Controllers
             IUserSessionInvalidation sessionInvalidation,
             IUserUniquenessValidationService uniquenessValidation,
             IRoleManagementService roleManagementService,
-            ILogger<UserManagementController> logger)
+            ILogger<UserManagementController> logger,
+            IUserTenantMembershipProvisioner tenantMembershipProvisioner)
         {
             _context = context;
             _userManager = userManager;
@@ -47,6 +50,7 @@ namespace KasseAPI_Final.Controllers
             _uniquenessValidation = uniquenessValidation;
             _roleManagementService = roleManagementService;
             _logger = logger;
+            _tenantMembershipProvisioner = tenantMembershipProvisioner;
         }
 
         private string? GetCurrentUserId() => User.GetActorUserId();
@@ -323,24 +327,39 @@ namespace KasseAPI_Final.Controllers
                     LastName = request.LastName,
                     EmployeeNumber = request.EmployeeNumber.Trim(),
                     Role = request.Role,
-                    TaxNumber = request.TaxNumber,
-                    Notes = request.Notes,
+                    TaxNumber = request.TaxNumber ?? string.Empty,
+                    Notes = request.Notes ?? string.Empty,
                     IsActive = true,
                     EmailConfirmed = true
                 };
 
-                var result = await _userManager.CreateAsync(user, request.Password);
-                if (!result.Succeeded)
+                var createCt = HttpContext?.RequestAborted ?? default;
+                await using var tx = await _context.Database.BeginTransactionAsync(createCt);
+                try
                 {
-                    return BadRequest(new { message = "Failed to create user", errors = result.Errors });
-                }
+                    var result = await _userManager.CreateAsync(user, request.Password);
+                    if (!result.Succeeded)
+                    {
+                        await tx.RollbackAsync(createCt);
+                        return BadRequest(new { message = "Failed to create user", errors = result.Errors });
+                    }
 
-                // Role is required and already validated; add user to role
-                var roleResult = await _userManager.AddToRoleAsync(user, request.Role);
-                if (!roleResult.Succeeded)
+                    var roleResult = await _userManager.AddToRoleAsync(user, request.Role);
+                    if (!roleResult.Succeeded)
+                    {
+                        await tx.RollbackAsync(createCt);
+                        _logger.LogWarning("Failed to add role {Role} to user {UserName}", request.Role, request.UserName);
+                        return BadRequest(new { message = "Failed to assign role to user.", code = "ROLE_ASSIGN_FAILED", errors = roleResult.Errors });
+                    }
+
+                    await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(user.Id, LegacyDefaultTenantIds.Primary, createCt);
+                    await tx.CommitAsync(createCt);
+                }
+                catch (Exception ex)
                 {
-                    _logger.LogWarning("Failed to add role {Role} to user {UserName}", request.Role, request.UserName);
-                    return BadRequest(new { message = "Failed to assign role to user.", code = "ROLE_ASSIGN_FAILED", errors = roleResult.Errors });
+                    await tx.RollbackAsync(createCt);
+                    _logger.LogError(ex, "User create failed (rolled back): Identity or tenant membership for attempted user {UserName}", request.UserName);
+                    return StatusCode(500, new { message = "User creation failed.", code = "USER_CREATE_TRANSACTION_FAILED" });
                 }
 
                 var createdUserInfo = new UserInfo

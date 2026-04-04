@@ -33,6 +33,9 @@ public class ApiError
     public static ApiError BusinessRule(string title, string? detail = null, int status = 400) =>
         new() { Type = "BusinessRule", Title = title, Status = status, Detail = detail };
 
+    public static ApiError ServerError(string title, string? detail = null) =>
+        new() { Type = "ServerError", Title = title, Status = 500, Detail = detail };
+
     /// <summary>Structured 403 payload for API contract and FE diagnostics. No secret leakage.</summary>
     public class ForbiddenPayload
     {

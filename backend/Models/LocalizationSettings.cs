@@ -7,6 +7,12 @@ namespace KasseAPI_Final.Models
     public class LocalizationSettings : BaseEntity
     {
         [Required]
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
+        public virtual Tenant? Tenant { get; set; }
+
+        [Required]
         [MaxLength(10)]
         public string DefaultLanguage { get; set; } = string.Empty;
 

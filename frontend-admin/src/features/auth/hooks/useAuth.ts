@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useRef } from 'react';
 import { AXIOS_INSTANCE, customInstance } from '@/lib/axios';
 import { usePostApiAuthLogout } from '@/api/generated/auth/auth';
-import { UserInfo } from '@/api/generated/model';
 import { message } from 'antd';
 import { authStorage } from '@/features/auth/services/authStorage';
+import { mapMeResponseToAuthUser, type MeResponse } from '@/features/auth/utils/mapMeResponseToAuthUser';
 import type { AuthUser } from '@/shared/auth/types';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { useI18n } from '@/i18n';
@@ -15,27 +15,6 @@ import { useI18n } from '@/i18n';
 // Define the key for the user query
 export const AUTH_KEYS = {
     user: ['auth', 'me'] as const,
-};
-
-/** API /me response may include permissions/roles (various casing). */
-type MeResponse = UserInfo & {
-    permissions?: string[];
-    Permissions?: string[];
-    roles?: string[];
-    Roles?: string[];
-    /** Legacy JSON casing fallbacks */
-    Id?: string | null;
-    UserName?: string | null;
-    Email?: string | null;
-    FirstName?: string | null;
-    LastName?: string | null;
-    Role?: string | null;
-    EmployeeNumber?: string | null;
-    TaxNumber?: string | null;
-    Notes?: string | null;
-    IsActive?: boolean;
-    CreatedAt?: string;
-    LastLoginAt?: string;
 };
 
 const fetchUser = async (): Promise<AuthUser> => {
@@ -47,26 +26,7 @@ const fetchUser = async (): Promise<AuthUser> => {
         method: 'GET',
     });
 
-    // Map permissions/roles for permission-based guards; fallback to [] when not yet provided by backend
-    const permissions = res.permissions ?? res.Permissions ?? [];
-    const roles = res.roles ?? res.Roles ?? [];
-
-    return {
-        id: res.id ?? res.Id ?? null,
-        userName: res.userName ?? res.UserName,
-        email: res.email ?? res.Email,
-        firstName: res.firstName ?? res.FirstName,
-        lastName: res.lastName ?? res.LastName,
-        role: res.role ?? res.Role,
-        roles: roles.length > 0 ? roles : undefined,
-        permissions,
-        employeeNumber: res.employeeNumber ?? res.EmployeeNumber,
-        taxNumber: res.taxNumber ?? res.TaxNumber,
-        notes: res.notes ?? res.Notes,
-        isActive: res.isActive ?? res.IsActive,
-        createdAt: res.createdAt ?? res.CreatedAt,
-        lastLoginAt: res.lastLoginAt ?? res.LastLoginAt,
-    };
+    return mapMeResponseToAuthUser(res);
 };
 
 export enum AuthStatus {

@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Authorization;
 namespace KasseAPI_Final.Authorization;
 
 /// <summary>
-/// Evaluates PermissionRequirement: first checks "permission" claims (from login token), then falls back to role-derived permissions via RolePermissionMatrix.
+/// Evaluates PermissionRequirement: first checks "permission" claims (from login token), then falls back to role-derived permissions via RolePermissionMatrix only.
+/// Normal JWTs from <see cref="KasseAPI_Final.Services.TokenClaimsService"/> include resolver-based permission claims (matrix + custom role claims). If a token had no permission claims,
+/// fallback would not include AspNetRoleClaims for custom roles — avoid issuing such tokens; login/refresh always populate claims today.
 /// </summary>
 public sealed class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
 {

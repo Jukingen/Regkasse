@@ -1,6 +1,9 @@
 /**
- * Path → required permission(s) for route access.
- * Used by PermissionRouteGuard. Empty array = route requires at least one permission (no specific permission).
+ * Path → required permission(s) for route access (longest-prefix match).
+ * Used by `PermissionRouteGuard`. Sidebar/menu visibility uses `menuPermissions.MENU_PERMISSION` separately;
+ * every sidebar leaf must have matching entries here — enforced by `sidebarRouteCoverage` tests.
+ *
+ * Empty array = route requires at least one permission (no specific permission).
  * Fail-closed: no permissions in token → deny unless migration flag is set.
  */
 import { PERMISSIONS } from './permissions';

@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -37,13 +38,16 @@ public sealed class DbFinanzOnlineConnectivitySource : IFinanzOnlineConnectivity
 {
     private readonly AppDbContext _context;
     private readonly IOptionsMonitor<FinanzOnlineConnectivityOptions> _connectivity;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
 
     public DbFinanzOnlineConnectivitySource(
         AppDbContext context,
-        IOptionsMonitor<FinanzOnlineConnectivityOptions> connectivity)
+        IOptionsMonitor<FinanzOnlineConnectivityOptions> connectivity,
+        ISettingsTenantResolver settingsTenantResolver)
     {
         _context = context;
         _connectivity = connectivity;
+        _settingsTenantResolver = settingsTenantResolver;
     }
 
     public async Task<FinanzOnlineConnectivitySnapshot?> GetCompanySettingsSnapshotAsync(CancellationToken cancellationToken = default)
@@ -51,7 +55,10 @@ public sealed class DbFinanzOnlineConnectivitySource : IFinanzOnlineConnectivity
         if (!_connectivity.CurrentValue.UseCompanySettings)
             return null;
 
-        var row = await _context.CompanySettings.AsNoTracking().FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var row = await _context.CompanySettings.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
         if (row == null)
             return null;
 

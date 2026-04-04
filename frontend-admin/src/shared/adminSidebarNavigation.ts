@@ -6,11 +6,16 @@
  * RKSV: `src/features/rksv/sidebarPlugin.ts` (`registerRksvSidebar`) + `rksvAdminMenuModel`.
  * Permission filtering: `menuPermissions.MENU_PERMISSION` + `filterSidebarMenuItems`.
  * Route protection: `routePermissions.ROUTE_PERMISSIONS` + `PermissionRouteGuard` (unchanged contract).
+ *
+ * Role fallback (when `usePermissionFirst` is false — no permissions on `/me` yet): only `/users` and
+ * `/rksv` parent keys use `canViewUsers` / `canShowRksvMenu`; other leaves stay visible unless
+ * permission mode is on. Prefer keeping `/me` permissions authoritative.
  */
 
 import type { MenuProps } from 'antd';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import { getRksvOpenSubgroupKeys } from '@/shared/rksvMenuModel';
+import { SETTINGS_AREA_ROUTE_PATHS } from '@/shared/settingsAreaRoutes';
 
 /** RKSV landing URL vs menu leaf key (Orval / menu model use /rksv/operations as selected key). */
 export const RKSV_HUB_PATH = '/rksv';
@@ -69,7 +74,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/reporting/jahresbericht',
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance]: ['/audit-logs', '/rksv'],
-    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', '/settings', '/settings/payment-methods', '/settings/backup-dr'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', ...SETTINGS_AREA_ROUTE_PATHS],
 };
 
 /**

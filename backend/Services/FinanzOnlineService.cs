@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
@@ -25,6 +26,7 @@ namespace KasseAPI_Final.Services
         private readonly IHostEnvironment _hostEnvironment;
         private readonly ILogger<FinanzOnlineService> _logger;
         private readonly IFinanzOnlineAdminConnectivityService _adminConnectivity;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
         public FinanzOnlineService(
             AppDbContext context,
@@ -32,7 +34,8 @@ namespace KasseAPI_Final.Services
             IOptionsMonitor<FinanzOnlineCutoverGuardOptions> cutoverOptions,
             IHostEnvironment hostEnvironment,
             ILogger<FinanzOnlineService> logger,
-            IFinanzOnlineAdminConnectivityService adminConnectivity)
+            IFinanzOnlineAdminConnectivityService adminConnectivity,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _outboxService = outboxService;
@@ -40,13 +43,14 @@ namespace KasseAPI_Final.Services
             _hostEnvironment = hostEnvironment;
             _logger = logger;
             _adminConnectivity = adminConnectivity;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         public async Task<bool> IsEnabledAsync()
         {
             try
             {
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var companySettings = await GetCompanySettingsForEffectiveTenantAsync().ConfigureAwait(false);
                 return companySettings?.FinanzOnlineEnabled ?? false;
             }
             catch
@@ -59,7 +63,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var companySettings = await GetCompanySettingsForEffectiveTenantAsync().ConfigureAwait(false);
                 if (companySettings == null)
                 {
                     return new FinanzOnlineConfig();
@@ -86,10 +90,13 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync().ConfigureAwait(false);
+                var companySettings = await _context.CompanySettings
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId)
+                    .ConfigureAwait(false);
                 if (companySettings == null)
                 {
-                    companySettings = new CompanySettings();
+                    companySettings = new CompanySettings { TenantId = tenantId };
                     _context.CompanySettings.Add(companySettings);
                 }
 
@@ -126,7 +133,7 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var companySettings = await GetCompanySettingsForEffectiveTenantAsync().ConfigureAwait(false);
                 var lastSync = companySettings?.LastFinanzOnlineSync ?? DateTime.UtcNow;
 
                 var tseDevice = await _context.TseDevices
@@ -268,7 +275,7 @@ namespace KasseAPI_Final.Services
                         RkdbBelegpruefung = rkdbBelegpruefung
                     }).ConfigureAwait(false);
 
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var companySettings = await GetCompanySettingsForEffectiveTenantAsync().ConfigureAwait(false);
                 if (companySettings != null)
                 {
                     companySettings.LastFinanzOnlineSync = submittedAt;
@@ -330,6 +337,16 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        private async Task<CompanySettings?> GetCompanySettingsForEffectiveTenantAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return await _context.CompanySettings
+                .FirstOrDefaultAsync(c => c.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         /// <summary>Classify failure for retry/alerting: Transient (retry), Permanent (do not retry), Unknown.</summary>
         private static FinanzOnlineFailureKind ClassifyFailure(Exception ex)
         {
@@ -387,7 +404,7 @@ namespace KasseAPI_Final.Services
                     $"FIN_DAILY_{PostgreSqlUtcDateTime.FormatViennaUtcInstantAsYyyyMmDd(dailyClosing.ClosingDate)}_{dailyClosing.CashRegisterId}";
                 
                 // Update company settings
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var companySettings = await GetCompanySettingsForEffectiveTenantAsync().ConfigureAwait(false);
                 if (companySettings != null)
                 {
                     companySettings.LastFinanzOnlineSync = DateTime.UtcNow;
@@ -500,7 +517,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var companySettings = await GetCompanySettingsForEffectiveTenantAsync().ConfigureAwait(false);
                 if (companySettings != null)
                 {
                     companySettings.FinanzOnlineAutoSubmit = enabled;
@@ -519,7 +536,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var companySettings = await GetCompanySettingsForEffectiveTenantAsync().ConfigureAwait(false);
                 if (companySettings != null)
                 {
                     companySettings.FinanzOnlineRetryAttempts = maxRetries;
@@ -539,7 +556,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var companySettings = await GetCompanySettingsForEffectiveTenantAsync().ConfigureAwait(false);
                 if (companySettings != null)
                 {
                     companySettings.FinanzOnlineEnableValidation = enableValidation;

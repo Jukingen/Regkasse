@@ -423,6 +423,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("revoked_reason");
 
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasMaxLength(450)
@@ -432,6 +436,8 @@ namespace KasseAPI_Final.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("UserId", "RevokedAtUtc");
 
@@ -1411,6 +1417,10 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TimeFormat")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1438,13 +1448,16 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyRegistrationNumber")
+                    b.HasIndex("TenantId")
                         .IsUnique();
 
-                    b.HasIndex("CompanyTaxNumber")
+                    b.HasIndex("TenantId", "CompanyRegistrationNumber")
                         .IsUnique();
 
-                    b.HasIndex("CompanyVatNumber")
+                    b.HasIndex("TenantId", "CompanyTaxNumber")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "CompanyVatNumber")
                         .IsUnique();
 
                     b.ToTable("company_settings");
@@ -2555,6 +2568,10 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TimeFormatOptions")
                         .IsRequired()
                         .HasColumnType("jsonb");
@@ -2573,6 +2590,9 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("DefaultCurrency");
 
                     b.HasIndex("DefaultLanguage");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique();
 
                     b.ToTable("localization_settings");
                 });
@@ -4877,6 +4897,10 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("TimeFormat")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -4898,7 +4922,10 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyTaxNumber")
+                    b.HasIndex("TenantId")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "CompanyTaxNumber")
                         .IsUnique();
 
                     b.ToTable("system_settings");
@@ -5244,6 +5271,53 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("tagesbericht_reports", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.Tenant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("tenants", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TseDevice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5574,6 +5648,49 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("UserSettings");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.UserTenantMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("\"is_active\" = true");
+
+                    b.HasIndex("UserId", "TenantId")
+                        .IsUnique();
+
+                    b.ToTable("user_tenant_memberships", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -5725,6 +5842,16 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.AuthSession", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupArtifact", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Backup.BackupRun", "BackupRun")
@@ -5872,6 +5999,17 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.CompanySettings", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.Customer", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.ApplicationUser", "ApplicationUser")
@@ -5950,6 +6088,17 @@ namespace KasseAPI_Final.Migrations
                         .HasForeignKey("CashRegisterId");
 
                     b.Navigation("CashRegister");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.LocalizationSettings", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.MonatsberichtReport", b =>
@@ -6169,6 +6318,17 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("SourceBackupRun");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.SystemSettings", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.TableOrder", b =>
                 {
                     b.HasOne("KasseAPI_Final.Models.Cart", "Cart")
@@ -6249,6 +6409,25 @@ namespace KasseAPI_Final.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.UserTenantMembership", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
 
                     b.Navigation("User");
                 });

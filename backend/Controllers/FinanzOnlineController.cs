@@ -5,6 +5,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Tenancy;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
 
@@ -22,15 +23,18 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly ILogger<FinanzOnlineController> _logger;
         private readonly IFinanzOnlineAdminConnectivityService _adminConnectivity;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
         public FinanzOnlineController(
             AppDbContext context,
             ILogger<FinanzOnlineController> logger,
-            IFinanzOnlineAdminConnectivityService adminConnectivity)
+            IFinanzOnlineAdminConnectivityService adminConnectivity,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
             _adminConnectivity = adminConnectivity;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         // GET: api/finanzonline/config
@@ -40,7 +44,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(
+                    HttpContext?.RequestAborted ?? CancellationToken.None);
+                var companySettings = await _context.CompanySettings
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId, HttpContext?.RequestAborted ?? CancellationToken.None);
                 var tseDevice = await _context.TseDevices
                     .Where(t => t.IsActive && t.FinanzOnlineEnabled)
                     .FirstOrDefaultAsync();
@@ -75,7 +82,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var companySettings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(
+                    HttpContext?.RequestAborted ?? CancellationToken.None);
+                var companySettings = await _context.CompanySettings
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId, HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (companySettings == null)
                 {
                     return NotFound(new { message = "Firma ayarları bulunamadı" });

@@ -1,8 +1,11 @@
 'use client';
 
-// Horizontal sub-navigation for /settings routes; labels align with the sidebar.
+/**
+ * Horizontal sub-navigation for the settings hub. Route paths are owned by `SETTINGS_AREA_ROUTE_PATHS`
+ * (`shared/settingsAreaRoutes.ts`); labels use the same i18n keys as the main sidebar.
+ */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, type ComponentType } from 'react';
 import { Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import Link from 'next/link';
@@ -10,51 +13,48 @@ import { usePathname } from 'next/navigation';
 import { ShopOutlined, CreditCardOutlined, CloudServerOutlined } from '@ant-design/icons';
 import { useI18n } from '@/i18n/I18nProvider';
 import { ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
+import {
+    SETTINGS_AREA_ROUTE_PATHS,
+    type SettingsAreaRoutePath,
+} from '@/shared/settingsAreaRoutes';
+
+const SETTINGS_TAB_META: Record<
+    SettingsAreaRoutePath,
+    { labelKey: string; Icon: ComponentType }
+> = {
+    '/settings': { labelKey: ADMIN_NAV_LABEL_KEYS.companySettings, Icon: ShopOutlined },
+    '/settings/payment-methods': { labelKey: ADMIN_NAV_LABEL_KEYS.paymentMethods, Icon: CreditCardOutlined },
+    '/settings/backup-dr': { labelKey: ADMIN_NAV_LABEL_KEYS.backupDr, Icon: CloudServerOutlined },
+};
 
 export function SettingsSecondaryNav() {
   const pathname = usePathname() ?? '';
   const { t } = useI18n();
 
   const items: MenuProps['items'] = useMemo(
-    () => [
-      {
-        key: '/settings',
-        icon: <ShopOutlined />,
-        label: (
-          <Link href="/settings" prefetch={false}>
-            {t(ADMIN_NAV_LABEL_KEYS.companySettings)}
-          </Link>
-        ),
-      },
-      {
-        key: '/settings/payment-methods',
-        icon: <CreditCardOutlined />,
-        label: (
-          <Link href="/settings/payment-methods" prefetch={false}>
-            {t(ADMIN_NAV_LABEL_KEYS.paymentMethods)}
-          </Link>
-        ),
-      },
-      {
-        key: '/settings/backup-dr',
-        icon: <CloudServerOutlined />,
-        label: (
-          <Link href="/settings/backup-dr" prefetch={false}>
-            {t(ADMIN_NAV_LABEL_KEYS.backupDr)}
-          </Link>
-        ),
-      },
-    ],
+    () =>
+      SETTINGS_AREA_ROUTE_PATHS.map((path) => {
+        const { labelKey, Icon } = SETTINGS_TAB_META[path];
+        return {
+          key: path,
+          icon: <Icon />,
+          label: (
+            <Link href={path} prefetch={false}>
+              {t(labelKey)}
+            </Link>
+          ),
+        };
+      }),
     [t],
   );
 
   const selectedKeys = useMemo(() => {
-    if (pathname === '/settings' || pathname.startsWith('/settings/')) {
-      if (pathname.startsWith('/settings/payment-methods')) return ['/settings/payment-methods'];
-      if (pathname.startsWith('/settings/backup-dr')) return ['/settings/backup-dr'];
-      if (pathname === '/settings') return ['/settings'];
+    if (!pathname.startsWith('/settings')) return [pathname];
+    const sorted = [...SETTINGS_AREA_ROUTE_PATHS].sort((a, b) => b.length - a.length);
+    for (const route of sorted) {
+      if (pathname === route || pathname.startsWith(`${route}/`)) return [route];
     }
-    return [pathname];
+    return ['/settings'];
   }, [pathname]);
 
   return (

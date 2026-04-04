@@ -6,7 +6,25 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * User profile and auth context. GET /api/Auth/me returns permissions from the same effective source as JWT permission claims (IRolePermissionResolver). Tenant fields mirror the effective tenant (JWT tenant_id claim when valid, otherwise the seeded default tenant). Branch fields remain null until branch context exists.
+ */
 export interface UserInfo {
+  /**
+   * Client app from JWT (pos, admin), when present.
+   * @nullable
+   */
+  appContext?: string | null;
+  /**
+   * Reserved; null until branch context is implemented.
+   * @nullable
+   */
+  branchDisplayName?: string | null;
+  /**
+   * Reserved; null until branch context is implemented.
+   * @nullable
+   */
+  branchId?: string | null;
   createdAt?: string;
   /** @nullable */
   email?: string | null;
@@ -18,15 +36,31 @@ export interface UserInfo {
   id?: string | null;
   isActive?: boolean;
   /** @nullable */
+  isDemo?: boolean | null;
+  /** @nullable */
   lastLoginAt?: string | null;
   /** @nullable */
   lastName?: string | null;
   /** @nullable */
   notes?: string | null;
   /** @nullable */
+  permissions?: string[] | null;
+  /** @nullable */
   role?: string | null;
   /** @nullable */
+  roles?: string[] | null;
+  /** @nullable */
   taxNumber?: string | null;
+  /**
+   * tenants.Name for the effective tenant when the row exists; otherwise null.
+   * @nullable
+   */
+  tenantDisplayName?: string | null;
+  /**
+   * Effective tenant id (canonical GUID string). Issued on new JWTs and returned by /me when resolved.
+   * @nullable
+   */
+  tenantId?: string | null;
   /** @nullable */
   userName?: string | null;
 }

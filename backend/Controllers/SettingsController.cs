@@ -8,6 +8,7 @@ using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -20,15 +21,18 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly ILogger<SettingsController> _logger;
         private readonly IBackupManualTriggerService _backupManualTrigger;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
         public SettingsController(
             AppDbContext context,
             ILogger<SettingsController> logger,
-            IBackupManualTriggerService backupManualTrigger)
+            IBackupManualTriggerService backupManualTrigger,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
             _backupManualTrigger = backupManualTrigger;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         [HasPermission(AppPermissions.SettingsView)]
@@ -37,12 +41,16 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.SystemSettings.FirstOrDefaultAsync();
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(
+                    HttpContext?.RequestAborted ?? CancellationToken.None);
+                var settings = await _context.SystemSettings
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId, HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     // Varsayılan ayarları oluştur
                     settings = new SystemSettings
                     {
+                        TenantId = tenantId,
                         CompanyName = "Default Company",
                         CompanyAddress = "Default Address",
                         CompanyPhone = "Default Phone",
@@ -96,7 +104,7 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var settings = await _context.SystemSettings.FirstOrDefaultAsync();
+                var settings = await LoadSystemSettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "System settings not found" });
@@ -143,7 +151,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.SystemSettings.FirstOrDefaultAsync();
+                var settings = await LoadSystemSettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "System settings not found" });
@@ -165,7 +173,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.SystemSettings.FirstOrDefaultAsync();
+                var settings = await LoadSystemSettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "System settings not found" });
@@ -193,7 +201,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.SystemSettings.FirstOrDefaultAsync();
+                var settings = await LoadSystemSettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "System settings not found" });
@@ -225,7 +233,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.SystemSettings.FirstOrDefaultAsync();
+                var settings = await LoadSystemSettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "System settings not found" });
@@ -281,7 +289,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.SystemSettings.FirstOrDefaultAsync();
+                var settings = await LoadSystemSettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "System settings not found" });
@@ -316,7 +324,7 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var settings = await _context.SystemSettings.FirstOrDefaultAsync();
+                var settings = await LoadSystemSettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "System settings not found" });
@@ -346,7 +354,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.SystemSettings.FirstOrDefaultAsync();
+                var settings = await LoadSystemSettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "System settings not found" });
@@ -365,6 +373,16 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogError(ex, "Error exporting settings");
                 return StatusCode(500, new { message = "Internal server error" });
             }
+        }
+
+        private async Task<SystemSettings?> LoadSystemSettingsForEffectiveTenantAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return await _context.SystemSettings
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 

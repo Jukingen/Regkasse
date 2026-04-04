@@ -1,6 +1,8 @@
 /**
  * Menu item key → required permission(s). Used to filter sidebar by permission.
  * Sidebar leaf keys must match `SIDEBAR_NAV_ITEM_CATALOG` / RKSV model (`sidebarRouteCoverage` test).
+ * Deep links / direct URL entry still require `routePermissions.ROUTE_PERMISSIONS` (can include paths
+ * with no sidebar row, e.g. `/orders` — see `ROUTE_GUARD_PATHS_WITHOUT_SIDEBAR_LEAF`).
  * Empty = show when authenticated. One permission = require it; array = require any.
  */
 import { PERMISSIONS } from './permissions';

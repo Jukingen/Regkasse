@@ -1,6 +1,9 @@
 /**
  * Route coverage helpers for permission drift tests.
- * Non-RKSV leaves are derived from `adminSidebarRegistry` (single source of truth).
+ *
+ * Non-RKSV sidebar leaves: derived from `adminSidebarRegistry` (`getSidebarCatalogLeafMenuKeys`).
+ * RKSV leaves: from `buildRksvMenuGroups` in coverage tests (`sidebarRouteCoverage.test.ts`).
+ * Intentionally unlisted sidebar routes (guarded only): `ROUTE_GUARD_PATHS_WITHOUT_SIDEBAR_LEAF`.
  */
 
 import { getSidebarCatalogLeafMenuKeys } from '@/shared/adminSidebarRegistry';

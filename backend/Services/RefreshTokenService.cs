@@ -27,14 +27,16 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
     public async Task<IssuedTokenPair> IssueLoginTokensAsync(
         string userId,
         string clientApp,
-        Func<string, string, Guid, DateTime, string, Task<string>> buildAccessToken,
+        Func<string, string, Guid, DateTime, string, string?, Task<string>> buildAccessToken,
+        Guid? sessionTenantId = null,
         CancellationToken cancellationToken = default)
     {
         var session = new AuthSession
         {
             UserId = userId,
             ClientApp = clientApp,
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAtUtc = DateTime.UtcNow,
+            TenantId = sessionTenantId
         };
 
         var accessJti = Guid.NewGuid().ToString("N");
@@ -63,13 +65,14 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
             throw new InvalidOperationException(MissingAuthSchemaMessage, ex);
         }
 
-        var accessToken = await buildAccessToken(userId, accessJti, session.Id, accessExpiresAt, clientApp);
+        var persistedTenant = session.TenantId?.ToString("D");
+        var accessToken = await buildAccessToken(userId, accessJti, session.Id, accessExpiresAt, clientApp, persistedTenant);
         return new IssuedTokenPair(accessToken, accessExpiresAt, refreshTokenPlain, refreshExpiresAt, session.Id, accessJti);
     }
 
     public async Task<RefreshResult> RotateAsync(
         string refreshToken,
-        Func<string, string, Guid, DateTime, string, Task<string>> buildAccessToken,
+        Func<string, string, Guid, DateTime, string, string?, Task<string>> buildAccessToken,
         CancellationToken cancellationToken = default)
     {
         var tokenHash = HashToken(refreshToken);
@@ -129,7 +132,8 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
 
         await SetReplacedByTokenAsync(token.Id, successor.Id, cancellationToken);
 
-        var accessToken = await buildAccessToken(token.UserId, accessJti, token.SessionId, accessExpiresAt, session.ClientApp);
+        var persistedTenant = session.TenantId?.ToString("D");
+        var accessToken = await buildAccessToken(token.UserId, accessJti, token.SessionId, accessExpiresAt, session.ClientApp, persistedTenant);
         var tokens = new IssuedTokenPair(accessToken, accessExpiresAt, refreshTokenPlain, refreshExpiresAt, token.SessionId, accessJti);
         return new RefreshResult(true, false, tokens, string.Empty);
     }

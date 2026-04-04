@@ -7,6 +7,12 @@ namespace KasseAPI_Final.Models
     public class SystemSettings : BaseEntity
     {
         [Required]
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
+        public virtual Tenant? Tenant { get; set; }
+
+        [Required]
         [MaxLength(100)]
         public string CompanyName { get; set; } = string.Empty;
 

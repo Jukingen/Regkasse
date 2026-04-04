@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final
 {
@@ -51,7 +52,8 @@ namespace KasseAPI_Final
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
             await RoleSeedData.SeedRolesAsync(roleManager);
-            await UserSeedData.SeedUsersAsync(userManager);
+            var tenantMembershipProvisioner = serviceProvider.GetRequiredService<IUserTenantMembershipProvisioner>();
+            await UserSeedData.SeedUsersAsync(userManager, tenantMembershipProvisioner);
             await AddDemoData.AddDemoDataAsync(context);
 
             context = serviceProvider.GetRequiredService<AppDbContext>();

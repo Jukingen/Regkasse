@@ -1,6 +1,7 @@
 /**
  * Extension contracts for reservations, KDS / Expo customer display, and third-party integrations.
- * No runtime implementation yet — types and a lightweight registry for future plugins.
+ * No runtime wiring yet — `registerHospitalityExtensions` is unused; dashboard shortcuts live in
+ * `HospitalityQuickLinksCard` (permissions + hardcoded links), not this registry.
  */
 
 /** Reservation origin (e.g. OpenTable, phone, walk-in). */

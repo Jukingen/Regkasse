@@ -31,6 +31,7 @@ using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Services.OperationalRuns;
+using KasseAPI_Final.Tenancy;
 
 var builder = WebApplication.CreateBuilder(args);
 var isDevelopment = builder.Environment.IsDevelopment();
@@ -223,6 +224,11 @@ builder.Services.AddScoped<IRolePermissionResolver, RolePermissionResolver>();
 builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();
 builder.Services.AddScoped<IScopeCheckService, ScopeCheckService>();
+// Wave 0–1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).
+builder.Services.AddScoped<IAuthTenantSnapshotProvider, AuthTenantSnapshotProvider>();
+builder.Services.AddScoped<ILoginTenantResolver, LoginTenantResolver>();
+builder.Services.AddScoped<IUserTenantMembershipProvisioner, UserTenantMembershipProvisioner>();
+builder.Services.AddScoped<ISettingsTenantResolver, SettingsTenantResolver>();
 
 // CORS politikası
 builder.Services.AddCors(options =>

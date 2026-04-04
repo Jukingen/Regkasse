@@ -24064,6 +24064,7 @@
       },
       "UserInfo": {
         "type": "object",
+        "description": "User profile and auth context. GET /api/Auth/me returns permissions from the same effective source as JWT permission claims (IRolePermissionResolver). Tenant fields mirror the effective tenant (JWT tenant_id claim when valid, otherwise the seeded default tenant). Branch fields remain null until branch context exists.",
         "properties": {
           "id": {
             "type": "string",
@@ -24092,6 +24093,49 @@
           "role": {
             "type": "string",
             "nullable": true
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "isDemo": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "appContext": {
+            "type": "string",
+            "nullable": true,
+            "description": "Client app from JWT (pos, admin), when present."
+          },
+          "tenantId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Effective tenant id (canonical GUID string). Issued on new JWTs and returned by /me when resolved."
+          },
+          "tenantDisplayName": {
+            "type": "string",
+            "nullable": true,
+            "description": "tenants.Name for the effective tenant when the row exists; otherwise null."
+          },
+          "branchId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Reserved; null until branch context is implemented."
+          },
+          "branchDisplayName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Reserved; null until branch context is implemented."
           },
           "taxNumber": {
             "type": "string",

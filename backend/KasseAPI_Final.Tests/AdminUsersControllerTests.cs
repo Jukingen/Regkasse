@@ -1,10 +1,14 @@
 using System.Security.Claims;
 using KasseAPI_Final.Controllers;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -17,6 +21,15 @@ namespace KasseAPI_Final.Tests;
 /// </summary>
 public class AdminUsersControllerTests
 {
+    private static AppDbContext CreateEphemeralContext()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"AdminUsers_{Guid.NewGuid():N}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        return new AppDbContext(options);
+    }
+
     private static (UserManager<ApplicationUser> UserManager, RoleManager<IdentityRole> RoleManager) CreateMockUserAndRoleManagers(ApplicationUser? existingUser = null)
     {
         var store = new Mock<IUserStore<ApplicationUser>>();
@@ -62,7 +75,15 @@ public class AdminUsersControllerTests
         string actorRole = "SuperAdmin")
     {
         var logger = new Mock<ILogger<AdminUsersController>>().Object;
-        var controller = new AdminUsersController(userManager, roleManager, auditLogService, sessionInvalidation, uniquenessValidation ?? CreateUniquenessValidationMock(), logger);
+        var controller = new AdminUsersController(
+            CreateEphemeralContext(),
+            userManager,
+            roleManager,
+            auditLogService,
+            sessionInvalidation,
+            uniquenessValidation ?? CreateUniquenessValidationMock(),
+            logger,
+            TenantTestDoubles.NoOpProvisioner());
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, actorId ?? ""),

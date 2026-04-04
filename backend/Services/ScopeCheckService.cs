@@ -4,8 +4,8 @@ using KasseAPI_Final.Authorization;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Reads tenant_id and branch_id from claims; supports scope checks for resource access.
-/// Waiter: own order (assigned user or branch). Cashier: own till (assigned user or branch). Manager: own branch.
+/// Reads optional <c>tenant_id</c> / <c>branch_id</c> from claims when present. Login does not emit them yet.
+/// Intended for waiter/cashier/manager resource scoping once branch context is wired into tokens.
 /// </summary>
 public sealed class ScopeCheckService : IScopeCheckService
 {

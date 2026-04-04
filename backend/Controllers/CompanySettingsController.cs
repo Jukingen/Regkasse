@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Tenancy;
 using System.ComponentModel.DataAnnotations;
 
 namespace KasseAPI_Final.Controllers
@@ -15,11 +16,16 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<CompanySettingsController> _logger;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-        public CompanySettingsController(AppDbContext context, ILogger<CompanySettingsController> logger)
+        public CompanySettingsController(
+            AppDbContext context,
+            ILogger<CompanySettingsController> logger,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         [HasPermission(AppPermissions.SettingsView)]
@@ -28,12 +34,16 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(
+                    HttpContext?.RequestAborted ?? CancellationToken.None);
+                var settings = await _context.CompanySettings
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId, HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     // Varsayılan şirket ayarlarını oluştur
                     settings = new CompanySettings
                     {
+                        TenantId = tenantId,
                         CompanyName = "Default Company",
                         CompanyAddress = "Default Address",
                         CompanyPhone = "Default Phone",
@@ -100,7 +110,7 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var settings = await LoadCompanySettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Company settings not found" });
@@ -167,7 +177,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var settings = await LoadCompanySettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Company settings not found" });
@@ -189,7 +199,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var settings = await LoadCompanySettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Company settings not found" });
@@ -216,7 +226,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var settings = await LoadCompanySettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Company settings not found" });
@@ -251,7 +261,7 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var settings = await LoadCompanySettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Company settings not found" });
@@ -281,7 +291,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(
+                    HttpContext?.RequestAborted ?? CancellationToken.None);
+                var settings = await _context.CompanySettings
+                    .FirstOrDefaultAsync(s => s.TenantId == tenantId, HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Company settings not found" });
@@ -325,7 +338,7 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var settings = await LoadCompanySettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Company settings not found" });
@@ -357,7 +370,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var settings = await LoadCompanySettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Company settings not found" });
@@ -393,7 +406,7 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var settings = await LoadCompanySettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Company settings not found" });
@@ -424,7 +437,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var settings = await _context.CompanySettings.FirstOrDefaultAsync();
+                var settings = await LoadCompanySettingsForEffectiveTenantAsync(HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (settings == null)
                 {
                     return NotFound(new { message = "Company settings not found" });
@@ -443,6 +456,16 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogError(ex, "Error exporting company settings");
                 return StatusCode(500, new { message = "Internal server error" });
             }
+        }
+
+        private async Task<CompanySettings?> LoadCompanySettingsForEffectiveTenantAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+            return await _context.CompanySettings
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         private string GetCurrencySymbol(string currency)

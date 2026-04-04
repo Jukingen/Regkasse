@@ -1,12 +1,15 @@
+using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -83,20 +86,34 @@ public class UserManagementControllerUserLifecycleTests
         IUserUniquenessValidationService? uniquenessValidation = null,
         IRoleManagementService? roleManagementService = null,
         string? actorId = "admin-id",
-        string actorRole = "SuperAdmin")
+        string actorRole = "SuperAdmin",
+        IUserTenantMembershipProvisioner? tenantMembershipProvisioner = null)
     {
         var logger = new Mock<ILogger<UserManagementController>>().Object;
         var roleMgmt = roleManagementService ?? new Mock<IRoleManagementService>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, auditLogService, sessionInvalidation, uniquenessValidation ?? CreateUniquenessValidationMock(), roleMgmt, logger);
+        var provisioner = tenantMembershipProvisioner ?? TenantTestDoubles.NoOpProvisioner();
+        var controller = new UserManagementController(
+            context,
+            userManager,
+            roleManager,
+            auditLogService,
+            sessionInvalidation,
+            uniquenessValidation ?? CreateUniquenessValidationMock(),
+            roleMgmt,
+            logger,
+            provisioner);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, actorId ?? ""),
             new(ClaimTypes.Role, actorRole),
         };
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test")) }
-        };
+        var http = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test")) };
+        // Ensure DB transaction CommitAsync is not cancelled (bare DefaultHttpContext can surface a pre-cancelled token in tests).
+        http.RequestAborted = CancellationToken.None;
+        controller.ControllerContext = new ControllerContext { HttpContext = http };
+        var urlHelper = new Mock<IUrlHelper>();
+        urlHelper.Setup(u => u.Action(It.IsAny<UrlActionContext>())).Returns("http://test/api/usermanagement/placeholder");
+        controller.Url = urlHelper.Object;
         return controller;
     }
 
@@ -782,6 +799,80 @@ public class UserManagementControllerUserLifecycleTests
         Assert.Contains("ROLE_NOT_FOUND", json, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Same persistence path as UserManagement CreateUser after Identity succeeds (InMemory Identity + FK quirks make full MVC action flaky here).</summary>
+    [Fact]
+    public async Task After_UserManager_Create_Provisioner_Adds_Active_Membership()
+    {
+        var (context, userManager, _, _) = await CreateInMemoryUserManagerWithUsersAsync();
+        var tid = LegacyDefaultTenantIds.Primary;
+        context.Tenants.Add(new Tenant { Id = tid, Name = "Default", Slug = LegacyDefaultTenantIds.PrimarySlug });
+        await context.SaveChangesAsync();
+
+        var u = new ApplicationUser
+        {
+            UserName = "newuser",
+            Email = "brandnew@example.com",
+            FirstName = "X",
+            LastName = "Y",
+            EmployeeNumber = "EN-NEW",
+            Role = "Cashier",
+            IsActive = true,
+        };
+        EnsureNormalizedFields(u);
+        var cr = await userManager.CreateAsync(u, "Pass123!@#");
+        Assert.True(cr.Succeeded, string.Join("; ", cr.Errors.Select(e => e.Description)));
+        await userManager.AddToRoleAsync(u, "Cashier");
+
+        var provisioner = new UserTenantMembershipProvisioner(context);
+        await provisioner.ProvisionActiveMembershipAsync(u.Id, tid);
+
+        var m = await context.UserTenantMemberships.SingleAsync(x => x.UserId == u.Id);
+        Assert.True(m.IsActive);
+        Assert.Equal(tid, m.TenantId);
+    }
+
+    /// <summary>UserManagement CreateUser: after success, exactly one active primary-tenant membership exists.</summary>
+    [Fact]
+    public async Task CreateUser_WhenValid_CreatesActivePrimaryMembership()
+    {
+        var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync();
+        var tid = LegacyDefaultTenantIds.Primary;
+        context.Tenants.Add(new Tenant { Id = tid, Name = "Default", Slug = LegacyDefaultTenantIds.PrimarySlug });
+        await context.SaveChangesAsync();
+
+        var provisioner = new UserTenantMembershipProvisioner(context);
+        var controller = CreateController(
+            context,
+            userManager,
+            roleManager,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            uniquenessValidation,
+            tenantMembershipProvisioner: provisioner);
+
+        var request = new CreateUserRequest
+        {
+            UserName = "newuser",
+            Password = "Pass123!@#",
+            Email = "createuser-membership@example.com",
+            FirstName = "X",
+            LastName = "Y",
+            EmployeeNumber = "EN-MEMBERSHIP-1",
+            Role = "Cashier",
+        };
+        var result = await controller.CreateUser(request);
+
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
+        Assert.NotNull(createdResult.Value);
+
+        var u = await userManager.FindByNameAsync("newuser");
+        Assert.NotNull(u);
+        var memberships = await context.UserTenantMemberships.Where(m => m.UserId == u!.Id).ToListAsync();
+        Assert.Single(memberships);
+        Assert.True(memberships[0].IsActive);
+        Assert.Equal(tid, memberships[0].TenantId);
+    }
+
     /// <summary>Update user with empty role -> 400 ROLE_REQUIRED.</summary>
     [Fact]
     public async Task UpdateUser_WhenRoleEmpty_Returns400()
@@ -865,6 +956,7 @@ public class UserManagementControllerUserLifecycleTests
         var dbName = $"UserMgmt_{Guid.NewGuid():N}";
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: dbName)
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         var context = new AppDbContext(options);
         foreach (var u in users)

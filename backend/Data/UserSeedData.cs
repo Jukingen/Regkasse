@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Identity;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Data
 {
     public static class UserSeedData
     {
-        public static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager)
+        public static async Task SeedUsersAsync(UserManager<ApplicationUser> userManager, IUserTenantMembershipProvisioner tenantMembershipProvisioner)
         {
             // Eski kullanıcıları sil
             var oldAdmin = await userManager.FindByEmailAsync("admin@kasse.com");
@@ -48,6 +49,7 @@ namespace KasseAPI_Final.Data
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(adminUser, Roles.SuperAdmin);
+                    await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, LegacyDefaultTenantIds.Primary);
                     Console.WriteLine("Admin user created successfully (role: SuperAdmin)");
                 }
                 else
@@ -71,6 +73,8 @@ namespace KasseAPI_Final.Data
                     await userManager.AddToRoleAsync(adminUser, Roles.SuperAdmin);
                     Console.WriteLine("admin@admin.com updated to role SuperAdmin");
                 }
+
+                await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, LegacyDefaultTenantIds.Primary);
             }
 
             // Demo kasiyer kullanıcısı var mı kontrol et
@@ -98,6 +102,7 @@ namespace KasseAPI_Final.Data
                 if (result.Succeeded)
                 {
                     await userManager.AddToRoleAsync(demoUser, Roles.Cashier);
+                    await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(demoUser.Id, LegacyDefaultTenantIds.Primary);
                     Console.WriteLine("Demo cashier user created successfully");
                 }
                 else
@@ -109,6 +114,18 @@ namespace KasseAPI_Final.Data
                     }
                 }
             }
+
+            await EnsureSeedUserMembershipAsync(tenantMembershipProvisioner, userManager, "demo@demo.com");
+        }
+
+        private static async Task EnsureSeedUserMembershipAsync(
+            IUserTenantMembershipProvisioner provisioner,
+            UserManager<ApplicationUser> userManager,
+            string email)
+        {
+            var u = await userManager.FindByEmailAsync(email);
+            if (u != null)
+                await provisioner.ProvisionActiveMembershipAsync(u.Id, LegacyDefaultTenantIds.Primary);
         }
     }
 }

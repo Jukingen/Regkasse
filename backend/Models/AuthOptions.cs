@@ -16,4 +16,10 @@ public class AuthOptions
     public int RefreshTokenLifetimeDays { get; set; } = 14;
 
     public int ReuseDetectionRevokeLookbackDays { get; set; } = 30;
+
+    /// <summary>
+    /// When true, password login is denied if the user has no active <c>user_tenant_memberships</c> row.
+    /// Default false: legacy default-tenant snapshot is still used when membership is missing.
+    /// </summary>
+    public bool RequireTenantMembershipForLogin { get; set; } = false;
 }
