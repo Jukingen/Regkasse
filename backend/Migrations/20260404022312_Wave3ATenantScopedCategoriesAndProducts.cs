@@ -14,17 +14,45 @@ namespace KasseAPI_Final.Migrations
         {
             var defaultTenant = LegacyDefaultTenantIds.Primary;
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_products_categories_category_id",
-                table: "products");
+            // FixProductsCategoryIdUuidAndFk adds the FK without quoted identifiers, so PostgreSQL
+            // stores it as fk_products_categories_category_id. EF DropForeignKey would quote
+            // "FK_products_categories_category_id" and fail (42704). Drop by catalog match.
+            migrationBuilder.Sql(@"
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (
+        SELECT c.conname AS name
+        FROM pg_constraint c
+        JOIN pg_class rel ON rel.oid = c.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+        WHERE nsp.nspname = 'public'
+          AND rel.relname = 'products'
+          AND c.contype = 'f'
+          AND c.confrelid = 'categories'::regclass
+          AND array_length(c.conkey, 1) = 1
+          AND EXISTS (
+              SELECT 1
+              FROM pg_attribute a
+              WHERE a.attrelid = c.conrelid
+                AND a.attnum = c.conkey[1]
+                AND a.attname = 'category_id')
+    ) LOOP
+        EXECUTE format('ALTER TABLE products DROP CONSTRAINT %I', r.name);
+    END LOOP;
+END $$;
+");
 
-            migrationBuilder.DropIndex(
-                name: "IX_products_barcode",
-                table: "products");
+            migrationBuilder.Sql(@"
+DROP INDEX IF EXISTS ""IX_products_barcode"";
+DROP INDEX IF EXISTS ix_products_barcode;
+");
 
-            migrationBuilder.DropIndex(
-                name: "IX_categories_Name",
-                table: "categories");
+            migrationBuilder.Sql(@"
+DROP INDEX IF EXISTS ""IX_categories_Name"";
+DROP INDEX IF EXISTS ix_categories_name;
+");
 
             migrationBuilder.AddColumn<Guid>(
                 name: "tenant_id",

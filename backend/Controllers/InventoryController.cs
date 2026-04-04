@@ -37,6 +37,20 @@ namespace KasseAPI_Final.Controllers
         private string ActorUserId => User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "unknown";
         private string ActorRole => User.FindFirst(ClaimTypes.Role)?.Value ?? "unknown";
 
+        /// <summary>Active inventory row whose product belongs to the tenant (read / mutating ops gate).</summary>
+        private Task<bool> ActiveInventoryItemBelongsToTenantAsync(Guid inventoryItemId, Guid tenantId, CancellationToken cancellationToken = default) =>
+            (from i in _context.Inventory.AsNoTracking()
+                join p in _context.Products.AsNoTracking() on i.ProductId equals p.Id
+                where i.Id == inventoryItemId && i.IsActive && p.TenantId == tenantId
+                select 1).AnyAsync(cancellationToken);
+
+        /// <summary>Any inventory row (active or not) linked to a product in the tenant — e.g. soft delete.</summary>
+        private Task<bool> InventoryRowLinkedToTenantProductAsync(Guid inventoryItemId, Guid tenantId, CancellationToken cancellationToken = default) =>
+            (from i in _context.Inventory.AsNoTracking()
+                join p in _context.Products.AsNoTracking() on i.ProductId equals p.Id
+                where i.Id == inventoryItemId && p.TenantId == tenantId
+                select 1).AnyAsync(cancellationToken);
+
         /// <summary>
         /// Audit trail for stock-changing operations (best-effort: failure does not roll back stock).
         /// </summary>
@@ -73,34 +87,30 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-                var inventory = await _context.Inventory
-                    .Where(i => i.IsActive)
-                    .ToListAsync();
+                var rows = await (
+                    from i in _context.Inventory
+                    join p in _context.Products on i.ProductId equals p.Id
+                    where i.IsActive && p.TenantId == tenantId
+                    select new { i, p }).ToListAsync();
 
-                var productIds = inventory.Select(i => i.ProductId).ToList();
-                var products = await _context.Products
-                    .Where(p => p.TenantId == tenantId && productIds.Contains(p.Id))
-                    .ToDictionaryAsync(p => p.Id, p => p);
-
-                var enrichedInventory = inventory.Select(item =>
-                {
-                    var product = products.TryGetValue(item.ProductId, out var p) ? p : null;
-                    return new
+                var enrichedInventory = rows
+                    .Select(x => new
                     {
-                        item.Id,
-                        item.ProductId,
-                        ProductName = product?.Name ?? "Unknown Product",
-                        ProductCategory = product?.Category ?? "Unknown Category",
-                        item.CurrentStock,
-                        item.MinStockLevel,
-                        item.MaxStockLevel,
-                        item.ReorderPoint,
-                        item.UnitCost,
-                        item.LastRestocked,
-                        item.Notes,
-                        item.IsActive
-                    };
-                }).OrderBy(i => i.ProductName).ToList();
+                        x.i.Id,
+                        x.i.ProductId,
+                        ProductName = x.p.Name,
+                        ProductCategory = x.p.Category,
+                        x.i.CurrentStock,
+                        x.i.MinStockLevel,
+                        x.i.MaxStockLevel,
+                        x.i.ReorderPoint,
+                        x.i.UnitCost,
+                        x.i.LastRestocked,
+                        x.i.Notes,
+                        x.i.IsActive
+                    })
+                    .OrderBy(r => r.ProductName)
+                    .ToList();
 
                 return Ok(enrichedInventory);
             }
@@ -127,6 +137,17 @@ namespace KasseAPI_Final.Controllers
                 var take = Math.Clamp(pageSize, 1, 200);
                 var skip = Math.Max(0, (Math.Max(1, page) - 1) * take);
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+
+                if (inventoryId.HasValue)
+                {
+                    var ownerTenant = await (
+                        from i in _context.Inventory.AsNoTracking()
+                        join p in _context.Products.AsNoTracking() on i.ProductId equals p.Id
+                        where i.Id == inventoryId.Value
+                        select p.TenantId).FirstOrDefaultAsync(cancellationToken);
+                    if (ownerTenant != default && ownerTenant != tenantId)
+                        return NotFound(new { message = "Inventory item not found" });
+                }
 
                 var q =
                     from t in _context.InventoryTransactions.AsNoTracking()
@@ -190,37 +211,31 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
-                var items = await _context.Inventory
-                    .AsNoTracking()
-                    .Where(i => i.IsActive)
-                    .ToListAsync(cancellationToken);
-
-                var productIds = items.Select(i => i.ProductId).Distinct().ToList();
-                var products = await _context.Products
-                    .AsNoTracking()
-                    .Where(p => p.TenantId == tenantId && productIds.Contains(p.Id))
-                    .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
+                var rows = await (
+                    from i in _context.Inventory.AsNoTracking()
+                    join p in _context.Products.AsNoTracking() on i.ProductId equals p.Id
+                    where i.IsActive && p.TenantId == tenantId
+                    select new { i, p }).ToListAsync(cancellationToken);
 
                 var result = new List<ReorderSuggestionDto>();
-                foreach (var item in items)
+                foreach (var x in rows)
                 {
-                    products.TryGetValue(item.ProductId, out var p);
-                    var threshold = item.ReorderPoint ?? item.MinStockLevel;
-                    if (item.CurrentStock > threshold)
+                    var threshold = x.i.ReorderPoint ?? x.i.MinStockLevel;
+                    if (x.i.CurrentStock > threshold)
                         continue;
 
-                    var gap = threshold - item.CurrentStock;
+                    var gap = threshold - x.i.CurrentStock;
                     var suggested = gap >= 0 ? Math.Max(1, gap) : 1;
 
                     result.Add(new ReorderSuggestionDto
                     {
-                        InventoryId = item.Id,
-                        ProductId = item.ProductId,
-                        ProductName = p?.Name ?? "Unknown Product",
-                        ProductCategory = p?.Category ?? "",
-                        CurrentStock = item.CurrentStock,
-                        MinStockLevel = item.MinStockLevel,
-                        ReorderPoint = item.ReorderPoint,
+                        InventoryId = x.i.Id,
+                        ProductId = x.i.ProductId,
+                        ProductName = x.p.Name ?? "",
+                        ProductCategory = x.p.Category ?? "",
+                        CurrentStock = x.i.CurrentStock,
+                        MinStockLevel = x.i.MinStockLevel,
+                        ReorderPoint = x.i.ReorderPoint,
                         SuggestedOrderQuantity = suggested
                     });
                 }
@@ -241,35 +256,30 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-                var lowStockItems = await _context.Inventory
-                    .Where(i => i.IsActive && i.CurrentStock <= i.MinStockLevel)
-                    .OrderBy(i => i.CurrentStock)
-                    .ToListAsync();
+                var rows = await (
+                    from i in _context.Inventory
+                    join p in _context.Products on i.ProductId equals p.Id
+                    where i.IsActive && i.CurrentStock <= i.MinStockLevel && p.TenantId == tenantId
+                    orderby i.CurrentStock
+                    select new { i, p }).ToListAsync();
 
-                var productIds = lowStockItems.Select(i => i.ProductId).ToList();
-                var products = await _context.Products
-                    .Where(p => p.TenantId == tenantId && productIds.Contains(p.Id))
-                    .ToDictionaryAsync(p => p.Id, p => p);
-
-                var enrichedLowStockItems = lowStockItems.Select(item =>
-                {
-                    var product = products.TryGetValue(item.ProductId, out var p) ? p : null;
-                    return new
+                var enrichedLowStockItems = rows
+                    .Select(x => new
                     {
-                        item.Id,
-                        item.ProductId,
-                        ProductName = product?.Name ?? "Unknown Product",
-                        ProductCategory = product?.Category ?? "Unknown Category",
-                        item.CurrentStock,
-                        item.MinStockLevel,
-                        item.MaxStockLevel,
-                        item.ReorderPoint,
-                        item.UnitCost,
-                        item.LastRestocked,
-                        item.Notes,
-                        item.IsActive
-                    };
-                }).ToList();
+                        x.i.Id,
+                        x.i.ProductId,
+                        ProductName = x.p.Name,
+                        ProductCategory = x.p.Category,
+                        x.i.CurrentStock,
+                        x.i.MinStockLevel,
+                        x.i.MaxStockLevel,
+                        x.i.ReorderPoint,
+                        x.i.UnitCost,
+                        x.i.LastRestocked,
+                        x.i.Notes,
+                        x.i.IsActive
+                    })
+                    .ToList();
 
                 return Ok(enrichedLowStockItems);
             }
@@ -286,6 +296,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                if (!await ActiveInventoryItemBelongsToTenantAsync(id, tenantId))
+                    return NotFound(new { message = "Inventory item not found" });
+
                 var transactions = await _context.InventoryTransactions
                     .Where(t => t.InventoryId == id)
                     .OrderByDescending(t => t.TransactionDate)
@@ -306,32 +320,30 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var inventoryItem = await _context.Inventory
-                    .FirstOrDefaultAsync(i => i.Id == id && i.IsActive);
-
-                if (inventoryItem == null)
-                {
-                    return NotFound(new { message = "Inventory item not found" });
-                }
-
                 var tenantIdItem = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.Id == inventoryItem.ProductId && p.TenantId == tenantIdItem);
+                var row = await (
+                    from i in _context.Inventory
+                    join p in _context.Products on i.ProductId equals p.Id
+                    where i.Id == id && i.IsActive && p.TenantId == tenantIdItem
+                    select new { i, p }).FirstOrDefaultAsync();
+
+                if (row == null)
+                    return NotFound(new { message = "Inventory item not found" });
 
                 var enrichedItem = new
                 {
-                    inventoryItem.Id,
-                    inventoryItem.ProductId,
-                    ProductName = product?.Name ?? "Unknown Product",
-                    ProductCategory = product?.Category ?? "Unknown Category",
-                    inventoryItem.CurrentStock,
-                    inventoryItem.MinStockLevel,
-                    inventoryItem.MaxStockLevel,
-                    inventoryItem.ReorderPoint,
-                    inventoryItem.UnitCost,
-                    inventoryItem.LastRestocked,
-                    inventoryItem.Notes,
-                    inventoryItem.IsActive
+                    row.i.Id,
+                    row.i.ProductId,
+                    ProductName = row.p.Name,
+                    ProductCategory = row.p.Category,
+                    row.i.CurrentStock,
+                    row.i.MinStockLevel,
+                    row.i.MaxStockLevel,
+                    row.i.ReorderPoint,
+                    row.i.UnitCost,
+                    row.i.LastRestocked,
+                    row.i.Notes,
+                    row.i.IsActive
                 };
 
                 return Ok(enrichedItem);
@@ -425,6 +437,10 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
+                var tenantIdUpd = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                if (!await ActiveInventoryItemBelongsToTenantAsync(id, tenantIdUpd))
+                    return NotFound(new { message = "Inventory item not found" });
+
                 var inventoryItem = await _context.Inventory.FindAsync(id);
                 if (inventoryItem == null || !inventoryItem.IsActive)
                 {
@@ -447,7 +463,6 @@ namespace KasseAPI_Final.Controllers
                 inventoryItem.Notes = request.Notes;
                 inventoryItem.UpdatedAt = DateTime.UtcNow;
 
-                var tenantIdUpd = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var product = await _context.Products
                     .FirstOrDefaultAsync(p => p.Id == inventoryItem.ProductId && p.TenantId == tenantIdUpd);
                 if (product != null)
@@ -491,6 +506,10 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
+                var tenantIdRestock = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                if (!await ActiveInventoryItemBelongsToTenantAsync(id, tenantIdRestock))
+                    return NotFound(new { message = "Inventory item not found" });
+
                 var inventoryItem = await _context.Inventory.FindAsync(id);
                 if (inventoryItem == null || !inventoryItem.IsActive)
                 {
@@ -508,7 +527,6 @@ namespace KasseAPI_Final.Controllers
                 inventoryItem.LastRestocked = DateTime.UtcNow;
                 inventoryItem.UpdatedAt = DateTime.UtcNow;
 
-                var tenantIdRestock = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var product = await _context.Products
                     .FirstOrDefaultAsync(p => p.Id == inventoryItem.ProductId && p.TenantId == tenantIdRestock);
                 if (product != null)
@@ -558,6 +576,10 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
+                var tenantIdAdj = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                if (!await ActiveInventoryItemBelongsToTenantAsync(id, tenantIdAdj))
+                    return NotFound(new { message = "Inventory item not found" });
+
                 var inventoryItem = await _context.Inventory.FindAsync(id);
                 if (inventoryItem == null || !inventoryItem.IsActive)
                 {
@@ -575,7 +597,6 @@ namespace KasseAPI_Final.Controllers
                 inventoryItem.CurrentStock = newStock;
                 inventoryItem.UpdatedAt = DateTime.UtcNow;
 
-                var tenantIdAdj = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var product = await _context.Products
                     .FirstOrDefaultAsync(p => p.Id == inventoryItem.ProductId && p.TenantId == tenantIdAdj);
                 if (product != null)
@@ -635,6 +656,11 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Source and target must differ" });
                 }
 
+                var tenantIdXfer = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                if (!await ActiveInventoryItemBelongsToTenantAsync(id, tenantIdXfer)
+                    || !await ActiveInventoryItemBelongsToTenantAsync(request.TargetInventoryId, tenantIdXfer))
+                    return NotFound(new { message = "Source or target inventory not found" });
+
                 var source = await _context.Inventory.FindAsync(id);
                 var target = await _context.Inventory.FindAsync(request.TargetInventoryId);
 
@@ -660,7 +686,6 @@ namespace KasseAPI_Final.Controllers
                 target.CurrentStock += request.Quantity;
                 target.UpdatedAt = DateTime.UtcNow;
 
-                var tenantIdXfer = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var sourceProduct = await _context.Products
                     .FirstOrDefaultAsync(p => p.Id == source.ProductId && p.TenantId == tenantIdXfer);
                 if (sourceProduct != null)
@@ -739,6 +764,10 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantIdDel = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                if (!await InventoryRowLinkedToTenantProductAsync(id, tenantIdDel))
+                    return NotFound(new { message = "Inventory item not found" });
+
                 var inventoryItem = await _context.Inventory.FindAsync(id);
                 if (inventoryItem == null)
                 {

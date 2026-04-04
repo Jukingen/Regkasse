@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,12 @@ namespace KasseAPI_Final.Services.Pricing;
 public sealed class PricingRuleResolver : IPricingRuleResolver
 {
     private readonly AppDbContext _db;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-    public PricingRuleResolver(AppDbContext db)
+    public PricingRuleResolver(AppDbContext db, ISettingsTenantResolver settingsTenantResolver)
     {
         _db = db;
+        _settingsTenantResolver = settingsTenantResolver;
     }
 
     public async Task<PricingResolutionResult> ResolveUnitGrossAsync(
@@ -25,6 +28,7 @@ public sealed class PricingRuleResolver : IPricingRuleResolver
         DateTime utcNow,
         CancellationToken ct = default)
     {
+        var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(ct);
         var tz = PostgreSqlUtcDateTime.AustriaTimeZone;
         var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utcNow, DateTimeKind.Utc), tz);
         var localDate = DateOnly.FromDateTime(local.Date);
@@ -34,6 +38,11 @@ public sealed class PricingRuleResolver : IPricingRuleResolver
         var rules = await _db.PricingRules
             .AsNoTracking()
             .Where(r => r.IsActive && r.ValidFromDate <= localDate && r.ValidToDate >= localDate)
+            .Where(r =>
+                (r.TargetScope == PricingRuleTargetScope.Product &&
+                 _db.Products.Any(p => p.Id == r.TargetId && p.TenantId == tenantId))
+                || (r.TargetScope == PricingRuleTargetScope.Category &&
+                    _db.Categories.Any(c => c.Id == r.TargetId && c.TenantId == tenantId)))
             .ToListAsync(ct);
 
         var candidates = rules

@@ -4,6 +4,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -16,11 +17,16 @@ public class AdminPricingRulesController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly ILogger<AdminPricingRulesController> _logger;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
 
-    public AdminPricingRulesController(AppDbContext context, ILogger<AdminPricingRulesController> logger)
+    public AdminPricingRulesController(
+        AppDbContext context,
+        ILogger<AdminPricingRulesController> logger,
+        ISettingsTenantResolver settingsTenantResolver)
     {
         _context = context;
         _logger = logger;
+        _settingsTenantResolver = settingsTenantResolver;
     }
 
     [HttpGet]
@@ -29,8 +35,14 @@ public class AdminPricingRulesController : ControllerBase
     {
         try
         {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
             var list = await _context.PricingRules
                 .AsNoTracking()
+                .Where(r =>
+                    (r.TargetScope == PricingRuleTargetScope.Product &&
+                     _context.Products.Any(p => p.Id == r.TargetId && p.TenantId == tenantId))
+                    || (r.TargetScope == PricingRuleTargetScope.Category &&
+                        _context.Categories.Any(c => c.Id == r.TargetId && c.TenantId == tenantId)))
                 .OrderByDescending(x => x.Priority)
                 .ThenBy(x => x.Name)
                 .ToListAsync(cancellationToken);
@@ -49,8 +61,9 @@ public class AdminPricingRulesController : ControllerBase
     {
         try
         {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
             var item = await _context.PricingRules.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-            if (item == null)
+            if (item == null || !await RuleOwnedByTenantAsync(item, tenantId, cancellationToken))
                 return NotFound(new { message = "Pricing rule not found" });
             return Ok(ToDto(item));
         }
@@ -73,6 +86,11 @@ public class AdminPricingRulesController : ControllerBase
             var err = ValidateRequest(request);
             if (err != null)
                 return BadRequest(new { message = err });
+
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            var tenantErr = await ValidateTenantTargetsAsync(request, tenantId, cancellationToken);
+            if (tenantErr != null)
+                return BadRequest(new { message = tenantErr });
 
             var now = DateTime.UtcNow;
             var entity = new PricingRule
@@ -120,9 +138,14 @@ public class AdminPricingRulesController : ControllerBase
             if (err != null)
                 return BadRequest(new { message = err });
 
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
             var entity = await _context.PricingRules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-            if (entity == null)
+            if (entity == null || !await RuleOwnedByTenantAsync(entity, tenantId, cancellationToken))
                 return NotFound(new { message = "Pricing rule not found" });
+
+            var tenantErr = await ValidateTenantTargetsAsync(request, tenantId, cancellationToken);
+            if (tenantErr != null)
+                return BadRequest(new { message = tenantErr });
 
             entity.Name = request.Name.Trim();
             entity.Priority = request.Priority;
@@ -156,8 +179,9 @@ public class AdminPricingRulesController : ControllerBase
     {
         try
         {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
             var entity = await _context.PricingRules.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-            if (entity == null)
+            if (entity == null || !await RuleOwnedByTenantAsync(entity, tenantId, cancellationToken))
                 return NotFound(new { message = "Pricing rule not found" });
 
             entity.IsActive = false;
@@ -178,6 +202,40 @@ public class AdminPricingRulesController : ControllerBase
             return "ValidFromDate must be on or before ValidToDate.";
         if (request.CashRegisterId.HasValue && request.CashRegisterId.Value == Guid.Empty)
             return "CashRegisterId must be null or a non-empty GUID.";
+        return null;
+    }
+
+    private async Task<bool> RuleOwnedByTenantAsync(PricingRule r, Guid tenantId, CancellationToken cancellationToken) =>
+        r.TargetScope switch
+        {
+            PricingRuleTargetScope.Product => await _context.Products.AsNoTracking()
+                .AnyAsync(p => p.Id == r.TargetId && p.TenantId == tenantId, cancellationToken),
+            PricingRuleTargetScope.Category => await _context.Categories.AsNoTracking()
+                .AnyAsync(c => c.Id == r.TargetId && c.TenantId == tenantId, cancellationToken),
+            _ => false
+        };
+
+    private async Task<string?> ValidateTenantTargetsAsync(CreatePricingRuleRequest request, Guid tenantId, CancellationToken cancellationToken)
+    {
+        var targetOk = request.TargetScope switch
+        {
+            PricingRuleTargetScope.Product => await _context.Products.AsNoTracking()
+                .AnyAsync(p => p.Id == request.TargetId && p.TenantId == tenantId, cancellationToken),
+            PricingRuleTargetScope.Category => await _context.Categories.AsNoTracking()
+                .AnyAsync(c => c.Id == request.TargetId && c.TenantId == tenantId, cancellationToken),
+            _ => false
+        };
+        if (!targetOk)
+            return "TargetId must reference a product or category in the current tenant.";
+
+        if (request.CashRegisterId.HasValue)
+        {
+            var regOk = await _context.CashRegisters.AsNoTracking()
+                .AnyAsync(cr => cr.Id == request.CashRegisterId && cr.TenantId == tenantId, cancellationToken);
+            if (!regOk)
+                return "CashRegisterId must belong to the current tenant.";
+        }
+
         return null;
     }
 

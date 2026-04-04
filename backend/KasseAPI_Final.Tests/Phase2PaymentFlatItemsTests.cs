@@ -92,7 +92,7 @@ public class Phase2PaymentFlatItemsTests
             cashRegResolver,
             httpAccessor,
             new PaymentMethodCatalogService(context, TenantTestDoubles.PrimaryTenantResolver),
-            new PricingRuleResolver(context),
+            new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver),
             TenantTestDoubles.PrimaryTenantResolver);
     }
 

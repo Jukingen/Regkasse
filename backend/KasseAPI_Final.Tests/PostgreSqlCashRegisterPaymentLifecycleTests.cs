@@ -425,7 +425,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             cashRegResolver,
             httpAccessorMock.Object,
             new PaymentMethodCatalogService(ctx, TenantTestDoubles.PrimaryTenantResolver),
-            new PricingRuleResolver(ctx),
+            new PricingRuleResolver(ctx, TenantTestDoubles.PrimaryTenantResolver),
             TenantTestDoubles.PrimaryTenantResolver);
     }
 }

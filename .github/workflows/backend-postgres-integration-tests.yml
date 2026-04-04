@@ -1,0 +1,62 @@
+# PostgreSQL-backed xUnit tests ([Trait("Category", "PostgreSql")]).
+# CI: ephemeral Postgres service + REGKASSE_TEST_POSTGRES (fixture migrates; tests run, not skipped).
+# Local: Docker + Testcontainers, or set REGKASSE_TEST_POSTGRES yourself (see docs/backend-postgresql-integration-tests.md).
+
+name: Backend PostgreSQL integration tests
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-postgres-integration-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-postgres-integration-tests.yml'
+
+concurrency:
+  group: backend-pg-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  CI: 'true'
+  # Ephemeral CI database only (matches services.postgres below).
+  REGKASSE_TEST_POSTGRES: 'Host=localhost;Port=5432;Database=regkasse_pg_integration;Username=postgres;Password=postgres'
+
+jobs:
+  postgres-integration:
+    name: dotnet test (Category=PostgreSql)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: regkasse_pg_integration
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d regkasse_pg_integration"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Run PostgreSQL-tagged tests
+        working-directory: backend
+        run: >-
+          dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+          --filter "Category=PostgreSql"
+          --verbosity minimal

@@ -93,7 +93,7 @@ public class Phase2TableOrderRecoveryTests
 
         var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
-        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context), TenantTestDoubles.PrimaryTenantResolver);
+        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver);
         SetAuth(controller);
 
         var result = await controller.GetTableOrdersForRecovery();

@@ -164,7 +164,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             cashRegResolver,
             httpAccessor,
             new PaymentMethodCatalogService(ctx, TenantTestDoubles.PrimaryTenantResolver),
-            new PricingRuleResolver(ctx),
+            new PricingRuleResolver(ctx, TenantTestDoubles.PrimaryTenantResolver),
             TenantTestDoubles.PrimaryTenantResolver);
 
         var offlineService = new OfflineTransactionService(

@@ -126,7 +126,7 @@ public class PaymentRegisterCommitGateTests
             cashRegisterResolution,
             httpAccessorMock.Object,
             new PaymentMethodCatalogService(context, TenantTestDoubles.PrimaryTenantResolver),
-            new PricingRuleResolver(context),
+            new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver),
             TenantTestDoubles.PrimaryTenantResolver);
     }
 
