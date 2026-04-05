@@ -14,4 +14,5 @@ export interface AddOnGroupProduct {
   product?: Product;
   productId: string;
   sortOrder: number;
+  tenantId?: string;
 }

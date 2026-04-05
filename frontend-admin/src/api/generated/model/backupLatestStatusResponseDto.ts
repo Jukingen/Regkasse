@@ -7,7 +7,7 @@
  */
 import type { BackupArtifactPipelinePolicyResponseDto } from './backupArtifactPipelinePolicyResponseDto';
 import type { BackupConfigurationHealthResponseDto } from './backupConfigurationHealthResponseDto';
-import type { BackupLatestStatusResponseDtoLatestRun } from './backupLatestStatusResponseDtoLatestRun';
+import type { BackupRunResponseDto } from './backupRunResponseDto';
 import type { RestoreCapabilityDto } from './restoreCapabilityDto';
 
 export interface BackupLatestStatusResponseDto {
@@ -16,7 +16,6 @@ export interface BackupLatestStatusResponseDto {
   /** @nullable */
   averageSucceededBackupDurationSeconds?: number | null;
   configurationHealth?: BackupConfigurationHealthResponseDto;
-  /** @nullable */
-  latestRun?: BackupLatestStatusResponseDtoLatestRun;
+  latestRun?: BackupRunResponseDto;
   restore?: RestoreCapabilityDto;
 }

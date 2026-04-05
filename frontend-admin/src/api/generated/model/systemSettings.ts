@@ -8,6 +8,7 @@
 import type { SystemSettingsEmailSettings } from './systemSettingsEmailSettings';
 import type { SystemSettingsSmsSettings } from './systemSettingsSmsSettings';
 import type { SystemSettingsTaxRates } from './systemSettingsTaxRates';
+import type { Tenant } from './tenant';
 
 export interface SystemSettings {
   autoBackup?: boolean;
@@ -98,6 +99,8 @@ export interface SystemSettings {
   /** @nullable */
   smsSettings?: SystemSettingsSmsSettings;
   taxRates: SystemSettingsTaxRates;
+  tenant?: Tenant;
+  tenantId: string;
   /**
    * @minLength 1
    * @maxLength 20

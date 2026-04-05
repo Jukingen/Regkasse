@@ -5,15 +5,18 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { BackupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus } from './backupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus';
-import type { BackupRecoverabilitySummaryResponseDtoLatestRunStatus } from './backupRecoverabilitySummaryResponseDtoLatestRunStatus';
+import type { RestoreVerificationStatus } from './restoreVerificationStatus';
+import type { BackupRunStatus } from './backupRunStatus';
 
 export interface BackupRecoverabilitySummaryResponseDto {
-  backupExecutionReality?: string;
+  /** @nullable */
+  backupExecutionReality?: string | null;
   /** @nullable */
   backupProofAgeSeconds?: number | null;
-  backupReadinessLevel?: string;
-  backupReadinessNarrative?: string;
+  /** @nullable */
+  backupReadinessLevel?: string | null;
+  /** @nullable */
+  backupReadinessNarrative?: string | null;
   /** @nullable */
   lastSuccessfulArtifactVerificationAt?: string | null;
   /** @nullable */
@@ -28,12 +31,10 @@ export interface BackupRecoverabilitySummaryResponseDto {
   lastSuccessfulRestoreProofRunId?: string | null;
   /** @nullable */
   latestRestoreRunAt?: string | null;
-  /** @nullable */
-  latestRestoreRunStatus?: BackupRecoverabilitySummaryResponseDtoLatestRestoreRunStatus;
+  latestRestoreRunStatus?: RestoreVerificationStatus;
   /** @nullable */
   latestRunAt?: string | null;
-  /** @nullable */
-  latestRunStatus?: BackupRecoverabilitySummaryResponseDtoLatestRunStatus;
+  latestRunStatus?: BackupRunStatus;
   realPostgreSqlLogicalDumpConfigured?: boolean;
   /** @nullable */
   restoreProofAgeSeconds?: number | null;

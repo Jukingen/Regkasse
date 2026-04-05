@@ -7,6 +7,7 @@
  */
 import type { Category } from './category';
 import type { ProductModifierGroupAssignment } from './productModifierGroupAssignment';
+import type { Tenant } from './tenant';
 
 export interface Product {
   /**
@@ -78,6 +79,8 @@ export interface Product {
    */
   taxRate?: number;
   taxType: number;
+  tenant?: Tenant;
+  tenantId?: string;
   /**
    * @minLength 1
    * @maxLength 20

@@ -8,6 +8,8 @@
 import type { BenefitEligibilityPreviewItemRequest } from './benefitEligibilityPreviewItemRequest';
 
 export interface BenefitEligibilityPreviewRequest {
+  /** @nullable */
+  cashRegisterId?: string | null;
   customerId: string;
   /** @nullable */
   items?: BenefitEligibilityPreviewItemRequest[] | null;

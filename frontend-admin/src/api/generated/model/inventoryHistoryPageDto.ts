@@ -8,7 +8,8 @@
 import type { InventoryHistoryRowDto } from './inventoryHistoryRowDto';
 
 export interface InventoryHistoryPageDto {
-  items?: InventoryHistoryRowDto[];
+  /** @nullable */
+  items?: InventoryHistoryRowDto[] | null;
   page?: number;
   pageSize?: number;
   totalCount?: number;

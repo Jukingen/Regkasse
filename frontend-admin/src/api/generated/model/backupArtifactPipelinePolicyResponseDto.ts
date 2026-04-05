@@ -7,11 +7,20 @@
  */
 
 export interface BackupArtifactPipelinePolicyResponseDto {
+  applicationEnforcesExternalArchiveImmutability?: boolean;
   artifactStagingRootConfigured?: boolean;
-  effectiveAdapterKind?: string;
-  externalArchiveRequirement?: string;
+  /** @nullable */
+  effectiveAdapterKind?: string | null;
+  /** @nullable */
+  externalArchiveImmutabilityEnforcement?: string | null;
+  /** @nullable */
+  externalArchiveRequirement?: string | null;
   externalArchiveRootConfigured?: boolean;
-  operatorNotes?: string[];
+  objectStorageImmutabilityBackendImplemented?: boolean;
+  /** @nullable */
+  operatorNotes?: string[] | null;
+  /** @nullable */
+  registeredExternalArchiveBackendKind?: string | null;
   stagingOnDiskHashReverificationExpected?: boolean;
   willRunExternalArchiveAfterStagingVerificationWhenEligible?: boolean;
 }

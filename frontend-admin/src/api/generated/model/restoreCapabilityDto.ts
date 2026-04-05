@@ -8,5 +8,6 @@
 
 export interface RestoreCapabilityDto {
   isAutomatedRestoreAvailable?: boolean;
-  notes?: string;
+  /** @nullable */
+  notes?: string | null;
 }

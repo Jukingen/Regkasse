@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { Product } from './product';
+import type { Tenant } from './tenant';
 
 export interface Category {
   /**
@@ -39,6 +40,8 @@ export interface Category {
   /** @nullable */
   products?: Product[] | null;
   sortOrder?: number;
+  tenant?: Tenant;
+  tenantId?: string;
   /** @nullable */
   updatedAt?: string | null;
   /**

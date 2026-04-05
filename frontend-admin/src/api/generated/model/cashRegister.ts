@@ -7,6 +7,7 @@
  */
 import type { ApplicationUser } from './applicationUser';
 import type { RegisterStatus } from './registerStatus';
+import type { Tenant } from './tenant';
 import type { CashRegisterTransaction } from './cashRegisterTransaction';
 
 export interface CashRegister {
@@ -35,6 +36,8 @@ export interface CashRegister {
   registerNumber: string;
   startingBalance: number;
   status: RegisterStatus;
+  tenant?: Tenant;
+  tenantId?: string;
   /** @nullable */
   transactions?: CashRegisterTransaction[] | null;
   /** @nullable */

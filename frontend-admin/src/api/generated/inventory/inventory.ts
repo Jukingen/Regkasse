@@ -42,7 +42,7 @@ export const getApiInventory = (
 ) => {
       
       
-      return customInstance<InventoryItem[]>(
+      return customInstance<unknown[]>(
       {url: `/api/Inventory`, method: 'GET', signal
     },
       options);
@@ -142,13 +142,234 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiInventoryId = (
+    export const getApiInventoryHistory = (
+    params?: GetApiInventoryHistoryParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<InventoryHistoryPageDto>(
+      {url: `/api/Inventory/history`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiInventoryHistoryQueryKey = (params?: GetApiInventoryHistoryParams,) => {
+    return [`/api/Inventory/history`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiInventoryHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryHistory>>, TError = unknown>(params?: GetApiInventoryHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryHistoryQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryHistory>>> = ({ signal }) => getApiInventoryHistory(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiInventoryHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryHistory>>>
+export type GetApiInventoryHistoryQueryError = unknown
+
+export const useGetApiInventoryHistory = <TData = Awaited<ReturnType<typeof getApiInventoryHistory>>, TError = unknown>(
+ params?: GetApiInventoryHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiInventoryHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiInventoryReorderSuggestions = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ReorderSuggestionDto[]>(
+      {url: `/api/Inventory/reorder-suggestions`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiInventoryReorderSuggestionsQueryKey = () => {
+    return [`/api/Inventory/reorder-suggestions`] as const;
+    }
+
+    
+export const getGetApiInventoryReorderSuggestionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryReorderSuggestionsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>> = ({ signal }) => getApiInventoryReorderSuggestions(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiInventoryReorderSuggestionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>>
+export type GetApiInventoryReorderSuggestionsQueryError = unknown
+
+export const useGetApiInventoryReorderSuggestions = <TData = Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiInventoryReorderSuggestionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiInventoryLowStock = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<unknown[]>(
+      {url: `/api/Inventory/low-stock`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiInventoryLowStockQueryKey = () => {
+    return [`/api/Inventory/low-stock`] as const;
+    }
+
+    
+export const getGetApiInventoryLowStockQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryLowStockQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryLowStock>>> = ({ signal }) => getApiInventoryLowStock(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiInventoryLowStockQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryLowStock>>>
+export type GetApiInventoryLowStockQueryError = unknown
+
+export const useGetApiInventoryLowStock = <TData = Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiInventoryLowStockQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiInventoryTransactionsId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<InventoryItem>(
+      return customInstance<InventoryTransaction[]>(
+      {url: `/api/Inventory/transactions/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiInventoryTransactionsIdQueryKey = (id: string,) => {
+    return [`/api/Inventory/transactions/${id}`] as const;
+    }
+
+    
+export const getGetApiInventoryTransactionsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryTransactionsIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>> = ({ signal }) => getApiInventoryTransactionsId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiInventoryTransactionsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>>
+export type GetApiInventoryTransactionsIdQueryError = unknown
+
+export const useGetApiInventoryTransactionsId = <TData = Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiInventoryTransactionsIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiInventoryId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
       {url: `/api/Inventory/${id}`, method: 'GET', signal
     },
       options);
@@ -454,224 +675,4 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiInventoryLowStock = (
     
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<InventoryItem[]>(
-      {url: `/api/Inventory/low-stock`, method: 'GET', signal
-    },
-      options);
-    }
-  
-
-export const getGetApiInventoryLowStockQueryKey = () => {
-    return [`/api/Inventory/low-stock`] as const;
-    }
-
-    
-export const getGetApiInventoryLowStockQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryLowStockQueryKey();
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryLowStock>>> = ({ signal }) => getApiInventoryLowStock(requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetApiInventoryLowStockQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryLowStock>>>
-export type GetApiInventoryLowStockQueryError = unknown
-
-export const useGetApiInventoryLowStock = <TData = Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryLowStock>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-
-  const queryOptions = getGetApiInventoryLowStockQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const getApiInventoryHistory = (
-    params?: GetApiInventoryHistoryParams,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<InventoryHistoryPageDto>(
-      {url: `/api/Inventory/history`, method: 'GET',
-        params, signal
-    },
-      options);
-    }
-  
-
-export const getGetApiInventoryHistoryQueryKey = (params?: GetApiInventoryHistoryParams,) => {
-    return [`/api/Inventory/history`, ...(params ? [params]: [])] as const;
-    }
-
-    
-export const getGetApiInventoryHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryHistory>>, TError = unknown>(params?: GetApiInventoryHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryHistoryQueryKey(params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryHistory>>> = ({ signal }) => getApiInventoryHistory(params, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryHistory>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetApiInventoryHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryHistory>>>
-export type GetApiInventoryHistoryQueryError = unknown
-
-export const useGetApiInventoryHistory = <TData = Awaited<ReturnType<typeof getApiInventoryHistory>>, TError = unknown>(
- params?: GetApiInventoryHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-
-  const queryOptions = getGetApiInventoryHistoryQueryOptions(params,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const getApiInventoryReorderSuggestions = (
-    
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<ReorderSuggestionDto[]>(
-      {url: `/api/Inventory/reorder-suggestions`, method: 'GET', signal
-    },
-      options);
-    }
-  
-
-export const getGetApiInventoryReorderSuggestionsQueryKey = () => {
-    return [`/api/Inventory/reorder-suggestions`] as const;
-    }
-
-    
-export const getGetApiInventoryReorderSuggestionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryReorderSuggestionsQueryKey();
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>> = ({ signal }) => getApiInventoryReorderSuggestions(requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetApiInventoryReorderSuggestionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>>
-export type GetApiInventoryReorderSuggestionsQueryError = unknown
-
-export const useGetApiInventoryReorderSuggestions = <TData = Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryReorderSuggestions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-
-  const queryOptions = getGetApiInventoryReorderSuggestionsQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const getApiInventoryTransactionsId = (
-    id: string,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<InventoryTransaction[]>(
-      {url: `/api/Inventory/transactions/${id}`, method: 'GET', signal
-    },
-      options);
-    }
-  
-
-export const getGetApiInventoryTransactionsIdQueryKey = (id: string,) => {
-    return [`/api/Inventory/transactions/${id}`] as const;
-    }
-
-    
-export const getGetApiInventoryTransactionsIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetApiInventoryTransactionsIdQueryKey(id);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>> = ({ signal }) => getApiInventoryTransactionsId(id, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetApiInventoryTransactionsIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>>
-export type GetApiInventoryTransactionsIdQueryError = unknown
-
-export const useGetApiInventoryTransactionsId = <TData = Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiInventoryTransactionsId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-
-  const queryOptions = getGetApiInventoryTransactionsIdQueryOptions(id,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-

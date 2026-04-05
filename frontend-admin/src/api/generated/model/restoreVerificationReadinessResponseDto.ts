@@ -7,9 +7,12 @@
  */
 
 export interface RestoreVerificationReadinessResponseDto {
-  issues?: string[];
-  level?: string;
+  /** @nullable */
+  issues?: string[] | null;
+  /** @nullable */
+  level?: string | null;
   orchestratorDistributedLockEnabled?: boolean;
-  scopeDisclaimer?: string;
+  /** @nullable */
+  scopeDisclaimer?: string | null;
   workerEnabled?: boolean;
 }

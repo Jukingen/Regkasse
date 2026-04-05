@@ -12,6 +12,6 @@ export interface RestoreVerificationTriggerResponseDto {
   existingRunReturned?: boolean;
   newQueuedRunCreated?: boolean;
   orchestrationState?: RestoreVerificationTriggerOrchestrationState;
-  run?: RestoreVerificationRunResponseDto;
+  run: RestoreVerificationRunResponseDto;
   runId?: string;
 }

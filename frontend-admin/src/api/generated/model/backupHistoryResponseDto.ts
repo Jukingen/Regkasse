@@ -8,7 +8,8 @@
 import type { BackupRunResponseDto } from './backupRunResponseDto';
 
 export interface BackupHistoryResponseDto {
-  items?: BackupRunResponseDto[];
+  /** @nullable */
+  items?: BackupRunResponseDto[] | null;
   page?: number;
   pageSize?: number;
   totalCount?: number;

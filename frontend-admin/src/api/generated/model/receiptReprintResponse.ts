@@ -5,7 +5,7 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { ReceiptReprintResponseReceipt } from './receiptReprintResponseReceipt';
+import type { ReceiptDTO } from './receiptDTO';
 import type { PrintRoutingContext } from './printRoutingContext';
 
 export interface ReceiptReprintResponse {
@@ -17,8 +17,7 @@ export interface ReceiptReprintResponse {
   errorMessage?: string | null;
   /** @nullable */
   outcome?: string | null;
-  /** @nullable */
-  receipt?: ReceiptReprintResponseReceipt;
+  receipt?: ReceiptDTO;
   /** @nullable */
   reportableEventType?: string | null;
   routing?: PrintRoutingContext;

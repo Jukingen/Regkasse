@@ -7,9 +7,11 @@
  */
 
 export interface StaffPerformanceLocalDayStaffDto {
-  cashierId?: string;
+  /** @nullable */
+  cashierId?: string | null;
   grossSalesAmount?: number;
-  localDayYyyyMmDd?: string;
+  /** @nullable */
+  localDayYyyyMmDd?: string | null;
   refundRowCount?: number;
   saleTransactionCount?: number;
   stornoRowCount?: number;

@@ -7,6 +7,7 @@
  */
 import type { AddOnGroupProduct } from './addOnGroupProduct';
 import type { ProductModifierGroupAssignment } from './productModifierGroupAssignment';
+import type { Tenant } from './tenant';
 
 export interface ProductModifierGroup {
   /** @nullable */
@@ -31,6 +32,8 @@ export interface ProductModifierGroup {
   /** @nullable */
   productAssignments?: ProductModifierGroupAssignment[] | null;
   sortOrder?: number;
+  tenant?: Tenant;
+  tenantId?: string;
   /** @nullable */
   updatedAt?: string | null;
   /**

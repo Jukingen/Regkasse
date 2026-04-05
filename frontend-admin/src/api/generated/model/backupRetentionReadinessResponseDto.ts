@@ -11,7 +11,10 @@ export interface BackupRetentionReadinessResponseDto {
   artifactRetentionDays?: number | null;
   automatedDeletionImplemented?: boolean;
   deletionRequestedByConfiguration?: boolean;
-  executableStatus?: string;
-  mode?: string;
-  operatorNotes?: string[];
+  /** @nullable */
+  executableStatus?: string | null;
+  /** @nullable */
+  mode?: string | null;
+  /** @nullable */
+  operatorNotes?: string[] | null;
 }

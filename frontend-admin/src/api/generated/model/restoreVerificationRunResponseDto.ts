@@ -5,10 +5,16 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { RestoreVerificationRunResponseDtoStatus } from './restoreVerificationRunResponseDtoStatus';
-import type { RestoreVerificationRunResponseDtoTriggerSource } from './restoreVerificationRunResponseDtoTriggerSource';
+import type { RestoreDrillFailureCategory } from './restoreDrillFailureCategory';
+import type { PostRestoreContinuityProofState } from './postRestoreContinuityProofState';
+import type { RestoreDrillStage } from './restoreDrillStage';
+import type { RestoreVerificationStatus } from './restoreVerificationStatus';
+import type { RestoreVerificationTriggerSource } from './restoreVerificationTriggerSource';
 
 export interface RestoreVerificationRunResponseDto {
+  applicationSmokeProbeExecuted?: boolean;
+  /** @nullable */
+  applicationSmokeProbePassed?: boolean | null;
   /** @nullable */
   completedAt?: string | null;
   /** @nullable */
@@ -20,9 +26,22 @@ export interface RestoreVerificationRunResponseDto {
   /** @nullable */
   dumpInspectionPassed?: boolean | null;
   /** @nullable */
+  durationMs?: number | null;
+  /** @nullable */
+  evidenceJson?: string | null;
+  /** @nullable */
+  externalDependencyL6OverallState?: string | null;
+  /** @nullable */
+  externalDependencyL6Summary?: string | null;
+  /** @nullable */
+  externalDependencyProofOutcome?: string | null;
+  failureCategory?: RestoreDrillFailureCategory;
+  /** @nullable */
   failureCode?: string | null;
   /** @nullable */
   failureDetail?: string | null;
+  /** @nullable */
+  fiscalContinuityLayerPassed?: boolean | null;
   /** @nullable */
   fiscalSqlFailCount?: number | null;
   /** @nullable */
@@ -43,6 +62,10 @@ export interface RestoreVerificationRunResponseDto {
   pgRestoreListExitCode?: number | null;
   /** @nullable */
   pgRestoreListLineCount?: number | null;
+  postRestoreContinuityChecksExecuted?: boolean;
+  /** @nullable */
+  postRestoreContinuityChecksPassed?: boolean | null;
+  postRestoreL4ContinuityProofState?: PostRestoreContinuityProofState;
   requestedAt?: string;
   /** @nullable */
   requestedByUserId?: string | null;
@@ -53,12 +76,20 @@ export interface RestoreVerificationRunResponseDto {
   restoreAttemptPassed?: boolean | null;
   /** @nullable */
   restoreAttemptSkipReason?: string | null;
+  restoredDatabaseApplicationSmokeExecuted?: boolean;
+  /** @nullable */
+  restoredDatabaseApplicationSmokePassed?: boolean | null;
+  /** @nullable */
+  restoredDatabaseApplicationSmokeResultKind?: string | null;
+  restoreDrillReachedStage?: RestoreDrillStage;
   /** @nullable */
   restoreTargetDbRedacted?: string | null;
+  /** @nullable */
+  sourceBackupArtifactId?: string | null;
   /** @nullable */
   sourceBackupRunId?: string | null;
   /** @nullable */
   startedAt?: string | null;
-  status?: RestoreVerificationRunResponseDtoStatus;
-  triggerSource?: RestoreVerificationRunResponseDtoTriggerSource;
+  status?: RestoreVerificationStatus;
+  triggerSource?: RestoreVerificationTriggerSource;
 }

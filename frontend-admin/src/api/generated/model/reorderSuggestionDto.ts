@@ -10,9 +10,11 @@ export interface ReorderSuggestionDto {
   currentStock?: number;
   inventoryId?: string;
   minStockLevel?: number;
-  productCategory?: string;
+  /** @nullable */
+  productCategory?: string | null;
   productId?: string;
-  productName?: string;
+  /** @nullable */
+  productName?: string | null;
   /** @nullable */
   reorderPoint?: number | null;
   suggestedOrderQuantity?: number;

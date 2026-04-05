@@ -9,6 +9,8 @@ import type { SelectedModifierInputDto } from './selectedModifierInputDto';
 
 export interface AddItemToCartRequest {
   /** @nullable */
+  cashRegisterId?: string | null;
+  /** @nullable */
   notes?: string | null;
   productId?: string;
   quantity?: number;

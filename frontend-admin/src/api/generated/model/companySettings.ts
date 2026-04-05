@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { CompanySettingsBusinessHours } from './companySettingsBusinessHours';
+import type { Tenant } from './tenant';
 
 export interface CompanySettings {
   /**
@@ -186,6 +187,8 @@ export interface CompanySettings {
    * @maxLength 50
    */
   taxCalculationMethod: string;
+  tenant?: Tenant;
+  tenantId: string;
   /**
    * @minLength 1
    * @maxLength 20

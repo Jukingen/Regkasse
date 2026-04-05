@@ -5,7 +5,7 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { BackupVerificationResponseDtoStatus } from './backupVerificationResponseDtoStatus';
+import type { BackupVerificationStatus } from './backupVerificationStatus';
 
 export interface BackupVerificationResponseDto {
   backupRunId?: string;
@@ -17,6 +17,7 @@ export interface BackupVerificationResponseDto {
   failureReason?: string | null;
   id?: string;
   startedAt?: string;
-  status?: BackupVerificationResponseDtoStatus;
-  verifierSource?: string;
+  status?: BackupVerificationStatus;
+  /** @nullable */
+  verifierSource?: string | null;
 }

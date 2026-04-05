@@ -7,16 +7,24 @@
  */
 import type { BackupArtifactResponseDto } from './backupArtifactResponseDto';
 import type { BackupPipelineSnapshotDto } from './backupPipelineSnapshotDto';
-import type { BackupRunResponseDtoStatus } from './backupRunResponseDtoStatus';
-import type { BackupRunResponseDtoTriggerSource } from './backupRunResponseDtoTriggerSource';
+import type { BackupRunStatus } from './backupRunStatus';
+import type { BackupTriggerSource } from './backupTriggerSource';
 import type { BackupVerificationResponseDto } from './backupVerificationResponseDto';
 
 export interface BackupRunResponseDto {
-  adapterKind?: string;
-  artifactCompletenessPolicyNote?: string;
+  /** @nullable */
+  adapterKind?: string | null;
+  /** @nullable */
+  artifactCompletenessPolicyNote?: string | null;
   /** @nullable */
   artifacts?: BackupArtifactResponseDto[] | null;
   automaticRetryCount?: number;
+  /** @nullable */
+  automaticRetryLastScheduledAtUtc?: string | null;
+  /** @nullable */
+  automaticRetryMaxAttemptsBudget?: number | null;
+  /** @nullable */
+  automaticRetryPendingClassifiedReason?: string | null;
   /** @nullable */
   completedAt?: string | null;
   /** @nullable */
@@ -43,8 +51,8 @@ export interface BackupRunResponseDto {
   requestedByUserId?: string | null;
   /** @nullable */
   startedAt?: string | null;
-  status?: BackupRunResponseDtoStatus;
-  triggerSource?: BackupRunResponseDtoTriggerSource;
+  status?: BackupRunStatus;
+  triggerSource?: BackupTriggerSource;
   /** @nullable */
   verifications?: BackupVerificationResponseDto[] | null;
 }

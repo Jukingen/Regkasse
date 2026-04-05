@@ -11,9 +11,11 @@ export interface InventoryHistoryRowDto {
   inventoryId?: string;
   /** @nullable */
   notes?: string | null;
-  productCategory?: string;
+  /** @nullable */
+  productCategory?: string | null;
   productId?: string;
-  productName?: string;
+  /** @nullable */
+  productName?: string | null;
   quantity?: number;
   totalCost?: number;
   transactionDateUtc?: string;

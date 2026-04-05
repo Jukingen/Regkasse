@@ -14,4 +14,5 @@ export interface ProductModifierGroupAssignment {
   product?: Product;
   productId?: string;
   sortOrder?: number;
+  tenantId?: string;
 }

@@ -24,8 +24,6 @@ import type {
   FinanzOnlineErrorsListResponse,
   FinanzOnlineStatusResponse,
   FinanzOnlineSubmission,
-  FinanzOnlineSubmitRequest,
-  FinanzOnlineSubmitResponse,
   FinanzOnlineTestResponse
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -195,64 +193,7 @@ export const useGetApiFinanzOnlineStatus = <TData = Awaited<ReturnType<typeof ge
 
 
 
-/**
- * @deprecated
- */
-export const postApiFinanzOnlineSubmitInvoice = (
-    finanzOnlineSubmitRequest: FinanzOnlineSubmitRequest,
- options?: SecondParameter<typeof customInstance>,) => {
-      
-      
-      return customInstance<FinanzOnlineSubmitResponse>(
-      {url: `/api/FinanzOnline/submit-invoice`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: finanzOnlineSubmitRequest
-    },
-      options);
-    }
-  
-
-
-export const getPostApiFinanzOnlineSubmitInvoiceMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiFinanzOnlineSubmitInvoice>>, TError,{data: FinanzOnlineSubmitRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiFinanzOnlineSubmitInvoice>>, TError,{data: FinanzOnlineSubmitRequest}, TContext> => {
-const {mutation: mutationOptions, request: requestOptions} = options ?? {};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiFinanzOnlineSubmitInvoice>>, {data: FinanzOnlineSubmitRequest}> = (props) => {
-          const {data} = props ?? {};
-
-          return  postApiFinanzOnlineSubmitInvoice(data,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PostApiFinanzOnlineSubmitInvoiceMutationResult = NonNullable<Awaited<ReturnType<typeof postApiFinanzOnlineSubmitInvoice>>>
-    export type PostApiFinanzOnlineSubmitInvoiceMutationBody = FinanzOnlineSubmitRequest
-    export type PostApiFinanzOnlineSubmitInvoiceMutationError = unknown
-
-    /**
- * @deprecated
- */
-export const usePostApiFinanzOnlineSubmitInvoice = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiFinanzOnlineSubmitInvoice>>, TError,{data: FinanzOnlineSubmitRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationResult<
-        Awaited<ReturnType<typeof postApiFinanzOnlineSubmitInvoice>>,
-        TError,
-        {data: FinanzOnlineSubmitRequest},
-        TContext
-      > => {
-
-      const mutationOptions = getPostApiFinanzOnlineSubmitInvoiceMutationOptions(options);
-
-      return useMutation(mutationOptions);
-    }
-    export const getApiFinanzOnlineErrors = (
+export const getApiFinanzOnlineErrors = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

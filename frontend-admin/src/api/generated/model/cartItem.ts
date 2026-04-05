@@ -9,6 +9,8 @@ import type { Cart } from './cart';
 import type { CartItemModifier } from './cartItemModifier';
 
 export interface CartItem {
+  /** @nullable */
+  appliedPricingRuleId?: string | null;
   cart?: Cart;
   /**
    * @minLength 1

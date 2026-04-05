@@ -7,9 +7,12 @@
  */
 
 export interface StaffPerformanceAnomalyDto {
-  cashierId?: string;
-  kind?: string;
-  message?: string;
+  /** @nullable */
+  cashierId?: string | null;
+  /** @nullable */
+  kind?: string | null;
+  /** @nullable */
+  message?: string | null;
   /** @nullable */
   metricValue?: number | null;
   /** @nullable */

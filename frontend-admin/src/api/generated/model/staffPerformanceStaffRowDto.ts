@@ -7,7 +7,8 @@
  */
 
 export interface StaffPerformanceStaffRowDto {
-  cashierId?: string;
+  /** @nullable */
+  cashierId?: string | null;
   /** @nullable */
   email?: string | null;
   grossSalesAmount?: number;

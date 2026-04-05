@@ -8,6 +8,8 @@
 
 export interface AddCartItemRequest {
   /** @nullable */
+  cashRegisterId?: string | null;
+  /** @nullable */
   notes?: string | null;
   productId?: string;
   quantity?: number;

@@ -7,9 +7,12 @@
  */
 
 export interface BackupConfigurationDiagnosticResponseDto {
-  code?: string;
-  message?: string;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  message?: string | null;
   /** @nullable */
   relatedConfigurationKeys?: string[] | null;
-  severity?: string;
+  /** @nullable */
+  severity?: string | null;
 }

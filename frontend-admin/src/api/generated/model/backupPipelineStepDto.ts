@@ -12,10 +12,12 @@ export interface BackupPipelineStepDto {
   completedAtUtc?: string | null;
   /** @nullable */
   errorCode?: string | null;
-  key?: string;
+  /** @nullable */
+  key?: string | null;
   /** @nullable */
   message?: string | null;
   /** @nullable */
   startedAtUtc?: string | null;
-  status?: string;
+  /** @nullable */
+  status?: string | null;
 }

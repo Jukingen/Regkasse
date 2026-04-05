@@ -8,7 +8,8 @@
 import type { RestoreVerificationRunResponseDto } from './restoreVerificationRunResponseDto';
 
 export interface RestoreVerificationHistoryResponseDto {
-  items?: RestoreVerificationRunResponseDto[];
+  /** @nullable */
+  items?: RestoreVerificationRunResponseDto[] | null;
   page?: number;
   pageSize?: number;
   totalCount?: number;

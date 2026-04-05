@@ -7,7 +7,8 @@
  */
 
 export interface CashierBucketDto {
-  cashierId?: string;
+  /** @nullable */
+  cashierId?: string | null;
   count?: number;
   totalAmount?: number;
 }

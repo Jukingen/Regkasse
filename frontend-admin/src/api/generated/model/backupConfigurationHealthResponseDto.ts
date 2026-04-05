@@ -6,18 +6,31 @@
  * OpenAPI spec version: v1
  */
 import type { BackupConfigurationDiagnosticResponseDto } from './backupConfigurationDiagnosticResponseDto';
+import type { BackupExternalArchiveReadinessResponseDto } from './backupExternalArchiveReadinessResponseDto';
 import type { BackupRetentionReadinessResponseDto } from './backupRetentionReadinessResponseDto';
 
 export interface BackupConfigurationHealthResponseDto {
-  artifactVerificationDisclaimer?: string;
-  backupExecutionReality?: string;
-  diagnostics?: BackupConfigurationDiagnosticResponseDto[];
-  effectiveAdapterKind?: string;
-  issues?: string[];
-  level?: string;
+  /** @nullable */
+  adminRuntimeExecutionMode?: string | null;
+  /** @nullable */
+  artifactVerificationDisclaimer?: string | null;
+  /** @nullable */
+  backupExecutionReality?: string | null;
+  /** @nullable */
+  configurationExecutionAdapterKind?: string | null;
+  /** @nullable */
+  diagnostics?: BackupConfigurationDiagnosticResponseDto[] | null;
+  /** @nullable */
+  effectiveAdapterKind?: string | null;
+  externalArchiveReadiness?: BackupExternalArchiveReadinessResponseDto;
+  /** @nullable */
+  issues?: string[] | null;
+  /** @nullable */
+  level?: string | null;
   /** @nullable */
   nonRealBackupAdapterAcknowledgmentConfigurationKey?: string | null;
-  readinessNarrative?: string;
+  /** @nullable */
+  readinessNarrative?: string | null;
   realPostgreSqlLogicalDumpConfigured?: boolean;
   retentionReadiness?: BackupRetentionReadinessResponseDto;
   workerEnabled?: boolean;

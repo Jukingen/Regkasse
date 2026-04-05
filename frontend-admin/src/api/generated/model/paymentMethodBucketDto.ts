@@ -8,6 +8,7 @@
 
 export interface PaymentMethodBucketDto {
   count?: number;
-  methodKey?: string;
+  /** @nullable */
+  methodKey?: string | null;
   totalAmount?: number;
 }

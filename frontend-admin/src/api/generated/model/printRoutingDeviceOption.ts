@@ -7,8 +7,11 @@
  */
 
 export interface PrintRoutingDeviceOption {
-  id?: string;
+  /** @nullable */
+  id?: string | null;
   isSimulated?: boolean;
-  kind?: string;
-  label?: string;
+  /** @nullable */
+  kind?: string | null;
+  /** @nullable */
+  label?: string | null;
 }

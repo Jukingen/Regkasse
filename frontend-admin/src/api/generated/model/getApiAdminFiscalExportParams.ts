@@ -12,8 +12,5 @@ fromUtc?: string;
 toUtc?: string;
 includeCsv?: boolean;
 format?: string;
-/**
- * diagnostic (default) | audit_handoff | compliance — see FISCAL_EXPORT_DIAGNOSTICS.md
- */
 exportProfile?: string;
 };

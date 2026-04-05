@@ -8,8 +8,12 @@
 import type { BackupPipelineStepDto } from './backupPipelineStepDto';
 
 export interface BackupPipelineSnapshotDto {
-  dataCompleteness?: string;
-  overallPhase?: string;
-  projectionVersion?: string;
-  steps?: BackupPipelineStepDto[];
+  /** @nullable */
+  dataCompleteness?: string | null;
+  /** @nullable */
+  overallPhase?: string | null;
+  /** @nullable */
+  projectionVersion?: string | null;
+  /** @nullable */
+  steps?: BackupPipelineStepDto[] | null;
 }

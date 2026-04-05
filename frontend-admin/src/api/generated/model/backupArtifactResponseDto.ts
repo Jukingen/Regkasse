@@ -5,11 +5,11 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { BackupArtifactResponseDtoArtifactType } from './backupArtifactResponseDtoArtifactType';
-import type { BackupArtifactResponseDtoLifecycleState } from './backupArtifactResponseDtoLifecycleState';
+import type { BackupArtifactType } from './backupArtifactType';
+import type { BackupArtifactLifecycleState } from './backupArtifactLifecycleState';
 
 export interface BackupArtifactResponseDto {
-  artifactType?: BackupArtifactResponseDtoArtifactType;
+  artifactType?: BackupArtifactType;
   /** @nullable */
   byteSize?: number | null;
   /** @nullable */
@@ -18,6 +18,7 @@ export interface BackupArtifactResponseDto {
   externalRedactedLocator?: string | null;
   id?: string;
   isFilePresentForDownload?: boolean;
-  lifecycleState?: BackupArtifactResponseDtoLifecycleState;
-  storageLocator?: string;
+  lifecycleState?: BackupArtifactLifecycleState;
+  /** @nullable */
+  storageLocator?: string | null;
 }

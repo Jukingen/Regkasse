@@ -7,8 +7,10 @@
  */
 
 export interface StaffPerformanceStaffMethodSliceDto {
-  cashierId?: string;
+  /** @nullable */
+  cashierId?: string | null;
   grossAmount?: number;
-  paymentMethodRaw?: string;
+  /** @nullable */
+  paymentMethodRaw?: string | null;
   saleCount?: number;
 }

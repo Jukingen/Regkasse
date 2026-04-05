@@ -8,6 +8,7 @@
 
 export interface RestoreVerificationManualTriggerRequestDto {
   /**
+   * @minLength 0
    * @maxLength 200
    * @nullable
    */

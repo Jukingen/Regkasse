@@ -10,6 +10,7 @@ import type { BackupRunResponseDto } from './backupRunResponseDto';
 export interface BackupTriggerResponseDto {
   duplicateExecutionPrevented?: boolean;
   newQueuedRunCreated?: boolean;
-  orchestrationState?: string;
+  /** @nullable */
+  orchestrationState?: string | null;
   run?: BackupRunResponseDto;
 }

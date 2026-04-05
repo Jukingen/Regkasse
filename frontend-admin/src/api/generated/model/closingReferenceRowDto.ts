@@ -9,12 +9,15 @@
 export interface ClosingReferenceRowDto {
   cashRegisterId?: string;
   closingDateUtc?: string;
-  closingType?: string;
+  /** @nullable */
+  closingType?: string | null;
   hasTseSignature?: boolean;
   id?: string;
-  status?: string;
+  /** @nullable */
+  status?: string | null;
   totalAmount?: number;
   totalTaxAmount?: number;
   transactionCount?: number;
-  userId?: string;
+  /** @nullable */
+  userId?: string | null;
 }
